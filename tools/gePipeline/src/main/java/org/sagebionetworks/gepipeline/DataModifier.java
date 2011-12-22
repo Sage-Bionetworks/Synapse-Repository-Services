@@ -6,6 +6,7 @@ import java.util.Collection;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -243,6 +244,110 @@ public class DataModifier {
 		} while (offset<=total);
 	}
 	
+	// delete datasets from the project 'projectID' unless their IDs are in the list of 'exceptions'
+	public static void deleteDatasets(int projectID, Collection<Integer> exceptions, String user, String pw) throws SynapseException {
+		Synapse synapse = new Synapse();
+		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
+		HttpClientHelper.setGlobalSocketTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
+		synapse.setAuthEndpoint(AUTH_ENDPOINT);
+		synapse.setRepositoryEndpoint(REPO_ENDPOINT);
+
+		synapse.login(user, pw);
+		int offset=1;
+		int total=0;
+		int batchSize = 20;
+		do {
+			int deletedCount = 0;
+			try {
+				JSONObject o = synapse.query("select * from dataset where parentId=="+projectID+" LIMIT "+batchSize+" OFFSET "+offset);
+				total = (int)o.getLong("totalNumberOfResults");
+				System.out.println(""+offset+"->"+(offset+batchSize-1)+" of "+total);
+				JSONArray a = o.getJSONArray("results");
+				for (int i=0; i<a.length(); i++) {
+					JSONObject ds = (JSONObject)a.get(i);
+					String id = ds.getString("dataset.id");
+					String name = ds.getString("dataset.name");
+					if (!exceptions.contains(Integer.parseInt(id))) {
+						// then move the dataset to the new project
+						String datasetUri = "/dataset/"+id;
+						synapse.deleteSynapseEntity(REPO_ENDPOINT, datasetUri);
+						System.out.println("Deleted "+name+" from project "+projectID);
+						deletedCount++;
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			offset += batchSize-deletedCount;
+		} while (offset<=total);
+	}
+	
+	// count the datasets, layers, and locations in a project
+	public static void projectStats(int projectId, String user, String pw) throws SynapseException {
+		Synapse synapse = new Synapse();
+		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
+		HttpClientHelper.setGlobalSocketTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
+		synapse.setAuthEndpoint(AUTH_ENDPOINT);
+		synapse.setRepositoryEndpoint(REPO_ENDPOINT);
+
+		synapse.login(user, pw);
+		int offset=1;
+		int total=0;
+		int batchSize = 20;
+		
+		int datasetCount = 0;
+		int layerCount = 0;
+		int locationCount = 0;
+		do {
+			try {
+				JSONObject o = synapse.query("select * from dataset where parentId=="+projectId+" LIMIT "+batchSize+" OFFSET "+offset);
+				total = (int)o.getLong("totalNumberOfResults");
+				System.out.println(""+offset+"->"+(offset+batchSize-1)+" of "+total);
+				JSONArray a = o.getJSONArray("results");
+				for (int i=0; i<a.length(); i++) {
+					datasetCount++;
+					JSONObject ds = (JSONObject)a.get(i);
+					System.out.println(ds);
+					String datasetId = ds.getString("dataset.id");
+					JSONObject lo = synapse.query("select * from layer where parentId=="+datasetId);
+					JSONArray la = lo.getJSONArray("results");
+					for (int j=0; j<la.length(); j++) {
+						layerCount++;
+						JSONObject layer = (JSONObject)la.get(j);
+						String layerId = layer.getString("layer.id");
+						JSONObject loco = synapse.query("select * from location where parentId=="+layerId);
+						JSONArray loca = loco.getJSONArray("results");
+						locationCount += loca.length();
+					}
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			offset += batchSize;
+		} while (offset<=total);
+		System.out.println(
+				"For projectId="+projectId+", "+
+				"# datasets="+datasetCount+", "+
+				"# layers="+layerCount+", "+
+				"# locations="+locationCount
+				);
+	}
+	
+	public static void layerModifiedOn(int id, String user, String pw) throws Exception {
+		Synapse synapse = new Synapse();
+		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
+		HttpClientHelper.setGlobalSocketTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
+		synapse.setAuthEndpoint(AUTH_ENDPOINT);
+		synapse.setRepositoryEndpoint(REPO_ENDPOINT);
+
+		synapse.login(user, pw);
+		
+		JSONObject o = synapse.getEntity("/layer/"+id);
+		String modString = o.getString("modifiedOn");
+//		DateTime dt = new DateTime(Long.parseLong(modString));
+		System.out.println("Layer "+id+" modified on: "+modString);
+	}
+	
 	public static void main(String[] args) throws Exception {
 		 Logger.getLogger(Synapse.class.getName()).setLevel(Level.WARN);
 //		updateNOSAnnotations(args[0], args[1]);
@@ -255,5 +360,14 @@ public class DataModifier {
 //		Collection<Integer> exceptions = Arrays.asList(new Integer[]{4513});
 //		migrateDatasets(origProjectID, newProjectID, datasetNameSubstring,
 //				exceptions, args[0], args[1]);
+		 
+//		int projectID = 102611;
+//		Collection<Integer> exceptions = Arrays.asList(new Integer[]{104472});
+//		deleteDatasets(projectID, exceptions, args[0], args[1]);
+		 
+//		 projectStats(102610, args[0], args[1]); // Sage Commons Repository
+//		 projectStats(102611, args[0], args[1]); // MetaGenomics
+		 
+		 layerModifiedOn(24040, args[0], args[1]);
 	}
 }

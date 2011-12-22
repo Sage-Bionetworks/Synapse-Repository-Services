@@ -11,9 +11,7 @@
 #   urlEncodedInputData - dataset parameters:
 #		parentId (REQUIRED) - ID of the Synapse project for the datasets of processed data
 #		name (REQUIRED) - name of dataset which will contain the output of this function
-#		lastUpdate (REQUIRED) - time stamp on data source, indicating when last changed
 #   	sourceLayerId (REQUIRED) - the source layer to be processed
-#  		layerName (REQUIRED) - the name of the created layer
 #		number_of_samples
 #		description
 #		status
@@ -54,30 +52,14 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 	inputDataMap<-RJSONIO::fromJSON(inputData, simplify=F)
 	
 	
-	# divides attributes into 'properties' and 'annotations'
-	splitDatasetAttributes<-function(a) {
-		dataSetPropertyLabels<-c("name", "description", "status", "createdBy", "parentId")
-		properties<-list()
-		annotations<-list()
-		for (i in 1:length(a)) {
-			fieldName<-names(a[i])
-			if (any(dataSetPropertyLabels==fieldName)) {
-				properties[fieldName]<-a[i]
-			} else {
-				annotations[fieldName]<-a[i]
-			}
-		}
-		list(properties=properties, annotations=annotations)
-	}
-	
 	indx <- which(tolower(names(inputDataMap)) == "number_of_samples")
 	if(length(indx) > 0L)
 		names(inputDataMap)[indx] <- tolower(names(inputDataMap)[indx])
 	
 	attributes<-splitDatasetAttributes(inputDataMap[setdiff(names(inputDataMap),"lastUpdate")])
 	
-	if(!all(c('name', 'parentId', 'lastUpdate') %in% names(inputDataMap))){
-		msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", inputDataMap[["parentId"]], "\n")
+	if(!all(c('name', 'parentId', 'sourceLayerId') %in% names(inputDataMap))){
+		msg <- paste("Source layer: ", inputDataMap[["sourceLayerId"]],  "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", inputDataMap[["parentId"]], "\n")
 		msg <- sprintf("not all required properties were provided: %s", msg)
 		finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
 		stop(msg)
@@ -88,13 +70,13 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 			|| is.null(authEndpoint)
 			|| is.null(repoEndpoint)
 			){
-		msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", inputDataMap[["parentId"]], "\n")
+		msg <- paste("gseId: ", inputDataMap[["name"]], "\nTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", inputDataMap[["parentId"]], "\n")
 		msg <- sprintf("not all required arguments were provided: %s", msg)
 		finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
 		stop(msg)
 	}
 	
-	msg <- paste("gseId: ", inputDataMap[["name"]], "\ngeoTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", inputDataMap[["parentId"]], "\n")
+	msg <- paste("gseId: ", inputDataMap[["name"]], "\nTimestamp: ", inputDataMap[["lastUpdate"]], "\nuserName: ", userName, "\nsecretKey: ", secretKey, "\nauthEndpoint:", authEndpoint, "\nrepoEndpoint: ", repoEndpoint, "\nprojectId: ", inputDataMap[["parentId"]], "\n")
 	cat(msg)
 	
 	## set the service endpoints
@@ -111,20 +93,15 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 		analysis <- Analysis(list(description=analysisDescription, 
 					name=analysisDescription, parentId=inputDataMap[["parentId"]]))
 		analysis <- createEntity(analysis)
-		# this function no longer does the 'indexing' step
-		## analysisStep<-startStep(analysis)
-		## propertyValue(analysisStep, "name")<-paste("GEO indexing step for ", inputDataMap[["name"]], timestamp)
-		## analysisStep <- updateEntity(analysisStep)
-		## stopStep()
 		analysisStep<-startStep(analysis)	
 		propertyValue(analysisStep, "name")<-paste("Unsupervised QC step for ", inputDataMap[["name"]], timestamp)
 		analysisStep <- updateEntity(analysisStep)
 	}
 	
 	
-	## create the geo dataset
+	## create the dataset, if it doesn't already exist
 	ans <- tryCatch({
-				createDataset(attributes$properties, attributes$annotations)
+				createDataset(attributes$properties, list()) # previously we passed in a variety of annotations, but stopped since they are now layer-specific
 			},
 			error = function(e){
 				msg <- sprintf("Failed to create Dataset: %s", e)
@@ -132,31 +109,23 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 				stop(e)
 			}
 	)
-	dsId <- ans$datasetId
+	ds <- ans$dataset
 	msg <- "QC In Progress"
 
 	# we initially set the status code to ERROR.  Upon successful completion we'll change it to OK
-	setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
+    # TODO: put status in Step
+	## setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
 	
-	if(!ans$update){
-		msg <- ans$reason
-		finishWorkflowTask(list(status=kOkStatusCode, msg=msg, datasetId=dsId))
-		setWorkFlowStatusAnnotation(dsId, kOkStatusCode, msg)
-	}else{
-		
-		## 'Indexing' is now done upstream, not by this function
-		##
-		## ## get add location code entity and add location for the geo id
-		## ans <- tryCatch({
-		##             createLayer(dsId, inputDataMap[["url"]], inputDataMap[["layerName"]])
-		##         },
-		##         error = function(e){
-		##             msg <- sprintf("Failed to create layer: %s", e)
-		##             finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
-		##             setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
-		##             stop(e)
-		##         }
-		## )
+	# when was this last run?
+	sourceLayerId <-inputDataMap[["sourceLayerId"]]
+	sourceLayer <- getEntity(sourceLayerId)
+	sourceLayerName <- propertyValue(sourceLayer, "name")
+	sourceLayerLastUpdate <- propertyValue(sourceLayer, "modifiedOn")
+	dsLastUpdate <- annotValue(annotations(ds), lastUpdateAnnotName(sourceLayerId))
+	if (!is.null(dsLastUpdate) && (dsLastUpdate==sourceLayerLastUpdate)) {
+		msg <- paste("No change to", sourceLayerName)
+		finishWorkflowTask(list(status=kOkStatusCode, msg=msg, sourceLayer=sourceLayerName))
+	} else {
 		
 		## for now, disable the use of code object in Synapse
 		## ##########################################
@@ -176,16 +145,16 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 		
 		## run the metaGeo workflow
 		ans <- tryCatch({
-					sourceLayerId <-inputDataMap[["sourceLayerId"]]
 					## for now, disable the use of code object in Synapse
 					## runMetaGeoEntity <- loadEntity(kRunMetaGeoCodeEntityId)
 					## runMetaGeoEntity$objects$run(sourceLayerId, name, inputDataMap[["lastUpdate"]])
-					doMetaGeoQc(sourceLayerId, name, inputDataMap[["lastUpdate"]])
+					doMetaGeoQc(sourceLayerId, ds, sourceLayerLastUpdate, F)
 				},
 				error = function(e){
 					msg <- sprintf("Failed to run metaGeo workflow: %s", e)
 					finishWorkflowTask(list(status=kErrorStatusCode,msg=msg))
-					setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
+					# TODO: put status in Step
+					## 				setWorkFlowStatusAnnotation(dsId, kErrorStatusCode, msg)
 					stop(e)
 				}
 		)
@@ -197,20 +166,26 @@ metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedI
 		maxmem<-sum(gc()[,6])
 		
 		## call the finish workflow step code
-		msg <- sprintf("Successfully added GEO study %s to Synapse.", inputDataMap[['name']])
+		if (is.null(ans$exprLayers)) {
+			msg <- sprintf("No output created for %s %s in Synapse.", inputDataMap[['name']], sourceLayerName)
+		} else {
+			msg <- sprintf("Successfully added %s %s to Synapse.", inputDataMap[['name']], sourceLayerName)
+		}
 		finishWorkflowTask(
 				output=list(
 						status=kOkStatusCode, 
 						msg=msg, 
-						datasetId=dsId, 
+						datasetId=propertyValue(ds, "id"), 
 						qcdExprLayerId=ans$exprLayers, 
 						metadataLayerId=ans$metadataLayers,
 						elapsedtime=elapsedtime,
 						maxmem=maxmem
 				)
 		)
-		setWorkFlowStatusAnnotation(dsId, kOkStatusCode, msg)
-	}
+		# TODO: put status in Step
+		## 	setWorkFlowStatusAnnotation(dsId, kOkStatusCode, msg)
+    }
+		
 	if (recordProvenance) {
 		stopStep()
 	}

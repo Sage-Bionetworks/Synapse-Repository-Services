@@ -8,15 +8,19 @@ doMetaGeoQc <-
 {
 	library(metaGEO)
 	geoData <- downloadEntity(sourceLayerId)
+	sourceLayerName <- propertyValue(geoData, "name")
 	tryCatch({
-		result <- runWorkflow(geoData$cacheDir, "affy")
+		result <- runWorkflow(geoData$cacheDir)
 	
 		exprLayers <- NULL
 		metadataLayers <- NULL
 		for(cdfname in names(result)){
-			exprLayers <- c(exprLayers, .storeExprResults(destDataset, cdfname, result[[cdfname]], deleteDataFiles)$layerId)
+			exprLayers <- c(exprLayers, .storeExprResults(destDataset, sourceLayerName, cdfname, result[[cdfname]], deleteDataFiles)$layerId)
 		}
-		annotValue(destDataset, "lastUpdate") <- as.character(timestamp)
+		
+		# 'destDataset' object may be 'stale', so refresh it
+		destDataset <- getEntity(propertyValue(destDataset, "id"))
+		annotValue(destDataset, lastUpdateAnnotName(sourceLayerId)) <- as.character(timestamp)
 		destDataset <<- updateEntity(destDataset)
 		},
 		finally = {
@@ -24,20 +28,20 @@ doMetaGeoQc <-
 				cat(sprintf("\n\ndeleting files for: %s\n\n",  propertyValue(destDataset, "name")))
 				ret <- unlink(gsub(sprintf("%s/.+$", propertyValue(destDataset, "name")), propertyValue(destDataset,"name"), geoData$cacheDir), recursive=TRUE)
 				if(ret != 0L)
-					stop(sprintf("could not delete files for: %s",  propertyValue(destDataset, "name")))
+				    stop(sprintf("could not delete files for: %s",  propertyValue(destDataset, "name")))
 				unlink(tempdir(), recursive=TRUE)
 			}
 		}
 	)
-	list(geoId=propertyValue(destDataset, "name"), exprLayers=exprLayers)
+	list(exprLayers=exprLayers)
 }
 
 
 .storeExprResults <- 
-		function(geoDataset, cdfname, data, deleteDataFiles)
+		function(geoDataset, sourceLayerName, cdfname, data, deleteDataFiles)
 {
 	
-	destLayerName <- sprintf("QCd Expression Data %s", cdfname)
+	destLayerName <- sprintf("QCd Expression Data %s %s", sourceLayerName, cdfname)
 	
 	result <- synapseQuery(sprintf('select * from layer where layer.name == "%s" and layer.parentId == "%s"', destLayerName, propertyValue(geoDataset, "id")))
 	if(!is.null(result)){
@@ -52,8 +56,8 @@ doMetaGeoQc <-
 						parentId=propertyValue(geoDataset, "id"), ## layer is a child of the dataset
             platform=cdfname
 				))
-		## set the studyId annotation before storing the layer and it's data in Synapse
-		annotValue(layer, "StudyId") <- propertyValue(geoDataset, "name")
+		## set the studyId annotation before storing the layer and its data in Synapse
+		annotValue(layer, "Dataset") <- propertyValue(geoDataset, "name")
 	}
 	## add the data to the layer. Each of the data objects named in storeFields
 	## will be stored as a separate binary object in layer
