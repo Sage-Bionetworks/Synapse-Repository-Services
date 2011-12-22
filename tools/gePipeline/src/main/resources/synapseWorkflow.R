@@ -209,43 +209,62 @@ createDataset <- function (dsProperties, dsAnnotations)
 	qryResult <- synapseQuery(qryString)
 	if (!is.null(qryResult)) {
 		dataset <- getEntity(qryResult$dataset.id[1])
-		origTimestamp <- annotValue(dataset, "lastUpdate")
-		origErrorCode <- annotValue(dataset, "workflowStatusCode")
-		annotationValues(dataset) <- dsAnnotations
-		dataset <- updateEntity(dataset)
+		## origTimestamp <- annotValue(dataset, "lastUpdate")
+		## origErrorCode <- annotValue(dataset, "workflowStatusCode")
+		## annotationValues(dataset) <- dsAnnotations
+		## dataset <- updateEntity(dataset)
 	}
 	else {
 		dataset <- createEntity(dataset)
 	}
-	retVal <- list(update = TRUE, projectId = propertyValue(dataset, 
-					"parentId"), datasetId = propertyValue(dataset, "id"))
-	# if there are no CEL files OR 
-	# if the update date has not changed AND the previous error code is zero
-	# then don't rerun QC
-	if (
-		(
-					!is.null(origTimestamp)
-					&& !is.null(annotValue(dataset, "lastUpdate")) 
-					&& annotValue(dataset, "lastUpdate") == origTimestamp
-					)
-				&&
-				(
-					!is.null(origErrorCode)
-					&& as.numeric(origErrorCode) == 0
-					)
-				)
-	{
-		retVal$update <- FALSE
-		retVal$reason <- sprintf("Dataset %s has not changed since last update.", propertyValue(dataset, "id"))
-	}
-	if (!is.null(dsAnnotations$hasCelFiles)
-				&& !is.na(as.logical(dsAnnotations$hasCelFiles))
-				&& !as.logical(dsAnnotations$hasCelFiles))
-	{
-		retVal$update <- FALSE
-		retVal$reason <- "Dataset has no expression data to process."
-	}
+	retVal <- list(projectId = propertyValue(dataset, "parentId"), dataset = dataset)
+	## # if there are no CEL files OR 
+	## # if the update date has not changed AND the previous error code is zero
+	## # then don't rerun QC
+	## if (
+	##     (
+	##                 !is.null(origTimestamp)
+	##                 && !is.null(annotValue(dataset, "lastUpdate")) 
+	##                 && annotValue(dataset, "lastUpdate") == origTimestamp
+	##                 )
+	##             &&
+	##             (
+	##                 !is.null(origErrorCode)
+	##                 && as.numeric(origErrorCode) == 0
+	##                 )
+	##             )
+	## {
+	##     retVal$update <- FALSE
+	##     retVal$reason <- sprintf("Dataset %s has not changed since last update.", propertyValue(dataset, "id"))
+	## }
+	## if (!is.null(dsAnnotations$hasCelFiles)
+	##             && !is.na(as.logical(dsAnnotations$hasCelFiles))
+	##             && !as.logical(dsAnnotations$hasCelFiles))
+	## {
+	##     retVal$update <- FALSE
+	##     retVal$reason <- "Dataset has no expression data to process."
+	## }
 	retVal
+}
+
+# divides attributes into 'properties' and 'annotations'
+splitDatasetAttributes<-function(a) {
+	dataSetPropertyLabels<-c("name", "description", "status", "createdBy", "parentId")
+	properties<-list()
+	annotations<-list()
+	for (i in 1:length(a)) {
+		fieldName<-names(a[i])
+		if (any(dataSetPropertyLabels==fieldName)) {
+			properties[fieldName]<-a[i]
+		} else {
+			annotations[fieldName]<-a[i]
+		}
+	}
+	list(properties=properties, annotations=annotations)
+}
+
+lastUpdateAnnotName <- function(layer) {
+	paste(layer, "lastUpdate", sep="_")
 }
 
 setWorkFlowStatusAnnotation <- function(dsId, statusCode, statusMessage){
