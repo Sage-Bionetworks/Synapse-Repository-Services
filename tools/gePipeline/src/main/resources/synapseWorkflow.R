@@ -267,6 +267,10 @@ lastUpdateAnnotName <- function(layer) {
 	paste(layer, "lastUpdate", sep="_")
 }
 
+md5sumAnnotName <- function(layer) {
+	paste(layer, "md5sum", sep="_")
+}
+
 setWorkFlowStatusAnnotation <- function(dsId, statusCode, statusMessage){
 	ds <- getEntity(dsId)
 	annotValue(ds, "workflowStatusCode") <- statusCode
