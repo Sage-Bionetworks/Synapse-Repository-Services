@@ -1,12 +1,12 @@
 package org.sagebionetworks.gepipeline;
 
-import java.io.IOException;
-import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Map;
 
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
-import org.joda.time.DateTime;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -348,6 +348,76 @@ public class DataModifier {
 		System.out.println("Layer "+id+" modified on: "+modString);
 	}
 	
+	private static final String LAST_UPDATE_SUFFIX = "_lastUpdate";
+	private static final String MD5SUM_SUFFIX = "_md5sum";
+	
+	// find all the "_lastUpdate" annotations in the datasets in projectId
+	// for each, take the prefix, which is a layer id, get the corresponding
+	// md5 checksum, and add a "_md5sum" annotation to the dataset
+	public static void checksum(int projectId, String user, String pw) throws SynapseException {
+		Synapse synapse = new Synapse();
+		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
+		HttpClientHelper.setGlobalSocketTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
+		synapse.setAuthEndpoint(AUTH_ENDPOINT);
+		synapse.setRepositoryEndpoint(REPO_ENDPOINT);
+
+		synapse.login(user, pw);
+		int offset=1;
+		int total=0;
+		int batchSize = 20;
+		
+		int datasetCount = 0;
+		int layerCount = 0;
+		int locationCount = 0;
+		do {
+			try {
+				JSONObject o = synapse.query("select * from dataset where parentId=="+projectId+" LIMIT "+batchSize+" OFFSET "+offset);
+				total = (int)o.getLong("totalNumberOfResults");
+				System.out.println(""+offset+"->"+(offset+batchSize-1)+" of "+total);
+				JSONArray a = o.getJSONArray("results");
+				for (int i=0; i<a.length(); i++) {
+					datasetCount++;
+					JSONObject ds = (JSONObject)a.get(i);
+					String id = ds.getString("dataset.id");
+					String name = ds.getString("dataset.name");
+					System.out.println(name);
+					String dsAnnotUri = "/dataset/"+id+"/annotations";
+					JSONObject annots = synapse.getEntity(dsAnnotUri);
+					JSONObject stringAnnots = annots.getJSONObject("stringAnnotations");
+					Iterator<String> it = stringAnnots.keys();
+					Map<String,String> md5Map = new HashMap<String,String>();
+					while (it.hasNext()) {
+						String annotName = it.next();
+						//System.out.println("\t"+annotName);
+						if (!annotName.endsWith(LAST_UPDATE_SUFFIX)) continue;
+						String srcLayerId = annotName.substring(0, annotName.length()-LAST_UPDATE_SUFFIX.length());
+						if (stringAnnots.has(srcLayerId+MD5SUM_SUFFIX)) continue;
+						JSONObject locationQueryResult = synapse.query("select * from location where parentId=="+srcLayerId);
+						JSONArray locations = locationQueryResult.getJSONArray("results");
+						if (locations.length()<1) continue;
+						JSONObject location = locations.getJSONObject(0);
+						String md5Sum = location.getString("location.md5sum");
+						md5Map.put(srcLayerId, md5Sum);
+					}
+					System.out.println("\t"+md5Map.size()+" source layers found.");
+					JSONObject newAnnots = new JSONObject();
+					stringAnnots = new JSONObject();
+					for (String key : md5Map.keySet()) {
+						JSONArray value = new JSONArray();
+						value.put(md5Map.get(key));
+						stringAnnots.put(key+MD5SUM_SUFFIX,value);
+					}
+					newAnnots.put("stringAnnotations", stringAnnots);
+					synapse.updateSynapseEntity(REPO_ENDPOINT, dsAnnotUri, newAnnots);
+				}
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
+			offset += batchSize;
+		} while (offset<=total);
+	}
+
+	
 	public static void main(String[] args) throws Exception {
 		 Logger.getLogger(Synapse.class.getName()).setLevel(Level.WARN);
 //		updateNOSAnnotations(args[0], args[1]);
@@ -365,9 +435,11 @@ public class DataModifier {
 //		Collection<Integer> exceptions = Arrays.asList(new Integer[]{104472});
 //		deleteDatasets(projectID, exceptions, args[0], args[1]);
 		 
-//		 projectStats(102610, args[0], args[1]); // Sage Commons Repository
-//		 projectStats(102611, args[0], args[1]); // MetaGenomics
+		 projectStats(102610, args[0], args[1]); // Sage Commons Repository
+		 projectStats(102611, args[0], args[1]); // MetaGenomics
 		 
-		 layerModifiedOn(24040, args[0], args[1]);
+//		 layerModifiedOn(24040, args[0], args[1]);
+		 
+//		 checksum(102611, args[0], args[1]);
 	}
 }

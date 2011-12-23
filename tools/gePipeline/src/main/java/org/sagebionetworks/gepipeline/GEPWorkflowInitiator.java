@@ -114,6 +114,24 @@ public class GEPWorkflowInitiator {
 		return synapse;
 	}
 	
+	// determine whether an update is needed to the QCed data for the given source layer
+	// first check the MD5 checksums. If that doesn't answer the question then check the 'modifiedOn' timestamp:
+	//
+	// if the src lyr has an md5 checksum and there is a checksum for the QCed data
+	//	    then return FALSE if they match, TRUE otherwise
+	// if there is a 'lastUpdate' for the QCed data and it matches the 'modifiedOn' date
+	// for the src lyr, then return FALSE
+	// otherwise return TRUE
+	private static boolean updateNeeded(String md5Sum, DateTime modDate, String targetMd5sum, DateTime targetLastDate) {
+		if (md5Sum!=null && targetMd5sum!=null) {
+			return !md5Sum.equals(targetMd5sum);
+		}
+		if (targetLastDate!=null) {
+			return !targetLastDate.equals(modDate);
+		}
+		return true;
+	}
+	
 	// crawl the Synapse project given by sourceProjectId
 	// return the layers to process, including the following attributes
 	// 'lastUpdate', 'url', 'description', 'number_of_samples', 'status', 'createdBy'
@@ -170,7 +188,6 @@ public class GEPWorkflowInitiator {
 						
 						layerCount++;
 						
-						System.out.println("\tLayer (id="+layerId+"): "+layer.getString("layer.name"));
 
 						Map<String,Object> layerAttributes = new HashMap<String,Object>();
 						layerAttributes.put(SOURCE_LAYER_ID_PROPERTY_NAME, layer.getString("layer.id"));
@@ -179,7 +196,11 @@ public class GEPWorkflowInitiator {
 						String modDateString = layer.getString("layer.modifiedOn");
 						DateTime modDate = new DateTime(Long.parseLong(modDateString));
 						
-						// now check the last update date:  first find the target dataset...
+						// get location mdsum
+						JSONObject location = locations.getJSONObject(0);
+						String md5Sum = location.getString("location.md5sum");
+						
+						// find the target dataset...
 						if (targetDataset==null || !targetDatasetName.equals(targetDataset.getString("dataset.name"))) {
 							JSONObject dsQueryResult = synapse.query("select * from dataset where parentId=="+targetProjectId+" AND name==\""+targetDatasetName+"\"");
 							JSONArray datasets = dsQueryResult.getJSONArray("results");
@@ -190,33 +211,33 @@ public class GEPWorkflowInitiator {
 //								System.out.println("\t\tTarget dataset annotations:\n\t\t"+annots);								
 							}
 						}
-						// ... then extract the last update date from the annotations
+						// ... then extract the last update date and md5sum from the annotations
 						if (targetDataset==null) {
 							System.out.println("\t\tUnable to find target dataset: "+targetDatasetName);
 						} else {
-//							System.out.println("\t\tTarget dataset:\n\t\t"+targetDataset);
 							// the following mirrors 'lastUpdateAnnotName' in synapseWorkflow.R
+							DateTime targetLastDate = null;
 							String lastUpdateAnnotName = "dataset."+layerId+"_lastUpdate";
 							if (targetDataset.has(lastUpdateAnnotName)) {
 								JSONArray targetLastUpdateArray = targetDataset.getJSONArray(lastUpdateAnnotName);
-								if (targetLastUpdateArray.length()>1) {
-									System.out.println("\t\t!!!** "+targetLastUpdateArray.length()+" values for "+lastUpdateAnnotName+"**!!!");
+								if (targetLastUpdateArray.length()>0) {
+									String targetLastUpdate = targetLastUpdateArray.getString(0);
+									targetLastDate = new DateTime(targetLastUpdate);
 								}
-								String targetLastUpdate = targetLastUpdateArray.getString(0);
-								// now if the recorded last update is the same as the date stamp on the source
-								// layer, skip it
-								DateTime targetLastDate = new DateTime(targetLastUpdate);
-								if (targetLastDate.equals(modDate)) {
-									System.out.println("\t\tLayer update date is unchanged: "+targetLastDate);
-									continue;
-								} else {
-									System.out.println("\t\tLayer update date, old: "+targetLastDate+" new: "+modDate);
-								}
-							} else {
-								System.out.println("\t\tSource layer has update-date: "+modDate+", Target dataset does not have annotation: "+lastUpdateAnnotName);
 							}
+							String targetMd5sum = null;
+							String md5sumAnnotName = "dataset."+layerId+"_md5sum";
+							if (targetDataset.has(md5sumAnnotName)) {
+								JSONArray targetMd5sumArray = targetDataset.getJSONArray(md5sumAnnotName);
+								if (targetMd5sumArray.length()>0) {
+									targetMd5sum = targetMd5sumArray.getString(0);
+								}
+							}
+							if (!updateNeeded(md5Sum, modDate, targetMd5sum, targetLastDate)) continue;
 						}
 						
+						// we only reach this point if we can't show that the task has already been done
+						// for the source layer
 
 						if (layer.has("dataset.number_of_samples")) {
 							layerAttributes.put(NUMBER_OF_SAMPLES_PROPERTY_NAME, layer.getLong("dataset.number_of_samples"));
