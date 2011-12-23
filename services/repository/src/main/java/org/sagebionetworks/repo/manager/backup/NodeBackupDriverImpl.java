@@ -33,7 +33,6 @@ import org.springframework.transaction.annotation.Transactional;
  * @author jmhill
  *
  */
-@Transactional(readOnly = true)
 public class NodeBackupDriverImpl implements NodeBackupDriver {
 
 	private static final String REVISIONS_FOLDER = "revisions";
@@ -71,7 +70,6 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 		this.nodeSerializer = new NodeSerializerImpl();
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public boolean writeBackup(File destination, Progress progress, Set<String> entitiesToBackup) throws IOException, DatastoreException, NotFoundException, InterruptedException {
 		if (destination == null)
@@ -216,7 +214,6 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 	 * Restore from the backup.
 	 * @throws InterruptedException 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public boolean restoreFromBackup(File source, Progress progress) throws IOException, InterruptedException {
 		if(source == null) throw new IllegalArgumentException("Source file cannot be null");
