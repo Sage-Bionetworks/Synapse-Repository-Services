@@ -60,7 +60,7 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 		// check the name
 		name = checkKeyName(name);
 		// First check the local cache
-		FieldType currentType = localCache.get(type.name());
+		FieldType currentType = localCache.get(name);
 		if(currentType != null){
 			validateType(name, type, currentType);
 			return true;
@@ -70,6 +70,8 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 			JDOAnnotationType exists = jdoTemplate.getObjectById(JDOAnnotationType.class, name);
 			currentType = FieldType.valueOf(exists.getTypeClass());
 			validateType(name, type, currentType);
+			// Add this to the cache so we do not query for it again.  Note: This is part of the fix for PLFM-852
+			localCache.put(name, type);
 			return true;
 		} catch (Exception e) {
 			// this means the type does not exist so create it
@@ -198,6 +200,10 @@ public class JDOFieldTypeDAOImpl implements FieldTypeDAO, InitializingBean {
 			}
 		}
 		
+	}
+
+	void setTempalte(JdoTemplate jdoTemplate) {
+		this.jdoTemplate = jdoTemplate;
 	}
 
 }

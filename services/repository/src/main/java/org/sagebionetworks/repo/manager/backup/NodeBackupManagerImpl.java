@@ -110,7 +110,7 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	 * @throws ConflictingUpdateException 
 	 * @throws InvalidModelException 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void createOrUpdateNode(NodeBackup backup) {
 		if(backup == null) throw new IllegalArgumentException("NodeBackup cannot be null");
@@ -184,7 +184,7 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	 * around an entire system restoration call.  Such a transaction will not scale, and a partial
 	 * restore is better than restoring nothing if there is a single bad node.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void createOrUpdateRevision(NodeRevisionBackup rev) {
 		if(rev == null) throw new IllegalArgumentException("NodeRevisionBackup cannot be null");

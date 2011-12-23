@@ -7,8 +7,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
@@ -20,12 +18,14 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * This class drives the backup and restoration process.
@@ -33,6 +33,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill
  *
  */
+@Transactional(readOnly = true)
 public class NodeBackupDriverImpl implements NodeBackupDriver {
 
 	private static final String REVISIONS_FOLDER = "revisions";
@@ -47,6 +48,8 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 
 	@Autowired
 	NodeBackupManager backupManager;
+	@Autowired
+	NodeSerializer nodeSerializer;
 	// For now we can just create one of these.  We might need to make beans in the future.
 	MigrationDriver migrationDriver = new MigrationDriverImpl();
 
@@ -65,8 +68,10 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 	public NodeBackupDriverImpl(NodeBackupManager backupManager) {
 		super();
 		this.backupManager = backupManager;
+		this.nodeSerializer = new NodeSerializerImpl();
 	}
 
+	@Transactional(readOnly = true)
 	@Override
 	public boolean writeBackup(File destination, Progress progress, Set<String> entitiesToBackup) throws IOException, DatastoreException, NotFoundException, InterruptedException {
 		if (destination == null)
@@ -211,6 +216,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 	 * Restore from the backup.
 	 * @throws InterruptedException 
 	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public boolean restoreFromBackup(File source, Progress progress) throws IOException, InterruptedException {
 		if(source == null) throw new IllegalArgumentException("Source file cannot be null");
@@ -235,7 +241,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 				// Is this a node or a revision?
 				if(isNodeBackupFile(entry.getName())){
 					// This is a backup file.
-					NodeBackup backup = NodeSerializerUtil.readNodeBackup(zin);
+					NodeBackup backup = nodeSerializer.readNodeBackup(zin);
 					// Are we restoring the root node?
 					if(backup.getNode().getParentId() == null){
 						// This node is a root.  Does it match the current root?
