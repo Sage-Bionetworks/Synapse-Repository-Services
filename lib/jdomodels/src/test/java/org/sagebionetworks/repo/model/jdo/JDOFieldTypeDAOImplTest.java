@@ -14,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -80,30 +81,7 @@ public class JDOFieldTypeDAOImplTest {
 		assertEquals(FieldType.DOES_NOT_EXIST, fetchedType);
 	}
 
-	@Test
-	public void testLocalCache() {
-		// Create a mock template
-		JdoTemplate mockTemplate = Mockito.mock(JdoTemplate.class);
-		JDOFieldTypeDAOImpl dao = new JDOFieldTypeDAOImpl(mockTemplate);
-		// The first time we call this it will not be in the cache
-		String name = "JDOAnnotationTypeDAOImplTest.testLocalCache";
-		FieldType type = FieldType.DOUBLE_ATTRIBUTE;
-		JDOAnnotationType jdoType = new JDOAnnotationType();
-		jdoType.setAttributeName(name);
-		jdoType.setTypeClass(type.name());
-		when(mockTemplate.getObjectById(JDOAnnotationType.class, name))
-				.thenReturn(jdoType);
-		// The first time we call this it should hit the database
-		FieldType fetchedType = dao.getTypeForName(name);
-		assertNotNull(fetchedType);
-		// Now calling it again should get the value from the cache
-		when(mockTemplate.getObjectById(JDOAnnotationType.class, name))
-				.thenThrow(
-						new IllegalStateException(
-								"The value should have come from the cache not the DB"));
-		fetchedType = dao.getTypeForName(name);
-		assertEquals(FieldType.DOUBLE_ATTRIBUTE, fetchedType);
-	}
+
 
 	@Test
 	public void testInvalidNames() {
