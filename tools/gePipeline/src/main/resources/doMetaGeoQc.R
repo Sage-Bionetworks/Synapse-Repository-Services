@@ -24,14 +24,14 @@ doMetaGeoQc <-
 		}
 		
 		# 'destDataset' object may be 'stale', so refresh it
-		maxretries<-3
+		maxretries<-10
 		for (i in 1:maxretries) { # may get an error during update, so try several times
 			destDataset <- getEntity(propertyValue(destDataset, "id"))
 			annotValue(destDataset, lastUpdateAnnotName(sourceLayerId)) <- as.character(timestamp)
 			annotValue(destDataset, md5sumAnnotName(sourceLayerId)) <- md5sum
 			ans <- try(updateEntity(destDataset))
 			if (class(ans)=="try-error") {
-				if (i==maxretries) stop(paste("Failed to update entity", propertyValue(destDataset, "id")))
+				if (i==maxretries) stop(paste("Failed to update entity:", ans[[1]], propertyValue(destDataset, "id")))
 				Sys.sleep(runif(1,1,4)) # sleep for 1-4 seconds before trying again
 			} else {
 				destDataset <<- ans
