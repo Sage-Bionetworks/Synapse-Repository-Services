@@ -1,8 +1,10 @@
 package org.sagebionetworks.gepipeline;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.log4j.Level;
@@ -156,12 +158,8 @@ public class GEPWorkflowInitiator {
 					String id = ds.getString("dataset.id");
 					String sourceDatasetName = ds.getString("dataset.name");
 					
-					// !!! temporary FOR DEBUGGING !!!
-					//if (!"Uterine Corpus Endometrioid Carcinoma TCGA".equals(sourceDatasetName)) continue;
-					
 					System.out.println("Dataset: "+sourceDatasetName);
 					String description = ds.getString("dataset.description");
-//					System.out.println("Dataset: "+ds);
 					String status = ds.getString("dataset.status");
 					String createdBy = ds.getString("dataset.createdBy");
 					// get the genomic and genetic layers
@@ -174,9 +172,6 @@ public class GEPWorkflowInitiator {
 						String layerId = layer.getString("layer.id");
 						String layerName = layer.getString("layer.name");
 						
-						// !!!! TEMPORARY, for debugging !!!!
-						//if (!"unc.edu_COAD.AgilentG4502A_07_3.Level_1.2.0.0".equals(layerName)) continue;
-
 						String type = layer.getString("layer.type");
 						// only 'crawl' Expression and Genotyping layers (not Clincial or Media layers)
 						if (!(type.equalsIgnoreCase("E") || type.equalsIgnoreCase("G"))) continue;
