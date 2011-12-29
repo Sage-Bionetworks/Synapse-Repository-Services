@@ -570,8 +570,13 @@ public class Synapse {
 	 */
 	public File downloadFromSynapse(LocationData location, String md5,
 			File destinationFile) throws SynapseException {
+		return downloadFromSynapse(location.getPath(), md5, destinationFile);
+	}
+	
+	public File downloadFromSynapse(String path, String md5,
+				File destinationFile) throws SynapseException {
 		try {
-			clientProvider.downloadFile(location.getPath(), destinationFile.getAbsolutePath());
+			clientProvider.downloadFile(path, destinationFile.getAbsolutePath());
 			// Check that the md5s match, if applicable
 			if (null != md5) {
 				String localMd5 = MD5ChecksumHelper
