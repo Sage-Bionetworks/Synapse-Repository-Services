@@ -23,6 +23,7 @@ import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -456,6 +457,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		}
 	}
 	
+	@Ignore
 	@Test
 	public void testGetPath() throws Exception{
 		// First create one of each type
@@ -565,6 +567,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 
 	}
 	
+	@Ignore
 	@Test
 	public void testCreateEntityAcl() throws Exception {
 		// First create one of each type
