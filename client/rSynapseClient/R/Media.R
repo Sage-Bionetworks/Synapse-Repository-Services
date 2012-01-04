@@ -67,12 +67,18 @@ setMethod(
 				cat("Parent Id           : ", properties(object)$parentId, "\n", sep="")
 			if (!is.null(properties(object)$type))
 				cat("Type                : ", properties(object)$type, "\n", sep="")
-			if (!is.null(properties(object)$version))
-				cat("Version             : ", properties(object)$version, "\n", sep="")
+			if (!is.null(properties(object)$versionNumber)) {
+				cat("Version Number      : ", properties(object)$versionNumber, "\n", sep="")
+				cat("Version Label       : ", properties(object)$versionLabel, "\n", sep="")
+			}
 			
-			
-			cat("\nFor complete list of annotations, please use the annotations() function.\n")
-
+			files.msg <- summarizeCacheFiles(object@location)
+			if(!is.null(files.msg))
+				cat("\n", files.msg$count, "\n", sep="")
+			if(!is.null(propertyValue(object,"id"))){
+				cat("\nFor complete list of annotations, please use the annotations() function.\n")
+				cat(sprintf("To view this Entity on the Synapse website use the 'onWeb()' function\nor paste this url into your browser: %s\n", object@synapseWebUrl))
+			}
 		}
 		
 )

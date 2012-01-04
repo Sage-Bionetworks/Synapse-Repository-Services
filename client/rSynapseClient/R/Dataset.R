@@ -45,25 +45,3 @@ setMethod(
 			Dataset(list())
 		}
 )
-
-setMethod(
-		f = "show",
-		signature = "Dataset",
-		definition = function(object){
-			cat('An object of class "', class(object), '"\n', sep="")
-			
-			cat("Synapse Entity Name : ", properties(object)$name, "\n", sep="")
-			cat("Synapse Entity Id   : ", properties(object)$id, "\n", sep="")
-			
-			if (!is.null(properties(object)$parentId))
-				cat("Parent Id           : ", properties(object)$parentId, "\n", sep="")
-			if (!is.null(properties(object)$type))
-				cat("Type                : ", properties(object)$type, "\n", sep="")
-			if (!is.null(properties(object)$version))
-				cat("Version             : ", properties(object)$version, "\n", sep="")
-			
-			cat("\nFor complete list of annotations, please use the annotations() function.\n")
-			cat(sprintf("To view this Entity on the Synapse website use the 'onWeb()' function\nor paste this url into your browser: %s\n", object@synapseWebUrl))
-			
-		}
-)

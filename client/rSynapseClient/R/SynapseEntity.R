@@ -19,8 +19,10 @@ setMethod(
 				cat("Parent Id           : ", properties(object)$parentId, "\n", sep="")
 			if (!is.null(properties(object)$type))
 				cat("Type                : ", properties(object)$type, "\n", sep="")
-			if (!is.null(properties(object)$version))
-				cat("Version             : ", properties(object)$version, "\n", sep="")
+			if (!is.null(properties(object)$versionNumber)) {
+				cat("Version Number      : ", properties(object)$versionNumber, "\n", sep="")
+				cat("Version Label       : ", properties(object)$versionLabel, "\n", sep="")
+			}
 			
 			cat("\nFor complete list of annotations, please use the annotations() function.\n")
 			
