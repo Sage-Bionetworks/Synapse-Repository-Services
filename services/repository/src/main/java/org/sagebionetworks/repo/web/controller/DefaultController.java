@@ -14,10 +14,11 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.Versionable;
@@ -361,13 +362,16 @@ public class DefaultController extends BaseController {
 			UrlHelpers.CODE_PATH
 			}, method = RequestMethod.GET)
 	public @ResponseBody
-	List<EntityHeader> getEntityPath(
+	EntityPath getEntityPath(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		// Pass it along
-		return entityController.getEntityPath(userId, id);
+		// Wrap it up and pass it along
+		List<EntityHeader> paths = entityController.getEntityPath(userId, id);
+		EntityPath entityPath = new EntityPath();
+		entityPath.setPath(paths);
+		return entityPath;
 	}
 	
 	/**

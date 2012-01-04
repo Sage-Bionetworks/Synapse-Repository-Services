@@ -21,6 +21,7 @@ import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
+import org.joda.time.DateTime;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
@@ -32,6 +33,8 @@ import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
@@ -47,7 +50,6 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
-import org.joda.time.DateTime;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -74,6 +76,8 @@ public class Synapse {
 	public static final String DAMEON_BACKUP = DAEMOM + BACKUP;
 	public static final String DAMEON_RETORE = DAEMOM + RESTORE;
 	public static final String STACK_STATUS = ADMIN + "/synapse/status";
+
+	private static final String REPO_SUFFIX_PATH = "/path";
 
 	private String repoEndpoint;
 	private String authEndpoint;
@@ -498,6 +502,29 @@ public class Synapse {
 		deleteEntity(uri);
 	}
 
+	/**
+	 * Get the hierarchical path to this entity
+	 * @param entity
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public EntityPath getEntityPath(Entity entity) throws SynapseException {
+		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
+		// Build the URI
+		String uri = createEntityUri(type.getUrlPrefix(), entity.getId()) + REPO_SUFFIX_PATH;
+		JSONObject jsonObj = getEntity(uri);
+		
+		EntityPath entityPath  = null;
+		// Now convert to Object to an entity
+		try {
+			entityPath = EntityFactory.createEntityFromJSONObject(jsonObj, EntityPath.class);					 
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+		
+		return entityPath;
+	}	
+	
 	/**
 	 * Perform a query
 	 * 

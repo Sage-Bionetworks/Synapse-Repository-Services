@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -474,7 +475,7 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 * @throws JSONException
 	 */
-	public static <T extends Entity> List<EntityHeader> getEntityPath(
+	public static <T extends Entity> EntityPath getEntityPath(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String id,
 			String userId) throws ServletException, IOException, JSONException {
 		if (dispatchServlet == null)
@@ -491,8 +492,8 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return (List<EntityHeader>) createEntityHeaderList(response
-				.getContentAsString());
+		
+		return (EntityPath) objectMapper.readValue(response.getContentAsString(), clazz);
 	}
 
 	/**
@@ -795,30 +796,6 @@ public class ServletTestHelper {
 			throw new RuntimeException(e);
 		}
 
-	}
-
-	/**
-	 * Convert from a JSONArray to a list.
-	 * 
-	 * @param jsonString
-	 * @return
-	 * @throws JSONException
-	 * @throws JsonParseException
-	 * @throws JsonMappingException
-	 * @throws IOException
-	 */
-	public static List<EntityHeader> createEntityHeaderList(String jsonString)
-			throws JSONException, JsonParseException, JsonMappingException,
-			IOException {
-		JSONArray array = new JSONArray(jsonString);
-		List<EntityHeader> list = new ArrayList<EntityHeader>();
-		for (int i = 0; i < array.length(); i++) {
-			JSONObject object = array.getJSONObject(i);
-			EntityHeader entity = objectMapper.readValue(object.toString(),
-					EntityHeader.class);
-			list.add(entity);
-		}
-		return list;
 	}
 
 	/**

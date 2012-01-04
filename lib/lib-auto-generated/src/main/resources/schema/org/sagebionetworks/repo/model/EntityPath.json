@@ -1,0 +1,14 @@
+{
+    "description":"Metadata about entities",
+    "properties":{
+        "path":{
+            "type":"array",
+            "description":"The list of all entites in this entites path.  The first element is the root parent and the last element (n) is the entity.",
+            "uniqueItems":false,
+            "items":{
+                "type":"object",
+    			"$ref":"org.sagebionetworks.repo.model.EntityHeader",
+            }
+        }
+    }
+}
