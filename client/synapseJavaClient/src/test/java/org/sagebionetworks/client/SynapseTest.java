@@ -6,6 +6,8 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpResponse;
@@ -15,7 +17,14 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 /**
  * Unit test for Synapse.
@@ -114,4 +123,34 @@ public class SynapseTest {
 		synapse.deleteEntity((Entity)null);
 	}
 
+	@Test
+	public void testGetEntityPath() throws Exception {
+		Layer layer = new Layer();
+		// create test hierarchy
+		
+		EntityHeader layerHeader = new EntityHeader();
+		layerHeader.setId("layerid");
+		layerHeader.setName("layer name");
+		layerHeader.setType("/layer");	
+		List<EntityHeader> entityHeaders = new ArrayList<EntityHeader>();
+		entityHeaders.add(layerHeader);
+		EntityPath entityPath = new EntityPath();
+		entityPath.setPath(entityHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		entityPath.writeToJSONObject(adapter);
+		
+		// We want the mock response to return JSON for the hierarchy.
+		StringEntity responseEntity = new StringEntity(adapter.toJSONString());
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		
+		// execute and verify
+		EntityPath returnedEntityPath = synapse.getEntityPath(layer);
+		List<EntityHeader> returnedHeaders = returnedEntityPath.getPath();
+		
+		assertEquals(1, returnedHeaders.size());
+		EntityHeader firstHeader = returnedHeaders.get(0);
+		assertEquals(layerHeader, firstHeader);
+		
+	}
+	
 }
