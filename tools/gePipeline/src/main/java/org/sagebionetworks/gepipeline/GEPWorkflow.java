@@ -75,7 +75,7 @@ public class GEPWorkflow {
 			defaultWorkflowLifetimeTimeout = @Duration(time = MAX_WORKFLOW_TIMEOUT_HOURS, unit = DurationUnit.Hours)
 	)
 	public static void doWorkflow(String activityInput, String activityRequirement)
-			throws Exception {
+			 {
 
 		GEPWorkflow flow = new GEPWorkflow();
 		
@@ -119,7 +119,7 @@ public class GEPWorkflow {
 	private Value<String> dispatchProcessData(
 			Value<String> script, String activityInput, String activityRequirement,
 			Settable<String> stdout,
-			Settable<String> stderr) throws Exception {
+			Settable<String> stderr) {
 
 		if (ACTIVITY_REQUIREMENT_SMALL.equals(activityRequirement)) {
 			return doProcessDataSmall(script.get(), activityInput, stdout, stderr);
@@ -145,7 +145,7 @@ public class GEPWorkflow {
 	private static Value<String> doProcessDataSmall(String script, 
 			String activityInput,
 			Settable<String> stdout,
-			Settable<String> stderr) throws Exception {
+			Settable<String> stderr) {
 
 		ScriptResult result = ScriptProcessor.doProcess(script,
 				Arrays.asList(new String[]{INPUT_DATA_PARAMETER_KEY, formatAsScriptParam(activityInput),
@@ -170,7 +170,7 @@ public class GEPWorkflow {
 	private static Value<String> doProcessDataMedium(String script, 
 			String activityInput,
 			Settable<String> stdout,
-			Settable<String> stderr) throws Exception {
+			Settable<String> stderr) {
 
 		ScriptResult result = ScriptProcessor.doProcess(script,
 				Arrays.asList(new String[]{
@@ -196,7 +196,7 @@ public class GEPWorkflow {
 	private static Value<String> doProcessDataLarge(String script, 
 			String activityInput,
 			Settable<String> stdout,
-			Settable<String> stderr) throws Exception {
+			Settable<String> stderr) {
 
 		ScriptResult result = ScriptProcessor.doProcess(script,
 				Arrays.asList(new String[]{
@@ -222,7 +222,7 @@ public class GEPWorkflow {
 	private static Value<String> doProcessDataExtraLarge(String script, 
 			String activityInput,
 			Settable<String> stdout,
-			Settable<String> stderr) throws Exception {
+			Settable<String> stderr) {
 
 		ScriptResult result = ScriptProcessor.doProcess(script,
 				Arrays.asList(new String[]{INPUT_DATA_PARAMETER_KEY, formatAsScriptParam(activityInput),
@@ -254,7 +254,7 @@ public class GEPWorkflow {
 
 
 	@Asynchronous
-	private Value<String> dispatchNotifyDataProcessed(Value<String> param) throws Exception {
+	private Value<String> dispatchNotifyDataProcessed(Value<String> param) {
 		/**
 		 * Formulate the message to be sent to all interested parties about the
 		 * new processed data from TCGA
@@ -282,15 +282,14 @@ public class GEPWorkflow {
 	// note, the output is in 'message'
 	@Asynchronous
 	private Value<String> dispatchFormulateNotificationMessage(
-			Value<String> param, Settable<String> message)
-			throws Exception {
+			Value<String> param, Settable<String> message) {
 		return doFormulateNotificationMessage(param.get(), 
 				message);
 	}
 
 	@Activity(version = VERSION)
 	private static Value<String> doFormulateNotificationMessage(String param,
-			Settable<String> message) throws Exception {
+			Settable<String> message) {
 		message.set(param);
 		return Value.asValue(param + ":FormulateNotificationMessage");
 	}

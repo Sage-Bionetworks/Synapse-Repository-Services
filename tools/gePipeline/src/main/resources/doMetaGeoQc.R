@@ -57,7 +57,7 @@ doMetaGeoQc <-
 		function(geoDataset, sourceLayerName, cdfname, data, deleteDataFiles)
 {
 	
-	destLayerName <- sprintf("QCd Expression Data %s %s", sourceLayerName, cdfname)
+	destLayerName <- sprintf("QCd Data %s %s", sourceLayerName, cdfname)
 	
 	result <- synapseQuery(sprintf('select * from layer where layer.name == "%s" and layer.parentId == "%s"', destLayerName, propertyValue(geoDataset, "id")))
 	if(!is.null(result)){

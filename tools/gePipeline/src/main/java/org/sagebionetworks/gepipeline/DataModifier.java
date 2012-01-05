@@ -70,8 +70,7 @@ public class DataModifier {
 		int batchSize = 20;
 		do {
 			try {
-				JSONObject o = synapse.query("select * from dataset where parentId==16114 LIMIT "+batchSize+" OFFSET "+offset);
-//				JSONObject o = synapse.query("select * from dataset where parentId==16114 ORDER BY Number_of_Samples LIMIT "+batchSize+" OFFSET "+offset);
+				JSONObject o = synapse.query("select * from dataset where parentId==102610 LIMIT "+batchSize+" OFFSET "+offset);
 				total = (int)o.getLong("totalNumberOfResults");
 				System.out.println(""+offset+"->"+(offset+batchSize-1)+" of "+total);
 				JSONArray a = o.getJSONArray("results");
@@ -444,19 +443,19 @@ public class DataModifier {
 						JSONObject layer = (JSONObject)la.get(j);
 						String layerId = layer.getString("layer.id");
 						String sourceLayerName = layer.getString("layer.name");
-//						JSONObject loco = synapse.query("select * from location where parentId=="+layerId);
-//						JSONArray loca = loco.getJSONArray("results");
-//						locationCount += loca.length();
-//						String sourceURL = null;
-//						if (loca.length()>0) {
-//							JSONObject location = loca.getJSONObject(0);
-//							String path = location.getString("location.path");
-//							int start = path.lastIndexOf('/');
-//							int end = path.indexOf('?');
-//							if (start<0) start=0;
-//							if (end<0) end = path.length();
-//							sourceURL = path.substring(start+1, end);
-//						}
+						JSONObject loco = synapse.query("select * from location where parentId=="+layerId);
+						JSONArray loca = loco.getJSONArray("results");
+						locationCount += loca.length();
+						String sourceURL = null;
+						if (loca.length()>0) {
+							JSONObject location = loca.getJSONObject(0);
+							String path = location.getString("location.path");
+							int start = path.lastIndexOf('/');
+							int end = path.indexOf('?');
+							if (start<0) start=0;
+							if (end<0) end = path.length();
+							sourceURL = path.substring(start+1, end);
+						}
 						// find the annotations in the target dataset that show the source layer has been processed
 						boolean workflowHasRun = false;
 						boolean qcHasCompleted = false;
@@ -480,7 +479,7 @@ public class DataModifier {
 								break;
 							}
 						}
-						System.out.println(layerId+"\t"+workflowHasRun+"\t"+qcHasCompleted);
+						System.out.println(layerId+"\t"+workflowHasRun+"\t"+qcHasCompleted+"\t"+sourceURL);
 					}
 				}
 			} catch (Exception e) {
@@ -769,7 +768,7 @@ public class DataModifier {
 	
 	public static void main(String[] args) throws Exception {
 		 Logger.getLogger(Synapse.class.getName()).setLevel(Level.WARN);
-//		updateNOSAnnotations(args[0], args[1]);
+		updateNOSAnnotations(args[0], args[1]);
 //		deleteStaleProvenanceString(args[0], args[1]);
 		
 //		// migrate from 4492 to 102610 all datasets having "TCGA" in their name except for dataset 4513
@@ -802,16 +801,14 @@ public class DataModifier {
 		 
 //		 reconcileProject(102610, 102611, args[0], args[1], /*no GEO*/true);
 		 
-		 parseLog(new String[]{
-				 "C:\\Users\\bhoff\\Desktop\\2011Dec29ActivtySodo.txt",
-				 "C:\\Users\\bhoff\\Desktop\\2011Dec29MetaGEO.txt"
-				 }, 
-				 "C:\\Users\\bhoff\\Desktop\\2011Dec29MetaGEO_Messages.xls");
+//		 parseLog(new String[]{"C:\\Users\\bhoff\\Desktop\\2012Jan02Activity.txt"}, 
+//				 "C:\\Users\\bhoff\\Desktop\\2012Jan02Activity_Messages.xls");
 		 
-//		 rerunCompletedLayers(new Integer[] {
-//				 15087,
-//				 13622,
-//				...				 
+		 
+		 
+//		rerunCompletedLayers(new Integer[] {
+//				13636,
+//				13780,	 
 //		 }, 102611, args[0], args[1]);
 
 	}

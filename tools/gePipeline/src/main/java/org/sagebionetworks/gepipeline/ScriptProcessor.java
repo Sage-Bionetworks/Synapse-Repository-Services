@@ -37,8 +37,7 @@ public class ScriptProcessor {
 	 * @throws UnrecoverableException
 	 * @throws JSONException
 	 */
-	public static ScriptResult doProcess(String script, List<String> scriptParams) throws IOException, InterruptedException,
-			UnrecoverableException, JSONException {
+	public static ScriptResult doProcess(String script, List<String> scriptParams) {
 
 		String argsDelimiter = "";
 		String rScriptPath = "";
@@ -63,17 +62,26 @@ public class ScriptProcessor {
 		for (int i=0; i<cumInput.size(); i++) scriptInput[i]=cumInput.get(i);
 
 		log.debug("About to run: " + StringUtils.join(scriptInput, " "));
-		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(scriptInput);
-
-		if (0 != result.getReturnCode()) {
-			throw new UnrecoverableException("Activity failed(" + result.getReturnCode()
-					+ ") for " + StringUtils.join(scriptInput, " ")
-					+ "\nstderr: " + result.getStderr()+"\nstdout: "+result.getStdout());
-		}
-		log.debug("Finished running: " + StringUtils.join(scriptInput, " "));
-
-		ScriptResult scriptResult = new ScriptResult(result);
 		
-		return scriptResult;
+		try {
+			ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(scriptInput);
+	
+			if (0 != result.getReturnCode()) {
+				throw new UnrecoverableException("Activity failed(" + result.getReturnCode()
+						+ ") for " + StringUtils.join(scriptInput, " ")
+						+ "\nstderr: " + result.getStderr()+"\nstdout: "+result.getStdout());
+			}
+			log.debug("Finished running: " + StringUtils.join(scriptInput, " "));
+	
+			ScriptResult scriptResult = new ScriptResult(result);
+			return scriptResult;
+		} catch (Exception e) {
+			if (e instanceof RuntimeException) {
+				throw (RuntimeException)e;
+			} else {
+				throw new RuntimeException(e);
+			}
+		}
+		
 	}
 }
