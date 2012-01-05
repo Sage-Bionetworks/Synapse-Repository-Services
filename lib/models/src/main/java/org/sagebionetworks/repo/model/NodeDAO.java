@@ -181,8 +181,9 @@ public interface NodeDAO {
 	
 	/**
 	 * Bootstrap all node types.
+	 * @throws DatastoreException 
 	 */
-	public void boostrapAllNodeTypes();
+	public void boostrapAllNodeTypes() throws DatastoreException;
 	
 	/**
 	 * Lookup a node id using its unique path.
