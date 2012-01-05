@@ -1,0 +1,198 @@
+package org.sagebionetworks.repo.model.dbo;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+/**
+ * Provides basic CRUD operations for objects that implement DatabaseObject
+ * 
+ * @author jmhill
+ *
+ */
+@SuppressWarnings("rawtypes")
+@Transactional(readOnly = true)
+public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
+	
+	public static final String GET_LAST_ID_SQL = "SELECT LAST_INSERT_ID()";
+	
+	@Autowired
+	DDLUtils ddlUtils;
+	
+	@Autowired
+	private SimpleJdbcTemplate simpleJdbcTempalte;
+	
+	/**
+	 * Injected via Spring
+	 */
+	List<DatabaseObject> databaseObjectRegister;
+	
+	
+	/**
+	 * Injected via spring
+	 * @param databaseObjectRegister
+	 */
+	public void setDatabaseObjectRegister(List<DatabaseObject> databaseObjectRegister) {
+		this.databaseObjectRegister = databaseObjectRegister;
+	}
+
+	/**
+	 * We cache the SQL for each object type.
+	 */
+	private Map<Class<? extends DatabaseObject>, String> insertMap = new HashMap<Class<? extends DatabaseObject>, String>();
+	private Map<Class<? extends DatabaseObject>, String> fetchMap = new HashMap<Class<? extends DatabaseObject>, String>();
+	private Map<Class<? extends DatabaseObject>, String> deleteMap = new HashMap<Class<? extends DatabaseObject>, String>();
+	private Map<Class<? extends DatabaseObject>, String> updateMap = new HashMap<Class<? extends DatabaseObject>, String>();
+	
+	/**
+	 * We cache the mapping for each objec type.
+	 */
+	private Map<Class<? extends DatabaseObject>, TableMapping> classToMapping = new HashMap<Class<? extends DatabaseObject>, TableMapping>();
+
+	@Override
+	public void afterPropertiesSet() throws Exception {
+		// Make sure we have a table for all registered objects
+		if(databaseObjectRegister == null) throw new IllegalArgumentException("databaseObjectRegister bean cannot be null");
+		// Create the schema for each 
+		for(DatabaseObject dbo: databaseObjectRegister){
+			TableMapping mapping = dbo.getTableMapping();
+			ddlUtils.validateTableExists(mapping);
+			// Create the Insert SQL
+			String insertSQL = DMLUtils.createInsertStatement(mapping);
+			this.insertMap.put(dbo.getClass(), insertSQL);
+			// The get SQL
+			String getSQL = DMLUtils.createGetByIDStatement(mapping);
+			this.fetchMap.put(dbo.getClass(), getSQL);
+			// The delete SQL
+			String deleteSql = DMLUtils.createDeleteStatement(mapping);
+			deleteMap.put(dbo.getClass(), deleteSql);
+			// The UPDATE sql
+			String update = DMLUtils.createUpdateStatment(mapping);
+			updateMap.put(dbo.getClass(), update);
+			this.classToMapping.put(dbo.getClass(), dbo.getTableMapping());
+		}
+	}
+
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public <T extends DatabaseObject<T>> T createNew(T toCreate) throws DatastoreException {
+		if(toCreate == null) throw new IllegalArgumentException("The object to create cannot be null");
+		// Lookup the insert SQL
+		String insertSQl = getInsertSQL(toCreate.getClass());
+//		System.out.println(insertSQl);
+//		System.out.println(toCreate);
+		SqlParameterSource namedParameters = new BeanPropertySqlParameterSource(toCreate);
+		try{
+			int updatedCount = simpleJdbcTempalte.update(insertSQl, namedParameters);
+			if(updatedCount != 1) throw new DatastoreException("Failed to insert without error");
+			// If this is an auto-increment class we need to fetch the new ID.
+			if(toCreate instanceof AutoIncrementDatabaseObject){
+				AutoIncrementDatabaseObject autoDBO = (AutoIncrementDatabaseObject) toCreate;
+				Long id = simpleJdbcTempalte.queryForLong(GET_LAST_ID_SQL);
+				autoDBO.setId(id);
+			}
+			return toCreate;
+		}catch(DataIntegrityViolationException e){
+			throw new IllegalArgumentException(e);
+		}
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public <T extends DatabaseObject<T>> boolean update(T toUpdate)	throws DatastoreException {
+		String sql = getUpdateSQL(toUpdate.getClass());
+		SqlParameterSource namedParameters = new BeanPropertySqlParameterSource(toUpdate);
+		int updatedCount = simpleJdbcTempalte.update(sql, namedParameters);
+		return updatedCount > 0;
+	}
+	
+	@Transactional(readOnly = true)
+	@Override
+	public <T extends DatabaseObject<T>> T getObjectById(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException, NotFoundException{
+		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
+		if(namedParameters == null) throw new IllegalArgumentException("namedParameters cannot be null");
+		@SuppressWarnings("unchecked")
+		TableMapping<T> mapping = classToMapping.get(clazz);
+		if(mapping == null) throw new IllegalArgumentException("Cannot find the mapping for Class: "+clazz+" The class must be added to the 'databaseObjectRegister'");
+		String fetchSql = getFetchSQL(clazz);
+		try{
+			return simpleJdbcTempalte.queryForObject(fetchSql, mapping, namedParameters);
+		}catch(EmptyResultDataAccessException e){
+			throw new NotFoundException("Could not find "+clazz.getName()+" id="+namedParameters);
+		}
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public <T extends DatabaseObject<T>> boolean deleteObjectById(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException {
+		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
+		if(namedParameters == null) throw new IllegalArgumentException("namedParameters cannot be null");
+		String sql = getDeleteSQL(clazz);
+		int count = simpleJdbcTempalte.update(sql, namedParameters);
+		return count == 1;
+	}
+	
+	/**
+	 * Get the insert sql for a given class.;
+	 * @param clazz
+	 * @return
+	 */
+	private String getInsertSQL(Class<? extends DatabaseObject> clazz){
+		if(clazz == null) throw new IllegalArgumentException("The clazz cannot be null");
+		String sql = this.insertMap.get(clazz);
+		if(sql == null) throw new IllegalArgumentException("Cannot find the insert SQL for class: "+clazz+".  Please register this class by adding it to the 'databaseObjectRegister' bean");
+		return sql;
+	}
+	
+	/**
+	 * The get sql for a given class.
+	 * @param clazz
+	 * @return
+	 */
+	private String getFetchSQL(Class<? extends DatabaseObject> clazz){
+		if(clazz == null) throw new IllegalArgumentException("The clazz cannot be null");
+		String sql = this.fetchMap.get(clazz);
+		if(sql == null) throw new IllegalArgumentException("Cannot find the get SQL for class: "+clazz+".  Please register this class by adding it to the 'databaseObjectRegister' bean");
+		return sql;
+	}
+	
+	/**
+	 * The delete SQL for a given class
+	 * @param clazz
+	 * @return
+	 */
+	private String getDeleteSQL(Class<? extends DatabaseObject> clazz){
+		if(clazz == null) throw new IllegalArgumentException("The clazz cannot be null");
+		String sql = this.deleteMap.get(clazz);
+		if(sql == null) throw new IllegalArgumentException("Cannot find the delete SQL for class: "+clazz+".  Please register this class by adding it to the 'databaseObjectRegister' bean");
+		return sql;
+	}
+
+	/**
+	 * The delete SQL for a given class
+	 * @param clazz
+	 * @return
+	 */
+	private String getUpdateSQL(Class<? extends DatabaseObject> clazz){
+		if(clazz == null) throw new IllegalArgumentException("The clazz cannot be null");
+		String sql = this.updateMap.get(clazz);
+		if(sql == null) throw new IllegalArgumentException("Cannot find the update SQL for class: "+clazz+".  Please register this class by adding it to the 'databaseObjectRegister' bean");
+		return sql;
+	}
+
+
+}

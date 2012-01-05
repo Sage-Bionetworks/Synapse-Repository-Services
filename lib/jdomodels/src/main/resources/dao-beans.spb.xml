@@ -11,7 +11,7 @@
 	<aop:aspectj-autoproxy />
 
 	<!-- Import the stack configuration -->
-	<import resource="transaction-spb.xml" />
+	<import resource="dbo-beans.spb.xml" />
 	<import resource="bootstrap-entites-spb.xml" />
 
 	<!-- Depends on ID-generator. -->

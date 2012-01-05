@@ -41,6 +41,7 @@ public class SqlConstants {
 	public static final String COL_NODE_TYPE			= "NODE_TYPE";
 	public static final String COL_NODE_ACL				= "NODE_ACL";
 	public static final String COL_CURRENT_REV			= "CURRENT_REV_NUM";
+	public static final String DDL_FILE_NODE			="schema/Node-ddl.sql";
 	
 	// The Revision table
 	public static final String TABLE_REVISION 			= "JDOREVISION";
@@ -52,6 +53,7 @@ public class SqlConstants {
 	public static final String COL_REVISION_REFS_BLOB	= "REFERENCES";
 	public static final String COL_REVISION_MODIFIED_BY	= "MODIFIED_BY";
 	public static final String COL_REVISION_MODIFIED_ON	= "MODIFIED_ON";
+	public static final String DDL_FILE_REVISION		="schema/Revision-ddl.sql";
 
 	// The Reference table
 	public static final String TABLE_REFERENCE						= "JDOREFERENCE";
@@ -83,6 +85,11 @@ public class SqlConstants {
 	
 	// The name of the node type table.
 	public static final String TABLE_NODE_TYPE				= "NODE_TYPE";
+	public static final String COL_NODE_TYPE_NAME 			= "NAME";
+	public static final String COL_NODE_TYPE_ID 			= "ID";
+	public static final String DDL_FILE_NODE_TYPE			= "schema/NodeType-ddl.sql";
+	
+	
 	public static final String TABLE_ANNOTATION_TYPE		= "ANNOTATION_TYPE";
 
 	public static final String TABLE_USER					= "JDOUSER";
