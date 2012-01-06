@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
@@ -21,6 +23,15 @@ public interface DBOBasicDao {
 	 * @throws DatastoreException 
 	 */
 	public <T extends DatabaseObject<T>> T createNew(T toCreate) throws DatastoreException;
+	
+	/**
+	 * Do a batch create.
+	 * @param <T>
+	 * @param batch
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch) throws DatastoreException;
 	
 	/**
 	 * Update an existing object.

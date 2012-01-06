@@ -27,5 +27,7 @@ public interface TableMapping<T> extends RowMapper<T> {
 	 * @return
 	 */
 	public FieldColumn[] getFieldColumns();
+	
+	public Class<? extends T> getDBOClass();
 
 }
