@@ -46,12 +46,8 @@ public class DDLUtilsImpl implements DDLUtils{
 		if(list.size() == 0){
 			log.info("Creating table: "+mapping.getTableName());
 			// Create the table 
-			try{
-				String tableDDL = loadSchemaSql(mapping.getDDLFileName());
-				simpleJdbcTempalte.update(tableDDL);
-			}catch (Exception e){
-				return true;
-			}
+			String tableDDL = loadSchemaSql(mapping.getDDLFileName());
+			simpleJdbcTempalte.update(tableDDL);
 			// Make sure it exists
 			List<Map<String, Object>> second = simpleJdbcTempalte.queryForList(sql);
 			if(second.size() != 1){
