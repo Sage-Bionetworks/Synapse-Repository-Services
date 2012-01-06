@@ -22,6 +22,14 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORevision" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOLongAnnotation" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoubleAnnotation" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODateAnnotation" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOReference" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType" />
 			</list>
 		</property>
 	</bean>

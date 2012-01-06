@@ -98,9 +98,11 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		// validate content
 		validateContent(acl);
 		// Before we can update the ACL we must grab the lock on the node.
-		nodeDao.lockNodeAndIncrementEtag(acl.getId(), acl.getEtag());
+		String newETag = nodeDao.lockNodeAndIncrementEtag(acl.getId(), acl.getEtag());
 		aclDAO.update(acl);
-		return aclDAO.get(acl.getId());
+		acl = aclDAO.get(acl.getId());
+		acl.setEtag(newETag);
+		return acl;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -119,12 +121,14 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		validateContent(acl);
 		Node node = nodeDao.getNode(rId);
 		// Before we can update the ACL we must grab the lock on the node.
-		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+		String newEtag = nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 		// set permissions 'benefactor' for resource and all resource's descendants to resource
 		nodeInheritanceManager.setNodeToInheritFromItself(rId);
 		// persist acl and return
 		String id = aclDAO.create(acl);
-		return aclDAO.get(id);
+		acl = aclDAO.get(acl.getId());
+		acl.setEtag(newEtag);
+		return acl;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

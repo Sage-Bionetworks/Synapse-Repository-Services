@@ -49,6 +49,11 @@ public class DBONodeType implements DatabaseObject<DBONodeType> {
 			@Override
 			public FieldColumn[] getFieldColumns() {
 				return FIELDS;
+			}
+
+			@Override
+			public Class<? extends DBONodeType> getDBOClass() {
+				return DBONodeType.class;
 			}} ;
 	}
 	

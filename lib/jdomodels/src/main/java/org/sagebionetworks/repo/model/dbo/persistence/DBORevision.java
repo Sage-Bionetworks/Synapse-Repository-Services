@@ -66,6 +66,11 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 			@Override
 			public FieldColumn[] getFieldColumns() {
 				return FIELDS;
+			}
+
+			@Override
+			public Class<? extends DBORevision> getDBOClass() {
+				return DBORevision.class;
 			}};
 	}
 	

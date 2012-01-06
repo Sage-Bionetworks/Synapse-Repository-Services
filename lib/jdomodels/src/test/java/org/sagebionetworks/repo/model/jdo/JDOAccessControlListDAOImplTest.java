@@ -177,25 +177,6 @@ public class JDOAccessControlListDAOImplTest {
 	}
 
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl#authorizationSQL()}.
-	 */
-	@Test
-	public void testAuthorizationSQL() throws Exception {
-		Collection<Long> groupIds = new HashSet<Long>();
-		groupIds.add(KeyFactory.stringToKey(group.getId()));
-		System.out.println("testAuthorizationSQL: all ACLs: ");
-//		for (AccessControlList acl : accessControlListDAO.getAll()) {
-//			System.out.println("\t"+acl);
-//		}
-		Collection<Object> nodeIds = 
-			accessControlListDAO.execAuthorizationSQL(
-					groupIds, 
-					AuthorizationConstants.ACCESS_TYPE.READ);
-		assertEquals(1, nodeIds.size());
-		assertEquals(nodeIds.toString(), KeyFactory.stringToKey(node.getId()), nodeIds.iterator().next());
-	}
-
-	/**
 	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOBaseDAOImpl#get(java.lang.String)}.
 	 */
 	@Test

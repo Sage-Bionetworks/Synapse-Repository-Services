@@ -34,6 +34,12 @@ public class DMLUtilsTest {
 		public String getDDLFileName() {
 			return "Example.sql";
 		}
+
+		@Override
+		public Class<? extends Object> getDBOClass() {
+			// TODO Auto-generated method stub
+			return null;
+		}
 	};
 	
 	private TableMapping<Object> mappingTwoKeys = new TableMapping<Object>() {
@@ -60,6 +66,12 @@ public class DMLUtilsTest {
 		@Override
 		public String getDDLFileName() {
 			return "Example.sql";
+		}
+
+		@Override
+		public Class<? extends Object> getDBOClass() {
+			// TODO Auto-generated method stub
+			return null;
 		}
 	};
 	

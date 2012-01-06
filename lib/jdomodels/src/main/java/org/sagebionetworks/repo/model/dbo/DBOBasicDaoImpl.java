@@ -72,17 +72,17 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 			ddlUtils.validateTableExists(mapping);
 			// Create the Insert SQL
 			String insertSQL = DMLUtils.createInsertStatement(mapping);
-			this.insertMap.put(dbo.getClass(), insertSQL);
+			this.insertMap.put(mapping.getDBOClass(), insertSQL);
 			// The get SQL
 			String getSQL = DMLUtils.createGetByIDStatement(mapping);
-			this.fetchMap.put(dbo.getClass(), getSQL);
+			this.fetchMap.put(mapping.getDBOClass(), getSQL);
 			// The delete SQL
 			String deleteSql = DMLUtils.createDeleteStatement(mapping);
-			deleteMap.put(dbo.getClass(), deleteSql);
+			deleteMap.put(mapping.getDBOClass(), deleteSql);
 			// The UPDATE sql
 			String update = DMLUtils.createUpdateStatment(mapping);
-			updateMap.put(dbo.getClass(), update);
-			this.classToMapping.put(dbo.getClass(), dbo.getTableMapping());
+			updateMap.put(mapping.getDBOClass(), update);
+			this.classToMapping.put(mapping.getDBOClass(), dbo.getTableMapping());
 		}
 	}
 
@@ -106,6 +106,40 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 				autoDBO.setId(id);
 			}
 			return toCreate;
+		}catch(DataIntegrityViolationException e){
+			throw new IllegalArgumentException(e);
+		}
+	}
+	
+	@Override
+	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch)
+			throws DatastoreException {
+		if(batch == null) throw new IllegalArgumentException("The batch cannot be null");
+		if(batch.size() < 1) throw new IllegalArgumentException("There must be at least one item in the batch");
+		// Lookup the insert SQL
+		String insertSQl = getInsertSQL(batch.get(0).getClass());
+//		System.out.println(insertSQl);
+//		System.out.println(toCreate);
+		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
+		for(int i=0; i<batch.size(); i++){
+			namedParameters[i] = new BeanPropertySqlParameterSource(batch.get(i));
+		}
+		try{
+			int[] updatedCountArray = simpleJdbcTempalte.batchUpdate(insertSQl, namedParameters);
+			for(int count: updatedCountArray){
+				if(count != 1) throw new DatastoreException("Failed to insert without error");
+			}
+			// If this is an auto-increment class we need to fetch the new ID.
+			if(batch.get(0) instanceof AutoIncrementDatabaseObject){
+				Long id = simpleJdbcTempalte.queryForLong(GET_LAST_ID_SQL);
+				// Now get each ID
+				int delta = batch.size()-1;
+				for(int i=0; i<batch.size(); i++){
+					AutoIncrementDatabaseObject aido = (AutoIncrementDatabaseObject) batch.get(i);
+					aido.setId(new Long(id.longValue()-(delta-i)));
+				}
+			}
+			return batch;
 		}catch(DataIntegrityViolationException e){
 			throw new IllegalArgumentException(e);
 		}
@@ -193,6 +227,5 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		if(sql == null) throw new IllegalArgumentException("Cannot find the update SQL for class: "+clazz+".  Please register this class by adding it to the 'databaseObjectRegister' bean");
 		return sql;
 	}
-
 
 }

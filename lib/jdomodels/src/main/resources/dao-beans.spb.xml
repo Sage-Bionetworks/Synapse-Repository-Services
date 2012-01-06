@@ -16,6 +16,10 @@
 
 	<!-- Depends on ID-generator. -->
 	<import resource="id-generator.spb.xml" />
+	
+	<bean id="dboAnnotationsDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDaoImpl"/>
+	
+	<bean id="dboReferenceDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl"/>
 
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.jdo.NodeDAOImpl"
 		depends-on="idGenerator" />
@@ -34,6 +38,10 @@
 	<bean id="userGroupCache" class="org.sagebionetworks.repo.model.jdo.UserGroupCacheImpl"
 		scope="singleton" />
 
+	<bean id="dboAccessControlListDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessControlListDaoImpl"
+		scope="singleton" />
+		
 	<bean id="accessControlListDAO"
 		class="org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl"
 		scope="singleton" />

@@ -77,6 +77,11 @@ public class DBONode implements DatabaseObject<DBONode> {
 			public FieldColumn[] getFieldColumns() {
 				return FIELDS;
 			}
+
+			@Override
+			public Class<? extends DBONode> getDBOClass() {
+				return DBONode.class;
+			}
 		};
 	}
 	

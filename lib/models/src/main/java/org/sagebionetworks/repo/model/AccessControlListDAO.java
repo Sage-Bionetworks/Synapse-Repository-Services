@@ -26,11 +26,6 @@ public interface AccessControlListDAO  {
 	public String authorizationSQL(int n);
 
 	/**
-	 * executes the authorization query returned by authorizationSQL()
-	 */
-	public Collection<Object> execAuthorizationSQL(Collection<Long> groupIds, AuthorizationConstants.ACCESS_TYPE type);
-
-	/**
 	 * Create a new ACL
 	 * @param dto
 	 * @return

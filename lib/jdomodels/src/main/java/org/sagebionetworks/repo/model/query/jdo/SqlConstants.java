@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl.AttributeDoe
 @SuppressWarnings("rawtypes")
 public class SqlConstants {
 	
+	public static final String COL_ID					= "ID";
 	// Node table constants
 	public static final String TABLE_NODE 				= "JDONODE";
 	public static final String COL_NODE_ID				= "ID";
@@ -61,12 +62,12 @@ public class SqlConstants {
 	public static final String COL_REFERENCE_TARGET_NODE			= "REF_TARGET_NODE_ID";
 	public static final String COL_REFERENCE_TARGET_REVISION_NUMBER	= "REF_TARGET_REV_NUM";
 	public static final String COL_REFERENCE_GROUP_NAME				= "REF_GROUP_NAME";
+	public static final String DDL_FILE_REFERENCE					="schema/Reference-ddl.sql";
 	
 	// Annotations tables
 	public static final String TABLE_STRING_ANNOTATIONS	= "JDOSTRINGANNOTATION";
 	public static final String TABLE_DOUBLE_ANNOTATIONS	= "JDODOUBLEANNOTATION";
 	public static final String TABLE_LONG_ANNOTATIONS	= "JDOLONGANNOTATION";
-	public static final String TABLE_BLOB_ANNOTATIONS	= "JDOBLOBANNOTATION";
 	public static final String TABLE_DATE_ANNOTATIONS	= "JDODATEANNOTATION";
 	public static final String TABLE_STACK_STATUS		= "JDOSTACKSTATUS";
 	
@@ -82,6 +83,10 @@ public class SqlConstants {
 	public static final String ANNOTATION_ATTRIBUTE_COLUMN 		= "ATTRIBUTE";
 	public static final String ANNOTATION_VALUE_COLUMN			= "VALUE";
 	public static final String ANNOTATION_OWNER_ID_COLUMN		= "OWNER_ID";
+	public static final String DDL_FILE_STRING_ANNOTATION		= "schema/StringAnnotation-ddl.sql";
+	public static final String DDL_FILE_LONG_ANNOTATION			= "schema/LongAnnotation-ddl.sql";
+	public static final String DDL_FILE_DATE_ANNOTATION			= "schema/DateAnnotation-ddl.sql";
+	public static final String DDL_FILE_DOUBLE_ANNOTATION		= "schema/DoubleAnnotation-ddl.sql";
 	
 	// The name of the node type table.
 	public static final String TABLE_NODE_TYPE				= "NODE_TYPE";
@@ -103,6 +108,7 @@ public class SqlConstants {
 	public static final String COL_ACL_ID				= "ID";
 	public static final String COL_ACL_OWNER_ID			= "NODE_OWNER";
 	public static final String ACL_OWNER_ID_COLUMN		= "OWNER_ID_COLUMN";
+	public static final String DDL_FILE_ACL				= "schema/ACL-ddl.sql";
 	
 	// The resource access table
 	public static final String TABLE_RESOURCE_ACCESS			= "JDORESOURCEACCESS";
@@ -111,6 +117,7 @@ public class SqlConstants {
 	public static final String COL_RESOURCE_ACCESS_TYPE			= "RESOURCE_TYPE";
 	public static final String COL_RESOURCE_ACCESS_RESOURCE_ID	= "RESOURCE_ID";
 	public static final String COL_RESOURCE_ACCESS_ID			= "ID";
+	public static final String DDL_FILE_RES_ACCESS				= "schema/ResourceAccess-ddl.sql";
 	
 	// The backup/restore status table
 	public static final String TABLE_BACKUP_STATUS 				= "DAEMON_STATUS";
@@ -137,6 +144,7 @@ public class SqlConstants {
 	public static final String TABLE_RESOURCE_ACCESS_TYPE		= "JDORESOURCEACCESS_ACCESSTYPE"; 
 	public static final String COL_RESOURCE_ACCESS_TYPE_ID		= "ID_OID";
 	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT	= "STRING_ELE";
+	public static final String DDL_FILE_RES_ACCESS_TYPE			= "schema/ResourceAccessType-ddl.sql";
 	
 	// This constraint ensure that children names are unique within their parent.
 	public static final String CONSTRAINT_UNIQUE_CHILD_NAME = "NODE_UNIQUE_CHILD_NAME";

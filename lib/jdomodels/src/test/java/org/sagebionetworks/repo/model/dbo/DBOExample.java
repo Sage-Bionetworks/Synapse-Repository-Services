@@ -46,6 +46,11 @@ public class DBOExample implements AutoIncrementDatabaseObject<DBOExample> {
 				return FIELDS;
 			}
 
+			@Override
+			public Class<? extends DBOExample> getDBOClass() {
+				return DBOExample.class;
+			}
+
 		};
 	}
 

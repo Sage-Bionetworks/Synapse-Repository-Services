@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo;
 import static org.junit.Assert.*;
 
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -20,7 +21,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:dboExample-test-context.xml" })
-@Ignore
 public class DBOExampleTest {
 	
 	@Autowired
@@ -65,6 +65,33 @@ public class DBOExampleTest {
 		assertNotNull(example);
 		// This class is auto-increment so it should have an id now
 		assertNotNull(example.getId());
+	}
+	
+	@Test
+	public void testInsertBatch() throws DatastoreException, UnsupportedEncodingException, NotFoundException{
+		int batchSize = 6;
+		List<DBOExample> batch = new ArrayList<DBOExample>();
+		for(int i=0; i<batchSize; i++){
+			DBOExample example = new DBOExample();
+			example.setNumber(new Long(i));
+			example.setModifiedBy("name"+i);
+			example.setModifiedOn(System.currentTimeMillis());
+			example.setBlob("This string converts to a blob".getBytes("UTF-8"));
+			batch.add(example);
+		}
+
+		batch = dboBasicDao.createBatch(batch);
+		// Make sure each has an id
+		for(DBOExample created: batch){
+			assertNotNull(created.getId());
+			toDelete.add(created.getId());
+			// Check the results
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue("id", created.getId());
+			DBOExample clone = dboBasicDao.getObjectById(DBOExample.class, params);
+			assertNotNull(clone);
+			assertEquals(created, clone);
+		}
 	}
 	
 	@Test
