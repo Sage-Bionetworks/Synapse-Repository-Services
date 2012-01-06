@@ -39,7 +39,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	public boolean validateTableExists(TableMapping mapping) throws IOException{
 		String url = stackConfiguration.getRepositoryDatabaseConnectionUrl();
 		String schema = getSchemaFromConnectionString(url);
-		String sql = String.format(TABLE_EXISTS_SQL_FORMAT, mapping.getTableName(), schema);
+		String sql = String.format(TABLE_EXISTS_SQL_FORMAT, mapping.getTableName(), schema.toLowerCase());
 		log.info("About to execute: "+sql);
 		List<Map<String, Object>> list = simpleJdbcTempalte.queryForList(sql);
 		// If the table does not exist then create it.
