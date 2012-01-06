@@ -269,8 +269,10 @@ public class NodeManagerImplAutoWiredTest {
 		NamedAnnotations named = nodeManager.getAnnotations(userInfo, id);
 		Annotations annos = named.getAdditionalAnnotations();
 		annos.addAnnotation("stringKey", "should take");
+		String startingEtag = annos.getEtag();
 		nodeManager.updateAnnotations(userInfo, id, annos, NamedAnnotations.NAME_SPACE_ADDITIONAL);
 		// Try it again without changing the eTag
+		annos.setEtag(startingEtag);
 		annos.addAnnotation("stringKey", "should not take");
 		nodeManager.updateAnnotations(userInfo, id, annos, NamedAnnotations.NAME_SPACE_ADDITIONAL);
 	}

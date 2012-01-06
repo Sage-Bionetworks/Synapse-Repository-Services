@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
@@ -12,8 +11,8 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
-import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
+import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
+import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 
 /**
  * Test to convert from JDO to DTO
@@ -41,8 +40,8 @@ public class JDONodeUtilsTest {
 //		node.setVersionNumber("2");
 		node.setReferences(new HashMap<String, Set<Reference>>());
 		// Now create a revision for this node
-		JDONode jdoNode = new JDONode();
-		JDORevision jdoRev = new JDORevision();
+		DBONode jdoNode = new DBONode();
+		DBORevision jdoRev = new DBORevision();
 		JDONodeUtils.updateFromDto(node, jdoNode, jdoRev);
 		assertEquals("The user cannot change an eTag.", null, jdoNode.geteTag());
 		// Set it to make sure the copy works
@@ -57,15 +56,15 @@ public class JDONodeUtilsTest {
 	
 	@Test
 	public void testJDOParentId() throws DatastoreException{
-		JDONode parent = new JDONode();
+		DBONode parent = new DBONode();
 		parent.setId(new Long(123));
-		JDONode child = new JDONode();
+		DBONode child = new DBONode();
 		child.setName("name");
-		child.setParent(parent);
+		child.setParentId(parent.getId());
 		child.setCreatedOn(System.currentTimeMillis());
 		child.setCreatedBy("createdBy");
 		// Make sure the parent id goes to the child
-		JDORevision rev = new JDORevision();
+		DBORevision rev = new DBORevision();
 		rev.setModifiedBy("modifiedBy");
 		rev.setModifiedOn(System.currentTimeMillis());
 		rev.setRevisionNumber(new Long(21));

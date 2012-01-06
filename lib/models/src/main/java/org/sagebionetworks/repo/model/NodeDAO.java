@@ -56,8 +56,9 @@ public interface NodeDAO {
 	 * Delete a node using its id.
 	 * @param id
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public boolean delete(String id) throws NotFoundException;
+	public boolean delete(String id) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Delete a specific version.
@@ -109,8 +110,9 @@ public interface NodeDAO {
 	 * @param id
 	 * @return the set of child ids
 	 * @throws NotFoundException
+	 * @throws DatastoreException 
 	 */
-	public Set<String> getChildrenIds(String id) throws NotFoundException;
+	public Set<String> getChildrenIds(String id) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Look at the current eTag without locking or changing anything.

@@ -71,6 +71,8 @@ public class NodeLockTest {
 				nodeDao.delete(nodeId);
 			} catch (NotFoundException e) {
 
+			} catch (DatastoreException e) {
+				
 			}
 		}
 	}

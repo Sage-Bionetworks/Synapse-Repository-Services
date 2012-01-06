@@ -103,7 +103,7 @@ public class JDOAccessControlListDAOScaleTest {
 	}
 
 	@After
-	public void after() {
+	public void after() throws DatastoreException {
 		// Delete all nodes created
 		if (nodeDAO != null && toDelete != null) {
 			for (String id : toDelete) {

@@ -6,10 +6,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -19,13 +16,7 @@ import java.util.zip.GZIPOutputStream;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
-import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
+import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 
 import com.thoughtworks.xstream.XStream;
 
@@ -39,25 +30,12 @@ public class JDOSecondaryPropertyUtils {
 	
 
 	/**
-	 * Update the JDO from the DTO
-	 * @param dto
-	 * @param jdo
-	 * @throws IOException 
-	 */
-	@SuppressWarnings("unchecked")
-	public static void updateFromJdoFromDto(NamedAnnotations dto, JDONode jdo, JDORevision rev) throws IOException {
-		updateAnnotationsFromDto(mergeAnnotations(dto), jdo);
-		// Compress the annotations and save them in a blob
-		rev.setAnnotations(compressAnnotations(dto));
-	}
-	
-	/**
 	 * Merge all of the annotations in the map into a single set.
 	 * @param nodeId
 	 * @param dto
 	 * @return
 	 */
-	private static Annotations mergeAnnotations(NamedAnnotations dto){
+	public static Annotations mergeAnnotations(NamedAnnotations dto){
 		Annotations merged = new Annotations();
 		if(dto != null){
 			Iterator<String> it = dto.nameIterator();
@@ -69,26 +47,6 @@ public class JDOSecondaryPropertyUtils {
 		return merged;
 	}
 	
-	@SuppressWarnings("unchecked")
-	public static void updateAnnotationsFromDto(NamedAnnotations dto, JDONode jdo) {
-		// Merge all of the annotations
-		Annotations merged = mergeAnnotations(dto);
-		updateAnnotationsFromDto(merged, jdo);
-	}
-	/**
-	 * This version will update the annotations on the node.  This will update the annotation tables used
-	 * for query.
-	 * @param dto
-	 * @param jdo
-	 */
-	@SuppressWarnings("unchecked")
-	public static void updateAnnotationsFromDto(Annotations dto, JDONode jdo) {
-		jdo.setStringAnnotations((Set<JDOStringAnnotation>)createFromMap(jdo, dto.getStringAnnotations()));
-		jdo.setDateAnnotations((Set<JDODateAnnotation>)createFromMap(jdo, dto.getDateAnnotations()));
-		jdo.setLongAnnotations((Set<JDOLongAnnotation>)createFromMap(jdo, dto.getLongAnnotations()));
-		jdo.setDoubleAnnotations((Set<JDODoubleAnnotation>)createFromMap(jdo, dto.getDoubleAnnotations()));
-	}
-	
 	/**
 	 * Convert the passed annotations to a compressed (zip) byte array
 	 * @param dto
@@ -96,6 +54,7 @@ public class JDOSecondaryPropertyUtils {
 	 * @throws IOException 
 	 */
 	public static byte[] compressAnnotations(NamedAnnotations dto) throws IOException{
+		if(dto == null) return null;
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		BufferedOutputStream buff = new BufferedOutputStream(out);
 		GZIPOutputStream zipper = new GZIPOutputStream(buff);
@@ -118,6 +77,7 @@ public class JDOSecondaryPropertyUtils {
 	 * @throws IOException 
 	 */
 	public static byte[] compressReferences(Map<String, Set<Reference>> dto) throws IOException{
+		if(dto == null) return null;
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		BufferedOutputStream buff = new BufferedOutputStream(out);
 		GZIPOutputStream zipper = new GZIPOutputStream(buff);
@@ -216,84 +176,10 @@ public class JDOSecondaryPropertyUtils {
 	 * @return
 	 * @throws IOException 
 	 */
-	public static NamedAnnotations createFromJDO(JDORevision rev) throws IOException{
+	public static NamedAnnotations createFromJDO(DBORevision rev) throws IOException{
 		if(rev == null) throw new IllegalArgumentException("JDOAnnotations cannot be null");
 		return decompressedAnnotations(rev.getAnnotations());
 	}
 	
-	/**
-	 * Create a set of JDOAnnotations from a map
-	 * @param <T>
-	 * @param owner
-	 * @param annotation
-	 * @return
-	 */
-	public static <T> Set<? extends JDOAnnotation<T>> createFromMap(JDONode owner, Map<String, Collection<T>> annotation){
-		Set<JDOAnnotation<T>> set = new HashSet<JDOAnnotation<T>>();
-		if(annotation != null){
-			Iterator<String> keyIt = annotation.keySet().iterator();
-			while(keyIt.hasNext()){
-				String key = keyIt.next();
-				Collection<T> valueColection = annotation.get(key);
-				Iterator<T> valueIt = valueColection.iterator();
-				while(valueIt.hasNext()){
-					T value = valueIt.next();
-					// If this is a string make sure it will fit in the annotations column.
-					if(value instanceof String){
-						// Note: The annotation tables are not used for persistence, we only put data in them to support queries.
-						// Annotations are persisted in in a blob on the revision table.
-						// Therefore, it is safe to trim string data when it is too long.
-						String stringValue = (String) value;
-						if(stringValue.length() > SqlConstants.STRING_ANNOTATIONS_VALUE_LENGTH){
-							stringValue = stringValue.substring(0, SqlConstants.STRING_ANNOTATIONS_VALUE_LENGTH-1);
-							value = (T) stringValue;
-						}
-					}
-					JDOAnnotation<T> jdo = createAnnotation(owner, key, value);
-					set.add(jdo);
-				}
-			}
-		}
-		return set;
-	}
-	
-	/**
-	 * Create a single JDOAnnotation.
-	 * @param <T>
-	 * @param owner
-	 * @param key
-	 * @param value
-	 * @return
-	 */
-	@SuppressWarnings("unchecked")
-	public static <T> JDOAnnotation<T> createAnnotation(JDONode owner, String key, T value){
-		if(key == null) throw new IllegalArgumentException("Key cannot be null");
-		if(value == null) throw new IllegalArgumentException("Value cannot be null");
-		JDOAnnotation<T>  jdo = null;
-		if(value instanceof String){
-			JDOStringAnnotation temp =  new JDOStringAnnotation();
-			temp.setOwner(owner);
-			jdo = (JDOAnnotation<T>) temp;
-		}else if(value instanceof Date){
-			JDODateAnnotation temp =  new JDODateAnnotation();
-			temp.setOwner(owner);
-			jdo = (JDOAnnotation<T>) temp;
-		}else if(value instanceof Long){
-			JDOLongAnnotation temp =  new JDOLongAnnotation();
-			temp.setOwner(owner);
-			jdo = (JDOAnnotation<T>) temp;
-		}else if(value instanceof Double){
-			JDODoubleAnnotation temp =  new JDODoubleAnnotation();
-			temp.setOwner(owner);
-			jdo = (JDOAnnotation<T>) temp;
-		}else if(value instanceof byte[]){
-			// There is no reason to put bytes in the annotations tables as they are only used for query.
-		}else{
-			throw new IllegalArgumentException("Unknown annoation type: "+value.getClass());
-		}
-		jdo.setAttribute(key);
-		jdo.setValue(value);
-		return jdo;
-	}
 
 }

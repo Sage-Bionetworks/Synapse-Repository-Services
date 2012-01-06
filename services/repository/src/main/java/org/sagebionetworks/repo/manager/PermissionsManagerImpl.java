@@ -202,9 +202,10 @@ public class PermissionsManagerImpl implements PermissionsManager {
 
 	/**
 	 * Get the permission benefactor of an entity.
+	 * @throws DatastoreException 
 	 */
 	@Override
-	public String getPermissionBenefactor(String nodeId, UserInfo userInfo) throws NotFoundException {
+	public String getPermissionBenefactor(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException {
 		return nodeInheritanceManager.getBenefactor(nodeId);
 	}
 

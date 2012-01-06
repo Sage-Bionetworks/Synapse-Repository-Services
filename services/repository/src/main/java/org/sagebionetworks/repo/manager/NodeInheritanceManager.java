@@ -10,8 +10,9 @@ public interface NodeInheritanceManager {
 	 * @param nodeId
 	 * @return
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public String getBenefactor(String nodeId) throws NotFoundException;
+	public String getBenefactor(String nodeId) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Puts a Node's children into correct state for permissions/benefactorId
@@ -29,8 +30,9 @@ public interface NodeInheritanceManager {
 	 * inherits from itself.
 	 * @param nodeId
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public void setNodeToInheritFromItself(String nodeId) throws NotFoundException;
+	public void setNodeToInheritFromItself(String nodeId) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * This method is called when an Access Control List (ACL) is removed from the given node.
@@ -48,7 +50,8 @@ public interface NodeInheritanceManager {
 	 * @param beneficiaryId
 	 * @param toBenefactorId
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException;
+	void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException;
 	
 }
