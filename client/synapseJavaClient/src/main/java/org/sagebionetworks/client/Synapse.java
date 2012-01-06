@@ -969,8 +969,12 @@ public class Synapse {
 			String resultsStr = "";
 			try {
 				response = e.getResponse();
-				if (null != response) {
-					results = new JSONObject(response);
+				if (null != response && response.length()>0) {
+					try {
+						results = new JSONObject(response);
+					} catch (JSONException jsone) {
+						throw new SynapseServiceException("Failed to parse: "+response, jsone);
+					}
 					if (log.isDebugEnabled()) {
 						log.debug("Retrieved " + requestUrl + " : "
 								+ results.toString(JSON_INDENT));

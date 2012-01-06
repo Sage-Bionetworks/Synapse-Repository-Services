@@ -26,7 +26,7 @@ public class IT700SynapseRClient {
 				"target/non-java-dependencies/synapseRClient" };
 		ExternalProcessResult result = ExternalProcessHelper
 				.runExternalProcess(cmd);
-		assertEquals(0, result.getReturnCode());
+		assertEquals("std-out:\n"+result.getStdout()+"\nstd-err:  "+result.getStderr(), 0, result.getReturnCode());
 	}
 
 	/**
@@ -38,8 +38,8 @@ public class IT700SynapseRClient {
 				"--no-test-load", "target/non-java-dependencies/synapseRClient" };
 		ExternalProcessResult result = ExternalProcessHelper
 				.runExternalProcess(cmd);
-		assertEquals(0, result.getReturnCode());
-		assertTrue(0 <= result.getStderr().indexOf("DONE"));
+		assertEquals("std-out:\n"+result.getStdout()+"\nstd-err:  "+result.getStderr(), 0, result.getReturnCode());
+		assertTrue("std-out:\n"+result.getStdout()+"\nstd-err:  "+result.getStderr(), 0 <= result.getStderr().indexOf("DONE"));
 	}
 
 	/**
@@ -68,8 +68,8 @@ public class IT700SynapseRClient {
 						+ "')", "-e", "synapseClient:::.test()" };
 		ExternalProcessResult result = ExternalProcessHelper
 				.runExternalProcess(cmd);
-		assertEquals(0, result.getReturnCode());
-		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
+		assertEquals("std-out:\n"+result.getStdout()+"\nstd-err:  "+result.getStderr(), 0, result.getReturnCode());
+		assertTrue("std-out:\n"+result.getStdout()+"\nstd-err:  "+result.getStderr(), 0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}
 
 	/**
@@ -101,8 +101,8 @@ public class IT700SynapseRClient {
 				"-e", "synapseClient:::.integrationTest()" };
 		ExternalProcessResult result = ExternalProcessHelper
 				.runExternalProcess(cmd);
-		assertEquals(0, result.getReturnCode());
-		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
+		assertEquals("std-out:\n"+result.getStdout()+"\nstd-err:  "+result.getStderr(), 0, result.getReturnCode());
+		assertTrue("std-out:\n"+result.getStdout()+"\nstd-err:  "+result.getStderr(), 0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}
 
 	/**
@@ -135,7 +135,7 @@ public class IT700SynapseRClient {
 				"synapseClient:::.integrationTest(testFileRegexp='test_entityGet.R')" };
 		ExternalProcessResult result = ExternalProcessHelper
 				.runExternalProcess(cmd);
-		assertEquals(0, result.getReturnCode());
-		assertTrue(0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
+		assertEquals("std-out:\n"+result.getStdout()+"\nstd-err:  "+result.getStderr(), 0, result.getReturnCode());
+		assertTrue("std-out:\n"+result.getStdout()+"\nstd-err:  "+result.getStderr(), 0 <= result.getStdout().indexOf(" 0 errors, 0 failures"));
 	}
 }
