@@ -1,13 +1,9 @@
 library(synapseClient)
 
-# All the raw TCGA data is currently found in the SageBioCuration project
-projects <- synapseQuery('select * from project where project.name == "SageBioCuration"')
-dim(projects)
-
 # There are many more datasets in there than just the TCGA ones, but we are only interested in TCGA data
-datasets <- synapseQuery(paste('select * from dataset where dataset.parentId == "', projects$project.id[1],'"', sep=""))
+datasets <- synapseQuery(paste('select * from dataset where dataset.Institution == "TCGA"', sep=""))
 dim(datasets)
-datasets$dataset.name[grepl('TCGA', datasets$dataset.name )]
+datasets[, 'dataset.name']
 
 # We want to work with Glioblastoma data
 glioblastomaDatasetId <- datasets$dataset.id[grepl('Glioblastoma TCGA', datasets$dataset.name )]
