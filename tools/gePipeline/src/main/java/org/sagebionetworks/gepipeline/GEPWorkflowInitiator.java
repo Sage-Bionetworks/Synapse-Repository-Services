@@ -54,7 +54,9 @@ public class GEPWorkflowInitiator {
 		String projectId = ConfigHelper.getGEPipelineTargetProjectId();
 		
 		Synapse synapse = connectToSynapse();
-		Collection<Map<String,Object>> layerTasks = crawlSourceProject(synapse);
+		String sourceProjectId = ConfigHelper.getGEPipelineSourceProjectId();
+		String targetProjectId = ConfigHelper.getGEPipelineTargetProjectId();
+		Collection<Map<String,Object>> layerTasks = crawlSourceProject(synapse, sourceProjectId, targetProjectId);
 		
 		
 		String maxInstances = ConfigHelper.getGEPipelineMaxWorkflowInstances();
@@ -129,9 +131,7 @@ public class GEPWorkflowInitiator {
 	// crawl the Synapse project given by sourceProjectId
 	// return the layers to process, including the following attributes
 	// 'lastUpdate', 'url', 'description', 'number_of_samples', 'status', 'createdBy'
-	private static Collection<Map<String,Object>> crawlSourceProject(Synapse synapse) {
-		String sourceProjectId = ConfigHelper.getGEPipelineSourceProjectId();
-		String targetProjectId = ConfigHelper.getGEPipelineTargetProjectId();
+	public static Collection<Map<String,Object>> crawlSourceProject(Synapse synapse, String sourceProjectId, String targetProjectId) {
 		Collection<Map<String,Object>> layerTasks = new ArrayList<Map<String,Object>>();
 
 		int offset=1;
@@ -299,7 +299,9 @@ public class GEPWorkflowInitiator {
 		} else {
 			// this allows us to see what jobs will be started, without actually scheduling them.
 			Synapse synapse = initiator.connectToSynapse();
-			Collection<Map<String,Object>> layerTasks = initiator.crawlSourceProject(synapse);
+			String sourceProjectId = ConfigHelper.getGEPipelineSourceProjectId();
+			String targetProjectId = ConfigHelper.getGEPipelineTargetProjectId();
+			Collection<Map<String,Object>> layerTasks = initiator.crawlSourceProject(synapse, sourceProjectId, targetProjectId);
 		}
 
 		

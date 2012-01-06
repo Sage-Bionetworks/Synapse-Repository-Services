@@ -372,6 +372,12 @@
                 <version>${project.version}</version>
             </dependency>
             
+            <dependency>
+                <groupId>org.sagebionetworks</groupId>
+                <artifactId>gePipeline</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            
         </dependencies>
     </dependencyManagement>
     <!-- Only list globally used plugins in this file -->
