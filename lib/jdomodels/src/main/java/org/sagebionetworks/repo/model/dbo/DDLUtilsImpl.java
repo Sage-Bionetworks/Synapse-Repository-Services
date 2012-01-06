@@ -23,7 +23,7 @@ public class DDLUtilsImpl implements DDLUtils{
 	static private Log log = LogFactory.getLog(DDLUtilsImpl.class);
 	
 	// Determine if the table exists
-	public static final String TABLE_EXISTS_SQL_FORMAT = "SELECT TABLE_NAME FROM Information_schema.tables WHERE TABLE_NAME = '%1$s' AND table_schema = '%2$S'";
+	public static final String TABLE_EXISTS_SQL_FORMAT = "SELECT TABLE_NAME FROM Information_schema.tables WHERE TABLE_NAME = '%1$s' AND table_schema = '%2$s'";
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
@@ -39,7 +39,8 @@ public class DDLUtilsImpl implements DDLUtils{
 	public boolean validateTableExists(TableMapping mapping) throws IOException{
 		String url = stackConfiguration.getRepositoryDatabaseConnectionUrl();
 		String schema = getSchemaFromConnectionString(url);
-		String sql = String.format(TABLE_EXISTS_SQL_FORMAT, mapping.getTableName(), schema.toLowerCase());
+		log.info("Schema: "+schema);
+		String sql = String.format(TABLE_EXISTS_SQL_FORMAT, mapping.getTableName(), schema);
 		log.info("About to execute: "+sql);
 		List<Map<String, Object>> list = simpleJdbcTempalte.queryForList(sql);
 		// If the table does not exist then create it.
