@@ -44,8 +44,9 @@ public interface PermissionsManager {
 	 * Get the permissions benefactor of an entity.
 	 * @return
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public String getPermissionBenefactor(String nodeId, UserInfo userInfo) throws NotFoundException;
+	public String getPermissionBenefactor(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Update the given ACL, as keyed by the 'resourceId' field

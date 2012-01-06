@@ -26,6 +26,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackupDAO;
@@ -33,7 +34,6 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -69,7 +69,7 @@ public class NodeDAOImplTest {
 	}
 	
 	@After
-	public void after(){
+	public void after() throws DatastoreException{
 		if(toDelete != null && nodeDao != null){
 			for(String id:  toDelete){
 				// Delete each
@@ -832,7 +832,11 @@ public class NodeDAOImplTest {
 		
 		// now create a new version number
 		NodeRevisionBackup newRev = new NodeRevisionBackup();
-		Annotations annos = RandomAnnotationsUtil.generateRandom(33477, 23);
+		Annotations annos = new Annotations();
+		annos.addAnnotation("stringKey", "StringValue");
+		annos.addAnnotation("dateKey", new Date(1000));
+		annos.addAnnotation("longKey", new Long(123));
+		annos.addAnnotation("doubleKey", new Double(4.5));
 		NamedAnnotations nammed = new NamedAnnotations();
 		nammed.put("newNamed", annos);
 		String keyOnNewVersion = "NodeDAOImplTest.testCreateRevision.OnNew";
@@ -844,6 +848,7 @@ public class NodeDAOImplTest {
 		newRev.setLabel("1.0");
 		newRev.setModifiedBy("me");
 		newRev.setModifiedOn(new Date());
+		newRev.setReferences(new HashMap<String, Set<Reference>>());
 
 		// This annotation should not be query-able
 		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnNewVersion));
@@ -866,6 +871,7 @@ public class NodeDAOImplTest {
 
 		// Create a few nodes we will refer to, use the current version held in the repo svc
 		Set<Reference> referees = new HashSet<Reference>();
+		Set<Reference> copyReferees = new HashSet<Reference>();
 		for(int i=0; i<10; i++){
 			Node node = NodeTestUtils.createNew("referee"+i);
 			String id = nodeDao.createNew(node);
@@ -873,6 +879,10 @@ public class NodeDAOImplTest {
 			Reference ref = new Reference();
 			ref.setTargetId(id);
 			referees.add(ref);
+			
+			ref = new Reference();
+			ref.setTargetId(id);
+			copyReferees.add(ref);
 			deleteMeNode = id;
 		}
 
@@ -898,7 +908,7 @@ public class NodeDAOImplTest {
 
 		// Now add some duplicate references, these do get added to the set because they have 
 		// blank versions and therefore appear to be different references to this client-side code
-		storedNode.getReferences().get("referees").addAll(refs.get("referees"));
+		storedNode.getReferences().get("referees").addAll(copyReferees);
 		assertEquals(20, storedNode.getReferences().get("referees").size());
 		nodeDao.updateNode(storedNode);
 		storedNode = nodeDao.getNode(refererId);

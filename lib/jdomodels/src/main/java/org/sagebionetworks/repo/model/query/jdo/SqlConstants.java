@@ -9,17 +9,6 @@ import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOAnnotationType;
-import org.sagebionetworks.repo.model.jdo.persistence.JDODateAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDODoubleAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOLongAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
-import org.sagebionetworks.repo.model.jdo.persistence.JDONodeType;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOReference;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOResourceAccess;
-import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOStringAnnotation;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOUserGroup;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl.AttributeDoesNotExist;
@@ -189,7 +178,6 @@ public class SqlConstants {
 	public static final String INPUT_DATA_LAYER_DATASET_ID = "INPUT_LAYERS_ID_OWN";
 	
 	private static final Map<String, String> primaryFieldColumns;
-	private static final Map<String, String> mapClassToTable;
 
 	static{
 		// Map column names to the field names
@@ -204,50 +192,11 @@ public class SqlConstants {
 		SqlConstants.addAllFields(Layer.class, primaryFieldColumns);
 		primaryFieldColumns.put(NodeConstants.COL_PARENT_ID, "PARENT_ID");
 		primaryFieldColumns.put("INPUT_LAYERS_ID_OWN", "INPUT_LAYERS_ID_OWN");
-		
-		// This is the map of varrious classes to their table names
-		mapClassToTable = new HashMap<String, String>();
-		mapClassToTable.put(JDONode.class.getName(),				TABLE_NODE);
-		mapClassToTable.put(JDORevision.class.getName(),			TABLE_REVISION);
-		mapClassToTable.put(JDONodeType.class.getName(),			TABLE_NODE_TYPE);
-		mapClassToTable.put(JDOReference.class.getName(),			TABLE_REFERENCE);
-		mapClassToTable.put(JDOAnnotationType.class.getName(),		TABLE_ANNOTATION_TYPE);
-		mapClassToTable.put(JDOLongAnnotation.class.getName(),		TABLE_LONG_ANNOTATIONS);
-		mapClassToTable.put(JDODoubleAnnotation.class.getName(),	TABLE_DOUBLE_ANNOTATIONS);
-		mapClassToTable.put(JDODateAnnotation.class.getName(), 		TABLE_DATE_ANNOTATIONS);
-		mapClassToTable.put(JDOStringAnnotation.class.getName(),	TABLE_STRING_ANNOTATIONS);
-		// security
-		mapClassToTable.put(JDOResourceAccess.class.getName(),		TABLE_RESOURCE_ACCESS);
-		mapClassToTable.put(JDOUserGroup.class.getName(), 			TABLE_USER_GROUP);
-		// Join tables
-//		mapClassToTable.put(JDOResourceAccess.class.getName()+".accessType",	TABLE_RESOURCE_ACCESS_TYPE);
-		mapClassToTable.put(JDOUserGroup.class.getName()+".users",				TABLE_USER_GROUP_USERS);
-		
+				
 		
 	}
 
 	
-	/**
-	 * Get the table name for a class.
-	 * @param clazz
-	 * @return
-	 */
-	public static String getTableForClass(Class clazz){
-		if(clazz == null) throw new IllegalArgumentException("Class cannot be null");
-		return getTableForClassName(clazz.getName());
-	}
-	
-	/**
-	 * Get the table for a class name.
-	 * @param className
-	 * @return
-	 */
-	public static String getTableForClassName(String className){
-		if(className == null) throw new IllegalArgumentException("Class cannot be null");
-		String table = mapClassToTable.get(className);
-		if(table == null) throw new IllegalArgumentException("Cannot find table for Class: "+className);
-		return table;
-	}
 	/**
 	 * Add all of the fields for a given object.
 	 * @param clazz
@@ -277,31 +226,7 @@ public class SqlConstants {
 		if(column == null) throw new IllegalArgumentException("Unknown field: "+field);
 		return column;
 	}
-	
-	
-	
-	/**
-	 * Get the JDO class for each field type.
-	 * @param type
-	 * @return
-	 * @throws AttributeDoesNotExist 
-	 */
-	public static Class getJdoClassForFieldType(FieldType type) {
-		if(FieldType.STRING_ATTRIBUTE == type){
-			return JDOStringAnnotation.class;
-		}else if(FieldType.DATE_ATTRIBUTE == type){
-			return JDODateAnnotation.class;
-		}else if(FieldType.LONG_ATTRIBUTE == type){
-			return JDOLongAnnotation.class;
-		}else if(FieldType.DOUBLE_ATTRIBUTE == type){
-			return JDODoubleAnnotation.class;
-		}else if(FieldType.PRIMARY_FIELD == type){
-			throw new IllegalArgumentException("There is more than one type for primary tables class for : "+type);
-		}else{
-			throw new IllegalArgumentException("No class for : "+type);
-		}
-	}
-	
+		
 	/**
 	 * Translate an Comparator to SQL
 	 * @param comp

@@ -49,7 +49,9 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 		simpleJdbcTempalte.update(DELETE_SQL, ownerId);
 		// Create the list of references
 		List<DBOReference> batch = ReferenceUtil.createDBOReferences(ownerId, references);
-		dboBasicDao.createBatch(batch);
+		if(batch.size() > 0 ){
+			dboBasicDao.createBatch(batch);
+		}
 		return references;
 	}
 

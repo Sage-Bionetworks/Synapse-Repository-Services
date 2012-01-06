@@ -17,21 +17,24 @@ public interface NodeInheritanceDAO {
 	 * @param benefactorId
 	 * @return
 	 * @throws NotFoundException
+	 * @throws DatastoreException 
 	 */
-	public Set<String> getBeneficiaries(String benefactorId) throws NotFoundException;
+	public Set<String> getBeneficiaries(String benefactorId) throws NotFoundException, DatastoreException;
 
 	/**
 	 * A node's permissions benefactor is the node which its permissions are inherited from. 
 	 * @param beneficiaryId
 	 * @return
 	 * @throws NotFoundException
+	 * @throws DatastoreException 
 	 */
-	public String getBenefactor(String beneficiaryId) throws NotFoundException;
+	public String getBenefactor(String beneficiaryId) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Add a node as beneficiary to a given benefactor
 	 * @param beneficiaryId - Each node in this list will be added as a beneficiary to the passed benefactor.
 	 * @param toBenefactorId - The new permissions benefactor of the list of nodes.
+	 * @throws DatastoreException 
 	 */
-	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException;
+	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException;
 }

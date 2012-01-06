@@ -47,7 +47,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void setNodeToInheritFromItself(String nodeId) throws NotFoundException {
+	public void setNodeToInheritFromItself(String nodeId) throws NotFoundException, DatastoreException {
 		// Find all children of this node that are currently inheriting from the same 
 		// benefactor.
 		String currentBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);
@@ -87,8 +87,9 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	 * @param parentId - The parent 
 	 * @param changeToInheritFromId
 	 * @throws NotFoundException
+	 * @throws DatastoreException 
 	 */
-	private void changeAllChildrenTo(String currentlyInheritingFromId, String parentId, String changeToInheritFromId) throws NotFoundException{
+	private void changeAllChildrenTo(String currentlyInheritingFromId, String parentId, String changeToInheritFromId) throws NotFoundException, DatastoreException{
 		// This is the set of nodes that will need to change.
 		Set<String> toChange = new HashSet<String>();
 		// Recursively build up the set to change
@@ -109,8 +110,9 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	 * @param parentId
 	 * @param toChange
 	 * @throws NotFoundException
+	 * @throws DatastoreException 
 	 */
-	private void addChildrenToChange(String currentBenefactorId, String parentId, Set<String> toChange) throws NotFoundException{
+	private void addChildrenToChange(String currentBenefactorId, String parentId, Set<String> toChange) throws NotFoundException, DatastoreException{
 		// Find find the parent's benefactor
 		String parentCurrentBenefactorId = nodeInheritanceDao.getBenefactor(parentId);
 		if(parentCurrentBenefactorId.equals(currentBenefactorId)){
@@ -127,20 +129,22 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 
 	/**
 	 * Get the benefactor of a node.
+	 * @throws DatastoreException 
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String getBenefactor(String nodeId) throws NotFoundException {
+	public String getBenefactor(String nodeId) throws NotFoundException, DatastoreException {
 		return nodeInheritanceDao.getBenefactor(nodeId);
 	}
 	
 	/**
 	 * Add a beneficiary to a node
 	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException {
+	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException {
 		nodeInheritanceDao.addBeneficiary(beneficiaryId, toBenefactorId);
 	}
 

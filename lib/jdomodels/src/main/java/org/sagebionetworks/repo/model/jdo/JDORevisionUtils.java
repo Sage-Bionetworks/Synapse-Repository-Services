@@ -6,8 +6,7 @@ import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.jdo.persistence.JDONode;
-import org.sagebionetworks.repo.model.jdo.persistence.JDORevision;
+import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 
 public class JDORevisionUtils {
 	
@@ -16,8 +15,8 @@ public class JDORevisionUtils {
 	 * @param toCopy
 	 * @return
 	 */
-	public static JDORevision makeCopyForNewVersion(JDORevision toCopy){
-		JDORevision copy = new JDORevision();
+	public static DBORevision makeCopyForNewVersion(DBORevision toCopy){
+		DBORevision copy = new DBORevision();
 		copy.setOwner(toCopy.getOwner());
 		// Increment the revision number
 		copy.setRevisionNumber(new Long(toCopy.getRevisionNumber()+1));
@@ -41,10 +40,10 @@ public class JDORevisionUtils {
 	 * @throws DatastoreException 
 	 * @throws IOException 
 	 */
-	public static NodeRevisionBackup createDtoFromJdo(JDORevision jdo) throws DatastoreException{
+	public static NodeRevisionBackup createDtoFromJdo(DBORevision jdo) throws DatastoreException{
 		NodeRevisionBackup rev = new NodeRevisionBackup();
 		if(jdo.getOwner() != null){
-			rev.setNodeId(KeyFactory.keyToString(jdo.getOwner().getId()));
+			rev.setNodeId(KeyFactory.keyToString(jdo.getOwner()));
 		}
 		rev.setRevisionNumber(jdo.getRevisionNumber());
 		rev.setComment(jdo.getComment());
@@ -65,8 +64,8 @@ public class JDORevisionUtils {
 	 * @param jdo
 	 * @throws IOException 
 	 */
-	public static void updateJdoFromDto(NodeRevisionBackup dto, JDORevision jdo, JDONode owner) throws DatastoreException{
-		jdo.setOwner(owner);
+	public static void updateJdoFromDto(NodeRevisionBackup dto, DBORevision jdo) throws DatastoreException{
+		jdo.setOwner(KeyFactory.stringToKey(dto.getNodeId()));
 		jdo.setComment(dto.getComment());
 		jdo.setLabel(dto.getLabel());
 		jdo.setModifiedBy(dto.getModifiedBy());

@@ -12,6 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -41,7 +42,7 @@ public class NodeInheritanceDAOImplTest {
 	}
 	
 	@After
-	public void after(){
+	public void after() throws DatastoreException{
 		if(toDelete != null && nodeDao != null){
 			for(String id:  toDelete){
 				// Delete each
