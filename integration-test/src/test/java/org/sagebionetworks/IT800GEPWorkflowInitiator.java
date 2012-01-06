@@ -13,6 +13,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -119,6 +121,7 @@ public class IT800GEPWorkflowInitiator {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testCommonsCrawler() throws Exception {
 		String sourceProjectId = sourceProject.getId();
