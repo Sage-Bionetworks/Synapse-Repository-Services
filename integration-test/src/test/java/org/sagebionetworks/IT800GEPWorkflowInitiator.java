@@ -82,18 +82,17 @@ public class IT800GEPWorkflowInitiator {
 		assertNotNull(locationData.getPath());
 		assertTrue(locationData.getPath().startsWith("http"));
 		
-		// now check that location is there:
-		if (false) { // TODO:  make this work
-			JSONObject locationQueryResult = synapse.query("select * from location where parentId=="+layer.getId());
-			JSONArray jsonLocations = locationQueryResult.getJSONArray("results");
-			assertEquals(locationQueryResult.toString(), 1, jsonLocations.length());
-			// get location mdsum
-			Location location = (Location) EntityFactory.createEntityFromJSONObject(jsonLocations.getJSONObject(0), Location.class);
-			String md5Sum = location.getMd5sum();
-			assertNotNull(md5Sum);
-			String layerLocation = location.getPath();
-			assertNotNull(layerLocation);
-		}
+		// now check that we can get the location data starting from a Layer query
+		JSONObject queryResult = synapse.query("select id from layer where parentId=="+dataset.getId());
+		JSONArray a = (JSONArray)queryResult.get("results");
+		assertEquals(1, a.length());
+		layer = (Layer)synapse.getEntityById(((JSONObject)a.get(0)).getString("layer.id"));
+		locations = layer.getLocations();
+		assertEquals(1, locations.size());
+		locationData = locations.get(0);
+		assertEquals(LocationTypeNames.awss3, locationData.getType());
+		assertNotNull(locationData.getPath());
+		assertTrue(locationData.getPath().startsWith("http"));
 	}
 	
 	public static File createDataFile() throws IOException {
@@ -116,16 +115,19 @@ public class IT800GEPWorkflowInitiator {
 		if(null != sourceProject) {
 			synapse.deleteEntity(sourceProject);
 		}
+		if(null != targetProject) {
+			synapse.deleteEntity(targetProject);
+		}
 	}
 
 	/**
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testCommonsCrawler() throws Exception {
 		String sourceProjectId = sourceProject.getId();
 		String targetProjectId = targetProject.getId();
 		Collection<Map<String,Object>> layerTasks = GEPWorkflowInitiator.crawlSourceProject(synapse, sourceProjectId, targetProjectId);
+		assertEquals(1, layerTasks.size());
 	}
 }

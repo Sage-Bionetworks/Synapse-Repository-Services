@@ -551,7 +551,13 @@ public class Synapse {
 		// scheme
 		File file;
 		try {
-			file = File.createTempFile(locationable.getId(), ".txt");
+			// from the Java doc
+			// prefix - The prefix string to be used in generating the file's name; must be at least three characters long
+			String prefix = locationable.getId();
+			if (prefix.length()<3) {
+				prefix = "000".substring(prefix.length()) + prefix;
+			}
+			file = File.createTempFile(prefix, ".txt");
 			return downloadLocationableFromSynapse(locationable, file);
 		} catch (IOException e) {
 			throw new SynapseException(e);
