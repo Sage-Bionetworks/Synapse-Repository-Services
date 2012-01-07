@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Location;
+import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -141,13 +142,12 @@ public class GEPWorkflowInitiator {
 		do {
 			try {
 				// get a batch of datasets
-				JSONObject o = synapse.query("select * from dataset where parentId=="+sourceProjectId+" LIMIT "+batchSize+" OFFSET "+offset);
-				total = (int)o.getLong("totalNumberOfResults");
+				JSONObject ids = synapse.query("select id from dataset where parentId=="+sourceProjectId+" LIMIT "+batchSize+" OFFSET "+offset);
+				total = (int)ids.getLong("totalNumberOfResults");
 				System.out.println("Datasets: "+offset+"->"+Math.min(total, offset+batchSize-1)+" of "+total);
-				JSONArray a = o.getJSONArray("results");
-				for (int i=0; i<a.length(); i++) {
-//					JSONObject ds = (JSONObject)a.get(i);
-					Dataset ds = (Dataset) EntityFactory.createEntityFromJSONObject((JSONObject)a.get(i), Dataset.class);
+				JSONArray a = ids.getJSONArray("results");
+				for (int i=0; i<ids.length(); i++) {
+					Dataset ds = (Dataset) synapse.getEntityById(((JSONObject)a.get(i)).getString("dataset.id"));
 					String id = ds.getId();
 					String sourceDatasetName = ds.getName();
 					
@@ -156,24 +156,21 @@ public class GEPWorkflowInitiator {
 					String status = ds.getStatus();
 					String createdBy = ds.getCreatedBy();
 					// get the genomic and genetic layers
-					JSONObject layers = synapse.query("select * from layer where parentId=="+id);
-					JSONArray layersArray = layers.getJSONArray("results");
+					JSONObject layerIds = synapse.query("select id from layer where parentId=="+id);
+					JSONArray layersIdsArray = layerIds.getJSONArray("results");
 					Dataset targetDataset = null;
 					JSONObject targetDatasetJSON = null;
-					for (int j=0; j<layersArray.length(); j++) {
-						Layer layer = (Layer) EntityFactory.createEntityFromJSONObject((JSONObject)layersArray.get(j), Layer.class);
+					for (int j=0; j<layersIdsArray.length(); j++) {
+						Layer layer = (Layer) synapse.getEntityById(((JSONObject)layersIdsArray.get(j)).getString("layer.id"));
 						
 						String layerId = layer.getId();
-						String layerName = layer.getName();
 						
 						LayerTypeNames type = layer.getType();
 						// only 'crawl' Expression and Genotyping layers (not Clincial or Media layers)
 						if (!(type.equals(LayerTypeNames.E) || type.equals(LayerTypeNames.G))) continue;
 						
-						// get the URL for the layer:
-						JSONObject locationQueryResult = synapse.query("select * from location where parentId=="+layerId);
-						JSONArray locations = locationQueryResult.getJSONArray("results");
-						if (locations.length()==0) continue;
+						List<LocationData> locations = layer.getLocations();
+						if (locations.size()==0) continue;
 						
 						layerCount++;
 						
@@ -184,14 +181,17 @@ public class GEPWorkflowInitiator {
 						layerAttributes.put(TARGET_DATASET_NAME_PROPERTY_NAME, targetDatasetName);
 						DateTime modDateTime = new DateTime(layer.getModifiedOn());
 						
+						LocationData locationData = locations.get(0);
 						// get location mdsum
-						Location location = (Location) EntityFactory.createEntityFromJSONObject(locations.getJSONObject(0), Location.class);
-						String md5Sum = location.getMd5sum();
-						String layerLocation = location.getPath();
+						String md5Sum = layer.getMd5();
+						// get the URL for the layer:
+						String layerLocation = locationData.getPath();
 						layerAttributes.put(SOURCE_LAYER_LOCATION_PROPERTY_NAME, layerLocation);
 						
 						// find the target dataset...
 						if (targetDataset==null || !targetDatasetName.equals(targetDataset.getName())) {
+							// TODO:  In long run, migrate away from 'select *'.  For now we need to do this
+							// in order to get the annotations
 							JSONObject dsQueryResult = synapse.query("select * from dataset where parentId=="+targetProjectId+" AND name==\""+targetDatasetName+"\"");
 							JSONArray datasets = dsQueryResult.getJSONArray("results");
 							if (datasets.length()>0) {
