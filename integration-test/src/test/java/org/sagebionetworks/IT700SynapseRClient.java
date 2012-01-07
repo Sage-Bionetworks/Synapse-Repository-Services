@@ -98,7 +98,7 @@ public class IT700SynapseRClient {
 						+ "', password='"
 						+ StackConfiguration
 								.getIntegrationTestUserOnePassword() + "')",
-				"-e", "synapseClient:::.integrationTest()" };
+				"-e", "stopStep()", "-e", "synapseClient:::.integrationTest()" };
 		ExternalProcessResult result = ExternalProcessHelper
 				.runExternalProcess(cmd);
 		assertEquals("std-out:\n"+result.getStdout()+"\nstd-err:  "+result.getStderr(), 0, result.getReturnCode());
