@@ -173,7 +173,11 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		// Now create the revision
 		rev.setOwner(node.getId());
 		// Now save the node and revision
-		dboBasicDao.createNew(node);
+		try{
+			dboBasicDao.createNew(node);
+		}catch(IllegalArgumentException e){
+			checkExceptionDetails(node.getName(), KeyFactory.keyToString(node.getParentId()), e);
+		}
 		dboBasicDao.createNew(rev);
 		
 		// Create references found in dto, if applicable
@@ -230,7 +234,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @param node
 	 * @param e
 	 */
-	private void checkExceptionDetails(String name, String parentId, DuplicateKeyException e) {
+	private void checkExceptionDetails(String name, String parentId, IllegalArgumentException e) {
 		if(e.getMessage().indexOf(CONSTRAINT_UNIQUE_CHILD_NAME) > 0) throw new IllegalArgumentException("An entity with the name: "+name+" already exists with a parentId: "+parentId);
 		throw e;
 	}
@@ -504,22 +508,24 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		DBONode jdoToUpdate = getNodeById(nodeId);
 		DBORevision revToUpdate = getCurrentRevision(jdoToUpdate);
 		// Update is as simple as copying the values from the passed node.
-		try{
-			if(!forceUseEtag){
-				validateReferences(jdoToUpdate.getCurrentRevNumber(), updatedNode.getReferences());				
-			}
-			JDONodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate);	
-		} catch (DuplicateKeyException e){
-			// Currently this is not hit because the exception is thrown when the 
-			// transaction commits outside of this method.
-			checkExceptionDetails(updatedNode.getName(), updatedNode.getParentId(), e);
+		if(!forceUseEtag){
+			validateReferences(jdoToUpdate.getCurrentRevNumber(), updatedNode.getReferences());				
 		}
+		JDONodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate);	
+
 		// Should we force the update of the etag?
 		if(forceUseEtag){
 			if(updatedNode.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
 			jdoToUpdate.seteTag(KeyFactory.stringToKey(updatedNode.getETag()));
 		}
-		dboBasicDao.update(jdoToUpdate);
+		// Update the node.
+		try{
+			dboBasicDao.update(jdoToUpdate);
+		}catch(IllegalArgumentException e){
+			// Check to see if this is a duplicate name exception.
+			checkExceptionDetails(updatedNode.getName(), updatedNode.getParentId(), e);
+		}
+		
 		dboBasicDao.update(revToUpdate);
 		// But we also need to create any new references or delete removed references, as applicable
 		replaceAnnotationsAndReferencesIfCurrent(jdoToUpdate.getCurrentRevNumber(), revToUpdate);

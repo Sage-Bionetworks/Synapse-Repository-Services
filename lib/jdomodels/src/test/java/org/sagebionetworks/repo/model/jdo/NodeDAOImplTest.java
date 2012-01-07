@@ -153,6 +153,31 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testCreateWithDuplicateName() throws Exception{
+		String commonName = "name";
+		Node parent = NodeTestUtils.createNew("parent");
+		String parentId = nodeDao.createNew(parent);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		Node one = NodeTestUtils.createNew(commonName);
+		one.setParentId(parentId);
+		String id = nodeDao.createNew(one);
+		toDelete.add(id);
+		assertNotNull(id);
+		// Now create another node using this id.
+		Node oneDuplicate = NodeTestUtils.createNew(commonName);
+		oneDuplicate.setParentId(parentId);
+		// This should throw an exception.
+		try{
+			String id2 = nodeDao.createNew(oneDuplicate);
+			fail("Setting a duplicate name should have failed");
+		}catch(IllegalArgumentException e){
+			System.out.println(e.getMessage());
+			assertTrue(e.getMessage().indexOf("An entity with the name: name already exists") > -1);
+		}
+	}
+	
+	@Test
 	public void testCreateWithId() throws Exception{
 		// Create a new node with an ID that is beyond the current max of the 
 		// ID generator.
@@ -345,6 +370,36 @@ public class NodeDAOImplTest {
 		assertNotNull(updatedCopy);
 		// The updated copy should match the copy now
 		assertEquals(copy, updatedCopy);
+	}
+	
+	@Test
+	public void testUpdateNodeDuplicateName() throws Exception{
+		String commonName = "name";
+		Node parent = NodeTestUtils.createNew("parent");
+		String parentId = nodeDao.createNew(parent);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		Node one = NodeTestUtils.createNew(commonName);
+		one.setParentId(parentId);
+		String id = nodeDao.createNew(one);
+		toDelete.add(id);
+		assertNotNull(id);
+		// Now create another node using this id.
+		Node oneDuplicate = NodeTestUtils.createNew("unique");
+		oneDuplicate.setParentId(parentId);
+		String id2 = nodeDao.createNew(oneDuplicate);
+		oneDuplicate = nodeDao.getNode(id2);
+		// This should throw an exception.
+		try{
+			// Set this name to be a duplicate name.
+			oneDuplicate.setName(commonName);
+			// Now update this node
+			nodeDao.updateNode(oneDuplicate);
+			fail("Setting a duplicate name should have failed");
+		}catch(IllegalArgumentException e){
+			System.out.println(e.getMessage());
+			assertTrue(e.getMessage().indexOf("An entity with the name: name already exists") > -1);
+		}
 	}
 	
 	@Test(expected=Exception.class)
