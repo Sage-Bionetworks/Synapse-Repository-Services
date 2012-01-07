@@ -15,6 +15,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -68,6 +69,7 @@ public class ITPerCallProfileTest {
 		}
 	}
 	
+	@Ignore
 	@Test
 	public void testPerCallProfileOn() throws JSONException, UnsupportedEncodingException{
 		assertNotNull(sessionToken);
@@ -88,6 +90,7 @@ public class ITPerCallProfileTest {
 		
 	}
 
+	@Ignore
 	@Test
 	public void testPerCallProfileOff() throws JSONException, UnsupportedEncodingException{
 		assertNotNull(sessionToken);
