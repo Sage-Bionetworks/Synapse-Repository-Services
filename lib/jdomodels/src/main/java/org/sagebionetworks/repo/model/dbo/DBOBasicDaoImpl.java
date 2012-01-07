@@ -112,8 +112,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 	
 	@Override
-	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch)
-			throws DatastoreException {
+	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch)	throws DatastoreException {
 		if(batch == null) throw new IllegalArgumentException("The batch cannot be null");
 		if(batch.size() < 1) throw new IllegalArgumentException("There must be at least one item in the batch");
 		// Lookup the insert SQL
@@ -150,8 +149,12 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	public <T extends DatabaseObject<T>> boolean update(T toUpdate)	throws DatastoreException {
 		String sql = getUpdateSQL(toUpdate.getClass());
 		SqlParameterSource namedParameters = new BeanPropertySqlParameterSource(toUpdate);
-		int updatedCount = simpleJdbcTempalte.update(sql, namedParameters);
-		return updatedCount > 0;
+		try{
+			int updatedCount = simpleJdbcTempalte.update(sql, namedParameters);
+			return updatedCount > 0;
+		}catch(DataIntegrityViolationException e){
+			throw new IllegalArgumentException(e);
+		}
 	}
 	
 	@Transactional(readOnly = true)
