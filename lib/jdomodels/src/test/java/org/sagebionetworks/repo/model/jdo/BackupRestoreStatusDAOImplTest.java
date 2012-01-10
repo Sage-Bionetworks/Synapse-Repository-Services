@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 
@@ -19,6 +20,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -106,6 +108,22 @@ public class BackupRestoreStatusDAOImplTest {
 		BackupRestoreStatus clone = backupRestoreStatusDao.get(id);
 		dto.setId(id);
 		assertEquals(dto, clone);
+	}
+	
+	@Test
+	public void testLongErrorMessage() throws DatastoreException{
+		BackupRestoreStatus dto = createStatusObject(DaemonStatus.STARTED, DaemonType.BACKUP);
+		dto.setErrorDetails("some short message");
+		char[] charArray = new char[SqlConstants.ERROR_MESSAGE_MAX_LENGTH+100];
+		Arrays.fill(charArray, 'b');
+		// This message exceeds the max size.
+		String longMessage = new String(charArray);
+		dto.setErrorMessage(longMessage);
+		dto.setBackupUrl("https://somedomean:port/bucket/file.zip");
+		// Now create it
+		String id = backupRestoreStatusDao.create(dto);
+		assertNotNull(id);
+		toDelete.add(id);
 	}
 	
 	@Test (expected=NotFoundException.class)

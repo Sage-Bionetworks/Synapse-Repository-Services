@@ -122,6 +122,8 @@ public class SqlConstants {
 	public static final String COL_BACKUP_ERROR_DETAILS			= "ERROR_DETAILS";
 	public static final String COL_BACKUP_URL					= "BACKUP_URL";
 	public static final String COL_BACKUP_RUNTIME				= "RUN_TIME_MS";
+	// the max size of the error message.
+	public static final int ERROR_MESSAGE_MAX_LENGTH			= 3000;
 	
 	public static final String TABLE_BACKUP_TERMINATE 			= "DAEMON_TERMINATE";
 	public static final String COL_BACKUP_TERM_OWNER			= "BACKUP_OWNER";
