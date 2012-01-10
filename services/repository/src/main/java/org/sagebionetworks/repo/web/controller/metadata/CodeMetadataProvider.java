@@ -101,6 +101,7 @@ public class CodeMetadataProvider implements
 					EntityType.step.getClassForType());
 			Reference reference = new Reference();
 			reference.setTargetId(entity.getId());
+			reference.setTargetVersionNumber(entity.getVersionNumber());
 			if (EventType.CREATE == eventType 
 					|| EventType.UPDATE == eventType
 					|| EventType.NEW_VERSION == eventType

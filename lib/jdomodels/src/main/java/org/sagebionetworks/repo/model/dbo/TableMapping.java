@@ -28,6 +28,10 @@ public interface TableMapping<T> extends RowMapper<T> {
 	 */
 	public FieldColumn[] getFieldColumns();
 	
+	/**
+	 * The class for <T>
+	 * @return
+	 */
 	public Class<? extends T> getDBOClass();
 
 }

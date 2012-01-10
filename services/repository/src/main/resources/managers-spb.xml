@@ -29,6 +29,8 @@
 	<!-- The Location helper-->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
 	
+	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
+	
 	<bean id="authorizationManager" class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
 	
 	<bean id="permissionsManager" class="org.sagebionetworks.repo.manager.PermissionsManagerImpl" />

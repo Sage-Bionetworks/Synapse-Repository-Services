@@ -18,10 +18,11 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 public class DBOReference implements DatabaseObject<DBOReference> {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("owner", COL_REFERENCE_OWNER_NODE, true),
-		new FieldColumn("targetId", COL_REFERENCE_TARGET_NODE, true),
-		new FieldColumn("targetRevision", COL_REFERENCE_TARGET_REVISION_NUMBER, true),
-		new FieldColumn("groupName", COL_REFERENCE_GROUP_NAME, true),
+		new FieldColumn("id", COL_ID, true),
+		new FieldColumn("owner", COL_REFERENCE_OWNER_NODE),
+		new FieldColumn("targetId", COL_REFERENCE_TARGET_NODE),
+		new FieldColumn("targetRevision", COL_REFERENCE_TARGET_REVISION_NUMBER),
+		new FieldColumn("groupName", COL_REFERENCE_GROUP_NAME),
 		};
 
 	@Override
@@ -31,9 +32,15 @@ public class DBOReference implements DatabaseObject<DBOReference> {
 			@Override
 			public DBOReference mapRow(ResultSet rs, int rowNum)throws SQLException {
 				DBOReference ref = new DBOReference();
+				ref.setId(rs.getLong(COL_ID));
 				ref.setOwner(rs.getLong(COL_REFERENCE_OWNER_NODE));
 				ref.setTargetId(rs.getLong(COL_REFERENCE_TARGET_NODE));
 				ref.setTargetRevision(rs.getLong(COL_REFERENCE_TARGET_REVISION_NUMBER));
+				// If the COL_REFERENCE_TARGET_REVISION_NUMBER was null in the DB then need to set
+				// it to null or auto-boxing will set it to '0'.
+				if(rs.wasNull()){
+					ref.setTargetRevision(null);
+				}
 				ref.setGroupName(rs.getString(COL_REFERENCE_GROUP_NAME));
 				return ref;
 			}
@@ -59,11 +66,18 @@ public class DBOReference implements DatabaseObject<DBOReference> {
 			}};
 	}
 	
+	private Long id;
 	private Long owner;
 	private Long targetId;
 	private Long targetRevision;
 	private String groupName;
 
+	public Long getId() {
+		return id;
+	}
+	public void setId(Long id) {
+		this.id = id;
+	}
 	public Long getOwner() {
 		return owner;
 	}
@@ -94,6 +108,7 @@ public class DBOReference implements DatabaseObject<DBOReference> {
 		int result = 1;
 		result = prime * result
 				+ ((groupName == null) ? 0 : groupName.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((owner == null) ? 0 : owner.hashCode());
 		result = prime * result
 				+ ((targetId == null) ? 0 : targetId.hashCode());
@@ -115,6 +130,11 @@ public class DBOReference implements DatabaseObject<DBOReference> {
 				return false;
 		} else if (!groupName.equals(other.groupName))
 			return false;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
 		if (owner == null) {
 			if (other.owner != null)
 				return false;
@@ -134,9 +154,9 @@ public class DBOReference implements DatabaseObject<DBOReference> {
 	}
 	@Override
 	public String toString() {
-		return "DBOReference [owner=" + owner + ", targetId=" + targetId
-				+ ", targetRevision=" + targetRevision + ", groupName="
-				+ groupName + "]";
+		return "DBOReference [id=" + id + ", owner=" + owner + ", targetId="
+				+ targetId + ", targetRevision=" + targetRevision
+				+ ", groupName=" + groupName + "]";
 	}
 
 

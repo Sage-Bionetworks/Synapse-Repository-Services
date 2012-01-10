@@ -75,6 +75,9 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 				try {
 					reference.setTargetId(KeyFactory.keyToString(rs.getLong(COL_REFERENCE_TARGET_NODE)));
 					reference.setTargetVersionNumber(rs.getLong(COL_REFERENCE_TARGET_REVISION_NUMBER));
+					if(rs.wasNull()){
+						reference.setTargetVersionNumber(null);
+					}
 				} catch (DatastoreException e) {
 					throw new SQLException(e);
 				}

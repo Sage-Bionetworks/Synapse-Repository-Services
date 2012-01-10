@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -258,4 +259,13 @@ public interface NodeDAO {
 	 * @throws NotFoundException 
 	 */
 	public void createNewNodeFromBackup(Node node) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Get the current revision number for a node.
+	 * @param nodeId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException;
+
 }
