@@ -44,6 +44,22 @@ public class StaticTable implements StaticTableView.Presenter {
 		this.view.setDimensions(width, height);
 	}
 	
+	public void setWidth(int width) {
+		this.view.setTableWidth(width);		
+	}
+	
+	public void setHeight(int height) {
+		this.view.setTableHeight(height);		
+	}
+	
+	public void setAutoHeight(boolean autoHeight) {
+		this.view.setTableAutoHeight(autoHeight);
+	}
+	
+	public void setAutoWidth(boolean autoWidth) {
+		this.view.setTableAutoWidth(autoWidth);
+	}
+	
 	public void setTitle(String title) {
 		this.view.setTitleText(title);
 	}
@@ -65,4 +81,8 @@ public class StaticTable implements StaticTableView.Presenter {
 		return this.view.getSelectedColumn();
 	}
 
+	public void setShowTitleBar(boolean show) {
+		view.showTitleBar(show);
+	}
+	
 }

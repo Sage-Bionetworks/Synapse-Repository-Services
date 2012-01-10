@@ -1,8 +1,9 @@
 package org.sagebionetworks.web.client.widget.entity.menu;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.web.client.PlaceChanger;
-import org.sagebionetworks.web.client.events.EntityUpdatedHandler;
 import org.sagebionetworks.web.client.widget.SynapseWidgetView;
 import org.sagebionetworks.web.shared.EntityType;
 
@@ -36,6 +37,8 @@ public interface ActionMenuView extends IsWidget, SynapseWidgetView {
 		PlaceChanger getPlaceChanger();
 
 		void deleteEntity();
+
+		List<EntityType> getAddSkipTypes();
 
 	}
 }

@@ -10,14 +10,10 @@
 			<div id="main" role="main">
 				<ul class="breadcrumbs">
 					<li class="breadcrumb">
-						<a href="#">Home</a>
-						>
-						<a href="#DatasetsHome:0">All Datasets</a>
-						>
-						<span ui:field="breadcrumbTitleSpan" />
+						<g:SimplePanel ui:field="breadcrumbsPanel"/>
 					</li>
-				</ul>
-
+				</ul>			
+				
  				<div id="privacy_setting" class="right">
 					<table>
 						<tr valign="bottom">

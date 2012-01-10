@@ -8,6 +8,7 @@ import java.util.logging.Logger;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -100,18 +101,26 @@ public class SynapseClientImpl extends RemoteServiceServlet implements SynapseCl
 	
 	@Override
 	public String getEntityTypeRegistryJSON() {		
-		ClassLoader classLoader = EntityType.class.getClassLoader();
-		InputStream in = classLoader.getResourceAsStream(EntityType.REGISTER_JSON_FILE_NAME);
-		if(in == null) throw new IllegalStateException("Cannot find the "+EntityType.REGISTER_JSON_FILE_NAME+" file on the classpath");
-		String jsonString = "";
-		try {
-			jsonString = readToString(in);
-		} catch (IOException e) {
-			// error reading file
-		}
-		return jsonString;
+		return SynapseClientImpl.getEntityTypeRegistryJson();
 	}	
 
+	@Override	
+	public EntityWrapper getEntityPath(String entityId, String urlPrefix) { 
+		Synapse synapseClient = createSynapseClient();
+		EntityWrapper entityWrapper = new EntityWrapper();
+		
+		try {
+			EntityPath entityPath = synapseClient.getEntityPath(entityId, urlPrefix); 
+			JSONObjectAdapter entityPathJson = entityPath.writeToJSONObject(jsonObjectAdapter.createNew());
+			entityWrapper.setEntityJson(entityPathJson.toJSONString());			
+		} catch (SynapseException e) {
+			entityWrapper.setRestServiceException(ExceptionUtil.convertSynapseException(e));
+		} catch (JSONObjectAdapterException e) {
+			entityWrapper.setRestServiceException(new UnknownErrorException(e.getMessage()));
+		}		
+		
+		return entityWrapper;
+	}
 	
 	
 	/*
@@ -155,6 +164,18 @@ public class SynapseClientImpl extends RemoteServiceServlet implements SynapseCl
 	public SerializableWhitelist junk(SerializableWhitelist l) {
 		return null;
 	}
-	
 
+	
+	public static String getEntityTypeRegistryJson() {
+		ClassLoader classLoader = EntityType.class.getClassLoader();
+		InputStream in = classLoader.getResourceAsStream(EntityType.REGISTER_JSON_FILE_NAME);
+		if(in == null) throw new IllegalStateException("Cannot find the "+EntityType.REGISTER_JSON_FILE_NAME+" file on the classpath");
+		String jsonString = "";
+		try {
+			jsonString = readToString(in);
+		} catch (IOException e) {
+			// error reading file
+		}
+		return jsonString;
+	}
 }

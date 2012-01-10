@@ -99,7 +99,12 @@ h1 {
 .gxtGreyBackground {
 	background-color: #e8e8e8;
 }	
-	
+
+.smallGreyText {
+    color: #717171;
+	font-size: 10px;
+}
+
 .codeContent {
     background-color: #F0F0F0;
     color: #000000;

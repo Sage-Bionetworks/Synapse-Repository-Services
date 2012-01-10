@@ -29,6 +29,14 @@ public interface StaticTableView extends IsWidget {
 	
 	public void setDimensions(int width, int height);
 
+	public void setTableWidth(int width);
+
+	public void setTableHeight(int height);
+
+	public void setTableAutoHeight(boolean autoHeight);
+	
+	public void setTableAutoWidth(boolean autoWidth);
+
 	public void setTitleText(String title);
 	
 	public void showTitleBar(boolean showTitleBar);	
@@ -46,9 +54,5 @@ public interface StaticTableView extends IsWidget {
 		
 	}
 
-
-
-
-	
 
 }

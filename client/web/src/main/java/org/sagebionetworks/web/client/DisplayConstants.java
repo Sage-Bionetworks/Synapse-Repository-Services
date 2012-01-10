@@ -161,6 +161,7 @@ public class DisplayConstants {
 	public static final String LABEL_CREATE = "Create";
 	public static final String ERROR_ENTITY_DELETE_FAILURE = "Deletion failed. Please try again.";
 	public static final String PROMPT_SURE_DELETE = "Are you sure you want to delete this";
+	public static final String LABEL_NO_PREVIEW_DATA = "A Preview has not been created.";
 	
 }
 

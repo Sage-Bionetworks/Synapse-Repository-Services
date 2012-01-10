@@ -212,19 +212,24 @@ public class ActionMenuViewImpl extends LayoutContainer implements ActionMenuVie
 		});		
 	}
 	
-	private void configureAddMenu(final Entity entity, final EntityType entityType) {
+	private void configureAddMenu(final Entity entity, final EntityType entityType) {		
 		if(addButton == null) {
 				addButton = new Button(DisplayConstants.BUTTON_ADD, AbstractImagePrototype.create(iconsImageBundle.addGrey16()));
 				addButton.setHeight(25);
 		}
-				
+		addButton.enable();		
+		
 		// create add menu button from children
 		List<EntityType> children = entityType.getValidChildTypes();
 		Menu menu = new Menu();		
 		MenuItem item;
 		
 		// TODO : sort children?
+		int numAdded = 0;
+		List<EntityType> skipTypes = presenter.getAddSkipTypes();		
 		for(final EntityType childType : children) {
+			if(skipTypes.contains(childType)) continue; // skip some types
+			
 			String displayName = DisplayUtils.uppercaseFirstLetter(childType.getName());			
 			item = new MenuItem(displayName);
 			// TODO : replace icon with entity type icon
@@ -235,8 +240,12 @@ public class ActionMenuViewImpl extends LayoutContainer implements ActionMenuVie
 				}
 			});
 			menu.add(item);
+			numAdded++;
 		}
 		
+		if(numAdded==0) {
+			addButton.disable();
+		}
 		addButton.setMenu(menu);
 	}
 

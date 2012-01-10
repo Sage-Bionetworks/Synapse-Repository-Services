@@ -50,8 +50,7 @@ public class StaticTableViewImpl extends LayoutContainer implements
         columnModel = new ColumnModel(columns);
         store = new ListStore<BaseModelData>();         	
 		
-		// ContentPanel defaults
-		cp.setSize(600, 300); 
+		// ContentPanel defaults 
 		cp.setBodyBorder(true);
 		if(showTitleBar) {
 			cp.setHeaderVisible(true);
@@ -157,11 +156,31 @@ public class StaticTableViewImpl extends LayoutContainer implements
 	}
 
 	@Override
+	public void setTableWidth(int width) {
+		cp.setWidth(width);
+	}
+
+	@Override
+	public void setTableHeight(int height) {
+		cp.setHeight(height);
+	}
+
+	@Override
+	public void setTableAutoHeight(boolean autoHeight) {
+		cp.setAutoHeight(autoHeight);
+	}
+
+
+	@Override
+	public void setTableAutoWidth(boolean autoWidth) {
+		cp.setAutoWidth(autoWidth);
+	}
+
+	@Override
 	public void showTitleBar(boolean showTitleBar) {
 		this.showTitleBar = showTitleBar;
 		cp.setHeaderVisible(showTitleBar);
 	}
-
 
 	@Override
 	public void setTitleText(String title) {
@@ -260,5 +279,5 @@ public class StaticTableViewImpl extends LayoutContainer implements
 		}
 		return null;
 	}
-	
+
 }

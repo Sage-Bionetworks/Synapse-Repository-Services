@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Project;
@@ -81,6 +82,28 @@ public class NodeModelCreatorImpl implements NodeModelCreator {
 		}
 		return entity;
 	}
+
+
+	@Override
+	public EntityPath createEntityPath(EntityWrapper entityWrapper)
+			throws RestServiceException {
+		EntityPath entityPath = null;
+		if(entityWrapper.getRestServiceException() != null) {
+			throw entityWrapper.getRestServiceException();
+		}
+ 
+		String json = entityWrapper.getEntityJson();
+		if(json != null) {			
+			try {
+				JSONObjectAdapter obj = jsonObjectAdapter.createNew(json);			
+				entityPath = new EntityPath(obj);
+			} catch (JSONObjectAdapterException e) {
+				throw new RestServiceException(e.getMessage());
+			}
+		}
+		return entityPath;
+	}
+
 	
 	@Override
 	public Dataset createDataset(String json) throws RestServiceException {

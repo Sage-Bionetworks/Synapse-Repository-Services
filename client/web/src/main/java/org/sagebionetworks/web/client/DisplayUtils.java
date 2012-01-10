@@ -62,11 +62,13 @@ public class DisplayUtils {
 	public static final String ENTITY_PARENT_ID_KEY = "parentId";
 	public static final String ENTITY_EULA_ID_KEY = "eulaId";
 	
+	
 	/*
 	 * Style names
 	 */
 	public static final String STYLE_NAME_GXT_GREY_BACKGROUND = "gxtGreyBackground";
 	public static final String STYLE_CODE_CONTENT = "codeContent";
+	public static final String STYLE_SMALL_GREY_TEXT = "smallGreyText";
 
 	
 	/**
@@ -361,7 +363,13 @@ public class DisplayUtils {
 		DateTime dt = new DateTime(toFormat.getTime());
 		return ISODateTimeFormat.dateTime().print(dt);
 	}
-
+	
+	public static String converDataToPrettyString(Date toFormat) {
+		if(toFormat == null) throw new IllegalArgumentException("Date cannot be null");
+		DateTime dt = new DateTime(toFormat.getTime());
+		return ISODateTimeFormat.dateTime().print(dt);		
+	}
+ 
 	public static Date convertStringToDate(String toFormat) {
 		if(toFormat == null) throw new IllegalArgumentException("Date cannot be null");
 		DateTime dt = ISODateTimeFormat.dateTime().parseDateTime(toFormat);

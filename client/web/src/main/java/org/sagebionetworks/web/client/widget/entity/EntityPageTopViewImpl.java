@@ -1,6 +1,7 @@
 package org.sagebionetworks.web.client.widget.entity;
 
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
@@ -8,6 +9,7 @@ import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.events.EntityUpdatedEvent;
 import org.sagebionetworks.web.client.events.EntityUpdatedHandler;
 import org.sagebionetworks.web.client.widget.adminmenu.AdminMenu;
+import org.sagebionetworks.web.client.widget.breadcrumb.Breadcrumb;
 import org.sagebionetworks.web.client.widget.editpanels.AnnotationEditor;
 import org.sagebionetworks.web.client.widget.editpanels.NodeEditor;
 import org.sagebionetworks.web.client.widget.entity.children.EntityChildBrowser;
@@ -35,6 +37,7 @@ import com.google.gwt.uibinder.client.UiBinder;
 import com.google.gwt.uibinder.client.UiField;
 import com.google.gwt.user.client.ui.AbstractImagePrototype;
 import com.google.gwt.user.client.ui.Composite;
+import com.google.gwt.user.client.ui.HTML;
 import com.google.gwt.user.client.ui.SimplePanel;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
@@ -44,8 +47,8 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 	public interface Binder extends UiBinder<Widget, EntityPageTopViewImpl> {
 	}
 	
-	@UiField 
-	SpanElement breadcrumbTitleSpan;
+	@UiField
+	SimplePanel breadcrumbsPanel;
 	@UiField
 	SimplePanel actionMenuPanel;
 	@UiField 
@@ -64,6 +67,7 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 	private ActionMenu actionMenu;
 	private EntityChildBrowser entityChildBrowser;
 	private LicensedDownloader licensedDownloader;
+	private Breadcrumb breadcrumb;
 	private boolean isAdministrator = false; 
 	private boolean canEdit = false;
 		
@@ -73,7 +77,7 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 			AccessMenuButton accessMenuButton, NodeEditor nodeEditor,
 			PreviewDisclosurePanel previewDisclosurePanel,
 			AnnotationEditor annotationEditor, AdminMenu adminMenu, ActionMenu actionMenu,
-			EntityChildBrowser entityChildBrowser, LicensedDownloader licensedDownloader) {
+			EntityChildBrowser entityChildBrowser, LicensedDownloader licensedDownloader, Breadcrumb breadcrumb) {
 		this.iconsImageBundle = iconsImageBundle;
 		this.sageImageBundle = sageImageBundle;
 		this.previewDisclosurePanel = previewDisclosurePanel;
@@ -82,6 +86,7 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 		this.actionMenu = actionMenu;
 		this.entityChildBrowser = entityChildBrowser;
 		this.licensedDownloader = licensedDownloader;
+		this.breadcrumb = breadcrumb;
 		
 		initWidget(uiBinder.createAndBindUi(this));
 	}
@@ -96,7 +101,8 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 		this.isAdministrator = isAdministrator;
 		this.canEdit = canEdit;
 		// add breadcrumbs
-		breadcrumbTitleSpan.setInnerText(entity.getName());
+		breadcrumbsPanel.clear();
+		breadcrumbsPanel.add(breadcrumb.asWidget(entity));
 
 		//setup action menu
 		actionMenuPanel.clear();		
@@ -198,6 +204,22 @@ public class EntityPageTopViewImpl extends Composite implements EntityPageTopVie
 		if(presenter.isLocationable()) {
 			portlet.add(licensedDownloader.asWidget(entity, false), new MarginData(10, 0, 0, 0));
 		}
+		
+		// add some properties		
+		String propString = "Modified By " + entity.getModifiedBy() + " on "
+		+ DisplayUtils.convertDateToString(entity.getModifiedOn())
+		+ "<br/>" 
+		+ "Created By " + entity.getCreatedBy()
+		+ " on "
+		+ DisplayUtils.convertDateToString(entity.getCreatedOn());
+		
+		if(entity instanceof Versionable) {
+			propString += "<br/>" + "Version " + entity.getVersion();
+		}
+		
+		Html propHtml = new Html(propString);
+		propHtml.setStyleName(DisplayUtils.STYLE_SMALL_GREY_TEXT);		
+		portlet.add(propHtml, new MarginData(10,0,0,0));
 		
 		return portlet;
 	}

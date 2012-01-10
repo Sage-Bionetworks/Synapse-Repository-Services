@@ -27,6 +27,13 @@ public interface EntityChildBrowserView extends IsWidget, SynapseWidgetView {
 	public void createBrowser(Entity entity, EntityType entityType, boolean canEdit);
 	
 	/**
+	 * Sets the Preview Table's details. Preview table only if Entity has "preview" EntityType child
+	 * @param previewData
+	 */
+	void setPreviewTable(PreviewData previewData);
+
+	
+	/**
 	 * Presenter interface
 	 */
 	public interface Presenter {
@@ -37,7 +44,8 @@ public interface EntityChildBrowserView extends IsWidget, SynapseWidgetView {
 
 		List<WhereCondition> getProjectContentsWhereContidions();
 
-		List<EntityType> getProjectContentsSkipTypes();
+		List<EntityType> getContentsSkipTypes();
 
 	}
+
 }

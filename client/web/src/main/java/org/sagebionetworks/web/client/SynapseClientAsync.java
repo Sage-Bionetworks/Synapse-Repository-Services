@@ -11,7 +11,9 @@ public interface SynapseClientAsync {
 
 	void getEntityTypeRegistryJSON(AsyncCallback<String> callback);
 
+	void getEntityPath(String entityId, String urlPrefix, AsyncCallback<EntityWrapper> callback);
+
 	void junk(SerializableWhitelist l,
 			AsyncCallback<SerializableWhitelist> callback);
-
+	
 }

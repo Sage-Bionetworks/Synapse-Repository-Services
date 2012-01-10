@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Project;
@@ -23,6 +24,8 @@ import org.sagebionetworks.web.shared.exceptions.UnauthorizedException;
 public interface NodeModelCreator {
 
 	Entity createEntity(EntityWrapper entityWrapper) throws RestServiceException;
+	
+	EntityPath createEntityPath(EntityWrapper entityWrapper) throws RestServiceException;
 	
 	// Specific Types:
 	

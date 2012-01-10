@@ -1,5 +1,7 @@
 package org.sagebionetworks.web.client.widget.entity.menu;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.Entity;
@@ -117,6 +119,29 @@ public class ActionMenu implements ActionMenuView.Presenter, SynapseWidgetPresen
 			}
 		});
 	}	
+	
+	@Override
+	public List<EntityType> getAddSkipTypes() {
+		// Get EntityType
+		EntityType entityType = entityTypeProvider.getEntityTypeForEntity(entity);
+		
+		List<EntityType> ignore = new ArrayList<EntityType>();
+		// ignore self type children 
+		ignore.add(entityType); 
+
+		// ignore locations & previews
+		for(EntityType type : entityTypeProvider.getEntityTypes()) {
+			if("location".equals(type.getName())) {
+				ignore.add(type);
+			}
+			if("preview".equals(type.getName())) {
+				ignore.add(type);
+			}
+		}
+		
+		return ignore;
+	}
+
 	
 	/*
 	 * Private Methods
