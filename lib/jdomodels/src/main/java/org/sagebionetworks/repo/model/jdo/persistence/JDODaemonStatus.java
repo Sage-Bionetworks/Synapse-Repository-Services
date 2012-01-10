@@ -50,7 +50,7 @@ public class JDODaemonStatus {
 	@Persistent(nullValue = NullValue.EXCEPTION) // cannot be null
 	private Long progresssTotal;
 	
-	@Column(name=SqlConstants.COL_BACKUP_ERORR_MESSAGE)
+	@Column(name=SqlConstants.COL_BACKUP_ERORR_MESSAGE, length=SqlConstants.ERROR_MESSAGE_MAX_LENGTH)
 	private String errorMessage;
 	
 	@Column(name=SqlConstants.COL_BACKUP_ERROR_DETAILS)

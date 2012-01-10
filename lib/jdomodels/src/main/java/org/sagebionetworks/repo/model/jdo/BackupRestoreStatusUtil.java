@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.model.jdo.persistence.JDODaemonStatus;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 /**
  * Translates to and from the JDO and DTO objects.
@@ -69,7 +70,15 @@ public class BackupRestoreStatusUtil {
 		jdo.setProgresssCurrent(dto.getProgresssCurrent());
 		jdo.setProgresssTotal(dto.getProgresssTotal());
 		jdo.setProgresssMessage(dto.getProgresssMessage());
-		jdo.setErrorMessage(dto.getErrorMessage());
+		if(dto.getErrorMessage() != null){
+			// Make sure the error message will fit
+			String errorMessage = dto.getErrorMessage();
+			if(errorMessage.length() > SqlConstants.ERROR_MESSAGE_MAX_LENGTH-1){
+				errorMessage = errorMessage.substring(0, SqlConstants.ERROR_MESSAGE_MAX_LENGTH-1);
+			}
+			jdo.setErrorMessage(errorMessage);
+		}
+
 		if(dto.getErrorDetails() != null){
 			try {
 				jdo.setErrorDetails(dto.getErrorDetails().getBytes("UTF-8"));

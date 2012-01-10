@@ -27,7 +27,7 @@ public class Constants {
 	public static final String JSON_KEY_RESULTS					= "results";
 	public static final String JSON_KEY_TOTAL_NUMBER_OF_RESULTS	= "totalNumberOfResults";
 	
-	public static final long MAX_PAGE_SIZE = 100;
+	public static final long MAX_PAGE_SIZE = 2000;
 	
 	/**
 	 * How much time (MS) should we sleep between web service calls.
