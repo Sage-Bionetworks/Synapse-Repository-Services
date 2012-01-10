@@ -9,6 +9,8 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.model.Agreement;
@@ -49,6 +51,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
  */
 public class LocationableMetadataProvider implements
 		TypeSpecificMetadataProvider<Entity> {
+
+	public static Log log = LogFactory.getLog(LocationableMetadataProvider.class);
 
 	private static final Pattern MD5_REGEX = Pattern.compile("[0-9a-fA-F]{32}");
 	private static final String DEFAULT_MIME_TYPE = "application/binary";
@@ -163,11 +167,21 @@ public class LocationableMetadataProvider implements
 
 		Locationable locationable = (Locationable) entity;
 
-		// HACK ALERT - we "migrating" location entities on the fly, see
-		// PLFM-840 for the real fix
-		boolean locationsWereMigrated = migrateLocationsAsNeeded(locationable,
-				request, user);
-
+        // HACK ALERT - we "migrating" location entities on the fly, see
+        // PLFM-840 for the real fix
+        boolean locationsWereMigrated = false;
+        try {
+        	locationsWereMigrated = migrateLocationsAsNeeded(locationable,
+        			request, user);
+        }
+        catch (UnauthorizedException ex) {
+            // We used to throw an exception, now we just change a field in
+            // the Locationable and null out the locations
+            locationable.setLocations(null);
+            locationable.setLocationStatus(LocationStatusNames.pendingEula);
+            return;
+        }
+        
 		if (needsToAgreeToEula(user, locationable)) {
 			// We used to throw an exception, now we just change a field in
 			// the Locationable and null out the locations
@@ -320,32 +334,43 @@ public class LocationableMetadataProvider implements
 							+ " File a Jira to the platform team and include this message if you want this entity fixed");
 		}
 
-		List<LocationData> locations = new LinkedList<LocationData>();
-		locationable.setLocations(locations);
-		for (Location location : results.getResults()) {
-			if (null == locationable.getMd5()) {
-				locationable.setMd5(location.getMd5sum());
-			} else if (!locationable.getMd5().equals(location.getMd5sum())) {
-				throw new DatastoreException(
-						"md5 checksums do not match for entity "
-								+ locationable.getId()
-								+ " File a Jira to the platform team and include this message if you want this entity fixed");
-			}
+		try {
+			List<LocationData> locations = new LinkedList<LocationData>();
+			locationable.setLocations(locations);
+			for (Location location : results.getResults()) {
+				if (null == locationable.getMd5()) {
+					locationable.setMd5(location.getMd5sum());
+				} else if (!locationable.getMd5().equals(location.getMd5sum())) {
+					throw new DatastoreException("md5 checksums do not match for entity "
+							+ locationable.getId()
+							+ " File a Jira to the platform team and include this message if you want this entity fixed");
+				}
 
-			if (null == locationable.getContentType()) {
-				locationable.setContentType(location.getContentType());
-			} else if (!locationable.getContentType().equals(
-					location.getContentType())) {
-				throw new DatastoreException(
-						"content types do not match for entity "
-								+ locationable.getId()
-								+ "File a Jira to the platform team and include this message if you want this entity fixed");
-			}
+				if (null == locationable.getContentType()) {
+					locationable.setContentType(location.getContentType());
+				} else if (!locationable.getContentType().equals(
+						location.getContentType())) {
+					throw new DatastoreException(
+							"content types do not match for entity "
+							+ locationable.getId()
+							+ "File a Jira to the platform team and include this message if you want this entity fixed");
+				}
 
-			LocationData locationData = new LocationData();
-			locationData.setType(location.getType());
-			locationData.setPath(location.getPath());
-			locations.add(locationData);
+				LocationData locationData = new LocationData();
+				locationData.setType(location.getType());
+				locationData.setPath(location.getPath());
+				locations.add(locationData);
+			}
+		}
+		catch (DatastoreException e) {
+			// Allow admin users to get these broken locationables so that they can fix them
+			if(!user.isAdmin()) {
+				throw e;
+			}
+			locationable.setLocations(null);
+			locationable.setContentType(null);
+			locationable.setMd5(null);
+			log.error(e);
 		}
 		return true;
 	}
