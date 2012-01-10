@@ -11,6 +11,8 @@ import org.sagebionetworks.web.client.IconsImageBundle;
 import org.sagebionetworks.web.client.SageImageBundle;
 import org.sagebionetworks.web.client.widget.statictable.StaticTable;
 import org.sagebionetworks.web.client.widget.statictable.StaticTableColumn;
+import org.sagebionetworks.web.client.widget.statictable.StaticTableView;
+import org.sagebionetworks.web.client.widget.statictable.StaticTableViewImpl;
 import org.sagebionetworks.web.client.widget.table.QueryTableFactory;
 import org.sagebionetworks.web.shared.EntityType;
 import org.sagebionetworks.web.shared.WhereCondition;
@@ -39,8 +41,7 @@ public class EntityChildBrowserViewImpl extends LayoutContainer implements
 	private SageImageBundle sageImageBundle;
 	private IconsImageBundle iconsImageBundle;
 	private TabPanel tabPanel;
-	private QueryTableFactory queryTableFactory;
-	private StaticTable staticTable;
+	private QueryTableFactory queryTableFactory;	
 	private TabItem previewTab;
 	private ContentPanel previewLoading;
 	private boolean addStaticTable;
@@ -50,11 +51,7 @@ public class EntityChildBrowserViewImpl extends LayoutContainer implements
 			IconsImageBundle iconsImageBundle, QueryTableFactory queryTableFactory, StaticTable staticTable) {
 		this.sageImageBundle = sageImageBundle;
 		this.iconsImageBundle = iconsImageBundle;
-		this.queryTableFactory = queryTableFactory;
-		this.staticTable = staticTable;
-		staticTable.setHeight(PANEL_HEIGHT_PX-SLIDER_HEIGHT_PX); // sub slider height
-		staticTable.setShowTitleBar(false);
-		addStaticTable = true;
+		this.queryTableFactory = queryTableFactory;		
 		
 		this.setLayout(new FitLayout());
 	}
@@ -142,12 +139,16 @@ public class EntityChildBrowserViewImpl extends LayoutContainer implements
 		
 		if(previewTab == null)
 			return;		
-		if(previewLoading != null)
-			previewTab.remove(previewLoading);
-
+		
+		previewTab.removeAll();
 		if (rows != null && rows.size() > 0 && columnDescriptions != null
 				&& columnUnits != null && columnDisplayOrder != null) {
 			// create static table columns
+			StaticTableView view = new StaticTableViewImpl();
+			StaticTable staticTable = new StaticTable(view);
+			staticTable.setHeight(PANEL_HEIGHT_PX-SLIDER_HEIGHT_PX); // sub slider height
+			staticTable.setShowTitleBar(false);
+
 			List<StaticTableColumn> stColumns = new ArrayList<StaticTableColumn>();
 			for (String key : previewData.getColumnDisplayOrder()) {
 				StaticTableColumn stCol = new StaticTableColumn();
@@ -168,14 +169,9 @@ public class EntityChildBrowserViewImpl extends LayoutContainer implements
 
 				staticTable.setDataAndColumnsInOrder(previewData.getRows(),
 						stColumns);
-				if(addStaticTable) {
-					previewTab.add(staticTable.asWidget());
-					addStaticTable = false;
-				}
+				previewTab.add(staticTable.asWidget());
 			}
-		} else {
-			previewTab.remove(staticTable.asWidget());
-			addStaticTable = true;
+		} else {			
 			// no data in preview
 			previewTab.add(new Html(DisplayConstants.LABEL_NO_PREVIEW_DATA),
 					new MarginData(10));
