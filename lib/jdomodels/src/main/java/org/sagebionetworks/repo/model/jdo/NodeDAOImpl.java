@@ -1,18 +1,6 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_OWNER_ID_COLUMN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STRING_ANNOTATIONS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -65,6 +53,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	
+	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_COUNT_NODES = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
@@ -128,9 +117,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 		DBONode node = new DBONode();
 		node.setCurrentRevNumber(rev.getRevisionNumber());
-		if(!forceEtag){
-			validateReferences(rev.getRevisionNumber(), dto.getReferences());			
-		}
 		JDONodeUtils.updateFromDto(dto, node, rev);
 		// If an id was not provided then create one
 		if(node.getId() == null){
@@ -185,31 +171,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			dboReferenceDao.replaceReferences(node.getId(), dto.getReferences());
 		}
 		return node.getId().toString();
-	}
-	
-	/**
-	 * When a current version is not provided we use the current.
-	 * @param revisionNumber
-	 * @param references
-	 * @throws DatastoreException 
-	 * @throws NotFoundException 
-	 */
-	private void validateReferences(Long revisionNumber, Map<String, Set<Reference>> references) throws DatastoreException, NotFoundException {
-		if(references != null){
-			// Find any revision that is missing its rev number;
-			Iterator<Set<Reference>> it = references.values().iterator();
-			while(it.hasNext()){
-				Set<Reference> set = it.next();
-				for(Reference ref: set){
-					if(ref.getTargetVersionNumber() == null){
-						ref.setTargetVersionNumber(revisionNumber);
-					}
-					if(!doesNodeExist(KeyFactory.stringToKey(ref.getTargetId()))){
-						throw new NotFoundException("The referenced entity does not exist: "+ref.getTargetId());
-					}
-				}
-			}			
-		}		
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -508,9 +469,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		DBONode jdoToUpdate = getNodeById(nodeId);
 		DBORevision revToUpdate = getCurrentRevision(jdoToUpdate);
 		// Update is as simple as copying the values from the passed node.
-		if(!forceUseEtag){
-			validateReferences(jdoToUpdate.getCurrentRevNumber(), updatedNode.getReferences());				
-		}
 		JDONodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate);	
 
 		// Should we force the update of the etag?
@@ -575,14 +533,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			list.add(revId);
 		}
 		return list;
-	}
-	
-	/**
-	 * Does the current database support 'select for update'
-	 * @return
-	 */
-	private boolean isSelectForUpdateSupported(){
-		return true;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -952,6 +902,19 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		node.setParentId(newParentNode.getId());
 		dboBasicDao.update(node);
 		return true;
+	}
+	
+	/**
+	 * Get the current revision number of a node.
+	 */
+	@Transactional(readOnly = true)
+	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException{
+		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
+		try{
+			return this.simpleJdbcTempalte.queryForLong(GET_CURRENT_REV_NUMBER_SQL, nodeId);
+		}catch(EmptyResultDataAccessException e){
+			throw new NotFoundException("The resource you are attempting to access cannot be found");
+		}
 	}
 
 

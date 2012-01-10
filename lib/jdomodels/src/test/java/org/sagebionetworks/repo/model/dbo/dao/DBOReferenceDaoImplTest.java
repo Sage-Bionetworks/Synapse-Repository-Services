@@ -109,4 +109,103 @@ public class DBOReferenceDaoImplTest {
 		Map<String, Set<Reference>> clone2 = dboReferenceDao.getReferences(node.getId());
 		assertEquals(clone, clone2);
 	}
+	
+	@Test
+	public void testNullTargetRevNumber() throws DatastoreException{
+		// Build up two groups
+		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
+		Set<Reference> one = new HashSet<Reference>();
+		Set<Reference> two = new HashSet<Reference>();
+		references.put("groupOne", one);
+		// Add one to one
+		Reference ref = new Reference();
+		ref.setTargetId("123");
+		ref.setTargetVersionNumber(null);
+		one.add(ref);
+		// Add one to two
+		 ref = new Reference();
+		ref.setTargetId("456");
+		ref.setTargetVersionNumber(new Long(12));
+		two.add(ref);
+		// Now save to the DB
+		dboReferenceDao.replaceReferences(node.getId(), references);
+		// Now fetch them back
+		Map<String, Set<Reference>> clone = dboReferenceDao.getReferences(node.getId());
+		assertEquals(references, clone);
+	}
+	
+	@Test
+	public void testUnique() throws DatastoreException{
+		// Build up two groups
+		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
+		Set<Reference> one = new HashSet<Reference>();
+		references.put("groupOne", one);
+		// Add one to one
+		Reference ref = new Reference();
+		ref.setTargetId("123");
+		ref.setTargetVersionNumber(new Long(12));
+		one.add(ref);
+		// Add one to two
+		ref = new Reference();
+		ref.setTargetId("123");
+		ref.setTargetVersionNumber(new Long(12));
+		one.add(ref);
+		// The set is actually enforcing this for us.
+		assertEquals(1, one.size());
+		// Now save to the DB
+		dboReferenceDao.replaceReferences(node.getId(), references);
+		// Now fetch them back
+		Map<String, Set<Reference>> clone = dboReferenceDao.getReferences(node.getId());
+		assertEquals(references, clone);
+	}
+	
+	@Test
+	public void testUniqueNull() throws DatastoreException{
+		// Build up two groups
+		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
+		Set<Reference> one = new HashSet<Reference>();
+		references.put("groupOne", one);
+		// Add one to one
+		Reference ref = new Reference();
+		ref.setTargetId("123");
+		ref.setTargetVersionNumber(null);
+		one.add(ref);
+		// Add one to two
+		ref = new Reference();
+		ref.setTargetId("123");
+		ref.setTargetVersionNumber(null);
+		one.add(ref);
+		// The set is actually enforcing this for us.
+		assertEquals(1, one.size());
+		// Now save to the DB
+		dboReferenceDao.replaceReferences(node.getId(), references);
+		// Now fetch them back
+		Map<String, Set<Reference>> clone = dboReferenceDao.getReferences(node.getId());
+		assertEquals(references, clone);
+	}
+	
+	@Test
+	public void testUniqueMixed() throws DatastoreException{
+		// Build up two groups
+		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
+		Set<Reference> one = new HashSet<Reference>();
+		references.put("groupOne", one);
+		// Add one to one
+		Reference ref = new Reference();
+		ref.setTargetId("123");
+		ref.setTargetVersionNumber(new Long(1));
+		one.add(ref);
+		// Add one to two
+		ref = new Reference();
+		ref.setTargetId("123");
+		ref.setTargetVersionNumber(null);
+		one.add(ref);
+		// The set is actually enforcing this for us.
+		assertEquals(2, one.size());
+		// Now save to the DB
+		dboReferenceDao.replaceReferences(node.getId(), references);
+		// Now fetch them back
+		Map<String, Set<Reference>> clone = dboReferenceDao.getReferences(node.getId());
+		assertEquals(references, clone);
+	}
 }

@@ -959,53 +959,12 @@ public class NodeDAOImplTest {
 		assertEquals(1, storedNode.getReferences().size());
 		assertEquals(10, storedNode.getReferences().get("referees").size());
 		Object[] storedRefs = storedNode.getReferences().get("referees").toArray();
-		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, ((Reference)storedRefs[0]).getTargetVersionNumber());
-
-		// Now add some duplicate references, these do get added to the set because they have 
-		// blank versions and therefore appear to be different references to this client-side code
-		storedNode.getReferences().get("referees").addAll(copyReferees);
-		assertEquals(20, storedNode.getReferences().get("referees").size());
-		nodeDao.updateNode(storedNode);
-		storedNode = nodeDao.getNode(refererId);
-		assertNotNull(storedNode);
-		assertNotNull(storedNode.getReferences());
-		assertEquals(1, storedNode.getReferences().size());
-		assertEquals(10, storedNode.getReferences().get("referees").size());
-		storedRefs = storedNode.getReferences().get("referees").toArray();
-		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, ((Reference)storedRefs[0]).getTargetVersionNumber());
+		assertEquals(null, ((Reference)storedRefs[0]).getTargetVersionNumber());
 		
 		// Now delete one of those nodes, such that one of our references has become 
 		// invalid after we've created it.  This is okay and does not cause an error 
 		// because we are not enforcing referential integrity.
 		nodeDao.delete(deleteMeNode);
-	}
-	
-	@Test(expected=NotFoundException.class)
-	public void testAddInvalidReference() throws Exception {
-		String deleteMeNode = null;
-		// Create some a few nodes we will refer to, use the current version held in the repo svc
-		Set<Reference> referees = new HashSet<Reference>();
-		for(int i=0; i<10; i++){
-			Node node = NodeTestUtils.createNew("referee"+i);
-			String id = nodeDao.createNew(node);
-			toDelete.add(id);
-			Reference ref = new Reference();
-			ref.setTargetId(id);
-			referees.add(ref);
-			deleteMeNode = id;
-		}
-
-		// Create our reference map
-		Map<String, Set<Reference>> refs = new HashMap<String, Set<Reference>>();
-		refs.put("referees", referees);
-		
-		// Now delete one of those nodes, such that one of our references has become invalid before we've created it
-		nodeDao.delete(deleteMeNode);
-		
-		// Create the node that holds the references, this will fail with a NotFoundException
-		Node referer = NodeTestUtils.createNew("referer");
-		referer.setReferences(refs);
-		nodeDao.createNew(referer);
 	}
 	
 	@Test 
@@ -1383,5 +1342,22 @@ public class NodeDAOImplTest {
 		assertEquals(id, restored.getId());
 		assertEquals("Failed to set the eTag. See: PLFM-845", newEtag, restored.getETag());
 		assertEquals(newDescription, restored.getDescription());
+	}
+	
+	@Test
+	public void testGetCurrentRevNumber() throws NotFoundException, DatastoreException{
+		Node backup = NodeTestUtils.createNew("withReveNumber");
+		backup.setNodeType(EntityType.project.name());
+		String id = nodeDao.createNew(backup);
+		toDelete.add(id);
+		assertNotNull(id);
+		Long currentRev = nodeDao.getCurrentRevisionNumber(id);
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, currentRev);
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetCurrentRevNumberDoesNotExist() throws NotFoundException, DatastoreException{
+		// This should throw a NotFoundException exception
+		Long currentRev = nodeDao.getCurrentRevisionNumber(KeyFactory.keyToString(new Long(-12)));
 	}
 }
