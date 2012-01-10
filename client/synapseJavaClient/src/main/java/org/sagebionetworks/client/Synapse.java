@@ -510,8 +510,20 @@ public class Synapse {
 	 */
 	public EntityPath getEntityPath(Entity entity) throws SynapseException {
 		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
+		return getEntityPath(entity.getId(), type.getUrlPrefix());
+	}
+	
+	/**
+	 * Get the hierarchical path to this entity via its id and urlPrefix 
+	 * @param entityId
+	 * @param urlPrefix
+	 * @return
+	 * @throws SynapseException
+	 */
+	public EntityPath getEntityPath(String entityId, String urlPrefix) throws SynapseException {
+		// TODO : replace urlPrefix with EntityType instance when web & model EntityType classes merge
 		// Build the URI
-		String uri = createEntityUri(type.getUrlPrefix(), entity.getId()) + REPO_SUFFIX_PATH;
+		String uri = createEntityUri(urlPrefix, entityId) + REPO_SUFFIX_PATH;
 		JSONObject jsonObj = getEntity(uri);
 		
 		EntityPath entityPath  = null;
