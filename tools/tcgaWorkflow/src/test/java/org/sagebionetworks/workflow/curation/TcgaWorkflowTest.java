@@ -27,7 +27,7 @@ public class TcgaWorkflowTest {
 	@Test
 	public void testDoCreateExpressionMetadata() throws Exception {
 		Map<String, String> metadata = Curation
-				.formulateMetadataFromTcgaUrl("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
+				.formulateMetadataFromTcgaUrl("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz", false);
 
 		assertEquals("E", metadata.get("type"));
 		assertEquals("unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0", metadata
@@ -49,7 +49,7 @@ public class TcgaWorkflowTest {
 	@Test
 	public void testDoCreateClinicalMetadata() throws Exception {
 		Map<String, String> metadata = Curation
-				.formulateMetadataFromTcgaUrl("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_patient_public_coad.txt");
+				.formulateMetadataFromTcgaUrl("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_patient_public_coad.txt", false);
 
 		assertEquals("C", metadata.get("type"));
 		assertEquals("clinical_patient_public_coad", metadata.get("name"));
@@ -65,7 +65,7 @@ public class TcgaWorkflowTest {
 		String geneticDataUrl = "http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/broad.mit.edu/genome_wide_snp_6/snp/broad.mit.edu_COAD.Genome_Wide_SNP_6.mage-tab.1.1007.0.tar.gz";
 
 		Map<String, String> metadata = Curation
-				.formulateMetadataFromTcgaUrl(geneticDataUrl);
+				.formulateMetadataFromTcgaUrl(geneticDataUrl, false);
 
 		assertEquals("G", metadata.get("type"));
 		assertEquals("broad.mit.edu_COAD.Genome_Wide_SNP_6.mage-tab.1.1007.0",

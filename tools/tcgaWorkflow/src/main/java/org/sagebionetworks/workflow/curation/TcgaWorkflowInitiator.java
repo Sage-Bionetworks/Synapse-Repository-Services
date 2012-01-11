@@ -51,7 +51,7 @@ public class TcgaWorkflowInitiator {
 				return;
 
 			Map<String, String> metadata = Curation
-					.formulateMetadataFromTcgaUrl(url);
+					.formulateMetadataFromTcgaUrl(url, false);
 
 			// Since the URLs come in in order of lowest to highest
 			// revision, this will keep overwriting the earlier revisions in
