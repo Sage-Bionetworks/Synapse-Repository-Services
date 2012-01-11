@@ -1,5 +1,6 @@
 package org.sagebionetworks.workflow.activity;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.security.NoSuchAlgorithmException;
@@ -20,8 +21,10 @@ import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.sagebionetworks.workflow.Constants;
 import org.sagebionetworks.workflow.UnrecoverableException;
 import org.sagebionetworks.workflow.activity.DataIngestion.DownloadResult;
@@ -228,9 +231,17 @@ public class Curation {
 				// 404s are okay, not all TCGA files have a corresponding md5
 				// file (e.g., clinical data), download the file and compute the
 				// md5 checksum
-				DownloadResult downloadResult = DataIngestion
-						.doDownloadFromTcga(tcgaUrl);
-				md5 = downloadResult.getMd5();
+
+				File dataFile = File.createTempFile("tcga", "tmp");
+				dataFile.deleteOnExit();
+				HttpClientHelper.downloadFile(DefaultHttpClientSingleton.getInstance(), tcgaUrl, dataFile.getAbsolutePath());
+				md5 = MD5ChecksumHelper.getMD5Checksum(dataFile
+						.getAbsolutePath());
+				
+				// TODO PLFM-880, but make sure unit test still passes if the endpoints are not available in the properties file
+//				DownloadResult downloadResult = DataIngestion
+//						.doDownloadFromTcga(tcgaUrl);
+//				md5 = downloadResult.getMd5();
 			} else {
 				throw e;
 			}
