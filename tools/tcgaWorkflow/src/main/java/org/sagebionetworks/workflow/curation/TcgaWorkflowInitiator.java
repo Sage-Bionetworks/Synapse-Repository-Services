@@ -38,21 +38,27 @@ public class TcgaWorkflowInitiator {
 		Map<String, String> versionMap = new HashMap<String, String>();
 
 		public void update(String url) throws Exception {
+			// We are only interested in archives
+			if (!url.endsWith("tar.gz"))
+				return;
 			// We are only interested in archives that do not contain images
-			if (url.endsWith("tar.gz") && (0 > url.indexOf("image"))) {
-				JSONObject annotations = new JSONObject();
-				JSONObject layer = Curation.formulateLayerMetadataFromTcgaUrl(
-						url, annotations);
+			if (0 <= url.indexOf("image"))
+				return;
+			// Skip this deprecated data from TCGA PLFM-881
+			// http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/bcgsc.ca/miRNASeq/bcgsc.ca_COAD.IlluminaGA_miRNASeq.Level_3.1.0.0.README.txt
+			if (0 <= url.indexOf("bcgsc.ca/miRNASeq/")) return;
 
-				// Since the URLs come in in order of lowest to highest
-				// revision, this will keep overwriting the earlier revisions in
-				// the map and at the end we will only have the latest revisions
-				if (annotations.has("tcgaRevision")) {
-					versionMap.put(url.replace(annotations
-							.getString("tcgaRevision"), ""), url);
-				} else {
-					versionMap.put(url, url);
-				}
+			Map<String, String> metadata = Curation
+					.formulateMetadataFromTcgaUrl(url);
+
+			// Since the URLs come in in order of lowest to highest
+			// revision, this will keep overwriting the earlier revisions in
+			// the map and at the end we will only have the latest revisions
+			if (metadata.containsKey("tcgaRevision")) {
+				versionMap.put(url.replace(metadata.get("tcgaRevision"), ""),
+						url);
+			} else {
+				versionMap.put(url, url);
 			}
 		}
 
@@ -74,32 +80,35 @@ public class TcgaWorkflowInitiator {
 			String urlComponents[] = url.split("/");
 
 			String datasetAbbreviation = urlComponents[urlComponents.length - 1];
-			String datasetName = configHelper.getTCGADatasetName(datasetAbbreviation);
-			
+			String datasetName = configHelper
+					.getTCGADatasetName(datasetAbbreviation);
+
 			JSONObject results = null;
 			int sleep = 1000;
-			while(null == results) {
+			while (null == results) {
 				try {
-					results = synapse.query("select * from dataset where dataset.name == '"
-							+ datasetName + "'");
-				}
-				catch(SynapseException ex) {
-					if(ex.getCause() instanceof SocketTimeoutException) {
+					results = synapse
+							.query("select * from dataset where dataset.name == '"
+									+ datasetName + "'");
+				} catch (SynapseException ex) {
+					if (ex.getCause() instanceof SocketTimeoutException) {
 						Thread.sleep(sleep);
 						sleep = sleep * 2; // exponential backoff
 					}
 				}
 			}
-			
-			if(results != null) {
+
+			if (results != null) {
 				int numDatasetsFound = results.getInt("totalNumberOfResults");
 				if (0 == numDatasetsFound) {
 					// If Synapse doesn't have a dataset for it, skip it
-					log.debug("Skipping dataset " + datasetName + " at url " + url);
+					log.debug("Skipping dataset " + datasetName + " at url "
+							+ url);
 				} else {
-					JSONObject datasetQueryResult = results.getJSONArray("results")
-							.getJSONObject(0);
-					String datasetId = datasetQueryResult.getString("dataset.id");
+					JSONObject datasetQueryResult = results.getJSONArray(
+							"results").getJSONObject(0);
+					String datasetId = datasetQueryResult
+							.getString("dataset.id");
 					log.debug("WebCrawler dataset " + datasetName + "("
 							+ datasetQueryResult.getString("dataset.id")
 							+ ") at url " + url);
@@ -107,7 +116,7 @@ public class TcgaWorkflowInitiator {
 					ArchiveObserver observer = new ArchiveObserver();
 					archiveCrawler.addObserver(observer);
 					archiveCrawler.doCrawl(url, true);
-	
+
 					Collection<String> urls = observer.getResults();
 					for (String dataLayerUrl : urls) {
 						TcgaWorkflow.doWorkflow("Workflow for TCGA Dataset "
@@ -145,7 +154,7 @@ public class TcgaWorkflowInitiator {
 
 		TcgaWorkflowInitiator initiator = new TcgaWorkflowInitiator();
 		initiator.initiateWorkflowTasks();
-		
+
 		System.exit(0);
 	}
 
