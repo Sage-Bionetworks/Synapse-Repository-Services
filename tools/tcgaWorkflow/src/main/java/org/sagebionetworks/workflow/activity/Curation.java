@@ -70,7 +70,7 @@ public class Curation {
 			Boolean doneIfExists, String datasetId, String tcgaUrl)
 			throws Exception {
 
-		Map<String, String> metadata = formulateMetadataFromTcgaUrl(tcgaUrl);
+		Map<String, String> metadata = formulateMetadataFromTcgaUrl(tcgaUrl, true);
 
 		Synapse synapse = ConfigHelper.createSynapseClient();
 		JSONObject results = synapse
@@ -155,7 +155,7 @@ public class Curation {
 	 * @throws ClientProtocolException
 	 */
 	public static Map<String, String> formulateMetadataFromTcgaUrl(
-			String tcgaUrl) throws UnrecoverableException,
+			String tcgaUrl, boolean getMD5) throws UnrecoverableException,
 			ClientProtocolException, NoSuchAlgorithmException, IOException,
 			HttpClientHelperException {
 
@@ -216,6 +216,8 @@ public class Curation {
 							+ "): " + pathComponents[LAYER_TYPE_INDEX]);
 		}
 
+		if(!getMD5) return metadata;
+		
 		String md5 = null;
 		try {
 			String md5FileContents = HttpClientHelper.getFileContents(
