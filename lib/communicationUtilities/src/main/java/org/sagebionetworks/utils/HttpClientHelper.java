@@ -8,6 +8,8 @@ import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -19,9 +21,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 
-import java.security.cert.CertificateException;
-import java.security.cert.X509Certificate;
-
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
@@ -32,7 +31,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpRequestBase;
-import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.conn.scheme.PlainSocketFactory;
 import org.apache.http.conn.scheme.Scheme;
 import org.apache.http.conn.scheme.SchemeRegistry;
@@ -70,7 +68,7 @@ public class HttpClientHelper {
 	/**
 	 * Create a new HTTP client connection factory.
 	 * @param verifySSLCertificates
-	 * @return
+	 * @return the HTTP client connection factory
 	 */
 	public static HttpClient createNewClient(boolean verifySSLCertificates){
 		try {
@@ -125,7 +123,7 @@ public class HttpClientHelper {
 
 	/**
 	 * The resulting SSLContext will validate 
-	 * @return
+	 * @return the SSLContext with validation
 	 * @throws NoSuchAlgorithmException
 	 * @throws KeyStoreException
 	 * @throws CertificateException
@@ -147,7 +145,7 @@ public class HttpClientHelper {
 	
 	/**
 	 * The resulting SSLContext will allow any certificate.
-	 * @return
+	 * @return the SSLContext that will allow any certificate
 	 * @throws NoSuchAlgorithmException
 	 * @throws KeyStoreException
 	 * @throws CertificateException
@@ -241,6 +239,7 @@ public class HttpClientHelper {
 	 * between two consecutive data packets). A timeout value of zero is
 	 * interpreted as an infinite timeout. This will change the configuration
 	 * for all requests.
+	 * @param client 
 	 * 
 	 * @param milliseconds
 	 */
@@ -257,7 +256,7 @@ public class HttpClientHelper {
 	 * @param requestMethod
 	 * @param requestContent
 	 * @param requestHeaders
-	 * @return
+	 * @return the response object
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws HttpClientHelperException
@@ -278,7 +277,7 @@ public class HttpClientHelper {
 	 * @param requestContent
 	 * @param requestHeaders
 	 * @param overridingExpectedResponseStatus
-	 * @return
+	 * @return the response object
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws HttpClientHelperException
@@ -351,13 +350,14 @@ public class HttpClientHelper {
 	 * TODO - better error handling - more useful error diagnostics such as the
 	 * body of the error response
 	 * 
+	 * @param client 
 	 * @param requestUrl
 	 * @return the contents of the file in a string
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
-	public static String getFileContents(HttpClient client, final String requestUrl)
+	public static String getFileContents(final HttpClient client, final String requestUrl)
 			throws ClientProtocolException, IOException,
 			HttpClientHelperException {
 		String fileContents = null;
