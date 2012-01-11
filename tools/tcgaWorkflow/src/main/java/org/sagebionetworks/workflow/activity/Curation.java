@@ -80,11 +80,11 @@ public class Curation {
 		int numLayersFound = results.getInt("totalNumberOfResults");
 		Layer layer = null;
 		if (1 == numLayersFound) {
-			if (doneIfExists) {
-				return Constants.WORKFLOW_DONE;
-			}
 			layer = synapse.getEntity(results.getJSONArray("results")
 					.getJSONObject(0).getString("layer.id"), Layer.class);
+			if (layer.getMd5().equals(metadata.get("md5")) && doneIfExists) {
+				return Constants.WORKFLOW_DONE;
+			}
 		} else if (1 < numLayersFound) {
 			throw new UnrecoverableException("We have " + numLayersFound
 					+ " layers with name " + metadata.get("name"));
