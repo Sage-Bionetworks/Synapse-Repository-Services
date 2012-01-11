@@ -30,6 +30,7 @@ import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotatio
  */
 public class TcgaWorkflowInitiator {
 
+	private static final String RAW_DATA_PROJECT_NAME = "Synapse Commons Repository";
 	private static final String TCGA_REPOSITORY = "http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/";
 	private static final Logger log = Logger
 			.getLogger(TcgaWorkflowInitiator.class.getName());
@@ -46,7 +47,8 @@ public class TcgaWorkflowInitiator {
 				return;
 			// Skip this deprecated data from TCGA PLFM-881
 			// http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/bcgsc.ca/miRNASeq/bcgsc.ca_COAD.IlluminaGA_miRNASeq.Level_3.1.0.0.README.txt
-			if (0 <= url.indexOf("bcgsc.ca/miRNASeq/")) return;
+			if (0 <= url.indexOf("bcgsc.ca/miRNASeq/"))
+				return;
 
 			Map<String, String> metadata = Curation
 					.formulateMetadataFromTcgaUrl(url);
@@ -70,9 +72,24 @@ public class TcgaWorkflowInitiator {
 	class DatasetObserver implements SimpleObserver<String> {
 		ConfigHelper configHelper;
 		Synapse synapse;
+		String projectId;
 
 		DatasetObserver() throws Exception {
 			synapse = ConfigHelper.createSynapseClient();
+
+			JSONObject results = synapse
+					.query("select * from project where project.name == '"
+							+ RAW_DATA_PROJECT_NAME + "'");
+			if (1 != results.getInt("totalNumberOfResults")) {
+				throw new Exception("Found "
+						+ results.getInt("totalNumberOfResults")
+						+ " projects with name " + RAW_DATA_PROJECT_NAME);
+			}
+			JSONObject projectQueryResult = results.getJSONArray("results")
+					.getJSONObject(0);
+			projectId = projectQueryResult.getString("project.id");
+			log.debug("WebCrawler project " + RAW_DATA_PROJECT_NAME + "("
+					+ projectQueryResult.getString("project.id") + ")");
 		}
 
 		public void update(String url) throws Exception {
@@ -89,7 +106,7 @@ public class TcgaWorkflowInitiator {
 				try {
 					results = synapse
 							.query("select * from dataset where dataset.name == '"
-									+ datasetName + "'");
+									+ datasetName + "' and dataset.parentId == " + projectId);
 				} catch (SynapseException ex) {
 					if (ex.getCause() instanceof SocketTimeoutException) {
 						Thread.sleep(sleep);
