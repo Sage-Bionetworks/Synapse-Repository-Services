@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>platform</artifactId>
-		<version>0.9-SNAPSHOT</version>
+		<version>0.10-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
@@ -323,7 +323,7 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-communicationUtilities</artifactId>
 		</dependency>
-		
+
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>tool-migration-utility</artifactId>
@@ -356,7 +356,7 @@
 			<artifactId>gwt-syncproxy</artifactId>
 			<version>0.3.1.sage</version>
 		</dependency>
- 
+
 	</dependencies>
 
 </project>

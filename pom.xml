@@ -9,7 +9,7 @@
     <groupId>org.sagebionetworks</groupId>
     <artifactId>platform</artifactId>
     <!-- This is not the same as the application version. This is a constant. -->
-    <version>0.9-SNAPSHOT</version>
+    <version>0.10-SNAPSHOT</version>
     <packaging>pom</packaging>
     <url>http://www.sagebase.org/</url>
     <scm>
@@ -100,13 +100,13 @@
                 <artifactId>log4j</artifactId>
                 <version>1.2.14</version>
             </dependency>
-            
+
             <dependency>
                 <groupId>commons-logging</groupId>
                 <artifactId>commons-logging</artifactId>
                 <version>1.1.1</version>
             </dependency>
-            
+
             <!-- Make sure all the Jackson libraries are of the same version -->
             <dependency>
               <groupId>org.codehaus.jackson</groupId>
@@ -365,19 +365,19 @@
                 <artifactId>auth-util</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            
+
             <dependency>
                 <groupId>org.sagebionetworks</groupId>
                 <artifactId>tool-migration-utility</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            
+
             <dependency>
                 <groupId>org.sagebionetworks</groupId>
                 <artifactId>gePipeline</artifactId>
                 <version>${project.version}</version>
             </dependency>
-            
+
         </dependencies>
     </dependencyManagement>
     <!-- Only list globally used plugins in this file -->
