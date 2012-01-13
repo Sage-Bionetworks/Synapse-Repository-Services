@@ -102,6 +102,14 @@ public class StackConfiguration {
 	public static String getCrowdEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.crowd.endpoint");
 	}
+	
+	public static String getSearchServiceEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.cloudsearch.searchservice.endpoint");
+	}
+
+	public static String getDocumentServiceEndpoint() {
+		return configuration.getProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint");
+	}
 
 	public static String getS3Bucket() {
 		return configuration.getProperty("org.sagebionetworks.s3.bucket");

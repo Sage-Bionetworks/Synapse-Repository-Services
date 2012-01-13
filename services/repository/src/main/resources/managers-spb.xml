@@ -48,7 +48,10 @@
 	
 	<bean id="nodeSerializer" class="org.sagebionetworks.repo.manager.backup.NodeSerializerImpl" scope="singleton"/>
 	
-	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.NodeBackupDriverImpl" scope="singleton"/>
+ 	<bean id="searchDriver" class="org.sagebionetworks.repo.manager.backup.SearchDocumentDriverImpl" scope="singleton"/>
+
+    <bean id="backupDriver"
+    class="org.sagebionetworks.repo.manager.backup.NodeBackupDriverImpl" scope="singleton"/>
 	
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl" scope="singleton"/>
 

@@ -16,7 +16,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.manager.TestUserDAO;
@@ -265,6 +264,10 @@ public class ServletTestHelper {
 			throws ServletException, IOException {
 		return ServletTestHelper.updateEntityAcl(dispatchServlet, entity.getClass(), entity.getId(),
 				entityACL, username);
+	}
+	
+	public JSONObject getSearchResults(Map<String, String> params) throws Exception {
+		return ServletTestHelper.getSearchResults(dispatchServlet, username, params);
 	}
 
 	/**
@@ -1456,4 +1459,31 @@ public class ServletTestHelper {
 				response.getContentAsString(), EntityHeader.class);
 	}
 
+	/**
+	 * Get search results
+	 */
+	public static JSONObject getSearchResults(HttpServlet dispatchServlet,
+			String userId, Map<String, String> extraParams) throws ServletException,
+			IOException, JSONException {
+		if (dispatchServlet == null)
+			throw new IllegalArgumentException("Servlet cannot be null");
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI("/search");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		if (null != extraParams) {
+			for (Map.Entry<String, String> param : extraParams.entrySet()) {
+				request.setParameter(param.getKey(), param.getValue());
+			}
+		}
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return new JSONObject(response.getContentAsString());
+	}
+	
 }

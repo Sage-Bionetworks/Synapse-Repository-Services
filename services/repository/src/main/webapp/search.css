@@ -1,0 +1,33 @@
+table {
+    border-width: thin;
+    border-style: solid;
+    }
+
+th, td {
+    padding: 0.1em 1em;
+    border-style: solid;
+    border-width: thin;
+    }
+
+input#query {
+    width: 90%;
+    }
+
+#resultsContainer {
+    width: 50%;
+    float: left;
+    }
+
+#facetsContainer {
+    width: 50%;
+    float: right;
+}
+
+#documentationContainer {
+    clear: both;
+    }
+
+h3.heading {
+    margin-top: 30px;
+    background-color: red;
+    }

@@ -71,6 +71,9 @@ public class TcgaWorkflowITCase {
 		}
 	}
 
+	/**
+	 * @throws Exception
+	 */
 	@Test
 	public void testTCGAAbbreviation2Name() throws Exception {
 		assertEquals("Colon Adenocarcinoma TCGA", ConfigHelper
