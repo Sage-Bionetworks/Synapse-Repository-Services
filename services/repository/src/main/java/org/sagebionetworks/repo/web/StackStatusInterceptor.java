@@ -30,7 +30,7 @@ public class StackStatusInterceptor implements HandlerInterceptor {
 		// If this was not in place, then once a stack was down, there would be no way
 		// to bring it up again using the web-services.
 		String prefix = request.getRequestURI();
-		if(prefix != null && prefix.startsWith(UrlHelpers.ADMIN)){
+		if(prefix != null && prefix.indexOf(UrlHelpers.ADMIN) > -1){
 			return true;
 		}
 		
@@ -38,7 +38,7 @@ public class StackStatusInterceptor implements HandlerInterceptor {
 		StatusEnum status = stackStatusDao.getCurrentStatus();
 		if(StatusEnum.DOWN == status){
 			StackStatus full = stackStatusDao.getFullCurrentStatus();
-			throw new ServiceUnavailableException("Synapse is down for maintenace.  Message: "+full.getCurrentMessage());
+			throw new ServiceUnavailableException("Synapse is down for maintenance.  Message: "+full.getCurrentMessage());
 		}else if(StatusEnum.READ_WRITE == status){
 			return true;
 		}else if(StatusEnum.READ_ONLY == status){
@@ -47,7 +47,7 @@ public class StackStatusInterceptor implements HandlerInterceptor {
 				return true;
 			}else{
 				StackStatus full = stackStatusDao.getFullCurrentStatus();
-				throw new ServiceUnavailableException("Synapse is in READ_ONLY mode for maintenace.  Only HTTP GETs are allowed at this time.  Message: "+full.getCurrentMessage());
+				throw new ServiceUnavailableException("Synapse is in READ_ONLY mode for maintenance.  Only HTTP GETs are allowed at this time.  Message: "+full.getCurrentMessage());
 			}
 		}else{
 			throw new IllegalStateException("Unknown Synapse status: "+status);
