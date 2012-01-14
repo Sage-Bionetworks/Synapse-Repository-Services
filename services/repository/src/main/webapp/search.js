@@ -36,6 +36,10 @@ var EXAMPLES = [
         query: "q=type:C&bq=node_type:'layer'&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
     },
     {
+        desc: "TCGA Level 3 Layers (via an annotation)", 
+        query: "q=tcgaLevel:Level_3&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
+    },
+    {
         desc: "basically a select * on a literal field",
         query: "bq=node_type:'*'&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
     },
