@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.web.client.DisplayConstants;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.IconsImageBundle;
@@ -15,27 +16,39 @@ import org.sagebionetworks.web.client.widget.statictable.StaticTableView;
 import org.sagebionetworks.web.client.widget.statictable.StaticTableViewImpl;
 import org.sagebionetworks.web.client.widget.table.QueryTableFactory;
 import org.sagebionetworks.web.shared.EntityType;
+import org.sagebionetworks.web.shared.FileDownload;
 import org.sagebionetworks.web.shared.WhereCondition;
 
+import com.extjs.gxt.ui.client.Style.Scroll;
 import com.extjs.gxt.ui.client.event.BaseEvent;
+import com.extjs.gxt.ui.client.event.ButtonEvent;
 import com.extjs.gxt.ui.client.event.Events;
 import com.extjs.gxt.ui.client.event.Listener;
+import com.extjs.gxt.ui.client.event.SelectionListener;
 import com.extjs.gxt.ui.client.widget.ContentPanel;
 import com.extjs.gxt.ui.client.widget.Html;
 import com.extjs.gxt.ui.client.widget.LayoutContainer;
 import com.extjs.gxt.ui.client.widget.TabItem;
 import com.extjs.gxt.ui.client.widget.TabPanel;
+import com.extjs.gxt.ui.client.widget.button.Button;
 import com.extjs.gxt.ui.client.widget.grid.ColumnModel;
 import com.extjs.gxt.ui.client.widget.layout.FitLayout;
 import com.extjs.gxt.ui.client.widget.layout.MarginData;
+import com.extjs.gxt.ui.client.widget.toolbar.ToolBar;
+import com.google.gwt.event.dom.client.LoadEvent;
+import com.google.gwt.event.dom.client.LoadHandler;
 import com.google.gwt.user.client.rpc.AsyncCallback;
+import com.google.gwt.user.client.ui.AbstractImagePrototype;
+import com.google.gwt.user.client.ui.Image;
 import com.google.gwt.user.client.ui.Widget;
 import com.google.inject.Inject;
 
 public class EntityChildBrowserViewImpl extends LayoutContainer implements
 		EntityChildBrowserView {
 	
-	private static final int PANEL_HEIGHT_PX = 270;
+	private final static int MAX_IMAGE_PREVIEW_WIDTH_PX = 800;
+	private static final int BASE_PANEL_HEIGHT_PX = 270;
+	private static final int TALL_PANEL_HEIGHT_PX = 500;
 	private static final int SLIDER_HEIGHT_PX = 25;
 	private Presenter presenter;
 	private SageImageBundle sageImageBundle;
@@ -44,7 +57,11 @@ public class EntityChildBrowserViewImpl extends LayoutContainer implements
 	private QueryTableFactory queryTableFactory;	
 	private TabItem previewTab;
 	private ContentPanel previewLoading;
+	private int tabPanelHeight;
 	private boolean addStaticTable;
+	private boolean imagePreviewExpanded;
+	private Integer originalImageWidth;
+	private Integer originalImageHeight;
 
 	@Inject
 	public EntityChildBrowserViewImpl(SageImageBundle sageImageBundle,
@@ -67,9 +84,16 @@ public class EntityChildBrowserViewImpl extends LayoutContainer implements
 		tabPanel = new TabPanel();
 		tabPanel.setLayoutData(new FitLayout());
 		tabPanel.setPlain(true);
-		tabPanel.setHeight(PANEL_HEIGHT_PX);
-		tabPanel.setAutoWidth(true);
-		
+		tabPanel.setAutoWidth(true);		
+		// determine tabPanel height
+		final LocationData location = presenter.getMediaLocationData();
+		if(location != null && location.getPath() != null) {
+			tabPanelHeight = TALL_PANEL_HEIGHT_PX;
+		} else {
+			tabPanelHeight = BASE_PANEL_HEIGHT_PX;
+		}
+		tabPanel.setHeight(tabPanelHeight);
+				
 		List<EntityType> skipTypes = presenter.getContentsSkipTypes();		
 		for(final EntityType child : entityType.getValidChildTypes()) {
 			if(skipTypes.contains(child)) continue; // skip some types
@@ -78,15 +102,21 @@ public class EntityChildBrowserViewImpl extends LayoutContainer implements
 			final TabItem tab = new TabItem(childDisplay);			
 			tab.addStyleName("pad-text");			
 			final ContentPanel loading = DisplayUtils.getLoadingWidget(sageImageBundle);
-			loading.setHeight(PANEL_HEIGHT_PX);		
+			loading.setHeight(tabPanelHeight);		
 			tab.add(loading);
 			tab.addListener(Events.Render, new Listener<BaseEvent>() {
 				@Override
 				public void handleEvent(BaseEvent be) {
 					if("preview".equals(child.getName())) {									
-						// let presenter create preview table when data is loaded
+						// let presenter create preview info when data is loaded
 						previewTab = tab;
 						previewLoading = loading;
+						
+						// Synchronous previews						
+						if(location != null && location.getPath() != null) {
+							setMediaPreview(location);
+						}
+						
 					} else {
 						// loading is embedded into the query table widget
 						addQueryTable(child, tab, loading);
@@ -146,7 +176,7 @@ public class EntityChildBrowserViewImpl extends LayoutContainer implements
 			// create static table columns
 			StaticTableView view = new StaticTableViewImpl();
 			StaticTable staticTable = new StaticTable(view);
-			staticTable.setHeight(PANEL_HEIGHT_PX-SLIDER_HEIGHT_PX); // sub slider height
+			staticTable.setHeight(tabPanelHeight-SLIDER_HEIGHT_PX); // sub slider height
 			staticTable.setShowTitleBar(false);
 
 			List<StaticTableColumn> stColumns = new ArrayList<StaticTableColumn>();
@@ -172,14 +202,79 @@ public class EntityChildBrowserViewImpl extends LayoutContainer implements
 				previewTab.add(staticTable.asWidget());
 			}
 		} else {			
-			// no data in preview
-			previewTab.add(new Html(DisplayConstants.LABEL_NO_PREVIEW_DATA),
-					new MarginData(10));
-			previewTab.layout(true);
+			setNoPreview();
 		}
 		
 		previewTab.layout(true);
 	}
+		
+	private void setMediaPreview(LocationData locationData) {
+		if(previewTab == null)
+			return;		
+		
+		previewTab.removeAll();
+		if(locationData != null) {
+			// handle image preview
+			final ContentPanel cp = new ContentPanel();						
+			cp.setHeaderVisible(false);			
+			cp.setAutoWidth(true);
+			cp.setHeight(tabPanelHeight - SLIDER_HEIGHT_PX);			
+			cp.setScrollMode(Scroll.ALWAYS);
+			
+			final Image previewImageWidget = new Image(locationData.getPath());
+			imagePreviewExpanded = false; // start collapsed
+			
+			final Button expandImagePreviewButton = new Button("View Full Size", AbstractImagePrototype.create(iconsImageBundle.magnifyZoomIn16()));
+			expandImagePreviewButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
+				@Override
+				public void componentSelected(ButtonEvent ce) {
+					if(imagePreviewExpanded) {
+						previewImageWidget.setWidth(MAX_IMAGE_PREVIEW_WIDTH_PX + "px");							
+						previewImageWidget.setHeight(originalImageHeight * MAX_IMAGE_PREVIEW_WIDTH_PX / originalImageWidth + "px");
+						imagePreviewExpanded = false;
+						expandImagePreviewButton.setText("View Full Size");
+						expandImagePreviewButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.magnifyZoomIn16()));
+					} else {
+						previewImageWidget.setHeight(originalImageHeight + "px");
+						previewImageWidget.setWidth(originalImageWidth + "px");
+						imagePreviewExpanded = true;
+						expandImagePreviewButton.setText("Zoom Out");
+						expandImagePreviewButton.setIcon(AbstractImagePrototype.create(iconsImageBundle.magnifyZoomOut16()));
+					}
+				}
+			});
+
+			final ToolBar toolbar = new ToolBar();
+
+			// scale image if it needs it
+			previewImageWidget.addLoadHandler(new LoadHandler() {					
+				@Override
+				public void onLoad(LoadEvent event) {
+					if(originalImageHeight == null && originalImageWidth == null) {							
+						originalImageHeight = previewImageWidget.getHeight();
+						originalImageWidth = previewImageWidget.getWidth();
+					}						
+					if(originalImageHeight > MAX_IMAGE_PREVIEW_WIDTH_PX) {
+						// scale image
+						previewImageWidget.setWidth(MAX_IMAGE_PREVIEW_WIDTH_PX + "px");							
+						previewImageWidget.setHeight(originalImageHeight * MAX_IMAGE_PREVIEW_WIDTH_PX / originalImageWidth + "px");
+						imagePreviewExpanded = false;
+						toolbar.add(expandImagePreviewButton);							
+					}
+				}
+			});
+
+			
+			cp.setTopComponent(toolbar);
+			cp.add(previewImageWidget);
+			previewTab.add(cp);
+			cp.layout(true);
+		} else {
+			setNoPreview();
+		}
+		previewTab.layout(true);
+	}
+
 	
 	/*
 	 * Private Methods
@@ -194,7 +289,7 @@ public class EntityChildBrowserViewImpl extends LayoutContainer implements
 				final List<WhereCondition> where = presenter.getProjectContentsWhereContidions();
 				ContentPanel cp = queryTableFactory.createGridPanel(child, cm, where, presenter.getPlaceChanger(), null);
 		        if(cp != null && cp.getElement() != null) {
-		        	cp.setHeight(PANEL_HEIGHT_PX-25);
+		        	cp.setHeight(tabPanelHeight-25);
 		        	cp.setHeaderVisible(false);
 					tab.remove(loading);
 					tab.add(cp);
@@ -211,6 +306,13 @@ public class EntityChildBrowserViewImpl extends LayoutContainer implements
 				tab.layout(true);
 			}
 		});
+	}
+
+	private void setNoPreview() {
+		// no data in preview
+		previewTab.add(new Html(DisplayConstants.LABEL_NO_PREVIEW_DATA),
+				new MarginData(10));
+		previewTab.layout(true);
 	}
 
 }

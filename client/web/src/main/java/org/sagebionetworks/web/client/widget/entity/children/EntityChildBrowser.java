@@ -7,6 +7,9 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.HasPreviews;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.LayerTypeNames;
+import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.EntityTypeProvider;
 import org.sagebionetworks.web.client.PlaceChanger;
@@ -61,13 +64,13 @@ public class EntityChildBrowser implements EntityChildBrowserView.Presenter, Syn
 		
 		// Get EntityType
 		EntityType entityType = entityTypeProvider.getEntityTypeForEntity(entity);
+		view.createBrowser(entity, entityType, canEdit);
 		 
 		// load preview if has previews
 		if(entity instanceof HasPreviews) {
-			loadLayerPreview();
+			loadPreview();
 		}
 		
-		view.createBrowser(entity, entityType, canEdit);
 		return view.asWidget();
 	}
 
@@ -134,10 +137,27 @@ public class EntityChildBrowser implements EntityChildBrowserView.Presenter, Syn
 		return ignore;
 	}
 
+	@Override
+	public LocationData getMediaLocationData() {
+		LocationData location = new LocationData();
+		if(entity instanceof Layer && ((Layer)entity).getType() == LayerTypeNames.M) {			
+			List<LocationData> locations = ((Layer)entity).getLocations();
+			if(locations != null && locations.size() > 0) {
+				location = locations.get(0); // send the first location
+			}			 				
+		}
+		return location;
+	}
+	
 	/**
 	 * Load the Preview for this layer from the server
 	 */
-	public void loadLayerPreview() {				
+	public void loadPreview() {			
+		// Treat preview of Layers of Media type specially
+		if(entity instanceof Layer && ((Layer)entity).getType() == LayerTypeNames.M) {			
+			return;
+		}
+		
 		// get the preview string to get file header order, then get the previewAsData
 		nodeService.getNodePreview(DisplayUtils.getNodeTypeForEntity(entity), entity.getId(), new AsyncCallback<String>() {
 			@Override

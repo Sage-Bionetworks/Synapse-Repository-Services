@@ -3,6 +3,7 @@ package org.sagebionetworks.web.client.widget.entity.children;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.widget.SynapseWidgetView;
 import org.sagebionetworks.web.shared.EntityType;
@@ -31,7 +32,6 @@ public interface EntityChildBrowserView extends IsWidget, SynapseWidgetView {
 	 * @param previewData
 	 */
 	void setPreviewTable(PreviewData previewData);
-
 	
 	/**
 	 * Presenter interface
@@ -46,6 +46,9 @@ public interface EntityChildBrowserView extends IsWidget, SynapseWidgetView {
 
 		List<EntityType> getContentsSkipTypes();
 
+		LocationData getMediaLocationData();
 	}
+
+
 
 }
