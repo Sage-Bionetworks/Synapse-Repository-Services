@@ -265,6 +265,7 @@ public class Curation {
 				HttpClientHelper.downloadFile(httpClient, tcgaUrl, dataFile.getAbsolutePath());
 				md5 = MD5ChecksumHelper.getMD5Checksum(dataFile
 						.getAbsolutePath());
+				metadata.put("md5", md5);
 			} else {
 				throw e;
 			}
