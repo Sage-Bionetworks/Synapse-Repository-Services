@@ -2,9 +2,13 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
@@ -124,4 +128,83 @@ public class AnnotationUtilsTest {
 		assertEquals(new Date(2), toCheck.getValue());
 	}
 
+	@Test
+	public void testCreateStringAnnotationsWillNullValue(){
+		String nullStringAnnotation = null;
+		Map<String, Collection<String>> stringAnnotations = new HashMap<String, Collection<String>>();
+		List<String> values = new ArrayList<String>();
+		values.add(nullStringAnnotation);
+		stringAnnotations.put("nullStringAnnotation", values);
+		Annotations annos = new Annotations();
+		annos.setStringAnnotations(stringAnnotations);
+		Long owner = new Long(45);
+		List<DBOStringAnnotation> results = AnnotationUtils.createStringAnnotations(owner, annos.getStringAnnotations());
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		// Check the values
+		DBOStringAnnotation toCheck = results.get(0);
+		assertEquals(owner, toCheck.getOwner());
+		assertEquals("nullStringAnnotation", toCheck.getAttribute());
+		assertEquals(null, toCheck.getValue());
+	}
+	
+	@Test
+	public void testCreateLongAnnotationsWillNullValue(){
+		Long nullLongAnnotation = null;
+		Map<String, Collection<Long>> longAnnotations = new HashMap<String, Collection<Long>>();
+		List<Long> values = new ArrayList<Long>();
+		values.add(nullLongAnnotation);
+		longAnnotations.put("nullLongAnnotation", values);
+		Annotations annos = new Annotations();
+		annos.setLongAnnotations(longAnnotations);
+		Long owner = new Long(45);
+		List<DBOLongAnnotation> results = AnnotationUtils.createLongAnnotations(owner, annos.getLongAnnotations());
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		// Check the values
+		DBOLongAnnotation toCheck = results.get(0);
+		assertEquals(owner, toCheck.getOwner());
+		assertEquals("nullLongAnnotation", toCheck.getAttribute());
+		assertEquals(null, toCheck.getValue());
+	}
+	
+	@Test
+	public void testCreateDoubleAnnotationsWillNullValue(){
+		Double nullDoubleAnnotation = null;
+		Map<String, Collection<Double>> doubleAnnotations = new HashMap<String, Collection<Double>>();
+		List<Double> values = new ArrayList<Double>();
+		values.add(nullDoubleAnnotation);
+		doubleAnnotations.put("nullDoubleAnnotation", values);
+		Annotations annos = new Annotations();
+		annos.setDoubleAnnotations(doubleAnnotations);
+		Long owner = new Long(45);
+		List<DBODoubleAnnotation> results = AnnotationUtils.createDoubleAnnotations(owner, annos.getDoubleAnnotations());
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		// Check the values
+		DBODoubleAnnotation toCheck = results.get(0);
+		assertEquals(owner, toCheck.getOwner());
+		assertEquals("nullDoubleAnnotation", toCheck.getAttribute());
+		assertEquals(null, toCheck.getValue());
+	}
+	
+	@Test
+	public void testCreateDateAnnotationsWillNullValue(){
+		Date nullDateAnnotation = null;
+		Map<String, Collection<Date>> dateAnnotations = new HashMap<String, Collection<Date>>();
+		List<Date> values = new ArrayList<Date>();
+		values.add(nullDateAnnotation);
+		dateAnnotations.put("nullDateAnnotation", values);
+		Annotations annos = new Annotations();
+		annos.setDateAnnotations(dateAnnotations);
+		Long owner = new Long(45);
+		List<DBODateAnnotation> results = AnnotationUtils.createDateAnnotations(owner, annos.getDateAnnotations());
+		assertNotNull(results);
+		assertEquals(1, results.size());
+		// Check the values
+		DBODateAnnotation toCheck = results.get(0);
+		assertEquals(owner, toCheck.getOwner());
+		assertEquals("nullDateAnnotation", toCheck.getAttribute());
+		assertEquals(null, toCheck.getValue());
+	}
 }

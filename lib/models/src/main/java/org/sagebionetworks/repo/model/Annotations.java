@@ -151,12 +151,25 @@ public class Annotations implements Base {
 		return dateAnnotations;
 	}
 
+	/**
+	 * @param dateAnnotations the dateAnnotations to set
+	 */
+	public void setDateAnnotations(Map<String, Collection<Date>> dateAnnotations) {
+		this.dateAnnotations = dateAnnotations;
+	}
 
 	public Map<String, Collection<byte[]>> getBlobAnnotations() {
 		return blobAnnotations;
 	}
 
-	
+
+	/**
+	 * @param blobAnnotations the blobAnnotations to set
+	 */
+	public void setBlobAnnotations(Map<String, Collection<byte[]>> blobAnnotations) {
+		this.blobAnnotations = blobAnnotations;
+	}
+
 	public Set<String> keySet(){
 		HashSet<String> keys = new HashSet<String>();
 		keys.addAll(this.stringAnnotations.keySet());

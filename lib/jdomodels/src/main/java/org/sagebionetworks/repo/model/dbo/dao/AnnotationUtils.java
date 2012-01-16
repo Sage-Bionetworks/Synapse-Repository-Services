@@ -35,7 +35,7 @@ public class AnnotationUtils {
 					// Annotations are persisted in in a blob on the revision table.
 					// Therefore, it is safe to trim string data when it is too long.
 					String stringValue = (String) value;
-					if(stringValue.length() > SqlConstants.STRING_ANNOTATIONS_VALUE_LENGTH){
+					if((null != stringValue) && stringValue.length() > SqlConstants.STRING_ANNOTATIONS_VALUE_LENGTH){
 						stringValue = stringValue.substring(0, SqlConstants.STRING_ANNOTATIONS_VALUE_LENGTH-1);
 						value = stringValue;
 					}

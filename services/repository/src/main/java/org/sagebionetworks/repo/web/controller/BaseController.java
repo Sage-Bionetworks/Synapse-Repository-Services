@@ -134,7 +134,8 @@ public abstract class BaseController {
 	 * This exception is thrown when the service is down, or in read-only mode for non-read calls.
 	 * @param ex
 	 * @param request
-	 * @return
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
 	 */
 	@ExceptionHandler(ServiceUnavailableException.class)
 	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
@@ -472,6 +473,8 @@ public abstract class BaseController {
 	 * @param ex
 	 * @param request
 	 * @param response
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
 	 * @throws IOException
 	 */
 	@ExceptionHandler(ACLInheritanceException.class)
@@ -485,7 +488,27 @@ public abstract class BaseController {
 		return new ErrorResponse(message);
 	}
 
-
+	/**
+	 * Return a bit of the stack trace for NullPointerExceptions to help us debug
+	 * @param ex
+	 * @param request
+	 * @param response
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(NullPointerException.class)
+	@ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+	public @ResponseBody
+	ErrorResponse handleNullPointerException(NullPointerException ex,
+			HttpServletRequest request, HttpServletResponse response) {
+		log.log(Level.SEVERE, "Handling " + request.toString(), ex);
+		final int MAX_STACK_TRACE_LENGTH = 256;
+		String trace = stackTraceToString(ex);
+		int endIndex = (MAX_STACK_TRACE_LENGTH < trace.length()) ? MAX_STACK_TRACE_LENGTH : trace.length();
+		String message = "Send a Jira bug report to the platform team with this message: " + trace.substring(0, endIndex);
+		return new ErrorResponse(message);
+	}
+	
 	/**
 	 * Handle any exceptions not handled by specific handlers. Log an additional
 	 * message with higher severity because we really do want to know what sorts
@@ -528,6 +551,10 @@ public abstract class BaseController {
 //		return new ErrorResponse(stackTraceToString(ex));
 	}
 	
+	/**
+	 * @param ex
+	 * @return stack trace as a string
+	 */
 	public static String stackTraceToString(Throwable ex) {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		ex.printStackTrace(new PrintStream(baos));

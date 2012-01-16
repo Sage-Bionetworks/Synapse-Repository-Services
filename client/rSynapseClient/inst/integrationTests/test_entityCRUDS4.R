@@ -93,6 +93,42 @@ integrationTestCreateEntityWithAnnotations <-
 	
 }
 
+integrationTestCreateEntityWithNAAnnotations <- 
+		function()
+{
+	## Create Project
+	project <- new(Class="Project")
+	propertyValue(project,"name") <- synapseClient:::.getCache("testProjectName")
+	annotValue(project, "annotationKey") <- "projectAnnotationValue"
+	createdProject <- createEntity(project)
+	synapseClient:::.setCache("testProject", createdProject)
+	checkEquals(annotValue(createdProject, "annotationKey"), annotValue(project, "annotationKey"))
+	
+	## Create Dataset
+	dataset <- new(Class="Dataset")
+	propertyValue(dataset, "name") <- "testDatasetName"
+	propertyValue(dataset,"parentId") <- propertyValue(createdProject, "id")
+	
+	annots <- list()
+	annots$rawdataavailable <- TRUE 
+	annots$number_of_samples <- 33 
+	annots$contact <- NA 
+	annots$platform <- "HG-U133_Plus_2"
+	annotationValues(dataset) <- annots
+	
+	createdDataset <- createEntity(dataset)
+	
+	checkEquals(propertyValue(createdDataset,"name"), propertyValue(dataset, "name"))
+	checkEquals(propertyValue(createdDataset,"parentId"), propertyValue(createdProject, "id"))
+	checkEquals(annotValue(createdDataset,"platform"), "HG-U133_Plus_2")
+	# TODO this should be a number, not a string
+	checkEquals(annotValue(createdDataset,"number_of_samples"), "33")
+	# TODO this should be a boolean, not a string
+	checkEquals(annotValue(createdDataset,"rawdataavailable"), "TRUE")
+	# TODO this should probably be NA instead of NULL
+	checkTrue(is.null(annotValue(createdDataset,"contact")[[1]]))
+}
+
 integrationTestUpdateS4Entity <-
 		function()
 {
