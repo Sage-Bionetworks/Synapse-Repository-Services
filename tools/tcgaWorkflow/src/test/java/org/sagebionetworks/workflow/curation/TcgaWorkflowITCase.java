@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.repo.model.Layer;
@@ -16,10 +15,8 @@ import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.workflow.Constants;
 import org.sagebionetworks.workflow.UnrecoverableException;
 import org.sagebionetworks.workflow.activity.Curation;
-import org.sagebionetworks.workflow.activity.DataIngestion;
 import org.sagebionetworks.workflow.activity.Notification;
 import org.sagebionetworks.workflow.activity.Processing;
-import org.sagebionetworks.workflow.activity.DataIngestion.DownloadResult;
 import org.sagebionetworks.workflow.activity.Processing.ScriptResult;
 
 import com.amazonaws.AmazonServiceException;
@@ -45,9 +42,6 @@ public class TcgaWorkflowITCase {
 	static private String clinicalLayerId = null;
 	static private String expressionLevel1LayerId = null;
 	static private String expressionLevel2LayerId = null;
-	static private DownloadResult clinicalDownloadResult;
-	static private DownloadResult expressionLevel1DownloadResult;
-	static private DownloadResult expressionLevel2DownloadResult;
 
 	/**
 	 * @throws java.lang.Exception
@@ -125,10 +119,12 @@ public class TcgaWorkflowITCase {
 				.getName());
 		assertEquals("raw", layer.getStatus());
 		assertEquals("unc.edu", annotations.getJSONArray("tcgaDomain").get(0));
-		assertEquals("COAD", annotations.getJSONArray("tcgaDiseaseStudy").get(0));
+		assertEquals("COAD", annotations.getJSONArray("tcgaDiseaseStudy")
+				.get(0));
 		assertEquals("AgilentG4502A_07_3", layer.getPlatform());
 		assertEquals("Level_1", annotations.getJSONArray("tcgaLevel").get(0));
-		assertEquals("1", annotations.getJSONArray("tcgaArchiveSerialIndex").get(0));
+		assertEquals("1", annotations.getJSONArray("tcgaArchiveSerialIndex")
+				.get(0));
 		assertEquals("4", annotations.getJSONArray("tcgaRevision").get(0));
 		assertEquals("0", annotations.getJSONArray("tcgaSeries").get(0));
 		assertEquals("tsv", annotations.getJSONArray("format").get(0));
@@ -156,10 +152,12 @@ public class TcgaWorkflowITCase {
 				.getName());
 		assertEquals("raw", layer.getStatus());
 		assertEquals("unc.edu", annotations.getJSONArray("tcgaDomain").get(0));
-		assertEquals("COAD", annotations.getJSONArray("tcgaDiseaseStudy").get(0));
+		assertEquals("COAD", annotations.getJSONArray("tcgaDiseaseStudy")
+				.get(0));
 		assertEquals("AgilentG4502A_07_3", layer.getPlatform());
 		assertEquals("Level_2", annotations.getJSONArray("tcgaLevel").get(0));
-		assertEquals("2", annotations.getJSONArray("tcgaArchiveSerialIndex").get(0));
+		assertEquals("2", annotations.getJSONArray("tcgaArchiveSerialIndex")
+				.get(0));
 		assertEquals("0", annotations.getJSONArray("tcgaRevision").get(0));
 		assertEquals("0", annotations.getJSONArray("tcgaSeries").get(0));
 		assertEquals("tsv", annotations.getJSONArray("format").get(0));
@@ -187,11 +185,14 @@ public class TcgaWorkflowITCase {
 				layer.getName());
 		assertEquals("raw", layer.getStatus());
 		assertEquals("tsv", annotations.getJSONArray("format").get(0));
-		assertEquals("broad.mit.edu", annotations.getJSONArray("tcgaDomain").get(0));
-		assertEquals("COAD", annotations.getJSONArray("tcgaDiseaseStudy").get(0));
+		assertEquals("broad.mit.edu", annotations.getJSONArray("tcgaDomain")
+				.get(0));
+		assertEquals("COAD", annotations.getJSONArray("tcgaDiseaseStudy")
+				.get(0));
 		assertEquals("Genome_Wide_SNP_6", layer.getPlatform());
 		assertEquals("mage-tab", annotations.getJSONArray("tcgaLevel").get(0));
-		assertEquals("1", annotations.getJSONArray("tcgaArchiveSerialIndex").get(0));
+		assertEquals("1", annotations.getJSONArray("tcgaArchiveSerialIndex")
+				.get(0));
 		assertEquals("1007", annotations.getJSONArray("tcgaRevision").get(0));
 		assertEquals("0", annotations.getJSONArray("tcgaSeries").get(0));
 	}
@@ -228,55 +229,6 @@ public class TcgaWorkflowITCase {
 		String message = Curation
 				.formulateLayerCreationMessage(expressionLevel2LayerId);
 		assertNotNull(message);
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testDoDownloadClinicalDataFromTcga() throws Exception {
-
-		clinicalDownloadResult = DataIngestion
-				.doDownloadFromTcga("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_public_coad.tar.gz");
-
-		assertTrue(clinicalDownloadResult.getLocalFilepath().endsWith(
-				"clinical_public_coad.tar.gz"));
-
-		assertNotNull(clinicalDownloadResult.getMd5());
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	@Ignore
-	// The download takes too long
-	public void testDoDownloadExpressionLevel1DataFromTcga() throws Exception {
-
-		expressionLevel1DownloadResult = DataIngestion
-				.doDownloadFromTcga("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_1.1.4.0.tar.gz");
-
-		assertTrue(expressionLevel1DownloadResult.getLocalFilepath().endsWith(
-				"unc.edu_COAD.AgilentG4502A_07_3.Level_1.1.4.0.tar.gz"));
-
-		assertEquals("add6f8369383e777f1f4011cdeceb99d",
-				expressionLevel1DownloadResult.getMd5());
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testDoDownloadExpressionLevel2DataFromTcga() throws Exception {
-
-		expressionLevel2DownloadResult = DataIngestion
-				.doDownloadFromTcga("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
-
-		assertTrue(expressionLevel2DownloadResult.getLocalFilepath().endsWith(
-				"unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz"));
-
-		assertEquals("33183779e53ce0cfc35f59cc2a762cbd",
-				expressionLevel2DownloadResult.getMd5());
 	}
 
 	/**

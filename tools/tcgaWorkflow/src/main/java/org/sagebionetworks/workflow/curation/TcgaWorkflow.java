@@ -53,7 +53,7 @@ public class TcgaWorkflow {
 	 * runtime, therefore we cannot move this into a config file
 	 */
 	private static final String WORKFLOW_NAME = "TCGAWorkflow";
-	private static final String VERSION = "1.5";
+	private static final String VERSION = "1.6";
 	private static final int MAX_WORKFLOW_TIMEOUT_HOURS = 24;
 	private static final int MAX_SCRIPT_EXECUTION_TIMEOUT_HOURS = 4;
 	private static final int NUM_RETRIES = 3;

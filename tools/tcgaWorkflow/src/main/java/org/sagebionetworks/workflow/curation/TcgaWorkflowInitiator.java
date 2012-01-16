@@ -31,6 +31,7 @@ import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotatio
 public class TcgaWorkflowInitiator {
 
 	private static final String RAW_DATA_PROJECT_NAME = "Synapse Commons Repository";
+	private static final String OLD_RAW_DATA_PROJECT_NAME = "SageBioCuration";
 	private static final String TCGA_REPOSITORY = "http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/";
 	private static final Logger log = Logger
 			.getLogger(TcgaWorkflowInitiator.class.getName());
@@ -81,9 +82,15 @@ public class TcgaWorkflowInitiator {
 					.query("select * from project where project.name == '"
 							+ RAW_DATA_PROJECT_NAME + "'");
 			if (1 != results.getInt("totalNumberOfResults")) {
-				throw new Exception("Found "
-						+ results.getInt("totalNumberOfResults")
-						+ " projects with name " + RAW_DATA_PROJECT_NAME);
+				// Staging does not currently have Synapse Commons Repository so fall back to SageBioCuration
+				results = synapse
+						.query("select * from project where project.name == '"
+								+ OLD_RAW_DATA_PROJECT_NAME + "'");
+				if (1 != results.getInt("totalNumberOfResults")) {
+					throw new Exception("Found "
+							+ results.getInt("totalNumberOfResults")
+							+ " projects with name " + RAW_DATA_PROJECT_NAME);
+				}
 			}
 			JSONObject projectQueryResult = results.getJSONArray("results")
 					.getJSONObject(0);
@@ -104,9 +111,34 @@ public class TcgaWorkflowInitiator {
 			int sleep = 1000;
 			while (null == results) {
 				try {
-					results = synapse
-							.query("select * from dataset where dataset.name == '"
-									+ datasetName + "' and dataset.parentId == " + projectId);
+					if (null == datasetName) {
+						// Try finding the right dataset to update via
+						// annotation tcgaDiseaseStudy
+						results = synapse
+								.query("select * from dataset where dataset.tcgaDiseaseStudy == '"
+										+ datasetAbbreviation
+										+ "' and dataset.parentId == "
+										+ projectId);
+						int numDatasetsFound = results
+								.getInt("totalNumberOfResults");
+						if (0 == numDatasetsFound) {
+							results = synapse
+									.query("select * from dataset where dataset.tcgaDiseaseStudy == '"
+											+ datasetAbbreviation.toUpperCase()
+											+ "' and dataset.parentId == "
+											+ projectId);
+						}
+					} else {
+						// Try finding the right dataset to update via our
+						// static mapping of TCGA disease codes to SageBio
+						// dataset names
+						results = synapse
+								.query("select * from dataset where dataset.name == '"
+										+ datasetName
+										+ "' and dataset.parentId == "
+										+ projectId);
+					}
+
 				} catch (SynapseException ex) {
 					if (ex.getCause() instanceof SocketTimeoutException) {
 						Thread.sleep(sleep);

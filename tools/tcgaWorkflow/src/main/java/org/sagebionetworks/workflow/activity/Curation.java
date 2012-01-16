@@ -21,13 +21,11 @@ import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
-import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.sagebionetworks.workflow.Constants;
 import org.sagebionetworks.workflow.UnrecoverableException;
-import org.sagebionetworks.workflow.activity.DataIngestion.DownloadResult;
 import org.sagebionetworks.workflow.curation.ConfigHelper;
 
 /**
@@ -70,7 +68,8 @@ public class Curation {
 			Boolean doneIfExists, String datasetId, String tcgaUrl)
 			throws Exception {
 
-		Map<String, String> metadata = formulateMetadataFromTcgaUrl(tcgaUrl, true);
+		Map<String, String> metadata = formulateMetadataFromTcgaUrl(tcgaUrl,
+				true);
 
 		Synapse synapse = ConfigHelper.createSynapseClient();
 		JSONObject results = synapse
@@ -82,7 +81,9 @@ public class Curation {
 		if (1 == numLayersFound) {
 			layer = synapse.getEntity(results.getJSONArray("results")
 					.getJSONObject(0).getString("layer.id"), Layer.class);
-			if (layer.getMd5().equals(metadata.get("md5")) && doneIfExists) {
+			if (metadata.containsKey("md5")
+					&& layer.getMd5().equals(metadata.get("md5"))
+					&& doneIfExists) {
 				return Constants.WORKFLOW_DONE;
 			}
 		} else if (1 < numLayersFound) {
@@ -93,29 +94,34 @@ public class Curation {
 			layer.setParentId(datasetId);
 		}
 
-		// Transfer primary field values, if this is an update and users modified any of these by hand, they will be overwritten
+		// Transfer primary field values, if this is an update and users
+		// modified any of these by hand, they will be overwritten
 		layer.setName(metadata.get("name"));
 		layer.setStatus(metadata.get("status"));
 		layer.setType(LayerTypeNames.valueOf(metadata.get("type")));
-		if(metadata.containsKey("platform")) layer.setPlatform(metadata.get("platform"));
-		layer.setMd5(metadata.get("md5"));
-		List<LocationData> locations = new ArrayList<LocationData>();
-		LocationData location = new LocationData();
-		location.setPath(tcgaUrl);
-		location.setType(LocationTypeNames.external);
-		locations.add(location);
-		layer.setLocations(locations);
+		if (metadata.containsKey("platform"))
+			layer.setPlatform(metadata.get("platform"));
+		if (metadata.containsKey("md5")) {
+			layer.setMd5(metadata.get("md5"));
+			List<LocationData> locations = new ArrayList<LocationData>();
+			LocationData location = new LocationData();
+			location.setPath(tcgaUrl);
+			location.setType(LocationTypeNames.external);
+			locations.add(location);
+			layer.setLocations(locations);
+		}
 
 		// Create or update the layer in Synapse, as appropriate
-		if(null == layer.getId()) {
+		if (null == layer.getId()) {
 			layer = synapse.createEntity(layer);
 		} else {
 			layer = synapse.putEntity(layer);
 		}
-		
+
 		// Get the annotations container, and overwrite these annotations
-        JSONObject annotations = synapse.getEntity(layer.getAnnotations());
-        JSONObject stringAnnotations = annotations.getJSONObject("stringAnnotations");
+		JSONObject annotations = synapse.getEntity(layer.getAnnotations());
+		JSONObject stringAnnotations = annotations
+				.getJSONObject("stringAnnotations");
 		annotationHelper(metadata, stringAnnotations, "format");
 		annotationHelper(metadata, stringAnnotations, "tcgaDomain");
 		annotationHelper(metadata, stringAnnotations, "tcgaDiseaseStudy");
@@ -126,19 +132,32 @@ public class Curation {
 
 		// Update the annotations in Synapse
 		synapse.putEntity(layer.getAnnotations(), annotations);
-		
+
+		// If this was unversionsed data from TCGA, download it and import it to
+		// our datastore
+		if (!metadata.containsKey("md5")) {
+			File tempFile = File.createTempFile("tcga", "download");
+			tempFile.deleteOnExit();
+			HttpClientHelper.downloadFile(httpClient, tcgaUrl, tempFile
+					.getAbsolutePath());
+			layer = (Layer) synapse
+					.uploadLocationableToSynapse(layer, tempFile);
+		}
+
 		return layer.getId();
 	}
-	
-	private static void annotationHelper(Map<String, String> metadata, JSONObject annots, String key) throws JSONException {
-		if(!metadata.containsKey(key)) return;
-		
+
+	private static void annotationHelper(Map<String, String> metadata,
+			JSONObject annots, String key) throws JSONException {
+		if (!metadata.containsKey(key))
+			return;
+
 		JSONArray annotationValue = annots.optJSONArray(key);
-		if(null == annotationValue) {
+		if (null == annotationValue) {
 			annotationValue = new JSONArray();
 		}
-        annotationValue.put(0, metadata.get(key));
-        annots.put(key, annotationValue);
+		annotationValue.put(0, metadata.get(key));
+		annots.put(key, annotationValue);
 	}
 
 	/**
@@ -146,6 +165,7 @@ public class Curation {
 	 * checksum of the data
 	 * 
 	 * @param tcgaUrl
+	 * @param getMD5
 	 * @return a map holding all the metadata we could reverse engineer from the
 	 *         TCGA Url
 	 * @throws UnrecoverableException
@@ -216,8 +236,9 @@ public class Curation {
 							+ "): " + pathComponents[LAYER_TYPE_INDEX]);
 		}
 
-		if(!getMD5) return metadata;
-		
+		if (!getMD5)
+			return metadata;
+
 		String md5 = null;
 		try {
 			String md5FileContents = HttpClientHelper.getFileContents(
@@ -228,27 +249,26 @@ public class Curation {
 						"malformed md5 file from tcga: " + md5FileContents);
 			}
 			md5 = fileInfo[0];
-		} catch (HttpClientHelperException e) {
-			if (404 == e.getHttpStatus()) {
-				// 404s are okay, not all TCGA files have a corresponding md5
-				// file (e.g., clinical data), download the file and compute the
-				// md5 checksum
+			metadata.put("md5", md5);
 
+		} catch (HttpClientHelperException e) {
+			// 404s are okay, not all TCGA files have a corresponding md5 file
+			// (e.g., clinical data), later on we will download the file and
+			// compute the md5 checksum
+			if (404 == e.getHttpStatus()) {
+				// TODO remove this bit of code for PLFM-880 when we upgrade to
+				// the new verison of SWF which will allow us to switch to a
+				// more recent AWSSDK which will allow us to use multipart
+				// upload
 				File dataFile = File.createTempFile("tcga", "tmp");
 				dataFile.deleteOnExit();
-				HttpClientHelper.downloadFile(DefaultHttpClientSingleton.getInstance(), tcgaUrl, dataFile.getAbsolutePath());
+				HttpClientHelper.downloadFile(httpClient, tcgaUrl, dataFile.getAbsolutePath());
 				md5 = MD5ChecksumHelper.getMD5Checksum(dataFile
 						.getAbsolutePath());
-				
-				// TODO PLFM-880, but make sure unit test still passes if the endpoints are not available in the properties file
-//				DownloadResult downloadResult = DataIngestion
-//						.doDownloadFromTcga(tcgaUrl);
-//				md5 = downloadResult.getMd5();
 			} else {
 				throw e;
 			}
 		}
-		metadata.put("md5", md5);
 
 		return metadata;
 	}
