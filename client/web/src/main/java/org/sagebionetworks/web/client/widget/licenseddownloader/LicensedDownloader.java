@@ -347,7 +347,8 @@ public class LicensedDownloader implements LicensedDownloaderView.Presenter, Syn
 	@Override
 	public void setLicenseAccepted() {		
 		// send out to using class to let know of acceptance
-		licenseAcceptedCallback.onSuccess(null);
+		if(licenseAcceptedCallback != null) 
+			licenseAcceptedCallback.onSuccess(null);
 		// allow the view to skip the license agreement now and show the download view
 		setRequireLicenseAcceptance(false);
 		showWindow();		

@@ -320,16 +320,26 @@ public class LicensedDownloaderTest {
 		verify(mockView).setLicenseHtml(licenseAgreement.getLicenseHtml());		
 	}
 	
+	@SuppressWarnings({ "unchecked", "deprecation" })
 	@Test
 	public void testSetLicenseAccepted() {
-		@SuppressWarnings("unchecked")
+		// without callback
+		licensedDownloader.setLicenseAcceptedCallback(null);
+
+		licensedDownloader.setLicenseAccepted();		
+		verify(mockView).setLicenceAcceptanceRequired(false);
+
+		
+		// with callback
+		resetMocks();		
 		AsyncCallback<Void> callback = mock(AsyncCallback.class);
 		licensedDownloader.setLicenseAcceptedCallback(callback);
-		
+
 		licensedDownloader.setLicenseAccepted();		
 		verify(callback).onSuccess(null);
 		verify(mockView).setLicenceAcceptanceRequired(false);
 	}
+
 	
 	
 	/*
