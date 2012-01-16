@@ -136,12 +136,12 @@ public class Curation {
 		// If this was unversionsed data from TCGA, download it and import it to
 		// our datastore
 		if (!metadata.containsKey("md5")) {
-			File tempFile = File.createTempFile("tcga", "download");
-			tempFile.deleteOnExit();
+			File tempFile = File.createTempFile("tcga", "data");
 			HttpClientHelper.downloadFile(httpClient, tcgaUrl, tempFile
 					.getAbsolutePath());
 			layer = (Layer) synapse
 					.uploadLocationableToSynapse(layer, tempFile);
+			tempFile.delete();
 		}
 
 		return layer.getId();
@@ -260,12 +260,12 @@ public class Curation {
 				// the new verison of SWF which will allow us to switch to a
 				// more recent AWSSDK which will allow us to use multipart
 				// upload
-				File dataFile = File.createTempFile("tcga", "tmp");
-				dataFile.deleteOnExit();
+				File dataFile = File.createTempFile("tcga", "data");
 				HttpClientHelper.downloadFile(httpClient, tcgaUrl, dataFile.getAbsolutePath());
 				md5 = MD5ChecksumHelper.getMD5Checksum(dataFile
 						.getAbsolutePath());
 				metadata.put("md5", md5);
+				dataFile.delete();
 			} else {
 				throw e;
 			}
