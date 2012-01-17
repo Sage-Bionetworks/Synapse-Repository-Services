@@ -296,6 +296,10 @@ public class StackConfiguration {
 				.getProperty("org.sagebionetworks.pool.max.number.connections");
 	}
 
+	public static int getHttpClientMaxConnsPerRoute() {
+		return configuration.getHttpClientMaxConnsPerRoute();
+	}
+	
 	/**
 	 * @return The name of a user for integration tests
 	 */

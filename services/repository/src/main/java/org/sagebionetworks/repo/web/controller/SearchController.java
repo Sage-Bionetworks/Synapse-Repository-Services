@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.json.JSONException;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -31,9 +32,14 @@ public class SearchController extends BaseController {
 			.getName());
 
 	// TODO make sure we allow many connections to this one host
-	private static final HttpClient httpClient = HttpClientHelper
-			.createNewClient(true);
+	private static final HttpClient httpClient;
 
+	static {
+		httpClient = HttpClientHelper.createNewClient(true);
+		ThreadSafeClientConnManager manager = (ThreadSafeClientConnManager) httpClient.getConnectionManager();
+		manager.setDefaultMaxPerRoute(StackConfiguration.getHttpClientMaxConnsPerRoute());
+	}
+	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { "/search" }, method = RequestMethod.GET)
 	public ModelAndView proxySearch(

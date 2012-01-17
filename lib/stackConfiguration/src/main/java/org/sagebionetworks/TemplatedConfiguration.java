@@ -360,6 +360,15 @@ public class TemplatedConfiguration {
 	public String getPortalEndpoint() {
 		return getProperty("org.sagebionetworks.portal.endpoint");
 	}
+	
+	/**
+	 * The repository Apache HttpClient connection pool properties
+	 * @return the max number of connections per route
+	 */
+	public int getHttpClientMaxConnsPerRoute() {
+		return Integer.parseInt(getProperty("org.sagebionetworks.httpclient.connectionpool.maxconnsperroute"));
+	}
+	
 
 	public String getRScriptPath() {
 		return getProperty("org.sagebionetworks.rScript.path");
