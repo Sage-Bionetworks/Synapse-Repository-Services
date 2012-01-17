@@ -22,8 +22,8 @@ import com.amazonaws.services.sns.AmazonSNSClient;
  */
 public class ConfigHelper {
 
-	private static final String DEFAULT_PROPERTIES_FILENAME = "/workflow.properties";
-	private static final String TEMPLATE_PROPERTIES = "/workflowTemplate.properties";
+	private static final String DEFAULT_PROPERTIES_FILENAME = "/tcgaWorkflow.properties";
+	private static final String TEMPLATE_PROPERTIES = "/tcgaWorkflowTemplate.properties";
 	private static final String TCGA_ABBREVIATION_PREFIX = "abbrev_";
 
 	private static final Logger log = Logger.getLogger(ConfigHelper.class
@@ -164,4 +164,9 @@ public class ConfigHelper {
 	public static String getRScriptPath() {
 		return configuration.getRScriptPath();
 	}
+	
+	public static int getHttpClientMaxConnsPerRoute() {
+		return configuration.getHttpClientMaxConnsPerRoute();
+	}
+	
 }

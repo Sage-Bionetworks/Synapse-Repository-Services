@@ -374,6 +374,12 @@
 
             <dependency>
                 <groupId>org.sagebionetworks</groupId>
+                <artifactId>tcgaWorkflow</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.sagebionetworks</groupId>
                 <artifactId>gePipeline</artifactId>
                 <version>${project.version}</version>
             </dependency>

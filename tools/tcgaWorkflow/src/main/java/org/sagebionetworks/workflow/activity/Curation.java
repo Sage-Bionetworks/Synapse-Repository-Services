@@ -55,7 +55,7 @@ public class Curation {
 	static {
 		httpClient = HttpClientHelper.createNewClient(true);
 		ThreadSafeClientConnManager manager = (ThreadSafeClientConnManager) httpClient.getConnectionManager();
-		manager.setDefaultMaxPerRoute(DEFAULT_MAX_CONNECTIONS_PER_ROUTE);
+		manager.setDefaultMaxPerRoute(ConfigHelper.getHttpClientMaxConnsPerRoute());
 	}
 
 	/**
