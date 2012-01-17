@@ -108,29 +108,29 @@ function displaySearchResults(data) {
                     facetList += " none"
                 }
                 else {
-                    var min,max;
-                    if(("created_on" === i) || ("modified_on" === i)) {
-                        min = new Date(facet.min * 1000)
-                        max = new Date(facet.max * 1000)
+                    facetList += " from " + facet.min + " to " + facet.max + "<ol>"
+                    var facetIncrement = Math.ceil((facet.max - facet.min) / 10);
+                    for(var j=0; j < 10; j++) {
+                        var displayMin,displayMax;
+                        var min = facet.min + (facetIncrement * j);
+                        var max = facet.min + (facetIncrement * (j+1));
+                        if(("created_on" === i) || ("modified_on" === i)) {
+                            displayMin = new Date(min * 1000)
+                            displayMax = new Date(max * 1000)
+                        }
+                        else {
+                            displayMin = min
+                            displayMax = max
+                        }
+
+                        var facetDisplay = displayMin + ".." + displayMax
+                        
+                        facetList += "<li>"
+                            + "<a href=\""
+                            + addNumericFacetToCurrentSearchQuery(i, min, max)
+                            + "\">"
+                            + facetDisplay + "</a></li>";
                     }
-                    else {
-                        min = facet.min
-                        max = facet.max
-                    }
-                    
-                    facetList += "<ol>"
-                    facetList += "<li>"
-                        + "min: "
-                        + "<a href=\""
-                        + addFacetToCurrentSearchQuery(i, min)
-                        + "\">"
-                        + min + "</a></li>";
-                    facetList += "<li>"
-                        + "max: "
-                        + "<a href=\""
-                        + addFacetToCurrentSearchQuery(i, max)
-                        + "\">"
-                        + max + "</a></li>";
                     facetList += "</ol>"
                 }
                 facetList += "<p />"
@@ -152,6 +152,23 @@ function addFacetToCurrentSearchQuery(facetName, facetValue) {
                              + ":'"
                              + facetValue
                              + "'")
+}
+
+function addNumericFacetToCurrentSearchQuery(facetName, facetMinValue, facetMaxValue) {
+    return window.location.pathname 
+        + escapeBooleanQuery(window.location.search 
+                             + "&bq="
+                             + facetName
+                             + ":"
+                             + facetMinValue
+                             + ".."
+                             + facetMaxValue)
+//         + "&facet-"
+//         + facetName
+//         + "-constraints="
+//         + facetMinValue
+//         + ".."
+//         + facetMaxValue
 }
 
 /**
