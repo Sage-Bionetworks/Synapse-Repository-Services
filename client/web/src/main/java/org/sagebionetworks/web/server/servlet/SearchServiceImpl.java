@@ -22,6 +22,7 @@ import org.sagebionetworks.web.shared.TableResults;
 import org.sagebionetworks.web.shared.WhereCondition;
 import org.sagebionetworks.web.shared.exceptions.ForbiddenException;
 import org.sagebionetworks.web.shared.exceptions.UnauthorizedException;
+import org.sagebionetworks.web.shared.exceptions.UnknownErrorException;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -145,6 +146,8 @@ public class SearchServiceImpl extends RemoteServiceServlet implements
 				results.setException(new UnauthorizedException());
 			} else if(code == 403) { // FORBIDDEN
 				results.setException(new ForbiddenException());
+			} else {
+				results.setException(new UnknownErrorException(ex.getMessage()));
 			}
 		}				
 		

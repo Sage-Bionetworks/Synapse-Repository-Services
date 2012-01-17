@@ -69,43 +69,56 @@ public class ActionMenuViewImpl extends LayoutContainer implements ActionMenuVie
 	public void createMenu(Entity entity, EntityType entityType, boolean isAdministrator,
 			boolean canEdit) {			
 		
+		
 		// add items in order. spacing is done with Html widgets as we don't want to add top/bottom padding
 		boolean addHpanel = hp == null ? true : false;
 		if(hp == null) {			
 			hp = new HorizontalPanel();
+		} 
+
+		// edit button
+		if(editButton == null) {			
+			editButton = new Button(DisplayConstants.BUTTON_EDIT, AbstractImagePrototype.create(iconsImageBundle.editGrey16()));
+			editButton.setHeight(25);
+			hp.add(editButton);
+			hp.add(new Html("&nbsp;"));			
+		}				
+		if (canEdit) editButton.enable();
+		else editButton.disable();
+		configureEditButton(entity, entityType);	
+		
+		// share button
+		if(shareButton == null) { 
+			shareButton = new Button(DisplayConstants.BUTTON_SHARE, AbstractImagePrototype.create(iconsImageBundle.mailGrey16()));
+			shareButton.setHeight(25);
+			hp.add(shareButton);
+			hp.add(new Html("&nbsp;"));
 		}
-		if(canEdit) {
-			boolean add = editButton == null ? true : false;
-			configureEditButton(entity, entityType);
-			if(add) { 
-				hp.add(editButton);
-				hp.add(new Html("&nbsp;"));
-			}
+		configureShareButton(entity);		
+		if (isAdministrator) shareButton.enable();
+		else shareButton.disable();
+
+		// add Button
+		if(addButton == null) {
+			addButton = new Button(DisplayConstants.BUTTON_ADD, AbstractImagePrototype.create(iconsImageBundle.addGrey16()));
+			addButton.setHeight(25);
+			hp.add(addButton);
+			hp.add(new Html("&nbsp;"));
 		}
-		if(isAdministrator) { 
-			boolean add = shareButton == null ? true : false;
-			configureShareButton(entity);
-			if(add) { 
-				hp.add(shareButton);
-				hp.add(new Html("&nbsp;"));
-			}
-		}
-		if(canEdit) {
-			boolean add = addButton == null ? true : false;
-			configureAddMenu(entity, entityType);
-			if(add) {
-				hp.add(addButton);
-				hp.add(new Html("&nbsp;"));
-			}
-		}
-		boolean add = toolsButton == null ? true : false;		
-		configureToolsMenu(entity, entityType, isAdministrator, canEdit);
-		if(add) {
+		configureAddMenu(entity, entityType);
+		if (canEdit) addButton.enable();
+		else addButton.disable();
+
+		if(toolsButton == null) {
+			toolsButton = new Button(DisplayConstants.BUTTON_TOOLS_MENU, AbstractImagePrototype.create(iconsImageBundle.adminToolsGrey16()));
+			toolsButton.setHeight(25);
 			hp.add(toolsButton);	
-		}
+		}							
+		configureToolsMenu(entity, entityType, isAdministrator, canEdit);
 
 		if(addHpanel) add(hp);
-//		this.layout();
+//		hp.layout(true);
+//		this.layout(true);
 	}
 	
 	@Override
@@ -143,10 +156,6 @@ public class ActionMenuViewImpl extends LayoutContainer implements ActionMenuVie
 	 */
 	private void configureEditButton(final Entity entity, EntityType entityType) {
 		final String typeDisplay = DisplayUtils.uppercaseFirstLetter(entityType.getName());
-		if(editButton == null) {			
-			editButton = new Button(DisplayConstants.BUTTON_EDIT, AbstractImagePrototype.create(iconsImageBundle.editGrey16()));
-			editButton.setHeight(25);
-		}		
 		editButton.removeAllListeners();
 		editButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
 
@@ -182,10 +191,6 @@ public class ActionMenuViewImpl extends LayoutContainer implements ActionMenuVie
 	private void configureShareButton(Entity entity) {		
 		accessControlListEditor.setPlaceChanger(presenter.getPlaceChanger());
 		accessControlListEditor.setResource(entity);
-		if(shareButton == null) { 
-			shareButton = new Button(DisplayConstants.BUTTON_SHARE, AbstractImagePrototype.create(iconsImageBundle.mailGrey16()));
-			shareButton.setHeight(25);
-		}
 		shareButton.removeAllListeners();		
 		shareButton.addSelectionListener(new SelectionListener<ButtonEvent>() {
 			@Override
@@ -213,12 +218,6 @@ public class ActionMenuViewImpl extends LayoutContainer implements ActionMenuVie
 	}
 	
 	private void configureAddMenu(final Entity entity, final EntityType entityType) {		
-		if(addButton == null) {
-				addButton = new Button(DisplayConstants.BUTTON_ADD, AbstractImagePrototype.create(iconsImageBundle.addGrey16()));
-				addButton.setHeight(25);
-		}
-		addButton.enable();		
-		
 		// create add menu button from children
 		List<EntityType> children = entityType.getValidChildTypes();
 		Menu menu = new Menu();		
@@ -249,18 +248,22 @@ public class ActionMenuViewImpl extends LayoutContainer implements ActionMenuVie
 		addButton.setMenu(menu);
 	}
 
-	private void configureToolsMenu(Entity entity, EntityType entityType, boolean isAdministrator, boolean canEdit) {		
-		if(toolsButton == null) {
-			toolsButton = new Button(DisplayConstants.BUTTON_TOOLS_MENU, AbstractImagePrototype.create(iconsImageBundle.adminToolsGrey16()));
-			toolsButton.setHeight(25);
-		}
+	private void configureToolsMenu(Entity entity, EntityType entityType, boolean isAdministrator, boolean canEdit) {				
 		// create drop down menu
-		Menu menu = new Menu();		
+		Menu menu = new Menu();
+		int numAdded = 0;
 		// add restricted items to the Tools menu
-		if(canEdit) addCanEditToolMenuItems(menu, entity, entityType);
-		if(isAdministrator) addIsAdministratorToolMenuItems(menu, entity, entityType);
+		if(canEdit) {
+			numAdded += addCanEditToolMenuItems(menu, entity, entityType);
+		}
+		if(isAdministrator) {
+			numAdded += addIsAdministratorToolMenuItems(menu, entity, entityType);
+		}
 
 		toolsButton.setMenu(menu);
+		if(numAdded == 0) {
+			toolsButton.disable();
+		}
 	}
 
 	/**
@@ -268,7 +271,8 @@ public class ActionMenuViewImpl extends LayoutContainer implements ActionMenuVie
 	 * @param menu
 	 * @param entityType 
 	 */
-	private void addIsAdministratorToolMenuItems(Menu menu, Entity entity, EntityType entityType) {
+	private int addIsAdministratorToolMenuItems(Menu menu, Entity entity, EntityType entityType) {
+		int numAdded = 0;
 		final String typeDisplay = DisplayUtils.uppercaseFirstLetter(entityType.getName());
 		MenuItem item = new MenuItem(DisplayConstants.LABEL_DELETE + " " + typeDisplay);
 		item.setIcon(AbstractImagePrototype.create(iconsImageBundle.deleteButton16()));
@@ -285,7 +289,10 @@ public class ActionMenuViewImpl extends LayoutContainer implements ActionMenuVie
 				});
 			}
 		});
-		menu.add(item);
+		menu.add(item);		
+		numAdded++;
+		
+		return numAdded;
 	}
 
 	/**
@@ -294,8 +301,9 @@ public class ActionMenuViewImpl extends LayoutContainer implements ActionMenuVie
 	 * @param entity 
 	 * @param entityType 
 	 */
-	private void addCanEditToolMenuItems(Menu menu, final Entity entity, EntityType entityType) {		
+	private int addCanEditToolMenuItems(Menu menu, final Entity entity, EntityType entityType) {		
 		// add Can Edit permission tools here (other than add and edit)
+		return 0;
 	}
 
 	private void showAddWindow(EntityType childType, String parentId) {

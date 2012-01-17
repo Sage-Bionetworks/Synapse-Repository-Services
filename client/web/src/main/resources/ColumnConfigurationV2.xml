@@ -267,7 +267,7 @@
 		<!-- A dynamic relative URL will be built for datatsets using the ID column -->
 		<url-template id="dataset.localUrl">
 			<type>String</type>
-			<urlTemplate>Dataset:{dataset.id}</urlTemplate>
+			<urlTemplate>Synapse:{dataset.id}</urlTemplate>
 		</url-template>
 		<!-- Acts as the dataset name column  -->
 		<link-column id="dataset.NameLink">
@@ -297,7 +297,7 @@
 		<!-- A dynamic relative URL will be built for layers using the ID column -->
 		<url-template id="layer.Url">
 			<type>String</type>
-			<urlTemplate>Layer:{layer.id};Dataset:{layer.parentId}</urlTemplate>
+			<urlTemplate>Synapse:{layer.id}</urlTemplate>
 		</url-template>
 		<!-- Acts as the layer name column  -->
 		<link-column id="layer.NameLink">
@@ -308,7 +308,7 @@
 		<!-- A dynamic relative URL will be built for downloading layers using the ID column -->
 		<url-template id="layer.DownloadUrl">
 			<type>String</type>
-			<urlTemplate>Layer:{layer.id};Dataset:{layer.parentId};Download:true</urlTemplate>
+			<urlTemplate>Synapse:{layer.id}</urlTemplate>
 		</url-template>
 		<!-- Acts as the layer name column  -->
 		<link-column id="layer.DownloadLink">
@@ -319,7 +319,7 @@
 		<!-- A dynamic relative URL will be built for projects using the ID column -->
 		<url-template id="project.localUrl">
 			<type>String</type>
-			<urlTemplate>Project:{project.id}</urlTemplate>
+			<urlTemplate>Synapse:{project.id}</urlTemplate>
 		</url-template>
 		<!-- Acts as the project name column  -->
 		<link-column id="project.NameLink">
@@ -330,7 +330,7 @@
 		<!-- A dynamic relative URL will be built for analyses using the ID column -->
 		<url-template id="analysis.LocalUrl">
 			<type>String</type>
-			<urlTemplate>Analysis:{analysis.id}</urlTemplate>
+			<urlTemplate>Synapse:{analysis.id}</urlTemplate>
 		</url-template>
 		<!-- Acts as the analysis name column  -->
 		<link-column id="analysis.NameLink">
@@ -341,7 +341,7 @@
 		<!-- A dynamic relative URL will be built for steps using the ID column -->
 		<url-template id="step.LocalUrl">
 			<type>String</type>
-			<urlTemplate>Step:{step.id}</urlTemplate>
+			<urlTemplate>Synapse:{step.id}</urlTemplate>
 		</url-template>
 		
 		<!-- Acts as the step name column  -->
@@ -353,7 +353,7 @@
 		<!-- A dynamic relative URL will be built for Codes using the ID column -->
 		<url-template id="code.LocalUrl">
 			<type>String</type>
-			<urlTemplate>Code:{code.id}</urlTemplate>
+			<urlTemplate>Synapse:{code.id}</urlTemplate>
 		</url-template>
 		
 		<!-- Acts as the code name column  -->
