@@ -13,6 +13,7 @@ import java.util.regex.Pattern;
 
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -36,8 +37,9 @@ import org.sagebionetworks.workflow.curation.ConfigHelper;
  * 
  */
 public class Curation {
-	private static final HttpClient httpClient = HttpClientHelper
-			.createNewClient(true);
+	private static final int DEFAULT_MAX_CONNECTIONS_PER_ROUTE = 20;
+	private static final HttpClient httpClient;
+
 	private static final String TCGA_STATUS = "raw";
 	private static final String TCGA_FORMAT = "tsv";
 	private static final int LAYER_TYPE_INDEX = 7;
@@ -48,6 +50,13 @@ public class Curation {
 	 */
 	public static final Pattern TCGA_DATA_REGEXP = Pattern
 			.compile("^([^_]+)_([^\\.]+)\\.([^\\.]+)\\.([^\\.]+)\\.(\\d+)\\.(\\d+)\\.(\\d+).*");
+	
+	
+	static {
+		httpClient = HttpClientHelper.createNewClient(true);
+		ThreadSafeClientConnManager manager = (ThreadSafeClientConnManager) httpClient.getConnectionManager();
+		manager.setDefaultMaxPerRoute(DEFAULT_MAX_CONNECTIONS_PER_ROUTE);
+	}
 
 	/**
 	 * Create or update metadata for TCGA layers
