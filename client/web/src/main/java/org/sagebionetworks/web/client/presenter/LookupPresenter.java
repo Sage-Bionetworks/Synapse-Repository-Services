@@ -4,6 +4,7 @@ import org.sagebionetworks.web.client.DisplayUtils;
 import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.place.Lookup;
+import org.sagebionetworks.web.client.place.Synapse;
 import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
@@ -104,14 +105,10 @@ public class LookupPresenter extends AbstractActivity implements LookupView.Pres
 	 */
 	public void goToEntity(NodeType type, String id) {
 		view.showForwarding();
-		Place place = DisplayUtils.getPlaceForEntity(type, id);
-		if(place == null) {
-			view.showUnknownType(type.toString(), id);
-		} else {
-			view.doneLooking();
-			if(placeChanger != null) {
-				placeChanger.goTo(place);
-			}
+		Place place = new Synapse(id);
+		view.doneLooking();
+		if(placeChanger != null) {
+			placeChanger.goTo(place);
 		}
 	}
 

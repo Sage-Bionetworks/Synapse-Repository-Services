@@ -257,33 +257,6 @@ public class DisplayUtils {
 	public static void showErrorMessage(String message) {
 		MessageBox.info(DisplayConstants.TITLE_ERROR, message, null);
 	}
-
-	public static Place getPlaceForEntity(NodeType type, String id) {
-		Place place;
-		
-		switch (type) {
-		case PROJECT:
-			place = new Project(id);
-			break;
-		case DATASET:
-			place = new Dataset(id);
-			break;
-		case LAYER:
-			place = new Layer(id, null, false);
-			break;
-		case ANALYSIS:
-			place = new Analysis(id);
-			break;
-		case STEP:
-			place = new Step(id);
-			break;
-		default:
-			place = null;
-			break;
-		}
-		
-		return place;
-	}
 	
 	/**
 	 * Returns the NodeType for this entity class. 
