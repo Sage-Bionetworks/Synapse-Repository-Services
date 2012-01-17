@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -224,6 +225,7 @@ public class SearchDocumentDriverImpl implements NodeBackupDriver {
 		JSONObject document = new JSONObject();
 		JSONObject fields = new JSONObject();
 
+		// Node fields
 		document.put("type", "add");
 		document.put("id", node.getId());
 		document.put("version", node.getETag());
@@ -239,11 +241,27 @@ public class SearchDocumentDriverImpl implements NodeBackupDriver {
 		fields.put("created_on", node.getCreatedOn().getTime() / 1000);
 		fields.put("modified_by", node.getModifiedBy());
 		fields.put("modified_on", node.getModifiedOn().getTime() / 1000);
+
+		// Annotations
 		addAnnotationsToSearchDocument(fields, rev.getNamedAnnotations()
 				.getPrimaryAnnotations());
 		addAnnotationsToSearchDocument(fields, rev.getNamedAnnotations()
 				.getAdditionalAnnotations());
 
+		// References, just put the node id to which the reference refers. Not
+		// currently adding the version or the type of the reference (e.g.,
+		// code/input/output)
+		if (0 < node.getReferences().size()) {
+			JSONArray referenceValues = new JSONArray();
+			fields.put("reference", referenceValues);
+			for (Set<Reference> refs : node.getReferences().values()) {
+				for (Reference ref : refs) {
+					referenceValues.put(ref.getTargetId());
+				}
+			}
+		}
+
+		// ACL
 		JSONArray aclValues = new JSONArray();
 		fields.put("acl", aclValues);
 		for (ResourceAccess access : acl.getResourceAccess()) {

@@ -13,55 +13,55 @@ var EXAMPLES = [
     },
     {
         desc: "free text search for 'cancer' showing all facets",
-        query: "q=cancer&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
+        query: "q=cancer&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     },
     {
         desc: "free text search for 'cancer' showing all facets restricted to datasets only", 
-        query: "q=cancer&bq=node_type:'dataset'&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
+        query: "q=cancer&bq=node_type:'dataset'&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     },
     {
         desc: "free text search for 'cancer' showing all facets restricted to datasets only with at least 1000 samples", 
-        query: "q=cancer&bq=(and node_type:'dataset' num_samples:1000..)&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
+        query: "q=cancer&bq=(and node_type:'dataset' num_samples:1000..)&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     },
     {
         desc: "layers sorted by creation date", 
-        query: "bq=node_type:'layer'&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl&rank=created_on"
+        query: "bq=node_type:'layer'&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference&rank=created_on"
     },
     {
         desc: "layers sorted by creation date descending", 
-        query: "bq=node_type:'layer'&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl&rank=-created_on"
+        query: "bq=node_type:'layer'&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference&rank=-created_on"
     },
     {
         desc: "clinical layers (via an annotation)", 
-        query: "q=type:C&bq=node_type:'layer'&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
+        query: "q=type:C&bq=node_type:'layer'&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     },
     {
         desc: "TCGA Level 3 Layers (via an annotation)", 
-        query: "q=tcgaLevel:Level_3&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
+        query: "q=tcgaLevel:Level_3&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     },
     {
         desc: "basically a select * on a literal field",
-        query: "bq=node_type:'*'&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
+        query: "bq=node_type:'*'&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     },
     {
         desc: "basically a select * on a numeric field",
-        query: "bq=created_on:0..&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
+        query: "bq=created_on:0..&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     },
     {
         desc: "an OR boolean query",
-        query: "bq=(or node_type:'layer' node_type:'dataset')&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
+        query: "bq=(or node_type:'layer' node_type:'dataset')&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     },
     {
         desc: "an AND plus OR boolean query",
-        query: "bq=(and (or node_type:'layer' node_type:'dataset') created_by:'nicole.deflaux@sagebase.org')&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
+        query: "bq=(and (or node_type:'layer' node_type:'dataset') created_by:'nicole.deflaux@sagebase.org')&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     },
     {
         desc: "Matt's datasets",
-        query: "bq=(and node_type:'dataset' created_by:'matt.furia@sagebase.org')&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
+        query: "bq=(and node_type:'dataset' created_by:'matt.furia@sagebase.org')&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     },
     {
         desc: "Matt's datasets that Nicole is able to see",
-        query: "bq=(and (or acl:'PUBLIC' acl:'AUTHENTICATED_USERS' acl:'nicole.deflaux@gmail.com') node_type:'dataset' created_by:'matt.furia@sagebase.org')&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl"
+        query: "bq=(and (or acl:'PUBLIC' acl:'AUTHENTICATED_USERS' acl:'nicole.deflaux@gmail.com') node_type:'dataset' created_by:'matt.furia@sagebase.org')&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     }
 ];
 
