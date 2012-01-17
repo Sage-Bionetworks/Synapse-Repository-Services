@@ -87,6 +87,10 @@ public class TcgaWorkflowITCase {
 		assertFalse(Constants.WORKFLOW_DONE.equals(clinicalLayerId));
 
 		Layer layer = synapse.getEntity(clinicalLayerId, Layer.class);
+		
+		assertTrue(0 < layer.getMd5().length());
+		assertEquals(1, layer.getLocations().size());
+		
 		JSONObject allAnnotations = synapse.getEntity(layer.getAnnotations());
 		JSONObject annotations = allAnnotations
 				.getJSONObject("stringAnnotations");

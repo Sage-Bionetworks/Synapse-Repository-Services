@@ -82,7 +82,7 @@ public class Curation {
 			layer = synapse.getEntity(results.getJSONArray("results")
 					.getJSONObject(0).getString("layer.id"), Layer.class);
 			if (metadata.containsKey("md5")
-					&& layer.getMd5().equals(metadata.get("md5"))
+					&& metadata.get("md5").equals(layer.getMd5())
 					&& doneIfExists) {
 				return Constants.WORKFLOW_DONE;
 			}
