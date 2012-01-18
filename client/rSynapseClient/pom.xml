@@ -9,7 +9,7 @@
   <parent>
 	<artifactId>client</artifactId>
 	<groupId>org.sagebionetworks</groupId>
-	<version>0.9-SNAPSHOT</version>
+	<version>0.9.1-SNAPSHOT</version>
   </parent>
 
   <groupId>org.sagebionetworks</groupId>
@@ -25,7 +25,7 @@
 		</dependency>
 
 	</dependencies>
-  
+
   <build>
     <plugins>
 
@@ -48,7 +48,7 @@
 		</executions>
 	  </plugin>
 
-      
+
       <!-- We use this assembly to package the R and Python dependencies so they are aviablible for integration testing. -->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
