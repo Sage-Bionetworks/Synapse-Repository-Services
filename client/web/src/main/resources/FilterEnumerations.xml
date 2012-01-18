@@ -37,13 +37,13 @@
 			<operator>EQUALS</operator>
 			<values>
 				<displayable>
-					<value>Homo Sapiens</value>
+					<value>Homo sapiens</value>
 				</displayable>
 				<displayable>
-					<value>Mus Musculus</value>
+					<value>Mus musculus</value>
 				</displayable>
 				<displayable>
-					<value>Ratus Norvegicus</value>
+					<value>Rattus norvegicus</value>
 				</displayable>
 				<displayable>
 					<value>Pig</value>
