@@ -83,11 +83,18 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
 		this.view.setDimensions(width, height);
 		initialize(type, usePager);
 		
+		// hack for demo display order
+		final boolean sortByDatasetIdHack = type == ObjectType.dataset ? true : false;
+		
         RpcProxy<PagingLoadResult<BaseModelData>> proxy = new RpcProxy<PagingLoadResult<BaseModelData>>() {
             @Override
             public void load(Object loadConfig, final AsyncCallback<PagingLoadResult<BaseModelData>> callback) {
             	setCurrentSearchParameters((PagingLoadConfig) loadConfig);            	
             	SearchParameters searchParams = getCurrentSearchParameters();
+            	if(sortByDatasetIdHack && searchParams.getSort() == null) {
+	            	searchParams.setSort("dataset.id");
+	            	searchParams.setAscending(true);
+            	}
         		searchService.executeSearch(searchParams, new AsyncCallback<TableResults>() {
         			
         			@Override
@@ -104,7 +111,7 @@ public class QueryServiceTable implements QueryServiceTableView.Presenter {
         				}
         				setTableResults(result, callback);
         				view.setPaginationOffsetAndLength(paginationOffset, paginationLimit);        				
-        				loadResultData.setOffset(paginationOffset);
+        				loadResultData.setOffset(paginationOffset);        			
         				callback.onSuccess(loadResultData);
         			}
         			
