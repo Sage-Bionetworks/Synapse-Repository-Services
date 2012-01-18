@@ -9,6 +9,7 @@ public class DisplayConstants {
 	 * Set this flag if you want demo content shown
 	 */
 	public static boolean showDemoHtml = false;
+	public static final String MSKCC_DATASET_DEMO_ID = "4494";
 	public static final String TURN_DEMO_ON_TOKEN = "d";
 	public static final String TURN_DEMO_OFF_TOKEN = "nd";
 	/*
