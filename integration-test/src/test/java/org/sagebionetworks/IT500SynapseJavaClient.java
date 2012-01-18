@@ -15,7 +15,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.AfterClass;
-import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
@@ -65,6 +64,7 @@ public class IT500SynapseJavaClient {
 	}
 
 	/**
+	 * @throws Exception 
 	 * @throws HttpException
 	 * @throws IOException
 	 * @throws JSONException
@@ -222,15 +222,6 @@ public class IT500SynapseJavaClient {
 		assertNotNull(location.getPath());
 		assertTrue(location.getPath().startsWith("http"));
 		
-		
-		// now test that the Location can be retrieved via a query
-		// now check that location is there via synapse.query
-		if (false) {
-			JSONObject locationQueryResult = synapse.query("select * from location where parentId=="+layer.getId());
-			JSONArray jsonLocations = locationQueryResult.getJSONArray("results");
-			assertEquals(locationQueryResult.toString(), 1, jsonLocations.length());
-		}
-		
 		File dataDestinationFile = File.createTempFile("integrationTest",
 				".download");
 		dataDestinationFile.deleteOnExit();
@@ -273,7 +264,12 @@ public class IT500SynapseJavaClient {
 
 	}
 	
-	// tests signing requests using an API key, as an alternative to logging in
+	
+	/**
+	 * tests signing requests using an API key, as an alternative to logging in
+	 * 
+	 * @throws Exception
+	 */
 	@Test
 	public void testAPIKey() throws Exception {
 		// get API key for integration test user

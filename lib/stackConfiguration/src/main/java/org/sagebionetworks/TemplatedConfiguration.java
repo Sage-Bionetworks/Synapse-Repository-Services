@@ -81,7 +81,7 @@ public class TemplatedConfiguration {
 		}
 		// These four properties are required. If they are null, an exception
 		// will be thrown
-		String propertyFileUrl = getPropertyFileURL();
+		propertyFileUrl = getPropertyFileURL();
 
 		String encryptionKey = getEncryptionKey();
 		String stack = getStack();
@@ -114,14 +114,16 @@ public class TemplatedConfiguration {
 
 	public String getProperty(String propertyName) {
 		String propertyValue = null;
+		log.info(propertyName + "=" + System.getProperty(propertyName) 
+				+ " from System properties (just FYI if replacement syntax was used in the props file)");
 		if (stackPropertyOverrides.containsKey(propertyName)) {
 			propertyValue = stackPropertyOverrides.getProperty(propertyName);
-			log.info(propertyName + "=" + propertyValue + " from "
-					+ propertyFileUrl + "properties");
+			log.info(propertyName + "=" + propertyValue + " from stack property overrides "
+					+ propertyFileUrl);
 		} else {
 			propertyValue = defaultStackProperties.getProperty(propertyName);
 			log.info(propertyName + "=" + propertyValue
-					+ " from default stack properties");
+					+ " from default stack properties " + defaultPropertiesFilename);
 		}
 		// NullPointerExceptions further downstream are not very helpful, throw
 		// here
@@ -159,7 +161,6 @@ public class TemplatedConfiguration {
 			throw new RuntimeException("Expected property for " + propertyName);
 		StringEncrypter se = new StringEncrypter(stackEncryptionKey);
 		String clearTextPassword = se.decrypt(encryptedProperty);
-		log.debug("clear text " + propertyName + " " + clearTextPassword);
 		return clearTextPassword;
 	}
 
@@ -366,7 +367,14 @@ public class TemplatedConfiguration {
 	 * @return the max number of connections per route
 	 */
 	public int getHttpClientMaxConnsPerRoute() {
-		return Integer.parseInt(getProperty("org.sagebionetworks.httpclient.connectionpool.maxconnsperroute"));
+		// We get connection timeouts from HttpClient if max conns is zero, which is a confusing 
+		// error, so instead check more vigorously for that configuration mistake
+		String maxConnsPropertyName = "org.sagebionetworks.httpclient.connectionpool.maxconnsperroute";
+		int maxConns = Integer.parseInt(getProperty(maxConnsPropertyName));
+		if(1 > maxConns) {
+			throw new IllegalArgumentException(maxConnsPropertyName + " must be greater than zero");
+		}
+		return maxConns;
 	}
 	
 

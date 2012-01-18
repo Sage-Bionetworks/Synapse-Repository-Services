@@ -34,7 +34,6 @@ public class S3PropertyFileLoader {
 	public static void loadPropertiesFromS3(String propertyFileUrl, String IAMId, String IAMKey, Properties properties) throws IOException {
 		log.info("propertyFileUrl="+propertyFileUrl);
 		log.info("IAMId= "+IAMId);
-		log.info("IAMKey="+IAMKey);
 		if (propertyFileUrl == null)throw new IllegalArgumentException("The file URL cannot be null");
 		if (IAMId == null) throw new IllegalArgumentException("IAM id cannot be null");
 		if (IAMKey == null)	throw new IllegalArgumentException("IAM key cannot be null");
