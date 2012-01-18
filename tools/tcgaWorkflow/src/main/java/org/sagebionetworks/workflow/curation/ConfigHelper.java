@@ -99,7 +99,7 @@ public class ConfigHelper {
 		Synapse synapse = new Synapse();
 
 		synapse.setRepositoryEndpoint(getRepositoryServiceEndpoint());
-		synapse.setAuthEndpoint(getAuthenticationServicePublicEndpoint());
+		synapse.setAuthEndpoint(getAuthenticationServicePrivateEndpoint());
 		synapse.login(getSynapseUsername(), 
 				getSynapsePassword());
 		return synapse;
@@ -138,13 +138,6 @@ public class ConfigHelper {
 	 */
 	public static String getAuthenticationServicePrivateEndpoint() {
 		return configuration.getAuthenticationServicePrivateEndpoint();
-	}
-	
-	/**
-	 * @return auth service endpoint
-	 */
-	public static String getAuthenticationServicePublicEndpoint() {
-		return configuration.getAuthenticationServicePublicEndpoint();
 	}
 	
 	/**

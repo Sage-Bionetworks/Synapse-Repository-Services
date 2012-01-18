@@ -1,6 +1,5 @@
 package org.sagebionetworks.workflow.activity;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -132,7 +131,7 @@ public class Processing {
 			scriptInput = new String[] {rScriptPath, script, argsDelimiter,
 					SYNAPSE_USERNAME_KEY, ConfigHelper.getSynapseUsername(),
 					SYNAPSE_PASSWORD_KEY, ConfigHelper.getSynapsePassword(),
-					AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServicePublicEndpoint(),
+					AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServicePrivateEndpoint(),
 					REPO_ENDPOINT_KEY, ConfigHelper.getRepositoryServiceEndpoint(),
 					INPUT_DATASET_PARAMETER_KEY, datasetId.toString(),
 					INPUT_LAYER_PARAMETER_KEY, rawLayerId.toString() };
@@ -141,7 +140,7 @@ public class Processing {
 			scriptInput = new String[] {script, 
 					SYNAPSE_USERNAME_KEY, ConfigHelper.getSynapseUsername(),
 					SYNAPSE_PASSWORD_KEY, ConfigHelper.getSynapsePassword(),
-					AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServicePublicEndpoint(),
+					AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServicePrivateEndpoint(),
 					REPO_ENDPOINT_KEY, ConfigHelper.getRepositoryServiceEndpoint(),
 					INPUT_DATASET_PARAMETER_KEY, datasetId.toString(),
 					INPUT_LAYER_PARAMETER_KEY, rawLayerId.toString() };
