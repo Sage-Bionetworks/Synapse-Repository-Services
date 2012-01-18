@@ -251,7 +251,7 @@ public class SearchDocumentDriverImpl implements NodeBackupDriver {
 		// References, just put the node id to which the reference refers. Not
 		// currently adding the version or the type of the reference (e.g.,
 		// code/input/output)
-		if (0 < node.getReferences().size()) {
+		if ((null != node.getReferences()) && (0 < node.getReferences().size())) {
 			JSONArray referenceValues = new JSONArray();
 			fields.put("reference", referenceValues);
 			for (Set<Reference> refs : node.getReferences().values()) {
