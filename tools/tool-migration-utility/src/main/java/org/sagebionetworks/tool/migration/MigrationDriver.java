@@ -51,16 +51,7 @@ public class MigrationDriver {
 	 */
 	public static void main(String[] args) throws IOException,
 			SynapseException, JSONException, InterruptedException, ExecutionException {
-		// Load the location of the configuration property file
-		if (args == null) {
-			throw new IllegalArgumentException(	"The first argument must be the configuration property file path.");
-		}
-		if (args.length != 1) {
-			throw new IllegalArgumentException(	"The first argument must be the configuration property file path. args.length: "+args.length);
-		}
-		String path = args[0];
-		// Load all of the configuration information.
-		Configuration.loadConfigurationFile(path);
+		loadConfigUsingArgs(args);
 
 		// Create the two connections.
 		SynapseConnectionInfo sourceInfo = Configuration.getSourceConnectionInfo();
@@ -145,6 +136,24 @@ public class MigrationDriver {
 	}
 
 	/**
+	 * Load the configuration using the passed args.
+	 * @param args
+	 * @throws IOException
+	 */
+	public static void loadConfigUsingArgs(String[] args) throws IOException {
+		// Load the location of the configuration property file
+		if (args == null) {
+			throw new IllegalArgumentException(	"The first argument must be the configuration property file path.");
+		}
+		if (args.length != 1) {
+			throw new IllegalArgumentException(	"The first argument must be the configuration property file path. args.length: "+args.length);
+		}
+		String path = args[0];
+		// Load all of the configuration information.
+		Configuration.loadConfigurationFile(path);
+	}
+
+	/**
 	 * Consume all jobs on the queue.  This method will block until the queue is empty.
 	 * @param factory
 	 * @param threadPool
@@ -173,7 +182,7 @@ public class MigrationDriver {
 	 * @throws InterruptedException
 	 * @throws ExecutionException
 	 */
-	public static void populateQueue(ExecutorService threadPool, Queue<Job> jobQueue, List<EntityData> sourceData, List<EntityData> destData, int maxBatchSize) throws InterruptedException,
+	public static ResponseBundle populateQueue(ExecutorService threadPool, Queue<Job> jobQueue, List<EntityData> sourceData, List<EntityData> destData, int maxBatchSize) throws InterruptedException,
 			ExecutionException {
 		// Build the maps
 		Map<String, EntityData> destMap = JobUtil.buildMapFromList(destData);
@@ -192,6 +201,8 @@ public class MigrationDriver {
 		BuilderResponse updateResponse = updateFuture.get();
 		BuilderResponse deleteResponse = deleteFuture.get();
 		log.info("Submitted "+createResponse.getSubmitedToQueue()+" Entities to create queue.  There are "+createResponse.getPendingDependancies()+" Entities pending dependency creations. Submitted "+updateResponse.getSubmitedToQueue()+" updates to the queue. Submitted "+deleteResponse.getSubmitedToQueue()+" for delete.");
+		
+		return new ResponseBundle(createResponse, updateResponse, deleteResponse);
 	}
 
 	/**
@@ -208,7 +219,7 @@ public class MigrationDriver {
 		// the user wants to proceed
 		if (destTotal > sourceTotal) {
 			System.out.println("The destination repository has more Entities than the source repository:");
-			String format = "%1$15s total entites: %3$-10d endpoint: %2$s ";
+			String format = "%1$15s total entities: %3$-10d endpoint: %2$s ";
 			System.out.println(String.format(format, "DESTINATION" ,destEndpoint, destTotal));
 			System.out.println(String.format(format, "SOURCE" ,sourceEndpoint, sourceTotal));
 			System.out.print("Are you sure you want to continue? (Y/N): ");

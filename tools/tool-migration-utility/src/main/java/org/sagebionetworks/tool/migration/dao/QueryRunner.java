@@ -5,6 +5,7 @@ import java.util.List;
 import org.json.JSONException;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 
 /**
@@ -58,5 +59,15 @@ public interface QueryRunner {
 	 * @throws JSONException 
 	 */
 	public long getTotalEntityCount(Synapse client) throws SynapseException, JSONException;
+	
+	/**
+	 * Get a count for an entity type
+	 * @param type
+	 * @param client
+	 * @return
+	 * @throws SynapseException
+	 * @throws JSONException
+	 */
+	public long getCountForType(EntityType type, Synapse client) throws SynapseException, JSONException;
 
 }

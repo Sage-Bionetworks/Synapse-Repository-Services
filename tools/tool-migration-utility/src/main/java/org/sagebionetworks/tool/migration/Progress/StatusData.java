@@ -6,6 +6,7 @@ package org.sagebionetworks.tool.migration.Progress;
  *
  */
 public class StatusData {
+	private static final int MS_PER_HOUR = 1000*60*60;
 	float percentDone;
 	long elaspeTimeMS;
 	long estimatedRemaingMS;
@@ -53,6 +54,12 @@ public class StatusData {
 		return String.format("%1$6.2f %1$2% elapse: %2$tM:%2$tS:%2$tL remaining: ~ %3$tM:%3$tS:%3$tL", percentDone, elaspeTimeMS, estimatedRemaingMS);
 	}
 	
+	public String toStringHours(){
+		long elapseHours = elaspeTimeMS/MS_PER_HOUR;
+		long remainingHours = estimatedRemaingMS/MS_PER_HOUR;
+		return String.format("%1$6.2f %1$2% elapse: %4$2d:%2$tM:%2$tS remaining: ~ %5$2d:%3$tM:%3$tS", percentDone, elaspeTimeMS, estimatedRemaingMS, elapseHours, remainingHours);
+	}
+	
 	/**
 	 * Test the calculations and output.
 	 * @param args
@@ -65,6 +72,9 @@ public class StatusData {
 		System.out.println(new StatusData(1.34344f, (long)(1000*5+123), (long)(1000*6+123)).toString());
 		System.out.println(new StatusData(9.343344f, (long)(1000*5+123), (long)(1000*6+123)).toString());
 		System.out.println(new StatusData(87.1f, (long)(1000*5+123), (long)(1000*6+123)).toString());
+		System.out.println("Hours");
+		long oneHour = MS_PER_HOUR;
+		System.out.println(new StatusData(87.1f, (long)(oneHour*4+12345), (long)(oneHour*5+334000)).toStringHours());
 		
 		System.out.println("Starting....");
 		BasicProgress p = new BasicProgress();

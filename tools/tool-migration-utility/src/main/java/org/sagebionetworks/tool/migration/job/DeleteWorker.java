@@ -64,11 +64,11 @@ public class DeleteWorker implements Callable<WorkerResult> {
 				Thread.sleep(1000);
 			}
 			// done
-			progress.setCurrent(progress.getTotal());
+			progress.setDone();
 			return new WorkerResult(this.entites.size(), WorkerResult.JobStatus.SUCCEDED);
 		} catch (Exception e) {
 			// done
-			progress.setCurrent(progress.getTotal());
+			progress.setDone();
 			// Log any errors
 			log.error("CreateUpdateWorker Failed to run job: "+ entites.toString(), e);
 			return new WorkerResult(0, WorkerResult.JobStatus.FAILED);

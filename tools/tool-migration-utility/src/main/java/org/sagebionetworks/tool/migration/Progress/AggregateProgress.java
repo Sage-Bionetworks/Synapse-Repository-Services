@@ -1,37 +1,39 @@
 package org.sagebionetworks.tool.migration.Progress;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.tool.migration.Constants;
 
-
 /**
  * Represents the sum of multiple progress objects.
+ * 
  * @author John
- *
+ * 
  */
 public class AggregateProgress implements Progress {
-	
+
 	/**
 	 * This object is an aggregation of these parts.
 	 */
 	private List<Progress> parts;
-	
+
 	private volatile long startNano = System.nanoTime();
-	
+
 	/**
 	 * Create a new progress object and start the timer.
 	 */
-	public AggregateProgress(){
-		parts = new LinkedList<Progress>();
+	public AggregateProgress() {
+		parts = Collections.synchronizedList(new LinkedList<Progress>());
 	}
-	
+
 	/**
 	 * Add a new part to this progress.
+	 * 
 	 * @param toAdd
 	 */
-	public void addProgresss(Progress toAdd){
+	public void addProgresss(Progress toAdd) {
 		this.parts.add(toAdd);
 	}
 
@@ -39,8 +41,10 @@ public class AggregateProgress implements Progress {
 	public long getCurrent() {
 		// The current is always the sum of the parts.
 		long current = 0;
-		for(Progress part: parts){
-			current += part.getCurrent();
+		synchronized (parts) {
+			for (Progress part : parts) {
+				current += part.getCurrent();
+			}
 		}
 		return current;
 	}
@@ -49,15 +53,17 @@ public class AggregateProgress implements Progress {
 	public long getTotal() {
 		// The total is always the sum of the parts.
 		long total = 0;
-		for(Progress part: parts){
-			total += part.getTotal();
+		synchronized (parts) {
+			for (Progress part : parts) {
+				total += part.getTotal();
+			}
 		}
 		return total;
 	}
 
 	@Override
 	public long getElapseTimeMS() {
-		return (System.nanoTime()-startNano)/Constants.NANO_SECS_PER_MIL_SEC;
+		return (System.nanoTime() - startNano)/ Constants.NANO_SECS_PER_MIL_SEC;
 	}
 
 	@Override

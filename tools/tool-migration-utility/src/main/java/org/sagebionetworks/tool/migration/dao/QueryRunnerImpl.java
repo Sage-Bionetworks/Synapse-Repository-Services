@@ -10,6 +10,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 
 /**
@@ -31,6 +32,7 @@ public class QueryRunnerImpl implements QueryRunner {
 	 */
 	public static final String QUERY_TOTAL_ENTITY = "select "+SELECT_ENTITY_DATA+" from "+ENTITY;
 	public static final String QUERY_TOTAL_ENTITY_COUNT = QUERY_TOTAL_ENTITY+" "+LIMIT+" 1 "+OFFSET+" 1";
+	public static final String QUERY_TOTAL_ENTITY_TYPE_COUNT = "select "+SELECT_ENTITY_DATA+" from %1$s "+LIMIT+" 1 "+OFFSET+" 1";
 
 
 	/**
@@ -169,7 +171,7 @@ public class QueryRunnerImpl implements QueryRunner {
 		
 		if(progress != null){
 			// Add this count to the current progress.
-			progress.setCurrent(progress.getTotal());
+			progress.setDone();
 		}
 		return results;
 	}
@@ -206,6 +208,15 @@ public class QueryRunnerImpl implements QueryRunner {
 		builder.append(" ");
 		builder.append(offset);
 		return builder.toString();
+	}
+
+	@Override
+	public long getCountForType(EntityType type, Synapse client)
+			throws SynapseException, JSONException {
+		String query = String.format(QUERY_TOTAL_ENTITY_TYPE_COUNT, type.name());
+		JSONObject json = client.query(query);
+		EntityQueryResults results = translateFromJSONObjectToEntityQueryResult(json);
+		return results.getTotalCount();
 	}
 
 

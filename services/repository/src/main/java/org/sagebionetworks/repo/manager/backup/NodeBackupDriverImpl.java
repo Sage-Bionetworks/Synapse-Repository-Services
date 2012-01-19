@@ -148,7 +148,9 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 		writeRevisions(zos, backup, path);
 		progress.setMessage(backup.getNode().getName());
 		progress.incrementProgress();
-		log.info(progress.toString());
+		if(log.isTraceEnabled()){
+			log.trace(progress.toString());			
+		}
 		// Check for termination.
 		checkForTermination(progress);
 		if(isRecurisive){
@@ -262,7 +264,9 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 					throw new IllegalArgumentException("Did not recongnize file name: "+entry.getName());
 				}
 				progress.incrementProgressBy(entry.getCompressedSize());
-				log.info(progress.toString());
+				if(log.isTraceEnabled()){
+					log.trace(progress.toString());			
+				}
 				// This is run in a tight loop so to be CPU friendly we should yield
 				Thread.yield();
 			}

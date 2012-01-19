@@ -17,6 +17,8 @@ public class BasicProgress implements Progress{
 	private volatile long current = 0;
 	private volatile long total = 0;
 	private volatile long startNano = System.nanoTime();
+	private volatile long elapse = 0;
+	private volatile boolean done = false;
 	
 	public long getCurrent() {
 		return current;
@@ -30,8 +32,21 @@ public class BasicProgress implements Progress{
 	public void setTotal(long total) {
 		this.total = total;
 	}
+	public void setDone(){
+		done = true;
+		current = total;
+		elapse = calulcateElapse();
+	}
 	@Override
 	public long getElapseTimeMS() {
+		if(!done){
+			return (System.nanoTime()-startNano)/Constants.NANO_SECS_PER_MIL_SEC;
+		}else{
+			return elapse;
+		}
+	}
+	
+	private long calulcateElapse(){
 		return (System.nanoTime()-startNano)/Constants.NANO_SECS_PER_MIL_SEC;
 	}
 	@Override

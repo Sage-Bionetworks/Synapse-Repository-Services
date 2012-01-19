@@ -1,6 +1,5 @@
 package org.sagebionetworks.tool.migration;
 
-import org.sagebionetworks.client.AcceptAllCertificateHttpClientProvider;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
 
