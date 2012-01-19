@@ -9,10 +9,8 @@ class Component:
 
 # Parameters to drive Deployment
 workDir = os.sep+'temp'+os.sep 
-componentsToUpgrade = [Component('prod-b-auth', 'services-authentication'),
-                       Component('prod-b-repo', 'services-repository'),
-                       Component('prod-b-portal', 'portal')]
-version = '0.8'
+componentsToUpgrade = [Component('portal-prod-a', 'portal')]
+version = '0.9.1'
 isSnapshot = True
 beanstalk_application_name = 'Synapse'
 description = 'created by Synapse Deployer' 
