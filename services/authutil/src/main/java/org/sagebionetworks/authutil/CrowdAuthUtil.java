@@ -45,19 +45,14 @@ import org.xml.sax.InputSource;
 public class CrowdAuthUtil {
 	private static final Logger log = Logger.getLogger(CrowdAuthUtil.class.getName());
 
-	private String crowdUrl; // e.g. https://ec2-50-16-158-220.compute-1.amazonaws.com:8443
+	private static final String CROWD_URL = StackConfiguration.getCrowdEndpoint(); // e.g. https://ec2-50-16-158-220.compute-1.amazonaws.com:8443
+	private static final String API_APPLICATION_KEY = StackConfiguration.getCrowdAPIApplicationKey();
+
 	private String apiApplication;
-	private String apiApplicationKey;
 
 	public CrowdAuthUtil() {
 		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 5000);
 		HttpClientHelper.setGlobalSocketTimeout(DefaultHttpClientSingleton.getInstance(), 10000);
-		
-		// get the values from system properties, if available
-		crowdUrl = StackConfiguration.getCrowdEndpoint();
-		
-		
-		apiApplicationKey  = StackConfiguration.getCrowdAPIApplicationKey(); 
 		
 		// read values from the properties file
         Properties props = new Properties();
@@ -104,13 +99,13 @@ public class CrowdAuthUtil {
 		Map<String,String> ans = new HashMap<String,String>();
 		ans.put("Accept", "application/xml");
 		ans.put("Content-Type", "application/xml");
-		String authString=apiApplication+":"+apiApplicationKey;
+		String authString=apiApplication+":"+API_APPLICATION_KEY;
 		ans.put("Authorization", "Basic "+new String(Base64.encodeBase64(authString.getBytes()))); 
 		return ans;
 	}
 	
 	public String urlPrefix() {
-		return crowdUrl+"/crowd/rest/usermanagement/latest";
+		return CROWD_URL+"/crowd/rest/usermanagement/latest";
 	}
 	
 	public  byte[] executeRequest(String requestURL, 
