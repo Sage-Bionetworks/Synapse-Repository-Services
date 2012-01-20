@@ -41,5 +41,11 @@ public class SynapseConnectionInfo {
 	public String getAdminPassword() {
 		return adminPassword;
 	}
+	@Override
+	public String toString() {
+		return "SynapseConnectionInfo [authenticationEndPoint="
+				+ authenticationEndPoint + ", repositoryEndPoint="
+				+ repositoryEndPoint + ", adminUsername=" + adminUsername + "]";
+	}
 
 }

@@ -40,6 +40,18 @@ public interface QueryRunner {
 	public List<EntityData> getAllEntityData(Synapse client, BasicProgress progress) throws SynapseException, JSONException, InterruptedException;
 	
 	/**
+	 * Get all entity data for entities of a given type.
+	 * @param client
+	 * @param type
+	 * @param progress
+	 * @return
+	 * @throws SynapseException
+	 * @throws JSONException
+	 * @throws InterruptedException
+	 */
+	public List<EntityData> getAllEntityDataOfType(Synapse client, EntityType type, BasicProgress progress) throws SynapseException, JSONException, InterruptedException;
+	
+	/**
 	 * Get all child entities of a given parent.
 	 * @param client
 	 * @param parentId

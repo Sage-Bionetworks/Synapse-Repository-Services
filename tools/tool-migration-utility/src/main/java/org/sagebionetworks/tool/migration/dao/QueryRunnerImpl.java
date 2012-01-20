@@ -33,6 +33,8 @@ public class QueryRunnerImpl implements QueryRunner {
 	public static final String QUERY_TOTAL_ENTITY = "select "+SELECT_ENTITY_DATA+" from "+ENTITY;
 	public static final String QUERY_TOTAL_ENTITY_COUNT = QUERY_TOTAL_ENTITY+" "+LIMIT+" 1 "+OFFSET+" 1";
 	public static final String QUERY_TOTAL_ENTITY_TYPE_COUNT = "select "+SELECT_ENTITY_DATA+" from %1$s "+LIMIT+" 1 "+OFFSET+" 1";
+	
+	public static final String QUERY_ALL_OF_TYPE_FORMAT = "select "+SELECT_ENTITY_DATA+" from %1$s";
 
 
 	/**
@@ -48,13 +50,21 @@ public class QueryRunnerImpl implements QueryRunner {
 	public List<EntityData> getAllEntityData(Synapse client, BasicProgress progress) throws SynapseException, JSONException, InterruptedException{
 		if(client == null) throw new IllegalArgumentException("Client cannot be null"); 
 		// Build up the results to get all pages of this query.
-		return queryForAllPages(client, QUERY_TOTAL_ENTITY, MAX_PAGE_SIZE, progress);
+		return queryForAllPages(client, QUERY_TOTAL_ENTITY, ENTITY, MAX_PAGE_SIZE, progress);
+	}
+	
+	@Override
+	public List<EntityData> getAllEntityDataOfType(Synapse client,
+			EntityType type, BasicProgress progress) throws SynapseException,
+			JSONException, InterruptedException {
+		// Build up the results to get all pages of this query.
+		return queryForAllPages(client, String.format(QUERY_ALL_OF_TYPE_FORMAT, type.name()), type.name(), MAX_PAGE_SIZE, progress);
 	}
 	
 	@Override
 	public long getTotalEntityCount(Synapse client) throws SynapseException, JSONException {
 		JSONObject json = client.query(QUERY_TOTAL_ENTITY_COUNT);
-		EntityQueryResults results = translateFromJSONObjectToEntityQueryResult(json);
+		EntityQueryResults results = translateFromJSONObjectToEntityQueryResult(json, ENTITY);
 		return results.getTotalCount();
 	}
 	
@@ -88,7 +98,7 @@ public class QueryRunnerImpl implements QueryRunner {
 	@Override
 	public EntityData getRootEntity(Synapse client) throws SynapseException, JSONException{
 		JSONObject json = client.query(QUERY_ROOT_ENTITY);
-		EntityQueryResults results = translateFromJSONObjectToEntityQueryResult(json);
+		EntityQueryResults results = translateFromJSONObjectToEntityQueryResult(json, ENTITY);
 		if(results.getTotalCount() != 1) throw new IllegalArgumentException("Found more than one entity with a null parentId and name= "+ROOT_ENTITY_NAME);
 		return results.getResutls().get(0);
 	}
@@ -99,14 +109,17 @@ public class QueryRunnerImpl implements QueryRunner {
 	 * @return
 	 * @throws JSONException
 	 */
-	public static EntityQueryResults translateFromJSONObjectToEntityQueryResult(JSONObject json) throws JSONException{
+	public static EntityQueryResults translateFromJSONObjectToEntityQueryResult(JSONObject json, String prefix) throws JSONException{
 		// The total count
 		long total = json.getLong(JSON_KEY_TOTAL_NUMBER_OF_RESULTS);
 		JSONArray rows = json.getJSONArray(JSON_KEY_RESULTS);
+		String idKey = prefix+"."+ENTITY_ID;
+		String etagKey = prefix+"."+ENTITY_E_TAG;
+		String parentKey = prefix+"."+ENTITY_PARENT_ID;
 		List<EntityData> results = new ArrayList<EntityData>();
 		for(int i=0; i<rows.length(); i++){
 			JSONObject row = rows.getJSONObject(i);
-			EntityData data = new EntityData(getStringWithNull(row, ENTITY_DOT_ID), getStringWithNull(row, ENTITY_DOT_E_TAG),getStringWithNull(row,ENTITY_DOT_PARENT_ID));
+			EntityData data = new EntityData(getStringWithNull(row, idKey), getStringWithNull(row, etagKey),getStringWithNull(row,parentKey));
 			results.add(data);
 		}
 		return new EntityQueryResults(results, total);
@@ -127,7 +140,7 @@ public class QueryRunnerImpl implements QueryRunner {
 	@Override
 	public List<EntityData> getAllAllChildrenOfEntity(Synapse client, String parentId) throws SynapseException, JSONException, InterruptedException {
 		String rootQuery = QUERY_CHILDREN_OF_ENTITY1 +parentId;
-		return queryForAllPages(client, rootQuery, MAX_PAGE_SIZE, null);
+		return queryForAllPages(client, rootQuery, ENTITY, MAX_PAGE_SIZE, null);
 	}
 	
 	/**
@@ -142,13 +155,13 @@ public class QueryRunnerImpl implements QueryRunner {
 	 * @throws JSONException
 	 * @throws InterruptedException 
 	 */
-	public List<EntityData> queryForAllPages(Synapse client, String rootQuery, long limit, BasicProgress progress) throws SynapseException, JSONException, InterruptedException {
+	public List<EntityData> queryForAllPages(Synapse client, String rootQuery, String prefix, long limit, BasicProgress progress) throws SynapseException, JSONException, InterruptedException {
 		List<EntityData> results = new ArrayList<EntityData>();
 		// First run the first page
 		long offset = 1;
 		String query = getPageQuery(rootQuery, limit, offset);
 		JSONObject json = client.query(query);
-		EntityQueryResults page = translateFromJSONObjectToEntityQueryResult(json);
+		EntityQueryResults page = translateFromJSONObjectToEntityQueryResult(json, prefix);
 		results.addAll(page.getResutls());
 		long totalCount = page.getTotalCount();
 		// Update the progress if we have any
@@ -159,7 +172,7 @@ public class QueryRunnerImpl implements QueryRunner {
 		while((offset = getNextOffset(offset, limit, totalCount)) > 0l){
 			query = getPageQuery(rootQuery, limit, offset);
 			json = client.query(query);
-			page = translateFromJSONObjectToEntityQueryResult(json);
+			page = translateFromJSONObjectToEntityQueryResult(json, prefix);
 			if(progress != null){
 				// Add this count to the current progress.
 				progress.setCurrent(progress.getCurrent() + page.getResutls().size());
@@ -171,7 +184,7 @@ public class QueryRunnerImpl implements QueryRunner {
 		
 		if(progress != null){
 			// Add this count to the current progress.
-			progress.setDone();
+			progress.setCurrent(progress.getTotal());
 		}
 		return results;
 	}
@@ -215,9 +228,10 @@ public class QueryRunnerImpl implements QueryRunner {
 			throws SynapseException, JSONException {
 		String query = String.format(QUERY_TOTAL_ENTITY_TYPE_COUNT, type.name());
 		JSONObject json = client.query(query);
-		EntityQueryResults results = translateFromJSONObjectToEntityQueryResult(json);
+		EntityQueryResults results = translateFromJSONObjectToEntityQueryResult(json, type.name());
 		return results.getTotalCount();
 	}
+
 
 
 
