@@ -145,8 +145,7 @@ function displaySearchResults(data) {
 }
 
 function addFacetToCurrentSearchQuery(facetName, facetValue) {
-    return window.location.pathname 
-        + escapeBooleanQuery(window.location.search 
+    return escapeBooleanQuery($('input#query').val() 
                              + "&bq="
                              + facetName
                              + ":'"
@@ -155,8 +154,7 @@ function addFacetToCurrentSearchQuery(facetName, facetValue) {
 }
 
 function addNumericFacetToCurrentSearchQuery(facetName, facetMinValue, facetMaxValue) {
-    return window.location.pathname 
-        + escapeBooleanQuery(window.location.search 
+    return escapeBooleanQuery($('input#query').val()
                              + "&bq="
                              + facetName
                              + ":"
@@ -213,45 +211,50 @@ function escapeBooleanQuery(query) {
 /**
  * getSearchResults
  */
-function getSearchResults(query) {
+function getSearchResults() {
     // We need to *double* escape boolean query
-    var escapedQuery = escapeBooleanQuery(query)
+    var escapedQuery = escapeBooleanQuery($('input#query').val())
     
     var url = SEARCH + escape(escapedQuery);
+    $("#results").html("")
+    $("#facets").html("")   
+    $("#debug_cloudsearch_url").html("");
+    $("#debug_response").html("");
     $("#debug_repo_url").html("<a href='" + url + "'>" + url + "</a>");
-    $.get(url, displaySearchResults, "json");
+    $.ajax({
+        url: url,
+        type: 'GET',
+        dataType: 'json',
+        success: displaySearchResults,
+        error: displayError,
+        beforeSend: setHeader
+    });
 }
 
-/**
- * setSearchQuery
- */
-function setSearchQuery(query) {
-    window.location.assign(window.location.href.split("?")[0] + "?" + query)
+function setHeader(xhr) {
+	xhr.setRequestHeader('sessionToken', $("#sessionToken").val());
 }
 
+function displayError(jqXHR, textStatus, errorThrown) {
+	alert(jqXHR.responseText)
+}
+
+function getExample(exampleNum) {
+	$('input#query').val(EXAMPLES[exampleNum].query)
+	getSearchResults()
+}
 /**
  * Stuff to do when the document loads
  */
 $(document).ready(function() {
 
-    var query = window.location.search.substring(1)
-
-    if(!query) {
-        setSearchQuery(DEFAULT_QUERY)
-    }
-
-    query = unescape(query)
-    
-    $("#query").val(query);
-    getSearchResults(query);
-
+    $(".button").click(getSearchResults)
     $("#examples").append("<table>")
     $.each(EXAMPLES, function(i, example) {
-        var exampleUrl = window.location.href.split("?")[0] + "?" + escapeBooleanQuery(example.query);
-        $("#examples").append("<tr><td>" + example.desc + "</td><td><a href='" + exampleUrl + "'>" + example.query + "</a></td></tr><br>");
+        $("#examples").append("<tr><td>" + example.desc + "</td><td><span class=\"example\" onclick=\"getExample('"+ i +"')\">" + example.query + "</span></td></tr><br>");
     });
     $("#examples").append("</table>")
-
+        
     $("#documentation").html
     (
             "<ul><li>q" +

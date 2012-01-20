@@ -9,6 +9,16 @@ th, td {
     border-width: thin;
     }
 
+span.example {
+	color: blue;
+	text-decoration:underline;
+	cursor: pointer;
+	}
+
+input#sessionToken {
+    width: 250px;
+    }
+
 input#query {
     width: 90%;
     }
