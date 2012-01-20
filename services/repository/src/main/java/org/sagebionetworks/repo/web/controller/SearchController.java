@@ -32,7 +32,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.ModelAndView;
 
 /**
- * CloudSearch search controller.  It basically just proxies raw CloudSearch requests though as-is except for adding an authorization filter.
+ * CloudSearch search controller. It basically just proxies raw CloudSearch
+ * requests though as-is except for adding an authorization filter.
  * 
  * @author deflaux
  * 
@@ -42,7 +43,8 @@ public class SearchController extends BaseController {
 	private static final String ACL_INDEX_FIELD = "acl";
 	private static final Logger log = Logger.getLogger(SearchController.class
 			.getName());
-	private static final String CLOUD_SEARCH_ENDPOINT = StackConfiguration.getSearchServiceEndpoint();
+	private static final String CLOUD_SEARCH_ENDPOINT = StackConfiguration
+			.getSearchServiceEndpoint();
 
 	private static final HttpClient httpClient;
 
@@ -50,7 +52,8 @@ public class SearchController extends BaseController {
 		httpClient = HttpClientHelper.createNewClient(true);
 		ThreadSafeClientConnManager manager = (ThreadSafeClientConnManager) httpClient
 				.getConnectionManager();
-		// ensure that we can have *many* simultaneous connections to CloudSearch
+		// ensure that we can have *many* simultaneous connections to
+		// CloudSearch
 		manager.setDefaultMaxPerRoute(StackConfiguration
 				.getHttpClientMaxConnsPerRoute());
 	}
@@ -80,17 +83,16 @@ public class SearchController extends BaseController {
 			DatastoreException, NotFoundException {
 
 		log.debug("Got raw query " + searchQuery);
-		
+
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!userInfo.isAdmin()) {
 			searchQuery += "&" + formulateAuthorizationFilter(userInfo);
 		}
-		
+
 		// Merge boolean queries as needed and escape them
 		String cleanedSearchQuery = cleanUpBooleanSearchQueries(searchQuery);
-		
-		String url = CLOUD_SEARCH_ENDPOINT + "?"
-				+ cleanedSearchQuery;
+
+		String url = CLOUD_SEARCH_ENDPOINT + "?" + cleanedSearchQuery;
 		log.debug("About to request " + url);
 
 		String response = HttpClientHelper.getFileContents(httpClient, url);
@@ -102,69 +104,70 @@ public class SearchController extends BaseController {
 		return mav;
 	}
 
-	static String formulateAuthorizationFilter(UserInfo userInfo) throws DatastoreException {
+	static String formulateAuthorizationFilter(UserInfo userInfo)
+			throws DatastoreException {
 		Collection<UserGroup> groups = userInfo.getGroups();
-		if(0 == groups.size()) {
+		if (0 == groups.size()) {
 			// being extra paranoid here, this is unlikely
 			throw new DatastoreException("no groups for user " + userInfo);
 		}
-		
+
 		// Make our boolean query
 		String authorizationFilter = "";
-		for(UserGroup group : groups) {
-			if(0 < authorizationFilter.length()) {
-				authorizationFilter +=  " "; 				
+		for (UserGroup group : groups) {
+			if (0 < authorizationFilter.length()) {
+				authorizationFilter += " ";
 			}
-			authorizationFilter +=  ACL_INDEX_FIELD + ":'" + group.getName() + "'"; 
+			authorizationFilter += ACL_INDEX_FIELD + ":'" + group.getName()
+					+ "'";
 		}
-		if(1 == groups.size()) {
+		if (1 == groups.size()) {
 			authorizationFilter = "bq=" + authorizationFilter;
-		}
-		else {
+		} else {
 			authorizationFilter = "bq=(or " + authorizationFilter + ")";
 		}
 		return authorizationFilter;
 	}
-	
-	static String cleanUpBooleanSearchQueries(String query) throws UnsupportedEncodingException {
+
+	static String cleanUpBooleanSearchQueries(String query)
+			throws UnsupportedEncodingException {
 		// Make sure the url is well-formed so that we can correctly clean it up
 		String decodedQuery = URLDecoder.decode(query, "UTF-8");
 		if (decodedQuery.contains("%")) {
 			throw new IllegalArgumentException("Query is incorrectly encoded: "
 					+ decodedQuery);
 		}
-		
-	    String booleanQuery = "";
-	    String escapedQuery = "";
-	    int numAndClauses = 0;
+
+		String booleanQuery = "";
+		String escapedQuery = "";
+		int numAndClauses = 0;
 		String splits[] = decodedQuery.split("&");
-		for(int i = 0; i < splits.length; i++) {
-			if(0 == splits[i].indexOf("bq=")) {
-				if(0 < booleanQuery.length()) {
+		for (int i = 0; i < splits.length; i++) {
+			if (0 == splits[i].indexOf("bq=")) {
+				if (0 < booleanQuery.length()) {
 					booleanQuery += " ";
-				}		
+				}
 				String bqValue = splits[i].substring(3);
-				if(0 == bqValue.indexOf("(and ")) {
-					bqValue = bqValue.substring(5, bqValue.length()-1);
+				if (0 == bqValue.indexOf("(and ")) {
+					bqValue = bqValue.substring(5, bqValue.length() - 1);
 					numAndClauses++;
 				}
 				booleanQuery += bqValue;
 				numAndClauses++;
-			}
-			else {
-				if(0 < escapedQuery.length()) {
+			} else {
+				if (0 < escapedQuery.length()) {
 					escapedQuery += "&";
 				}
 				escapedQuery += splits[i];
 			}
 		}
 
-		if(0 != booleanQuery.length()) {
-			if(1 < numAndClauses) {
+		if (0 != booleanQuery.length()) {
+			if (1 < numAndClauses) {
 				booleanQuery = "(and " + booleanQuery + ")";
 			}
-			
-			if(0 < escapedQuery.length()) {
+
+			if (0 < escapedQuery.length()) {
 				escapedQuery += "&";
 			}
 			escapedQuery += "bq=" + URLEncoder.encode(booleanQuery, "UTF-8");
