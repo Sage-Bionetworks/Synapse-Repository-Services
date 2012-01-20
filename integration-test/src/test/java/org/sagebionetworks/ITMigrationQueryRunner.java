@@ -14,7 +14,9 @@ import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.tool.migration.Constants;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 import org.sagebionetworks.tool.migration.dao.QueryRunnerImpl;
 
@@ -79,14 +81,14 @@ public class ITMigrationQueryRunner {
 		// Now make sure we can find all of the children
 		QueryRunnerImpl queryRunner = new QueryRunnerImpl();
 		String query = QueryRunnerImpl.QUERY_CHILDREN_OF_ENTITY1+parent.getId();
-		List<EntityData> results = 	queryRunner.queryForAllPages(synapse, query, 1, null);
+		List<EntityData> results = 	queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, 1, null);
 		assertEquals(expectedList, results);
 		// Try various page sizes.
-		results = queryRunner.queryForAllPages(synapse, query, 2, null);
+		results = queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, 2, null);
 		assertEquals(expectedList, results);
-		results = queryRunner.queryForAllPages(synapse, query, 3, null);
+		results = queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, 3, null);
 		assertEquals(expectedList, results);
-		results = queryRunner.queryForAllPages(synapse, query, children, null);
+		results = queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, children, null);
 		assertEquals(expectedList, results);
 		// Also make sure we can run the real query
 		results = queryRunner.getAllAllChildrenOfEntity(synapse, parent.getId());
