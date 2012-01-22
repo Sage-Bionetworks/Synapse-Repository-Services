@@ -120,6 +120,8 @@ public class MigrateLocations {
 				}
 				// Push the change to make in permanent.
 				Locationable updated = destClient.putEntity(parent);
+				// Delete the location now that it is migrated.
+				destClient.deleteEntity(originalLocation);
 			}else if(LocationTypeNames.awss3 == originalLocation.getType()){
 				// Extract the path
 				String extractedPath = extractPath(originalLocation.getPath(), bucketName);
@@ -139,8 +141,8 @@ public class MigrateLocations {
 			}else{
 				throw new IllegalStateException("Unknown type "+originalLocation.getType());
 			}
-			// Delete the location now that it is migrated.
-			destClient.deleteEntity(originalLocation);
+			// Give the other 
+			Thread.yield();
 
 		}
 		// Now add all of the workers to the pool

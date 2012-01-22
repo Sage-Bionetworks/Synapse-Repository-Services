@@ -1,9 +1,11 @@
 package org.sagebionetworks.tool.migration.job;
 
+import java.io.File;
 import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Locationable;
@@ -105,9 +107,51 @@ public class LocationMergeWorker implements Callable<Long> {
 				throw new IllegalStateException("Failed to migrate location "+locationToMigrate.getId()+" parent path="+newRoundPath+" but should be: "+newPath);
 			}
 		}
+		// Validate the data.
+		validateParent(newPath, destClient);
+		// Delete the location
+		destClient.deleteEntity(locationToMigrate);
+		// Validate the parent again
+		validateParent(newPath, destClient);
+		// Make sure we can download it
+//		File temp = File.createTempFile("DownloadTest", ".zip");
+//		destClient.downloadFromSynapse(location, parent.getMd5(), temp);
+//		if(temp.length() != originalMetadata.getContentLength()){
+//			throw new IllegalStateException("The downloaded file does not have the correct length! : "+temp.length()+" expected: "+originalMetadata.getContentLength());
+//		}
+
 		// Now that we are done set the progress to done
 		progress.setDone();
 		return progress.getTotal();
+	}
+
+
+
+
+	/**
+	 * Validate the new parent has the correct data.
+	 * @param newPath
+	 * @param destClient
+	 * @throws SynapseException
+	 */
+	public void validateParent(String newPath, Synapse destClient) throws SynapseException {
+		String currentPath;
+		// Now validate the entity
+		Locationable parent = (Locationable) destClient.getEntityById(locationToMigrate.getParentId());
+		List<LocationData> locations = parent.getLocations();
+		if(locations.size() != 1){
+			// we are done, and this is a failure
+			progress.setDone();
+			throw new IllegalStateException("There is more than one location for this entity: "+locationToMigrate.getParentId());
+		}
+		LocationData location = locations.iterator().next();
+		currentPath = MigrateLocations.extractPath(location.getPath(), awsInfo.getBucket());
+		if(!currentPath.equals(newPath)){
+			throw new IllegalStateException("Failed to set the new path: "+locationToMigrate.getParentId());
+		}
+		if(!parent.getMd5().equals(originalMetadata.getETag())){
+			throw new IllegalStateException("Failed to migrate to new parent.  Expected MD5:"+originalMetadata.getETag()+" but was "+parent.getMd5());
+		}
 	}
 	
 
