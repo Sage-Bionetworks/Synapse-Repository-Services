@@ -11,13 +11,13 @@
 	<includeBaseDirectory>false</includeBaseDirectory>
 	<dependencySets>
 		<dependencySet>
-			<outputDirectory>/lib</outputDirectory>
+			<outputDirectory>synapse/lib</outputDirectory>
             <useProjectArtifact/>
 		</dependencySet>
 	</dependencySets>
 	<fileSets>
 		<fileSet>
-			<outputDirectory>/bin</outputDirectory>
+			<outputDirectory>synapse/bin</outputDirectory>
 			<directory>${project.basedir}/src/main/scripts</directory>
 		</fileSet>
 	</fileSets>
