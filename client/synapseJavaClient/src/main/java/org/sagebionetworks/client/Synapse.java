@@ -33,7 +33,6 @@ import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LocationData;
@@ -62,8 +61,8 @@ public class Synapse {
 
 	private static final int JSON_INDENT = 2;
 	private static final String ANNOTATION_URI_SUFFIX = "annotations";
-	private static final String DEFAULT_REPO_ENDPOINT = "https://staging-reposervice.elasticbeanstalk.com/repo/v1";
-	private static final String DEFAULT_AUTH_ENDPOINT = "https://staging-reposervice.elasticbeanstalk.com/auth/v1";
+	private static final String DEFAULT_REPO_ENDPOINT = "https://repo-alpha.sagebase.org/repo/v1";
+	private static final String DEFAULT_AUTH_ENDPOINT = "https://auth-alpha.sagebase.org/auth/v1";
 	private static final String SESSION_TOKEN_HEADER = "sessionToken";
 	private static final String REQUEST_PROFILE_DATA = "profile_request";
 	private static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
@@ -698,6 +697,7 @@ public class Synapse {
 		locationable.setContentType(s3Token.getContentType());
 		locationable.setMd5(s3Token.getMd5());
 		locationable.setLocations(locations);
+		
 		return putEntity(locationable);
 	}
 
@@ -973,8 +973,13 @@ public class Synapse {
 			if (null != responseBody) {
 				results = new JSONObject(responseBody);
 				if (log.isDebugEnabled()) {
-					log.debug(requestMethod + " " + requestUrl + " : "
-							+ results.toString(JSON_INDENT));
+					if(authEndpoint.equals(endpoint)) {
+						log.debug(requestMethod + " " + requestUrl + " : (not logging auth request details)");
+					}
+					else {
+						log.debug(requestMethod + " " + requestUrl + " : "
+								+ results.toString(JSON_INDENT));
+					}
 				}
 			}
 

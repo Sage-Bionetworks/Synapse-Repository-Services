@@ -82,5 +82,6 @@ public class DataUploaderMultipartImpl implements DataUploader {
 			throw new SynapseException("AWS S3 multipart upload of " + dataFile
 					+ " failed", e);
 		}
+		tx.shutdownNow();
 	}
 }
