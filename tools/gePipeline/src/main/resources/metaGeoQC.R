@@ -12,10 +12,10 @@
 #		parentId (REQUIRED) - ID of the Synapse project for the datasets of processed data
 #		name (REQUIRED) - name of dataset which will contain the output of this function
 #   	sourceLayerId (REQUIRED) - the source layer to be processed
-#		number_of_samples
-#		description
-#		status
-#		createdBy
+#		>>> NO LONGER USED >>> number_of_samples, from source data *layer*
+#		description, from source data *set*
+#		status, from source data *set*
+#		createdBy, from source data *set*
 #	
 # 
 # Author: Matt Furia
@@ -23,6 +23,12 @@
 
 metaGeoQC<-function(userName, secretKey, authEndpoint, repoEndpoint, urlEncodedInputData)
 {
+	# this is important to catch errors that affect parts of the S4 system
+	options(error=function() {
+				if (!interactive()) {
+					message(geterrmessage())
+					q()
+				}})
 	
 	Sys.setenv("R_ZIPCMD"="/usr/bin/zip")
 	

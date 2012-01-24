@@ -24,11 +24,21 @@ public class CrowdAuthUtilTest {
 	
 	@Before
 	public void setUp() {
+		final CrowdAuthUtil cau = new CrowdAuthUtil();
+		// this attempts to clean up any users created in a previous run and not deleted
+		for (int i=0; i<NUM_USERS; i++) {
+			try {
+				User user = cau.getUser(userID(i));
+				cau.deleteUser(user);
+			} catch (Exception e) {
+				// here we are doing the best we can, so just go on to the next one
+			}
+		}
 	}
 	
 	@After
 	public void tearDown() throws Exception {
-		deleteUsers();// temporarily needed for 'testMultipleLogins()'
+		deleteUsers();
 	}
 
 

@@ -151,6 +151,10 @@ public class GEPWorkflowInitiator {
 					String id = ds.getId();
 					String sourceDatasetName = ds.getName();
 					
+					// TEMPORARY, for testing
+					// if (sourceDatasetName.indexOf("TCGA")>=0) continue; // skip TCGA
+					// end TEMPORARY
+					
 					System.out.println("Dataset: "+sourceDatasetName);
 					String description = ds.getDescription();
 					String status = ds.getStatus();
@@ -170,7 +174,7 @@ public class GEPWorkflowInitiator {
 						if (!(type.equals(LayerTypeNames.E) || type.equals(LayerTypeNames.G))) continue;
 						
 						List<LocationData> locations = layer.getLocations();
-						if (locations.size()==0) continue;
+						if (locations==null || locations.size()==0) continue;
 						
 						layerCount++;
 						
@@ -196,8 +200,9 @@ public class GEPWorkflowInitiator {
 							JSONArray datasets = dsQueryResult.getJSONArray("results");
 							if (datasets.length()>0) {
 								targetDatasetJSON = datasets.getJSONObject(0);
-								targetDataset = (Dataset)EntityFactory.createEntityFromJSONObject(targetDatasetJSON, Dataset.class);
-								String tdsId = targetDataset.getId();
+								targetDataset =  (Dataset) synapse.getEntityById(targetDatasetJSON.getString("dataset.id"));
+//								targetDataset = (Dataset)EntityFactory.createEntityFromJSONObject(targetDatasetJSON, Dataset.class);
+//								String tdsId = targetDataset.getId();
 							}
 						}
 						// ... then extract the last update date and md5sum from the annotations
@@ -241,6 +246,9 @@ public class GEPWorkflowInitiator {
 				log.warn(e);
 				e.printStackTrace();
 			}
+			// TEMPORARY, for testing
+			// if (layerCount>=200) break;
+			// end TEMPORARY
 			offset += batchSize;
 		} while (offset<=total);
 		System.out.println("Found "+layerCount+" layers, of which "+layerTasks.size()+" need to be updated.");

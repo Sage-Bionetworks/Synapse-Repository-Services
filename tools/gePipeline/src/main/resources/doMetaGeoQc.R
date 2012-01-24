@@ -15,7 +15,7 @@ doMetaGeoQc <-
 	md5sum = locations[1,"location.md5sum"]
 	
 	tryCatch({
-		result <- runWorkflow(geoData$cacheDir)
+		result <- runWorkflow(geoData$cacheDir, workflow='snm')
 	
 		exprLayers <- NULL
 		metadataLayers <- NULL
@@ -80,7 +80,7 @@ doMetaGeoQc <-
 	layer <- addObject(layer, data)
 	layer <- storeEntity(layer)
 	if(deleteDataFiles)
-		unlink(gsub(sprintf("%s/.+$", propertyValue(layer@location, "id")), propertyValue(layer@location,"id"), layer$cacheDir), recursive=T)	
+		unlink(gsub(sprintf("%s/.+$", propertyValue(layer, "id")), propertyValue(layer,"id"), layer$cacheDir), recursive=T)	
 	list(layerId = propertyValue(layer, "id"))	
 }
 
@@ -112,7 +112,7 @@ doMetaGeoQc <-
 	layer <- addObject(layer, data)
 	layer <- storeEntity(layer)
 	if(deleteDataFiles)
-		unlink(gsub(sprintf("%s/.+$", propertyValue(layer@location, "id")), propertyValue(layer@location,"id"), layer$cacheDir), recursive=T)	
+		unlink(gsub(sprintf("%s/.+$", propertyValue(layer, "id")), propertyValue(layer,"id"), layer$cacheDir), recursive=T)	
 
 	list(layerId = propertyValue(layer, "id"))	
 }

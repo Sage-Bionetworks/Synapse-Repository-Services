@@ -768,7 +768,7 @@ public class DataModifier {
 	
 	public static void main(String[] args) throws Exception {
 		 Logger.getLogger(Synapse.class.getName()).setLevel(Level.WARN);
-		updateNOSAnnotations(args[0], args[1]);
+//		updateNOSAnnotations(args[0], args[1]);
 //		deleteStaleProvenanceString(args[0], args[1]);
 		
 //		// migrate from 4492 to 102610 all datasets having "TCGA" in their name except for dataset 4513
@@ -801,8 +801,8 @@ public class DataModifier {
 		 
 //		 reconcileProject(102610, 102611, args[0], args[1], /*no GEO*/true);
 		 
-//		 parseLog(new String[]{"C:\\Users\\bhoff\\Desktop\\2012Jan02Activity.txt"}, 
-//				 "C:\\Users\\bhoff\\Desktop\\2012Jan02Activity_Messages.xls");
+		 parseLog(new String[]{"C:\\Users\\bhoff\\Desktop\\2013Jan13Activity.txt"}, 
+				 "C:\\Users\\bhoff\\Desktop\\2013Jan13Activity_Messages.xls");
 		 
 		 
 		 
