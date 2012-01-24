@@ -27,6 +27,9 @@
   	</property>
   </bean>
   
+    <!-- Used to Serialize object types -->
+   <bean id="objectTypeSerializer" class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl"/>
+  
   <bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
     <property name="messageConverters" >
         <ref bean="messageConverterList" />
@@ -44,13 +47,9 @@
   </bean>    
   	<!-- This is the list of message converters used in various places -->
   	<util:list id="messageConverterList">
-        <ref bean="jsonConverter" />
+        <ref bean="objectTypeSerializer" />
         <ref bean="atomConverter"  />
 	</util:list>
-  
-  <bean id="jsonConverter" class="org.springframework.http.converter.json.MappingJacksonHttpMessageConverter">
-    <property name="supportedMediaTypes" value="application/json" />
-  </bean>
   
   <bean id="atomConverter" class="org.springframework.http.converter.feed.AtomFeedHttpMessageConverter">
     <property name="supportedMediaTypes" value="application/atom+xml" />
@@ -89,12 +88,5 @@
     </property>
     
   </bean>
-  
-  <!-- Used to Serialize object types using the messageConverterList -->
-   <bean id="objectTypeSerializer" class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializer">
-       <property name="messageConverters" >
-        <ref bean="messageConverterList" />
-    </property>
-   </bean>
 	  
 </beans>
