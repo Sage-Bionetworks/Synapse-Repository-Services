@@ -1,6 +1,7 @@
 package org.sagebionetworks.tool.migration.gui.view;
 
 import java.awt.Dimension;
+import java.awt.event.ActionListener;
 
 import javax.swing.GroupLayout;
 import javax.swing.GroupLayout.ParallelGroup;
@@ -181,5 +182,10 @@ public class StackStatusView extends JPanel implements StackStatusPresenter.View
 	@Override
 	public void setEntityTypeCount(EntityType type, long count) {
 		countModel.setValue(type, count);
+	}
+
+	@Override
+	public void addStatusChangeListner(ActionListener listener) {
+		changeStatus.addActionListener(listener);
 	}
 }

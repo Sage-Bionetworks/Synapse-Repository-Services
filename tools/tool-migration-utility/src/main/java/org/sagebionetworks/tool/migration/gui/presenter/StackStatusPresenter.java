@@ -1,5 +1,8 @@
 package org.sagebionetworks.tool.migration.gui.presenter;
 
+import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.lang.reflect.InvocationTargetException;
 
 import javax.swing.SwingUtilities;
@@ -7,13 +10,16 @@ import javax.swing.SwingUtilities;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.migration.ClientFactoryImpl;
 import org.sagebionetworks.tool.migration.SynapseConnectionInfo;
 import org.sagebionetworks.tool.migration.dao.QueryRunner;
 import org.sagebionetworks.tool.migration.dao.QueryRunnerImpl;
 import org.sagebionetworks.tool.migration.gui.RepositoryType;
+import org.sagebionetworks.tool.migration.gui.view.StackStatusEditor;
 
 /**
  * The presenter drives the view and fetches all required data.
@@ -94,6 +100,11 @@ public class StackStatusPresenter implements Runnable{
 		 */
 		public void setEntityTypeCount(EntityType type, long count);
 		
+		/**
+		 * Listener for the start button.
+		 * @param listener
+		 */
+		public void addStatusChangeListner(ActionListener listener);
 		
 	}
 	
@@ -108,7 +119,7 @@ public class StackStatusPresenter implements Runnable{
 	 * @param sourceInfo
 	 * @param view
 	 */
-	public StackStatusPresenter(RepositoryType type, SynapseConnectionInfo info, View view){
+	public StackStatusPresenter(RepositoryType type, SynapseConnectionInfo info, final View view){
 		if(type == null) throw new IllegalArgumentException("RepositoryType cannot be null");
 		if(info == null) throw new IllegalArgumentException("Source info cannot be null");
 		if(view == null) throw new IllegalArgumentException("The view cannot be null");
@@ -122,6 +133,31 @@ public class StackStatusPresenter implements Runnable{
 		view.setRepoUrl(info.getRepositoryEndPoint());
 		view.setStackStatus("UNKNOWN");
 		view.resetProgress(0, 100, "Initializing...");
+		final StackStatusPresenter presenter = this;
+		// Listen for button changes
+		view.addStatusChangeListner(new ActionListener() {
+			
+			@Override
+			public void actionPerformed(ActionEvent event) {
+				// Show the edit dialog.
+				// First get the current status.
+				try {
+					ClientFactoryImpl factory = new ClientFactoryImpl();
+					Synapse client = factory.createNewConnection(connectionInfo);
+					StackStatus status = client.getCurrentStackStatus();
+					if(status != null){
+						StackStatusEditor editor = new StackStatusEditor();
+						StackStatus updated = editor.showStatusDialog((Component)view, status);
+						if(updated != null){
+							client.updateCurrentStackStatus(updated);
+							view.setStackStatus(updated.getStatus().name());
+						}
+					}
+				} catch (Exception e1) {
+					showError(e1);
+				} 				
+			}
+		});
 	}
 
 
