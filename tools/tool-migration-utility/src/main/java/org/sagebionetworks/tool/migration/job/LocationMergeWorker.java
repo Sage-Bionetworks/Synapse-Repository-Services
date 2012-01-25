@@ -4,6 +4,8 @@ import java.io.File;
 import java.util.List;
 import java.util.concurrent.Callable;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Location;
@@ -11,6 +13,7 @@ import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.tool.migration.ClientFactoryImpl;
 import org.sagebionetworks.tool.migration.MigrateLocations;
+import org.sagebionetworks.tool.migration.MigrationDriver;
 import org.sagebionetworks.tool.migration.SynapseConnectionInfo;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 
@@ -26,6 +29,8 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
  *
  */
 public class LocationMergeWorker implements Callable<Long> {
+	
+	static private Log log = LogFactory.getLog(LocationMergeWorker.class);
 	
 	SynapseConnectionInfo destInfo;
 	AWSInfo awsInfo;
@@ -52,6 +57,7 @@ public class LocationMergeWorker implements Callable<Long> {
 
 	@Override
 	public Long call() throws Exception {
+		try{
 		// First create an S3 Client
 		AmazonS3Client s3Client = new AmazonS3Client(awsInfo.getCredentials());
 		// Now fetch the location data
@@ -74,6 +80,7 @@ public class LocationMergeWorker implements Callable<Long> {
 			// We get a forbidden error when an object does not exist.
 			if(!"Forbidden".equals(e.getMessage())){
 				// Something else is wrong.
+				// Delete the location
 				throw e;
 			}else{
 				// the new file does not exist so create it by copying the original
@@ -95,16 +102,24 @@ public class LocationMergeWorker implements Callable<Long> {
 		LocationData location = locations.iterator().next();
 		String currentPath = MigrateLocations.extractPath(location.getPath(), awsInfo.getBucket());
 		// Check the path
-		if(!newPath.equals(currentPath)){
+		if(!newPath.equals(currentPath) || !parent.getMd5().equals(originalMetadata.getETag())){
 			// Set the new path for this entity.
 			location.setPath("/"+newPath);
+			log.info("New Path: "+location.getPath());
 			// Update the entity
-			Locationable updated = destClient.putEntity(parent);
-			// Validate the new path
-			String roundTripPath = updated.getLocations().iterator().next().getPath();
-			String newRoundPath = MigrateLocations.extractPath(roundTripPath, awsInfo.getBucket());
-			if(!newPath.equals(newRoundPath)){
-				throw new IllegalStateException("Failed to migrate location "+locationToMigrate.getId()+" parent path="+newRoundPath+" but should be: "+newPath);
+			try{
+				parent.setMd5(originalMetadata.getETag());
+				Locationable updated = destClient.putEntity(parent);
+				// Validate the new path
+				String roundTripPath = updated.getLocations().iterator().next().getPath();
+				String newRoundPath = MigrateLocations.extractPath(roundTripPath, awsInfo.getBucket());
+				if(!newPath.equals(newRoundPath)){
+					throw new IllegalStateException("Failed to migrate location "+locationToMigrate.getId()+" parent path="+newRoundPath+" but should be: "+newPath);
+				}	
+			}catch(Exception e){
+				MigrateLocations.calcualteNewPath(locationToMigrate.getId(), locationToMigrate.getParentId(), extractedPath);
+				progress.setDone();
+				return progress.getTotal();
 			}
 		}
 		// Validate the data.
@@ -123,6 +138,10 @@ public class LocationMergeWorker implements Callable<Long> {
 		// Now that we are done set the progress to done
 		progress.setDone();
 		return progress.getTotal();
+		}catch(Exception e){
+			log.error(e);
+			throw e;
+		}
 	}
 
 

@@ -67,11 +67,13 @@ public class MigrateLocations {
 		
 		// Connect to the destination
 		SynapseConnectionInfo destInfo = Configuration.getDestinationConnectionInfo();
+		SynapseConnectionInfo sourceInfo = Configuration.getSourceConnectionInfo();
 		log.info("Destination info: "+destInfo);
 		
 		ClientFactoryImpl factory = new ClientFactoryImpl();
 		log.info("Connecting to respository: "+destInfo);
 		Synapse destClient = factory.createNewConnection(destInfo);
+		Synapse sourceClient = factory.createNewConnection(sourceInfo);
 
 		// Create the query provider
 		QueryRunner queryRunner = new QueryRunnerImpl();
@@ -133,8 +135,12 @@ public class MigrateLocations {
 					totalProgress.addProgresss(workerProgress);
 					LocationMergeWorker worker = new LocationMergeWorker(destInfo, awsInfo , originalLocation, originalMetadata, workerProgress);
 					// Get to work
+//					worker.call();
+					log.info("Finished: "+originalLocation.getPath());
 					futureList.add(threadPool.submit(worker));
 				}catch (AmazonClientException e){
+					// Delete this entity.
+					destClient.deleteEntity(originalLocation);
 					log.error(e);
 					continue;
 				}
@@ -142,6 +148,8 @@ public class MigrateLocations {
 				throw new IllegalStateException("Unknown type "+originalLocation.getType());
 			}
 			// Give the other 
+			// Validate it
+//			ValidateMigrateLocations.validate(locationData, sourceClient, destClient, bucketName, s3Client);
 			Thread.yield();
 
 		}
@@ -152,6 +160,7 @@ public class MigrateLocations {
 			log.info("Processing S3 Object: "+totalProgress.getCurrentStatus().toStringHours());
 			Thread.sleep(2000);
 		}
+		// Log all errors
 		log.info("Finished: "+totalProgress.getCurrentStatus().toStringHours());
 		threadPool.shutdown();
 	}
@@ -193,7 +202,16 @@ public class MigrateLocations {
 	 */
 	public static String calcualteNewPath(String locationId, String parentId, String extacted){
 		String result = extacted.replaceFirst(locationId, parentId);
-		return result.replaceFirst("0.0.0", locationId);
+		String out = result.replaceFirst("0\\.0\\.0", locationId);
+		int parentIndex = out.indexOf(parentId);
+		if(parentIndex < 0){
+			throw new IllegalStateException("Failed to create path: "+out+" parentId is missing");
+		}
+		int locationIndex = out.indexOf(locationId);
+		if(locationIndex < parentIndex){
+			throw new IllegalStateException("Failed to create path: "+out+" locationId is not after the parent id.  Parentid="+parentId+" locationId="+locationId);
+		}
+		return out;
 	}
 	
 
