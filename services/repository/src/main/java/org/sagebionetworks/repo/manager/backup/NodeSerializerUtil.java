@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import com.thoughtworks.xstream.XStream;
 
 /**
- * A utility to read and right node backup data.
+ * A utility to read and write node backup data.
  * @author jmhill
  *
  */

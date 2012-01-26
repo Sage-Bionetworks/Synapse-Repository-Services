@@ -37,7 +37,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class SearchDocumentDriverImpl implements NodeBackupDriver {
 
-	static private Log log = LogFactory.getLog(SearchDocumentDriverImpl.class);
+	private static Log log = LogFactory.getLog(SearchDocumentDriverImpl.class);
 
 	private static final String PATH_DELIMITER = "/";
 	private static final String CATCH_ALL_FIELD = "annotations";
@@ -51,6 +51,7 @@ public class SearchDocumentDriverImpl implements NodeBackupDriver {
 	// For now we can just create one of these. We might need to make beans in
 	// the future.
 	MigrationDriver migrationDriver = new MigrationDriverImpl();
+	boolean isFirstEntry = true;
 
 	static {
 		Map<String, String> searchableNodeAnnotations = new HashMap<String, String>();
@@ -118,6 +119,7 @@ public class SearchDocumentDriverImpl implements NodeBackupDriver {
 		// First write to the file
 		FileOutputStream outputStream = new FileOutputStream(destination);
 		outputStream.write('[');
+		isFirstEntry = true;
 		try {
 			// First write the root node as its own entry
 			for (String idToBackup : listToBackup) {
@@ -214,9 +216,14 @@ public class SearchDocumentDriverImpl implements NodeBackupDriver {
 				revId);
 		JSONObject document = formulateSearchDocument(node, rev,
 				benefactorBackup.getAcl());
-
+		// A well-formed JSON array does not end with a final comma, so here's
+		// how we ensure we add the right commas
+		if (isFirstEntry) {
+			isFirstEntry = false;
+		} else {
+			outputStream.write(",\n".getBytes());
+		}
 		outputStream.write(document.toString(4).getBytes());
-		outputStream.write(",\n".getBytes());
 		outputStream.flush();
 	}
 
@@ -231,9 +238,13 @@ public class SearchDocumentDriverImpl implements NodeBackupDriver {
 		document.put("version", node.getETag());
 		document.put("lang", "en");
 		document.put("fields", fields);
-		fields.put("node_type", node.getNodeType());
-		fields.put("id", node.getId());
+		fields.put("id", node.getId()); // this is redundant because document id
+		// is returned in search results
+		fields.put("etag", node.getETag()); // this is _not_ redundant because
+		// document version is not returned
+		// in search results
 		fields.put("name", node.getName());
+		fields.put("node_type", node.getNodeType());
 		if (null != node.getDescription()) {
 			fields.put("description", node.getDescription());
 		}
