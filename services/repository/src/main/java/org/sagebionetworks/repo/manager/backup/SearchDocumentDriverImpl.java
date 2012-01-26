@@ -223,7 +223,7 @@ public class SearchDocumentDriverImpl implements NodeBackupDriver {
 		} else {
 			outputStream.write(",\n".getBytes());
 		}
-		outputStream.write(document.toString(4).getBytes());
+		outputStream.write(document.toString(4).getBytes("UTF-8"));
 		outputStream.flush();
 	}
 
