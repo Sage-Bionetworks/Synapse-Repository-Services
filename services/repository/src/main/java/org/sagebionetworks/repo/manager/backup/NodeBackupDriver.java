@@ -3,11 +3,9 @@ package org.sagebionetworks.repo.manager.backup;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeBackupDriver {

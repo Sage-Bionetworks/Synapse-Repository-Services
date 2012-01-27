@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface BackupDaemonLauncher {
 	
 	/**
-	 * The deamon should create a starting status, and then start the thread 
+	 * The daemon should create a starting status, and then start the thread 
 	 * that will do the backup.
 	 * @return
 	 * @throws UnauthorizedException 
@@ -31,6 +31,15 @@ public interface BackupDaemonLauncher {
 	 */
 	public BackupRestoreStatus startRestore(UserInfo username, String fileName) throws UnauthorizedException, DatastoreException;
 	
+	/**
+	 * The daemon should create a starting status, and then start the thread 
+	 * that will do the search document.
+	 * @return
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 */
+	public BackupRestoreStatus startSearchDocument(UserInfo userInfo, Set<String> entityIds) throws UnauthorizedException, DatastoreException;
+
 
 	/**
 	 * Terminate an existing backup daemon.

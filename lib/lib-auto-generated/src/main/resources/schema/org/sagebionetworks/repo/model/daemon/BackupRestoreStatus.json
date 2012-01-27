@@ -23,7 +23,7 @@
             "enum":[
                 "BACKUP",
                 "RESTORE",
-                
+                "SEARCH_DOCUMENT"                
             ],
             
         },

@@ -5,6 +5,7 @@ import java.util.concurrent.ExecutorService;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.backup.NodeBackupDriver;
+import org.sagebionetworks.repo.manager.backup.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -30,6 +31,8 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	@Autowired
 	NodeBackupDriver backupDriver;
 	@Autowired
+	SearchDocumentDriver searchDocumentDriver;
+	@Autowired
 	ExecutorService backupDaemonThreadPool;
 	@Autowired
 	ExecutorService backupDaemonThreadPool2;
@@ -44,9 +47,24 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		String bucket = StackConfiguration.getSharedS3BackupBucket();
 		if(bucket == null) 	throw new IllegalArgumentException("Bucket cannot be null null");
 		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, client, bucket, backupDaemonThreadPool, backupDaemonThreadPool2, entitiesToBackup);
+		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, bucket, backupDaemonThreadPool, backupDaemonThreadPool2, entitiesToBackup);
 		// Start that bad boy up!
 		return daemon.startBackup(username.getUser().getUserId());
+	}
+
+	@Override
+	public BackupRestoreStatus startSearchDocument(UserInfo username, Set<String> entityIds) throws UnauthorizedException, DatastoreException {
+		UserInfo.validateUserInfo(username);
+		// Only an admin can start a backup Daemon
+		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a search document daemon");
+		
+		AmazonS3Client client = createNewAWSClient();
+		String bucket = StackConfiguration.getSharedS3BackupBucket();
+		if(bucket == null) 	throw new IllegalArgumentException("Bucket cannot be null null");
+		// Create a new daemon and start it
+		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, bucket, backupDaemonThreadPool, backupDaemonThreadPool2, entityIds);
+		// Start that bad boy up!
+		return daemon.startSearchDocument(username.getUser().getUserId());
 	}
 	
 	@Override
@@ -59,7 +77,7 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		String bucket = StackConfiguration.getSharedS3BackupBucket();
 		if(bucket == null) 	throw new IllegalArgumentException("Bucket cannot be null null");
 		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, client, bucket, backupDaemonThreadPool, backupDaemonThreadPool2);
+		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, bucket, backupDaemonThreadPool, backupDaemonThreadPool2);
 		return daemon.startRestore(username.getUser().getUserId(), fileName);
 	}
 

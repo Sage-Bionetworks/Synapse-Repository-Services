@@ -13,7 +13,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.http.client.ClientProtocolException;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.After;
@@ -21,10 +23,8 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.client.exceptions.SynapseServiceException;
-import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -39,6 +39,7 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.PutObjectResult;
+import com.amazonaws.services.s3.model.S3Object;
 
 /**
  * This test will push data from a backup into synapse.
@@ -52,7 +53,7 @@ public class IT100BackupRestoration {
 
 	public static final String BACKUP_FILE_NAME = "BackupDaemonJob512-958031189387028378.zip";
 
-	private static Synapse synapse;
+	private static SynapseAdministration synapse;
 	private static AmazonS3Client s3Client;
 	private static String bucket;
 	
@@ -61,7 +62,7 @@ public class IT100BackupRestoration {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		// Use the synapse client to do some of the work for us.
-		synapse = new Synapse();
+		synapse = new SynapseAdministration();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration
@@ -182,6 +183,39 @@ public class IT100BackupRestoration {
 				.query("select * from dataset where name == \"MSKCC Prostate Cancer\"");
 		assertEquals(1, datasetQueryResults.getJSONArray("results").length());
 		System.out.println("Found the 'MSKCC Prostate Cancer' using devUser1@sagebase.org");
+	}
+	
+	@Test
+	public void testSearchDocumentRoundTrip() throws Exception{
+		String projectName = "Integration Test - Search Document Round Trip";
+		// Create a project
+		Project project = new Project();
+		project.setName(projectName);
+		project = synapse.createEntity(project);
+		assertNotNull(project);
+		toDelete.add(project);
+
+		// Now make a search document of this entity
+		BackupSubmission submission = new BackupSubmission();
+		Set<String> set = new HashSet<String>();
+		set.add(project.getId());
+		submission.setEntityIdsToBackup(set);
+		
+		BackupRestoreStatus status = synapse.startSearchDocumentDaemon(submission);
+		assertNotNull(status);
+		// Wait for the daemon to complete
+		status = waitForDaemon(status.getId());
+		assertNotNull(status.getBackupUrl());
+		String searchDocumentFileName = getFileNameFromUrl(status.getBackupUrl());
+		// extract the file name
+		
+		S3Object s3Object = s3Client.getObject(bucket, searchDocumentFileName);
+		String serializedSearchDocuments = IOUtils.toString(s3Object.getObjectContent(), "UTF-8");
+		JSONArray searchDocuments = new JSONArray(serializedSearchDocuments);
+		assertEquals(1, searchDocuments.length());
+		JSONObject searchDocument = searchDocuments.getJSONObject(0);
+		assertEquals(projectName, searchDocument.getJSONObject("fields").getString("name"));
+		
 	}
 	
 	@Test

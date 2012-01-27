@@ -5,7 +5,7 @@ import java.util.concurrent.Callable;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -56,7 +56,7 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 	 * @throws JSONObjectAdapterException
 	 * @throws InterruptedException
 	 */
-	public BackupRestoreStatus waitForDaemon(String daemonId, Synapse client)
+	public BackupRestoreStatus waitForDaemon(String daemonId, SynapseAdministration client)
 			throws SynapseException, JSONObjectAdapterException,
 			InterruptedException {
 		// Wait for the daemon to finish.
@@ -140,7 +140,7 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 	public WorkerResult call() throws Exception {
 		try {
 			// First get a connection to the source
-			Synapse client = clientFactory.createNewSourceClient();
+			SynapseAdministration client = clientFactory.createNewSourceClient();
 			BackupSubmission sumbission = new BackupSubmission();
 			sumbission.setEntityIdsToBackup(this.entites);
 			// Start a backup.

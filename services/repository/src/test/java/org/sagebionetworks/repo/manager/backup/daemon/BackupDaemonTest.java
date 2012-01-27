@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.backup.NodeBackupDriver;
 import org.sagebionetworks.repo.manager.backup.Progress;
+import org.sagebionetworks.repo.manager.backup.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -48,6 +49,7 @@ public class BackupDaemonTest {
 	
 	AmazonS3Client mockAwsClient = null;
 	NodeBackupDriver mockDriver = null;
+	SearchDocumentDriver mockSearchDocumentDriver = null;
 	BackupRestoreStatusDAO stubDao = null;
 	BackupDaemon daemon = null;
 	String bucketName = "someFakeBucket";
@@ -59,10 +61,11 @@ public class BackupDaemonTest {
 		// Mock the AWS client
 		mockAwsClient = Mockito.mock(AmazonS3Client.class);
 		mockDriver =  Mockito.mock(NodeBackupDriver.class);
+		mockSearchDocumentDriver =  Mockito.mock(SearchDocumentDriver.class);
 		// Using a stub for the dao gives us more control over the test.
 		stubDao = new BackupRestoreStatusDAOStub();
 		// The daemon is passed all mock data.
-		daemon = new BackupDaemon(stubDao, mockDriver, mockAwsClient, "someFakeBucket", threadPool, threadPool2);
+		daemon = new BackupDaemon(stubDao, mockDriver, mockSearchDocumentDriver, mockAwsClient, "someFakeBucket", threadPool, threadPool2);
 	}
 	
 	@Test

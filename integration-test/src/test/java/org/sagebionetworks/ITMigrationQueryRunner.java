@@ -81,12 +81,12 @@ public class ITMigrationQueryRunner {
 		// Now make sure we can find all of the children
 		QueryRunnerImpl queryRunner = new QueryRunnerImpl();
 		String query = QueryRunnerImpl.QUERY_CHILDREN_OF_ENTITY1+parent.getId();
-		List<EntityData> results = 	queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, 1, null);
+		List<EntityData> results = 	queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, 1L, null);
 		assertEquals(expectedList, results);
 		// Try various page sizes.
-		results = queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, 2, null);
+		results = queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, 2L, null);
 		assertEquals(expectedList, results);
-		results = queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, 3, null);
+		results = queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, 3L, null);
 		assertEquals(expectedList, results);
 		results = queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, children, null);
 		assertEquals(expectedList, results);

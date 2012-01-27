@@ -1292,7 +1292,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.DAEMOM + "/" + id);
+		request.setRequestURI(UrlHelpers.DAEMON + "/" + id);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -1402,7 +1402,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.DAEMOM + "/" + id);
+		request.setRequestURI(UrlHelpers.DAEMON + "/" + id);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());

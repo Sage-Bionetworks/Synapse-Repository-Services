@@ -9,7 +9,7 @@ import javax.swing.SwingUtilities;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -143,7 +143,7 @@ public class StackStatusPresenter implements Runnable{
 				// First get the current status.
 				try {
 					ClientFactoryImpl factory = new ClientFactoryImpl();
-					Synapse client = factory.createNewConnection(connectionInfo);
+					SynapseAdministration client = factory.createNewConnection(connectionInfo);
 					StackStatus status = client.getCurrentStackStatus();
 					if(status != null){
 						StackStatusEditor editor = new StackStatusEditor();
@@ -172,7 +172,7 @@ public class StackStatusPresenter implements Runnable{
 				resetProgress(current, totalProgress, "Authenticating...");
 				// Connect
 				ClientFactoryImpl factory = new ClientFactoryImpl();
-				Synapse client = factory.createNewConnection(this.connectionInfo);
+				SynapseAdministration client = factory.createNewConnection(this.connectionInfo);
 				// Get the status
 				setProgresssValue(current++, "Getting stack status...");
 				StackStatus status = client.getCurrentStackStatus();

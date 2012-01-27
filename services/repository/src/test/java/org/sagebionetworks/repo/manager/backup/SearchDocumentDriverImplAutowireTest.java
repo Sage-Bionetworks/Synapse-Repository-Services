@@ -21,7 +21,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class SearchDocumentDriverImplAutowireTest {
 	
 	@Autowired
-	NodeBackupDriver searchDriver;
+	SearchDocumentDriver searchDocumentDriver;
 	
 	/**
 	 * @throws Exception
@@ -49,7 +49,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		destination.deleteOnExit();
 
 		destination.createNewFile();
-		searchDriver.writeBackup(destination, new Progress(), null);
+		searchDocumentDriver.writeSearchDocument(destination, new Progress(), null);
 		assertTrue(256 < destination.length());
 	}
 

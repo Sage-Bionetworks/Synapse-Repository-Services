@@ -1,6 +1,6 @@
 package org.sagebionetworks.tool.migration;
 
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 
 /**
@@ -16,11 +16,11 @@ public interface ClientFactory {
 	 * @return
 	 * @throws SynapseException 
 	 */
-	public Synapse createNewSourceClient() throws SynapseException;
+	public SynapseAdministration createNewSourceClient() throws SynapseException;
 	
 	/**
 	 * Create a new client for the destination repository.
 	 * @return
 	 */
-	public Synapse createNewDestinationClient() throws SynapseException;
+	public SynapseAdministration createNewDestinationClient() throws SynapseException;
 }

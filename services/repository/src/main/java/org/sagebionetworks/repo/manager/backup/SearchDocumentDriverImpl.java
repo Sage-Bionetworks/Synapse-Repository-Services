@@ -35,7 +35,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * This class writes out search documents in batch.
  * 
  */
-public class SearchDocumentDriverImpl implements NodeBackupDriver {
+public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	private static Log log = LogFactory.getLog(SearchDocumentDriverImpl.class);
 
@@ -45,8 +45,6 @@ public class SearchDocumentDriverImpl implements NodeBackupDriver {
 
 	@Autowired
 	NodeBackupManager backupManager;
-	@Autowired
-	NodeSerializer nodeSerializer;
 
 	// For now we can just create one of these. We might need to make beans in
 	// the future.
@@ -80,17 +78,19 @@ public class SearchDocumentDriverImpl implements NodeBackupDriver {
 	public SearchDocumentDriverImpl(NodeBackupManager backupManager) {
 		super();
 		this.backupManager = backupManager;
-		this.nodeSerializer = new NodeSerializerImpl();
 	}
 
-	@Override
-	public boolean restoreFromBackup(File source, Progress progress)
-			throws IOException, InterruptedException {
-		return false;
-	}
-
-	@Override
-	public boolean writeBackup(File destination, Progress progress,
+	/**
+	 * @param destination
+	 * @param progress
+	 * @param entitiesToBackup
+	 * @return
+	 * @throws IOException
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws InterruptedException
+	 */
+	public boolean writeSearchDocument(File destination, Progress progress,
 			Set<String> entitiesToBackup) throws IOException,
 			DatastoreException, NotFoundException, InterruptedException {
 		if (destination == null)

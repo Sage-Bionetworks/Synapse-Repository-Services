@@ -134,6 +134,44 @@ public class AdministrationController extends BaseController {
 	}
 	
 	/**
+	 * Start a search document daemon.  Monitor the status of the daemon with the getStatus method.
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws ConflictingUpdateException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = { 
+			UrlHelpers.ENTITY_SEARCH_DOCUMENT_DAMEON
+			}, method = RequestMethod.POST)
+	public @ResponseBody
+	BackupRestoreStatus startSeachDocument(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestHeader HttpHeaders header,
+			HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
+		
+		// The BackupSubmission is optional.  When included we will only backup the entity Ids included.
+		// When the body is null all entities will be backed up.
+		Set<String> entityIdsToBackup = null;
+		if(request.getInputStream() != null){
+			BackupSubmission submission = objectTypeSerializer.deserialize(request.getInputStream(), header,BackupSubmission.class, header.getContentType());
+			entityIdsToBackup = submission.getEntityIdsToBackup();
+		}
+		// Get the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		// start a search document daemon
+		return backupDaemonLauncher.startSearchDocument(userInfo, entityIdsToBackup);
+	}
+	
+	/**
 	 * Get the status of a running daemon (either a backup or restore)
 	 * @param daemonId
 	 * @param userId

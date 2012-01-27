@@ -22,7 +22,7 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseAdministration;;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
@@ -52,7 +52,7 @@ public class IT101Administration {
 
 	public static final long TEST_TIME_OUT = 1000 * 60 * 4; // Currently 4 mins
 
-	private static Synapse synapse;
+	private static SynapseAdministration synapse;
 	private static AmazonS3Client s3Client;
 	private static String bucket;
 	
@@ -61,7 +61,7 @@ public class IT101Administration {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 		// Use the synapse client to do some of the work for us.
-		synapse = new Synapse();
+		synapse = new SynapseAdministration();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration

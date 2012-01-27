@@ -39,9 +39,6 @@ import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.S3Token;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.BackupSubmission;
-import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -55,39 +52,33 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  */
 public class Synapse {
 
-	private static final Logger log = Logger.getLogger(Synapse.class.getName());
+	protected static final Logger log = Logger.getLogger(Synapse.class.getName());
 
-	private static final int DEFAULT_TIMEOUT_MSEC = 5000;
+	protected static final int DEFAULT_TIMEOUT_MSEC = 5000;
 
-	private static final int JSON_INDENT = 2;
-	private static final String ANNOTATION_URI_SUFFIX = "annotations";
-	private static final String DEFAULT_REPO_ENDPOINT = "https://repo-alpha.sagebase.org/repo/v1";
-	private static final String DEFAULT_AUTH_ENDPOINT = "https://auth-alpha.sagebase.org/auth/v1";
-	private static final String SESSION_TOKEN_HEADER = "sessionToken";
-	private static final String REQUEST_PROFILE_DATA = "profile_request";
-	private static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
-	private static final String QUERY_URI = "/query?query=";
+	protected static final int JSON_INDENT = 2;
+	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-alpha.sagebase.org/repo/v1";
+	protected static final String DEFAULT_AUTH_ENDPOINT = "https://auth-alpha.sagebase.org/auth/v1";
+	protected static final String SESSION_TOKEN_HEADER = "sessionToken";
+	protected static final String REQUEST_PROFILE_DATA = "profile_request";
+	protected static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
 
-	public static final String ADMIN = "/admin";
-	public static final String DAEMOM = ADMIN + "/daemon";
-	public static final String BACKUP = "/backup";
-	public static final String RESTORE = "/restore";
-	public static final String DAMEON_BACKUP = DAEMOM + BACKUP;
-	public static final String DAMEON_RETORE = DAEMOM + RESTORE;
-	public static final String STACK_STATUS = ADMIN + "/synapse/status";
+	protected static final String QUERY_URI = "/query?query=";
+	protected static final String REPO_SUFFIX_PATH = "/path";
+	protected static final String ANNOTATION_URI_SUFFIX = "annotations";
+	protected static final String ADMIN = "/admin";
+	protected static final String STACK_STATUS = ADMIN + "/synapse/status";
 
-	private static final String REPO_SUFFIX_PATH = "/path";
+	protected String repoEndpoint;
+	protected String authEndpoint;
 
-	private String repoEndpoint;
-	private String authEndpoint;
+	protected Map<String, String> defaultGETDELETEHeaders;
+	protected Map<String, String> defaultPOSTPUTHeaders;
 
-	private Map<String, String> defaultGETDELETEHeaders;
-	private Map<String, String> defaultPOSTPUTHeaders;
-
-	private JSONObject profileData;
-	private boolean requestProfile;
-	private HttpClientProvider clientProvider;
-	private DataUploader dataUploader;
+	protected JSONObject profileData;
+	protected boolean requestProfile;
+	protected HttpClientProvider clientProvider;
+	protected DataUploader dataUploader;
 
 	/**
 	 * Default constructor uses the default repository and auth services
@@ -178,8 +169,8 @@ public class Synapse {
 		return this.profileData;
 	}
 	
-	private String userName;
-	private String apiKey;
+	protected String userName;
+	protected String apiKey;
 	
 
 	/**
@@ -404,7 +395,7 @@ public class Synapse {
 	 * @param id
 	 * @return
 	 */
-	private static String createEntityUri(String prefix, String id) {
+	protected static String createEntityUri(String prefix, String id) {
 		StringBuilder uri = new StringBuilder();
 		uri.append(prefix);
 		uri.append("/");
@@ -900,7 +891,7 @@ public class Synapse {
 		}
 	}
 	
-	private JSONObject signAndDispatchSynapseRequest(String endpoint, String uri,
+	protected JSONObject signAndDispatchSynapseRequest(String endpoint, String uri,
 			String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws SynapseException {
 		if (apiKey!=null) {
@@ -932,7 +923,7 @@ public class Synapse {
 	 * @param requestHeaders
 	 * @return
 	 */
-	private JSONObject dispatchSynapseRequest(String endpoint, String uri,
+	protected JSONObject dispatchSynapseRequest(String endpoint, String uri,
 			String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws SynapseException {
 
@@ -1043,20 +1034,6 @@ public class Synapse {
 	}
 
 	/**
-	 * @param submission
-	 * @return status
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 */
-	public BackupRestoreStatus startBackupDaemon(BackupSubmission submission)
-			throws JSONObjectAdapterException, SynapseException {
-		JSONObject json = EntityFactory.createJSONObjectForEntity(submission);
-		json = createEntity(DAMEON_BACKUP, json);
-		return EntityFactory.createEntityFromJSONObject(json,
-				BackupRestoreStatus.class);
-	}
-
-	/**
 	 * @return status
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
@@ -1067,41 +1044,7 @@ public class Synapse {
 		return EntityFactory
 				.createEntityFromJSONObject(json, StackStatus.class);
 	}
-
-	/**
-	 * @param updated
-	 * @return status
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 */
-	public StackStatus updateCurrentStackStatus(StackStatus updated)
-			throws JSONObjectAdapterException, SynapseException {
-		JSONObject jsonObject = EntityFactory
-				.createJSONObjectForEntity(updated);
-		Map<String, String> requestHeaders = new HashMap<String, String>();
-		requestHeaders.putAll(defaultPOSTPUTHeaders);
-		jsonObject = dispatchSynapseRequest(repoEndpoint, STACK_STATUS, "PUT",
-				jsonObject.toString(), requestHeaders);
-		return EntityFactory.createEntityFromJSONObject(jsonObject,
-				StackStatus.class);
-	}
-
-	/**
-	 * @param submission
-	 * @return status
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 */
-	public BackupRestoreStatus startRestoreDaemon(RestoreSubmission submission)
-			throws JSONObjectAdapterException, SynapseException {
-		JSONObject jsonObject = EntityFactory
-				.createJSONObjectForEntity(submission);
-		// Create the entity
-		jsonObject = createEntity(DAMEON_RETORE, jsonObject);
-		return EntityFactory.createEntityFromJSONObject(jsonObject,
-				BackupRestoreStatus.class);
-	}
-
+	
 	/**
 	 * Get a dataset, layer, preview, annotations, etc...
 	 * 
@@ -1118,16 +1061,5 @@ public class Synapse {
 			JSONObjectAdapterException {
 		JSONObject jsonObject = getEntity(uri);
 		return EntityFactory.createEntityFromJSONObject(jsonObject, clazz);
-	}
-
-	/**
-	 * @param daemonId
-	 * @return the status
-	 * @throws SynapseException
-	 * @throws JSONObjectAdapterException
-	 */
-	public BackupRestoreStatus getDaemonStatus(String daemonId)
-			throws SynapseException, JSONObjectAdapterException {
-		return getJSONEntity(DAEMOM + "/" + daemonId, BackupRestoreStatus.class);
 	}
 }
