@@ -180,6 +180,15 @@
 								<!-- How long do we wait until the we timeout (in ms) -->
 								<!-- <pingTimeout>2000</pingTimeout> -->
 							</deployable>
+							<deployable>
+								<groupId>org.sagebionetworks</groupId>
+								<artifactId>portal</artifactId>
+								<type>war</type>
+								<!-- url to ping to know if deployable is done or not -->
+								<!-- <pingURL>${org.sagebionetworks.portal.base.url}</pingURL> -->
+								How long do we wait until the we timeout (in ms)
+								<!-- <pingTimeout>2000</pingTimeout> -->
+							</deployable>
 						</deployables>
 						<properties>
 						<!-- Add the following to 'remote debug' the entire deployment stack -->
@@ -341,8 +350,8 @@
 		</dependency>
 
         <dependency>
-	      <groupId>org.apache.commons</groupId>
-	      <artifactId>commons-io</artifactId>
+          <groupId>org.apache.commons</groupId>
+          <artifactId>commons-io</artifactId>
         </dependency>
         
         <dependency>
