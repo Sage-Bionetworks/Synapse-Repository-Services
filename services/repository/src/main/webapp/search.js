@@ -3,6 +3,8 @@
 var SEARCH = "http://localhost:8080/services-repository-0.10-SNAPSHOT/repo/v1/search?q=";
 
 var SYNAPSE = "http://localhost:8080/portal-0.10-SNAPSHOT/#Synapse:";
+// Uncomment this if your repo svc is pointing to a prod search index
+// var SYNAPSE = "https://synapse.sagebase.org/#Synapse:";
 
 var DEFAULT_QUERY = "q=cancer&return-fields=name,id";
 
@@ -97,10 +99,10 @@ function displaySearchResults(data) {
                     $.each(facet.constraints, function(j, item) {
                         facetList += "<li>"
                             + item.value +": "
-                            + "<a href=\""
+                            + "<span class=\"example\" onclick=\"getFacet('"
                             + addFacetToCurrentSearchQuery(i, item.value)
-                            + "\">"
-                            + item.count + "</a></li>";
+                            +"')\">"
+                            + item.count + "</span></li>";
                     });
                     facetList += "</ol>"
                 }
@@ -126,10 +128,10 @@ function displaySearchResults(data) {
                         var facetDisplay = displayMin + ".." + displayMax
                         
                         facetList += "<li>"
-                            + "<a href=\""
+                            + "<span class=\"example\" onclick=\"getFacet('"
                             + addNumericFacetToCurrentSearchQuery(i, min, max)
-                            + "\">"
-                            + facetDisplay + "</a></li>";
+                            +"')\">"
+                            + facetDisplay + "</span></li>";
                     }
                     facetList += "</ol>"
                 }
@@ -243,6 +245,12 @@ function getExample(exampleNum) {
 	$('input#query').val(EXAMPLES[exampleNum].query)
 	getSearchResults()
 }
+
+function getFacet(facetQuery) {
+	$('input#query').val(facetQuery)
+	getSearchResults()
+}
+
 /**
  * Stuff to do when the document loads
  */
