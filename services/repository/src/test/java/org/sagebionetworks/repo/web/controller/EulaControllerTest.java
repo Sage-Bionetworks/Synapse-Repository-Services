@@ -132,13 +132,12 @@ public class EulaControllerTest {
 		Eula eulaFetchedByUser2 = testHelper.getEntity(eula, null);
 		assertEquals(eula, eulaFetchedByUser2);
 	}
-
+	
 	/**
 	 * @throws Exception
 	 */
 	@Test
 	public void testQueryAgreements() throws Exception {
-
 		Agreement agreement = new Agreement();
 		agreement.setEulaId(eula.getId());
 		agreement.setDatasetId(dataset.getId());
@@ -208,11 +207,7 @@ public class EulaControllerTest {
 		}
 	}
 
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testEnforceUseAgreement() throws Exception {
+	private void setupSecondaryUser() throws Exception {
 		// Switch to another user and confirm that user cannot read the dataset
 		// at all
 		testHelper.setTestUser(TEST_USER2);
@@ -235,20 +230,36 @@ public class EulaControllerTest {
 		ac.getAccessType().add(ACCESS_TYPE.READ);
 		projectAcl.getResourceAccess().add(ac);
 		projectAcl = testHelper.updateEntityAcl(project, projectAcl);
-
 		// Now user2 can see the metadata for the dataset, but not its
 		// locations
 		testHelper.setTestUser(TEST_USER2);
+	}
+
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testEnforceUseAgreementDataset() throws Exception {
+		setupSecondaryUser();
 		dataset = testHelper.getEntity(dataset, null);
 		assertNull(dataset.getLocations());
 		assertEquals(LocationStatusNames.pendingEula, dataset
 				.getLocationStatus());
-
+	}
+	
+	@Test
+	public void testEnforceUseAgreementLayer() throws Exception {
+		setupSecondaryUser();
 		// Same for the layer in this dataset, no locations
 		layer = testHelper.getEntity(layer, null);
 		assertNull(layer.getLocations());
 		assertEquals(LocationStatusNames.pendingEula, layer.getLocationStatus());
 
+	}
+	
+	@Test
+	public void testEnforceUseAgreementSelectStarDataset() throws Exception {
+		setupSecondaryUser();
 		// Make sure location data is also *not* available via query
 		QueryResults queryResult = testHelper.query("select * from dataset");
 		assertEquals(1, queryResult.getResults().size());
@@ -257,62 +268,107 @@ public class EulaControllerTest {
 				.get("dataset.locationStatus"));
 		assertTrue(queryValues.containsKey("dataset.locations"));
 		assertNull(queryValues.get("dataset.locations"));
-		queryResult = testHelper.query("select * from layer");
+	}
+	
+	@Test
+	public void testEnforceUseAgreementSelectStarLayer() throws Exception {
+		setupSecondaryUser();
+		QueryResults queryResult = testHelper.query("select * from layer");
 		assertEquals(1, queryResult.getResults().size());
-		queryValues = queryResult.getResults().get(0);
+		Map<String, Object> queryValues = queryResult.getResults().get(0);
 		assertEquals(LocationStatusNames.pendingEula.name(), queryValues
 				.get("layer.locationStatus"));
 		assertNull(queryValues.get("layer.locations"));
 		
+	}
+	
+	@Test
+	public void testEnforceUseAgreementSelectLocationsDataset() throws Exception {
+		setupSecondaryUser();
 		// Make sure location data is also NOT available via query for the location:
-		queryResult = testHelper.query("select location from dataset");
+		QueryResults queryResult = testHelper.query("select locations from dataset");
 		// we get a record for the created dataset...
 		assertEquals(queryResult.getResults().toString(), 1, queryResult.getResults().size());
-		queryValues = queryResult.getResults().get(0);
+		Map<String, Object> queryValues = queryResult.getResults().get(0);
 		// ... and the record has a 'location' field...
-		assertTrue(queryValues.containsKey("dataset.location"));
+		assertTrue(queryValues.containsKey("dataset.locations"));
 		// ... but the location field is null
-		assertNull(queryValues.get("dataset.location"));
+		assertNull(queryValues.get("dataset.locations"));
+	}
+	
+	@Test
+	public void testEnforceUseAgreementSelectLocationsLayer() throws Exception {
+		setupSecondaryUser();
 		
 		// ditto for the *layer* (as well as the dataset)
-		queryResult = testHelper.query("select location from layer");
+		QueryResults queryResult = testHelper.query("select locations from layer");
 		// we get a record for the created layer...
 		assertEquals(queryResult.getResults().toString(), 1, queryResult.getResults().size());
-		queryValues = queryResult.getResults().get(0);
+		Map<String, Object> queryValues = queryResult.getResults().get(0);
 		// ... and the record has a 'location' field...
-		assertTrue(queryValues.containsKey("layer.location"));
+		assertTrue(queryValues.containsKey("layer.locations"));
 		// ... but the location field is null
-		assertNull(queryValues.get("layer.location"));
+		assertNull(queryValues.get("layer.locations"));
 		
+	}
+	
+	private void makeAgreementForUser2() throws Exception {
 		// Make an agreement for user2
 		Agreement agreement = new Agreement();
 		agreement.setEulaId(eula.getId());
 		agreement.setDatasetId(dataset.getId());
 		agreement = testHelper.createEntity(agreement, null);
-
+	}
+	
+	@Test
+	public void testEnforceUseAgreementGetDatasetAgreed() throws Exception {
+		setupSecondaryUser();
+		makeAgreementForUser2();
+		
 		// Now user2 can see the locations for the dataset
 		dataset = testHelper.getEntity(dataset, null);
 		assertEquals(1, dataset.getLocations().size());
 		assertEquals(LocationStatusNames.available, dataset.getLocationStatus());
-
+	}
+	
+	@Test
+	public void testEnforceUseAgreementGetLayerAgreed() throws Exception {
+		setupSecondaryUser();
+		makeAgreementForUser2();
+			
 		// And the locations for the layer
 		layer = testHelper.getEntity(layer, null);
 		assertEquals(1, layer.getLocations().size());
 		assertEquals(LocationStatusNames.available, layer.getLocationStatus());
 
+	}
+	
+	@Test
+	public void testEnforceUseAgreementSelectStarDatasetAgreed() throws Exception {
+		setupSecondaryUser();
+		makeAgreementForUser2();
+			
 		// Make sure location data is also now available via query
-		queryResult = testHelper.query("select * from dataset");
+		QueryResults queryResult = testHelper.query("select * from dataset");
 		assertEquals(1, queryResult.getResults().size());
-		queryValues = queryResult.getResults().get(0);
+		Map<String, Object> queryValues = queryResult.getResults().get(0);
 		assertEquals(LocationStatusNames.available.name(), queryValues
 				.get("dataset.locationStatus"));
 		assertNotNull(queryValues.get("dataset.locations"));
-		queryResult = testHelper.query("select * from layer");
+	}
+	
+	@Test
+	public void testEnforceUseAgreementSelectStarLayerAgreed() throws Exception {
+		setupSecondaryUser();
+		makeAgreementForUser2();
+			
+		QueryResults queryResult = testHelper.query("select * from layer");
 		assertEquals(1, queryResult.getResults().size());
-		queryValues = queryResult.getResults().get(0);
+		Map<String, Object> queryValues = queryResult.getResults().get(0);
 		assertEquals(LocationStatusNames.available.name(), queryValues
 				.get("layer.locationStatus"));
 		assertNotNull(queryValues.get("layer.locations"));
+		
 	}
-
+	
 }
