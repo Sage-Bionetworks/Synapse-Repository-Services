@@ -21,25 +21,9 @@
                 "$ref":"org.sagebionetworks.repo.model.search.Hit"
             }
         },
-        "literalFacets":{
+        "facets":{
             "type":"array",
-            "description":"The literal-valued facets found in all results of this search.",
-            "uniqueItems":false,
-            "items":{
-                "$ref":"org.sagebionetworks.repo.model.search.Facet"
-            }
-        },
-        "dateFacets":{
-            "type":"array",
-            "description":"The continuous-valued facets that happen to be Dates found in all results of this search.",
-            "uniqueItems":false,
-            "items":{
-                "$ref":"org.sagebionetworks.repo.model.search.Facet"
-            }
-        },
-        "continuousFacets":{
-            "type":"array",
-            "description":"The continuous-valued facets found in all results of this search.",
+            "description":"The facets found in all results of this search.",
             "uniqueItems":false,
             "items":{
                 "$ref":"org.sagebionetworks.repo.model.search.Facet"

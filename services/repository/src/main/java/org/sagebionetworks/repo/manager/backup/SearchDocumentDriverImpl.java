@@ -37,21 +37,28 @@ import org.springframework.beans.factory.annotation.Autowired;
  * 
  * Note that it also encapsulates the configuration of our search index.
  * 
- * See also the script that creates and configures the search index fields 
- * https://sagebionetworks.jira.com/svn/PLFM/users/deflaux/cloudSearchHacking/createSearchIndexFields.sh
+ * See also the script that creates and configures the search index fields
+ * https://sagebionetworks.jira.com/svn/PLFM/users/deflaux/cloudSearchHacking/
+ * createSearchIndexFields.sh
  * 
  */
 public class SearchDocumentDriverImpl implements SearchDocumentDriver {
+
+	/**
+	 * The types of all facets one might ask for in search results from the
+	 * repository service.
+	 */
+	public static final Map<String, FacetTypeNames> FACET_TYPES;
+	/**
+	 * The index field holding the access control list info
+	 */
+	public static final String ACL_INDEX_FIELD = "acl";
 
 	private static Log log = LogFactory.getLog(SearchDocumentDriverImpl.class);
 
 	private static final String PATH_DELIMITER = "/";
 	private static final String CATCH_ALL_FIELD = "annotations";
 	private static final Map<String, String> SEARCHABLE_NODE_ANNOTATIONS;
-	/**
-	 * The types of all facets one might ask for in search results from the repository service.
-	 */
-	public static final Map<String, FacetTypeNames> FACET_TYPES;
 
 	@Autowired
 	NodeBackupManager backupManager;
@@ -85,8 +92,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		facetTypes.put("modified_on", FacetTypeNames.DATE);
 		facetTypes.put("num_samples", FacetTypeNames.CONTINUOUS);
 
-		FACET_TYPES = Collections
-				.unmodifiableMap(facetTypes);
+		FACET_TYPES = Collections.unmodifiableMap(facetTypes);
 	}
 
 	/**

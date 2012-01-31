@@ -63,12 +63,8 @@ public class SearchControllerAutowiredTest {
 		SearchResults result = testSearchHelper("q=cancer&return-fields=id,name,description,etag&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference", 1);
 		if(null != result) {
 			assertNotNull(result.getHits().get(0).getName());
-			assertNotNull(result.getLiteralFacets());
-			assertTrue(8 <= result.getLiteralFacets().size());
-			assertNotNull(result.getDateFacets());
-			assertTrue(2 <= result.getDateFacets().size());
-			assertNotNull(result.getContinuousFacets());
-			assertTrue(1 <= result.getContinuousFacets().size());
+			assertNotNull(result.getFacets());
+			assertTrue(11 <= result.getFacets().size());
 		}
 	}
 	
