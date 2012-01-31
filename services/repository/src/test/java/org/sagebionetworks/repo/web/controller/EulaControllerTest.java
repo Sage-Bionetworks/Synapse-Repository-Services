@@ -255,6 +255,7 @@ public class EulaControllerTest {
 		Map<String, Object> queryValues = queryResult.getResults().get(0);
 		assertEquals(LocationStatusNames.pendingEula.name(), queryValues
 				.get("dataset.locationStatus"));
+		assertTrue(queryValues.containsKey("dataset.locations"));
 		assertNull(queryValues.get("dataset.locations"));
 		queryResult = testHelper.query("select * from layer");
 		assertEquals(1, queryResult.getResults().size());
@@ -262,7 +263,27 @@ public class EulaControllerTest {
 		assertEquals(LocationStatusNames.pendingEula.name(), queryValues
 				.get("layer.locationStatus"));
 		assertNull(queryValues.get("layer.locations"));
-
+		
+		// Make sure location data is also NOT available via query for the location:
+		queryResult = testHelper.query("select location from dataset");
+		// we get a record for the created dataset...
+		assertEquals(queryResult.getResults().toString(), 1, queryResult.getResults().size());
+		queryValues = queryResult.getResults().get(0);
+		// ... and the record has a 'location' field...
+		assertTrue(queryValues.containsKey("dataset.location"));
+		// ... but the location field is null
+		assertNull(queryValues.get("dataset.location"));
+		
+		// ditto for the *layer* (as well as the dataset)
+		queryResult = testHelper.query("select location from layer");
+		// we get a record for the created layer...
+		assertEquals(queryResult.getResults().toString(), 1, queryResult.getResults().size());
+		queryValues = queryResult.getResults().get(0);
+		// ... and the record has a 'location' field...
+		assertTrue(queryValues.containsKey("layer.location"));
+		// ... but the location field is null
+		assertNull(queryValues.get("layer.location"));
+		
 		// Make an agreement for user2
 		Agreement agreement = new Agreement();
 		agreement.setEulaId(eula.getId());
