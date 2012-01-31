@@ -7,14 +7,13 @@ import static org.junit.Assert.assertTrue;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.search.SearchResults;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -29,9 +28,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SearchControllerAutowiredTest {
-
-	private static final Logger log = Logger
-			.getLogger(SearchControllerAutowiredTest.class.getName());
 
 	@Autowired
 	private ServletTestHelper testHelper;
@@ -63,6 +59,23 @@ public class SearchControllerAutowiredTest {
 	 * @throws Exception
 	 */
 	@Test
+	public void testFacetedSearch() throws Exception {
+		SearchResults result = testSearchHelper("q=cancer&return-fields=id,name,description,etag&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference", 1);
+		if(null != result) {
+			assertNotNull(result.getHits().get(0).getName());
+			assertNotNull(result.getLiteralFacets());
+			assertTrue(8 <= result.getLiteralFacets().size());
+			assertNotNull(result.getDateFacets());
+			assertTrue(2 <= result.getDateFacets().size());
+			assertNotNull(result.getContinuousFacets());
+			assertTrue(1 <= result.getContinuousFacets().size());
+		}
+	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
 	public void testBooleanQuerySearch() throws Exception {
 		testSearchHelper("q=prostate&return-fields=name&bq=node_type:'dataset'", 1);
 	}
@@ -72,9 +85,9 @@ public class SearchControllerAutowiredTest {
 	 */
 	@Test
 	public void testSearchAuthorizationFilter() throws Exception {
-		JSONObject result = testSearchHelper("q=prostate&return-fields=name", 1);
+		SearchResults result = testSearchHelper("q=prostate&return-fields=name", 1);
 		if(null != result) {
-			String cloudSearchMatchExpr = result.getString("match-expr");
+			String cloudSearchMatchExpr = result.getMatchExpression();
 			assertTrue(-1 < cloudSearchMatchExpr.indexOf("(or acl:"));
 			assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'test-user@sagebase.org'"));
 			assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'test-group'"));
@@ -89,9 +102,9 @@ public class SearchControllerAutowiredTest {
 	@Test
 	public void testAnonymousSearchAuthorizationFilter() throws Exception {
 		testHelper.setTestUser(AuthorizationConstants.ANONYMOUS_USER_ID);
-		JSONObject result = testSearchHelper("q=prostate&return-fields=name", 0);
+		SearchResults result = testSearchHelper("q=prostate&return-fields=name", 0);
 		if(null != result) {
-			String cloudSearchMatchExpr = result.getString("match-expr");
+			String cloudSearchMatchExpr = result.getMatchExpression();
 			assertTrue(-1 < cloudSearchMatchExpr.indexOf("(or acl:"));
 			assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'anonymous@sagebase.org'", 0));
 			assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'PUBLIC'"));
@@ -104,26 +117,24 @@ public class SearchControllerAutowiredTest {
 	@Test
 	public void testAdminSearchAuthorizationFilter() throws Exception {
 		testHelper.setTestUser(TestUserDAO.ADMIN_USER_NAME);
-		JSONObject result = testSearchHelper("q=prostate&return-fields=name", 1);
+		SearchResults result = testSearchHelper("q=prostate&return-fields=name", 1);
 		if(null != result) {
-			String cloudSearchMatchExpr = result.getString("match-expr");
+			String cloudSearchMatchExpr = result.getMatchExpression();
 			// We don't add an authorization filter for admin users
 			assertEquals(-1, cloudSearchMatchExpr.indexOf("acl"));
 		}
 	}	
 
-	private JSONObject testSearchHelper(String query, int expectedMinimumNumberOfResults) throws Exception {
-		JSONObject searchResult = null;
+	private SearchResults testSearchHelper(String query, int expectedMinimumNumberOfResults) throws Exception {
+		SearchResults searchResults = null;
 		
 		Map<String, String> params = new HashMap<String, String>();
 		params.put("q", query);
 
 		try {
-			JSONObject result = testHelper.getSearchResults(params);
-			assertNotNull(result);
-			searchResult = new JSONObject(result.getString("result"));
-			log.info(searchResult.toString(4));
-			assertTrue(expectedMinimumNumberOfResults <= searchResult.getJSONObject("hits").getInt("found"));
+			searchResults = testHelper.getSearchResults(params);
+			assertNotNull(searchResults);
+			assertTrue(expectedMinimumNumberOfResults <= searchResults.getFound());
 		} catch (ServletTestHelperException e) {
 			// Its not a failure if CloudSearch is not accessible from the host
 			// running this test
@@ -131,7 +142,7 @@ public class SearchControllerAutowiredTest {
 				throw e;
 			}
 		}
-		return searchResult;
+		return searchResults;
 	}
 	
 }

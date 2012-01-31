@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -266,7 +267,7 @@ public class ServletTestHelper {
 				entityACL, username);
 	}
 	
-	public JSONObject getSearchResults(Map<String, String> params) throws Exception {
+	public SearchResults getSearchResults(Map<String, String> params) throws Exception {
 		return ServletTestHelper.getSearchResults(dispatchServlet, username, params);
 	}
 
@@ -908,7 +909,7 @@ public class ServletTestHelper {
 	}
 
 	/**
-	 * Delete a specfic versoin of an entity
+	 * Delete a specfic version of an entity
 	 * 
 	 * @param <T>
 	 * @param requestUrl
@@ -1462,7 +1463,7 @@ public class ServletTestHelper {
 	/**
 	 * Get search results
 	 */
-	public static JSONObject getSearchResults(HttpServlet dispatchServlet,
+	public static SearchResults getSearchResults(HttpServlet dispatchServlet,
 			String userId, Map<String, String> extraParams) throws ServletException,
 			IOException, JSONException {
 		if (dispatchServlet == null)
@@ -1479,11 +1480,11 @@ public class ServletTestHelper {
 			}
 		}
 		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
+		log.info("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return new JSONObject(response.getContentAsString());
-	}
+		return objectMapper.readValue(response.getContentAsString(),
+				SearchResults.class);	}
 	
 }

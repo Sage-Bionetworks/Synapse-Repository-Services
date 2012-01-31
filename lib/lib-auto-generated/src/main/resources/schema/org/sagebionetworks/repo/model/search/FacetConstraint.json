@@ -1,0 +1,13 @@
+{
+    "description":"JSON schema for a Facet Constraint for a particular facet in the search results.",
+    "properties":{
+        "value":{
+            "type":"string",
+            "description":"The value of the facet constraint",
+        },
+        "count":{
+            "type":"integer",
+            "description":"The number of search results that are in this particular facet constraint"
+        }
+    }
+}

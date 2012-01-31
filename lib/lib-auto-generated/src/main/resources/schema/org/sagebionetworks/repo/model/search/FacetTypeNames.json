@@ -1,0 +1,10 @@
+{
+    "description":"The type of this facet",
+    "type":"string",
+    "name":"FacetTypeNames",
+    "enum":[
+        "LITERAL",
+        "DATE",
+        "CONTINUOUS",
+    ],
+}

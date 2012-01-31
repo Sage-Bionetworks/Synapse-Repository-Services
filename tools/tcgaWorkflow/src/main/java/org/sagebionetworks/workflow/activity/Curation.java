@@ -250,7 +250,7 @@ public class Curation {
 
 		String md5 = null;
 		try {
-			String md5FileContents = HttpClientHelper.getFileContents(
+			String md5FileContents = HttpClientHelper.getContent(
 					httpClient, tcgaUrl + ".md5");
 			String fileInfo[] = md5FileContents.split("\\s+");
 			if (2 != fileInfo.length) {

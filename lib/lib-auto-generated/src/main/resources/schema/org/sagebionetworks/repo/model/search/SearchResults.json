@@ -1,0 +1,49 @@
+{
+    "description":"JSON schema for a the result of a search.",
+    "properties":{
+        "found":{
+            "type":"integer",
+            "description":"The total number of hits found for this search."
+        },
+        "start":{
+            "type":"integer",
+            "description":"The zero-based number of the first hit returned in this page of search results."
+        },
+        "matchExpression":{
+                "type":"string",
+                "description":"The search match expression parsed from the search request parameters.  This is useful for debugging purposes.",
+        },
+        "hits":{
+            "type":"array",
+            "description":"The hits in this page of search results",
+            "uniqueItems":false,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.search.Hit"
+            }
+        },
+        "literalFacets":{
+            "type":"array",
+            "description":"The literal-valued facets found in all results of this search.",
+            "uniqueItems":false,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.search.Facet"
+            }
+        },
+        "dateFacets":{
+            "type":"array",
+            "description":"The continuous-valued facets that happen to be Dates found in all results of this search.",
+            "uniqueItems":false,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.search.Facet"
+            }
+        },
+        "continuousFacets":{
+            "type":"array",
+            "description":"The continuous-valued facets found in all results of this search.",
+            "uniqueItems":false,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.search.Facet"
+            }
+        }
+    }
+}

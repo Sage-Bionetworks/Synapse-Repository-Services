@@ -28,11 +28,17 @@ import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * This class writes out search documents in batch.
+ * 
+ * Note that it also encapsulates the configuration of our search index.
+ * 
+ * See also the script that creates and configures the search index fields 
+ * https://sagebionetworks.jira.com/svn/PLFM/users/deflaux/cloudSearchHacking/createSearchIndexFields.sh
  * 
  */
 public class SearchDocumentDriverImpl implements SearchDocumentDriver {
@@ -42,6 +48,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	private static final String PATH_DELIMITER = "/";
 	private static final String CATCH_ALL_FIELD = "annotations";
 	private static final Map<String, String> SEARCHABLE_NODE_ANNOTATIONS;
+	/**
+	 * The types of all facets one might ask for in search results from the repository service.
+	 */
+	public static final Map<String, FacetTypeNames> FACET_TYPES;
 
 	@Autowired
 	NodeBackupManager backupManager;
@@ -61,6 +71,22 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		searchableNodeAnnotations.put("platform", "platform");
 		SEARCHABLE_NODE_ANNOTATIONS = Collections
 				.unmodifiableMap(searchableNodeAnnotations);
+
+		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
+		facetTypes.put("disease", FacetTypeNames.LITERAL);
+		facetTypes.put("tissue", FacetTypeNames.LITERAL);
+		facetTypes.put("species", FacetTypeNames.LITERAL);
+		facetTypes.put("platform", FacetTypeNames.LITERAL);
+		facetTypes.put("created_by", FacetTypeNames.LITERAL);
+		facetTypes.put("modified_by", FacetTypeNames.LITERAL);
+		facetTypes.put("reference", FacetTypeNames.LITERAL);
+		facetTypes.put("acl", FacetTypeNames.LITERAL);
+		facetTypes.put("created_on", FacetTypeNames.DATE);
+		facetTypes.put("modified_on", FacetTypeNames.DATE);
+		facetTypes.put("num_samples", FacetTypeNames.CONTINUOUS);
+
+		FACET_TYPES = Collections
+				.unmodifiableMap(facetTypes);
 	}
 
 	/**

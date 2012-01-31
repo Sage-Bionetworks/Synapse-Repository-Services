@@ -1,0 +1,28 @@
+{
+    "description":"JSON schema for a continuous or literal value Facet found in the search results.",
+    "properties":{
+        "name":{
+            "type":"string",
+            "description":"The name of this facet",
+        },
+        "type":{
+            "$ref":"org.sagebionetworks.repo.model.search.FacetTypeNames",
+        },
+        "min":{
+            "type":"integer",
+            "description":"The minimum value of the facet values found, if continuous"
+        },
+        "max":{
+            "type":"integer",
+            "description":"The maximum value of the facet values found, if continuous"
+        },
+        "constraints":{
+            "type":"array",
+            "description":"The list of constraints for this facet",
+            "uniqueItems":false,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.search.FacetConstraint"
+            }
+        }
+    }
+}

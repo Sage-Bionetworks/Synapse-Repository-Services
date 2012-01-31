@@ -47,7 +47,7 @@ public class WebCrawler {
 
 			String page = null;
 			try {
-				page = HttpClientHelper.getFileContents(DefaultHttpClientSingleton.getInstance(), url);
+				page = HttpClientHelper.getContent(DefaultHttpClientSingleton.getInstance(), url);
 			} catch (Exception e) {
 				log.error("Failed to crawl " + url, e);
 				continue;

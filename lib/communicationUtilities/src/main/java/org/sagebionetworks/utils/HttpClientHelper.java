@@ -347,20 +347,17 @@ public class HttpClientHelper {
 	}
 
 	/**
-	 * TODO - better error handling - more useful error diagnostics such as the
-	 * body of the error response
-	 * 
 	 * @param client 
 	 * @param requestUrl
-	 * @return the contents of the file in a string
+	 * @return the content returned in a string
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
-	public static String getFileContents(final HttpClient client, final String requestUrl)
+	public static String getContent(final HttpClient client, final String requestUrl)
 			throws ClientProtocolException, IOException,
 			HttpClientHelperException {
-		String fileContents = null;
+		String content = null;
 
 		HttpGet get = new HttpGet(requestUrl);
 		HttpResponse response = client.execute(get);
@@ -370,18 +367,18 @@ public class HttpClientHelper {
 							+ response.getStatusLine().getReasonPhrase(),
 					response);
 		}
-		HttpEntity fileEntity = response.getEntity();
-		if (null != fileEntity) {
-			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < fileEntity
+		HttpEntity entity = response.getEntity();
+		if (null != entity) {
+			if (MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH < entity
 					.getContentLength()) {
 				throw new HttpClientHelperException("Requested content("
 						+ requestUrl + ") is too large("
-						+ fileEntity.getContentLength()
+						+ entity.getContentLength()
 						+ "), download it to a file instead", response);
 			}
-			fileContents = EntityUtils.toString(fileEntity);
+			content = EntityUtils.toString(entity);
 		}
-		return fileContents;
+		return content;
 	}
 	
 	/**
