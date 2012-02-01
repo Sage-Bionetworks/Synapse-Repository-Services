@@ -2,16 +2,6 @@
     "Statement":
         [
             {
-                "Effect":"Allow",
-                "Action":"iam:AddUserToGroup",
-                "Resource":"arn:aws:iam::325565585839:group/devDataIamGroup"
-            },
-            {
-                "Effect":"Allow",
-                "Action":["iam:GetUser","iam:CreateUser","iam:CreateAccessKey"],
-                "Resource":"arn:aws:iam::325565585839:user/dev*"
-            },
-            {
                 "Effect": "Allow",
                 "Action": [
                     "sts:GetFederationToken"
@@ -24,6 +14,13 @@
                 ],
                 "Effect": "Allow",
                 "Resource": "arn:aws:s3:::elasticbeanstalk-us-east-1-325565585839/dev-beanstalk-stack.properties"
+            },
+            {
+                "Action": [
+                    "s3:PutObject"
+                ],
+                "Effect": "Allow",
+                "Resource": "arn:aws:s3:::devworkflow.sagebase.org/Search/*"
             },
             {
                 "Effect":"Allow",

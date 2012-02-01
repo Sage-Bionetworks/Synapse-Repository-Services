@@ -1,0 +1,12 @@
+{       
+    "Statement":
+        [
+            {
+                "Action": [
+                    "s3:GetObject"
+                ],
+                "Effect": "Allow",
+                "Resource": "arn:aws:s3:::devworkflow.sagebase.org/Search/*"
+            }
+        ]
+    }
