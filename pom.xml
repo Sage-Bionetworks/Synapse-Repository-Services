@@ -30,42 +30,46 @@
         <module>integration-test</module>
     </modules>
 
-    <repositories>
-        <repository>
-            <id>sagebionetworks</id>
-            <name>sagebionetworks-releases</name>
-            <url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local
-            </url>
-        </repository>
-        <repository>
-            <id>sagebionetworks-plugins-releases-local</id>
-            <name>sagebionetworks-plugins-releases-local</name>
-            <url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/plugins-releases-local
-            </url>
-        </repository>
-        <repository>
-            <id>sagebionetworks-ext</id>
-            <name>sagebionetworks-releases-ext</name>
-            <url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/ext-releases-local
-            </url>
-        </repository>
-        <repository>
-            <id>atlassian-m2-repository</id>
-            <url>https://m2proxy.atlassian.com/repository/public</url>
-        </repository>
-        <repository>
-            <id>mvn-gae-plugin-repo</id>
-            <url>http://maven-gae-plugin.googlecode.com/svn/repository/</url>
-        </repository>
-        <repository>
-            <id>maven-central-rep-1</id>
-            <url>http://repo1.maven.org/maven2/</url>
-        </repository>
-        <repository>
-            <id>sun-maven-repository</id>
-            <url>http://download.java.net/maven/2/</url>
-        </repository>
-    </repositories>
+	<repositories>
+		<repository>
+			<id>sagebionetworks</id>
+			<name>sagebionetworks-releases</name>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local
+			</url>
+		</repository>
+		<repository>
+			<id>sagebionetworks-plugins-releases-local</id>
+			<name>sagebionetworks-plugins-releases-local</name>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/plugins-releases-local
+			</url>
+		</repository>
+		<repository>
+			<id>sagebionetworks-ext</id>
+			<name>sagebionetworks-releases-ext</name>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/ext-releases-local
+			</url>
+		</repository>
+		<repository>
+			<id>atlassian-m2-repository</id>
+			<url>https://m2proxy.atlassian.com/repository/public</url>
+		</repository>
+		<repository>
+			<id>mvn-gae-plugin-repo</id>
+			<url>http://maven-gae-plugin.googlecode.com/svn/repository/</url>
+		</repository>
+		<repository>
+			<id>maven-central-rep-1</id>
+			<url>http://repo1.maven.org/maven2/</url>
+		</repository>
+		<repository>
+			<id>sun-maven-repository</id>
+			<url>http://download.java.net/maven/2/</url>
+		</repository>
+		<repository>
+			<id>apache-repo-releases</id>
+			<url>https://repository.apache.org/content/repositories/releases/</url>
+		</repository>
+	</repositories>
 
     <pluginRepositories>
         <pluginRepository>
@@ -106,7 +110,13 @@
                 <artifactId>commons-logging</artifactId>
                 <version>1.1.1</version>
             </dependency>
-
+			<!-- Jena provides ontology APIs including loading and querying for RDF-->
+			<dependency>
+				<groupId>com.hp.hpl.jena</groupId>
+				<artifactId>tdb</artifactId>
+				<version>0.8.5</version>
+			</dependency>
+			
             <!-- Make sure all the Jackson libraries are of the same version -->
             <dependency>
               <groupId>org.codehaus.jackson</groupId>
@@ -531,7 +541,7 @@
         <org.aspectj.version>1.6.10</org.aspectj.version>
         <org.apache.commons.commons-dbcp.version>1.4
         </org.apache.commons.commons-dbcp.version>
-        <schema-to-pojo.version>0.1.8</schema-to-pojo.version>
+        <schema-to-pojo.version>0.1.9</schema-to-pojo.version>
         <org.json.version>20090211</org.json.version>
         <com.amazonaws.version>1.2.7</com.amazonaws.version>
     </properties>

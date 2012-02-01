@@ -22,6 +22,7 @@
     <module>lib-workflow</module>
     <module>communicationUtilities</module>
     <module>securityUtilities</module>
+    <module>lib-concepts</module>
   </modules>
 
 </project>

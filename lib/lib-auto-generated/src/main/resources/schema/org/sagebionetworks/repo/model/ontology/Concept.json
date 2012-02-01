@@ -1,0 +1,60 @@
+{
+    "description":"JSON schema for an ontology concept",
+    "properties":{
+        "summary":{
+            "$ref":"org.sagebionetworks.repo.model.ontology.ConceptSummary",
+            
+        },
+        "synonyms":{
+            "type":"array",
+            "description":"The synonyms of this concept.",
+            "items":{
+                "type":"string",
+                
+            }
+        },
+        "parent":{
+            "type":"string",
+            "description":"URI of direct parent (skos:broader)",
+            "format":"uri",
+            
+        },
+        "ancestor ":{
+            "type":"array",
+            "description":"URIs of all parents, in order (skos:broaderTransitive)",
+            "items":{
+                "type":"string",
+                "format":"uri",
+                
+            }
+        },
+        "children":{
+            "type":"array",
+            "description":"URIs of all direct children (skos:narrower)",
+            "items":{
+                "type":"string",
+                "format":"uri",
+                
+            }
+        },
+        "decendents":{
+            "type":"array",
+            "description":"URIs of all direct children (skos:narrowerTransitive)",
+            "items":{
+                "type":"string",
+                "format":"uri",
+                
+            }
+        },
+        "related":{
+            "type":"array",
+            "description":"Terms with other relationships, not needed in first version of services (skos:related)",
+            "items":{
+                "type":"string",
+                "format":"uri",
+                
+            }
+        },
+        
+    }
+}
