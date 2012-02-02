@@ -150,8 +150,7 @@
 						</zipUrlInstaller>
 						<systemProperties>
 							<org.sagebionetworks.stackEncryptionKey>${org.sagebionetworks.stackEncryptionKey}</org.sagebionetworks.stackEncryptionKey>
-<!-- I'm pretty sure these properties are redundant, see PLFM-902  -->
-<!-- 							<org.sagebionetworks.stack.configuration.url>${org.sagebionetworks.stack.configuration.url}</org.sagebionetworks.stack.configuration.url> -->
+ 							<org.sagebionetworks.stack.configuration.url>${org.sagebionetworks.stack.configuration.url}</org.sagebionetworks.stack.configuration.url>
 							<org.sagebionetworks.stack>${org.sagebionetworks.stack}</org.sagebionetworks.stack>
 							<org.sagebionetworks.stack.instance>${org.sagebionetworks.stack.instance}</org.sagebionetworks.stack.instance>
 							<org.sagebionetworks.stack.iam.id>${org.sagebionetworks.stack.iam.id}</org.sagebionetworks.stack.iam.id>

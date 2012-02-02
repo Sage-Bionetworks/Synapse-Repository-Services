@@ -86,7 +86,7 @@ public class TemplatedConfiguration {
 		String stackInstance = getStackInstance();
 
 		propertyFileUrl = getPropertyOverridesFileURL();
-		if (null != propertyFileUrl) {
+		if ((null != propertyFileUrl) && (0 < propertyFileUrl.length())) {
 			// Validate the property file
 			StackUtils.validateStackProperty(stack + stackInstance,
 					StackConstants.STACK_PROPERTY_FILE_URL, propertyFileUrl);
