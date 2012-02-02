@@ -1,0 +1,12 @@
+{
+    "description":"JSON schema for a batch of search documents.",
+    "properties":{
+        "documents":{
+            "type":"array",
+            "description":"The set of search documents.",
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.search.Document"
+            }
+        }
+    }
+}

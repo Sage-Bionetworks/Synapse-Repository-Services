@@ -1,0 +1,35 @@
+{
+    "description":"JSON schema for a search document.",
+    "properties":{
+        "type":{
+            "type":"string",
+            "description":"Type of the search document. These must be lower case per the search spec.",
+            "required":true,
+            "name":"DocumentTypeNames",
+            "id":"org.sagebionetworks.repo.model.search.DocumentTypeNames",
+            "enum":[
+                "add",
+                "delete"
+            ],
+        },
+        "id":{
+            "type":"string",
+            "required":true,
+            "description":"The id of the search document.  Currently we are using the Synapse entity id for this."
+        },
+        "version":{
+            "type":"integer",
+            "required":true,
+            "description":"The zero-based version number of the search document.  Currently we are using the Synapse entity etag for this."
+        },
+        "lang":{
+            "type":"string",
+            "description":"The language of the free text search found in the document.",
+            "default":"en"
+        },
+        "fields":{
+            "type":"object",
+  			"$ref":"org.sagebionetworks.repo.model.search.DocumentFields",
+        }
+    }
+}

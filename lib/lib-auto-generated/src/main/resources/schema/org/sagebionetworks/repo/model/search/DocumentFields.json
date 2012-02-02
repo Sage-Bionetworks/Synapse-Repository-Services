@@ -1,0 +1,13 @@
+{
+    "description":"JSON schema for the fields of a search document.",
+    "properties":{
+        "id":{
+            "type":"string",
+            "description":"Tthe Synapse entity id."
+        },
+        "etag":{
+            "type":"integer",
+            "description":"The Synapse entity etag."
+        },
+    }
+}
