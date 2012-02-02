@@ -64,7 +64,7 @@ public class StackConfiguration {
 	public static String getEncryptionKey() {
 		return configuration.getEncryptionKey();
 	}
-	
+
 	/**
 	 * Get the IAM user ID (Access Key ID)
 	 * 
@@ -102,15 +102,31 @@ public class StackConfiguration {
 	public static String getCrowdEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.crowd.endpoint");
 	}
-	
+
 	public static String getSearchServiceEndpoint() {
-		return configuration.getProperty("org.sagebionetworks.cloudsearch.searchservice.endpoint");
+		return configuration
+				.getProperty("org.sagebionetworks.cloudsearch.searchservice.endpoint");
 	}
 
 	public static String getDocumentServiceEndpoint() {
-		return configuration.getProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint");
+		return configuration
+				.getProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint");
 	}
 
+	/**
+	 * This is the bucket for workflow-related files such as configuration or
+	 * search document files. Each workflow should store stuff under its own
+	 * workflow name prefix so that we can configure permissions not only on the
+	 * bucket but also the S3 object prefix.
+	 */
+	public static String getS3WorkflowBucket() {
+		return configuration
+				.getProperty("org.sagebionetworks.s3.bucket.workflow");
+	}
+
+	/**
+	 * This is the bucket for Synapse data.
+	 */
 	public static String getS3Bucket() {
 		return configuration.getProperty("org.sagebionetworks.s3.bucket");
 	}
@@ -121,9 +137,8 @@ public class StackConfiguration {
 	}
 
 	public static Integer getS3WriteAccessExpiryHours() {
-		return Integer
-				.valueOf(configuration
-						.getProperty("org.sagebionetworks.s3.writeAccessExpiryHours"));
+		return Integer.valueOf(configuration
+				.getProperty("org.sagebionetworks.s3.writeAccessExpiryHours"));
 	}
 
 	public static String getCrowdAPIApplicationKey() {
@@ -299,7 +314,7 @@ public class StackConfiguration {
 	public static int getHttpClientMaxConnsPerRoute() {
 		return configuration.getHttpClientMaxConnsPerRoute();
 	}
-	
+
 	/**
 	 * @return The name of a user for integration tests
 	 */
@@ -331,7 +346,7 @@ public class StackConfiguration {
 		return configuration
 				.getProperty("org.sagebionetworks.integration.test.password.two");
 	}
-	
+
 	/**
 	 * @return The name of a second user for integration tests
 	 */
@@ -349,54 +364,70 @@ public class StackConfiguration {
 	}
 
 	/**
-	 * @return whether the cloudWatch profiler should be on or off boolean.
-	 * True means on, false means off.
+	 * @return whether the cloudWatch profiler should be on or off boolean. True
+	 *         means on, false means off.
 	 */
 	public boolean getCloudWatchOnOff() {
-		//Boolean toReturn = Boolean.getBoolean(getProperty("org.sagebionetworks.cloud.watch.report.enabled"));
-		String answer = configuration.getProperty("org.sagebionetworks.cloud.watch.report.enabled");
+		// Boolean toReturn =
+		// Boolean.getBoolean(getProperty("org.sagebionetworks.cloud.watch.report.enabled"));
+		String answer = configuration
+				.getProperty("org.sagebionetworks.cloud.watch.report.enabled");
 		boolean theValue = Boolean.parseBoolean(answer);
 		return theValue;
 	}
-	
+
 	/**
-	 * @return the time in milliseconds for the cloudWatch profiler's trigger.  I till trigger
-	 * and send metrics to cloudWatch ever xxx milliseconds.
+	 * @return the time in milliseconds for the cloudWatch profiler's trigger. I
+	 *         till trigger and send metrics to cloudWatch ever xxx
+	 *         milliseconds.
 	 */
 	public long getCloudWatchTriggerTime() {
-		return Long.valueOf(configuration.getProperty("org.sagebionetworks.cloud.watch.trigger"));
+		return Long.valueOf(configuration
+				.getProperty("org.sagebionetworks.cloud.watch.trigger"));
 	}
-	
+
 	/**
 	 * The maximum number of threads to be used for backup/restore
+	 * 
 	 * @return
 	 */
-	public int getBackupRestoreThreadPoolMaximum(){
-		return Integer.valueOf(configuration.getProperty("org.sagebionetworks.backup.restore.thread.pool.maximum"));
+	public int getBackupRestoreThreadPoolMaximum() {
+		return Integer
+				.valueOf(configuration
+						.getProperty("org.sagebionetworks.backup.restore.thread.pool.maximum"));
 	}
-		
+
 	/**
 	 * The maximum bytes allowed for a single query result.
+	 * 
 	 * @return
 	 */
-	public static long getMaximumBytesPerQueryResult(){
-		return Long.valueOf(configuration.getProperty("org.sagebionetworks.maximum.bytes.per.query.result"));
+	public static long getMaximumBytesPerQueryResult() {
+		return Long
+				.valueOf(configuration
+						.getProperty("org.sagebionetworks.maximum.bytes.per.query.result"));
 	}
-	
+
 	/**
 	 * The maximum number entities returned in a single call
+	 * 
 	 * @return
 	 */
-	public static int getMaximumNumberOfEntitiesReturnedPerCall(){
-		return Integer.valueOf(configuration.getProperty("org.sagebionetworks.maximum.number.entities.returned.per.call"));
+	public static int getMaximumNumberOfEntitiesReturnedPerCall() {
+		return Integer
+				.valueOf(configuration
+						.getProperty("org.sagebionetworks.maximum.number.entities.returned.per.call"));
 	}
-	
+
 	/**
-	 * The S3 Bucket for backup file.  This is shared across stacks to enable data migration across a stack.
+	 * The S3 Bucket for backup file. This is shared across stacks to enable
+	 * data migration across a stack.
+	 * 
 	 * @return
 	 */
-	public static String getSharedS3BackupBucket(){
-		return configuration.getProperty("org.sagebionetworks.shared.s3.backup.bucket");
+	public static String getSharedS3BackupBucket() {
+		return configuration
+				.getProperty("org.sagebionetworks.shared.s3.backup.bucket");
 	}
 
 }

@@ -180,41 +180,45 @@ public class ConfigHelper {
 		return configuration.getRScriptPath();
 	}	
 	
-
 	public static String getGEPipelineSourceProjectId() {
-		return configuration.getGEPipelineSourceProjectId();
+		return configuration.getProperty("org.sagebionetworks.gepipeline.sourceProjectId");
 	}
 	
+	
 	public static String getGEPipelineTargetProjectId() {
-		return configuration.getGEPipelineTargetProjectId();
+		return configuration.getProperty("org.sagebionetworks.gepipeline.targetProjectId");
 	}
 	
 	public static String getGEPipelineCrawlerScript() {
-		return configuration.getGEPipelineCrawlerScript();
+		return configuration.getProperty("org.sagebionetoworks.gepipeline.crawlerscript");
 	}
 	
 	public static String getGEPipelineWorkflowScript() {
-		return configuration.getGEPipelineWorkflowScript();
+		return configuration.getProperty("org.sagebionetoworks.gepipeline.workflowscript");
 	}
 	
+	public static String getGEPipelineMaxDatasetSize() {
+		return configuration.getProperty("org.sagebionetworks.gepipeline.maxdatasetsize");
+	}
+
 	public static String getGEPipelineMaxWorkflowInstances() {
-		return configuration.getGEPipelineMaxWorkflowInstances();
+		return configuration.getProperty("org.sagebionetworks.gepipeline.maxworkflowinstances");
 	}
 	
 	public static String getGEPipelineNoop() {
-		return configuration.getGEPipelineNoop();
+		return configuration.getProperty("org.sagebionetworks.gepipeline.noop");
 	}
 	
 	public static int getGEPipelineSmallCapacityGB() {
-		return configuration.getGEPipelineSmallCapacityGB();
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.gepipeline.smallGB"));
 	}
 	
 	public static int getGEPipelineMediumCapacityGB() {
-		return configuration.getGEPipelineMediumCapacityGB();
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.gepipeline.mediumGB"));
 	}
 	
 	public static int getGEPipelineLargeCapacityGB() {
-		return configuration.getGEPipelineLargeCapacityGB();
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.gepipeline.largeGB"));
 	}
 	
 }

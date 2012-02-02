@@ -15,8 +15,8 @@ public class StackUtilsTest {
 		required = new Properties();
 		required.setProperty("keyOne", "");
 		required.setProperty("keyTwo", "");
-		required.setProperty("keyThree", "empty");
-		required.setProperty(StackConstants.STACK_PROPERTY_NAME, "someStackName");
+		required.setProperty("keyThree", "");
+		required.setProperty(StackConstants.STACK_PROPERTY_NAME, "");
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -139,7 +139,7 @@ public class StackUtilsTest {
 	}
 	
 	@Test
-	public void testValidStackPrefixInstnace(){
+	public void testValidStackPrefixInstance(){
 		Properties template = new Properties();
 		template.setProperty("org.sagebionetworks.repository.database.username", StackConstants.REQUIRES_STACK_PREFIX+StackConstants.REQUIRES_STACK_INTANCE_PREFIX);
 		
@@ -152,7 +152,7 @@ public class StackUtilsTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testValidStackPrefixInstnaceInvalid(){
+	public void testValidStackPrefixInstanceInvalid(){
 		Properties template = new Properties();
 		template.setProperty("org.sagebionetworks.repository.database.username", StackConstants.REQUIRES_STACK_PREFIX+StackConstants.REQUIRES_STACK_INTANCE_PREFIX);
 		
@@ -165,7 +165,7 @@ public class StackUtilsTest {
 	}
 	
 	@Test
-	public void testValidStackPrefixInstnaceDatabaseUrl(){
+	public void testValidStackPrefixInstanceDatabaseUrl(){
 		Properties template = new Properties();
 		template.setProperty("org.sagebionetworks.repository.database.connection.url", StackConstants.REQUIRES_STACK_PREFIX+StackConstants.REQUIRES_STACK_INTANCE_PREFIX);
 
@@ -179,7 +179,7 @@ public class StackUtilsTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testValidStackPrefixInstnaceDatabaseUrlInvalid(){
+	public void testValidStackPrefixInstanceDatabaseUrlInvalid(){
 		Properties template = new Properties();
 		template.setProperty("org.sagebionetworks.repository.database.connection.url", StackConstants.REQUIRES_STACK_PREFIX+StackConstants.REQUIRES_STACK_INTANCE_PREFIX);
 		Properties realValues = new Properties();
@@ -191,5 +191,81 @@ public class StackUtilsTest {
 		StackUtils.validateRequiredProperties(template, realValues, stack, instance);
 	}
 
+	@Test
+	public void testValidHardcodedPrefix(){
+		String prefixPart1 = "https://doc-";	
+		
+		Properties template = new Properties();
+		template.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1);
+		
+		Properties realValues = new Properties();
+		String stack ="myStackName";
+		String instance ="B";
+		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1+stack+"XXXXX.cloudsearch.amazonaws.com/2011-02-01/documents/batch");
+		realValues.setProperty(StackConstants.STACK_PROPERTY_NAME, stack);
+		StackUtils.validateRequiredProperties(template, realValues, stack, instance);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testInvalidHardcodedPrefix(){
+		String prefixPart1 = "https://doc-";	
+		
+		Properties template = new Properties();
+		template.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1);
+		
+		Properties realValues = new Properties();
+		String stack ="myStackName";
+		String instance ="B";
+		// note that this url is http instead of https
+		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", "http://doc-"+stack+"XXXXX.cloudsearch.amazonaws.com/2011-02-01/documents/batch");
+		realValues.setProperty(StackConstants.STACK_PROPERTY_NAME, stack);
+		StackUtils.validateRequiredProperties(template, realValues, stack, instance);
+	}
+	
+	@Test
+	public void testValidStackCompoundPrefix(){
+		String prefixPart1 = "https://doc-";	
+		
+		Properties template = new Properties();
+		template.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1 + StackConstants.REQUIRES_STACK_PREFIX);
+		
+		Properties realValues = new Properties();
+		String stack ="myStackName";
+		String instance ="B";
+		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1+stack+"XXXXX.cloudsearch.amazonaws.com/2011-02-01/documents/batch");
+		realValues.setProperty(StackConstants.STACK_PROPERTY_NAME, stack);
+		StackUtils.validateRequiredProperties(template, realValues, stack, instance);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testInvalidStackCompoundPrefixPart1(){
+		String prefixPart1 = "https://doc-";	
+		
+		Properties template = new Properties();
+		template.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1 + StackConstants.REQUIRES_STACK_PREFIX);
+		
+		Properties realValues = new Properties();
+		String stack ="myStackName";
+		String instance ="B";
+		// note that this url is http instead of https
+		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", "http://doc-"+stack+"XXXXX.cloudsearch.amazonaws.com/2011-02-01/documents/batch");
+		realValues.setProperty(StackConstants.STACK_PROPERTY_NAME, stack);
+		StackUtils.validateRequiredProperties(template, realValues, stack, instance);
+	}
 
+	@Test(expected=IllegalArgumentException.class)
+	public void testInvalidStackCompoundPrefixPart2(){
+		String prefixPart1 = "https://doc-";	
+		
+		Properties template = new Properties();
+		template.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1 + StackConstants.REQUIRES_STACK_PREFIX);
+		
+		Properties realValues = new Properties();
+		String stack ="myStackName";
+		String instance ="B";
+		// Note that we have the wrong stack name here
+		realValues.setProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint", prefixPart1+"wrongStack"+"XXXXX.cloudsearch.amazonaws.com/2011-02-01/documents/batch");
+		realValues.setProperty(StackConstants.STACK_PROPERTY_NAME, stack);
+		StackUtils.validateRequiredProperties(template, realValues, stack, instance);
+	}
 }

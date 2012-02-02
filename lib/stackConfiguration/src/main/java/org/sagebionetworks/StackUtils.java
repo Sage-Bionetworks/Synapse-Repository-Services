@@ -32,25 +32,31 @@ public class StackUtils {
 			// Does this property require a prefix?
 			String requiredValue = (String) required.get(key);
 			if(requiredValue != null){
-				StringBuilder prefix = new StringBuilder();
+				String prefix = requiredValue;
 				if(requiredValue.indexOf(StackConstants.REQUIRES_STACK_PREFIX) >= 0){
-					prefix.append(stack);
+					prefix = prefix.replace(StackConstants.REQUIRES_STACK_PREFIX, stack);
 				}
 				if(requiredValue.indexOf(StackConstants.REQUIRES_STACK_INTANCE_PREFIX) >= 0){
-					prefix.append(instance);
+					prefix = prefix.replace(StackConstants.REQUIRES_STACK_INTANCE_PREFIX, instance);
 				}
 				// Validate the property.
-				validateStackProperty(prefix.toString(), key, value);
+				validateStackProperty(prefix, key, value);
 			}
 		}
 	}
 	
 	/**
-	 * Validate a statck property.
+	 * Validate a stack property.
 	 * @param stack
 	 * @param value
 	 */
 	public static void validateStackProperty(String prefix, String key, String value){
+		
+		// First test the prefix against the value with no special cases
+		if(validateValue(prefix, key, value)) {
+			return;
+		}
+		
 		String valueToTest = value;
 		try {
 			// Is it a database url:
@@ -74,8 +80,10 @@ public class StackUtils {
 		} catch (Exception e) {
 			throw new IllegalArgumentException("The property: "+key+" must start with stack prefix: "+prefix+". Actual value: "+value+". Modified value: "+valueToTest, e);
 		}
-		// Now that we know what to test do the work
-		validateValue(prefix, key, valueToTest);
+		// Now that we know what special case to test
+		if(!validateValue(prefix, key, valueToTest)) {
+			throw new IllegalArgumentException("The property: "+key+" must start with stack prefix: "+prefix+". Actual value: "+value+". Modified value: "+valueToTest);			
+		}
 	}
 	
 
@@ -85,10 +93,11 @@ public class StackUtils {
 	 * @param key
 	 * @param value
 	 */
-	public static void validateValue(String prefix, String key, String value) {
+	private static boolean validateValue(String prefix, String key, String value) {
 		if(!value.startsWith(prefix)){
-			throw new IllegalArgumentException("The property: "+key+" must start with stack prefix: "+prefix+". Actual value: "+value);
+			return false;
 		}
+		return true;
 	}
 
 }

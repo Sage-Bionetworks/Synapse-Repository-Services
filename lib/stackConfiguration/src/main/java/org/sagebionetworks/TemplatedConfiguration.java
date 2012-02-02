@@ -15,7 +15,7 @@ import org.apache.log4j.Logger;
  * for any of our Java software. It encapsulates the core functionality of a
  * default properties file, a property override file, checking of that override
  * against a template, encrypted properties, and loading properties files from
- * S3.  It also exposes some properties common to all software stacks.
+ * S3. It also exposes some properties common to all software stacks.
  * 
  * Here's the first stab at a configuration system for our various stacks. It
  * solves several problems we are currently having:
@@ -79,51 +79,57 @@ public class TemplatedConfiguration {
 			// Try loading the settings file
 			addSettingsPropertiesToSystem();
 		}
-		// These four properties are required. If they are null, an exception
+		// These three properties are required. If they are null, an exception
 		// will be thrown
-		propertyFileUrl = getPropertyFileURL();
-
 		String encryptionKey = getEncryptionKey();
 		String stack = getStack();
 		String stackInstance = getStackInstance();
 
-		// Validate the property file
-		StackUtils.validateStackProperty(stack + stackInstance,
-				StackConstants.STACK_PROPERTY_FILE_URL, propertyFileUrl);
+		propertyFileUrl = getPropertyOverridesFileURL();
+		if (null != propertyFileUrl) {
+			// Validate the property file
+			StackUtils.validateStackProperty(stack + stackInstance,
+					StackConstants.STACK_PROPERTY_FILE_URL, propertyFileUrl);
 
-		// If we have IAM id and key the load the properties using the Amazon
-		// client, else the URL should be public.
-		String iamId = getIAMUserId();
-		String iamKey = getIAMUserKey();
-		if (propertyFileUrl
-				.startsWith(StackConstants.S3_PROPERTY_FILENAME_PREFIX)
-				&& iamId != null && iamKey != null) {
-			try {
-				S3PropertyFileLoader.loadPropertiesFromS3(propertyFileUrl,
-						iamId, iamKey, stackPropertyOverrides);
-			} catch (IOException e) {
-				throw new RuntimeException(e);
+			// If we have IAM id and key the load the properties using the
+			// Amazon
+			// client, else the URL should be public.
+			String iamId = getIAMUserId();
+			String iamKey = getIAMUserKey();
+			if (propertyFileUrl
+					.startsWith(StackConstants.S3_PROPERTY_FILENAME_PREFIX)
+					&& iamId != null && iamKey != null) {
+				try {
+					S3PropertyFileLoader.loadPropertiesFromS3(propertyFileUrl,
+							iamId, iamKey, stackPropertyOverrides);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
+			} else {
+				loadPropertiesFromURL(propertyFileUrl, stackPropertyOverrides);
 			}
-		} else {
-			loadPropertiesFromURL(propertyFileUrl, stackPropertyOverrides);
+			// Validate the required properties
+			StackUtils.validateRequiredProperties(requiredProperties,
+					stackPropertyOverrides, stack, stackInstance);
 		}
-		// Validate the required properties
-		StackUtils.validateRequiredProperties(requiredProperties,
-				stackPropertyOverrides, stack, stackInstance);
 	}
 
 	public String getProperty(String propertyName) {
 		String propertyValue = null;
-		log.info(propertyName + "=" + System.getProperty(propertyName) 
-				+ " from System properties (just FYI if replacement syntax was used in the props file)");
+		log
+				.info(propertyName
+						+ "="
+						+ System.getProperty(propertyName)
+						+ " from System properties (just FYI if replacement syntax was used in the props file)");
 		if (stackPropertyOverrides.containsKey(propertyName)) {
 			propertyValue = stackPropertyOverrides.getProperty(propertyName);
-			log.info(propertyName + "=" + propertyValue + " from stack property overrides "
-					+ propertyFileUrl);
+			log.info(propertyName + "=" + propertyValue
+					+ " from stack property overrides " + propertyFileUrl);
 		} else {
 			propertyValue = defaultStackProperties.getProperty(propertyName);
 			log.info(propertyName + "=" + propertyValue
-					+ " from default stack properties " + defaultPropertiesFilename);
+					+ " from default stack properties "
+					+ defaultPropertiesFilename);
 		}
 		// NullPointerExceptions further downstream are not very helpful, throw
 		// here
@@ -249,14 +255,10 @@ public class TemplatedConfiguration {
 	 * 
 	 * @return
 	 */
-	public String getPropertyFileURL() {
+	public String getPropertyOverridesFileURL() {
 		String url = System.getProperty(StackConstants.PARAM1);
 		if (url == null)
 			url = System.getProperty(StackConstants.STACK_PROPERTY_FILE_URL);
-		if (url == null)
-			throwRequiredPropertyException(
-					StackConstants.STACK_PROPERTY_FILE_URL,
-					StackConstants.PARAM1);
 		return url;
 	}
 
@@ -361,66 +363,28 @@ public class TemplatedConfiguration {
 	public String getPortalEndpoint() {
 		return getProperty("org.sagebionetworks.portal.endpoint");
 	}
-	
+
 	/**
 	 * The repository Apache HttpClient connection pool properties
+	 * 
 	 * @return the max number of connections per route
 	 */
 	public int getHttpClientMaxConnsPerRoute() {
-		// We get connection timeouts from HttpClient if max conns is zero, which is a confusing 
-		// error, so instead check more vigorously for that configuration mistake
+		// We get connection timeouts from HttpClient if max conns is zero,
+		// which is a confusing
+		// error, so instead check more vigorously for that configuration
+		// mistake
 		String maxConnsPropertyName = "org.sagebionetworks.httpclient.connectionpool.maxconnsperroute";
 		int maxConns = Integer.parseInt(getProperty(maxConnsPropertyName));
-		if(1 > maxConns) {
-			throw new IllegalArgumentException(maxConnsPropertyName + " must be greater than zero");
+		if (1 > maxConns) {
+			throw new IllegalArgumentException(maxConnsPropertyName
+					+ " must be greater than zero");
 		}
 		return maxConns;
 	}
-	
 
 	public String getRScriptPath() {
 		return getProperty("org.sagebionetworks.rScript.path");
 	}
-	
-	public String getGEPipelineSourceProjectId() {
-		return getProperty("org.sagebionetworks.gepipeline.sourceProjectId");
-	}
-	
-	
-	public String getGEPipelineTargetProjectId() {
-		return getProperty("org.sagebionetworks.gepipeline.targetProjectId");
-	}
-	
-	public String getGEPipelineCrawlerScript() {
-		return getProperty("org.sagebionetoworks.gepipeline.crawlerscript");
-	}
-	
-	public String getGEPipelineWorkflowScript() {
-		return getProperty("org.sagebionetoworks.gepipeline.workflowscript");
-	}
-	
-	public String getGEPipelineMaxDatasetSize() {
-		return getProperty("org.sagebionetworks.gepipeline.maxdatasetsize");
-	}
 
-	public String getGEPipelineMaxWorkflowInstances() {
-		return getProperty("org.sagebionetworks.gepipeline.maxworkflowinstances");
-	}
-	
-	public String getGEPipelineNoop() {
-		return getProperty("org.sagebionetworks.gepipeline.noop");
-	}
-	
-	public int getGEPipelineSmallCapacityGB() {
-		return Integer.parseInt(getProperty("org.sagebionetworks.gepipeline.smallGB"));
-	}
-	
-	public int getGEPipelineMediumCapacityGB() {
-		return Integer.parseInt(getProperty("org.sagebionetworks.gepipeline.mediumGB"));
-	}
-	
-	public int getGEPipelineLargeCapacityGB() {
-		return Integer.parseInt(getProperty("org.sagebionetworks.gepipeline.largeGB"));
-	}
-	
 }
