@@ -1,0 +1,11 @@
+{
+    "description":"The type of sort option for a facet",
+    "type":"string",
+    "name":"FacetSortOptions",
+    "enum":[
+        "ALPHA",
+        "COUNT",
+        "MAX",
+        "SUM"
+    ],
+}

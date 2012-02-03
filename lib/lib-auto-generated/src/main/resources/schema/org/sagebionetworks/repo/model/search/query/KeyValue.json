@@ -1,0 +1,13 @@
+{
+    "description":"JSON schema for a faceted key-value pair.",
+    "properties":{
+        "key":{
+        	"type":"string",
+        	"description":"The facet name"
+        },
+        "value":{
+        	"type":"string",
+        	"description":"The facet value"
+        }
+    }
+}

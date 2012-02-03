@@ -1,0 +1,24 @@
+{
+    "description":"JSON schema for a facet field sort key-value pair.",
+    "properties":{
+        "facetName":{
+        	"type":"string",
+        	"description":"The facet name"
+        },
+        "sortType":{
+			"$ref":"org.sagebionetworks.repo.model.search.query.FacetSortOptions"
+        },
+        "sumFields":{
+        	"type":"array",
+        	"description":"Sort the facet values by the sum of the values in two or more fields. This is a list of names of the fields to sum.",
+            "uniqueItems":false,
+            "items":{
+                "type":"string"
+            }                    	        	
+        },
+        "maxfield":{
+        	"type":"string",
+        	"description":"The facet name"        	
+        }
+    }
+}

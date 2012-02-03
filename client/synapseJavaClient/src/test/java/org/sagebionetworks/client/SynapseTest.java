@@ -150,5 +150,5 @@ public class SynapseTest {
 		assertEquals(layerHeader, firstHeader);
 		
 	}
-	
+		
 }
