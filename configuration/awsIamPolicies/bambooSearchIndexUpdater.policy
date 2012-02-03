@@ -3,7 +3,8 @@
         [
             {
                 "Action": [
-                    "s3:GetObject"
+                    "s3:GetObject",
+                    "s3:DeleteObject"
                 ],
                 "Effect": "Allow",
                 "Resource": "arn:aws:s3:::bambooworkflow.sagebase.org/Search/*"
