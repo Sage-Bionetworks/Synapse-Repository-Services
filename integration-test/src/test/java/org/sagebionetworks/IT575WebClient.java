@@ -1,7 +1,10 @@
 package org.sagebionetworks;
 
 
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.reset;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -23,10 +26,10 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
-import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.web.client.EntityTypeProvider;
 import org.sagebionetworks.web.client.GlobalApplicationState;
 import org.sagebionetworks.web.client.PlaceChanger;
 import org.sagebionetworks.web.client.SynapseClientAsync;
@@ -94,6 +97,10 @@ public class IT575WebClient {
 		layer.setParentId(dataset.getId());
 		layer.setType(LayerTypeNames.G);			
 		layer = synapse.createEntity(layer);		
+
+		project.setUri("blahblah/project/id");
+		dataset.setUri("blahblah/dataset/id");
+		layer.setUri("blahblah/layer/id");
 		
 	} 
 
@@ -107,8 +114,10 @@ public class IT575WebClient {
 
 
 	/**
+	 * This test should be refactored with Bruce's new code for workflows
 	 * @throws Exception
 	 */
+	@Ignore
 	@SuppressWarnings("unused")
 	@Test
 	public void testLicensedDownloader() throws Exception {		
@@ -148,11 +157,14 @@ public class IT575WebClient {
 		datasetWrapper.setEntityJson(datasetObj.toJSONString());
 		when(mockNodeModelCreator.createEntity(datasetWrapper)).thenReturn(dataset);
 		
+		// create entity type provider
+		EntityTypeProvider entityTypeProvider = new EntityTypeProvider(synapseClient, new JSONObjectAdapterImpl());		
+		
 		// create, run and verify
 		LicensedDownloader downloader = new LicensedDownloader(mockView,
 				nodeService, licenseService, mockNodeModelCreator,
 				mockAuthenticationController, mockGlobalApplicationState,
-				synapseClient, jsonObjectAdapterProvider);
+				synapseClient, jsonObjectAdapterProvider, entityTypeProvider);
 		reset(mockView);				
 		downloader.configureHeadless(layer, false);		
 		
