@@ -1,13 +1,20 @@
 package org.sagebionetworks.repo.model.ontology;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 
 import com.hp.hpl.jena.graph.Node;
+import com.hp.hpl.jena.ontology.OntModelSpec;
+import com.hp.hpl.jena.ontology.impl.OntModelImpl;
 import com.hp.hpl.jena.query.Query;
 import com.hp.hpl.jena.query.QueryExecution;
 import com.hp.hpl.jena.query.QueryExecutionFactory;
@@ -56,6 +63,20 @@ public class ConceptJenaDAOImpl implements ConceptDAO {
 	public static final Property PROP_ALT_LABEL = new PropertyImpl(SKOS_URL+ALT_LABEL);
 
 	private Model rdfModel;
+	
+	@Autowired
+	String ontologyBaseURI;
+	
+	/**
+	 * Used by spring
+	 * @throws IOException 
+	 */
+	public ConceptJenaDAOImpl(String classpathFile) throws IOException{
+		URL url = ConceptJenaDAOImpl.class.getClassLoader().getResource(classpathFile);
+		if(url == null) throw new IOException("Failed to find: "+classpathFile+" on the classpath");
+		OntModelImpl reader = new OntModelImpl(OntModelSpec.OWL_MEM);
+		rdfModel = reader.read(url.toString());
+	}
 
 	/**
 	 * Create a new Concept DAO from a SKOS RDF file URI.

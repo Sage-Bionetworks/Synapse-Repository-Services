@@ -193,6 +193,12 @@
                 <type>jar</type>
                 <scope>compile</scope>
             </dependency>
+            
+            <dependency>
+				<groupId>cglib</groupId>
+				<artifactId>cglib</artifactId>
+				<version>2.2</version>
+			</dependency>
 
             <dependency>
                 <groupId>junit</groupId>
@@ -315,7 +321,13 @@
                 <artifactId>lib-id-generator</artifactId>
                 <version>${project.version}</version>
             </dependency>
-
+            
+            <dependency>
+                <groupId>org.sagebionetworks</groupId>
+                <artifactId>lib-concepts</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            
             <dependency>
                 <groupId>org.sagebionetworks</groupId>
                 <artifactId>lib-jdomodels</artifactId>

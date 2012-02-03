@@ -270,6 +270,8 @@ public class UrlHelpers {
 	public static final String ENTITY_SEARCH_DOCUMENT_DAMEON = DAEMON+SEARCH_DOCUMENT;
 	public static final String ENTITY_DAEMON_ID				= DAEMON+DAEMON_ID;
 	
+	public static final String CONCEPT_SUMMARY	= "/conceptSummary";
+	
 	/**
 	 * The stack status of synapse 
 	 */

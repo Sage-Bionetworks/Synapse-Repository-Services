@@ -1,0 +1,25 @@
+{
+    "description":"JSON schema for an ontology concept",
+    "properties":{
+        "children":{
+            "type":"array",
+            "description":"The list of children that match the requested concept.",
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.ontology.ConceptSummary",
+                
+            }
+        },
+        "parentConceptUri":{
+            "type":"string",
+            "description":"The parent concept's URI.",
+            "format":"uri",
+            
+        },
+        "prefixFilter":{
+            "type":"string",
+            "description":"The prifix filter used to generate this result.",
+            
+        },
+        
+    }
+}

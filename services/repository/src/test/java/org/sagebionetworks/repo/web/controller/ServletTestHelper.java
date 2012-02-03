@@ -37,6 +37,9 @@ import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.ontology.ConceptRequest;
+import org.sagebionetworks.repo.model.ontology.ConceptSummaryResponse;
+import org.sagebionetworks.repo.model.ontology.SummaryRequest;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.GenericEntityController;
@@ -1486,5 +1489,33 @@ public class ServletTestHelper {
 		}
 		return objectMapper.readValue(response.getContentAsString(),
 				SearchResults.class);	}
+	
+	/**
+	 * 
+	 * @param dispatchServlet
+	 * @param param
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static ConceptSummaryResponse getConceptsForParent(SummaryRequest params)
+			throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.CONCEPT_SUMMARY);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		StringWriter out = new StringWriter();
+		objectMapper.writeValue(out, params);
+		String body = out.toString();
+		request.setContent(body.getBytes("UTF-8"));
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return (ConceptSummaryResponse) objectMapper.readValue(response.getContentAsString(), ConceptSummaryResponse.class);
+	}
 	
 }

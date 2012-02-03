@@ -12,6 +12,7 @@
 	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
+	<import resource="classpath:concept-dao-beans.spb.xml"/>
 	<import resource="classpath:dao-beans.spb.xml"/>
 	<import resource="controllerProfiler-spb.xml"/>
 	
@@ -54,6 +55,10 @@
     class="org.sagebionetworks.repo.manager.backup.NodeBackupDriverImpl" scope="singleton"/>
 	
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl" scope="singleton"/>
+	
+	<bean id="conceptCache" class="org.sagebionetworks.repo.manager.ontology.ConceptCacheLocalImpl" scope="singleton"/>
+	
+	<bean id="conceptManager" class="org.sagebionetworks.repo.manager.ontology.ConceptManagerImpl" scope="singleton"/>
 
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
