@@ -270,6 +270,22 @@ public class ReadOnlyWikiGenerator {
 				}
 				break; // we have displayed one clinical layer, don't bother with any others
 			}
+			
+//			log.info("h2. References");
+//			String datasetId = dataset.getString("id");
+//			if (datasetId==null || datasetId.length()==0) throw new RuntimeException("No dataset");
+//			String datasetVersion = dataset.getString("version");
+//			if (datasetVersion==null || datasetVersion.length()==0) throw new RuntimeException("No datasetVersion");
+//			wiki
+//			.doGet(
+//					"/entity/"+datasetId+"/referencedby",
+//					"h3. Find reference to any version of an entity",
+//					"");
+//			wiki
+//			.doGet(
+//					"/entity/"+datasetId+"/version/"+datasetVersion+"/referencedby",
+//					"h3. Find reference to a specific version of an entity",
+//					"");
 
 			log.info("h2. Schemas");
 			wiki

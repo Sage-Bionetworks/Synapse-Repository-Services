@@ -327,4 +327,28 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getNodePathAsAdmin(entityId);
 	}
 
+
+	/**
+	 * @param userInfo
+	 * @param entityId
+	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
+	 */
+	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String entityId) 
+				throws NotFoundException, DatastoreException {
+		// pass through
+		return nodeManager.getEntityReferences(userInfo, entityId);
+	}
+
+	/**
+	 * @param userInfo
+	 * @param entityId
+	 * @param versionNumber
+	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
+	 */
+	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String entityId, int versionNumber) 
+				throws NotFoundException, DatastoreException {
+		// pass through
+		return nodeManager.getEntityReferences(userInfo, entityId, versionNumber);
+	}
+
 }

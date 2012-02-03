@@ -55,7 +55,7 @@ public class NodeManagerAuthorizationTest {
 		mockEntityBootstrapper = Mockito.mock(EntityBootstrapper.class);
 		mockInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao, mockEntityBootstrapper, mockInheritanceManager );
+		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao, mockEntityBootstrapper, mockInheritanceManager, null );
 		// The mocks user for tests
 		mockNode = Mockito.mock(Node.class);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project.name());

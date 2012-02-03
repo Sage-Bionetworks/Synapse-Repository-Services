@@ -47,7 +47,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	
 	// This is better suited for simple JDBC query.
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	@Autowired
 	FieldTypeDAO fieldTypeDao;
@@ -118,16 +118,16 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		StringBuilder countQuery = new StringBuilder();
 		// This will contain the full query
 		StringBuilder fullQuery = new StringBuilder();
-		boolean columnsExist = bulidQueryStrings(in, userInfo, countQuery, fullQuery, parameters);
+		boolean columnsExist = buildQueryStrings(in, userInfo, countQuery, fullQuery, parameters);
 		if(!columnsExist){
 			// For this case there will be no results
 			return new NodeQueryResults();
 		}
 		// Run the count query
-		long count = this.simpleJdbcTempalte.queryForLong(countQuery.toString(), parameters);
+		long count = this.simpleJdbcTemplate.queryForLong(countQuery.toString(), parameters);
 		// Now execute the non-count query
 		SizeLimitRowMapper sizeLimitMapper = new SizeLimitRowMapper(MAX_BYTES_PER_QUERY);
-		List<Map<String, Object>> results = simpleJdbcTempalte.query(fullQuery.toString(), sizeLimitMapper, parameters);
+		List<Map<String, Object>> results = simpleJdbcTemplate.query(fullQuery.toString(), sizeLimitMapper, parameters);
 		String userId = null;
 		if(userInfo.getUser() != null){
 			userId = userInfo.getUser().getUserId();
@@ -158,13 +158,13 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		StringBuilder countQuery = new StringBuilder();
 		// This will contain the full query
 		StringBuilder fullQuery = new StringBuilder();
-		boolean columnsExist = bulidQueryStrings(query, userInfo, countQuery, fullQuery, parameters);
+		boolean columnsExist = buildQueryStrings(query, userInfo, countQuery, fullQuery, parameters);
 		if(!columnsExist){
 			// For this case there will be no results
 			return 0;
 		}
 		// Run the count query
-		long count = this.simpleJdbcTempalte.queryForLong(countQuery.toString(), parameters);
+		long count = this.simpleJdbcTemplate.queryForLong(countQuery.toString(), parameters);
 		return count;
 	}
 
@@ -178,7 +178,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @throws DatastoreException
 	 * @return True, if the query is valid and can be run, else false.
 	 */
-	private boolean bulidQueryStrings(BasicQuery in, UserInfo userInfo, StringBuilder countQuery, StringBuilder fullQuery, Map parameters) throws DatastoreException{
+	private boolean buildQueryStrings(BasicQuery in, UserInfo userInfo, StringBuilder countQuery, StringBuilder fullQuery, Map parameters) throws DatastoreException{
 		// Add a filter on type if needed
 		if(in.getFrom() != null){
 			// Add the type to the filter
@@ -217,7 +217,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			return false;
 		}
 		// Build the authorization filter
-		String authorizationFilter = buildAuthorizationFilter(userInfo, parameters);
+		String authorizationFilter = QueryUtils.buildAuthorizationFilter(userInfo, parameters);
 		// Build the paging
 		String paging = buildPaging(in.getOffset(), in.getLimit(), parameters);
 
@@ -246,46 +246,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		return true;
 	}
 	
-	/**
-	 * Build up the authorzation filter
-	 * @param userInfo
-	 * @param parameters
-	 * @return
-	 */
-	public static String buildAuthorizationFilter(UserInfo userInfo, Map<String, Object> parameters) {
-		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
-		if(parameters == null) throw new IllegalArgumentException("Parameters cannot be null");
-		// First off, if the user is an administrator then thers is no filter
-		if(userInfo.isAdmin()){
-			return "";
-		}
-		// For all other cases we build up a filter
-		Collection<UserGroup> groups = userInfo.getGroups();
-		if(groups == null) throw new IllegalArgumentException("User's groups cannot be null");
-		if(groups.size() < 1) throw new IllegalArgumentException("User must belong to at least one group");
-		String sql = AuthorizationSqlUtil.authorizationSQL(groups.size());
-		// Bind the variables
-		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, ACCESS_TYPE.READ.name());
-		// Bind each group
-		Iterator<UserGroup> it = groups.iterator();
-		int index = 0;
-		while(it.hasNext()){
-			UserGroup ug = it.next();
-			if(ug == null) throw new IllegalArgumentException("UserGroup was null");
-			if(ug.getId() == null) throw new IllegalArgumentException("UserGroup.id cannot be null");
-			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+index, Long.parseLong(ug.getId()));
-			index++;
-		}
-		StringBuilder builder = new StringBuilder();
-		builder.append("inner join (");
-		builder.append(sql);
-		builder.append(") ");
-		builder.append(SqlConstants.AUTH_FILTER_ALIAS);
-		buildJoinOn(builder, SqlConstants.NODE_ALIAS,
-				SqlConstants.COL_NODE_BENEFACTOR_ID, SqlConstants.AUTH_FILTER_ALIAS, SqlConstants.ACL_OWNER_ID_COLUMN);
-		return builder.toString();
-	}
-
 	/**
 	 * Helper to get the count from various objects
 	 * 
@@ -351,28 +311,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	}
 	
 
-
-	/**
-	 * Build up "on (oneAlias.oneColumn = twoAias.twoColumn)"
-	 * 
-	 * @param builder
-	 * @param oneAlias
-	 * @param oneColumn
-	 * @param twoAlias
-	 * @param twoColumn
-	 */
-	private static void buildJoinOn(StringBuilder builder, String oneAlias,
-			String oneColumn, String twoAlias, String twoColumn) {
-		builder.append(" on (");
-		builder.append(oneAlias);
-		builder.append(".");
-		builder.append(oneColumn);
-		builder.append(" = ");
-		builder.append(twoAlias);
-		builder.append(".");
-		builder.append(twoColumn);
-		builder.append(")");
-	}
 
 	private String buildPaging(long offset, long limit,
 			Map<String, Object> parameters) {

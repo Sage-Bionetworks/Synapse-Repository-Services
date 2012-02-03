@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -15,12 +17,13 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ReferenceDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
@@ -59,6 +62,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Autowired
 	private NodeInheritanceManager nodeInheritanceManager;
 	
+	@Autowired
+	private ReferenceDao referenceDao;
+	
 	// for testing (in prod it's autowired)
 	public void setAuthorizationManager(AuthorizationManager authorizationManager) {
 		 this.authorizationManager =  authorizationManager;
@@ -69,13 +75,16 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 * @param nodeDao
 	 * @param authDoa
 	 */
-	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, FieldTypeDAO fieldTypeday, AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper, NodeInheritanceManager nodeInheritanceManager){
+	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, FieldTypeDAO fieldTypeday, 
+			AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper, 
+			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao){
 		this.nodeDao = nodeDao;
 		this.authorizationManager = authDoa;
 		this.fieldTypeDao = fieldTypeday;
 		this.aclDAO = aclDao;
 		this.entityBootstrapper = entityBootstrapper;
 		this.nodeInheritanceManager = nodeInheritanceManager;
+		this.referenceDao = referenceDao;
 	}
 	
 	/**
@@ -482,6 +491,23 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return nodeDao.getEntityHeader(entityId);
 	}
 
+	@Transactional(readOnly = true)
+	@Override
+	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId)
+			throws NotFoundException, DatastoreException {
+		UserInfo.validateUserInfo(userInfo);
+		return new ArrayList<EntityHeader>(referenceDao.getReferrers(Long.parseLong(nodeId), userInfo));
+	}
+	
+
+	@Transactional(readOnly = true)
+	@Override
+	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId, int versionNumber)
+			throws NotFoundException, DatastoreException {
+		UserInfo.validateUserInfo(userInfo);
+		return new ArrayList<EntityHeader>(referenceDao.getReferrers(Long.parseLong(nodeId), versionNumber, userInfo));
+	}
+	
 
 
 }

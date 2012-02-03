@@ -1432,6 +1432,40 @@ public class ServletTestHelper {
 				response.getContentAsString(), EntityHeader.class);
 	}
 
+	public static List<Map> getEntityReferences(HttpServlet dispatchServlet,
+			String id, String userId) throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.REFERENCED_BY);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return (List<Map>) objectMapper.readValue(
+				response.getContentAsString(), List.class);
+	}
+
+	public static List<Map> getEntityReferences(HttpServlet dispatchServlet,
+			String id, int versionNumber, String userId) throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.VERSION + "/" + versionNumber + UrlHelpers.REFERENCED_BY);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return (List<Map>) objectMapper.readValue(
+				response.getContentAsString(), List.class);
+	}
+
 	/**
 	 * Get the PermissionInfo for a given entity.
 	 * 

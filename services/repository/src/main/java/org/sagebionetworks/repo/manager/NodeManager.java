@@ -216,4 +216,20 @@ public interface NodeManager {
 	 */
 	public void deleteVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
+	/**
+	 * @param userInfo
+	 * @param entityId
+	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
+	 */
+	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId)
+				throws NotFoundException, DatastoreException;
+	
+	/**
+	 * @param userInfo
+	 * @param entityId
+	 * @param versionNumber
+	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
+	 */
+	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId, int versionNumber)
+				throws NotFoundException, DatastoreException;
 }

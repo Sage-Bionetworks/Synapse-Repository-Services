@@ -638,4 +638,19 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		return getEntityHeader(userId, benefactor);
 	}
 
+	@Override
+	public List<EntityHeader> getEntityReferences(String userId, String entityId)
+			throws NotFoundException, DatastoreException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getEntityReferences(userInfo, entityId);
+	}
+
+	@Override
+	public List<EntityHeader> getEntityReferences(String userId, String entityId, int versionNumber)
+			throws NotFoundException, DatastoreException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getEntityReferences(userInfo, entityId, versionNumber);
+	}
+
+
 }

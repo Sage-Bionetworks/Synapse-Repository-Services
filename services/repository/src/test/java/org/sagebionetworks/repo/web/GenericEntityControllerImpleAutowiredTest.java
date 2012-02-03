@@ -8,7 +8,9 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -19,6 +21,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -26,6 +29,8 @@ import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.util.UserProvider;
@@ -208,6 +213,28 @@ public class GenericEntityControllerImpleAutowiredTest {
 			// Check all of the urls
 			UrlHelpers.validateAllUrls(location);
 		}
+	}
+	
+	@Test
+	public void testGetReferences() throws Exception {
+		// get an entity
+		String id1 = toDelete.get(0);
+		// verify that nothing refers to it
+		List<EntityHeader> ehs = entityController.getEntityReferences(userName, id1);
+		assertEquals(0, ehs.size());
+		// make another entity refer to the first one
+		Step step = new Step();
+		Reference ref = new Reference();
+		ref.setTargetId(id1);
+		Set<Reference> refs = new HashSet<Reference>();
+		refs.add(ref);
+		step.setInput(refs);
+		step = entityController.createEntity(userName, step, mockRequest);
+		toDelete.add(step.getId());
+		// verify that the Step can be retrieved via its reference
+		ehs = entityController.getEntityReferences(userName, id1);
+		assertEquals(1, ehs.size());
+		assertEquals(step.getId(), ehs.iterator().next().getId());
 	}
 
 }

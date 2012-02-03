@@ -528,7 +528,7 @@ public class NodeManagerImplAutoWiredTest {
 		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		
 		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, 
-				mockFieldTypeDao, aclDAO, entityBootstrapper, mockNodeInheritanceManager);		
+				mockFieldTypeDao, aclDAO, entityBootstrapper, mockNodeInheritanceManager, null);		
 		
 		//set child's parentId to the newProject
 		fetchedChild.setParentId(newProjectId);
@@ -568,7 +568,7 @@ public class NodeManagerImplAutoWiredTest {
 		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		
 		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, 
-				mockFieldTypeDao, aclDAO, entityBootstrapper, mockNodeInheritanceManager);	
+				mockFieldTypeDao, aclDAO, entityBootstrapper, mockNodeInheritanceManager, null);	
 		
 		//make a non parentId change to the child
 		Node fetchedNode = nodeManager.get(testUser, childId);

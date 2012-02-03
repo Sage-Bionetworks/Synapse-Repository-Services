@@ -235,7 +235,19 @@ public interface EntityManager {
 	public void overrideAuthDaoForTest(AuthorizationManager mockAuth);
 
 
+	/**
+	 * @param userInfo
+	 * @param entityId
+	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
+	 */
+	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException;
 
 
+	/**
+	 * @param userInfo
+	 * @param entityId
+	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
+	 */
+	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String entityId, int versionNumber) throws NotFoundException, DatastoreException;
 
 }

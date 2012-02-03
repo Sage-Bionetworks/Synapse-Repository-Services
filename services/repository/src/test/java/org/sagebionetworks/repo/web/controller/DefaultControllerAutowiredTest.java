@@ -2,12 +2,15 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -32,7 +35,9 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.GenericEntityController;
@@ -346,4 +351,75 @@ public class DefaultControllerAutowiredTest {
 		
 	}
 
+	@Test
+	public void testGetEntityReferences() throws ServletException, IOException{
+		// Create a project
+		Project project = new Project();
+		project.setName("testCreateProject");
+		project.setVersion("1");
+		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
+		assertEquals("1", clone.getVersion());
+		assertNotNull(clone);
+		toDelete.add(clone.getId());
+		
+		String userId = userName;
+		String accessType = AuthorizationConstants.ACCESS_TYPE.READ.name();
+		
+		// get references to object
+		List<Map> ehs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
+		assertEquals(0, ehs.size());
+		
+		// add step
+		Step step = null;
+		Step stepClone = null;
+		{
+			step = new Step();
+			Reference ref = new Reference();
+			ref.setTargetId(clone.getId());
+			Set<Reference> refs = new HashSet<Reference>();
+			refs.add(ref);
+			step.setInput(refs);
+			stepClone = ServletTestHelper.createEntity(dispatchServlet, step, userName);
+			toDelete.add(stepClone.getId());
+			Set<Reference> refs2 = stepClone.getInput();
+			assertEquals(1, refs2.size());
+			Reference ref2 = refs2.iterator().next();
+			// NOTE:  Since we don't specify the version of the target, it is automatically set to the current version!
+			assertEquals(clone.getVersion(), ""+ref2.getTargetVersionNumber());
+		}
+		
+		// get references
+		ehs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
+		assertEquals(1, ehs.size());
+		assertEquals(stepClone.getId(), ehs.iterator().next().get("id"));
+		
+		// try referencing a specific, nonexistent version
+		int v = Integer.parseInt(clone.getVersion());
+		{
+			step = new Step();
+			Reference ref = new Reference();
+			ref.setTargetId(clone.getId());
+			ref.setTargetVersionNumber((long)(v+1));
+			Set<Reference> refs = new HashSet<Reference>();
+			refs.add(ref);
+			step.setInput(refs);
+			stepClone = ServletTestHelper.createEntity(dispatchServlet, step, userName);
+			toDelete.add(stepClone.getId());
+		}
+				
+		// both Steps refer to some version of the Project
+		ehs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
+		assertEquals(ehs.toString(), 2, ehs.size());
+		
+		// only one step refers to version 1 of the Project
+		ehs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v, userId);
+		assertEquals(ehs.toString(), 1, ehs.size());
+		
+		// No Step refers to version 100 of the Project
+		ehs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v+99, userId);
+		assertEquals(0, ehs.size());
+		
+		
+	}
+	
 }

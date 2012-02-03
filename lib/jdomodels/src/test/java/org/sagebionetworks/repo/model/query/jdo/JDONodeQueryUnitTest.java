@@ -31,7 +31,7 @@ public class JDONodeQueryUnitTest {
 		when(adminUserInfo.isAdmin()).thenReturn(true);
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		// This should produce an empty string for an admin user.
-		String sql = JDONodeQueryDaoImpl.buildAuthorizationFilter(adminUserInfo, params);
+		String sql = QueryUtils.buildAuthorizationFilter(adminUserInfo, params);
 		assertEquals("The authorization filter for an admin users should be an empty string","", sql);
 		assertEquals(0, params.size());
 	}
@@ -43,7 +43,7 @@ public class JDONodeQueryUnitTest {
 		when(nonAdminUserInfo.getGroups()).thenReturn(null);
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		// should throw an exception
-		String sql = JDONodeQueryDaoImpl.buildAuthorizationFilter(nonAdminUserInfo, params);
+		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo, params);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -53,7 +53,7 @@ public class JDONodeQueryUnitTest {
 		when(nonAdminUserInfo.getGroups()).thenReturn(new ArrayList<UserGroup>());
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		// Should throw an exception.
-		String sql = JDONodeQueryDaoImpl.buildAuthorizationFilter(nonAdminUserInfo, params);
+		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo, params);
 	}
 	
 	@Test
@@ -70,7 +70,7 @@ public class JDONodeQueryUnitTest {
 		groups.add(group);
 		when(nonAdminUserInfo.getGroups()).thenReturn(groups);
 		// This should build a query with two groups
-		String sql = JDONodeQueryDaoImpl.buildAuthorizationFilter(nonAdminUserInfo, params);
+		String sql = QueryUtils.buildAuthorizationFilter(nonAdminUserInfo, params);
 		assertNotNull(sql);
 		// It should not be an empty string.
 		assertFalse("".equals(sql.trim()));

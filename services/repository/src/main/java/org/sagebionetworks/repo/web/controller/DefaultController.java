@@ -877,4 +877,53 @@ public class DefaultController extends BaseController {
 		return new BooleanResult(entityController.hasAccess(id, userId, request, type.getClassForType(), accessType));
 	}
 	
+	/**
+	 * Get the headers for entities having references to an existing entity.
+	 * @param userId -The user that is doing the get.
+	 * @param id - The target entity's ID.
+	 * @param request
+	 * @return The headers of the entities having references to the given entity
+	 * @throws NotFoundException - Thrown if the requested entity does not exist.
+	 * @throws DatastoreException - Thrown when an there is a server failure. 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.ENTITY_ID+UrlHelpers.REFERENCED_BY
+			}, method = RequestMethod.GET)
+	public @ResponseBody
+	List<EntityHeader> getEntityReferences(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id, HttpServletRequest request)
+			throws NotFoundException, DatastoreException {
+		// Get the type of an entity by ID.
+		return entityController.getEntityReferences(userId, id);
+	}
+	
+	
+	/**
+	 * Get the headers for entities having references to an existing entity.
+	 * @param userId -The user that is doing the get.
+	 * @param id - The target entity's ID.
+	 * @param request
+	 * @return The headers of the entities having references to the given entity
+	 * @throws NotFoundException - Thrown if the requested entity does not exist.
+	 * @throws DatastoreException - Thrown when an there is a server failure. 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.ENTITY_ID+UrlHelpers.VERSION+UrlHelpers.VERSION_NUMBER+UrlHelpers.REFERENCED_BY
+			}, method = RequestMethod.GET)
+	public @ResponseBody
+	List<EntityHeader> getEntityReferences(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id, 
+			@PathVariable int versionNumber, 
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException {
+		// Get the type of an entity by ID.
+		return entityController.getEntityReferences(userId, id, versionNumber);
+	}
+	
+	
+
 }

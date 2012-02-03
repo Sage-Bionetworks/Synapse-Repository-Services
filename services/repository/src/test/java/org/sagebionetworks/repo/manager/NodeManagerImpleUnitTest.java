@@ -7,7 +7,9 @@ import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -19,11 +21,13 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ReferenceDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -46,22 +50,23 @@ public class NodeManagerImpleUnitTest {
 	private FieldTypeDAO mockFieldTypeDao = null;
 	private EntityBootstrapper mockEntityBootstrapper;
 	private NodeInheritanceManager mockNodeInheritanceManager = null;
+	private ReferenceDao mockReferenceDao = null;
 		
 	private final UserInfo mockUserInfo = new UserInfo(false);
 	private final UserInfo anonUserInfo = new UserInfo(false);
 
 	@Before
 	public void before() throws Exception {
-
-
 		mockNodeDao = Mockito.mock(NodeDAO.class);
 		mockAuthDao = Mockito.mock(AuthorizationManager.class);
 		mockFieldTypeDao = Mockito.mock(FieldTypeDAO.class);
 		mockAclDao = Mockito.mock(AccessControlListDAO.class);
 		mockEntityBootstrapper = Mockito.mock(EntityBootstrapper.class);
 		mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
+		mockReferenceDao = Mockito.mock(ReferenceDao.class);
 		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao, mockEntityBootstrapper, mockNodeInheritanceManager );
+		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao, 
+				mockEntityBootstrapper, mockNodeInheritanceManager, mockReferenceDao);
 
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("2");
@@ -194,5 +199,12 @@ public class NodeManagerImpleUnitTest {
 		assertEquals(copy, annos);
 	}
 	
-	
+	@Test
+	public void testGetReferences() throws Exception {
+		List<EntityHeader> expected = new ArrayList<EntityHeader>();
+		Long id = 101L;
+		UserInfo userInfo = anonUserInfo;
+		when(mockReferenceDao.getReferrers(id, userInfo)).thenReturn(expected);
+		List<EntityHeader> entityHeaders = nodeManager.getEntityReferences(userInfo, ""+id);
+	}
 }

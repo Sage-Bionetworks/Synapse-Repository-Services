@@ -19,6 +19,7 @@
 	
 	<bean id="dboAnnotationsDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDaoImpl"/>
 	
+	<bean id="referenceDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl"/>
 	<bean id="dboReferenceDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl"/>
 
 	<bean id="nodeDao" class="org.sagebionetworks.repo.model.jdo.NodeDAOImpl"

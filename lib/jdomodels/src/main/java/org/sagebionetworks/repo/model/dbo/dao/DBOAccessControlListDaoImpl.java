@@ -43,7 +43,7 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 	private static RowMapper<DBOResourceAccess> accessMapper = new DBOResourceAccess().getTableMapping();
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	@Autowired
 	private UserGroupCache userGroupCache;
@@ -98,12 +98,12 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 		DBOAccessControlList dboAcl = dboBasicDao.getObjectById(DBOAccessControlList.class, param);
 		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl);
 		// Now fetch the rest of the data for this ACL
-		List<DBOResourceAccess> raList = simpleJdbcTempalte.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, owner);
+		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, owner);
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(raSet);
 		for(DBOResourceAccess raDbo: raList){
 			String groupName = userGroupCache.getUserGroupNameForId(raDbo.getUserGroupId());
-			List<String> typeList = simpleJdbcTempalte.query(SELECT_ACCESS_TYPES_FOR_RESOURCE, new RowMapper<String>(){
+			List<String> typeList = simpleJdbcTemplate.query(SELECT_ACCESS_TYPES_FOR_RESOURCE, new RowMapper<String>(){
 				@Override
 				public String mapRow(ResultSet rs, int rowNum)throws SQLException {
 					return rs.getString(COL_RESOURCE_ACCESS_TYPE_ELEMENT);
@@ -123,7 +123,7 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 	
 	private String getETag(String ownerString) throws DatastoreException{
 		Long owner = KeyFactory.stringToKey(ownerString);
-		Long etag = simpleJdbcTempalte.queryForLong(SELECT_OWNER_ETAG, owner);
+		Long etag = simpleJdbcTemplate.queryForLong(SELECT_OWNER_ETAG, owner);
 		return KeyFactory.keyToString(etag);
 	}
 
@@ -137,7 +137,7 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 		dboBasicDao.update(dbo);
 		Long owner = KeyFactory.stringToKey(acl.getId());
 		// Now delete the resource access
-		simpleJdbcTempalte.update(DELETE_RESOURCE_ACCESS_SQL, owner);
+		simpleJdbcTemplate.update(DELETE_RESOURCE_ACCESS_SQL, owner);
 		// Now recreate it from the passed data.
 		populateResourceAccess(acl);
 		return null;
