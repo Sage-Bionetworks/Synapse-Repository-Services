@@ -50,11 +50,11 @@ var EXAMPLES = [
         query: "bq=created_on:0..&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     },
     {
-        desc: "an OR boolean query",
+        desc: "all datasets or layers",
         query: "bq=(or node_type:'layer' node_type:'dataset')&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     },
     {
-        desc: "an AND plus OR boolean query",
+        desc: "only datasets or layers created by Nicole",
         query: "bq=(and (or node_type:'layer' node_type:'dataset') created_by:'nicole.deflaux@sagebase.org')&return-fields=name,id&facet=node_type,disease,species,tissue,platform,num_samples,created_by,modified_by,created_on,modified_on,acl,reference"
     },
     {

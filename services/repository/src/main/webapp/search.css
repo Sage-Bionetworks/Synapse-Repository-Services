@@ -7,6 +7,7 @@ th, td {
     padding: 0.1em 1em;
     border-style: solid;
     border-width: thin;
+    font-size: small;
     }
 
 span.example {

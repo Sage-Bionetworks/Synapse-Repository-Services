@@ -9,12 +9,14 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ConfigurationTest {
+
+	static private MigrationConfigurationImpl configuration = new MigrationConfigurationImpl();
 	
 	@BeforeClass
 	public static void before() throws IOException{
 		// Load the test config file
 		String file = ConfigurationTest.class.getClassLoader().getResource("configuation-test.properties").getFile().replaceAll("%20", " ");
-		Configuration.loadConfigurationFile(file);
+		configuration.loadConfigurationFile(file);
 	}
 
 	
@@ -22,7 +24,7 @@ public class ConfigurationTest {
 	public void testConfiguration() throws IOException{
 
 		// Test the source
-		SynapseConnectionInfo info = Configuration.getSourceConnectionInfo();
+		SynapseConnectionInfo info = configuration.getSourceConnectionInfo();
 		assertNotNull(info);
 		assertEquals("sourceAuth", info.getAuthenticationEndPoint());
 		assertEquals("sourceRepo", info.getRepositoryEndPoint());
@@ -30,7 +32,7 @@ public class ConfigurationTest {
 		assertEquals("sourcePassword", info.getAdminPassword());
 		
 		// Test the destination
-		info = Configuration.getDestinationConnectionInfo();
+		info = configuration.getDestinationConnectionInfo();
 		assertNotNull(info);
 		assertEquals("destAuth", info.getAuthenticationEndPoint());
 		assertEquals("destRepo", info.getRepositoryEndPoint());
@@ -40,16 +42,16 @@ public class ConfigurationTest {
 	
 	@Test
 	public void testMaxThreads(){
-		assertEquals(10, Configuration.getMaximumNumberThreads());
+		assertEquals(10, configuration.getMaximumNumberThreads());
 	}
 	
 	@Test
 	public void testMaxBatchSize(){
-		assertEquals(100, Configuration.getMaximumBatchSize());
+		assertEquals(100, configuration.getMaximumBatchSize());
 	}
 	
 	@Test
 	public void testWorkerTimeout(){
-		assertEquals(30*1000, Configuration.getWorkerTimeoutMs());
+		assertEquals(30*1000, configuration.getWorkerTimeoutMs());
 	}
 }

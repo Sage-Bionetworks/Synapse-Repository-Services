@@ -178,19 +178,19 @@ public class StackStatusPresenter implements Runnable{
 				StackStatus status = client.getCurrentStackStatus();
 				setStackStatus(status.getStatus().name());
 				
-				QueryRunner queryRunner = new QueryRunnerImpl();
+				QueryRunner queryRunner = new QueryRunnerImpl(client);
 				// Get each entity type
 				for(EntityType type: EntityType.values()){
 					// Make some progress
 					setProgresssValue(current++, "Querying for "+type.name()+" count...");
-					long count = queryRunner.getCountForType(type, client);
+					long count = queryRunner.getCountForType(type);
 					setCountForEntity(type, count);
 				}
 				
 				// Make some progress
 				setProgresssValue(current++, "Querying for total entity count...");
 				// Count the total number of entities
-				long total = queryRunner.getTotalEntityCount(client);
+				long total = queryRunner.getTotalEntityCount();
 				setTotalCount(total);
 				
 				// Finished

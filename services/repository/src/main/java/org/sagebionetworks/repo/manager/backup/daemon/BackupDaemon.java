@@ -35,10 +35,12 @@ public class BackupDaemon implements Runnable{
 	
 	private static final String PREFIX_BACKUP = "Backup-";
 	private static final String PREFIX_TEMP = "temp-";
+	private static final String PREFIX_SEARCH = "search-";
 	static private Log log = LogFactory.getLog(BackupDaemon.class);
 	public static long NANO_SECONDS_PER_MILISECOND = 1000000;
 	private static final String S3_DOMAIN = "s3.amazonaws.com";
 	private static final String HTTPS = "https://";
+	private static final String S3KEY_SEARCH_PREFIX = "Search/";
 
 	private BackupRestoreStatusDAO backupRestoreStatusDao;
 	private NodeBackupDriver backupDriver;
@@ -117,7 +119,11 @@ public class BackupDaemon implements Runnable{
 			if(entitiesToBackup == null){
 				// This is a full backup file.
 				prefix = PREFIX_BACKUP;
-			}else{
+			}
+			else if(DaemonType.SEARCH_DOCUMENT == type) {
+				prefix = PREFIX_SEARCH;
+			}
+			else {
 				// Incremental backup files are temporary.
 				prefix = PREFIX_TEMP;
 			}
@@ -168,16 +174,23 @@ public class BackupDaemon implements Runnable{
 				updateStatus();
 			}
 			// If this a backup then update the file to s3
-			if(DaemonType.BACKUP == type || DaemonType.SEARCH_DOCUMENT == type){
+			if(DaemonType.BACKUP == type){
 				// Once the driver is done upload the file to S3.
 				status.setProgresssMessage("Starting to upload temp file: "+tempBackup.getAbsolutePath()+" to S3...");
 				updateStatus();
 				// Now upload the file to S3
-				String backupUrl = uploadFileToS3(tempBackup);
+				String backupUrl = uploadFileToS3(tempBackup, null);
 				status.setBackupUrl(backupUrl);
 			}
-			
-			if(DaemonType.RESTORE == type){
+			else if(DaemonType.SEARCH_DOCUMENT == type){
+				// Once the driver is done upload the file to S3.
+				status.setProgresssMessage("Starting to upload temp file: "+tempBackup.getAbsolutePath()+" to S3...");
+				updateStatus();
+				// Now upload the file to S3
+				String backupUrl = uploadFileToS3(tempBackup, S3KEY_SEARCH_PREFIX);
+				status.setBackupUrl(backupUrl);
+			}
+			else if(DaemonType.RESTORE == type){
 				// If this backup file is a temp file then delete it from S3 now that we have consumed it.
 				// We also want to cleanup backup files from builds.
 				if(backupFileName.startsWith(PREFIX_TEMP) || "dev".equals(stack) || "bamboo".equals(stack)){
@@ -254,6 +267,7 @@ public class BackupDaemon implements Runnable{
 	private void setFailed(Throwable e) {
 		// Log the failure.
 		log.error(e);
+		e.printStackTrace();
 		// Set the status to failed
 		status.setProgresssMessage("");
 		status.setStatus(DaemonStatus.FAILED);
@@ -353,11 +367,12 @@ public class BackupDaemon implements Runnable{
 	 * @param toUpload
 	 * @param id
 	 */
-	private String uploadFileToS3(File toUpload){
-		log.info("Atempting to upload: "+getS3URL(awsBucket, toUpload.getName()));
-		PutObjectResult results = this.awsClient.putObject(awsBucket, toUpload.getName(), toUpload);
+	private String uploadFileToS3(File toUpload, String s3KeyPrefix) {
+		String s3Key = s3KeyPrefix + toUpload.getName();
+		log.info("Atempting to upload: "+getS3URL(awsBucket, s3Key));
+		PutObjectResult results = this.awsClient.putObject(awsBucket, s3Key, toUpload);
 		log.info(results);
-		this.backupFileName = toUpload.getName();
+		this.backupFileName = s3Key;
 		return getS3URL(this.awsBucket, this.backupFileName);
 	}
 

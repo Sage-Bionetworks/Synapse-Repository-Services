@@ -10,8 +10,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.tool.migration.Configuration;
-import org.sagebionetworks.tool.migration.MigrationDriver;
+import org.sagebionetworks.tool.migration.MigrationConfigurationImpl;
+import org.sagebionetworks.tool.migration.RepositoryMigrationDriver;
 import org.sagebionetworks.tool.migration.SynapseConnectionInfo;
 import org.sagebionetworks.tool.migration.gui.presenter.MigrationControlPresenter;
 import org.sagebionetworks.tool.migration.gui.presenter.StackStatusPresenter;
@@ -98,13 +98,14 @@ public class MigrationConsoleUI extends JFrame {
 	 */
 	public static void main(String[] args) throws IOException, SynapseException {
 		// First load the configuration
-		MigrationDriver.loadConfigUsingArgs(args);
+		MigrationConfigurationImpl configuration = new MigrationConfigurationImpl();
+		RepositoryMigrationDriver.loadConfigUsingArgs(configuration, args);
 		// Get the source and destination info
 		// Create the two connections.
-		final SynapseConnectionInfo sourceInfo = Configuration.getSourceConnectionInfo();
-		final SynapseConnectionInfo destInfo = Configuration.getDestinationConnectionInfo();
+		final SynapseConnectionInfo sourceInfo = configuration.getSourceConnectionInfo();
+		final SynapseConnectionInfo destInfo = configuration.getDestinationConnectionInfo();
 		// Create the thread pool
-		int maxThreads = Configuration.getMaximumNumberThreads();
+		int maxThreads = configuration.getMaximumNumberThreads();
 		// We must have at least 2 threads
 		if(maxThreads < 2){
 			maxThreads = 2;

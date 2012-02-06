@@ -13,6 +13,8 @@ public class Job {
 		CREATE,
 		UPDATE,
 		DELETE,
+		SEARCH_ADD, 
+		SEARCH_DELETE
 	}
 	private Set<String> entityIds;
 	private Type jobType;

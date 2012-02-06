@@ -52,7 +52,11 @@ public class IT100BackupRestoration {
 	public static final long TEST_TIME_OUT = 1000 * 60 * 4; // Currently 4 mins
 
 	public static final String BACKUP_FILE_NAME = "BackupDaemonJob512-958031189387028378.zip";
-
+	private static final String S3_DOMAIN = "https://s3.amazonaws.com/";
+	private static String S3_WORKFLOW_BUCKET = StackConfiguration.getS3WorkflowBucket();
+	private static final String S3_WORKFLOW_URL_PREFIX = S3_DOMAIN + S3_WORKFLOW_BUCKET + "/";
+			
+	
 	private static SynapseAdministration synapse;
 	private static AmazonS3Client s3Client;
 	private static String bucket;
@@ -187,10 +191,10 @@ public class IT100BackupRestoration {
 	
 	@Test
 	public void testSearchDocumentRoundTrip() throws Exception{
-		String projectName = "Integration Test - Search Document Round Trip";
+		String projectDescription = "Integration Test - Search Document Round Trip";
 		// Create a project
 		Project project = new Project();
-		project.setName(projectName);
+		project.setDescription(projectDescription);
 		project = synapse.createEntity(project);
 		assertNotNull(project);
 		toDelete.add(project);
@@ -206,15 +210,16 @@ public class IT100BackupRestoration {
 		// Wait for the daemon to complete
 		status = waitForDaemon(status.getId());
 		assertNotNull(status.getBackupUrl());
-		String searchDocumentFileName = getFileNameFromUrl(status.getBackupUrl());
-		// extract the file name
+		assertTrue(status.getBackupUrl().startsWith(S3_WORKFLOW_URL_PREFIX));
+		// extract the s3Key
+		String searchDocumentS3Key = status.getBackupUrl().substring(S3_WORKFLOW_URL_PREFIX.length());
 		
-		S3Object s3Object = s3Client.getObject(bucket, searchDocumentFileName);
+		S3Object s3Object = s3Client.getObject(S3_WORKFLOW_BUCKET, searchDocumentS3Key);
 		String serializedSearchDocuments = IOUtils.toString(s3Object.getObjectContent(), "UTF-8");
 		JSONArray searchDocuments = new JSONArray(serializedSearchDocuments);
 		assertEquals(1, searchDocuments.length());
 		JSONObject searchDocument = searchDocuments.getJSONObject(0);
-		assertEquals(projectName, searchDocument.getJSONObject("fields").getString("name"));
+		assertEquals(projectDescription, searchDocument.getJSONObject("fields").getString("description"));
 		
 	}
 	

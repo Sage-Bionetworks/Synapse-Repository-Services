@@ -28,15 +28,15 @@ public class ClientFactoryImpl implements ClientFactory {
 	}
 
 	@Override
-	public SynapseAdministration createNewSourceClient() throws SynapseException {
+	public SynapseAdministration createNewSourceClient(Configuration configuration) throws SynapseException {
 		// Create a factory using the source info.
-		return createNewConnection(Configuration.getSourceConnectionInfo());
+		return createNewConnection(configuration.getSourceConnectionInfo());
 	}
 
 	@Override
-	public SynapseAdministration createNewDestinationClient() throws SynapseException {
+	public SynapseAdministration createNewDestinationClient(Configuration configuration) throws SynapseException {
 		// Create a factory using the destination info
-		return createNewConnection(Configuration.getDestinationConnectionInfo());
+		return createNewConnection(configuration.getDestinationConnectionInfo());
 	}
 
 }

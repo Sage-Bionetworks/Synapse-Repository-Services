@@ -17,7 +17,6 @@ public class AllEntityDataWorker implements Callable<List<EntityData>>{
 	
 	// This is used to keep track of the progress.
 	private BasicProgress progress;
-	private Synapse client;
 	private QueryRunner queryRunner;
 	
 	
@@ -28,10 +27,9 @@ public class AllEntityDataWorker implements Callable<List<EntityData>>{
 	 * @param queryRunner
 	 * @param progress
 	 */
-	public AllEntityDataWorker(Synapse client, QueryRunner queryRunner,
+	public AllEntityDataWorker(QueryRunner queryRunner,
 			BasicProgress progress) {
 		super();
-		this.client = client;
 		this.queryRunner = queryRunner;
 		this.progress = progress;
 	}
@@ -41,7 +39,7 @@ public class AllEntityDataWorker implements Callable<List<EntityData>>{
 	@Override
 	public List<EntityData> call() throws Exception {
 		// Execute the query
-		return queryRunner.getAllEntityData(client, progress);
+		return queryRunner.getAllEntityData(progress);
 	}
 
 }

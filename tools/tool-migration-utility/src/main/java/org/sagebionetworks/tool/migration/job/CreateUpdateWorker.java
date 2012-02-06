@@ -33,14 +33,14 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 	
 	static private Log log = LogFactory.getLog(CreateUpdateWorker.class);
 	
-	private static long WOKER_TIMEOUT = Configuration.getWorkerTimeoutMs();
-
+	Configuration configuration = null;
 	ClientFactory clientFactory = null;
 	Set<String> entites = null;
 	BasicProgress progress = null;
 
-	public CreateUpdateWorker(ClientFactory clientFactory, Set<String> entites, BasicProgress progress) {
+	public CreateUpdateWorker(Configuration configuration, ClientFactory clientFactory, Set<String> entites, BasicProgress progress) {
 		super();
+		this.configuration = configuration;
 		this.clientFactory = clientFactory;
 		this.entites = entites;
 		this.progress = progress;
@@ -63,7 +63,7 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 		long start = System.currentTimeMillis();
 		while (true) {
 			long now = System.currentTimeMillis();
-			if(now-start > WOKER_TIMEOUT){
+			if(now-start > configuration.getWorkerTimeoutMs()){
 				throw new InterruptedException("Timed out waiting for the daemon to complete");
 			}
 			BackupRestoreStatus status = client.getDaemonStatus(daemonId);
@@ -140,7 +140,7 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 	public WorkerResult call() throws Exception {
 		try {
 			// First get a connection to the source
-			SynapseAdministration client = clientFactory.createNewSourceClient();
+			SynapseAdministration client = clientFactory.createNewSourceClient(configuration);
 			BackupSubmission sumbission = new BackupSubmission();
 			sumbission.setEntityIdsToBackup(this.entites);
 			// Start a backup.
@@ -148,7 +148,7 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 			// Wait for the backup to complete
 			status = waitForDaemon(status.getId(), client);
 			// Now restore this to the destination
-			client = clientFactory.createNewDestinationClient();
+			client = clientFactory.createNewDestinationClient(configuration);
 			String backupFileName = getFileNameFromUrl(status.getBackupUrl());
 			RestoreSubmission restoreSub = new RestoreSubmission();
 			restoreSub.setFileName(backupFileName);

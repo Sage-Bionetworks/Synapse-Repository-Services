@@ -10,13 +10,13 @@ import java.util.List;
  */
 public class EntityQueryResults {
 	
-	private List<EntityData> resutls;
+	private List<EntityData> results;
 	private long totalCount = 0;
-	public List<EntityData> getResutls() {
-		return resutls;
+	public List<EntityData> getResults() {
+		return results;
 	}
-	public void setResutls(List<EntityData> resutls) {
-		this.resutls = resutls;
+	public void setResults(List<EntityData> results) {
+		this.results = results;
 	}
 	public long getTotalCount() {
 		return totalCount;
@@ -24,9 +24,9 @@ public class EntityQueryResults {
 	public void setTotalCount(long totalCount) {
 		this.totalCount = totalCount;
 	}
-	public EntityQueryResults(List<EntityData> resutls, long totalCount) {
+	public EntityQueryResults(List<EntityData> results, long totalCount) {
 		super();
-		this.resutls = resutls;
+		this.results = results;
 		this.totalCount = totalCount;
 	}
 

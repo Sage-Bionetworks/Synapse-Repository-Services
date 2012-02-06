@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -66,7 +67,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	// For now we can just create one of these. We might need to make beans in
 	// the future.
 	MigrationDriver migrationDriver = new MigrationDriverImpl();
-	boolean isFirstEntry = true;
 
 	static {
 		Map<String, String> searchableNodeAnnotations = new HashMap<String, String>();
@@ -116,13 +116,12 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @param destination
 	 * @param progress
 	 * @param entitiesToBackup
-	 * @return
 	 * @throws IOException
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws InterruptedException
 	 */
-	public boolean writeSearchDocument(File destination, Progress progress,
+	public void writeSearchDocument(File destination, Progress progress,
 			Set<String> entitiesToBackup) throws IOException,
 			DatastoreException, NotFoundException, InterruptedException {
 		if (destination == null)
@@ -150,8 +149,16 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		progress.setTotalCount(backupManager.getTotalNodeCount());
 		// First write to the file
 		FileOutputStream outputStream = new FileOutputStream(destination);
+		// DEV NOTE: (1) CloudSearch cannot currently accept zipped content so
+		// we are not making a ZipOutputStream here (2) CloudSearch expects a
+		// raw JSON array so we cannot use something like
+		// org.sagebionetworks.repo.model.search.DocumentBatch here . . . also
+		// building up a gigantic DocumentBatch isn't appropriate for the
+		// streaming we are doing here to help with memory usage when dealing
+		// with a large batch of entities to send to search so this is better
+		// anyway
 		outputStream.write('[');
-		isFirstEntry = true;
+		boolean isFirstEntry = true;
 		try {
 			// First write the root node as its own entry
 			for (String idToBackup : listToBackup) {
@@ -161,7 +168,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 					throw new IllegalArgumentException("Cannot backup node: "
 							+ idToBackup + " because it does not exists");
 				writeSearchDocumentBatch(outputStream, backup, "", progress,
-						isRecursive);
+						isRecursive, isFirstEntry);
+				isFirstEntry = false;
 			}
 		} catch (JSONException e) {
 			throw new DatastoreException(e);
@@ -172,17 +180,17 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				outputStream.close();
 			}
 		}
-		return true;
 	}
 
 	/**
 	 * This is a recursive method that will write the full tree of node data to
 	 * the search document batch.
 	 */
-	private boolean writeSearchDocumentBatch(OutputStream outputStream,
+	private void writeSearchDocumentBatch(OutputStream outputStream,
 			NodeBackup backup, String path, Progress progress,
-			boolean isRecursive) throws JSONException, NotFoundException,
-			DatastoreException, InterruptedException, IOException {
+			boolean isRecursive, boolean isFirstEntry) throws JSONException,
+			NotFoundException, DatastoreException, InterruptedException,
+			IOException {
 		if (backup == null)
 			throw new IllegalArgumentException("NodeBackup cannot be null");
 		if (backup.getNode() == null)
@@ -195,6 +203,13 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		Thread.yield();
 		path = path + node.getId() + PATH_DELIMITER;
 		// Write this node
+		// A well-formed JSON array does not end with a final comma, so here's
+		// how we ensure we add the right commas
+		if (isFirstEntry) {
+			isFirstEntry = false;
+		} else {
+			outputStream.write(",\n".getBytes());
+		}
 		writeSearchDocument(outputStream, backup, path);
 		progress.setMessage(backup.getNode().getName());
 		progress.incrementProgress();
@@ -208,11 +223,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				for (String childId : childList) {
 					NodeBackup child = backupManager.getNode(childId);
 					writeSearchDocumentBatch(outputStream, child, path,
-							progress, isRecursive);
+							progress, isRecursive, false);
 				}
 			}
 		}
-		return true;
 	}
 
 	/**
@@ -246,20 +260,35 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		Long revId = node.getVersionNumber();
 		NodeRevisionBackup rev = backupManager.getNodeRevision(node.getId(),
 				revId);
+
+		// TODO convert individual search documents from JSONObject to
+		// org.sagebionetworks.repo.model.search.Document
+
 		JSONObject document = formulateSearchDocument(node, rev,
 				benefactorBackup.getAcl());
-		// A well-formed JSON array does not end with a final comma, so here's
-		// how we ensure we add the right commas
-		if (isFirstEntry) {
-			isFirstEntry = false;
-		} else {
-			outputStream.write(",\n".getBytes());
-		}
-		outputStream.write(document.toString(4).getBytes("UTF-8"));
+		outputStream.write(convertToCloudSearchDocument(document));
 		outputStream.flush();
 	}
 
-	private JSONObject formulateSearchDocument(Node node,
+	static byte[] convertToCloudSearchDocument(JSONObject document)
+			throws JSONException, UnsupportedEncodingException {
+		String serializedDocument = document.toString(4);
+
+		// CloudSearch pukes on control characters. Some descriptions have
+		// control characters in them for some reason, in any case, just get rid
+		// of all control characters in the search document
+		String cleanedDocument = serializedDocument.replaceAll("\\p{Cc}", "");
+
+		// Get rid of escaped control characters too
+		cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]",
+				"");
+
+		// CloudSearch expects UTF-8
+		return cleanedDocument.getBytes("UTF-8");
+	}
+
+	// TODO convert to org.sagebionetworks.repo.model.search.Document
+	static JSONObject formulateSearchDocument(Node node,
 			NodeRevisionBackup rev, AccessControlList acl) throws JSONException {
 		JSONObject document = new JSONObject();
 		JSONObject fields = new JSONObject();
@@ -317,7 +346,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	}
 
 	@SuppressWarnings("unchecked")
-	private void addAnnotationsToSearchDocument(JSONObject fields,
+	static void addAnnotationsToSearchDocument(JSONObject fields,
 			Annotations annots) throws JSONException {
 
 		for (String key : annots.keySet()) {
@@ -335,27 +364,32 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				continue;
 			}
 
-			String searchFieldName = CATCH_ALL_FIELD;
-			if (SEARCHABLE_NODE_ANNOTATIONS.containsKey(key)) {
-				searchFieldName = SEARCHABLE_NODE_ANNOTATIONS.get(key);
-			}
-
-			JSONArray fieldValues = fields.optJSONArray(searchFieldName);
-			if (null == fieldValues) {
-				fieldValues = new JSONArray();
-				fields.put(searchFieldName, fieldValues);
-			}
-
+			String searchFieldName = SEARCHABLE_NODE_ANNOTATIONS.get(key);
 			for (int i = 0; i < objs.length; i++) {
-				if (CATCH_ALL_FIELD.equals(searchFieldName)) {
-					// TODO dates to epoch time? or skip them?
-					String catchAllValue = key + ":" + objs[i].toString();
-					catchAllValue = catchAllValue.replaceAll("\\s", "_");
-					fieldValues.put(catchAllValue);
-				} else {
-					fieldValues.put(objs[i]);
+				if(null == objs[i]) continue;
+				
+				if (null != searchFieldName) {
+					addAnnotationToSearchDocument(fields, searchFieldName, objs[i]);
 				}
+
+				// Put ALL annotations into the catch-all field even if they are
+				// also in a facet, this way we can discover them both by free
+				// text AND faceted search
+
+				// TODO dates to epoch time? or skip them?
+				String catchAllValue = key + ":" + objs[i].toString();
+				catchAllValue = catchAllValue.replaceAll("\\s", "_");
+				addAnnotationToSearchDocument(fields, CATCH_ALL_FIELD, catchAllValue);
 			}
 		}
+	}
+	
+	static void addAnnotationToSearchDocument(JSONObject fields, String key, Object value) throws JSONException {
+		JSONArray fieldValues = fields.optJSONArray(key);
+		if (null == fieldValues) {
+			fieldValues = new JSONArray();
+			fields.put(key, fieldValues);
+		}
+		fieldValues.put(value);
 	}
 }

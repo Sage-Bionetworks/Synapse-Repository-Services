@@ -37,7 +37,6 @@ import org.sagebionetworks.workflow.curation.ConfigHelper;
  * 
  */
 public class Curation {
-	private static final int DEFAULT_MAX_CONNECTIONS_PER_ROUTE = 20;
 	private static final HttpClient httpClient;
 
 	private static final String TCGA_STATUS = "raw";

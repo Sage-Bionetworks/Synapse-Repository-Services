@@ -1,6 +1,5 @@
 package org.sagebionetworks.tool.migration.job;
 
-import java.io.IOException;
 import java.net.SocketTimeoutException;
 import java.util.Set;
 import java.util.concurrent.Callable;
@@ -12,6 +11,7 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.tool.migration.ClientFactory;
+import org.sagebionetworks.tool.migration.Configuration;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 
 /**
@@ -24,6 +24,7 @@ public class DeleteWorker implements Callable<WorkerResult> {
 
 	static private Log log = LogFactory.getLog(DeleteWorker.class);
 	
+	Configuration configuration = null;
 	ClientFactory clientFactory = null;
 	Set<String> entites = null;
 	BasicProgress progress = null;
@@ -33,8 +34,9 @@ public class DeleteWorker implements Callable<WorkerResult> {
 	 * @param clientFactory
 	 * @param entites
 	 */
-	public DeleteWorker(ClientFactory clientFactory, Set<String> entites, BasicProgress progress) {
+	public DeleteWorker(Configuration configuration, ClientFactory clientFactory, Set<String> entites, BasicProgress progress) {
 		super();
+		this.configuration = configuration;
 		this.clientFactory = clientFactory;
 		this.entites = entites;
 		this.progress = progress;
@@ -45,7 +47,7 @@ public class DeleteWorker implements Callable<WorkerResult> {
 	public WorkerResult call() throws Exception {
 		try {
 			// We only delete from the destination.
-			Synapse client = clientFactory.createNewDestinationClient();
+			Synapse client = clientFactory.createNewDestinationClient(configuration);
 			for(String entityId: this.entites){
 				try{
 					Entity toDelete = client.getEntityById(entityId);

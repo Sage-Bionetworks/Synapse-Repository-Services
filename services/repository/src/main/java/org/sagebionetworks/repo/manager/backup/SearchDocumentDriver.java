@@ -18,13 +18,12 @@ public interface SearchDocumentDriver {
 	 * @param destination
 	 * @param progress
 	 * @param entitiesToBackup
-	 * @return
 	 * @throws IOException
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws InterruptedException
 	 */
-	public boolean writeSearchDocument(File destination, Progress progress, Set<String> entitiesToBackup) throws IOException, DatastoreException, NotFoundException, InterruptedException;
+	public void writeSearchDocument(File destination, Progress progress, Set<String> entitiesToBackup) throws IOException, DatastoreException, NotFoundException, InterruptedException;
 	
 
 }

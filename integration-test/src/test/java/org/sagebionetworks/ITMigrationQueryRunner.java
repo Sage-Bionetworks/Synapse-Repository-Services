@@ -14,7 +14,6 @@ import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.tool.migration.Constants;
 import org.sagebionetworks.tool.migration.dao.EntityData;
@@ -55,8 +54,8 @@ public class ITMigrationQueryRunner {
 	@Test
 	public void testQueryForRoot() throws SynapseException, JSONException{
 		// Make sure we can get the root Entity
-		QueryRunnerImpl queryRunner = new QueryRunnerImpl();
-		EntityData root = queryRunner.getRootEntity(synapse);
+		QueryRunnerImpl queryRunner = new QueryRunnerImpl(synapse);
+		EntityData root = queryRunner.getRootEntity();
 		assertNotNull(root);
 		System.out.println(root);
 		assertNotNull(root.getEntityId());
@@ -79,19 +78,19 @@ public class ITMigrationQueryRunner {
 			expectedList.add(new EntityData(child.getId(), child.getEtag(), child.getParentId()));
 		}
 		// Now make sure we can find all of the children
-		QueryRunnerImpl queryRunner = new QueryRunnerImpl();
+		QueryRunnerImpl queryRunner = new QueryRunnerImpl(synapse);
 		String query = QueryRunnerImpl.QUERY_CHILDREN_OF_ENTITY1+parent.getId();
-		List<EntityData> results = 	queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, 1L, null);
+		List<EntityData> results = 	queryRunner.queryForAllPages(query, Constants.ENTITY, 1L, null);
 		assertEquals(expectedList, results);
 		// Try various page sizes.
-		results = queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, 2L, null);
+		results = queryRunner.queryForAllPages(query, Constants.ENTITY, 2L, null);
 		assertEquals(expectedList, results);
-		results = queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, 3L, null);
+		results = queryRunner.queryForAllPages(query, Constants.ENTITY, 3L, null);
 		assertEquals(expectedList, results);
-		results = queryRunner.queryForAllPages(synapse, query, Constants.ENTITY, children, null);
+		results = queryRunner.queryForAllPages(query, Constants.ENTITY, children, null);
 		assertEquals(expectedList, results);
 		// Also make sure we can run the real query
-		results = queryRunner.getAllAllChildrenOfEntity(synapse, parent.getId());
+		results = queryRunner.getAllAllChildrenOfEntity(parent.getId());
 		assertEquals(expectedList, results);
 	}
 	
@@ -100,8 +99,8 @@ public class ITMigrationQueryRunner {
 		// First build up some hierarchy
 		// Get the root
 		List<EntityData> expectedOrder = new ArrayList<EntityData>();
-		QueryRunnerImpl queryRunner = new QueryRunnerImpl();
-		EntityData root = queryRunner.getRootEntity(synapse);
+		QueryRunnerImpl queryRunner = new QueryRunnerImpl(synapse);
+		EntityData root = queryRunner.getRootEntity();
 		assertNotNull(root);
 		expectedOrder.add(root);
 		// Now add a child
@@ -122,10 +121,10 @@ public class ITMigrationQueryRunner {
 		grandChild = synapse.createEntity(grandChild);
 		expectedOrder.add(new EntityData(grandChild.getId(), grandChild.getEtag(), grandChild.getParentId()));
 		// Now query for all nodes should put them in order.
-		List<EntityData> results = queryRunner.getAllEntityData(synapse, null);
+		List<EntityData> results = queryRunner.getAllEntityData(null);
 		assertNotNull(results);
 		// Check this against the total count
-		long totalCount = queryRunner.getTotalEntityCount(synapse);
+		long totalCount = queryRunner.getTotalEntityCount();
 		System.out.println("Total entity count: "+totalCount);
 		assertEquals(totalCount, results.size());
 		// Now we might have other nodes but we must have the nodes in order

@@ -3,7 +3,6 @@ package org.sagebionetworks.tool.migration;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -37,9 +36,10 @@ import org.sagebionetworks.tool.migration.job.UpdateJobBuilder;
  * @author John
  *
  */
-public class MigrationDriver {
+public class RepositoryMigrationDriver {
 
-	static private Log log = LogFactory.getLog(MigrationDriver.class);
+	static private Log log = LogFactory.getLog(RepositoryMigrationDriver.class);
+	static private MigrationConfigurationImpl configuration = new MigrationConfigurationImpl();
 
 	/**
 	 * @param args
@@ -51,24 +51,26 @@ public class MigrationDriver {
 	 */
 	public static void main(String[] args) throws IOException,
 			SynapseException, JSONException, InterruptedException, ExecutionException {
-		loadConfigUsingArgs(args);
 
+		loadConfigUsingArgs(configuration, args);
+		
 		// Create the two connections.
-		SynapseConnectionInfo sourceInfo = Configuration.getSourceConnectionInfo();
-		SynapseConnectionInfo destInfo = Configuration.getDestinationConnectionInfo();
+		SynapseConnectionInfo sourceInfo = configuration.getSourceConnectionInfo();
+		SynapseConnectionInfo destInfo = configuration.getDestinationConnectionInfo();
 		// Create a source and destination
 		ClientFactoryImpl factory = new ClientFactoryImpl();
 		Synapse sourceClient = factory.createNewConnection(sourceInfo);
 		Synapse destClient = factory.createNewConnection(destInfo);
 
-		// Create the query provider
-		QueryRunner queryRunner = new QueryRunnerImpl();
-		long sourceTotal = queryRunner.getTotalEntityCount(sourceClient);
-		long destTotal = queryRunner.getTotalEntityCount(destClient);
+		// Create the query providers
+		QueryRunner sourceQueryRunner = new QueryRunnerImpl(sourceClient);
+		QueryRunner destQueryRunner = new QueryRunnerImpl(destClient);
+		long sourceTotal = sourceQueryRunner.getTotalEntityCount();
+		long destTotal = destQueryRunner.getTotalEntityCount();
 		// Do a safety check.  If the destination has more entities than the source then confirm with the user that they want to proceed.
 		safetyCheck(sourceInfo.getRepositoryEndPoint(), destInfo.getRepositoryEndPoint(), sourceTotal, destTotal);
 		// Create the thread pool
-		int maxThreads = Configuration.getMaximumNumberThreads();
+		int maxThreads = configuration.getMaximumNumberThreads();
 		// We must have at least 2 threads
 		if(maxThreads < 2){
 			maxThreads = 2;
@@ -91,8 +93,8 @@ public class MigrationDriver {
 			// 1. Get all entity data from both the source and destination.
 			BasicProgress sourceProgress = new BasicProgress();
 			BasicProgress destProgress = new BasicProgress();
-			AllEntityDataWorker sourceQueryWorker = new AllEntityDataWorker(sourceClient, queryRunner, sourceProgress);
-			AllEntityDataWorker destQueryWorker = new AllEntityDataWorker(destClient, queryRunner, destProgress);
+			AllEntityDataWorker sourceQueryWorker = new AllEntityDataWorker(sourceQueryRunner, sourceProgress);
+			AllEntityDataWorker destQueryWorker = new AllEntityDataWorker(destQueryRunner, destProgress);
 			// Start both at the same time
 			Future<List<EntityData>> sourceFuture = threadPool.submit(sourceQueryWorker);
 			Future<List<EntityData>> destFuture = threadPool.submit(destQueryWorker);
@@ -111,7 +113,7 @@ public class MigrationDriver {
 			log.debug("Finished phase one.  Source entity count: "+sourceData.size()+". Destination entity Count: "+destData.size());
 			// Start phase 2
 			log.debug("Starting phase two: Calculating creates, updates, and deletes...");
-			populateQueue(threadPool, jobQueue, sourceData, destData, Configuration.getMaximumBatchSize());
+			populateQueue(threadPool, jobQueue, sourceData, destData, configuration.getMaximumBatchSize());
 			
 			// 3. Process all jobs on the queue.
 			log.debug("Starting phase three: Processing the job queue...");
@@ -137,10 +139,11 @@ public class MigrationDriver {
 
 	/**
 	 * Load the configuration using the passed args.
+	 * @param configuration 
 	 * @param args
 	 * @throws IOException
 	 */
-	public static void loadConfigUsingArgs(String[] args) throws IOException {
+	public static void loadConfigUsingArgs(MigrationConfigurationImpl configuration, String[] args) throws IOException {
 		// Load the location of the configuration property file
 		if (args == null) {
 			throw new IllegalArgumentException(	"The first argument must be the configuration property file path.");
@@ -150,7 +153,7 @@ public class MigrationDriver {
 		}
 		String path = args[0];
 		// Load all of the configuration information.
-		Configuration.loadConfigurationFile(path);
+		configuration.loadConfigurationFile(path);
 	}
 
 	/**
@@ -165,20 +168,33 @@ public class MigrationDriver {
 	public static Future<AggregateResult> consumeAllJobs(ClientFactoryImpl factory,	ExecutorService threadPool, Queue<Job> jobQueue, AggregateProgress progress)
 			throws InterruptedException, ExecutionException {
 		// Create a new worker job.
-		JobQueueWorker queueWorker = new JobQueueWorker(jobQueue, threadPool, factory, progress);
+		JobQueueWorker queueWorker = new JobQueueWorker(configuration, jobQueue, threadPool, factory, progress);
 		// Start the worker job.
 		return threadPool.submit(queueWorker);
 	}
 
+	/**
+	 * Populate the queue with create, update, and delete jobs using what we know about the source and destination repositories using the configured batch size.
+	 * This will block until the queue is populated.
+	 * @param threadPool
+	 * @param jobQueue
+	 * @param sourceData
+	 * @param destData
+	 * @throws InterruptedException
+	 * @throws ExecutionException
+	 */
+	public static ResponseBundle populateQueue(ExecutorService threadPool, Queue<Job> jobQueue, List<EntityData> sourceData, List<EntityData> destData) throws InterruptedException,
+			ExecutionException {
+		return populateQueue(threadPool, jobQueue, sourceData, destData, configuration.getMaximumBatchSize());
+	}
 	/**
 	 * Populate the queue with create, update, and delete jobs using what we know about the source and destination repositories.
 	 * This will block until the queue is populated.
 	 * @param threadPool
 	 * @param jobQueue
 	 * @param sourceData
-	 * @param sourceMap
 	 * @param destData
-	 * @param destMap
+	 * @param maxBatchSize 
 	 * @throws InterruptedException
 	 * @throws ExecutionException
 	 */

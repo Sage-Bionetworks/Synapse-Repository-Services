@@ -8,10 +8,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
 import org.sagebionetworks.tool.migration.ClientFactory;
+import org.sagebionetworks.tool.migration.Configuration;
 import org.sagebionetworks.tool.migration.Progress.AggregateProgress;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 import org.sagebionetworks.tool.migration.job.Job.Type;
 import org.sagebionetworks.tool.migration.job.WorkerResult.JobStatus;
+import org.sagebionetworks.tool.searchupdater.job.SearchDocumentAddWorker;
+import org.sagebionetworks.tool.searchupdater.job.SearchDocumentDeleteWorker;
 
 /**
  * This worker will clear the queue using all available threads, then 
@@ -22,14 +25,16 @@ import org.sagebionetworks.tool.migration.job.WorkerResult.JobStatus;
  */
 public class JobQueueWorker implements Callable<AggregateResult> {
 
+	Configuration configuration = null;
 	Queue<Job> jobQueue;
 	ExecutorService threadPool;
 	ClientFactory factory;
 	AggregateProgress progress;
 
-	public JobQueueWorker(Queue<Job> jobQueue, ExecutorService threadPool,
+	public JobQueueWorker(Configuration configuration, Queue<Job> jobQueue, ExecutorService threadPool,
 			ClientFactory factory, AggregateProgress progress) {
 		super();
+		this.configuration = configuration;
 		this.jobQueue = jobQueue;
 		this.threadPool = threadPool;
 		this.factory = factory;
@@ -53,13 +58,19 @@ public class JobQueueWorker implements Callable<AggregateResult> {
 			// Start the works
 			if (Type.CREATE == job.getJobType()	|| Type.UPDATE == job.getJobType()) {
 				// Create a works
-				CreateUpdateWorker worker = new CreateUpdateWorker(this.factory, job.getEntityIds(), progress);
+				CreateUpdateWorker worker = new CreateUpdateWorker(configuration, this.factory, job.getEntityIds(), progress);
 				// add this worker to the list
 				workerList.add(worker);
-			}else if (Type.DELETE == job.getJobType()) {
+			} else if (Type.DELETE == job.getJobType()) {
 				// Create a works
-				DeleteWorker worker = new DeleteWorker(this.factory, job.getEntityIds(), progress);
+				DeleteWorker worker = new DeleteWorker(configuration, this.factory, job.getEntityIds(), progress);
 				// add this worker to the list
+				workerList.add(worker);
+			} else if (Type.SEARCH_ADD == job.getJobType()) {
+				SearchDocumentAddWorker worker = new SearchDocumentAddWorker(configuration, this.factory, job.getEntityIds(), progress);
+				workerList.add(worker);
+			} else if (Type.SEARCH_DELETE == job.getJobType()) {
+				SearchDocumentDeleteWorker worker = new SearchDocumentDeleteWorker(configuration, this.factory, job.getEntityIds(), progress);
 				workerList.add(worker);
 			} else {
 				throw new IllegalArgumentException("Unknown job type: "	+ job.getJobType());

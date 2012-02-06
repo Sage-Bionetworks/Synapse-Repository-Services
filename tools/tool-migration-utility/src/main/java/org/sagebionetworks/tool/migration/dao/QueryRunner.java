@@ -3,7 +3,6 @@ package org.sagebionetworks.tool.migration.dao;
 import java.util.List;
 
 import org.json.JSONException;
-import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
@@ -21,27 +20,24 @@ public interface QueryRunner {
 	
 	/**
 	 * Get the root entity.
-	 * @param client
 	 * @return
 	 * @throws SynapseException
 	 * @throws JSONException
 	 */
-	public EntityData getRootEntity(Synapse client) throws SynapseException, JSONException;
+	public EntityData getRootEntity() throws SynapseException, JSONException;
 	
 	/**
 	 * Get all entity data from a given repository.
-	 * @param client
 	 * @return
 	 * @throws SynapseException
 	 * @throws IllegalAccessException
 	 * @throws JSONException 
 	 * @throws InterruptedException 
 	 */
-	public List<EntityData> getAllEntityData(Synapse client, BasicProgress progress) throws SynapseException, JSONException, InterruptedException;
+	public List<EntityData> getAllEntityData(BasicProgress progress) throws SynapseException, JSONException, InterruptedException;
 	
 	/**
 	 * Get all entity data for entities of a given type.
-	 * @param client
 	 * @param type
 	 * @param progress
 	 * @return
@@ -49,11 +45,10 @@ public interface QueryRunner {
 	 * @throws JSONException
 	 * @throws InterruptedException
 	 */
-	public List<EntityData> getAllEntityDataOfType(Synapse client, EntityType type, BasicProgress progress) throws SynapseException, JSONException, InterruptedException;
+	public List<EntityData> getAllEntityDataOfType(EntityType type, BasicProgress progress) throws SynapseException, JSONException, InterruptedException;
 	
 	/**
 	 * Get all child entities of a given parent.
-	 * @param client
 	 * @param parentId
 	 * @return
 	 * @throws SynapseException
@@ -61,25 +56,23 @@ public interface QueryRunner {
 	 * @throws JSONException 
 	 * @throws InterruptedException 
 	 */
-	public List<EntityData> getAllAllChildrenOfEntity(Synapse client, String parentId) throws SynapseException, IllegalAccessException, JSONException, InterruptedException;
+	public List<EntityData> getAllAllChildrenOfEntity(String parentId) throws SynapseException, IllegalAccessException, JSONException, InterruptedException;
 	
 	/**
 	 * Get the total entity count.
-	 * @param client
 	 * @return
 	 * @throws SynapseException 
 	 * @throws JSONException 
 	 */
-	public long getTotalEntityCount(Synapse client) throws SynapseException, JSONException;
+	public long getTotalEntityCount() throws SynapseException, JSONException;
 	
 	/**
 	 * Get a count for an entity type
 	 * @param type
-	 * @param client
 	 * @return
 	 * @throws SynapseException
 	 * @throws JSONException
 	 */
-	public long getCountForType(EntityType type, Synapse client) throws SynapseException, JSONException;
+	public long getCountForType(EntityType type) throws SynapseException, JSONException;
 
 }

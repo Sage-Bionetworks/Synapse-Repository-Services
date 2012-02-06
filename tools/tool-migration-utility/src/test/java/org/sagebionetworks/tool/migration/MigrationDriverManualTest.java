@@ -15,13 +15,13 @@ public class MigrationDriverManualTest {
 	@Test
 	public void testSafetyCheckBlocking(){
 		// Do a safety check
-		MigrationDriver.safetyCheck("http://staging/repo/v1", "http://localhost:8080/services-repository-0.9-SNAPSHOT/repo/v1", 101, 102);
+		RepositoryMigrationDriver.safetyCheck("http://staging/repo/v1", "http://localhost:8080/services-repository-0.9-SNAPSHOT/repo/v1", 101, 102);
 	}
 	
 	@Test
 	public void testSafetyCheckNonBlocking(){
 		// This test should not block
-		MigrationDriver.safetyCheck("http://staging/repo/v1", "http://localhost:8080/services-repository-0.9-SNAPSHOT/repo/v1", 102, 101);
+		RepositoryMigrationDriver.safetyCheck("http://staging/repo/v1", "http://localhost:8080/services-repository-0.9-SNAPSHOT/repo/v1", 102, 101);
 	}
 
 }

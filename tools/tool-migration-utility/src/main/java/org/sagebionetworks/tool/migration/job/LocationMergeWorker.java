@@ -1,6 +1,5 @@
 package org.sagebionetworks.tool.migration.job;
 
-import java.io.File;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -13,7 +12,6 @@ import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.tool.migration.ClientFactoryImpl;
 import org.sagebionetworks.tool.migration.MigrateLocations;
-import org.sagebionetworks.tool.migration.MigrationDriver;
 import org.sagebionetworks.tool.migration.SynapseConnectionInfo;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 

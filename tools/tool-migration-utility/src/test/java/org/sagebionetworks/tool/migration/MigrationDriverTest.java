@@ -68,7 +68,7 @@ public class MigrationDriverTest {
 		dest.add(new EntityData("101", "0", "99"));
 		dest.add(new EntityData("102", "0", "99"));
 		// Populate the queue for this setup
-		MigrationDriver.populateQueue(threadPool, jobQueue, source, dest, 1);
+		RepositoryMigrationDriver.populateQueue(threadPool, jobQueue, source, dest, 1);
 		// Only the first entity can be created since it is root.
 		int expectedCreate = 1;
 		int expectedUpdate = 0;
@@ -108,7 +108,7 @@ public class MigrationDriverTest {
 			dest.add(new EntityData(sourceD));
 		}
 		// Populate the queue for this setup
-		MigrationDriver.populateQueue(threadPool, jobQueue, source, dest, 1);
+		RepositoryMigrationDriver.populateQueue(threadPool, jobQueue, source, dest, 1);
 		// Only the first entity can be created since it is root.
 		int expectedCreate = 0;
 		int expectedUpdate = 0;
@@ -150,7 +150,7 @@ public class MigrationDriverTest {
 		
 	
 		// Populate the queue for this setup
-		MigrationDriver.populateQueue(threadPool, jobQueue, source, dest, 1);
+		RepositoryMigrationDriver.populateQueue(threadPool, jobQueue, source, dest, 1);
 		// Only the first entity can be created since it is root.
 		int expectedCreate = 1;
 		int expectedUpdate = 1;

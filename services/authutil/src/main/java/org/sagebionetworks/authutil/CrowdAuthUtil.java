@@ -118,9 +118,10 @@ public class CrowdAuthUtil {
 			try {
 			    response = HttpClientHelper.performRequest(DefaultHttpClientSingleton.getInstance(), requestURL,
 					requestMethod, requestContent,
-					getHeaders(),
-					expectedRc.value());
-			    
+					getHeaders());
+			    if(expectedRc.value() != response.getStatusLine().getStatusCode()) {
+					throw new AuthenticationException(response.getStatusLine().getStatusCode(), failureReason, null);			    	
+			    }
 				byte[] respBody = (readInputStream(response.getEntity().getContent())).getBytes();
 				return respBody;
 			} catch (HttpClientHelperException hche) {
@@ -143,9 +144,10 @@ public class CrowdAuthUtil {
 			try {
 			    response = HttpClientHelper.performRequest(DefaultHttpClientSingleton.getInstance(), requestURL,
 					requestMethod, requestContent,
-					getHeaders(),
-					expectedRc.value());
-			    
+					getHeaders());
+			    if(expectedRc.value() != response.getStatusLine().getStatusCode()) {
+					throw new AuthenticationException(response.getStatusLine().getStatusCode(), failureReason, null);			    	
+			    }
 				return;
 			} catch (HttpClientHelperException hche) {
 				throw new AuthenticationException(hche.getHttpStatus(), failureReason, hche);

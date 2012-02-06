@@ -16,11 +16,11 @@ public interface ClientFactory {
 	 * @return
 	 * @throws SynapseException 
 	 */
-	public SynapseAdministration createNewSourceClient() throws SynapseException;
+	public SynapseAdministration createNewSourceClient(Configuration configuration) throws SynapseException;
 	
 	/**
 	 * Create a new client for the destination repository.
 	 * @return
 	 */
-	public SynapseAdministration createNewDestinationClient() throws SynapseException;
+	public SynapseAdministration createNewDestinationClient(Configuration configuration) throws SynapseException;
 }

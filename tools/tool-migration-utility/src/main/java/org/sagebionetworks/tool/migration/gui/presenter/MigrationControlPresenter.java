@@ -16,8 +16,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.tool.migration.AllEntityDataWorker;
 import org.sagebionetworks.tool.migration.ClientFactoryImpl;
-import org.sagebionetworks.tool.migration.Configuration;
-import org.sagebionetworks.tool.migration.MigrationDriver;
+import org.sagebionetworks.tool.migration.RepositoryMigrationDriver;
 import org.sagebionetworks.tool.migration.ResponseBundle;
 import org.sagebionetworks.tool.migration.SynapseConnectionInfo;
 import org.sagebionetworks.tool.migration.Progress.AggregateProgress;
@@ -181,9 +180,11 @@ public class MigrationControlPresenter {
 							destClient = factory.createNewConnection(destInfo);
 						}
 						// Get the source and destination counts
-						QueryRunner queryRunner = new QueryRunnerImpl();
-						long sourceTotal = queryRunner.getTotalEntityCount(sourceClient);
-						long destTotal = queryRunner.getTotalEntityCount(destClient);
+						// Create the query providers
+						QueryRunner sourceQueryRunner = new QueryRunnerImpl(sourceClient);
+						QueryRunner destQueryRunner = new QueryRunnerImpl(destClient);
+						long sourceTotal = sourceQueryRunner.getTotalEntityCount();
+						long destTotal = destQueryRunner.getTotalEntityCount();
 						// Update the progress
 						progress.setCurrent(destTotal);
 						progress.setTotal(sourceTotal);
@@ -253,12 +254,14 @@ public class MigrationControlPresenter {
 						// 1. Get all entity data from both the source and destination.
 						BasicProgress sourceProgress = new BasicProgress();
 						BasicProgress destProgress = new BasicProgress();
-						QueryRunner queryRunner = new QueryRunnerImpl();
-						AllEntityDataWorker sourceQueryWorker = new AllEntityDataWorker(sourceClient, queryRunner, sourceProgress);
+						// Create the query providers
+						QueryRunner sourceQueryRunner = new QueryRunnerImpl(sourceClient);
+						QueryRunner destQueryRunner = new QueryRunnerImpl(destClient);
+						AllEntityDataWorker sourceQueryWorker = new AllEntityDataWorker(sourceQueryRunner, sourceProgress);
 
 						// Stop work when interrupted.
 						if(Thread.interrupted()) return;
-						AllEntityDataWorker destQueryWorker = new AllEntityDataWorker(destClient, queryRunner, destProgress);
+						AllEntityDataWorker destQueryWorker = new AllEntityDataWorker(destQueryRunner, destProgress);
 						// Start both at the same time
 						Future<List<EntityData>> sourceFuture = threadPool.submit(sourceQueryWorker);
 						Future<List<EntityData>> destFuture = threadPool.submit(destQueryWorker);
@@ -283,7 +286,7 @@ public class MigrationControlPresenter {
 						log.debug("Finished phase one.  Source entity count: "+sourceData.size()+". Destination entity Count: "+destData.size());
 						// Start phase 2
 						log.debug("Starting phase two: Calculating creates, updates, and deletes...");
-						ResponseBundle response = MigrationDriver.populateQueue(threadPool, jobQueue, sourceData, destData, Configuration.getMaximumBatchSize());
+						ResponseBundle response = RepositoryMigrationDriver.populateQueue(threadPool, jobQueue, sourceData, destData);
 						// Build the prefix
 						BuilderResponse create = response.getCreateResponse();
 						BuilderResponse update = response.getUpdateResponse();
@@ -293,7 +296,7 @@ public class MigrationControlPresenter {
 						log.debug("Starting phase three: Processing the job queue...");
 						AggregateProgress consumingProgress = new AggregateProgress();
 						
-						Future<AggregateResult> consumFuture = MigrationDriver.consumeAllJobs(factory, threadPool, jobQueue, consumingProgress);
+						Future<AggregateResult> consumFuture = RepositoryMigrationDriver.consumeAllJobs(factory, threadPool, jobQueue, consumingProgress);
 						while(!consumFuture.isDone()){
 							//log.info("Processing entities: "+consumingProgress.getCurrentStatus());
 							// Update the progress

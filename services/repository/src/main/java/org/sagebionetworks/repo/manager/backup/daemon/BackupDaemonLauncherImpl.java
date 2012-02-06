@@ -26,6 +26,9 @@ import com.amazonaws.services.s3.AmazonS3Client;
  */
 public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	
+	private static String backupBucket = StackConfiguration.getSharedS3BackupBucket();
+	private static String workflowBucket = StackConfiguration.getS3WorkflowBucket();
+	
 	@Autowired
 	BackupRestoreStatusDAO backupRestoreStatusDao;
 	@Autowired
@@ -44,10 +47,8 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a backup daemon");
 		
 		AmazonS3Client client = createNewAWSClient();
-		String bucket = StackConfiguration.getSharedS3BackupBucket();
-		if(bucket == null) 	throw new IllegalArgumentException("Bucket cannot be null null");
 		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, bucket, backupDaemonThreadPool, backupDaemonThreadPool2, entitiesToBackup);
+		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, entitiesToBackup);
 		// Start that bad boy up!
 		return daemon.startBackup(username.getUser().getUserId());
 	}
@@ -59,10 +60,8 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a search document daemon");
 		
 		AmazonS3Client client = createNewAWSClient();
-		String bucket = StackConfiguration.getSharedS3BackupBucket();
-		if(bucket == null) 	throw new IllegalArgumentException("Bucket cannot be null null");
 		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, bucket, backupDaemonThreadPool, backupDaemonThreadPool2, entityIds);
+		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, workflowBucket, backupDaemonThreadPool, backupDaemonThreadPool2, entityIds);
 		// Start that bad boy up!
 		return daemon.startSearchDocument(username.getUser().getUserId());
 	}
@@ -74,10 +73,8 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a restoration daemon");
 		
 		AmazonS3Client client = createNewAWSClient();
-		String bucket = StackConfiguration.getSharedS3BackupBucket();
-		if(bucket == null) 	throw new IllegalArgumentException("Bucket cannot be null null");
 		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, bucket, backupDaemonThreadPool, backupDaemonThreadPool2);
+		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2);
 		return daemon.startRestore(username.getUser().getUserId(), fileName);
 	}
 

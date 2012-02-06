@@ -142,7 +142,8 @@
 					<wait>${org.sagebionetworks.integration.debug}</wait>
 					<!-- Container configuration -->
 					<container>
-						<containerId>tomcat6x</containerId>
+                      <timeout>240000</timeout>
+                      <containerId>tomcat6x</containerId>
 						<!-- Download and install tomcat -->
 						<zipUrlInstaller>
 							<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local/apache/tomcat/${tomcat-version}/tomcat-${tomcat-version}.zip</url>

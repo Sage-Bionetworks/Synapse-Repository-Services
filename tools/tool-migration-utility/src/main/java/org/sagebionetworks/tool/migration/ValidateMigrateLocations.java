@@ -32,7 +32,9 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
  */
 public class ValidateMigrateLocations {
 	
-	static private Log log = LogFactory.getLog(MigrationDriver.class);
+	static private Log log = LogFactory.getLog(ValidateMigrateLocations.class);
+	static private Configuration configuration = new MigrationConfigurationImpl();
+	
 	/**
 	 * Migrate all locations.
 	 * @param args
@@ -50,7 +52,7 @@ public class ValidateMigrateLocations {
 		}
 		String path = args[0];
 		// Load all of the configuration information.
-		Configuration.loadConfigurationFile(path);
+		((MigrationConfigurationImpl) configuration).loadConfigurationFile(path);
 		
 		AWSCredentials creds = new BasicAWSCredentials(args[1], args[2]);
 		AmazonS3Client s3Client = new AmazonS3Client(creds);
@@ -58,8 +60,8 @@ public class ValidateMigrateLocations {
 		if(bucketName == null) throw new IllegalArgumentException("Bucket cannot be null");
 		
 		// Connect to the destination
-		SynapseConnectionInfo destInfo = Configuration.getDestinationConnectionInfo();
-		SynapseConnectionInfo sourceInfo = Configuration.getSourceConnectionInfo();
+		SynapseConnectionInfo destInfo = configuration.getDestinationConnectionInfo();
+		SynapseConnectionInfo sourceInfo = configuration.getSourceConnectionInfo();
 		log.info("Destination info: "+destInfo);
 		
 		ClientFactoryImpl factory = new ClientFactoryImpl();
@@ -68,12 +70,12 @@ public class ValidateMigrateLocations {
 		Synapse sourceClient = factory.createNewConnection(sourceInfo);
 
 		// Create the query provider
-		QueryRunner queryRunner = new QueryRunnerImpl();
+		QueryRunner queryRunner = new QueryRunnerImpl(sourceClient);
 		// Collect all location data.
 		BasicProgress progress = new BasicProgress();
 
 		log.info("Query for all location data: "+destInfo);
-		List<EntityData> results = queryRunner.getAllEntityDataOfType(sourceClient, EntityType.location, progress);
+		List<EntityData> results = queryRunner.getAllEntityDataOfType(EntityType.location, progress);
 		log.info("Found: "+results.size());
 		progress.setTotal(results.size());
 		for(int i=6800; i<results.size(); i++){

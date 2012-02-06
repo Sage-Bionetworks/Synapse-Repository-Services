@@ -14,42 +14,45 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * @author deflaux
- *
+ * 
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class SearchDocumentDriverImplAutowireTest {
-	
+
 	@Autowired
 	SearchDocumentDriver searchDocumentDriver;
-	
+
 	/**
 	 * @throws Exception
 	 */
 	@Before
-	public void before() throws Exception{
+	public void before() throws Exception {
 	}
-	
+
 	/**
 	 * 
 	 */
 	@After
-	public void after(){
+	public void after() {
 	}
-	
+
 	/**
 	 * @throws Exception
 	 */
 	@Test
-	public void testWriteAllSearchDocuments() throws Exception{
-		
-		// uncomment this and comment the other two lines to write out an actual file to upload to CloudSearch		
-//		File destination = new File("/Users/deflaux/CloudSearch/searchDocuments/sanityCheck.json");
+	public void testWriteAllSearchDocuments() throws Exception {
+
+		// uncomment this and comment the other two lines to write out an actual
+		// file to upload to CloudSearch
+		// File destination = new
+		// File("/Users/deflaux/CloudSearch/searchDocuments/sanityCheck.json");
 		File destination = File.createTempFile("foo", ".txt");
 		destination.deleteOnExit();
 
 		destination.createNewFile();
-		searchDocumentDriver.writeSearchDocument(destination, new Progress(), null);
+		searchDocumentDriver.writeSearchDocument(destination, new Progress(),
+				null);
 		assertTrue(256 < destination.length());
 	}
 
