@@ -34,6 +34,20 @@ public class S3PropertyFileLoaderTest {
 	 * It was tested once with with real data.
 	 * @throws IOException
 	 */
+	@Test (expected=AmazonServiceException.class)
+	public void testS3FolderUrl() throws IOException{
+		String url = "https://s3.amazonaws.com/fake-bucket/fake-folder/fake-yet-another-folder/fake-file.properties";
+		String id = "fake-id";
+		String key = "fake-key";
+		Properties props = new Properties();
+		S3PropertyFileLoader.loadPropertiesFromS3(url, id, key, props);
+	}
+	
+	/**
+	 * This test is ignored because it requires a real url, id, and key.
+	 * It was tested once with with real data.
+	 * @throws IOException
+	 */
 	@Ignore
 	@Test
 	public void testLoad() throws IOException{
