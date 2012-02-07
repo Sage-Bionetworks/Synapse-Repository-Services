@@ -32,5 +32,6 @@ public interface ConceptManager {
 	 * @return
 	 */
 	public Concept getConcept(String uri) throws DatastoreException, NotFoundException;
+	
 
 }

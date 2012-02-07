@@ -31,6 +31,7 @@
    <skos:Concept rdf:about="http://www.infomuse.net/520/vocab/winethesaurus/red_wine">
        <skos:prefLabel>Red wine</skos:prefLabel>
        <skos:broader rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/wine_type"/>
+       <skos:broaderTransitive rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/wine_type"/>
        <skos:scopeNote>Different types of red wine</skos:scopeNote>
        <skos:inScheme rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus"/>
    </skos:Concept>
@@ -39,6 +40,7 @@
        <skos:prefLabel>Cabernet Sauvignon</skos:prefLabel>
        <skos:altLabel>Cabernet</skos:altLabel>
        <skos:broader rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/red_wine"/>
+       <skos:broaderTransitive rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/red_wine"/>
        <skos:scopeNote>Cabernet Sauvignon</skos:scopeNote>
        <skos:inScheme rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus"/>
    </skos:Concept>
@@ -46,6 +48,7 @@
    <skos:Concept rdf:about="http://www.infomuse.net/520/vocab/winethesaurus/pinot_noir">
        <skos:prefLabel>Pinot Noir</skos:prefLabel>
        <skos:broader rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/red_wine"/>
+       <skos:broaderTransitive rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/red_wine"/>
        <skos:scopeNote>Pinot Noir</skos:scopeNote>
        <skos:inScheme rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus"/>
    </skos:Concept>
@@ -53,6 +56,7 @@
    <skos:Concept rdf:about="http://www.infomuse.net/520/vocab/winethesaurus/white_wine">
        <skos:prefLabel>White wine</skos:prefLabel>
        <skos:broader rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/wine_type"/>
+       <skos:broaderTransitive rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/wine_type"/>
        <skos:scopeNote>Different types of white wine</skos:scopeNote>
        <skos:inScheme rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus"/>
    </skos:Concept>
@@ -60,6 +64,7 @@
    <skos:Concept rdf:about="http://www.infomuse.net/520/vocab/winethesaurus/chardonnay">
        <skos:prefLabel>Chardonnay</skos:prefLabel>
        <skos:broader rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/white_wine"/>
+       <skos:broaderTransitive rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/white_wine"/>
        <skos:scopeNote>Chardonnay</skos:scopeNote>
        <skos:inScheme rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus"/>
    </skos:Concept>
@@ -67,6 +72,7 @@
    <skos:Concept rdf:about="http://www.infomuse.net/520/vocab/winethesaurus/riesling">
        <skos:prefLabel>Riesling</skos:prefLabel>
        <skos:broader rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/white_wine"/>
+       <skos:broaderTransitive rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/white_wine"/>
        <skos:scopeNote>Riesling</skos:scopeNote>
        <skos:inScheme rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus"/>
    </skos:Concept>
@@ -74,6 +80,7 @@
    <skos:Concept rdf:about="http://www.infomuse.net/520/vocab/winethesaurus/champagne">
        <skos:prefLabel>Champagne</skos:prefLabel>
        <skos:broader rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/wine_type"/>
+       <skos:broaderTransitive rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/wine_type"/>
        <skos:scopeNote>Champagne</skos:scopeNote>
        <skos:inScheme rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus"/>
    </skos:Concept>
@@ -81,6 +88,7 @@
    <skos:Concept rdf:about="http://www.infomuse.net/520/vocab/winethesaurus/sparkling_wine">
        <skos:prefLabel>Sparkling Wine</skos:prefLabel>
        <skos:broader rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/wine_type"/>
+       <skos:broaderTransitive rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/wine_type"/>
        <skos:scopeNote>Sparkling Wine</skos:scopeNote>
        <skos:inScheme rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus"/>
    </skos:Concept>
@@ -88,6 +96,7 @@
    <skos:Concept rdf:about="http://www.infomuse.net/520/vocab/winethesaurus/sherry">
        <skos:prefLabel>Sherry</skos:prefLabel>
        <skos:broader rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/wine_type"/>
+       <skos:broaderTransitive rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/wine_type"/>
        <skos:scopeNote>Sherry</skos:scopeNote>
        <skos:inScheme rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus"/>
    </skos:Concept>
@@ -95,6 +104,7 @@
    <skos:Concept rdf:about="http://www.infomuse.net/520/vocab/winethesaurus/port">
        <skos:prefLabel>Port</skos:prefLabel>
        <skos:broader rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/wine_type"/>
+       <skos:broaderTransitive rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus/wine_type"/>
        <skos:scopeNote>Port</skos:scopeNote>
        <skos:inScheme rdf:resource="http://www.infomuse.net/520/vocab/winethesaurus"/>
    </skos:Concept>

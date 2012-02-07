@@ -7,6 +7,7 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -24,12 +25,15 @@ public class ConceptJenaDAOImplTestAutowire {
 	ConceptDAO conceptDao;
 	
 	@Test
-	public void testDao() throws DatastoreException{
+	public void testDao() throws DatastoreException, NotFoundException{
+		String conceptUri = "http://synapse.sagebase.org/ontology#8994";
+		Concept con = conceptDao.getConceptForUri(conceptUri);
+		assertNotNull(con);
+		System.out.println(con);
 		// For now the dao is wired to the wine ontolgoy but it will be replace with the real ontolgoy when we have one.
-		List<ConceptSummary> results = conceptDao.getAllConcepts("http://www.infomuse.net/520/vocab/winethesaurus/wine_region");
+		List<ConceptSummary> results = conceptDao.getAllConcepts(conceptUri);
 		assertNotNull(results);
-		assertEquals(2, results.size());
-		assertEquals("Europe", results.get(0).getPreferredLabel());
+		assertTrue(results.size() > 3000);
 	}
 
 }

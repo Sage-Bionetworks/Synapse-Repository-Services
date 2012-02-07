@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.ontology;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -10,7 +9,6 @@ import java.util.List;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.io.ClassPathResource;
 
 import com.hp.hpl.jena.graph.Node;
 import com.hp.hpl.jena.ontology.OntModelSpec;
@@ -42,6 +40,7 @@ public class ConceptJenaDAOImpl implements ConceptDAO {
 	public static final String PREFERED_LABEL = "prefLabel";
 	public static final String BORADER = "broader";
 	public static final String ALT_LABEL = "altLabel";
+	public static final String DESCRIPTION = "definition";
 
 	public static final String SPARQL_PREFIXES = "PREFIX skos: <"+SKOS_URL+"> "
 			+ "PREFIX rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> ";
@@ -52,7 +51,7 @@ public class ConceptJenaDAOImpl implements ConceptDAO {
 	 * Get all children that belong to this concept with the skos:broader
 	 */
 	public static final String SPARQL_GET_CHILDREN_CONCEPTS = SPARQL_PREFIXES
-			+ " SELECT ?x ?prefLabel WHERE { " + "?x skos:broader <%1$s>. "
+			+ " SELECT ?x ?prefLabel WHERE { " + "?x skos:broaderTransitive <%1$s>. "
 			+ "?x skos:prefLabel ?prefLabel" + "}";
 	
 	/**
@@ -61,6 +60,7 @@ public class ConceptJenaDAOImpl implements ConceptDAO {
 	public static final Property PROP_PREF_LABEL = new PropertyImpl(SKOS_URL+PREFERED_LABEL);
 	public static final Property PROP_BROADER = new PropertyImpl(SKOS_URL+BORADER);
 	public static final Property PROP_ALT_LABEL = new PropertyImpl(SKOS_URL+ALT_LABEL);
+	public static final Property PROP_DESCRIPTION = new PropertyImpl(SKOS_URL+DESCRIPTION);
 
 	private Model rdfModel;
 	
@@ -130,9 +130,9 @@ public class ConceptJenaDAOImpl implements ConceptDAO {
 		RDFNode node = this.rdfModel.getRDFNode(Node.createURI(conceptUri));
 		if(node == null) throw new NotFoundException("Cannot find concept: "+conceptUri);
 		if(! this.rdfModel.containsResource(node)) throw new NotFoundException("Cannot find concept: "+conceptUri);
-		System.out.println(node);
+//		System.out.println(node);
 		Resource resource = this.rdfModel.getResource(conceptUri);
-		System.out.println(resource);
+//		System.out.println(resource);
 		Concept concept = new Concept();
 		ConceptSummary summary = new ConceptSummary();
 		summary.setUri(conceptUri);
@@ -140,6 +140,7 @@ public class ConceptJenaDAOImpl implements ConceptDAO {
 		concept.setSummary(summary);
 		concept.setParent(getPropertyAsNodeString(resource, PROP_BROADER));
 		concept.setSynonyms(listPropertyAsString(resource, PROP_ALT_LABEL));
+		concept.setDefinition(getPropertyAsString(resource, PROP_PREF_LABEL));
 		
 		// convert it to a concept
 		return concept;

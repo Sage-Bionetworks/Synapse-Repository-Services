@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.ontology;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptSummary;
 
 public interface ConceptCache {
@@ -12,7 +13,14 @@ public interface ConceptCache {
 	 * @param key
 	 * @return
 	 */
-	public List<ConceptSummary> get(String key);
+	public List<ConceptSummary> getConceptSummary(String key);
+	
+	/**
+	 * Get a concpet by its URL
+	 * @param key
+	 * @return
+	 */
+	public Concept getConcept(String key);
 	
 	/**
 	 * Set the concept summary list for a given key.
@@ -20,6 +28,13 @@ public interface ConceptCache {
 	 * @param value
 	 */
 	public void put(String key, List<ConceptSummary> value);
+	
+	/**
+	 * Put a concept.
+	 * @param key
+	 * @param value
+	 */
+	public void put(String key, Concept value);
 	
 	/**
 	 * Add all values from the passed map.

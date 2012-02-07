@@ -69,7 +69,7 @@ public class ConceptManagerImpl implements ConceptManager {
 		}else{
 			key = uniquePart;
 		}
-		return conceptCache.get(key);
+		return conceptCache.getConceptSummary(key);
 	}
 
 	/**
@@ -112,8 +112,16 @@ public class ConceptManagerImpl implements ConceptManager {
 
 	@Override
 	public Concept getConcept(String uri) throws DatastoreException, NotFoundException {
+		// Try to get it from the cache
+		Concept con = conceptCache.getConcept(uri);
+		if(con == null){
+			// Get it from the dao
+			con = this.conceptDao.getConceptForUri(uri);
+			// Put it in the cache.
+			conceptCache.put(uri, con);
+		}
 		// Pass it along.
-		return this.conceptDao.getConceptForUri(uri);
+		return con;
 	}
 
 }

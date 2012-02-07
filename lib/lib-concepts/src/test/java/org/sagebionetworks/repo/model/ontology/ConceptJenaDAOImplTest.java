@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.junit.Before;
@@ -106,6 +107,9 @@ public class ConceptJenaDAOImplTest {
 		List<ConceptSummary> results = dao.getAllConcepts(parentConceptURI);
 		// Do the results match the expected.
 		System.out.println(results);
+		// Sort both
+		Collections.sort(results, new ConceptSummaryComparator());
+		Collections.sort(expected, new ConceptSummaryComparator());
 		assertEquals(expected.size(), results.size());
 		assertEquals(expected, results);
 	}
@@ -133,6 +137,7 @@ public class ConceptJenaDAOImplTest {
 		summary.setPreferredLabel("United States");
 		Concept expected = new Concept();
 		expected.setSummary(summary);
+		expected.setDefinition("United States");
 		expected.setParent("http://www.infomuse.net/520/vocab/winethesaurus/wine_region");
 		List<String> synonyms = new ArrayList<String>();
 		expected.setSynonyms(synonyms);

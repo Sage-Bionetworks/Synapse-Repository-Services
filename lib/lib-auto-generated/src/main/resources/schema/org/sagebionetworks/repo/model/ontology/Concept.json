@@ -19,41 +19,11 @@
             "format":"uri",
             
         },
-        "ancestor ":{
-            "type":"array",
-            "description":"URIs of all parents, in order (skos:broaderTransitive)",
-            "items":{
-                "type":"string",
-                "format":"uri",
-                
-            }
-        },
-        "children":{
-            "type":"array",
-            "description":"URIs of all direct children (skos:narrower)",
-            "items":{
-                "type":"string",
-                "format":"uri",
-                
-            }
-        },
-        "decendents":{
-            "type":"array",
-            "description":"URIs of all direct children (skos:narrowerTransitive)",
-            "items":{
-                "type":"string",
-                "format":"uri",
-                
-            }
-        },
-        "related":{
-            "type":"array",
-            "description":"Terms with other relationships, not needed in first version of services (skos:related)",
-            "items":{
-                "type":"string",
-                "format":"uri",
-                
-            }
+        "definition":{
+            "type":"string",
+            "description":"The textual description of this concept (skos:definition)",
+            "format":"uri",
+            
         },
         
     }

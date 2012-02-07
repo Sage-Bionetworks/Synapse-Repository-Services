@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptSummary;
 
 /**
@@ -19,9 +20,10 @@ public class ConceptCacheLocalImpl implements ConceptCache {
 	 * The local in-memory cache.
 	 */
 	private Map<String, List<ConceptSummary>> localCache = Collections.synchronizedMap(new HashMap<String, List<ConceptSummary>>());
+	private Map<String, Concept> localConceptCache = Collections.synchronizedMap(new HashMap<String, Concept>());
 
 	@Override
-	public List<ConceptSummary> get(String key) {
+	public List<ConceptSummary> getConceptSummary(String key) {
 		return localCache.get(key);
 	}
 
@@ -38,6 +40,16 @@ public class ConceptCacheLocalImpl implements ConceptCache {
 	@Override
 	public void putAll(Map<String, List<ConceptSummary>> map) {
 		localCache.putAll(map);
+	}
+
+	@Override
+	public Concept getConcept(String key) {
+		return localConceptCache.get(key);
+	}
+
+	@Override
+	public void put(String key, Concept value) {
+		localConceptCache.put(key, value);
 	}
 
 }

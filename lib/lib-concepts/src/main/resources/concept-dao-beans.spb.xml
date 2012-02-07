@@ -11,12 +11,12 @@
 	<aop:aspectj-autoproxy />
 
 	<bean id="ontologyBaseURI" class="java.lang.String">
-		<constructor-arg index="0" value="http://www.infomuse.net/520/vocab/winethesaurus" type="java.lang.String" />
+		<constructor-arg index="0" value="http://synapse.sagebase.org/ontology#" type="java.lang.String" />
 	</bean>
 
 
 	<bean id="conceptDao" class="org.sagebionetworks.repo.model.ontology.ConceptJenaDAOImpl">
-		<constructor-arg index="0" value="winethesaurus.skos" type="java.lang.String" />
+		<constructor-arg index="0" value="SYN.skos" type="java.lang.String" />
 	</bean>
 
 
