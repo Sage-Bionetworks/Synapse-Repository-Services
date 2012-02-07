@@ -70,11 +70,16 @@ public class S3PropertyFileLoader {
 			throw new IllegalArgumentException(
 					"Cannot read URL.  URL.getPath() was null");
 		String[] split = path.split("/");
-		if (split.length != 3)
+		if (split.length < 3)
 			throw new IllegalArgumentException(
 					"Could not get the bucket and object ID from the URL: "+propertyFileUrl);
 		String bucket = split[1];
 		String key = split[2];
+		if(split.length > 3) {
+			for(int i = 3; i < split.length; i++) {
+				key += "/" + split[i];
+			}
+		}
 		return new GetObjectRequest(bucket, key);
 	}
 
