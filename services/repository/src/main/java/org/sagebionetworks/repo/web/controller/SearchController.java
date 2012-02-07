@@ -96,9 +96,11 @@ public class SearchController extends BaseController {
 		String cleanedSearchQuery = SearchHelper.cleanUpBooleanSearchQueries(searchQuery);
 
 		String url = CLOUD_SEARCH_ENDPOINT + "?" + cleanedSearchQuery;
-		log.debug("About to request " + url);
 
+		log.debug("About to request from CloudSearch: " + url);
 		String response = HttpClientHelper.getContent(httpClient, url);
+		log.debug("Response from CloudSearch: " + response);
+
 		return SearchHelper.cloudSearchToSynapseSearchResults(response);
 	}
 

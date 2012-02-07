@@ -33,7 +33,8 @@ public class SearchHelper {
 			.getName());
 
 	/**
-	 * Formulate the boolean query to enforce an access controll list for a particular user
+	 * Formulate the boolean query to enforce an access controll list for a
+	 * particular user
 	 * 
 	 * @param userInfo
 	 * @return the acl boolean query
@@ -53,8 +54,8 @@ public class SearchHelper {
 			if (0 < authorizationFilter.length()) {
 				authorizationFilter += " ";
 			}
-			authorizationFilter += SearchDocumentDriverImpl.ACL_INDEX_FIELD + ":'" + group.getName()
-					+ "'";
+			authorizationFilter += SearchDocumentDriverImpl.ACL_INDEX_FIELD
+					+ ":'" + group.getName() + "'";
 		}
 		if (1 == groups.size()) {
 			authorizationFilter = "bq=" + authorizationFilter;
@@ -132,11 +133,14 @@ public class SearchHelper {
 			String cloudSearchResponse) throws JSONException {
 		JSONObject csResults = new JSONObject(cloudSearchResponse);
 		SearchResults results = new SearchResults();
+		List<Hit> hits = new ArrayList<Hit>();
+		results.setHits(hits);
+		List<Facet> facets = new ArrayList<Facet>();
+		results.setFacets(facets);
+
 		results.setMatchExpression(csResults.getString("match-expr"));
 		results.setFound(csResults.getJSONObject("hits").getLong("found"));
 		results.setStart(csResults.getJSONObject("hits").getLong("start"));
-		List<Hit> hits = new ArrayList<Hit>();
-		results.setHits(hits);
 
 		JSONArray csHits = csResults.getJSONObject("hits").getJSONArray("hit");
 		for (int i = 0; i < csHits.length(); i++) {
@@ -157,14 +161,11 @@ public class SearchHelper {
 			hits.add(hit);
 		}
 
-		if (!csResults.has("facets")) {
+		JSONObject csFacets = csResults.optJSONObject("facets");
+		if ((null == csFacets) || (null == JSONObject.getNames(csFacets))) {
 			return results;
 		}
 
-		List<Facet> facets = new ArrayList<Facet>();
-		results.setFacets(facets);
-
-		JSONObject csFacets = csResults.getJSONObject("facets");
 		for (String facetName : JSONObject.getNames(csFacets)) {
 			Facet facet = new Facet();
 			facet.setName(facetName);

@@ -72,6 +72,20 @@ public class SearchControllerAutowiredTest {
 	 * @throws Exception
 	 */
 	@Test
+	public void testNoResultsFacetedSearch() throws Exception {
+		SearchResults result = testSearchHelper("q=prostate,cancer&bq=node_type:'DoesNotExist'&facet=node_type,species,disease,modified_on,tissue,num_samples,created_by&return-fields=name,description,id", 0);
+		if(null != result) {
+			assertEquals(new Long(0), result.getFound());
+			assertEquals(0, result.getHits().size());
+			assertEquals(0, result.getFacets().size());
+		}
+	}	
+	
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
 	public void testBooleanQuerySearch() throws Exception {
 		testSearchHelper("q=prostate&return-fields=name&bq=node_type:'dataset'", 1);
 	}
