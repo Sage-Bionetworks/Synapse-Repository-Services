@@ -102,7 +102,7 @@ public class SearchController extends BaseController {
 		log.debug("Response from CloudSearch: " + response);
 
 		try {
-			return SearchHelper.cloudSearchToSynapseSearchResults(response);
+			return SearchHelper.csSearchResultsToSynapseSearchResults(response);
 		} catch (JSONException e) {
 			throw new DatastoreException("Results conversion failed for request " + url + " with response " + response, e);
 		}

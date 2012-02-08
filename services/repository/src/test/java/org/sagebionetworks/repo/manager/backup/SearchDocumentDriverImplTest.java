@@ -129,7 +129,7 @@ public class SearchDocumentDriverImplTest {
 		JSONObject document = SearchDocumentDriverImpl.formulateSearchDocument(
 				node, rev, acl);
 		byte[] cloudSearchDocument = SearchDocumentDriverImpl
-				.convertToCloudSearchDocument(document);
+				.cleanSearchDocument(document);
 
 		assertEquals(-1, new String(cloudSearchDocument).indexOf("\\u0019"));
 	}
