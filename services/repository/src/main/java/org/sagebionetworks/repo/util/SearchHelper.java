@@ -66,18 +66,18 @@ public class SearchHelper {
 	}
 
 	/**
-	 * Merge and escape CloudSearch boolean queries as needed
+	 * Merge and urlescape CloudSearch boolean queries as needed.  urlescapse free text queries as needed too.
 	 * 
 	 * @param query
 	 * @return the cleaned up query string
 	 * @throws UnsupportedEncodingException
 	 */
-	public static String cleanUpBooleanSearchQueries(String query)
+	public static String cleanUpSearchQueries(String query)
 			throws UnsupportedEncodingException {
 
 		// Make sure the url is well-formed so that we can correctly clean it up
 		String decodedQuery = URLDecoder.decode(query, "UTF-8");
-		if (decodedQuery.contains("%")) {
+		if (decodedQuery.contains("%") || decodedQuery.contains("+")) {
 			throw new IllegalArgumentException("Query is incorrectly encoded: "
 					+ decodedQuery);
 		}
@@ -87,7 +87,7 @@ public class SearchHelper {
 		int numAndClauses = 0;
 		String splits[] = decodedQuery.split("&");
 		for (int i = 0; i < splits.length; i++) {
-			if (0 == splits[i].indexOf("bq=")) {
+			if (splits[i].startsWith("bq=")) {
 				if (0 < booleanQuery.length()) {
 					booleanQuery += " ";
 				}
@@ -102,7 +102,11 @@ public class SearchHelper {
 				if (0 < escapedQuery.length()) {
 					escapedQuery += "&";
 				}
-				escapedQuery += splits[i];
+				if (splits[i].startsWith("q=")) {
+					escapedQuery += "q=" + URLEncoder.encode(splits[i].substring(2), "UTF-8");
+				} else {
+					escapedQuery += splits[i];
+				}
 			}
 		}
 

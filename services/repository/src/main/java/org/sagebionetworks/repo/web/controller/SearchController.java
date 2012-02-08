@@ -93,7 +93,7 @@ public class SearchController extends BaseController {
 		}
 
 		// Merge boolean queries as needed and escape them
-		String cleanedSearchQuery = SearchHelper.cleanUpBooleanSearchQueries(searchQuery);
+		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(searchQuery);
 
 		String url = CLOUD_SEARCH_ENDPOINT + "?" + cleanedSearchQuery;
 
@@ -133,7 +133,7 @@ public class SearchController extends BaseController {
 		}
 
 		// Merge boolean queries as needed and escape them
-		String cleanedSearchQuery = SearchHelper.cleanUpBooleanSearchQueries(searchQuery);
+		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(searchQuery);
 
 		String url = CLOUD_SEARCH_ENDPOINT + "?" + cleanedSearchQuery;
 		log.debug("About to request " + url);
