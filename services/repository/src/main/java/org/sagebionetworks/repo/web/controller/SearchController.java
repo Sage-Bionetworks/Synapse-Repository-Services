@@ -82,7 +82,7 @@ public class SearchController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
 			@RequestParam(value = "q", required = false) String searchQuery,
 			HttpServletRequest request) throws ClientProtocolException,
-			IOException, HttpClientHelperException, JSONException,
+			IOException, HttpClientHelperException,
 			DatastoreException, NotFoundException {
 
 		log.debug("Got raw query " + searchQuery);
@@ -101,7 +101,11 @@ public class SearchController extends BaseController {
 		String response = HttpClientHelper.getContent(httpClient, url);
 		log.debug("Response from CloudSearch: " + response);
 
-		return SearchHelper.cloudSearchToSynapseSearchResults(response);
+		try {
+			return SearchHelper.cloudSearchToSynapseSearchResults(response);
+		} catch (JSONException e) {
+			throw new DatastoreException("Results conversion failed for request " + url + " with response " + response, e);
+		}
 	}
 
 	/**
