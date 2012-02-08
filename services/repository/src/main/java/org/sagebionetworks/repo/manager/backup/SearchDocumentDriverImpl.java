@@ -80,6 +80,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				.unmodifiableMap(searchableNodeAnnotations);
 
 		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
+		facetTypes.put("node_type", FacetTypeNames.LITERAL);
 		facetTypes.put("disease", FacetTypeNames.LITERAL);
 		facetTypes.put("tissue", FacetTypeNames.LITERAL);
 		facetTypes.put("species", FacetTypeNames.LITERAL);
