@@ -66,7 +66,8 @@ public class SearchHelper {
 	}
 
 	/**
-	 * Merge and urlescape CloudSearch boolean queries as needed.  urlescapse free text queries as needed too.
+	 * Merge and urlescape CloudSearch boolean queries as needed. urlescapse
+	 * free text queries as needed too.
 	 * 
 	 * @param query
 	 * @return the cleaned up query string
@@ -103,7 +104,9 @@ public class SearchHelper {
 					escapedQuery += "&";
 				}
 				if (splits[i].startsWith("q=")) {
-					escapedQuery += "q=" + URLEncoder.encode(splits[i].substring(2), "UTF-8");
+					escapedQuery += "q="
+							+ URLEncoder
+									.encode(splits[i].substring(2), "UTF-8");
 				} else {
 					escapedQuery += splits[i];
 				}
@@ -171,9 +174,7 @@ public class SearchHelper {
 		}
 
 		for (String facetName : JSONObject.getNames(csFacets)) {
-			Facet facet = new Facet();
-			facet.setName(facetName);
-
+			JSONObject csFacet = csFacets.getJSONObject(facetName);
 			FacetTypeNames facetType = SearchDocumentDriverImpl.FACET_TYPES
 					.get(facetName);
 			if (null == facetType) {
@@ -185,15 +186,22 @@ public class SearchHelper {
 				continue;
 			}
 
-			if (FacetTypeNames.DATE == facetType
-					|| FacetTypeNames.CONTINUOUS == facetType) {
-				facet.setMin(csFacets.getJSONObject(facetName).getLong("min"));
-				facet.setMax(csFacets.getJSONObject(facetName).getLong("max"));
-			}
+			Facet facet = new Facet();
+			facet.setName(facetName);
+			facet.setType(facetType);
 			facets.add(facet);
 
-			JSONArray csConstraints = csFacets.getJSONObject(facetName)
-					.optJSONArray("constraints");
+			if (FacetTypeNames.DATE == facetType
+					|| FacetTypeNames.CONTINUOUS == facetType) {
+				// Dev Note: don't do optLong here because zero for a min and
+				// max might not make sense for most facets
+				if (csFacet.has("min") && csFacet.has("max")) {
+					facet.setMin(csFacet.getLong("min"));
+					facet.setMax(csFacet.getLong("max"));
+				}
+			}
+
+			JSONArray csConstraints = csFacet.optJSONArray("constraints");
 			if (null == csConstraints)
 				continue;
 
