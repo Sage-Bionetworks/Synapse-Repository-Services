@@ -89,21 +89,22 @@ import org.springframework.web.util.NestedServletException;
 public abstract class BaseController {
 
 	private static final Logger log;
-	
-	// this is one way to get stack traces from the server process when running 'forked off' from the main process
-	// to enable, uncomment the  lines below
+
+	// this is one way to get stack traces from the server process when running
+	// 'forked off' from the main process
+	// to enable, uncomment the lines below
 	static {
-		log = Logger.getLogger(BaseController.class
-				.getName());
-//		try {
-//			Date d = new Date();
-//			DateFormat df = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
-//		    FileHandler handler = new FileHandler(BaseController.class.getName()+df.format(d)+".txt");
-//		    log.addHandler(handler);
-//		} catch (IOException e) {
-//			throw new RuntimeException(e);
-//		}	
-		
+		log = Logger.getLogger(BaseController.class.getName());
+		// try {
+		// Date d = new Date();
+		// DateFormat df = new SimpleDateFormat("yyyy.MM.dd.HH.mm.ss");
+		// FileHandler handler = new
+		// FileHandler(BaseController.class.getName()+df.format(d)+".txt");
+		// log.addHandler(handler);
+		// } catch (IOException e) {
+		// throw new RuntimeException(e);
+		// }
+
 	}
 
 	/**
@@ -129,9 +130,11 @@ public abstract class BaseController {
 			HttpServletRequest request) {
 		return handleException(ex, request);
 	}
-	
+
 	/**
-	 * This exception is thrown when the service is down, or in read-only mode for non-read calls.
+	 * This exception is thrown when the service is down, or in read-only mode
+	 * for non-read calls.
+	 * 
 	 * @param ex
 	 * @param request
 	 * @return an ErrorResponse object containing the exception reason or some
@@ -140,8 +143,8 @@ public abstract class BaseController {
 	@ExceptionHandler(ServiceUnavailableException.class)
 	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
 	public @ResponseBody
-	ErrorResponse handleServiceUnavailableException(ServiceUnavailableException ex,
-			HttpServletRequest request) {
+	ErrorResponse handleServiceUnavailableException(
+			ServiceUnavailableException ex, HttpServletRequest request) {
 		return handleException(ex, request);
 	}
 
@@ -467,9 +470,11 @@ public abstract class BaseController {
 			HttpServletRequest request) {
 		return handleException(ex, request);
 	}
-	
+
 	/**
-	 * When this exception occurs we want to redirect the caller to the benefactor's ACL URL.
+	 * When this exception occurs we want to redirect the caller to the
+	 * benefactor's ACL URL.
+	 * 
 	 * @param ex
 	 * @param request
 	 * @param response
@@ -480,16 +485,21 @@ public abstract class BaseController {
 	@ExceptionHandler(ACLInheritanceException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public @ResponseBody
-	ErrorResponse handleAccessControlListInheritanceException(ACLInheritanceException ex,
-			HttpServletRequest request, HttpServletResponse response) throws IOException {
+	ErrorResponse handleAccessControlListInheritanceException(
+			ACLInheritanceException ex, HttpServletRequest request,
+			HttpServletResponse response) throws IOException {
 		// Build and set the redirect URL
-		String message = ACLInheritanceException.DEFAULT_MSG_PREFIX+UrlHelpers.createACLRedirectURL(request, ex.getBenefactorType(), ex.getBenefactorId());
+		String message = ACLInheritanceException.DEFAULT_MSG_PREFIX
+				+ UrlHelpers.createACLRedirectURL(request, ex
+						.getBenefactorType(), ex.getBenefactorId());
 		response.sendError(HttpStatus.NOT_FOUND.value(), message);
 		return new ErrorResponse(message);
 	}
 
 	/**
-	 * Return a bit of the stack trace for NullPointerExceptions to help us debug
+	 * Return a bit of the stack trace for NullPointerExceptions to help us
+	 * debug
+	 * 
 	 * @param ex
 	 * @param request
 	 * @param response
@@ -504,11 +514,13 @@ public abstract class BaseController {
 		log.log(Level.SEVERE, "Handling " + request.toString(), ex);
 		final int MAX_STACK_TRACE_LENGTH = 256;
 		String trace = stackTraceToString(ex);
-		int endIndex = (MAX_STACK_TRACE_LENGTH < trace.length()) ? MAX_STACK_TRACE_LENGTH : trace.length();
-		String message = "Send a Jira bug report to the platform team with this message: " + trace.substring(0, endIndex);
+		int endIndex = (MAX_STACK_TRACE_LENGTH < trace.length()) ? MAX_STACK_TRACE_LENGTH
+				: trace.length();
+		String message = "Send a Jira bug report to the platform team with this message: "
+				+ trace.substring(0, endIndex);
 		return new ErrorResponse(message);
 	}
-	
+
 	/**
 	 * Handle any exceptions not handled by specific handlers. Log an additional
 	 * message with higher severity because we really do want to know what sorts
@@ -547,10 +559,18 @@ public abstract class BaseController {
 	protected ErrorResponse handleException(Throwable ex,
 			HttpServletRequest request) {
 		log.log(Level.WARNING, "Handling " + request.toString(), ex);
-		return new ErrorResponse(ex.getMessage());
-//		return new ErrorResponse(stackTraceToString(ex));
+		// Some HTTPClient exceptions include the host to which it was trying to
+		// connect, just unilaterally find and replace any references to
+		// cloudsearch in error messages PLFM-977
+		String message = ex.getMessage();
+		String normalizedMessage = message.toLowerCase();
+		if (0 <= normalizedMessage.indexOf("cloudsearch")) {
+			message = "search failed, try again";
+		}
+		return new ErrorResponse(message);
+		// return new ErrorResponse(stackTraceToString(ex));
 	}
-	
+
 	/**
 	 * @param ex
 	 * @return stack trace as a string

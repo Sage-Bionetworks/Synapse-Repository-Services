@@ -66,7 +66,7 @@ public class SearchHelper {
 	}
 
 	/**
-	 * Merge and urlescape CloudSearch boolean queries as needed. urlescapse
+	 * Merge and urlescape CS boolean queries as needed. urlescapse
 	 * free text queries as needed too.
 	 * 
 	 * @param query
@@ -130,15 +130,15 @@ public class SearchHelper {
 	 * Convert from CloudSearch JSON to a JSONEntity
 	 * 
 	 * TODO later when Schema2Pojo supports maps, make a JSONEntity for the
-	 * CloudSearch object
+	 * CS object
 	 * 
-	 * @param cloudSearchResponse
+	 * @param csResponse
 	 * @return the SearchResults JSONEntity
 	 * @throws JSONException
 	 */
-	public static SearchResults cloudSearchToSynapseSearchResults(
-			String cloudSearchResponse) throws JSONException {
-		JSONObject csResults = new JSONObject(cloudSearchResponse);
+	public static SearchResults csSearchResultsToSynapseSearchResults(
+			String csResponse) throws JSONException {
+		JSONObject csResults = new JSONObject(csResponse);
 		SearchResults results = new SearchResults();
 		List<Hit> hits = new ArrayList<Hit>();
 		results.setHits(hits);
