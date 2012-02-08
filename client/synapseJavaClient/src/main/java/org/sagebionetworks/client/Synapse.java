@@ -938,6 +938,12 @@ public class Synapse {
 			if (requestHeaders.containsKey(REQUEST_PROFILE_DATA))
 				requestHeaders.remove(REQUEST_PROFILE_DATA);
 		}
+		
+		// remove session tken if it is null
+		if(requestHeaders.containsKey(SESSION_TOKEN_HEADER) && requestHeaders.get(SESSION_TOKEN_HEADER) == null) {
+			requestHeaders.remove(SESSION_TOKEN_HEADER);
+		}
+		
 		JSONObject results = null;
 		URL requestUrl = null;
 
