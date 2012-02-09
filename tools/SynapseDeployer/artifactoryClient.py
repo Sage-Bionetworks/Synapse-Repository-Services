@@ -15,7 +15,7 @@ class Artifact:
     '''
     Describes an artifact obtained from Artifactory
     '''
-    def __init__(self,fileName,buildNumber):
+    def __init__(self,fileName,buildNumber,warName=None):
         self.fileName = fileName
         self.buildNumber = buildNumber
 
