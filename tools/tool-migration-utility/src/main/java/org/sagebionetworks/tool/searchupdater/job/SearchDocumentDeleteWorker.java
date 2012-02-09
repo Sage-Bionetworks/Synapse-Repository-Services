@@ -61,10 +61,8 @@ public class SearchDocumentDeleteWorker implements Callable<WorkerResult> {
 				documentBatch.put(document);
 			}
 
-			if (log.isDebugEnabled()) {
-				log.debug("Deleting from search index "
-						+ documentBatch.toString(4));
-			}
+			log.info("Deleting from search index "
+					+ documentBatch.toString(4));
 
 			// TODO need an extra safety check here
 			
