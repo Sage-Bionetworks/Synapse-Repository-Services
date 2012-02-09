@@ -1,6 +1,5 @@
 package org.sagebionetworks.tool.searchupdater;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
@@ -31,7 +30,6 @@ import org.sagebionetworks.tool.migration.job.JobUtil;
 import org.sagebionetworks.tool.searchupdater.dao.SearchRunnerImpl;
 import org.sagebionetworks.tool.searchupdater.job.SearchDocumentAddJobBuilder;
 import org.sagebionetworks.tool.searchupdater.job.SearchDocumentDeleteJobBuilder;
-import org.sagebionetworks.utils.HttpClientHelperException;
 
 /**
  * Search index updater daemon modeled after the repository migration driver.
@@ -51,16 +49,12 @@ public class SearchMigrationDriver {
 
 	/**
 	 * @param args
-	 * @throws IOException
 	 * @throws SynapseException
 	 * @throws JSONException
-	 * @throws InterruptedException
 	 * @throws ExecutionException
-	 * @throws HttpClientHelperException
 	 */
-	public static void main(String[] args) throws IOException,
-			SynapseException, JSONException, InterruptedException,
-			ExecutionException, HttpClientHelperException {
+	public static void main(String[] args) throws SynapseException,
+			JSONException, ExecutionException {
 
 		ClientFactoryImpl factory = new ClientFactoryImpl();
 		SynapseAdministration sourceClient = configuration
@@ -99,66 +93,78 @@ public class SearchMigrationDriver {
 		// Wash/rinse repeat.
 		long totalStart = System.currentTimeMillis();
 		while (true) {
-			// 1. Get all entity data from both the source and destination.
 
-			BasicProgress sourceProgress = new BasicProgress();
-			BasicProgress destProgress = new BasicProgress();
-			AllEntityDataWorker sourceQueryWorker = new AllEntityDataWorker(
-					sourceQueryRunner, sourceProgress);
-			AllEntityDataWorker destQueryWorker = new AllEntityDataWorker(
-					destQueryRunner, destProgress);
+			try {
 
-			// Start both at the same time
-			Future<List<EntityData>> sourceFuture = threadPool
-					.submit(sourceQueryWorker);
-			Future<List<EntityData>> destFuture = threadPool
-					.submit(destQueryWorker);
-			// Wait for both to finish
-			log
-					.info("Starting phase one: Gathering all data from the source and destination repository...");
-			while (!sourceFuture.isDone() || !destFuture.isDone()) {
-				// Report on the progress.
-				log.info("     Source query: "
-						+ sourceProgress.getCurrentStatus());
-				log.info("Destination query: "
-						+ destProgress.getCurrentStatus());
-				Thread.sleep(2000);
+				// 1. Get all entity data from both the source and destination.
+				BasicProgress sourceProgress = new BasicProgress();
+				BasicProgress destProgress = new BasicProgress();
+				AllEntityDataWorker sourceQueryWorker = new AllEntityDataWorker(
+						sourceQueryRunner, sourceProgress);
+				AllEntityDataWorker destQueryWorker = new AllEntityDataWorker(
+						destQueryRunner, destProgress);
+
+				// Start both at the same time
+				Future<List<EntityData>> sourceFuture = threadPool
+						.submit(sourceQueryWorker);
+				Future<List<EntityData>> destFuture = threadPool
+						.submit(destQueryWorker);
+				// Wait for both to finish
+				log
+						.info("Starting phase one: Gathering all data from the source and destination repository...");
+				while (!sourceFuture.isDone() || !destFuture.isDone()) {
+					// Report on the progress.
+					log.info("     Source query: "
+							+ sourceProgress.getCurrentStatus());
+					log.info("Destination query: "
+							+ destProgress.getCurrentStatus());
+					Thread.sleep(2000);
+				}
+
+				// Get the results
+				List<EntityData> sourceData = sourceFuture.get();
+				List<EntityData> destData = destFuture.get();
+				log.debug("Finished phase one.  Source entity count: "
+						+ sourceData.size() + ". Destination entity Count: "
+						+ destData.size());
+				// Start phase 2
+				log
+						.debug("Starting phase two: Calculating creates, updates, and deletes...");
+				populateQueue(threadPool, jobQueue, sourceData, destData,
+						configuration.getMaximumBatchSize());
+
+				// 3. Process all jobs on the queue.
+				log.debug("Starting phase three: Processing the job queue...");
+				AggregateProgress consumingProgress = new AggregateProgress();
+				Future<AggregateResult> consumFuture = consumeAllJobs(factory,
+						threadPool, jobQueue, consumingProgress);
+				while (!consumFuture.isDone()) {
+					log.info("Processing entities: "
+							+ consumingProgress.getCurrentStatus());
+					Thread.sleep(2000);
+				}
+				AggregateResult result = consumFuture.get();
+				entitesProcessed += result.getTotalEntitesProcessed();
+				failedJobs += result.getFailedJobCount();
+				successJobs += result.getSuccessfulJobCount();
+				String format = "FAILED jobs: %1$-10d SUCCESSFUL jobs: %2$-10d total entities processed: %3$-10d";
+				log.info("Cleared the queue: "
+						+ String.format(format, failedJobs, successJobs,
+								entitesProcessed));
+				// If there are any failures exist
+				long endTotal = System.currentTimeMillis();
+				log.info("Total elapse time: " + (endTotal - totalStart)
+						+ " ms");
+				Thread.sleep(1000 * 60);
+			} catch (InterruptedException e) {
+				// this is non-fatal, keep going
+				log.warn("non-fatal event: ", e);
+			} catch (Exception e) {
+				// Since we don't know what this is, its best to exit and let
+				// supervisord restart this process
+				log.fatal("fatal event, restarting: ", e);
+				System.exit(1);
 			}
-
-			// Get the results
-			List<EntityData> sourceData = sourceFuture.get();
-			List<EntityData> destData = destFuture.get();
-			log.debug("Finished phase one.  Source entity count: "
-					+ sourceData.size() + ". Destination entity Count: "
-					+ destData.size());
-			// Start phase 2
-			log
-					.debug("Starting phase two: Calculating creates, updates, and deletes...");
-			populateQueue(threadPool, jobQueue, sourceData, destData,
-					configuration.getMaximumBatchSize());
-
-			// 3. Process all jobs on the queue.
-			log.debug("Starting phase three: Processing the job queue...");
-			AggregateProgress consumingProgress = new AggregateProgress();
-			Future<AggregateResult> consumFuture = consumeAllJobs(factory,
-					threadPool, jobQueue, consumingProgress);
-			while (!consumFuture.isDone()) {
-				log.info("Processing entities: "
-						+ consumingProgress.getCurrentStatus());
-				Thread.sleep(2000);
-			}
-			AggregateResult result = consumFuture.get();
-			entitesProcessed += result.getTotalEntitesProcessed();
-			failedJobs += result.getFailedJobCount();
-			successJobs += result.getSuccessfulJobCount();
-			String format = "FAILED jobs: %1$-10d SUCCESSFUL jobs: %2$-10d total entities processed: %3$-10d";
-			log.info("Cleared the queue: "
-					+ String.format(format, failedJobs, successJobs,
-							entitesProcessed));
-			// If there are any failures exist
-			long endTotal = System.currentTimeMillis();
-			log.info("Total elapse time: " + (endTotal - totalStart) + " ms");
-			Thread.sleep(1000 * 60);
 		}
 	}
 
