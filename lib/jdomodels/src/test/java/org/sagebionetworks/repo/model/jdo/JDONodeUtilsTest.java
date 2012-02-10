@@ -9,6 +9,7 @@ import java.util.Set;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
@@ -72,6 +73,38 @@ public class JDONodeUtilsTest {
 		assertNotNull(dto);
 		assertEquals(parent.getId().toString(), dto.getParentId());
 		assertEquals(new Long(21), dto.getVersionNumber());
+	}
+	
+	@Test
+	public void testreplaceFromDto() throws DatastoreException{
+		Node node = new Node();
+		node.setName("myName");
+		node.setDescription("someDescription");
+		node.setId("101");
+		node.setNodeType(EntityType.project.name());
+		node.setCreatedBy("createdByMe");
+		node.setETag("1013");
+		node.setCreatedOn(new Date(10000));
+		node.setVersionNumber(2L);
+		node.setParentId("456");
+		// Now replace all node data
+		DBONode dboNode = new DBONode();
+		dboNode.setId(101L);
+		JDONodeUtils.replaceFromDto(node, dboNode);
+		assertEquals("myName", dboNode.getName());
+		assertEquals("someDescription", dboNode.getDescription());
+		assertEquals("createdByMe", dboNode.getCreatedBy());
+		assertEquals(10000l, (long)dboNode.getCreatedOn());
+		assertEquals(2l, (long)dboNode.getCurrentRevNumber());
+		assertEquals(1013l, (long)dboNode.geteTag());
+		assertEquals(EntityType.project.getId(), (short)dboNode.getNodeType());
+		assertEquals(456l, (long)dboNode.getParentId());
+		
+		// Make sure parent ID can be null
+		node.setParentId(null);
+		JDONodeUtils.replaceFromDto(node, dboNode);
+		assertEquals(null, dboNode.getParentId());
+		
 	}
 
 }

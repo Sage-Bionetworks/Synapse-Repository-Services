@@ -539,6 +539,32 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testCreateNewVersionNullLabel() throws Exception {
+		Node node = NodeTestUtils.createNew("testCreateNewVersion");
+		// Start this node with version and comment information
+		node.setVersionComment("This is the very first version of this node.");
+		node.setVersionLabel("0.0.1");
+		node.setVersionNumber(new Long(0));
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		// Load the node
+		Node loaded = nodeDao.getNode(id);
+		assertNotNull(loaded);
+		assertEquals(node.getVersionComment(), loaded.getVersionComment());
+		assertEquals(node.getVersionLabel(), loaded.getVersionLabel());
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, loaded.getVersionNumber());
+		// Now try to create a new version with a null label
+		loaded.setVersionLabel(null);
+		Long newNumber = nodeDao.createNewVersion(loaded);
+		// Since creation of a new version failed we should be back to one version
+		loaded = nodeDao.getNode(id);
+		assertNotNull(loaded);
+		assertEquals(node.getVersionComment(), loaded.getVersionComment());
+		assertEquals(newNumber.toString(), loaded.getVersionLabel());
+	}
+	
+	@Test
 	public void testNewVersionAnnotations() throws Exception {
 		Node node = NodeTestUtils.createNew("testCreateAnnotations");
 		// Start this node with version and comment information
@@ -1336,7 +1362,25 @@ public class NodeDAOImplTest {
 		backup.setDescription(newDescription);
 		// Now create the node from the backup
 		nodeDao.updateNodeFromBackup(backup);
+		// The revision should have been deleted.
+		assertFalse(nodeDao.doesNodeRevisionExist(id, backup.getVersionNumber()));
 		// Get a fresh copy
+		try{
+			Node restored = nodeDao.getNode(id);
+			fail("All revision for this node should have been deleted so this should have failed.");
+		}catch (NotFoundException e){
+			// This is expected since updating from a backup replaces all revisions.
+		}
+		// Now create a new revision from backup
+		NodeRevisionBackup revBackup  = new NodeRevisionBackup();
+		revBackup.setNodeId(id);
+		revBackup.setModifiedBy("somebody");
+		revBackup.setModifiedOn(new Date(System.currentTimeMillis()));
+		revBackup.setRevisionNumber(1l);
+		revBackup.setLabel("v1");
+		revBackup.setComment("No Comment");
+		((NodeBackupDAO)nodeDao).createNewRevisionFromBackup(revBackup);
+
 		Node restored = nodeDao.getNode(id);
 		assertNotNull(restored);
 		assertEquals(id, restored.getId());

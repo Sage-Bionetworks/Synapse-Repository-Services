@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.backup;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -178,7 +180,6 @@ public class NodeBackupStub implements NodeBackupManager {
 		return rev;
 	}
 	
-	@Override
 	public void createOrUpdateNode(NodeBackup backup) {
 		if(backup == null) throw new IllegalArgumentException("Backup cannot be null");
 		TreeNodeBackup newNode = createTreeNodeForBackup(backup);
@@ -188,8 +189,7 @@ public class NodeBackupStub implements NodeBackupManager {
 		}
 	}
 
-	@Override
-	public void createOrUpdateRevision(NodeRevisionBackup rev) {
+	private void createOrUpdateRevision(NodeRevisionBackup rev) {
 		if(rev == null) throw new IllegalArgumentException("Rev cannot be null");
 		TreeNodeBackup node = getNodeNode(rev.getNodeId());
 		if(node == null) throw new IllegalArgumentException("Could not find the owner of the given revision");
@@ -252,6 +252,25 @@ public class NodeBackupStub implements NodeBackupManager {
 	@Override
 	public String getRootId() throws DatastoreException, NotFoundException {
 		return getRoot().getNode().getId();
+	}
+
+	@Override
+	public void createOrUpdateNodeWithRevisions(NodeBackup backup,	List<NodeRevisionBackup> revisions) {
+		if(backup == null) throw new IllegalArgumentException("backup cannot be null");
+		if(revisions == null) throw new IllegalArgumentException("revisions cannot be null");
+		// Make sure we process revision in their natural order
+		Collections.sort(revisions, new Comparator<NodeRevisionBackup>(){
+			@Override
+			public int compare(NodeRevisionBackup one, NodeRevisionBackup two) {
+				// Sort based on the revision number only.
+				return one.getRevisionNumber().compareTo(two.getRevisionNumber());
+			}} );
+		// First handle the node
+		createOrUpdateNode(backup);
+		// Now process all revisions
+		for(NodeRevisionBackup rev: revisions){
+			createOrUpdateRevision(rev);
+		}
 	}
 	
 

@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.manager.backup;
 
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -102,7 +105,7 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	}
 
 	/**
-	 * Create this node in a single transaction.  This is important. We do not want a transaction
+	 * Create this node.  This is important. We do not want a transaction
 	 * around an entire system restoration call.  Such a transaction will not scale, and a partial
 	 * restore is better than restoring nothing if there is a single bad node.
 	 * @throws DatastoreException 
@@ -110,9 +113,7 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	 * @throws ConflictingUpdateException 
 	 * @throws InvalidModelException 
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
-	@Override
-	public void createOrUpdateNode(NodeBackup backup) {
+	private void createOrUpdateNode(NodeBackup backup) {
 		if(backup == null) throw new IllegalArgumentException("NodeBackup cannot be null");
 		if(backup.getNode() == null) throw new IllegalArgumentException("NodeBackup.node cannot be null");
 		if(backup.getNode().getId() == null) throw new IllegalArgumentException("NodeBackup.node.id cannot be null");
@@ -179,14 +180,12 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 		principal.setCreationDate(new Date());
 		return principal;
 	}
+
 	/**
-	 * Create this revisoin in a single transaction.  This is important. We do not want a transaction
-	 * around an entire system restoration call.  Such a transaction will not scale, and a partial
-	 * restore is better than restoring nothing if there is a single bad node.
+	 * Create or update a single revision.
+	 * @param rev
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
-	@Override
-	public void createOrUpdateRevision(NodeRevisionBackup rev) {
+	private void createOrUpdateRevision(NodeRevisionBackup rev) {
 		if(rev == null) throw new IllegalArgumentException("NodeRevisionBackup cannot be null");
 		if(rev.getNodeId() == null) throw new IllegalArgumentException("NodeRevisionBackup.nodeId cannot be null");
 		if(rev.getRevisionNumber() == null) throw new IllegalArgumentException("NodeRevisionBackup.revisionNumber cannot be null");
@@ -227,6 +226,29 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 		} catch (Exception e) {
 			// Convert all exceptions to runtimes to force a rollback on this node.
 			throw new RuntimeException(e);
+		}
+	}
+
+	/**
+	 * Create or update an entity within a single transaction.
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Override
+	public void createOrUpdateNodeWithRevisions(NodeBackup backup,	List<NodeRevisionBackup> revisions) {
+		if(backup == null) throw new IllegalArgumentException("backup cannot be null");
+		if(revisions == null) throw new IllegalArgumentException("revisions cannot be null");
+		// Make sure we process revision in their natural order
+		Collections.sort(revisions, new Comparator<NodeRevisionBackup>(){
+			@Override
+			public int compare(NodeRevisionBackup one, NodeRevisionBackup two) {
+				// Sort based on the revision number only.
+				return one.getRevisionNumber().compareTo(two.getRevisionNumber());
+			}} );
+		// First handle the node
+		createOrUpdateNode(backup);
+		// Now process all revisions
+		for(NodeRevisionBackup rev: revisions){
+			createOrUpdateRevision(rev);
 		}
 	}
 

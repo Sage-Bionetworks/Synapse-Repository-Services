@@ -6,9 +6,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -69,6 +69,13 @@ public class NodeBackupManagerImplAutowireTest {
 	String uniqueAnnotationValue;
 	
 	BasicQuery queryForNode;
+	
+	private Comparator<NodeRevisionBackup> comp = new Comparator<NodeRevisionBackup>(){
+		@Override
+		public int compare(NodeRevisionBackup one, NodeRevisionBackup two) {
+			// Sort based on the revision number only.
+			return one.getRevisionNumber().compareTo(two.getRevisionNumber());
+		}} ;
 	
 	
 	@Before
@@ -215,11 +222,7 @@ public class NodeBackupManagerImplAutowireTest {
 		// Now delete the user
 		userManager.deletePrincipal(nonAdminPrincipalName);
 		// Now restore the node
-		backupManager.createOrUpdateNode(backup);
-		// Restore each revision
-		for(NodeRevisionBackup rev: revisions){
-			backupManager.createOrUpdateRevision(rev);
-		}
+		backupManager.createOrUpdateNodeWithRevisions(backup, revisions);
 		
 		//Now get the backup data again and make sure it matches the originals
 		List<NodeRevisionBackup> cloneRevision = new ArrayList<NodeRevisionBackup>();
@@ -232,6 +235,9 @@ public class NodeBackupManagerImplAutowireTest {
 			NodeRevisionBackup rev = backupManager.getNodeRevision(newNodeId, revNumer);
 			cloneRevision.add(rev);
 		}
+		// Make sure they are in the same order before comparing them.
+		Collections.sort(revisions, comp);
+		Collections.sort(cloneRevision, comp);
 		assertEquals(revisions, cloneRevision);
 		// We should also be able to find our restored node using its special query
 		nonAdminUser = userManager.getUserInfo(nonAdminPrincipalName);
@@ -254,11 +260,7 @@ public class NodeBackupManagerImplAutowireTest {
 		}
 
 		// This time the node should still exist.
-		backupManager.createOrUpdateNode(backup);
-		// Restore each revision
-		for(NodeRevisionBackup rev: revisions){
-			backupManager.createOrUpdateRevision(rev);
-		}
+		backupManager.createOrUpdateNodeWithRevisions(backup, revisions);
 		
 		//Now get the backup data again and make sure it matches the originals
 		List<NodeRevisionBackup> cloneRevision = new ArrayList<NodeRevisionBackup>();
@@ -271,10 +273,108 @@ public class NodeBackupManagerImplAutowireTest {
 			NodeRevisionBackup rev = backupManager.getNodeRevision(newNodeId, revNumer);
 			cloneRevision.add(rev);
 		}
+		// Make sure they are in the same order before comparing them.
+		Collections.sort(revisions, comp);
+		Collections.sort(cloneRevision, comp);
 		assertEquals(revisions, cloneRevision);
 		// We should also be able to find our restored node using its special query
 		nonAdminUser = userManager.getUserInfo(nonAdminPrincipalName);
 		assertEquals(1, nodeQueryDao.executeCountQuery(queryForNode, nonAdminUser));		
+	}
+	
+	@Test
+	public void testPLFM_987() throws Exception {
+		// First get the current node backup
+		List<NodeRevisionBackup> startingRevs = new ArrayList<NodeRevisionBackup>();
+		NodeBackup startingBackup = backupManager.getNode(newNodeId);
+		// Get all of the revisions
+		for(Long revNumer: startingBackup.getRevisions()){
+			NodeRevisionBackup rev = backupManager.getNodeRevision(newNodeId, revNumer);
+			startingRevs.add(rev);
+		}
+		
+		// Now create a new version of the entity
+		Node updatedNode = nodeManager.get(nonAdminUser, newNodeId);
+		// Set a new version label
+		updatedNode.setVersionLabel("newLable");
+		nodeManager.update(nonAdminUser, updatedNode, null, true);
+		// Now get the backup again.
+		List<NodeRevisionBackup> updatedRevs = new ArrayList<NodeRevisionBackup>();
+		NodeBackup updatedNodeBackup = backupManager.getNode(newNodeId);
+		// Get all of the revisions
+		for(Long revNumer: updatedNodeBackup.getRevisions()){
+			NodeRevisionBackup rev = backupManager.getNodeRevision(newNodeId, revNumer);
+			updatedRevs.add(rev);
+		}
+		// Now start clean
+		nodeManager.delete(nonAdminUser, newNodeId);
+		
+		// Now apply the first restore.
+		backupManager.createOrUpdateNodeWithRevisions(startingBackup, startingRevs);
+		
+		// Now update using the new object
+		backupManager.createOrUpdateNodeWithRevisions(updatedNodeBackup, updatedRevs);
+	}
+	
+	@Test
+	public void testPLFM_987Part2() throws Exception {
+		// First get the current node backup
+		List<NodeRevisionBackup> startingRevs = new ArrayList<NodeRevisionBackup>();
+		NodeBackup startingBackup = backupManager.getNode(newNodeId);
+		// Get all of the revisions
+		for(Long revNumer: startingBackup.getRevisions()){
+			NodeRevisionBackup rev = backupManager.getNodeRevision(newNodeId, revNumer);
+			startingRevs.add(rev);
+		}
+		
+		// Now create a new version of the entity
+		Node updatedNode = nodeManager.get(nonAdminUser, newNodeId);
+		// Set a new version label
+		updatedNode.setVersionLabel("newLable");
+		nodeManager.update(nonAdminUser, updatedNode, null, true);
+		// Now get the backup again.
+		List<NodeRevisionBackup> updatedRevs = new ArrayList<NodeRevisionBackup>();
+		NodeBackup updatedNodeBackup = backupManager.getNode(newNodeId);
+		// Get all of the revisions
+		for(Long revNumer: updatedNodeBackup.getRevisions()){
+			NodeRevisionBackup rev = backupManager.getNodeRevision(newNodeId, revNumer);
+			updatedRevs.add(rev);
+		}
+		// Now start clean
+		nodeManager.delete(nonAdminUser, newNodeId);
+		
+		// Now apply the first restore.
+		backupManager.createOrUpdateNodeWithRevisions(startingBackup, startingRevs);
+		// Create multiple versions that should get replaced.
+		updatedNode = nodeManager.get(nonAdminUser, newNodeId);
+		// Set a new version label
+		updatedNode.setVersionLabel("newLabel2");
+		nodeManager.update(nonAdminUser, updatedNode, null, true);
+		updatedNode = nodeManager.get(nonAdminUser, newNodeId);
+		// Set a new version label
+		updatedNode.setVersionLabel("newLabel3");
+		nodeManager.update(nonAdminUser, updatedNode, null, true);
+		updatedNode = nodeManager.get(nonAdminUser, newNodeId);
+		// Set a new version label
+		updatedNode.setVersionLabel("newLabel4");
+		nodeManager.update(nonAdminUser, updatedNode, null, true);
+		
+		// Now update using the new object
+		backupManager.createOrUpdateNodeWithRevisions(updatedNodeBackup, updatedRevs);
+		
+		// The revisions should match the replaced revisions
+		NodeBackup cloneBackup = backupManager.getNode(newNodeId);
+		// Get all of the revisions
+		List<NodeRevisionBackup> cloneRevisions = new ArrayList<NodeRevisionBackup>();
+		for(Long revNumer: cloneBackup.getRevisions()){
+			NodeRevisionBackup rev = backupManager.getNodeRevision(newNodeId, revNumer);
+			cloneRevisions.add(rev);
+		}
+		// they should match
+		// Make sure they are in the same order before comparing them.
+		Collections.sort(updatedRevs, comp);
+		Collections.sort(cloneRevisions, comp);
+		assertEquals(updatedRevs, cloneRevisions);
 	}
 
 }
