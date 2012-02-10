@@ -22,6 +22,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -220,8 +221,8 @@ public class GenericEntityControllerImpleAutowiredTest {
 		// get an entity
 		String id1 = toDelete.get(0);
 		// verify that nothing refers to it
-		List<EntityHeader> ehs = entityController.getEntityReferences(userName, id1);
-		assertEquals(0, ehs.size());
+		PaginatedResults<EntityHeader> ehs = entityController.getEntityReferences(userName, id1, null, null, null, mockRequest);
+		assertEquals(0, ehs.getTotalNumberOfResults());
 		// make another entity refer to the first one
 		Step step = new Step();
 		Reference ref = new Reference();
@@ -232,9 +233,9 @@ public class GenericEntityControllerImpleAutowiredTest {
 		step = entityController.createEntity(userName, step, mockRequest);
 		toDelete.add(step.getId());
 		// verify that the Step can be retrieved via its reference
-		ehs = entityController.getEntityReferences(userName, id1);
-		assertEquals(1, ehs.size());
-		assertEquals(step.getId(), ehs.iterator().next().getId());
+		ehs = entityController.getEntityReferences(userName, id1, null, null, null, mockRequest);
+		assertEquals(1, ehs.getTotalNumberOfResults());
+		assertEquals(step.getId(), ehs.getResults().iterator().next().getId());
 	}
 
 }

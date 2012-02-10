@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -791,7 +792,7 @@ public class ServletTestHelper {
 	 * @throws JsonMappingException
 	 * @throws JsonParseException
 	 */
-	public static <T extends Entity> PaginatedResults<T> createPaginatedResultsFromJSON(
+	public static <T extends JSONEntity> PaginatedResults<T> createPaginatedResultsFromJSON(
 			String jsonString, Class<? extends T> clazz) throws JSONException,
 			JsonParseException, JsonMappingException, IOException {
 		PaginatedResults<T> pr = new PaginatedResults<T>(clazz);
@@ -1432,8 +1433,8 @@ public class ServletTestHelper {
 				response.getContentAsString(), EntityHeader.class);
 	}
 
-	public static List<Map> getEntityReferences(HttpServlet dispatchServlet,
-			String id, String userId) throws ServletException, IOException {
+	public static PaginatedResults<EntityHeader> getEntityReferences(HttpServlet dispatchServlet,
+			String id, String userId) throws ServletException, IOException, JSONException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -1445,12 +1446,12 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return (List<Map>) objectMapper.readValue(
-				response.getContentAsString(), List.class);
+		return createPaginatedResultsFromJSON(response.getContentAsString(),
+				EntityHeader.class);
 	}
 
-	public static List<Map> getEntityReferences(HttpServlet dispatchServlet,
-			String id, int versionNumber, String userId) throws ServletException, IOException {
+	public static PaginatedResults<EntityHeader> getEntityReferences(HttpServlet dispatchServlet,
+			String id, int versionNumber, String userId) throws ServletException, IOException, JSONException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -1462,8 +1463,8 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return (List<Map>) objectMapper.readValue(
-				response.getContentAsString(), List.class);
+		return createPaginatedResultsFromJSON(response.getContentAsString(),
+				EntityHeader.class);
 	}
 
 	/**

@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -327,28 +328,16 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.getNodePathAsAdmin(entityId);
 	}
 
-
-	/**
-	 * @param userInfo
-	 * @param entityId
-	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
-	 */
-	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String entityId) 
-				throws NotFoundException, DatastoreException {
-		// pass through
-		return nodeManager.getEntityReferences(userInfo, entityId);
-	}
-
 	/**
 	 * @param userInfo
 	 * @param entityId
 	 * @param versionNumber
 	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
 	 */
-	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String entityId, int versionNumber) 
+	public EntityHeaderQueryResults getEntityReferences(UserInfo userInfo, String entityId, Integer versionNumber, Integer offset, Integer limit) 
 				throws NotFoundException, DatastoreException {
 		// pass through
-		return nodeManager.getEntityReferences(userInfo, entityId, versionNumber);
+		return nodeManager.getEntityReferences(userInfo, entityId, versionNumber, offset, limit);
 	}
 
 }

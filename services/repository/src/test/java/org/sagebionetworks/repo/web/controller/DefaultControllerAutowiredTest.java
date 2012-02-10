@@ -2,14 +2,12 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import javax.servlet.ServletException;
@@ -18,9 +16,11 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.json.JSONException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -352,7 +353,7 @@ public class DefaultControllerAutowiredTest {
 	}
 
 	@Test
-	public void testGetEntityReferences() throws ServletException, IOException{
+	public void testGetEntityReferences() throws ServletException, IOException, JSONException {
 		// Create a project
 		Project project = new Project();
 		project.setName("testCreateProject");
@@ -363,10 +364,11 @@ public class DefaultControllerAutowiredTest {
 		toDelete.add(clone.getId());
 		
 		String userId = userName;
-		String accessType = AuthorizationConstants.ACCESS_TYPE.READ.name();
 		
 		// get references to object
-		List<Map> ehs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
+		PaginatedResults<EntityHeader> prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
+		List<EntityHeader> ehs = prs.getResults();
+		assertEquals(0, prs.getTotalNumberOfResults());
 		assertEquals(0, ehs.size());
 		
 		// add step
@@ -389,9 +391,10 @@ public class DefaultControllerAutowiredTest {
 		}
 		
 		// get references
-		ehs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
+		prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
+		ehs = prs.getResults();
 		assertEquals(1, ehs.size());
-		assertEquals(stepClone.getId(), ehs.iterator().next().get("id"));
+		assertEquals(stepClone.getId(), ehs.iterator().next().getId());
 		
 		// try referencing a specific, nonexistent version
 		int v = Integer.parseInt(clone.getVersion());
@@ -408,15 +411,18 @@ public class DefaultControllerAutowiredTest {
 		}
 				
 		// both Steps refer to some version of the Project
-		ehs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
+		prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
+		ehs = prs.getResults();
 		assertEquals(ehs.toString(), 2, ehs.size());
 		
 		// only one step refers to version 1 of the Project
-		ehs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v, userId);
+		prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v, userId);
+		ehs = prs.getResults();
 		assertEquals(ehs.toString(), 1, ehs.size());
 		
 		// No Step refers to version 100 of the Project
-		ehs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v+99, userId);
+		prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v+99, userId);
+		ehs = prs.getResults();
 		assertEquals(0, ehs.size());
 		
 		

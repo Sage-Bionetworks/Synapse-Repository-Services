@@ -891,12 +891,14 @@ public class DefaultController extends BaseController {
 			UrlHelpers.ENTITY_ID+UrlHelpers.REFERENCED_BY
 			}, method = RequestMethod.GET)
 	public @ResponseBody
-	List<EntityHeader> getEntityReferences(
+	PaginatedResults<EntityHeader> getEntityReferences(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
 		// Get the type of an entity by ID.
-		return entityController.getEntityReferences(userId, id);
+		return entityController.getEntityReferences(userId, id, null, offset, limit, request);
 	}
 	
 	
@@ -914,14 +916,16 @@ public class DefaultController extends BaseController {
 			UrlHelpers.ENTITY_ID+UrlHelpers.VERSION+UrlHelpers.VERSION_NUMBER+UrlHelpers.REFERENCED_BY
 			}, method = RequestMethod.GET)
 	public @ResponseBody
-	List<EntityHeader> getEntityReferences(
+	PaginatedResults<EntityHeader> getEntityReferences(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@PathVariable String id, 
 			@PathVariable int versionNumber, 
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
 		// Get the type of an entity by ID.
-		return entityController.getEntityReferences(userId, id, versionNumber);
+		return entityController.getEntityReferences(userId, id, versionNumber, offset, limit, request);
 	}
 	
 	

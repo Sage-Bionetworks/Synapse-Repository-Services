@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -493,21 +494,10 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 
 	@Transactional(readOnly = true)
 	@Override
-	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId)
+	public EntityHeaderQueryResults getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Integer offset, Integer limit)
 			throws NotFoundException, DatastoreException {
 		UserInfo.validateUserInfo(userInfo);
-		return new ArrayList<EntityHeader>(referenceDao.getReferrers(Long.parseLong(nodeId), userInfo));
+		return referenceDao.getReferrers(Long.parseLong(nodeId), versionNumber, userInfo, offset, limit);
 	}
-	
-
-	@Transactional(readOnly = true)
-	@Override
-	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId, int versionNumber)
-			throws NotFoundException, DatastoreException {
-		UserInfo.validateUserInfo(userInfo);
-		return new ArrayList<EntityHeader>(referenceDao.getReferrers(Long.parseLong(nodeId), versionNumber, userInfo));
-	}
-	
-
 
 }

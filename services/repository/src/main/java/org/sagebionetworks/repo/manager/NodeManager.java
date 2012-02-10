@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -219,17 +220,10 @@ public interface NodeManager {
 	/**
 	 * @param userInfo
 	 * @param entityId
-	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
-	 */
-	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId)
-				throws NotFoundException, DatastoreException;
-	
-	/**
-	 * @param userInfo
-	 * @param entityId
 	 * @param versionNumber
 	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
 	 */
-	public List<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId, int versionNumber)
-				throws NotFoundException, DatastoreException;
+	public EntityHeaderQueryResults getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Integer offset, Integer limit)
+	throws NotFoundException, DatastoreException;
+	
 }

@@ -1,8 +1,14 @@
 package org.sagebionetworks.repo;
 
+import java.util.HashSet;
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.Step;
 
 /**
  * WikiGenerator is used to auto-generate the wiki for the Platform Repository
@@ -271,21 +277,35 @@ public class ReadOnlyWikiGenerator {
 				break; // we have displayed one clinical layer, don't bother with any others
 			}
 			
-//			log.info("h2. References");
-//			String datasetId = dataset.getString("id");
-//			if (datasetId==null || datasetId.length()==0) throw new RuntimeException("No dataset");
-//			String datasetVersion = dataset.getString("version");
-//			if (datasetVersion==null || datasetVersion.length()==0) throw new RuntimeException("No datasetVersion");
-//			wiki
-//			.doGet(
-//					"/entity/"+datasetId+"/referencedby",
-//					"h3. Find reference to any version of an entity",
-//					"");
-//			wiki
-//			.doGet(
-//					"/entity/"+datasetId+"/version/"+datasetVersion+"/referencedby",
-//					"h3. Find reference to a specific version of an entity",
-//					"");
+			log.info("h2. References");
+			String datasetId = dataset.getString("id");
+			if (datasetId==null || datasetId.length()==0) throw new RuntimeException("No dataset");
+			Integer datasetVersion = dataset.getInt("versionNumber");
+			if (datasetVersion==null) throw new RuntimeException("No datasetVersion");
+			
+			Synapse synapse = wiki.getClient();
+			JSONObject o = synapse.getEntity("/entity/"+datasetId+"/referencedby");
+			if (o.getInt("totalNumberOfResults")==0) {
+				Step step = new Step();
+				step.setName("Analysis Step");
+				Set<Reference> inputs = new HashSet<Reference>();
+				Reference ref = new Reference();
+				ref.setTargetId(datasetId);
+				ref.setTargetVersionNumber((long)datasetVersion);
+				inputs.add(ref);
+				step.setInput(inputs);
+				synapse.createEntity(step);
+			}
+			wiki
+			.doGet(
+					"/entity/"+datasetId+"/referencedby",
+					"h3. Find reference to any version of an entity",
+					"");
+			wiki
+			.doGet(
+					"/entity/"+datasetId+"/version/"+datasetVersion+"/referencedby",
+					"h3. Find reference to a specific version of an entity",
+					"");
 
 			log.info("h2. Schemas");
 			wiki

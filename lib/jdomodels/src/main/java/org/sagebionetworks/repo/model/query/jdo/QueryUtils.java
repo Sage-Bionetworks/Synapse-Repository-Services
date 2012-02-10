@@ -17,6 +17,9 @@ import org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl.AttributeDoe
 @SuppressWarnings("rawtypes")
 public class QueryUtils {
 	
+	public static final int MAX_LIMIT = 50000000; // MySQL's upper bound on
+	// LIMIT
+
 	private static final HashSet<String> primaryFields;
 	
 	// Import the primary fields from the dao
@@ -116,6 +119,21 @@ public class QueryUtils {
 		builder.append(".");
 		builder.append(twoColumn);
 		builder.append(")");
+	}
+
+	public static String buildPaging(long offset, long limit,
+			Map<String, Object> parameters) {
+		// We need to convert from offset and limit to "fromIncl" and "toExcl"
+		if (offset < 0) {
+			offset = 0;
+		}
+		if (limit > MAX_LIMIT) {
+			limit = MAX_LIMIT - 1;
+		}
+		String paging = "limit :limitVal offset :offsetVal";
+		parameters.put("limitVal", limit);
+		parameters.put("offsetVal", offset);
+		return paging;
 	}
 
 

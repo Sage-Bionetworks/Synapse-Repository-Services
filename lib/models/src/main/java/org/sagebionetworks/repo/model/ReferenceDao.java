@@ -26,19 +26,15 @@ public interface ReferenceDao {
 	public Map<String, Set<Reference>> getReferences(Long ownerId);
 
 	/**
-	 * Get the EntityHeaders of the entities which refer to a given target, regardless of the target's revision
-	 * @param targetId the Node ID of the target
-	 * @return a List of EntityHeaders
-	 * 
-	 */
-	public Collection<EntityHeader> getReferrers(Long targetId, UserInfo userInfo);
-
-	/**
-	 * Get the EntityHeader of the entities which refer to a specific revision of a given target
+	 * Get the EntityHeaders of the entities which refer to a given target
+	 * if targetVersion is not null then return just the referrers of the given specific version of the target
 	 * @param targetId the Node ID of the target
 	 * @param targetVersion the version of the target
+	 * @param offset ZERO based pagination param
+	 * @param limit pagination param
 	 * @return a List of EntityHeaders
 	 * 
 	 */
-	public Collection<EntityHeader> getReferrers(Long targetId, int targetVersion, UserInfo userInfo);
+	public EntityHeaderQueryResults getReferrers(Long targetId, Integer targetVersion, UserInfo userInfo, Integer offset, Integer limit);
+
 }

@@ -57,8 +57,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 */
 	public static final long MAX_BYTES_PER_QUERY = StackConfiguration.getMaximumBytesPerQueryResult();
 	
-	public static final int MAX_LIMIT = 50000000; // MySQL's upper bound on
-	// LIMIT
 	
 	/**
 	 * Execute the actual query
@@ -219,7 +217,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		// Build the authorization filter
 		String authorizationFilter = QueryUtils.buildAuthorizationFilter(userInfo, parameters);
 		// Build the paging
-		String paging = buildPaging(in.getOffset(), in.getLimit(), parameters);
+		String paging = QueryUtils.buildPaging(in.getOffset(), in.getLimit(), parameters);
 
 		// Build the SQL strings
 		// Count
@@ -311,21 +309,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	}
 	
 
-
-	private String buildPaging(long offset, long limit,
-			Map<String, Object> parameters) {
-		// We need to convert from offset and limit to "fromIncl" and "toExcl"
-		if (offset < 0) {
-			offset = 0;
-		}
-		if (limit > MAX_LIMIT) {
-			limit = MAX_LIMIT - 1;
-		}
-		String paging = "limit :limitVal offset :offsetVal";
-		parameters.put("limitVal", limit);
-		parameters.put("offsetVal", offset);
-		return paging;
-	}
 
 	/**
 	 * Build the select clause

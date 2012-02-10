@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
@@ -638,18 +639,27 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		return getEntityHeader(userId, benefactor);
 	}
 
+	/**
+	 * Get the entities which refer to the given version of the given entity
+	 * @param userId
+	 * @param entityId
+	 * @param versionNumber
+	 * @param offset ONE based pagination param
+	 * @param limit pagination param
+	 * @request
+	 * @return the headers of the entities which have references to 'entityId'
+	 * 
+	 */
 	@Override
-	public List<EntityHeader> getEntityReferences(String userId, String entityId)
+	public PaginatedResults<EntityHeader> getEntityReferences(String userId, String entityId, Integer versionNumber, Integer offset, Integer limit, HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityManager.getEntityReferences(userInfo, entityId);
-	}
-
-	@Override
-	public List<EntityHeader> getEntityReferences(String userId, String entityId, int versionNumber)
-			throws NotFoundException, DatastoreException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityManager.getEntityReferences(userInfo, entityId, versionNumber);
+		if (offset==null) offset = 1;
+		if (limit==null) limit = Integer.MAX_VALUE;
+		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
+		EntityHeaderQueryResults results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, offset-1, limit);
+		String urlPath = request.getRequestURL()==null ? "" : request.getRequestURL().toString();
+		return new PaginatedResults(urlPath,  results.getEntityHeaders(), results.getTotalNumberOfResults(), offset, limit, /*sort*/null, /*ascending*/true);
 	}
 
 

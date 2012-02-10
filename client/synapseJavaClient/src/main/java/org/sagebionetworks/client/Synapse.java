@@ -973,7 +973,11 @@ public class Synapse {
 			}
 
 			if (null != responseBody) {
-				results = new JSONObject(responseBody);
+				try {
+					results = new JSONObject(responseBody);
+				} catch (JSONException jsone) {
+					throw new SynapseServiceException("responseBody: <<"+responseBody+">>", jsone);
+				}
 				if (log.isDebugEnabled()) {
 					if(authEndpoint.equals(endpoint)) {
 						log.debug(requestMethod + " " + requestUrl + " : (not logging auth request details)");

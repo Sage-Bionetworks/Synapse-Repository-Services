@@ -465,23 +465,16 @@ public interface GenericEntityController {
 	public EntityHeader getEntityHeader(String userId, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
-	 * Get the entities which refer to the given entity
-	 * @param userId
-	 * @param entityId
-	 * @return the headers of the entities which have references to 'entityId'
-	 * 
-	 */
-	public List<EntityHeader> getEntityReferences(String userId, String entityId)
-			throws NotFoundException, DatastoreException;	
-	
-	/**
 	 * Get the entities which refer to the given version of the given entity
 	 * @param userId
 	 * @param entityId
 	 * @param versionNumber
+	 * @param offset ONE based pagination param
+	 * @param limit pagination param
+	 * @request
 	 * @return the headers of the entities which have references to 'entityId'
 	 * 
 	 */
-	public List<EntityHeader> getEntityReferences(String userId, String entityId, int versionNumber)
+	public PaginatedResults<EntityHeader> getEntityReferences(String userId, String entityId, Integer versionNumber, Integer offset, Integer limit, HttpServletRequest request)
 			throws NotFoundException, DatastoreException;
 }

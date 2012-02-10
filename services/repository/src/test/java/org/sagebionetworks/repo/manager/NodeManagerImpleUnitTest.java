@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -201,10 +202,11 @@ public class NodeManagerImpleUnitTest {
 	
 	@Test
 	public void testGetReferences() throws Exception {
-		List<EntityHeader> expected = new ArrayList<EntityHeader>();
+		EntityHeaderQueryResults expected = new EntityHeaderQueryResults();
+		expected.setEntityHeaders(new ArrayList<EntityHeader>());
 		Long id = 101L;
 		UserInfo userInfo = anonUserInfo;
-		when(mockReferenceDao.getReferrers(id, userInfo)).thenReturn(expected);
-		List<EntityHeader> entityHeaders = nodeManager.getEntityReferences(userInfo, ""+id);
+		when(mockReferenceDao.getReferrers(id, null, userInfo, null, null)).thenReturn(expected);
+		EntityHeaderQueryResults actual = nodeManager.getEntityReferences(userInfo, ""+id, null, null, null);
 	}
 }

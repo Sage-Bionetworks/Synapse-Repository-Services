@@ -131,6 +131,8 @@ public class WikiGenerator {
 
 		return new WikiGenerator(repoEndpoint, authEndpoint, username, password);
 	}
+	
+	public Synapse getClient() {return synapse;}
 
 	/**
 	 * @param repoEndpoint
