@@ -55,6 +55,33 @@ public class JDONodeUtils {
 	}
 	
 	/**
+	 * Replace all fields from the dto.
+	 * @param dto
+	 * @param jdo
+	 * @throws DatastoreException
+	 */
+	public static void replaceFromDto(Node dto, DBONode jdo) throws DatastoreException {
+		jdo.setName(dto.getName());
+		jdo.setDescription(dto.getDescription());
+		if(dto.getId() != null){
+			jdo.setId(KeyFactory.stringToKey(dto.getId()));
+		}
+		if(dto.getCreatedOn() != null){
+			jdo.setCreatedOn(dto.getCreatedOn().getTime());
+		}
+		jdo.setCreatedBy(dto.getCreatedBy());
+		jdo.seteTag(KeyFactory.stringToKey(dto.getETag()));
+		jdo.setCurrentRevNumber(dto.getVersionNumber());
+		jdo.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
+		if(dto.getParentId() != null){
+			jdo.setParentId(KeyFactory.stringToKey(dto.getParentId()));
+		}else{
+			jdo.setParentId(null);
+		}
+
+	}
+	
+	/**
 	 * Create a DTO from the JDO
 	 * @param jdo
 	 * @return

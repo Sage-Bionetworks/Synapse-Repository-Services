@@ -205,7 +205,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException {
 		if(newVersion == null) throw new IllegalArgumentException("New version node cannot be null");
 		if(newVersion.getId() == null) throw new IllegalArgumentException("New version node ID cannot be null");
-		if(newVersion.getVersionLabel() == null) throw new IllegalArgumentException("Cannot create a new version with a null version label");
+//		if(newVersion.getVersionLabel() == null) throw new IllegalArgumentException("Cannot create a new version with a null version label");
 		// Get the Node
 		Long nodeId = KeyFactory.stringToKey(newVersion.getId());
 		DBONode jdo = getNodeById(nodeId);
@@ -217,6 +217,10 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		JDONodeUtils.updateFromDto(newVersion, jdo, newRev);
 		// The new revision becomes the current version
 		jdo.setCurrentRevNumber(newRev.getRevisionNumber());
+		if(newVersion.getVersionLabel() == null) {
+			// This is a fix for PLFM-995
+			newRev.setLabel(KeyFactory.keyToString(newRev.getRevisionNumber()));
+		}
 		// Save the change to the node
 		dboBasicDao.update(jdo);
 		dboBasicDao.createNew(newRev);
@@ -491,11 +495,20 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void updateNodeFromBackup(Node node) throws NotFoundException, DatastoreException {
-		// Since this node is from a backup we want to use the Etag it provides.
-		// See PLFM-845.
-		boolean forceUseEtag = true;
-		updateNodePrivate(node, forceUseEtag);
+	public void updateNodeFromBackup(Node toReplace) throws NotFoundException, DatastoreException {
+		if(toReplace == null) throw new IllegalArgumentException("Node to update cannot be null");
+		Long nodeId = Long.parseLong(toReplace.getId());
+		DBONode jdoToUpdate = getNodeById(nodeId);
+		JDONodeUtils.replaceFromDto(toReplace, jdoToUpdate);
+		// Delete all revisions.
+		simpleJdbcTemplate.update("DELETE FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ?", nodeId);
+		// Update the node.
+		try{
+			dboBasicDao.update(jdoToUpdate);
+		}catch(IllegalArgumentException e){
+			// Check to see if this is a duplicate name exception.
+			checkExceptionDetails(toReplace.getName(), toReplace.getParentId(), e);
+		}
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

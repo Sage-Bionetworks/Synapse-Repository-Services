@@ -219,8 +219,8 @@ public class EntityManagerImpl implements EntityManager {
 			String currentMd5 = (String) annos.getPrimaryAnnotations().getSingleValue("md5");
 			if(null != currentMd5 && !currentMd5.equals(locationable.getMd5())) {
 				newVersion = true;
-				// Programmatically construct a unique version label
-				locationable.setVersionLabel(NodeConstants.AUTOCREATED_VERSION_LABEL_PREFIX + locationable.getVersionNumber().toString());
+				// setting this to null we cause the revision id to be used.
+				locationable.setVersionLabel(null);
 			}
 		}
 

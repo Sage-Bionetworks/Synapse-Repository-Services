@@ -230,6 +230,8 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 			progress.setTotalCount(source.length());
 			// We need to map the node type to the node id.
 			EntityType nodeType = null;
+			NodeBackup backup = null;
+			List<NodeRevisionBackup> revisions = null;
 			ZipEntry entry;
 			while((entry = zin.getNextEntry()) != null) {
 				progress.setMessage(entry.getName());
@@ -239,8 +241,17 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 //				log.info("Writing entry: "+entry.getName());
 				// Is this a node or a revision?
 				if(isNodeBackupFile(entry.getName())){
+					// Push the current data
+					if(backup != null){
+						backupManager.createOrUpdateNodeWithRevisions(backup, revisions);
+						// clear the current data
+						backup = null;
+						
+					}
 					// This is a backup file.
-					NodeBackup backup = nodeSerializer.readNodeBackup(zin);
+					backup = nodeSerializer.readNodeBackup(zin);
+					revisions = new ArrayList<NodeRevisionBackup>();;
+					nodeType = EntityType.valueOf(backup.getNode().getNodeType());
 					// Are we restoring the root node?
 					if(backup.getNode().getParentId() == null){
 						// This node is a root.  Does it match the current root?
@@ -252,14 +263,16 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 							backupManager.clearAllData();
 						}
 					}
-					nodeType = EntityType.valueOf(backup.getNode().getNodeType());
-					backupManager.createOrUpdateNode(backup);
 				}else if(isNodeRevisionFile(entry.getName())){
+					if(backup == null) throw new IllegalArgumentException("Found a revsions without a matching entity.");
+					if(revisions == null) throw new IllegalArgumentException("Found a revisoin without any matching entity");
 					// This is a revision file.
 					NodeRevisionBackup revision = NodeSerializerUtil.readNodeRevision(zin);
+					// Add this to the list
 					// Migrate the revision to the current version
 					revision = migrationDriver.migrateToCurrentVersion(revision, nodeType);
-					backupManager.createOrUpdateRevision(revision);
+					// Add this to the list of revisions to be processed
+					revisions.add(revision);
 				}else{
 					throw new IllegalArgumentException("Did not recongnize file name: "+entry.getName());
 				}
@@ -268,7 +281,12 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 					log.trace(progress.toString());			
 				}
 				// This is run in a tight loop so to be CPU friendly we should yield
+				
 				Thread.yield();
+			}
+			if(backup != null){
+				// do the final backup
+				backupManager.createOrUpdateNodeWithRevisions(backup, revisions);
 			}
 		}finally{
 			if(fis != null){
