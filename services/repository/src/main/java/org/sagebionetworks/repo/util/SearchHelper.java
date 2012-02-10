@@ -66,8 +66,8 @@ public class SearchHelper {
 	}
 
 	/**
-	 * Merge and urlescape CS boolean queries as needed. urlescapse
-	 * free text queries as needed too.
+	 * Merge and urlescape CS boolean queries as needed. urlescapse free text
+	 * queries as needed too.
 	 * 
 	 * @param query
 	 * @return the cleaned up query string
@@ -129,8 +129,8 @@ public class SearchHelper {
 	/**
 	 * Convert from CloudSearch JSON to a JSONEntity
 	 * 
-	 * TODO later when Schema2Pojo supports maps, make a JSONEntity for the
-	 * CS object
+	 * TODO later when Schema2Pojo supports maps, make a JSONEntity for the CS
+	 * object
 	 * 
 	 * @param csResponse
 	 * @return the SearchResults JSONEntity
@@ -153,17 +153,30 @@ public class SearchHelper {
 		for (int i = 0; i < csHits.length(); i++) {
 			JSONObject csHit = csHits.getJSONObject(i).getJSONObject("data");
 			Hit hit = new Hit();
-			if (csHit.has("id")) {
-				hit.setId(csHit.getString("id"));
-			}
-			if (csHit.has("name")) {
-				hit.setName(csHit.getString("name"));
-			}
-			if (csHit.has("etag")) {
-				hit.setEtag(csHit.getString("etag"));
-			}
-			if (csHit.has("description")) {
-				hit.setDescription(csHit.getString("description"));
+			for (String dataName : JSONObject.getNames(csHit)) {
+				String dataValue;
+				JSONArray dataValueArray = csHit.optJSONArray(dataName);
+				if (null != dataValueArray) {
+					dataValue = dataValueArray.getString(0);
+				} else {
+					dataValue = csHit.getString(dataName);
+				}
+				// If we were using Java 7 we could do a switch statement on a
+				// String
+				if (dataName.equals("id")) {
+					hit.setId(dataValue);
+				} else if (dataName.equals("name")) {
+					hit.setName(dataValue);
+				} else if (dataName.equals("etag")) {
+					hit.setEtag(dataValue);
+				} else if (dataName.equals("description")) {
+					hit.setDescription(dataValue);
+				} else {
+					log
+							.warn("result field "
+									+ dataName
+									+ " is not properly configured, add it to the result fields that are supported");
+				}
 			}
 			hits.add(hit);
 		}

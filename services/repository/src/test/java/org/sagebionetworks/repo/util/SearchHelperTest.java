@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.search.Facet;
 import org.sagebionetworks.repo.model.search.FacetConstraint;
 import org.sagebionetworks.repo.model.search.FacetTypeNames;
+import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 
 /**
@@ -257,5 +258,36 @@ public class SearchHelperTest {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testParseSingleValuedDataAndArrayValuedData() throws Exception {
+
+		// here they are single-valued
+		String response = "{\"rank\":\"-text_relevance\",\"match-expr\":\"(and 'deflaux' (or acl:'nicole.deflaux@sagebase.org' acl:'Sage Curators' acl:'AUTHENTICATED_USERS' acl:'PUBLIC'))\",\"hits\":{\"found\":26,\"start\":0,\"hit\":[{\"id\":\"114061\",\"data\":{\"id\":\"114061\",\"name\":\"114061\"}},{\"id\":\"114402\",\"data\":{\"id\":\"114402\",\"name\":\"114402\"}},{\"id\":\"105091\",\"data\":{\"id\":\"105091\",\"name\":\"105091\"}},{\"id\":\"114422\",\"data\":{\"id\":\"114422\",\"name\":\"114422\"}},{\"id\":\"120227\",\"data\":{\"id\":\"120227\",\"name\":\"120227\"}},{\"id\":\"47503\",\"data\":{\"id\":\"47503\",\"name\":\"47503\"}},{\"id\":\"88468\",\"data\":{\"id\":\"88468\",\"name\":\"88468\"}},{\"id\":\"47445\",\"data\":{\"id\":\"47445\",\"name\":\"47445\"}},{\"id\":\"88822\",\"data\":{\"id\":\"88822\",\"name\":\"88822\"}},{\"id\":\"48435\",\"data\":{\"id\":\"48435\",\"name\":\"48435\"}}]},\"facets\":{\"created_by\":{\"constraints\":[{\"value\":\"nicole.deflaux@sagebase.org\",\"count\":26}]},\"disease\":{},\"modified_on\":{\"min\":1319752773,\"max\":1326834983},\"node_type\":{\"constraints\":[{\"value\":\"step\",\"count\":24},{\"value\":\"project\",\"count\":2}]},\"num_samples\":{},\"species\":{},\"tissue\":{}},\"info\":{\"rid\":\"6ddcaa561c05c4cc3dae0f2d67b89419d013e1f60337fb4610e21037a54623211ceb8ad5c50b4f428d51562c55452e5e\",\"time-ms\":3,\"cpu-time-ms\":0}}";
+		SearchResults results = SearchHelper
+				.csSearchResultsToSynapseSearchResults(response);
+		assertEquals(7, results.getFacets().size());
+		assertEquals(10, results.getHits().size());
+		assertEquals(new Long(26), results.getFound());
+		Hit hit = results.getHits().get(0);
+		assertEquals("114061", hit.getId());
+		assertEquals("114061", hit.getName());
+		
+		// here is the same response, but the data are array-valued
+		response = "{\"rank\":\"-text_relevance\",\"match-expr\":\"(and 'deflaux' (or acl:'nicole.deflaux@sagebase.org' acl:'Sage Curators' acl:'AUTHENTICATED_USERS' acl:'PUBLIC'))\",\"hits\":{\"found\":26,\"start\":0,\"hit\":[{\"id\":\"114061\",\"data\":{\"id\":[\"114061\"],\"name\":[\"114061\"]}},{\"id\":\"114402\",\"data\":{\"id\":[\"114402\"],\"name\":[\"114402\"]}},{\"id\":\"105091\",\"data\":{\"id\":[\"105091\"],\"name\":[\"105091\"]}},{\"id\":\"114422\",\"data\":{\"id\":[\"114422\"],\"name\":[\"114422\"]}},{\"id\":\"120227\",\"data\":{\"id\":[\"120227\"],\"name\":[\"120227\"]}},{\"id\":\"47503\",\"data\":{\"id\":[\"47503\"],\"name\":[\"47503\"]}},{\"id\":\"88468\",\"data\":{\"id\":[\"88468\"],\"name\":[\"88468\"]}},{\"id\":\"47445\",\"data\":{\"id\":[\"47445\"],\"name\":\"47445\"}},{\"id\":\"88822\",\"data\":{\"id\":[\"88822\"],\"name\":[\"88822\"]}},{\"id\":\"48435\",\"data\":{\"id\":[\"48435\"],\"name\":[\"48435\"]}}]},\"facets\":{\"created_by\":{\"constraints\":[{\"value\":\"nicole.deflaux@sagebase.org\",\"count\":26}]},\"disease\":{},\"modified_on\":{\"min\":1319752773,\"max\":1326834983},\"node_type\":{\"constraints\":[{\"value\":\"step\",\"count\":24},{\"value\":\"project\",\"count\":2}]},\"num_samples\":{},\"species\":{},\"tissue\":{}},\"info\":{\"rid\":\"6ddcaa561c05c4cc3dae0f2d67b89419d013e1f60337fb4610e21037a54623211ceb8ad5c50b4f428d51562c55452e5e\",\"time-ms\":3,\"cpu-time-ms\":0}}";
+		results = SearchHelper
+				.csSearchResultsToSynapseSearchResults(response);
+		assertEquals(7, results.getFacets().size());
+		assertEquals(10, results.getHits().size());
+		assertEquals(new Long(26), results.getFound());
+		hit = results.getHits().get(0);
+		assertEquals("114061", hit.getId());
+		assertEquals("114061", hit.getName());
+
+	
 	}
 }
