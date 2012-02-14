@@ -14,11 +14,12 @@
   <name>Platform Clients</name>
 
   <modules>
-    <module>web</module>
+
     <module>rSynapseClient</module>
     <module>synapseJavaClient</module>
     <module>synapsePythonClient</module>
     <module>commandLineInterface</module>
+    <module>web</module>
   </modules>
 
 </project>

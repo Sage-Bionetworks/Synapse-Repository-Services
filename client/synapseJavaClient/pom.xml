@@ -59,6 +59,16 @@
 	</dependencies>
 
 	<build>
+		<resources>
+			<resource>
+				<!-- This will add the source files to the jar, which is needed for GWT compile. -->
+				<directory>src/main/java</directory>
+			</resource>
+			<resource>
+				<!-- We also want the resources directory added -->
+				<directory>src/main/resources</directory>
+			</resource>
+		</resources>
 		<plugins>
 			<!-- Build number generator -->
 			<plugin>
