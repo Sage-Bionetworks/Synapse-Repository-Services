@@ -562,7 +562,7 @@
         <repository>
             <id>sagebionetworks</id>
             <name>sagebionetworks-releases</name>
-            <url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local
+            <url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-snapshots-local
             </url>
         </repository>
         <snapshotRepository>
