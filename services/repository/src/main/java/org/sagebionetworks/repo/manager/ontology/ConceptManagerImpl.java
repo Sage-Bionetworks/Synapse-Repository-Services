@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.manager.ontology;
 
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityQueryResults;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptDAO;
 import org.sagebionetworks.repo.model.ontology.ConceptSummary;
@@ -51,10 +53,8 @@ public class ConceptManagerImpl implements ConceptManager {
 		this.ontologyBaseURI = ontologyBaseURI;
 	}
 	
-	
-
 	@Override
-	public List<ConceptSummary> getAllConcepts(String parentConceptURI,	String prefix) throws DatastoreException, NotFoundException {
+	public EntityQueryResults<Concept> getChildConcepts(String parentConceptURI, String prefix, int limit, int offest) throws DatastoreException, NotFoundException {
 		// First extract the unique value
 		String uniquePart = getUniqueURIPart(parentConceptURI);
 		// First check to see if the cache has 
@@ -69,8 +69,11 @@ public class ConceptManagerImpl implements ConceptManager {
 		}else{
 			key = uniquePart;
 		}
-		return conceptCache.getConceptSummary(key);
+		List<Concept> fullList = conceptCache.getConceptsForKey(key);
+		// Return one page.
+		return new EntityQueryResults<Concept>(fullList, limit, offest);
 	}
+	
 
 	/**
 	 * Populate the cache using data from the DAO.
@@ -80,9 +83,14 @@ public class ConceptManagerImpl implements ConceptManager {
 	private void populateCache(String parentConceptURI, String uniquePart)throws DatastoreException, NotFoundException {
 		// First get all of the concepts.
 		List<ConceptSummary> list = conceptDao.getAllConcepts(parentConceptURI);
-		Map<String, List<ConceptSummary>> result = new HashMap<String, List<ConceptSummary>>();
-		// Add this to the map
-		result.put(uniquePart, list);
+		// Build the full list
+		List<Concept> fullList = new LinkedList<Concept>();
+		for(ConceptSummary summary: list){
+			fullList.add(getConcept(summary.getUri()));
+		}
+		Map<String, List<Concept>> result = new HashMap<String, List<Concept>>();
+		// Add the full list to the map using the unique part.
+		result.put(uniquePart, fullList);
 		// Now get all of the concepts 
 		for(ConceptSummary cs: list){
 			Concept con = conceptDao.getConceptForUri(cs.getUri());
@@ -123,5 +131,12 @@ public class ConceptManagerImpl implements ConceptManager {
 		// Pass it along.
 		return con;
 	}
+
+	@Override
+	public String getOntologyBaseURI() {
+		return ontologyBaseURI;
+	}
+
+
 
 }

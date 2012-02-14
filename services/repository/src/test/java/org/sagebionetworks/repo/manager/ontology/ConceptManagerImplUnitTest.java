@@ -12,6 +12,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityQueryResults;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptDAO;
 import org.sagebionetworks.repo.model.ontology.ConceptSummary;
@@ -29,10 +30,11 @@ public class ConceptManagerImplUnitTest {
 	StubConceptDAO dao;
 	String baseURI;
 	
+	String parentUniquePart;
 	String parentURI;
-	ConceptSummary childA;
-	ConceptSummary childB;
-	ConceptSummary childC;
+	Concept childA;
+	Concept childB;
+	Concept childC;
 	
 	@Before
 	public void before(){
@@ -43,21 +45,20 @@ public class ConceptManagerImplUnitTest {
 		
 		// The parent
 		Concept parentA = new Concept();
-		parentA.setSummary(new ConceptSummary());
-		parentA.getSummary().setPreferredLabel("Parent A");
-		parentURI = baseURI+"parentA";
-		parentA.getSummary().setUri(parentURI);
+		parentA.setPreferredLabel("Parent A");
+		parentUniquePart = "parentA";
+		parentURI = baseURI+parentUniquePart;
+		parentA.setUri(parentURI);
 		parentA.setSynonyms(new ArrayList<String>());
 		parentA.getSynonyms().add("Frank");
 		concepts.add(parentA);
 		
 		// Add some children
 		Concept child = new Concept();
-		childA = new ConceptSummary();
-		child.setSummary(childA);
-		child.getSummary().setPreferredLabel("Child A3");
-		child.getSummary().setUri(baseURI+"childA");
-		child.setParent(parentA.getSummary().getUri());
+		childA = child;
+		child.setPreferredLabel("Child A3");
+		child.setUri(baseURI+"childA");
+		child.setParent(parentA.getUri());
 		child.setSynonyms(new ArrayList<String>());
 		child.getSynonyms().add("one");
 		child.getSynonyms().add("three");
@@ -65,22 +66,20 @@ public class ConceptManagerImplUnitTest {
 		
 		// Add some children
 		child = new Concept();
-		childB = new ConceptSummary();
-		child.setSummary(childB);
-		child.getSummary().setPreferredLabel("Child A4");
-		child.getSummary().setUri(baseURI+"childB");
-		child.setParent(parentA.getSummary().getUri());
+		childB = child;
+		child.setPreferredLabel("Child A4");
+		child.setUri(baseURI+"childB");
+		child.setParent(parentA.getUri());
 		child.setSynonyms(new ArrayList<String>());
 		child.getSynonyms().add("one");
 		child.getSynonyms().add("two");
 		concepts.add(child);
 		
 		child = new Concept();
-		childC = new ConceptSummary();
-		child.setSummary(childC);
-		child.getSummary().setPreferredLabel("Child A");
-		child.getSummary().setUri(baseURI+"childC");
-		child.setParent(parentA.getSummary().getUri());
+		childC = child;
+		child.setPreferredLabel("Child A");
+		child.setUri(baseURI+"childC");
+		child.setParent(parentA.getUri());
 		child.setSynonyms(new ArrayList<String>());
 		child.getSynonyms().add("two");
 		child.getSynonyms().add("three");
@@ -111,7 +110,8 @@ public class ConceptManagerImplUnitTest {
 	@Test
 	public void testGetAllConcepts() throws DatastoreException, NotFoundException{
 		// First with no prefix
-		List<ConceptSummary> results = manager.getAllConcepts(parentURI, null);
+		EntityQueryResults<Concept> paged = manager.getChildConcepts(parentURI, null, Integer.MAX_VALUE, 0);
+		List<Concept> results = paged.getResults();
 		assertNotNull(results);
 		assertEquals(3, results.size());
 		// They should be alphabetical order
@@ -120,7 +120,8 @@ public class ConceptManagerImplUnitTest {
 		assertEquals(childB, results.get(2));
 		
 		// Now add a filter they all share
-		results = manager.getAllConcepts(parentURI, "CHILD");
+		paged = manager.getChildConcepts(parentURI,  "CHILD", Integer.MAX_VALUE, 0);
+		results = paged.getResults();
 		assertNotNull(results);
 		assertEquals(3, results.size());
 		// They should be alphabetical order
@@ -129,7 +130,8 @@ public class ConceptManagerImplUnitTest {
 		assertEquals(childB, results.get(2));
 		
 		// Now add a filter they all share
-		results = manager.getAllConcepts(parentURI, "t");
+		paged = manager.getChildConcepts(parentURI,  "t", Integer.MAX_VALUE, 0);
+		results = paged.getResults();
 		assertNotNull(results);
 		assertEquals(3, results.size());
 		// They should be alphabetical order
@@ -138,7 +140,8 @@ public class ConceptManagerImplUnitTest {
 		assertEquals(childB, results.get(2));
 		
 		// Only two should share this prefix
-		results = manager.getAllConcepts(parentURI, "th");
+		paged = manager.getChildConcepts(parentURI,  "th", Integer.MAX_VALUE, 0);
+		results = paged.getResults();
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		// They should be alphabetical order
@@ -146,7 +149,8 @@ public class ConceptManagerImplUnitTest {
 		assertEquals(childA, results.get(1));
 		
 		// Only two should share this prefix
-		results = manager.getAllConcepts(parentURI, "one");
+		paged = manager.getChildConcepts(parentURI,  "one", Integer.MAX_VALUE, 0);
+		results = paged.getResults();
 		assertNotNull(results);
 		assertEquals(2, results.size());
 		// They should be alphabetical order
@@ -164,8 +168,7 @@ public class ConceptManagerImplUnitTest {
 	public void testGetConcept() throws DatastoreException, NotFoundException{
 		Concept con = manager.getConcept(parentURI);
 		assertNotNull(con);
-		assertNotNull(con.getSummary());
-		assertEquals(parentURI, con.getSummary().getUri());
+		assertEquals(parentURI, con.getUri());
 	}
 	
 	
@@ -178,9 +181,8 @@ public class ConceptManagerImplUnitTest {
 		ConceptDAO mockDao = Mockito.mock(ConceptDAO.class);
 		String conceptUri = "test-uri";
 		Concept con = new Concept();
-		con.setSummary(new ConceptSummary());
-		con.getSummary().setUri(conceptUri);
-		con.getSummary().setPreferredLabel("Test Concept");
+		con.setUri(conceptUri);
+		con.setPreferredLabel("Test Concept");
 		// The dao should return this concept.
 		when(mockDao.getConceptForUri(conceptUri)).thenReturn(con);
 		// This is a cache miss
@@ -202,9 +204,8 @@ public class ConceptManagerImplUnitTest {
 		ConceptDAO mockDao = Mockito.mock(ConceptDAO.class);
 		String conceptUri = "test-uri";
 		Concept con = new Concept();
-		con.setSummary(new ConceptSummary());
-		con.getSummary().setUri(conceptUri);
-		con.getSummary().setPreferredLabel("Test Concept");
+		con.setUri(conceptUri);
+		con.setPreferredLabel("Test Concept");
 		// The dao should return this concept.
 		when(mockDao.getConceptForUri(conceptUri)).thenThrow(new IllegalStateException("ConceptDao.getConceptForUri() should not have been called because it was in the cache"));
 		// This is a cache hit
@@ -232,19 +233,21 @@ public class ConceptManagerImplUnitTest {
 		summary.setPreferredLabel("Test Concept");
 		list.add(summary);
 		Concept con = new Concept();
-		con.setSummary(summary);
+		con.setUri(summary.getUri());
+		con.setPreferredLabel(summary.getPreferredLabel());
 		// The dao should return this concept.
-		when(mockDao.getAllConcepts(conceptUri)).thenReturn(list);
+		when(mockDao.getAllConcepts(parentURI)).thenReturn(list);
 		// The dao should return this concept.
 		when(mockDao.getConceptForUri(conceptUri)).thenReturn(con);
 		// This is a cache miss
-		when(mockCache.containsKey(uniquePart)).thenReturn(false);
+		when(mockCache.containsKey(parentUniquePart)).thenReturn(false);
 		manager = new ConceptManagerImpl(mockDao, mockCache, baseURI);
 		// The first time should hit the dao
-		List<ConceptSummary> result = manager.getAllConcepts(conceptUri, null);
+		EntityQueryResults<Concept> paged = manager.getChildConcepts(parentURI, null, Integer.MAX_VALUE, 0);
+		List<Concept> results = paged.getResults();
 //		assertEquals(list, result);
 		// Now validate that the concept was placed in the cache
-		verify(mockCache, times(1)).putAll((Map<String, List<ConceptSummary>>) any());
+		verify(mockCache, times(1)).putAll((Map<String, List<Concept>>) any());
 	}
 
 	/**
@@ -256,24 +259,21 @@ public class ConceptManagerImplUnitTest {
 		ConceptDAO mockDao = Mockito.mock(ConceptDAO.class);
 		String uniquePart = "test-uri";
 		String conceptUri = baseURI+uniquePart;
-		List<ConceptSummary> list = new ArrayList<ConceptSummary>();
-		ConceptSummary summary = new ConceptSummary();
-		summary.setUri(conceptUri);
-		summary.setPreferredLabel("Test Concept");
-		list.add(summary);
-		Concept con = new Concept();
-		con.setSummary(summary);
+//		Concept con = new Concept();
+//		con.setUri(conceptUri);
+//		con.setPreferredLabel("Test Concept");
 		// The dao should return this concept.
-		when(mockDao.getAllConcepts(conceptUri)).thenThrow(new IllegalStateException("ConceptDao.getAllConcepts() should not have been called because it was in the cache"));
+		when(mockDao.getAllConcepts(parentURI)).thenThrow(new IllegalStateException("ConceptDao.getAllConcepts() should not have been called because it was in the cache"));
 		// The dao should return this concept.
 		when(mockDao.getConceptForUri(conceptUri)).thenThrow(new IllegalStateException("ConceptDao.getConceptForUri() should not have been called because it was in the cache"));
-		// This is a cache miss
-		when(mockCache.containsKey(uniquePart)).thenReturn(true);
+		// This is a cache hit
+		when(mockCache.containsKey(parentUniquePart)).thenReturn(true);
 		manager = new ConceptManagerImpl(mockDao, mockCache, baseURI);
 		// The first time should hit the dao
-		List<ConceptSummary> result = manager.getAllConcepts(conceptUri, null);
+		EntityQueryResults<Concept> paged = manager.getChildConcepts(parentURI, null, Integer.MAX_VALUE, 0);
+		List<Concept> results = paged.getResults();
 //		assertEquals(list, result);
 		// Now validate that the concept was placed in the cache
-		verify(mockCache, never()).putAll((Map<String, List<ConceptSummary>>) any());
+		verify(mockCache, never()).putAll((Map<String, List<Concept>>) any());
 	}
 }

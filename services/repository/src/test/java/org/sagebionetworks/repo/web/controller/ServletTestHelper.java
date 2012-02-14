@@ -37,9 +37,8 @@ import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
-import org.sagebionetworks.repo.model.ontology.ConceptRequest;
-import org.sagebionetworks.repo.model.ontology.ConceptSummaryResponse;
-import org.sagebionetworks.repo.model.ontology.SummaryRequest;
+import org.sagebionetworks.repo.model.ontology.Concept;
+import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.GenericEntityController;
@@ -1533,24 +1532,61 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static ConceptSummaryResponse getConceptsForParent(SummaryRequest params)
+	public static ConceptResponsePage getConceptsForParent(String parentId, String pefix, int limit, int offest)
 			throws ServletException, IOException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.CONCEPT_SUMMARY);
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, params);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
+		request.setRequestURI(UrlHelpers.CONCEPT_ID_CHILDERN_TRANSITIVE);
+		StringBuilder urlBuilder = new StringBuilder();
+		urlBuilder.append(UrlHelpers.CONCEPT);
+		urlBuilder.append("/");
+		urlBuilder.append(parentId);
+		urlBuilder.append(UrlHelpers.CHILDERN_TRANSITIVE);
+		if(pefix != null){
+			request.setParameter(UrlHelpers.PREFIX_FILTER, pefix);
+		}
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""+limit);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""+offest);
+		request.setRequestURI(urlBuilder.toString());
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return (ConceptSummaryResponse) objectMapper.readValue(response.getContentAsString(), ConceptSummaryResponse.class);
+//		System.out.println(response.getContentAsString());
+		return (ConceptResponsePage) objectMapper.readValue(response.getContentAsString(), ConceptResponsePage.class);
 	}
+
+	/**
+	 * Get a single concept from its id.
+	 * @param dispatchServlet
+	 * @param param
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static Concept getConcept(String id)
+			throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.CONCEPT_ID_CHILDERN_TRANSITIVE);
+		StringBuilder urlBuilder = new StringBuilder();
+		urlBuilder.append(UrlHelpers.CONCEPT);
+		urlBuilder.append("/");
+		urlBuilder.append(id);
+		request.setRequestURI(urlBuilder.toString());
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+//		System.out.println(response.getContentAsString());
+		return (Concept) objectMapper.readValue(response.getContentAsString(), Concept.class);
+	}
+	
 	
 }

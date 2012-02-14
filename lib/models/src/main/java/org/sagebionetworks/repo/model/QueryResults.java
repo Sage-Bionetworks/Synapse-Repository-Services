@@ -21,6 +21,7 @@ import javax.xml.bind.annotation.XmlRootElement;
  * and-jaxb-cant-handle-interfaces for more detail.
  * 
  */
+@Deprecated // Use EntityQueryResults
 @XmlRootElement(name = "result")
 public class QueryResults implements Serializable {
 

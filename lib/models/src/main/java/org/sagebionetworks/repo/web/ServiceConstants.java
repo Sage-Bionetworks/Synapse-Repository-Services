@@ -26,7 +26,13 @@ public class ServiceConstants {
 	 * Default value for offset parameter used RequestParam annotations which
 	 * require a static string
 	 */
+	@Deprecated // SEE: PLFM-972
 	public static final String DEFAULT_PAGINATION_OFFSET_PARAM = "1";
+	
+	/**
+	 * As PLFM-972 points out offsets should start at zero not one.
+	 */
+	public static final String DEFAULT_PAGINATION_OFFSET_PARAM_NEW = "0";
 	/**
 	 * Default value for offset parameter
 	 */
@@ -157,4 +163,5 @@ public class ServiceConstants {
 		}
 		return;
 	}
+	
 }

@@ -135,9 +135,8 @@ public class ConceptJenaDAOImpl implements ConceptDAO {
 //		System.out.println(resource);
 		Concept concept = new Concept();
 		ConceptSummary summary = new ConceptSummary();
-		summary.setUri(conceptUri);
-		summary.setPreferredLabel(getPropertyAsString(resource, PROP_PREF_LABEL));
-		concept.setSummary(summary);
+		concept.setUri(conceptUri);
+		concept.setPreferredLabel(getPropertyAsString(resource, PROP_PREF_LABEL));
 		concept.setParent(getPropertyAsNodeString(resource, PROP_BROADER));
 		concept.setSynonyms(listPropertyAsString(resource, PROP_ALT_LABEL));
 		concept.setDefinition(getPropertyAsString(resource, PROP_PREF_LABEL));

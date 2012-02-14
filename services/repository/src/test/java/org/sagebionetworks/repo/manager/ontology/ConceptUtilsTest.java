@@ -17,24 +17,30 @@ import org.sagebionetworks.repo.model.ontology.ConceptSummary;
 public class ConceptUtilsTest {
 	
 	Concept concept;
+	ConceptSummary summary;
 	Concept concept2;
+	ConceptSummary summary2;
 	
 	@Before
 	public void before(){
 		concept = new Concept();
-		concept.setSummary(new ConceptSummary());
-		concept.getSummary().setPreferredLabel("Cat");
-		concept.getSummary().setUri("urn:cat");
+		concept.setPreferredLabel("Cat");
+		concept.setUri("urn:cat");
 		concept.setSynonyms(new ArrayList<String>());
 		concept.getSynonyms().add("Feline");
 		concept.getSynonyms().add("Cats");
+		summary = new ConceptSummary();
+		summary.setPreferredLabel(concept.getPreferredLabel());
+		summary.setUri(concept.getUri());
 		
 		concept2 = new Concept();
-		concept2.setSummary(new ConceptSummary());
-		concept2.getSummary().setPreferredLabel("Can");
-		concept2.getSummary().setUri("urn:can");
+		concept2.setPreferredLabel("Can");
+		concept2.setUri("urn:can");
 		concept2.setSynonyms(new ArrayList<String>());
 		concept2.getSynonyms().add("Tin Can");
+		summary = new ConceptSummary();
+		summary.setPreferredLabel(concept2.getPreferredLabel());
+		summary.setUri(concept2.getUri());
 	}
 	
 	@Test
@@ -74,32 +80,32 @@ public class ConceptUtilsTest {
 	public void testPopulateMapWithLowerCasePrefixForConcept(){
 		String unique = "one#";
 		// This is the map we will populate
-		Map<String, List<ConceptSummary>> map = new HashMap<String, List<ConceptSummary>>();
+		Map<String, List<Concept>> map = new HashMap<String, List<Concept>>();
 		ConceptUtils.populateMapWithLowerCasePrefixForConcept(unique, concept, map);
 		assertEquals(10, map.size());
 		assertNotNull(map.get("one#c"));
 		assertEquals(1, map.get("one#c").size());
-		assertEquals(concept.getSummary(), map.get("one#c").iterator().next());
+		assertEquals(concept, map.get("one#c").iterator().next());
 		// Now add the second concept to the map
 		ConceptUtils.populateMapWithLowerCasePrefixForConcept(unique, concept2, map);
 		assertEquals(18, map.size());
 		// There should now be two things that start with 'c'
 		assertNotNull(map.get("one#c"));
-		List<ConceptSummary> list = map.get("one#c");
+		List<Concept> list = map.get("one#c");
 		assertEquals(2, list.size());
-		assertEquals(concept.getSummary(), list.get(0));
-		assertEquals(concept2.getSummary(), list.get(1));
+		assertEquals(concept, list.get(0));
+		assertEquals(concept2, list.get(1));
 		// There should now be two things that start with 'ca'
 		assertNotNull(map.get("one#ca"));
 		list = map.get("one#ca");
 		assertEquals(2, list.size());
-		assertEquals(concept.getSummary(), list.get(0));
-		assertEquals(concept2.getSummary(), list.get(1));
+		assertEquals(concept, list.get(0));
+		assertEquals(concept2, list.get(1));
 		// There should only be one thing that starts with 'can'
 		assertNotNull(map.get("one#can"));
 		list = map.get("one#can");
 		assertEquals(1, list.size());
-		assertEquals(concept2.getSummary(), list.get(0));
+		assertEquals(concept2, list.get(0));
 	}
 
 }

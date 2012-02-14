@@ -7,23 +7,23 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.manager.ontology.ConceptManager;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.daemon.BackupSubmission;
+import org.sagebionetworks.repo.model.EntityQueryResults;
 import org.sagebionetworks.repo.model.ontology.Concept;
-import org.sagebionetworks.repo.model.ontology.ConceptRequest;
+import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.ontology.ConceptSummary;
-import org.sagebionetworks.repo.model.ontology.ConceptSummaryResponse;
 import org.sagebionetworks.repo.model.ontology.SummaryRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
@@ -52,22 +52,59 @@ public class ConceptController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { 
-			UrlHelpers.CONCEPT_SUMMARY
+			UrlHelpers.CONCEPT_ID_CHILDERN_TRANSITIVE
 			}, method = RequestMethod.GET)
 	public @ResponseBody
-	ConceptSummaryResponse getConceptsForParent(
+	ConceptResponsePage getConceptsForParent(
+			@PathVariable String id, 
+			@RequestParam(value = UrlHelpers.PREFIX_FILTER, required = false) String prefixFilter,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException {
-		// Get the request
-		SummaryRequest summaryRequest =  (SummaryRequest) objectTypeSerializer.deserialize(request.getInputStream(), header, SummaryRequest.class, header.getContentType());
+		
+		int limitInt = 10;
+		if(limit != null){
+			limitInt = limit.intValue();
+		}
+		int offesetInt = 0;
+		if(offset != null){
+			offesetInt = offset.intValue();
+		}
+		String conceptUri = conceptManager.getOntologyBaseURI()+id;
+//		SummaryRequest summaryRequest =  (SummaryRequest) objectTypeSerializer.deserialize(request.getInputStream(), header, SummaryRequest.class, header.getContentType());
 		// Get the results from the manager
-		List<ConceptSummary> results = conceptManager.getAllConcepts(summaryRequest.getParentConceptUri(), summaryRequest.getPrefixFilter());
-		ConceptSummaryResponse response = new ConceptSummaryResponse();
-		response.setChildren(results);
-		response.setParentConceptUri(summaryRequest.getParentConceptUri());
-		response.setPrefixFilter(summaryRequest.getPrefixFilter());
-		return response;
+		EntityQueryResults<Concept> eqr = conceptManager.getChildConcepts(conceptUri, prefixFilter, limitInt, offesetInt);
+		ConceptResponsePage results = new ConceptResponsePage();
+		results.setChildren(eqr.getResults());
+		results.setParentConceptUri(conceptUri);
+		results.setPrefixFilter(prefixFilter);
+		results.setTotalNumberOfResults(new Long(eqr.getTotalNumberOfResults()));
+		return results;
 	}
 	
+	
+	/**
+	 * Get a concept using its id.
+	 * @param summaryRequest
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.CONCEPT_ID
+			}, method = RequestMethod.GET)
+	public @ResponseBody
+	Concept getConcept(
+			@PathVariable String id, 
+			@RequestHeader HttpHeaders header,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException {
+		
+		String conceptUri = conceptManager.getOntologyBaseURI()+id;
+		return conceptManager.getConcept(conceptUri);
+	}
 
 }

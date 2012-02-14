@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
@@ -14,9 +15,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.ontology.ConceptSummary;
-import org.sagebionetworks.repo.model.ontology.ConceptSummaryResponse;
-import org.sagebionetworks.repo.model.ontology.SummaryRequest;
+import org.sagebionetworks.repo.model.ontology.Concept;
+import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -47,30 +47,53 @@ public class ConceptControllerTest {
 	
 	@Test
 	public void testGetSummaryNoFilter() throws ServletException, IOException{
-		SummaryRequest request = new SummaryRequest();
-		request.setParentConceptUri("http://synapse.sagebase.org/ontology#11291");
-		request.setPrefixFilter(null);
-		ConceptSummaryResponse response = testHelper.getConceptsForParent(request);
+		String parentId = "11291";
+		String parentUrl = "http://synapse.sagebase.org/ontology#"+parentId;
+		ConceptResponsePage response = testHelper.getConceptsForParent(parentId, null, 10, 0);
 		assertNotNull(response);
-		assertEquals(request.getParentConceptUri(), response.getParentConceptUri());
-		List<ConceptSummary> children = response.getChildren();
+		assertEquals(parentUrl, response.getParentConceptUri());
+		List<Concept> children = response.getChildren();
 		assertNotNull(children);
-		assertTrue(children.size() > 10);
+		assertTrue(response.getTotalNumberOfResults().longValue() > 50);
+		assertEquals(10, children.size());
+		
+		// Test paging
+		Concept fourthConcept = children.get(3);
+		response = testHelper.getConceptsForParent(parentId, null, 1, 3);
+		assertNotNull(response);
+		assertEquals(parentUrl, response.getParentConceptUri());
+		children = response.getChildren();
+		assertNotNull(children);
+		assertTrue(response.getTotalNumberOfResults().longValue() > 50);
+		assertEquals(1, children.size());
+		assertEquals(fourthConcept, children.get(0));
 	}
+	
+	
 	
 	@Test
 	public void testGetSummaryWithFilter() throws ServletException, IOException{
-		SummaryRequest request = new SummaryRequest();
-		request.setParentConceptUri("http://synapse.sagebase.org/ontology#11291");
-		request.setPrefixFilter("adrenal medulla cell");
-		ConceptSummaryResponse response = testHelper.getConceptsForParent(request);
+		String parentId = "11291";
+		String parentUrl = "http://synapse.sagebase.org/ontology#"+parentId;
+		String prefix = "adrenal medulla cell";
+		ConceptResponsePage response = testHelper.getConceptsForParent(parentId, prefix, Integer.MAX_VALUE, 0);
 		assertNotNull(response);
-		assertEquals(request.getParentConceptUri(), response.getParentConceptUri());
-		List<ConceptSummary> children = response.getChildren();
+		assertEquals(parentUrl, response.getParentConceptUri());
+		assertEquals(parentUrl, response.getParentConceptUri());
+		List<Concept> children = response.getChildren();
 		assertNotNull(children);
 		assertEquals(1, children.size());
 		assertEquals("adrenal medulla cell", children.get(0).getPreferredLabel());
 		
+	}
+	
+	@Test
+	public void testGetConcept() throws ServletException, IOException{
+		String conceptId = "11291";
+		String conceptUrl = "http://synapse.sagebase.org/ontology#"+conceptId;
+		Concept response = testHelper.getConcept(conceptId);
+		assertNotNull(response);
+		assertEquals(conceptUrl, response.getUri());
 	}
 	
 }

@@ -1,10 +1,13 @@
 {
     "description":"JSON schema for an ontology concept",
     "properties":{
-        "summary":{
-            "$ref":"org.sagebionetworks.repo.model.ontology.ConceptSummary",
-            
-        },
+        "preferredLabel":{
+            "type":"string",          
+        }, 
+        "uri":{
+            "type":"string",
+            "format":"uri",          
+        }, 
         "synonyms":{
             "type":"array",
             "description":"The synonyms of this concept.",
@@ -21,9 +24,7 @@
         },
         "definition":{
             "type":"string",
-            "description":"The textual description of this concept (skos:definition)",
-            "format":"uri",
-            
+            "description":"The textual description of this concept (skos:definition)",            
         },
         
     }

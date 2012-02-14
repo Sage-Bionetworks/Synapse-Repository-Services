@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.ontology.Concept;
-import org.sagebionetworks.repo.model.ontology.ConceptSummary;
 
 /**
  * This is a local memory implementation of the ConceptCache
@@ -19,27 +18,12 @@ public class ConceptCacheLocalImpl implements ConceptCache {
 	/**
 	 * The local in-memory cache.
 	 */
-	private Map<String, List<ConceptSummary>> localCache = Collections.synchronizedMap(new HashMap<String, List<ConceptSummary>>());
+	private Map<String, List<Concept>> localCache = Collections.synchronizedMap(new HashMap<String, List<Concept>>());
 	private Map<String, Concept> localConceptCache = Collections.synchronizedMap(new HashMap<String, Concept>());
-
-	@Override
-	public List<ConceptSummary> getConceptSummary(String key) {
-		return localCache.get(key);
-	}
-
-	@Override
-	public void put(String key, List<ConceptSummary> value) {
-		localCache.put(key, value);
-	}
 
 	@Override
 	public boolean containsKey(String key) {
 		return localCache.containsKey(key);
-	}
-
-	@Override
-	public void putAll(Map<String, List<ConceptSummary>> map) {
-		localCache.putAll(map);
 	}
 
 	@Override
@@ -50,6 +34,21 @@ public class ConceptCacheLocalImpl implements ConceptCache {
 	@Override
 	public void put(String key, Concept value) {
 		localConceptCache.put(key, value);
+	}
+
+	@Override
+	public List<Concept> getConceptsForKey(String key) {
+		return localCache.get(key);
+	}
+
+	@Override
+	public void put(String key, List<Concept> value) {
+		localCache.put(key, value);
+	}
+
+	@Override
+	public void putAll(Map<String, List<Concept>> map) {
+		localCache.putAll(map);
 	}
 
 }

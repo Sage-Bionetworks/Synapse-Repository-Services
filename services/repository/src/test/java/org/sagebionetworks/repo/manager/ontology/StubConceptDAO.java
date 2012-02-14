@@ -35,10 +35,13 @@ public class StubConceptDAO implements ConceptDAO {
 					childList = new ArrayList<ConceptSummary>();
 					children.put(con.getParent(), childList);
 				}
-				childList.add(con.getSummary());
+				ConceptSummary child = new ConceptSummary();
+				child.setPreferredLabel(con.getPreferredLabel());
+				child.setUri(con.getUri());
+				childList.add(child);
 			}
 			// Add to the concept map
-			concepts.put(con.getSummary().getUri(), con);
+			concepts.put(con.getUri(), con);
 		}
 	}
 	@Override

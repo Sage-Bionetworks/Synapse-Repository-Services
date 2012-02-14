@@ -1,10 +1,8 @@
 package org.sagebionetworks.repo.manager.ontology;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityQueryResults;
 import org.sagebionetworks.repo.model.ontology.Concept;
-import org.sagebionetworks.repo.model.ontology.ConceptSummary;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -24,7 +22,7 @@ public interface ConceptManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public List<ConceptSummary> getAllConcepts(String parentConceptURI, String prefixFilter) throws DatastoreException, NotFoundException;
+	public EntityQueryResults<Concept> getChildConcepts(String parentConceptURI, String prefixFilter, int limit, int offest) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get a concept for a given uri.
@@ -32,6 +30,12 @@ public interface ConceptManager {
 	 * @return
 	 */
 	public Concept getConcept(String uri) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * The URI for the Synapse Ontolgoy.
+	 * @return
+	 */
+	public String getOntologyBaseURI();
 	
 
 }

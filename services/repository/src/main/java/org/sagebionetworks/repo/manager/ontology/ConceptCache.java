@@ -9,25 +9,25 @@ import org.sagebionetworks.repo.model.ontology.ConceptSummary;
 public interface ConceptCache {
 		
 	/**
-	 * Get an ordered list of concept summaries for a given key.
+	 * Get the ordered list of concepts that match the given key.
 	 * @param key
 	 * @return
 	 */
-	public List<ConceptSummary> getConceptSummary(String key);
+	public List<Concept> getConceptsForKey(String key);
 	
 	/**
 	 * Get a concpet by its URL
 	 * @param key
 	 * @return
 	 */
-	public Concept getConcept(String key);
+	public Concept getConcept(String uri);
 	
 	/**
 	 * Set the concept summary list for a given key.
 	 * @param key
 	 * @param value
 	 */
-	public void put(String key, List<ConceptSummary> value);
+	public void put(String key, List<Concept> value);
 	
 	/**
 	 * Put a concept.
@@ -40,7 +40,7 @@ public interface ConceptCache {
 	 * Add all values from the passed map.
 	 * @param map
 	 */
-	public void putAll(Map<String, List<ConceptSummary>> map);
+	public void putAll(Map<String, List<Concept>> map);
 	
 	/**
 	 * Does the cache contain the given key.

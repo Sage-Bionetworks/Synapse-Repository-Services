@@ -270,7 +270,16 @@ public class UrlHelpers {
 	public static final String ENTITY_SEARCH_DOCUMENT_DAMEON = DAEMON+SEARCH_DOCUMENT;
 	public static final String ENTITY_DAEMON_ID				= DAEMON+DAEMON_ID;
 	
-	public static final String CONCEPT_SUMMARY	= "/conceptSummary";
+	public static final String CONCEPT	= "/concept";
+	public static final String CONCEPT_ID	= CONCEPT+ID;
+	public static final String CHILDERN_TRANSITIVE = "/childrenTransitive";
+	public static final String CONCEPT_ID_CHILDERN_TRANSITIVE	= CONCEPT_ID+CHILDERN_TRANSITIVE;
+	
+	/**
+	 * The name of the query parameter for a prefix filter.
+	 */
+	public static final String PREFIX_FILTER = "prefix";
+	
 	
 	/**
 	 * The stack status of synapse 

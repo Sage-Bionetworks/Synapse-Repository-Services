@@ -1,11 +1,11 @@
 {
-    "description":"JSON schema for an ontology concept",
+    "description":"A single page of a concept query response.",
     "properties":{
         "children":{
             "type":"array",
             "description":"The list of children that match the requested concept.",
             "items":{
-                "$ref":"org.sagebionetworks.repo.model.ontology.ConceptSummary",
+                "$ref":"org.sagebionetworks.repo.model.ontology.Concept",
                 
             }
         },
@@ -18,6 +18,11 @@
         "prefixFilter":{
             "type":"string",
             "description":"The prifix filter used to generate this result.",
+            
+        },
+        "totalNumberOfResults":{
+            "type":"integer",
+            "description":"The total number of results.",
             
         },
         

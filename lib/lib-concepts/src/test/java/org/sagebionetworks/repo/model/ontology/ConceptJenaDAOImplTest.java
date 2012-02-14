@@ -132,11 +132,12 @@ public class ConceptJenaDAOImplTest {
 		// This concept exists.
 		String conceptUri = "http://www.infomuse.net/520/vocab/winethesaurus/United_States";
 		ConceptJenaDAOImpl dao = new ConceptJenaDAOImpl(wineThesaurusModel);
-		ConceptSummary summary = new ConceptSummary();
-		summary.setUri(conceptUri);
-		summary.setPreferredLabel("United States");
+//		ConceptSummary summary = new ConceptSummary();
+//		summary.setUri(conceptUri);
+//		summary.setPreferredLabel("United States");
 		Concept expected = new Concept();
-		expected.setSummary(summary);
+		expected.setUri(conceptUri);
+		expected.setPreferredLabel("United States");
 		expected.setDefinition("United States");
 		expected.setParent("http://www.infomuse.net/520/vocab/winethesaurus/wine_region");
 		List<String> synonyms = new ArrayList<String>();

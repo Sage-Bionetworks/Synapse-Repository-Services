@@ -7,7 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ontology.Concept;
+import org.sagebionetworks.repo.model.ontology.ConceptComparator;
 import org.sagebionetworks.repo.model.ontology.ConceptSummary;
 import org.sagebionetworks.repo.model.ontology.ConceptSummaryComparator;
 
@@ -43,10 +45,10 @@ public class ConceptUtils {
 	public static Set<String> getAllLowerCasePefix(String uniquePart, Concept concept){
 		if(uniquePart == null) throw new IllegalArgumentException("UniquePart cannot be null");
 		if(concept == null) throw new IllegalArgumentException("Concept cannot be null");
-		if(concept.getSummary() == null) throw new IllegalArgumentException("Concept summary cannot be null");
+		if(concept.getPreferredLabel() == null) throw new IllegalArgumentException("Concept getPreferredLabel cannot be null");
 		Set<String> pefixSet = new HashSet<String>();
 		// Add the preferred label
-		ConceptUtils.addAllLowerCasePrefixToSet(uniquePart, concept.getSummary().getPreferredLabel(), pefixSet);
+		ConceptUtils.addAllLowerCasePrefixToSet(uniquePart, concept.getPreferredLabel(), pefixSet);
 		// Add all of the synonyms
 		List<String> synonyms = concept.getSynonyms();
 		if(synonyms != null){
@@ -64,19 +66,19 @@ public class ConceptUtils {
 	 * @param con
 	 * @param result
 	 */
-	public static void populateMapWithLowerCasePrefixForConcept(String uniquePart, Concept con, Map<String, List<ConceptSummary>> map){
+	public static void populateMapWithLowerCasePrefixForConcept(String uniquePart, Concept con, Map<String, List<Concept>> map){
 		// First get the set of prefix keys
 		Set<String> prefixKeys = ConceptUtils.getAllLowerCasePefix(uniquePart, con);
 		// For each value in the set add to the map
 		for(String key: prefixKeys){
 			// Is there a list for this 
-			List<ConceptSummary> list = map.get(key);
+			List<Concept> list = map.get(key);
 			if(list == null){
-				list = new LinkedList<ConceptSummary>();
+				list = new LinkedList<Concept>();
 				map.put(key, list);
 			}
 			// Add the summary to this list
-			list.add(con.getSummary());
+			list.add(con);
 		}
 	}
 	
@@ -84,11 +86,32 @@ public class ConceptUtils {
 	 * Sort all lists based fist on preferred label then URI.
 	 * @param map
 	 */
-	public static void sortAllSummaryLists(Map<String, List<ConceptSummary>> map){
+	public static void sortAllSummaryLists(Map<String, List<Concept>> map){
 		// Sort each list using the comparator.
-		ConceptSummaryComparator comparator = new ConceptSummaryComparator();
-		for(List<ConceptSummary> list: map.values()){
+		ConceptComparator comparator = new ConceptComparator();
+		for(List<Concept> list: map.values()){
 			Collections.sort(list, comparator);
 		}
+	}
+	
+	/**
+	 * 
+	 * @param fullList
+	 * @param limit
+	 * @param offest
+	 * @return
+	 */
+	public static PaginatedResults<Concept> createPaginatedResults(List<Concept> fullList, int limit, int offset){
+		if(offset < 0) throw new IllegalArgumentException("Offset cannot be less than zero");
+		if(fullList == null) throw new IllegalArgumentException("Full list cannot be null");
+		PaginatedResults<Concept> result = new PaginatedResults<Concept>(Concept.class);
+		result.setTotalNumberOfResults(fullList.size());
+		int startIndex = offset;
+		int endIndex = offset + limit;
+		if(endIndex > fullList.size()){
+			endIndex = fullList.size() -1;
+		}
+		result.setResults(fullList.subList(startIndex, endIndex));
+		return result;
 	}
 }
