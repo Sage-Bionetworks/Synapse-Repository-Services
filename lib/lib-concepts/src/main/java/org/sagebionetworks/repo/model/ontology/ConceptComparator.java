@@ -8,7 +8,8 @@ public class ConceptComparator implements Comparator<Concept> {
 	public int compare(Concept a, Concept b) {
 		// Null are not allowed.
 		if(a == b) return 0;
-		int perfCompare = a.getPreferredLabel().compareTo( b.getPreferredLabel());
+		// Compare the label ignoring case
+		int perfCompare = String.CASE_INSENSITIVE_ORDER.compare(a.getPreferredLabel(), b.getPreferredLabel());
 		if(perfCompare == 0){
 			// If the labels are equal then compare the uris
 			return a.getUri().compareTo(b.getUri());

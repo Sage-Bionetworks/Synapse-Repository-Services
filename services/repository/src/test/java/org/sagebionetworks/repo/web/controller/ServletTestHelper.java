@@ -1588,5 +1588,35 @@ public class ServletTestHelper {
 		return (Concept) objectMapper.readValue(response.getContentAsString(), Concept.class);
 	}
 	
+	/**
+	 * Get a single concept from its id.
+	 * @param dispatchServlet
+	 * @param param
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static String getConceptAsJSONP(String id, String callbackName)
+			throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.CONCEPT_ID_CHILDERN_TRANSITIVE);
+		StringBuilder urlBuilder = new StringBuilder();
+		urlBuilder.append(UrlHelpers.CONCEPT);
+		urlBuilder.append("/");
+		urlBuilder.append(id);
+		request.setRequestURI(urlBuilder.toString());
+		// Add the header that indicates we want JSONP
+		request.addParameter(UrlHelpers.REQUEST_CALLBACK_JSONP, callbackName);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return response.getContentAsString();
+	}
+	
 	
 }

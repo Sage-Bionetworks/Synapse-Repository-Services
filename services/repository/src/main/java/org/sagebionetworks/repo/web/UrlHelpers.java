@@ -280,6 +280,11 @@ public class UrlHelpers {
 	 */
 	public static final String PREFIX_FILTER = "prefix";
 	
+	/**
+	 * The other header key used to request JSONP
+	 */
+	public static final String REQUEST_CALLBACK_JSONP = "callback";
+	
 	
 	/**
 	 * The stack status of synapse 

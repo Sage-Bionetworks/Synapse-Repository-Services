@@ -13,10 +13,14 @@ import javax.servlet.ServletException;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
+import org.sagebionetworks.repo.util.JSONEntityUtil;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -96,4 +100,27 @@ public class ConceptControllerTest {
 		assertEquals(conceptUrl, response.getUri());
 	}
 	
+	/**
+	 * Make sure we can get a concept as JSONP
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException 
+	 */
+	@Ignore // This does not seem to work as a filter.
+	@Test
+	public void testGetConceptJSONP() throws ServletException, IOException, JSONObjectAdapterException{
+		String conceptId = "11291";
+		String conceptUrl = "http://synapse.sagebase.org/ontology#"+conceptId;
+		String callbackName = "exampleCallback";
+		String response = testHelper.getConceptAsJSONP(conceptId, callbackName);
+		assertNotNull(response);
+		System.out.println(response);
+		String expectedPrefix = callbackName+"(";
+		assertTrue(response.startsWith(expectedPrefix));
+		assertTrue(response.endsWith(")"));
+		// Extract the JSON from the JSONP
+		String extractedJson = response.substring(expectedPrefix.length(), response.length()-1);
+		Concept fromJSONP = EntityFactory.createEntityFromJSONString(extractedJson, Concept.class);
+		assertEquals(conceptUrl, fromJSONP.getUri());
+	}
 }

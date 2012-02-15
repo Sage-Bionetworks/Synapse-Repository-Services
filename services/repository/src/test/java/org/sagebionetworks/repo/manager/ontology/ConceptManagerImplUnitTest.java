@@ -156,6 +156,12 @@ public class ConceptManagerImplUnitTest {
 		// They should be alphabetical order
 		assertEquals(childA, results.get(0));
 		assertEquals(childB, results.get(1));
+		
+		// nothing has this prefix
+		paged = manager.getChildConcepts(parentURI,  "does not exist", Integer.MAX_VALUE, 0);
+		results = paged.getResults();
+		assertNotNull(results);
+		assertEquals(0, results.size());
 
 	}
 	

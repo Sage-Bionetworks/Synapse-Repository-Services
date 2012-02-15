@@ -141,4 +141,18 @@ public class ConceptComparatorTest {
 		assertEquals("urn:a", list.get(0).getUri());
 		assertEquals("urn:b", list.get(1).getUri());
 	}
+	
+	@Test
+	public void testSortLabelCaseEquals(){
+		List<Concept> list = new ArrayList();
+		a.setPreferredLabel("B");
+		a.setUri("urn:b");
+		b.setPreferredLabel("a");
+		b.setUri("urn:a");
+		list.add(b);
+		list.add(a);
+		Collections.sort(list, new ConceptComparator());
+		assertEquals("urn:a", list.get(0).getUri());
+		assertEquals("urn:b", list.get(1).getUri());
+	}
 }

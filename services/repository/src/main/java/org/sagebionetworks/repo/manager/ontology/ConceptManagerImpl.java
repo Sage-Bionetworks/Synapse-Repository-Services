@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.ontology;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -70,6 +71,10 @@ public class ConceptManagerImpl implements ConceptManager {
 			key = uniquePart;
 		}
 		List<Concept> fullList = conceptCache.getConceptsForKey(key);
+		if(fullList == null){
+			fullList = new ArrayList<Concept>();
+		}
+		
 		// Return one page.
 		return new EntityQueryResults<Concept>(fullList, limit, offest);
 	}
