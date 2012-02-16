@@ -27,7 +27,11 @@ import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.http.HttpStatus;
 
 /**
- *
+ * This filter authenticates incoming requests:
+ * (1) Checks for session token.  If present, validates the token and determines the user's identification;
+ * (2) If no session token, checks whether the request has an HMAC-SHA1 signature.  If so, validates the signature;
+ * (3) If neither of the above, passes the request through as anonymous.  (It is then the service's responsibility
+ * 		to reject requests that cannot be made anonymously.)
  */
 public class CrowdAuthenticationFilter implements Filter {
 	private static final Logger log = Logger.getLogger(CrowdAuthenticationFilter.class
@@ -36,8 +40,6 @@ public class CrowdAuthenticationFilter implements Filter {
 	private boolean allowAnonymous = false;
 	private boolean acceptAllCerts = true;
 	private boolean usingMockCrowd;
-	
-//	CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 	
 	@Override
 	public void destroy() {
@@ -100,7 +102,7 @@ public class CrowdAuthenticationFilter implements Filter {
 						userId = tokenCache.get(sessionToken);
 					}
 					if (userId==null) { // not using cache or not found in cache
-						userId = (new CrowdAuthUtil()).revalidate(sessionToken);
+						userId = CrowdAuthUtil.revalidate(sessionToken);
 						if (cacheTimeout>0) {
 							tokenCache.put(sessionToken, userId);
 						}
@@ -147,7 +149,7 @@ public class CrowdAuthenticationFilter implements Filter {
 		if (secretKey!=null) return secretKey;
 		
 		try {
-			userAttrs = (new CrowdAuthUtil()).getUserAttributes(userId);
+			userAttrs = CrowdAuthUtil.getUserAttributes(userId);
 		} catch (NotFoundException nfe) {
 			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "User "+userId+" not found.", nfe);
 		}

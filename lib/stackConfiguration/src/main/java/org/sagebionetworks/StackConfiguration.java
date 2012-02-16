@@ -324,6 +324,14 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * @return The name of a user for integration tests
+	 */
+	public static String getIntegrationTestUserOneEmail() {
+		return configuration
+				.getProperty("org.sagebionetworks.integration.test.email.one");
+	}
+
+	/**
 	 * @return The password of a user for integration tests
 	 */
 	public static String getIntegrationTestUserOnePassword() {
@@ -345,6 +353,38 @@ public class StackConfiguration {
 	public static String getIntegrationTestUserTwoPassword() {
 		return configuration
 				.getProperty("org.sagebionetworks.integration.test.password.two");
+	}
+
+	/**
+	 * @return The name of a user for integration tests
+	 */
+	public static String getIntegrationTestUserThreeName() {
+		return configuration
+				.getProperty("org.sagebionetworks.integration.test.username.three");
+	}
+
+	/**
+	 * @return The name of a user for integration tests
+	 */
+	public static String getIntegrationTestUserThreeEmail() {
+		return configuration
+				.getProperty("org.sagebionetworks.integration.test.email.three");
+	}
+
+	/**
+	 * @return The password of a user for integration tests
+	 */
+	public static String getIntegrationTestUserThreePassword() {
+		return configuration
+				.getProperty("org.sagebionetworks.integration.test.password.three");
+	}
+
+	/**
+	 * @return The name of a user for integration tests
+	 */
+	public static String getIntegrationTestUserThreeDisplayName() {
+		return configuration
+				.getProperty("org.sagebionetworks.integration.test.displayname.three");
 	}
 
 	/**

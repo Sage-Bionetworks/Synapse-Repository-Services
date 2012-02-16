@@ -3,10 +3,6 @@ package org.sagebionetworks.authutil;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
-import java.io.Writer;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -30,7 +26,6 @@ import javax.xml.xpath.XPathFactory;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpResponse;
-import org.apache.http.conn.ssl.SSLSocketFactory;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -48,9 +43,9 @@ public class CrowdAuthUtil {
 	private static final String CROWD_URL = StackConfiguration.getCrowdEndpoint(); // e.g. https://ec2-50-16-158-220.compute-1.amazonaws.com:8443
 	private static final String API_APPLICATION_KEY = StackConfiguration.getCrowdAPIApplicationKey();
 
-	private String apiApplication;
+	private static String apiApplication;
 
-	public CrowdAuthUtil() {
+	static {
 		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 5000);
 		HttpClientHelper.setGlobalSocketTimeout(DefaultHttpClientSingleton.getInstance(), 10000);
 		
@@ -95,7 +90,7 @@ public class CrowdAuthUtil {
 			return ans;
 	}
 	
-	public Map<String,String> getHeaders() {
+	public static Map<String,String> getHeaders() {
 		Map<String,String> ans = new HashMap<String,String>();
 		ans.put("Accept", "application/xml");
 		ans.put("Content-Type", "application/xml");
@@ -104,11 +99,11 @@ public class CrowdAuthUtil {
 		return ans;
 	}
 	
-	public String urlPrefix() {
+	public static String urlPrefix() {
 		return CROWD_URL+"/crowd/rest/usermanagement/latest";
 	}
 	
-	public  byte[] executeRequest(String requestURL, 
+	public static byte[] executeRequest(String requestURL, 
 			String requestMethod, 
 			String requestContent,
 			HttpStatus expectedRc, 
@@ -133,7 +128,7 @@ public class CrowdAuthUtil {
 		}
 	}
 	
-	public void executeRequestNoResponseBody(String requestURL, 
+	public static void executeRequestNoResponseBody(String requestURL, 
 			String requestMethod, 
 			String requestContent,
 			HttpStatus expectedRc, 
@@ -165,7 +160,7 @@ public class CrowdAuthUtil {
 	 * for the named user.  Note:  In this case the password must not be omitted, according to Atlassian.  
 	 * For more info, see   http://jira.atlassian.com/browse/CWD-2152
 	 */
-	public Session authenticate(User creds, boolean validatePassword) throws AuthenticationException, IOException, XPathExpressionException {
+	public static Session authenticate(User creds, boolean validatePassword) throws AuthenticationException, IOException, XPathExpressionException {
 		byte[] sessionXML = null;
 		{
 			sessionXML = executeRequest(urlPrefix()+"/session?validate-password="+validatePassword, 
@@ -189,9 +184,7 @@ public class CrowdAuthUtil {
 		return new Session(token, displayName);
 	}
 	
-	public String revalidate(String sessionToken) throws AuthenticationException, IOException, XPathExpressionException {
-		URL url = new URL(urlPrefix()+"/session/"+sessionToken);
-		
+	public static String revalidate(String sessionToken) throws AuthenticationException, IOException, XPathExpressionException {
 		log.info("Revalidating: "+sessionToken);
 		byte[] sessionXML = executeRequest(urlPrefix()+"/session/"+sessionToken,
 				"POST",
@@ -202,7 +195,7 @@ public class CrowdAuthUtil {
 		return getFromXML("/session/user/@name", sessionXML);
 	}
 	
-	public void deauthenticate(String token) throws AuthenticationException, IOException {
+	public static void deauthenticate(String token) throws AuthenticationException, IOException {
 		executeRequestNoResponseBody(urlPrefix()+"/session/"+token,
 				"DELETE",
 				"",
@@ -232,7 +225,7 @@ public class CrowdAuthUtil {
 			user.getPassword()+"</value></password>";
 	}
 	
-	public void createUser(User user) throws AuthenticationException, IOException {
+	public static void createUser(User user) throws AuthenticationException, IOException {
 		// input:  userid, pw, email, fname, lname, display name
 		// POST /user
 		executeRequest(urlPrefix()+"/user", "POST", userXML(user)+"\n", HttpStatus.CREATED, "Unable to create user.");
@@ -243,7 +236,7 @@ public class CrowdAuthUtil {
 		setUserAttributes(user.getEmail(), attributes);
 	}
 	
-	public User getUser(String userId) throws IOException {
+	public static User getUser(String userId) throws IOException {
 		byte[] sessionXML = null;
 		try {
 			sessionXML = executeRequest(urlPrefix()+"/user?username="+userId, "GET", "", HttpStatus.OK, "Unable to get "+userId+".");
@@ -263,14 +256,14 @@ public class CrowdAuthUtil {
 		}
 	}
 	
-	public void deleteUser(User user) throws AuthenticationException, IOException {
-		executeRequestNoResponseBody(urlPrefix()+"/user?username="+user.getEmail(), "DELETE", "", HttpStatus.NO_CONTENT, "Unable to delete "+user.getEmail());
+	public static void deleteUser(String userEmail) throws AuthenticationException, IOException {
+		executeRequestNoResponseBody(urlPrefix()+"/user?username="+userEmail, "DELETE", "", HttpStatus.NO_CONTENT, "Unable to delete "+userEmail);
 	}
 
 	/**
 	 * Update user attributes (not password).
 	 */
-	public void updateUser(User user) throws AuthenticationException, IOException {
+	public static void updateUser(User user) throws AuthenticationException, IOException {
 					
 			// Atlassian documentation says it will return 200 (OK) but it actually returns 204 (NO CONTENT)
 			executeRequestNoResponseBody(urlPrefix()+"/user?username="+user.getEmail(), 
@@ -283,12 +276,12 @@ public class CrowdAuthUtil {
 	/**
 	 * Update password
 	 */
-	public void updatePassword(User user) throws AuthenticationException, IOException {
+	public static void updatePassword(User user) throws AuthenticationException, IOException {
 			executeRequestNoResponseBody(urlPrefix()+"/user/password?username="+user.getEmail(),
 					"PUT", userPasswordXML(user)+"\n", HttpStatus.NO_CONTENT, "Unable to update user password.");
 	}
 	
-	public void sendResetPWEmail(User user) throws AuthenticationException, IOException {
+	public static void sendResetPWEmail(User user) throws AuthenticationException, IOException {
 		// POST /user/mail/password?username=USERNAME
 		executeRequestNoResponseBody(urlPrefix()+"/user/mail/password?username="+user.getEmail(),
 				"POST",
@@ -297,13 +290,13 @@ public class CrowdAuthUtil {
 	}
 		
 	// Note, this seems to be 'idempotent', i.e. you CAN add a user to a group which the user is already in
-	public void addUserToGroup(String group, String userId) throws AuthenticationException, IOException {
+	public static void addUserToGroup(String group, String userId) throws AuthenticationException, IOException {
 		executeRequest(urlPrefix()+"/group/user/direct?groupname="+group, "POST", 
 				"<?xml version=\"1.0\" encoding=\"UTF-8\"?> <user name=\""+userId+"\"/>\n",
 				HttpStatus.CREATED, "Unable to add user "+userId+" to group "+group+".");
 	}
 	
-	public Collection<String> getUsersInGroup(String group) throws AuthenticationException, IOException {
+	public static Collection<String> getUsersInGroup(String group) throws AuthenticationException, IOException {
 		byte[] sessionXML =	executeRequest(urlPrefix()+"/group/user/direct?groupname="+group,
 				"GET", "",
 				HttpStatus.OK, "Unable to get users in "+group+".");
@@ -314,12 +307,12 @@ public class CrowdAuthUtil {
 		}
 	}
 	
-	public boolean userExists(String userId) throws IOException {
+	public static boolean userExists(String userId) throws IOException {
 		throw new RuntimeException("Not yet implemented.");
 		// uri: /user?username=USERNAME (GET), 404 if user can't be found
 	}
 	
-	public Map<String,Collection<String>> getUserAttributes(String userId/*, Collection<String> attributes*/) throws IOException, NotFoundException {
+	public static Map<String,Collection<String>> getUserAttributes(String userId/*, Collection<String> attributes*/) throws IOException, NotFoundException {
 		byte[] sessionXML =	null;
 		try {
 			sessionXML = executeRequest(urlPrefix()+"/user?expand=attributes&username="+userId, 
@@ -356,7 +349,16 @@ public class CrowdAuthUtil {
 		return sb.toString();
 	}
 	
-	public void setUserAttributes(String userId, Map<String,Collection<String>> attributes) throws IOException {
+	/**
+	 * NOTE:
+	 * The behavior of Crowd is:
+	 * (1) Setting attributes is ADDITIVE, in that if you POST a bunch of attribute/value pairs using NEW attributes, 
+	 * they are added to the existing pairs for the user, they don't overwrite the existing values;
+	 * (2) BUT if the attributes are already used for the user, the value is overwritten (even though Crowd supports 
+	 * multiple values for a given attribute!)
+	 * 
+	 */
+	public static void setUserAttributes(String userId, Map<String,Collection<String>> attributes) throws IOException {
 		try {
 			executeRequestNoResponseBody(urlPrefix()+"/user/attribute?username="+userId, 
 					"POST", 
@@ -368,7 +370,21 @@ public class CrowdAuthUtil {
 
 	}
 	
-	public Collection<String> getUsersGroups(String userId) throws IOException, NotFoundException {
+	public static void deleteUserAttribute(String userId, String attribute) throws IOException {
+		try {
+			executeRequestNoResponseBody(urlPrefix()+"/user/attribute?username="+userId+"&attributename="+attribute, 
+					"DELETE", 
+					"",
+					HttpStatus.NO_CONTENT, "Unable to delete attribute "+attribute+" for "+userId+".");
+		} catch (AuthenticationException e) {
+			throw new RuntimeException(e.getRespStatus()+" "+e.getMessage());
+		}
+
+	}
+	
+	
+	
+	public static Collection<String> getUsersGroups(String userId) throws IOException, NotFoundException {
 		byte[] sessionXML = null;
 		try {
 			sessionXML = executeRequest(urlPrefix()+"/user/group/direct?username="+userId,
@@ -438,10 +454,7 @@ public class CrowdAuthUtil {
 		    SSLContext sc = SSLContext.getInstance("TLS");
 		    sc.init(null, trustAllCerts, new java.security.SecureRandom()); // this ref says, the 3rd arg should be null http://javaskeleton.blogspot.com/2010/07/avoiding-peer-not-authenticated-with.html
 		    HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-		    SSLSocketFactory ssf = new SSLSocketFactory(sc); 
-
-
-
+//		    SSLSocketFactory ssf = new SSLSocketFactory(sc); 
 		} catch (Exception e) {
 			e.printStackTrace();
 		}

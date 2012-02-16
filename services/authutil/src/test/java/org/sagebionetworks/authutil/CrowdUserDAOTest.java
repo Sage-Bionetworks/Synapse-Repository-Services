@@ -3,9 +3,13 @@ package org.sagebionetworks.authutil;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
 import org.junit.After;
@@ -57,6 +61,9 @@ public class CrowdUserDAOTest {
 		user = userDAO.getUser(TEST_USER);
 		assertEquals(iamAccessId, user.getIamAccessId());
 		assertEquals(iamSecretKey, user.getIamSecretKey());
+		Map<String, Collection<String>> attributes = new HashMap<String, Collection<String>>();
+		attributes.put("foo", Arrays.asList(new String[] {"bar", "XYZ"}));
+		CrowdAuthUtil.setUserAttributes(TEST_USER, attributes);
 	}
 
 	@Test 

@@ -10,6 +10,8 @@ REPO_SERVICE_WAR = 'services-repository'
 PORTAL_WAR = 'portal'
 PROD_APPLICATION_NAME = 'Synapse'
 STAGING_APPLICATION_NAME = 'Synapse-Staging'
+# 'dev' stack was added to allow deployment during development with an external collaborator
+DEV_APPLICATION_NAME = 'Synapse-Dev'
 DESCRIPTION = 'created by Synapse Deployer' 
 
 class SynapseInstanceConfig:
@@ -27,6 +29,7 @@ STAGING_C_CONFIG = SynapseInstanceConfig(STAGING_APPLICATION_NAME, 'auth-staging
 PROD_A_CONFIG = SynapseInstanceConfig(PROD_APPLICATION_NAME, 'auth-prod-a', 'repo-prod-a', 'portal-prod-a')
 PROD_B_CONFIG = SynapseInstanceConfig(PROD_APPLICATION_NAME, 'auth-prod-b', 'repo-prod-b', 'portal-prod-b')
 PROD_C_CONFIG = SynapseInstanceConfig(PROD_APPLICATION_NAME, 'auth-prod-c', 'repo-prod-c', 'portal-prod-c')
+DEV_A_CONFIG = SynapseInstanceConfig(DEV_APPLICATION_NAME, 'auth-dev-a')
 
 # Parameters to drive Deployment - Change these as needed
 deployment_bucket = PLATFORM_DEPLOYMENT_BUCKET
@@ -35,6 +38,8 @@ isSnapshot = True
 workDir = os.sep + 'temp' + os.sep 
 stacksToUpgrade = [STAGING_B_CONFIG, PROD_A_CONFIG]
 componentsToUpgrade = [AUTH_SERVICE_WAR, REPO_SERVICE_WAR, PORTAL_WAR]
+#stacksToUpgrade = [DEV_A_CONFIG]
+#componentsToUpgrade = [AUTH_SERVICE_WAR]
 
 
 # Get the .wars to local work directory

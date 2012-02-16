@@ -14,5 +14,4 @@ public interface UserDAO extends BaseDAO<User> {
 	 * but excluding individual groups and the Public group (since all are members implicitly).
 	 */
 	Collection<String> getUserGroupNames(String userName) throws NotFoundException, DatastoreException;
-
 }

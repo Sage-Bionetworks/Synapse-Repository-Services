@@ -1,7 +1,5 @@
 package org.sagebionetworks.auth;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Collection;
@@ -11,7 +9,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
 import java.util.Random;
 import java.util.Set;
 import java.util.logging.Level;
@@ -57,7 +54,7 @@ public class AuthenticationController {
 //	   this should not be present in the production deployment
 //	   The behavior is as follows
 //	  	If passed to the user creation service, there is no confirmation email generated.
-//	  	Instead the userId becomes the password.
+//	  	Instead the password is taken from the incoming request
 	private String integrationTestUser = null;
 
 	
@@ -96,18 +93,8 @@ public class AuthenticationController {
 
 	public AuthenticationController() {
 		initCache();
-        Properties props = new Properties();
         // optional, only used for testing
-        props = new Properties();
-        InputStream is = AuthenticationController.class.getClassLoader().getResourceAsStream("authenticationcontroller.properties");
-        if (is!=null) {
-	        try {
-	        	props.load(is);
-	        } catch (IOException e) {
-	        	throw new RuntimeException(e);
-	        }
-	        setIntegrationTestUser(props.getProperty("integrationTestUser"));
-        }
+        setIntegrationTestUser(StackConfiguration.getIntegrationTestUserThreeName());
 	}
 	
 	
@@ -123,7 +110,7 @@ public class AuthenticationController {
 				session = sessionCache.get(credentials);
 			}
 			if (session==null) { // not using cache or not found in cache
-				session = (new CrowdAuthUtil()).authenticate(credentials, true);
+				session = CrowdAuthUtil.authenticate(credentials, true);
 				if (cacheTimeout>0) {
 					sessionCache.put(credentials, session);
 				}
@@ -178,22 +165,6 @@ public class AuthenticationController {
 		sampleConsumer.authRequest(openIdProvider, openIDCallbackURL, servlet, request, response);
 	}
 
-	private static String dumpParamsArray(Map<String,String[]> p, String prefix) {
-		StringBuilder sb = new StringBuilder();
-		for (String s : p.keySet()) {
-			sb.append(prefix+s+" -> "+Arrays.asList(p.get(s))+"\n");
-		}
-		return sb.toString();
-	}
-	
-	private static String dumpParamsList(Map<String,List<String>> p, String prefix) {
-		StringBuilder sb = new StringBuilder();
-		for (String s : p.keySet()) {
-			sb.append(prefix+s+" -> "+p.get(s)+"\n");
-		}
-		return sb.toString();
-	}
-	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = OPENID_CALLBACK_URI, method = RequestMethod.GET)
 	public
@@ -222,17 +193,16 @@ public class AuthenticationController {
 			credentials.setEmail(email);
 
 			Map<String,Collection<String>> attrs = null;
-			CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 			try {
-				attrs = new HashMap<String,Collection<String>>(crowdAuthUtil.getUserAttributes(email));
+				attrs = new HashMap<String,Collection<String>>(CrowdAuthUtil.getUserAttributes(email));
 			} catch (NotFoundException nfe) {
 				// user doesn't exist yet, so create them
 				credentials.setPassword((new Long(rand.nextLong())).toString());
 				credentials.setFirstName(fname);
 				credentials.setLastName(lname);
 				if (fname!=null && lname!=null) credentials.setDisplayName(fname+" "+lname);
-				crowdAuthUtil.createUser(credentials);
-				attrs = new HashMap<String,Collection<String>>(crowdAuthUtil.getUserAttributes(email));
+				CrowdAuthUtil.createUser(credentials);
+				attrs = new HashMap<String,Collection<String>>(CrowdAuthUtil.getUserAttributes(email));
 			}
 			// save the OpenID in Crowd
 			Collection<String> openIDs = attrs.get(OPEN_ID_ATTRIBUTE);
@@ -244,9 +214,9 @@ public class AuthenticationController {
 				attrs.put(OPEN_ID_ATTRIBUTE, modOpenIDs);
 			}
 
-			crowdAuthUtil.setUserAttributes(email, attrs);
+			CrowdAuthUtil.setUserAttributes(email, attrs);
 			
-			Session crowdSession = crowdAuthUtil.authenticate(credentials, false);
+			Session crowdSession = CrowdAuthUtil.authenticate(credentials, false);
 
 
 			String returnToURL = null;
@@ -285,22 +255,22 @@ public class AuthenticationController {
 	@RequestMapping(value = "/session", method = RequestMethod.PUT)
 	public @ResponseBody
 	void revalidate(@RequestBody Session session) throws Exception {
-		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-		crowdAuthUtil.revalidate(session.getSessionToken());
+		CrowdAuthUtil.revalidate(session.getSessionToken());
 	}
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/session", method = RequestMethod.DELETE)
-	public void deauthenticate(@RequestBody Session session) throws Exception {
-			CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
+	public void deauthenticate(HttpServletRequest request) throws Exception {
+		String sessionToken = request.getHeader(AuthorizationConstants.SESSION_TOKEN_PARAM);
+		if (null == sessionToken) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 
-			crowdAuthUtil.deauthenticate(session.getSessionToken());
+			CrowdAuthUtil.deauthenticate(sessionToken);
 
 			if (cacheTimeout>0) { // if using cache
 				checkCacheDump();
 				for (User user : sessionCache.keySet()) {
 					Session cachedSession = sessionCache.get(user);
-					if (session.getSessionToken().equals(cachedSession.getSessionToken())) {
+					if (sessionToken.equals(cachedSession.getSessionToken())) {
 						sessionCache.remove(user);
 						break;
 					}
@@ -313,16 +283,14 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
 	public void createUser(@RequestBody User user) throws Exception {
-		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-
 		String itu = getIntegrationTestUser();
 		boolean isITU = (itu!=null && user.getEmail().equals(itu));
 		if (!isITU) {
 			user.setPassword(""+rand.nextLong());
 		}
-		crowdAuthUtil.createUser(user);
+		CrowdAuthUtil.createUser(user);
 		if (!isITU) {
-			sendUserPasswordEmail(crowdAuthUtil, user.getEmail(), PW_MODE.SET_PW);
+			sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW);
 		}
 	}
 	
@@ -330,11 +298,9 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
 	public @ResponseBody User getUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-
-		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
 		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userId)) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "No user info for "+AuthorizationConstants.ANONYMOUS_USER_ID, null);
-		User user = crowdAuthUtil.getUser(userId);
+		User user = CrowdAuthUtil.getUser(userId);
 		return user;
 	}
 	
@@ -343,21 +309,17 @@ public class AuthenticationController {
 	// for integration testing
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/user", method = RequestMethod.DELETE)
-	public void deleteUser(@RequestBody User user) throws Exception {
-		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-
+	public void deleteUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		String itu = getIntegrationTestUser();
-		boolean isITU = (itu!=null && user.getEmail().equals(itu));
+		boolean isITU = (itu!=null && userId!=null && userId.equals(itu));
 		if (!isITU) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not allowed outside of integration testing.", null);
-		crowdAuthUtil.deleteUser(user);
+		CrowdAuthUtil.deleteUser(userId);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/user", method = RequestMethod.PUT)
 	public void updateUser(@RequestBody User user,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-
 		if (user.getEmail()==null) user.setEmail(userId);
 
 		if (userId==null) 
@@ -365,7 +327,7 @@ public class AuthenticationController {
 		if (!userId.equals(user.getEmail())) 
 				throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Changing email address is not permitted.", null);
 		
-		crowdAuthUtil.updateUser(user);
+		CrowdAuthUtil.updateUser(user);
 	}
 	
 	static enum PW_MODE {
@@ -375,13 +337,13 @@ public class AuthenticationController {
 	}
 	
 	// reset == true means send the 'reset' message; reset== false means send the 'set' message
-	private static void sendUserPasswordEmail(CrowdAuthUtil crowdAuthUtil, String userEmail, PW_MODE mode) throws Exception {
+	private static void sendUserPasswordEmail(String userEmail, PW_MODE mode) throws Exception {
 		// need a session token
 		User user = new User();
 		user.setEmail(userEmail);
-		Session session = crowdAuthUtil.authenticate(user, false);
+		Session session = CrowdAuthUtil.authenticate(user, false);
 		// need the rest of the user's fields
-		user = crowdAuthUtil.getUser(user.getEmail());
+		user = CrowdAuthUtil.getUser(user.getEmail());
 		// now send the reset password email, filling in the user name and session token
 		SendMail sendMail = new SendMail();
 		switch (mode) {
@@ -400,42 +362,36 @@ public class AuthenticationController {
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPasswordEmail", method = RequestMethod.POST)
 	public void sendChangePasswordEmail(@RequestBody User user) throws Exception {
-		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-		sendUserPasswordEmail(crowdAuthUtil, user.getEmail(), PW_MODE.RESET_PW);
+		sendUserPasswordEmail(user.getEmail(), PW_MODE.RESET_PW);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/apiPasswordEmail", method = RequestMethod.POST)
 	public void sendSetAPIPasswordEmail(@RequestBody User user) throws Exception {
-		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-		sendUserPasswordEmail(crowdAuthUtil, user.getEmail(), PW_MODE.SET_API_PW);
+		sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_API_PW);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPassword", method = RequestMethod.POST)
 	public void setPassword(@RequestBody User user,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-
 		if ((userId==null || !userId.equals(user.getEmail()))) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 		if (user.getPassword()==null) 			
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "New password is required.", null);
 
-		crowdAuthUtil.updatePassword(user);
+		CrowdAuthUtil.updatePassword(user);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/secretKey", method = RequestMethod.GET)
 	public @ResponseBody SecretKey newSecretKey(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-
 		if (userId==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 
 		Map<String,Collection<String>> userAttributes = 
-			 new HashMap<String,Collection<String>>(crowdAuthUtil.getUserAttributes(userId));
+			 new HashMap<String,Collection<String>>(CrowdAuthUtil.getUserAttributes(userId));
 		Collection<String> secretKeyCollection = userAttributes.get(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE);
 		String secretKey = null;
 		// if there is no key, then make one
@@ -444,7 +400,7 @@ public class AuthenticationController {
 			secretKeyCollection = new HashSet<String>();
 			secretKeyCollection.add(secretKey);
 			userAttributes.put(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE, secretKeyCollection);
-			crowdAuthUtil.setUserAttributes(userId, userAttributes);
+			CrowdAuthUtil.setUserAttributes(userId, userAttributes);
 		} else {
 			// else return the current one
 			secretKey = secretKeyCollection.iterator().next();
@@ -460,16 +416,14 @@ public class AuthenticationController {
 		if (userId==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 
-		CrowdAuthUtil crowdAuthUtil = new CrowdAuthUtil();
-
 		Map<String,Collection<String>> userAttributes = 
-			 new HashMap<String,Collection<String>>(crowdAuthUtil.getUserAttributes(userId));
+			 new HashMap<String,Collection<String>>(CrowdAuthUtil.getUserAttributes(userId));
 		Collection<String> secretKeyCollection = userAttributes.get(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE);
 		if (secretKeyCollection!=null && !secretKeyCollection.isEmpty()) {
 			// then overwrite the data with an empty set
 			secretKeyCollection = new HashSet<String>();
 			userAttributes.put(AuthorizationConstants.CROWD_SECRET_KEY_ATTRIBUTE, secretKeyCollection);
-			crowdAuthUtil.setUserAttributes(userId, userAttributes);
+			CrowdAuthUtil.setUserAttributes(userId, userAttributes);
 		}
 	}
 	

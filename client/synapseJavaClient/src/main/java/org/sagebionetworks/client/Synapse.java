@@ -834,16 +834,43 @@ public class Synapse {
 			}
 
 			Map<String, String> requestHeaders = new HashMap<String, String>();
-			requestHeaders.putAll(defaultPOSTPUTHeaders);
 			requestHeaders.put("ETag", entity.getString("etag"));
 
-
-			return signAndDispatchSynapseRequest(endpoint, uri, "PUT", 
-					entity.toString(), requestHeaders);
-
+			return putSynapseEntity(endpoint, uri, entity, requestHeaders);
 		} catch (JSONException e) {
 			throw new SynapseException(e);
 		}
+	}
+
+	/**
+	 * Update a dataset, layer, preview, annotations, etc...
+	 * 
+	 * @param endpoint
+	 * @param uri
+	 * @param entity
+	 * @return the updated entity
+	 * @throws SynapseException
+	 */
+	public JSONObject putSynapseEntity(String endpoint, String uri,
+			JSONObject entity, Map<String,String> headers) throws SynapseException {
+			if (null == endpoint) {
+				throw new IllegalArgumentException("must provide endpoint");
+			}
+			if (null == uri) {
+				throw new IllegalArgumentException("must provide uri");
+			}
+			if (null == entity) {
+				throw new IllegalArgumentException("must provide entity");
+			}
+			if (null == headers) {
+				throw new IllegalArgumentException("must provide headers");
+			}
+				
+
+			Map<String, String> requestHeaders = new HashMap<String, String>(headers);
+			requestHeaders.putAll(defaultPOSTPUTHeaders);
+			return signAndDispatchSynapseRequest(endpoint, uri, "PUT", 
+					entity.toString(), requestHeaders);
 	}
 
 	/**
@@ -1025,7 +1052,7 @@ public class Synapse {
 				} else if (statusCode >= 400 && statusCode < 500) {
 					throw new SynapseUserException(exceptionContent);
 				} else {
-					throw new SynapseServiceException(exceptionContent);
+					throw new SynapseServiceException("request content: "+requestContent+" exception content: "+exceptionContent);
 				}
 			} catch (JSONException jsonEx) {
 				// swallow the JSONException since its not the real problem and
