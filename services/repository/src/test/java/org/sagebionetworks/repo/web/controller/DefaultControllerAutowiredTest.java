@@ -55,7 +55,6 @@ import org.springframework.web.servlet.DispatcherServlet;
  * @author jmhill
  * 
  */
-@Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DefaultControllerAutowiredTest {
