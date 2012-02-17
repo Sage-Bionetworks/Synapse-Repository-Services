@@ -19,10 +19,11 @@
     <module>models</module>
     <module>jdomodels</module>
     <module>lib-auto-generated</module>
+    <module>lib-concepts</module>
     <module>lib-workflow</module>
     <module>communicationUtilities</module>
     <module>securityUtilities</module>
-    <module>lib-concepts</module>
+
   </modules>
 
 </project>
