@@ -213,6 +213,10 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		DBORevision rev  = getNodeRevisionById(jdo.getId(), jdo.getCurrentRevNumber());
 		// Make a copy of the current revision with an incremented the version number
 		DBORevision newRev = JDORevisionUtils.makeCopyForNewVersion(rev);
+		if(newVersion.getVersionLabel() == null) {
+			// This is a fix for PLFM-995
+			newVersion.setVersionLabel(KeyFactory.keyToString(newRev.getRevisionNumber()));
+		}
 		// Now update the new revision and node
 		JDONodeUtils.updateFromDto(newVersion, jdo, newRev);
 		// The new revision becomes the current version
