@@ -110,11 +110,9 @@ class SynapseAwsEnvironment:
         
     def getApplications(self):
         response = self.beanstalkConnection.getApplications()
-        print response
         
     def getInstances(self):
         response = self.ec2Connection.get_all_instances()
-        print response
         
     def getAllBuckets(self):
         print self.s3connection.get_all_buckets()
@@ -126,9 +124,8 @@ class SynapseAwsEnvironment:
                                                                      self.bucket_name, 
                                                                      source_key, 
                                                                      description)
-        print response
-    
+   
     def updateEnvironment(self, description=None, environment_id=None, environment_name=None,
                           template_name=None, version_label=None):
         response = self.beanstalkConnection.updateEnvironment(description, environment_id, environment_name, template_name, version_label)
-        print response
+        print 'updated '+environment_name

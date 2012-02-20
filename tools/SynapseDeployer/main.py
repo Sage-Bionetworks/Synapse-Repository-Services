@@ -38,8 +38,7 @@ isSnapshot = True
 workDir = os.sep + 'temp' + os.sep 
 stacksToUpgrade = [STAGING_B_CONFIG, PROD_A_CONFIG]
 componentsToUpgrade = [AUTH_SERVICE_WAR, REPO_SERVICE_WAR, PORTAL_WAR]
-#stacksToUpgrade = [DEV_A_CONFIG]
-#componentsToUpgrade = [AUTH_SERVICE_WAR]
+update_environments = True # if false just create the beanstalk versions, if true also do update of running instance.
 
 
 # Get the .wars to local work directory
@@ -59,7 +58,13 @@ for artifact in artifacts:
     print 'creating version ' + version_label
     for stack in stacksToUpgrade:
         synapse.createApplicationVersion(version_label, stack.application_name, key, description=DESCRIPTION)
-        #synapse.updateEnvironment(environment_name = component.environment_name, version_label = version_label)
+        if update_environments:
+            if artifact.warName == AUTH_SERVICE_WAR:
+                synapse.updateEnvironment(environment_name = stack.auth_environment_name, version_label = version_label)
+            if artifact.warName == REPO_SERVICE_WAR:
+                synapse.updateEnvironment(environment_name = stack.repo_environment_name, version_label = version_label)
+            if artifact.warName == PORTAL_WAR:
+                synapse.updateEnvironment(environment_name = stack.portal_environment_name, version_label = version_label)
     
 print('Done')
 
