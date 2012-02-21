@@ -85,15 +85,36 @@ public class ResourceAccessManager {
 	// since Crowd session tokens don't use underscores, it's safe to use them as separators
 	public static final String separator = "_";
 	
+	// base64 encoding can have +,/,= 
+	// URLs may have $-_.+!*'(),
+	// but URLEncoder encodes all but ".", "-", "*", and "_"
+	// so we change / to - and = to .
+	public static String base64ToURLSafe(String s) {
+		s = s.replace('/', '-');
+		s = s.replace('=', '.');
+		return s;
+	}
+	
+	public static String urlSafeToBase64(String s) {
+		s = s.replace('-', '/');
+		s = s.replace('.', '=');
+		return s;
+	}
+	
 	public static String createResourceAccessToken(String sessionToken, String resourceName) {
-		StringEncrypter se = new StringEncrypter(StackConfiguration.getEncryptionKey());
+		return createResourceAccessToken(sessionToken, resourceName, StackConfiguration.getEncryptionKey());
+	}
+	
+	// for unit testing
+	public static String createResourceAccessToken(String sessionToken, String resourceName, String encryptionKey) {
+		StringEncrypter se = new StringEncrypter(encryptionKey);
 		String unencryptedString = sessionToken+separator+resourceName;
-		return se.encrypt(unencryptedString);
+		return base64ToURLSafe(se.encrypt(unencryptedString));
 	}
 	
 	public static String extractSessionToken(String resourceAccessToken) {
 		StringEncrypter se = new StringEncrypter(StackConfiguration.getEncryptionKey());
-		String unencryptedString = se.decrypt(resourceAccessToken);
+		String unencryptedString = se.decrypt(urlSafeToBase64(resourceAccessToken));
 		int i = unencryptedString.indexOf(separator);
 		if (i<0) throw new IllegalArgumentException("Bad resource access token.");
 		return unencryptedString.substring(0, i);
@@ -101,7 +122,7 @@ public class ResourceAccessManager {
 
 	public static String extractResourceName(String resourceAccessToken) {
 		StringEncrypter se = new StringEncrypter(StackConfiguration.getEncryptionKey());
-		String unencryptedString = se.decrypt(resourceAccessToken);
+		String unencryptedString = se.decrypt(urlSafeToBase64(resourceAccessToken));
 		int i = unencryptedString.indexOf(separator);
 		if (i<0) throw new IllegalArgumentException("Bad resource access token.");
 		return unencryptedString.substring(i+separator.length());

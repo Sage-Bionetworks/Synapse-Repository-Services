@@ -4,6 +4,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -143,6 +144,25 @@ public class ResourceAccessController {
 		return resourceUserData;
 	}
 	
+	/**
+	 * 
+	 * @param ex
+	 *            the exception to be handled
+	 * @param request
+	 *            the client request
+	 * @return an ErrorResponse object containing the exception reason or some
+	 *         other human-readable response
+	 */
+	@ExceptionHandler(AuthenticationException.class)
+	public @ResponseBody
+	ErrorResponse handleAuthenticationException(AuthenticationException ex,
+			HttpServletRequest request,
+			HttpServletResponse response) {
+		response.setStatus(ex.getRespStatus());
+		return handleException(ex, request);
+	}
+
+
 	/**
 	 * Handle any exceptions not handled by specific handlers. Log an additional
 	 * message with higher severity because we really do want to know what sorts
