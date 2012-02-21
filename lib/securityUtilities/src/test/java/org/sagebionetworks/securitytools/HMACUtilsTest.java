@@ -41,7 +41,7 @@ public class HMACUtilsTest {
 	    		base64EncodedSecretKey);
 		
 //		encoded = new String(HMACUtils.generateHMACSHA1SignatureFromBase64EncodedKey("matt.furia@sagebase.org/repo/v1/entity/17428/type2011-10-07T00:09:40.44-0700", base64EncodedSecretKey));
-		if (true) {
+		if (false) {
 			System.out.println("Secret key: "+base64EncodedSecretKey+"\nData: "+userId+uri+timeStampString+"\nHash for data: "+encoded);
 			System.out.println(
 					"curl -i -k -H Accept:application/json -H userId:"+userId+" -H signatureTimestamp:"+
