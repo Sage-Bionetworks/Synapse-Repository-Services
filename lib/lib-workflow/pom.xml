@@ -11,6 +11,7 @@
 
   <groupId>org.sagebionetworks</groupId>
   <artifactId>lib-workflow</artifactId>
+  <version>0.11-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Workflow Library</name>
 

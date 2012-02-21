@@ -34,7 +34,14 @@
         },
         "tissueType":{
             "type":"string",
-            "description":"Type of tissue for the samples in this layer"
+            "description":"Type of tissue for the samples in this layer. Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
+            "links":[
+                {
+                    "rel":"describedby",
+                    "href":"http://synapse.sagebase.org/ontology#6501",
+                },
+            ],
+            
         },
         "platform":{
             "type":"string",

@@ -12,6 +12,7 @@
   <groupId>org.sagebionetworks</groupId>
   <artifactId>lib-securityUtilities</artifactId>
   <name>lib-securityUtilities</name>
+  <version>0.11-SNAPSHOT</version>
   <url>http://maven.apache.org</url>
 
   <dependencies>

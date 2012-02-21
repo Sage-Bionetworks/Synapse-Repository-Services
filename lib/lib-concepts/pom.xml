@@ -9,6 +9,7 @@
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-concepts</artifactId>
 	<name>lib-concept</name>
+	<version>0.11-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<description>The project for SKOS concepts</description>
 	<dependencies>

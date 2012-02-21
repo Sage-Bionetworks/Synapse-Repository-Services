@@ -14,6 +14,7 @@
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-models</artifactId>
+	<version>0.11-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>Platform Repository Model Objects</name>
 

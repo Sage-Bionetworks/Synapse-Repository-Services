@@ -11,6 +11,7 @@
 	<artifactId>lib-id-generator</artifactId>
 	<name>lib-id-generator</name>
 	<description>Generates domain unique identifiers</description>
+	<version>0.11-SNAPSHOT</version>
 
 	<dependencies>
 		<dependency>
