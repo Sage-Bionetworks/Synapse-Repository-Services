@@ -77,7 +77,7 @@ public class ConceptControllerTest {
 	
 	@Test
 	public void testGetSummaryWithFilter() throws ServletException, IOException{
-		String parentId = "398";
+		String parentId = "8406";
 		String parentUrl = "http://synapse.sagebase.org/ontology#"+parentId;
 		String prefix = "adrenal medulla cell";
 		ConceptResponsePage response = testHelper.getConceptsForParent(parentId, prefix, Integer.MAX_VALUE, 0);
