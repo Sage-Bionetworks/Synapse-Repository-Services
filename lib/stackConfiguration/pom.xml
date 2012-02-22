@@ -16,13 +16,6 @@
 	<version>0.11-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<properties>
-		<org.sagebionetworks.authenticationservice.privateendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.privateendpoint>
-		<org.sagebionetworks.authenticationservice.publicendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.publicendpoint>
-		<org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
-		<org.sagebionetworks.portal.endpoint>http://localhost:8080/portal-${project.version}</org.sagebionetworks.portal.endpoint>
-	</properties>
-
 	<dependencies>
 
 		<!-- Logging dependencies -->
@@ -76,9 +69,18 @@
 
     </dependencies>
 
+	<properties>
+		<!-- Build time-determined default property values -->
+		<org.sagebionetworks.authenticationservice.privateendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.privateendpoint>
+		<org.sagebionetworks.authenticationservice.publicendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.publicendpoint>
+		<org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
+		<org.sagebionetworks.portal.endpoint>http://localhost:8080/portal-${project.version}</org.sagebionetworks.portal.endpoint>
+	</properties>
+
 	<build>
 		<resources>
 			<resource>
+				<!-- This writes properties in the pom into *.properties files -->
 				<filtering>true</filtering>
 				<directory>src/main/resources</directory>
 			</resource>
