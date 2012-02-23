@@ -1,29 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>org.sagebionetworks</groupId>
-    <artifactId>platform</artifactId>
-    <version>0.11-SNAPSHOT</version>
-  </parent>
+	<parent>
+		<groupId>org.sagebionetworks</groupId>
+		<artifactId>platform</artifactId>
+		<version>0.11-SNAPSHOT</version>
+	</parent>
 
-  <groupId>org.sagebionetworks</groupId>
-  <artifactId>lib</artifactId>
-  <packaging>pom</packaging>
-  <name>Libraries</name>
+	<groupId>org.sagebionetworks</groupId>
+	<artifactId>lib</artifactId>
+	<packaging>pom</packaging>
+	<name>Libraries</name>
 
-  <modules>
-    <module>stackConfiguration</module>
-    <module>id-generator</module>
-    <module>models</module>
-    <module>jdomodels</module>
-    <module>lib-auto-generated</module>
-    <module>lib-concepts</module>
-    <module>lib-workflow</module>
-    <module>communicationUtilities</module>
-    <module>securityUtilities</module>
+	<modules>
+		<module>stackConfiguration</module>
+		<module>id-generator</module>
+		<module>lib-auto-generated</module>
+		<module>lib-shared-models</module>
+		<module>lib-concepts</module>
+		<module>lib-workflow</module>
+		<module>communicationUtilities</module>
+		<module>securityUtilities</module>
+		<module>models</module>
+		<module>jdomodels</module>
 
-  </modules>
+	</modules>
 
 </project>

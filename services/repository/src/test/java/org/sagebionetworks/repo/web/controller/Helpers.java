@@ -768,7 +768,7 @@ public class Helpers {
 		// See http://wiki.fasterxml.com/JacksonInFiveMinutes
 		JSONObject doubleAnnotations = annotations
 				.getJSONObject("doubleAnnotations");
-		Double pValues[] = { new Double(0.987), new Double(0) };
+		Double pValues[] = { new Double(0.987), new Double(0.1) };
 		doubleAnnotations.put("pValues", pValues);
 		JSONObject longAnnotations = annotations
 				.getJSONObject("longAnnotations");
@@ -804,7 +804,7 @@ public class Helpers {
 		Long epochDates[] = { now.getTime(), aWhileBack.getMillis() };
 		dateAnnotations.put("epochDates", epochDates);
 
-		DateTime isoDates[] = { aWhileBack };
+		Long isoDates[] = { aWhileBack.getMillis() };
 		dateAnnotations.put("isoDates", isoDates);
 		Long isoDatesAsLong[] = { aWhileBack.getMillis() }; // for the assertion
 		// below

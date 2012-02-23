@@ -881,7 +881,7 @@ public class NodeDAOImplTest {
 		// Get the latest
 		clone = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
 		// Clear the string annoations.
-		clone.getNamedAnnotations().getAdditionalAnnotations().setStringAnnotations(new HashMap<String, Collection<String>>());
+		clone.getNamedAnnotations().getAdditionalAnnotations().setStringAnnotations(new HashMap<String, List<String>>());
 		nodeBackupDao.updateRevisionFromBackup(clone);
 		// The string annotation should no longer be query-able
 		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));

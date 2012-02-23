@@ -131,7 +131,7 @@ public class AnnotationUtilsTest {
 	@Test
 	public void testCreateStringAnnotationsWillNullValue(){
 		String nullStringAnnotation = null;
-		Map<String, Collection<String>> stringAnnotations = new HashMap<String, Collection<String>>();
+		Map<String, List<String>> stringAnnotations = new HashMap<String, List<String>>();
 		List<String> values = new ArrayList<String>();
 		values.add(nullStringAnnotation);
 		stringAnnotations.put("nullStringAnnotation", values);
@@ -151,7 +151,7 @@ public class AnnotationUtilsTest {
 	@Test
 	public void testCreateLongAnnotationsWillNullValue(){
 		Long nullLongAnnotation = null;
-		Map<String, Collection<Long>> longAnnotations = new HashMap<String, Collection<Long>>();
+		Map<String, List<Long>> longAnnotations = new HashMap<String, List<Long>>();
 		List<Long> values = new ArrayList<Long>();
 		values.add(nullLongAnnotation);
 		longAnnotations.put("nullLongAnnotation", values);
@@ -171,7 +171,7 @@ public class AnnotationUtilsTest {
 	@Test
 	public void testCreateDoubleAnnotationsWillNullValue(){
 		Double nullDoubleAnnotation = null;
-		Map<String, Collection<Double>> doubleAnnotations = new HashMap<String, Collection<Double>>();
+		Map<String, List<Double>> doubleAnnotations = new HashMap<String, List<Double>>();
 		List<Double> values = new ArrayList<Double>();
 		values.add(nullDoubleAnnotation);
 		doubleAnnotations.put("nullDoubleAnnotation", values);
@@ -191,7 +191,7 @@ public class AnnotationUtilsTest {
 	@Test
 	public void testCreateDateAnnotationsWillNullValue(){
 		Date nullDateAnnotation = null;
-		Map<String, Collection<Date>> dateAnnotations = new HashMap<String, Collection<Date>>();
+		Map<String, List<Date>> dateAnnotations = new HashMap<String, List<Date>>();
 		List<Date> values = new ArrayList<Date>();
 		values.add(nullDateAnnotation);
 		dateAnnotations.put("nullDateAnnotation", values);

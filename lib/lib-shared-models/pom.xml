@@ -16,8 +16,20 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-auto-generated</artifactId>
-			<type>jar</type>
-			<scope>compile</scope>
+		</dependency>
+
+
+		<!-- This must remain at the test scope!  It uses GWT non-compatible dependencies and cannot be used in a GWT client! -->
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>schema-to-pojo-org-json</artifactId>
+			<scope>test</scope>
+		</dependency>
+
+
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
 		</dependency>
 	</dependencies>
 </project>

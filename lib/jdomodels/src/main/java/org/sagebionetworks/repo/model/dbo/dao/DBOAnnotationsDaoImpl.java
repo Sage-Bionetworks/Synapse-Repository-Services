@@ -123,26 +123,26 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 			simpleJdbcTempalte.update(deleteSql, annotations.getId());
 		}
 		// Create the string.
-		Map<String, Collection<String>> stringAnnos = annotations.getStringAnnotations();
+		Map<String, List<String>> stringAnnos = annotations.getStringAnnotations();
 		if(stringAnnos != null && stringAnnos.size() > 0){
 			List<DBOStringAnnotation> stringBatch = AnnotationUtils.createStringAnnotations(ownerId, stringAnnos);
 			dboBasicDao.createBatch(stringBatch);
 		}
 		
 		// Create the long.
-		Map<String, Collection<Long>> longAnnos = annotations.getLongAnnotations();
+		Map<String, List<Long>> longAnnos = annotations.getLongAnnotations();
 		if(longAnnos != null && longAnnos.size() > 0){
 			List<DBOLongAnnotation> batch = AnnotationUtils.createLongAnnotations(ownerId, longAnnos);
 			dboBasicDao.createBatch(batch);
 		}
 		// Create the double
-		Map<String, Collection<Double>> doubleAnnos = annotations.getDoubleAnnotations();
+		Map<String, List<Double>> doubleAnnos = annotations.getDoubleAnnotations();
 		if(doubleAnnos != null && doubleAnnos.size() > 0){
 			List<DBODoubleAnnotation> batch = AnnotationUtils.createDoubleAnnotations(ownerId, doubleAnnos);
 			dboBasicDao.createBatch(batch);
 		}
 		// Create the dates
-		Map<String, Collection<Date>> dateAnnos = annotations.getDateAnnotations();
+		Map<String, List<Date>> dateAnnos = annotations.getDateAnnotations();
 		if(dateAnnos != null && dateAnnos.size() > 0){
 			List<DBODateAnnotation> batch = AnnotationUtils.createDateAnnotations(ownerId, dateAnnos);
 			dboBasicDao.createBatch(batch);

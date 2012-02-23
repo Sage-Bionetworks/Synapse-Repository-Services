@@ -42,7 +42,7 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-auto-generated</artifactId>
+			<artifactId>lib-shared-models</artifactId>
 		</dependency>
 
 	</dependencies>

@@ -7,8 +7,16 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.sagebionetworks.schema.FORMAT;
+import org.sagebionetworks.schema.adapter.AdapterCollectionUtils;
+import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
+import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * 
@@ -16,16 +24,25 @@ import java.util.Set;
  * 
  */
 @SuppressWarnings("rawtypes")
-public class Annotations implements Base {
+public class Annotations implements JSONEntity, Base {
+	private static final String JSON_BLOB_ANNOTATIONS = "blobAnnotations";
+	private static final String JSON_DATE_ANNOTATIONS = "dateAnnotations";
+	private static final String JSON_LONG_ANNOTATIONS = "longAnnotations";
+	private static final String JSON_DOUBLE_ANNOTATIONS = "doubleAnnotations";
+	private static final String JSON_STRING_ANNOTATIONS = "stringAnnotations";
+	private static final String JSON_CREATION_DATE = "creationDate";
+	private static final String JSON_URI = "uri";
+	private static final String JSON_ETAG = "etag";
+	public static final String JSON_ID = "id";
 	private String id; // for its parent entity
 	private String uri;
 	private String etag;
 	private Date creationDate;
-	private Map<String, Collection<String>> stringAnnotations;
-	private Map<String, Collection<Double>> doubleAnnotations;
-	private Map<String, Collection<Long>> longAnnotations;
-	private Map<String, Collection<Date>> dateAnnotations;
-	private Map<String, Collection<byte[]>> blobAnnotations;
+	private Map<String, List<String>> stringAnnotations;
+	private Map<String, List<Double>> doubleAnnotations;
+	private Map<String, List<Long>> longAnnotations;
+	private Map<String, List<Date>> dateAnnotations;
+	private Map<String, List<byte[]>> blobAnnotations;
 	
 	public Annotations(){
 		initailzeMaps();
@@ -44,19 +61,19 @@ public class Annotations implements Base {
 
 	public void initailzeMaps() {
 		if(this.stringAnnotations == null){
-			this.stringAnnotations = new HashMap<String, Collection<String>>();
+			this.stringAnnotations = new HashMap<String, List<String>>();
 		}
 		if(this.doubleAnnotations == null){
-			this.doubleAnnotations = new HashMap<String, Collection<Double>>();
+			this.doubleAnnotations = new HashMap<String, List<Double>>();
 		}
 		if(this.longAnnotations == null){
-			this.longAnnotations = new HashMap<String, Collection<Long>>();
+			this.longAnnotations = new HashMap<String, List<Long>>();
 		}
 		if(this.dateAnnotations == null){
-			this.dateAnnotations = new HashMap<String, Collection<Date>>();
+			this.dateAnnotations = new HashMap<String, List<Date>>();
 		}
 		if(this.blobAnnotations == null){
-			this.blobAnnotations = new HashMap<String, Collection<byte[]>>();
+			this.blobAnnotations = new HashMap<String, List<byte[]>>();
 		}
 	}
 	
@@ -117,45 +134,45 @@ public class Annotations implements Base {
 		this.creationDate = creationDate;
 	}
 
-	public Map<String, Collection<String>> getStringAnnotations() {
+	public Map<String, List<String>> getStringAnnotations() {
 		return stringAnnotations;
 	}
 
 	public void setStringAnnotations(
-			Map<String, Collection<String>> stringAnnotations) {
+			Map<String, List<String>> stringAnnotations) {
 		this.stringAnnotations = stringAnnotations;
 	}
 
-	public Map<String, Collection<Double>> getDoubleAnnotations() {
+	public Map<String, List<Double>> getDoubleAnnotations() {
 		return doubleAnnotations;
 	}
 
 	public void setDoubleAnnotations(
-			Map<String, Collection<Double>> doubleAnnotations) {
+			Map<String, List<Double>> doubleAnnotations) {
 		this.doubleAnnotations = doubleAnnotations;
 	}
 
-	public Map<String, Collection<Long>> getLongAnnotations() {
+	public Map<String, List<Long>> getLongAnnotations() {
 		return longAnnotations;
 	}
 	
 	public void setLongAnnotations(
-			Map<String, Collection<Long>> longAnnotations) {
+			Map<String, List<Long>> longAnnotations) {
 		this.longAnnotations = longAnnotations;
 	}
 
-	public Map<String, Collection<Date>> getDateAnnotations() {
+	public Map<String, List<Date>> getDateAnnotations() {
 		return dateAnnotations;
 	}
 
 	/**
 	 * @param dateAnnotations the dateAnnotations to set
 	 */
-	public void setDateAnnotations(Map<String, Collection<Date>> dateAnnotations) {
+	public void setDateAnnotations(Map<String, List<Date>> dateAnnotations) {
 		this.dateAnnotations = dateAnnotations;
 	}
 
-	public Map<String, Collection<byte[]>> getBlobAnnotations() {
+	public Map<String, List<byte[]>> getBlobAnnotations() {
 		return blobAnnotations;
 	}
 
@@ -163,7 +180,7 @@ public class Annotations implements Base {
 	/**
 	 * @param blobAnnotations the blobAnnotations to set
 	 */
-	public void setBlobAnnotations(Map<String, Collection<byte[]>> blobAnnotations) {
+	public void setBlobAnnotations(Map<String, List<byte[]>> blobAnnotations) {
 		this.blobAnnotations = blobAnnotations;
 	}
 
@@ -330,7 +347,7 @@ public class Annotations implements Base {
 	public void replaceAnnotation(String key, String value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");
-		Collection<String> current = new ArrayList<String>();
+		List<String> current = new ArrayList<String>();
 		this.stringAnnotations.put(key, current);
 		current.add(value);	
 	}
@@ -338,7 +355,7 @@ public class Annotations implements Base {
 	public void replaceAnnotation(String key, Long value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");
-		Collection<Long> current = new ArrayList<Long>();
+		List<Long> current = new ArrayList<Long>();
 		this.longAnnotations.put(key, current);
 		current.add(value);	
 	}
@@ -346,7 +363,7 @@ public class Annotations implements Base {
 	public void replaceAnnotation(String key, Date value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");
-		Collection<Date> current = new ArrayList<Date>();
+		List<Date> current = new ArrayList<Date>();
 		this.dateAnnotations.put(key, current);
 		current.add(value);	
 	}
@@ -354,7 +371,7 @@ public class Annotations implements Base {
 	public void replaceAnnotation(String key, Double value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");
-		Collection<Double> current = new ArrayList<Double>();
+		List<Double> current = new ArrayList<Double>();
 		this.doubleAnnotations.put(key, current);
 		current.add(value);	
 	}
@@ -362,7 +379,7 @@ public class Annotations implements Base {
 	public void replaceAnnotation(String key, byte[] value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");
-		Collection<byte[]> current = new ArrayList<byte[]>();
+		List<byte[]> current = new ArrayList<byte[]>();
 		this.blobAnnotations.put(key, current);
 		current.add(value);	
 	}
@@ -375,7 +392,7 @@ public class Annotations implements Base {
 	public void addAnnotation(String key, String value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");
-		Collection<String> current = this.stringAnnotations.get(key);
+		List<String> current = this.stringAnnotations.get(key);
 		if(current == null){
 			current = new ArrayList<String>();
 			this.stringAnnotations.put(key, current);
@@ -391,7 +408,7 @@ public class Annotations implements Base {
 	public void addAnnotation(String key, byte[] value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");
-		Collection<byte[]> current = this.blobAnnotations.get(key);
+		List<byte[]> current = this.blobAnnotations.get(key);
 		if(current == null){
 			current = new ArrayList<byte[]>();
 			this.blobAnnotations.put(key, current);
@@ -407,7 +424,7 @@ public class Annotations implements Base {
 	public void addAnnotation(String key, Long value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");
-		Collection<Long> current = this.longAnnotations.get(key);
+		List<Long> current = this.longAnnotations.get(key);
 		if(current == null){
 			current = new ArrayList<Long>();
 			this.longAnnotations.put(key, current);
@@ -423,7 +440,7 @@ public class Annotations implements Base {
 	public void addAnnotation(String key, Double value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");
-		Collection<Double> current = this.doubleAnnotations.get(key);
+		List<Double> current = this.doubleAnnotations.get(key);
 		if(current == null){
 			current = new ArrayList<Double>();
 			this.doubleAnnotations.put(key, current);
@@ -438,7 +455,7 @@ public class Annotations implements Base {
 	public void addAnnotation(String key, Date value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");
-		Collection<Date> current = this.dateAnnotations.get(key);
+		List<Date> current = this.dateAnnotations.get(key);
 		if(current == null){
 			current = new ArrayList<Date>();
 			this.dateAnnotations.put(key, current);
@@ -478,7 +495,7 @@ public class Annotations implements Base {
 	 * @param other
 	 * @return
 	 */
-	public boolean blobEquals(Map<String, Collection<byte[]>> other){
+	public boolean blobEquals(Map<String, List<byte[]>> other){
 		if (blobAnnotations == null) 
 			if (other != null)
 				return false;
@@ -486,8 +503,8 @@ public class Annotations implements Base {
 		Iterator<String> it = blobAnnotations.keySet().iterator();
 		while(it.hasNext()){
 			String key = it.next();
-			Collection<byte[]> thisCol = blobAnnotations.get(key);
-			Collection<byte[]> otherCol = other.get(key);
+			List<byte[]> thisCol = blobAnnotations.get(key);
+			List<byte[]> otherCol = other.get(key);
 			if(thisCol == null)
 				if(otherCol != null) return false;
 			if(thisCol.size() != otherCol.size()) return false;
@@ -506,7 +523,7 @@ public class Annotations implements Base {
 		return true;
 	}
 
-	public boolean dateEquals(Map<String, Collection<Date>> other){
+	public boolean dateEquals(Map<String, List<Date>> other){
 		if (dateAnnotations == null) 
 			if (other != null)
 				return false;
@@ -514,8 +531,8 @@ public class Annotations implements Base {
 		Iterator<String> it = dateAnnotations.keySet().iterator();
 		while(it.hasNext()){
 			String key = it.next();
-			Collection<Date> thisCol = dateAnnotations.get(key);
-			Collection<Date> otherCol = other.get(key);
+			List<Date> thisCol = dateAnnotations.get(key);
+			List<Date> otherCol = other.get(key);
 			if(thisCol == null)
 				if(otherCol != null) return false;
 			if(thisCol.size() != otherCol.size()) return false;
@@ -599,6 +616,91 @@ public class Annotations implements Base {
 				+ doubleAnnotations + ", longAnnotations=" + longAnnotations
 				+ ", dateAnnotations=" + dateAnnotations + ", blobAnnotations="
 				+ blobAnnotations + "]";
+	}
+
+	@Override
+	public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter toInitFrom) throws JSONObjectAdapterException {
+		if(toInitFrom.has(JSON_ID)){
+			this.id = toInitFrom.getString(JSON_ID);
+		}
+		if(toInitFrom.has(JSON_URI)){
+			this.uri = toInitFrom.getString(JSON_URI);
+		}
+		if(toInitFrom.has(JSON_ETAG)){
+			this.etag = toInitFrom.getString(JSON_ETAG);
+		}
+		if(toInitFrom.has(JSON_CREATION_DATE)){
+			this.creationDate = toInitFrom.convertStringToDate(FORMAT.UTC_MILLISEC, toInitFrom.getString(JSON_CREATION_DATE));
+		}
+		if(toInitFrom.has(JSON_STRING_ANNOTATIONS)){
+			JSONObjectAdapter object = toInitFrom.getJSONObject(JSON_STRING_ANNOTATIONS);
+			this.stringAnnotations = AdapterCollectionUtils.createMapOfCollection(object, String.class);
+		}
+		if(toInitFrom.has(JSON_DOUBLE_ANNOTATIONS)){
+			JSONObjectAdapter object = toInitFrom.getJSONObject(JSON_DOUBLE_ANNOTATIONS);
+			this.doubleAnnotations = AdapterCollectionUtils.createMapOfCollection(object, Double.class);
+		}
+		if(toInitFrom.has(JSON_LONG_ANNOTATIONS)){
+			JSONObjectAdapter object = toInitFrom.getJSONObject(JSON_LONG_ANNOTATIONS);
+			this.longAnnotations = AdapterCollectionUtils.createMapOfCollection(object, Long.class);
+		}
+		if(toInitFrom.has(JSON_DATE_ANNOTATIONS)){
+			JSONObjectAdapter object = toInitFrom.getJSONObject(JSON_DATE_ANNOTATIONS);
+			this.dateAnnotations = AdapterCollectionUtils.createMapOfCollection(object, Date.class);
+		}
+		if(toInitFrom.has(JSON_BLOB_ANNOTATIONS)){
+			JSONObjectAdapter object = toInitFrom.getJSONObject(JSON_BLOB_ANNOTATIONS);
+			this.blobAnnotations = AdapterCollectionUtils.createMapOfCollection(object, byte[].class);
+		}
+		return toInitFrom;
+	}
+
+	@Override
+	public JSONObjectAdapter writeToJSONObject(JSONObjectAdapter writeTo) throws JSONObjectAdapterException {
+		if(this.id != null){
+			writeTo.put(JSON_ID, this.id);
+		}
+		if(this.uri != null){
+			writeTo.put(JSON_URI, this.uri);
+		}
+		if(this.etag != null){
+			writeTo.put(JSON_ETAG, this.etag);
+		}
+		if(this.creationDate != null){
+			writeTo.put(JSON_CREATION_DATE, writeTo.convertDateToString(FORMAT.UTC_MILLISEC, this.creationDate));
+		}
+		if(this.stringAnnotations != null){
+			JSONObjectAdapter object = writeTo.createNew();
+			writeTo.put(JSON_STRING_ANNOTATIONS, object);
+			AdapterCollectionUtils.writeToAdapter(object, this.stringAnnotations, String.class);
+		}
+		if(this.doubleAnnotations != null){
+			JSONObjectAdapter object = writeTo.createNew();
+			writeTo.put(JSON_DOUBLE_ANNOTATIONS, object);
+			AdapterCollectionUtils.writeToAdapter(object, this.doubleAnnotations, Double.class);
+		}
+		if(this.longAnnotations != null){
+			JSONObjectAdapter object = writeTo.createNew();
+			writeTo.put(JSON_LONG_ANNOTATIONS, object);
+			AdapterCollectionUtils.writeToAdapter(object, this.longAnnotations, Long.class);
+		}
+		if(this.dateAnnotations != null){
+			JSONObjectAdapter object = writeTo.createNew();
+			writeTo.put(JSON_DATE_ANNOTATIONS, object);
+			AdapterCollectionUtils.writeToAdapter(object, this.dateAnnotations, Date.class);
+		}
+		if(this.blobAnnotations != null){
+			JSONObjectAdapter object = writeTo.createNew();
+			writeTo.put(JSON_BLOB_ANNOTATIONS, object);
+			AdapterCollectionUtils.writeToAdapter(object, this.blobAnnotations, byte[].class);
+		}
+		return writeTo;
+	}
+
+	@Override
+	public String getJSONSchema() {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

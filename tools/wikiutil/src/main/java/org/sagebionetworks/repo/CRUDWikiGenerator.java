@@ -110,7 +110,7 @@ public class CRUDWikiGenerator {
 							"First get the current annotations for your newly created dataset.");
 
 			JSONObject cannedAnnotations = new JSONObject(
-					"{\"doubleAnnotations\": {}, \"dateAnnotations\": {\"last_modified_date\": [\"2009-03-06\"]}, \"longAnnotations\": {\"number_of_downloads\": "
+					"{\"doubleAnnotations\": {}, \"dateAnnotations\": {\"last_modified_date\": [\"1325468727\"]}, \"longAnnotations\": {\"number_of_downloads\": "
 							+ "[32.0], \"number_of_followers\": [7.0], \"Number_of_Samples\": [218.0], \"pubmed_id\": [20579941.0]}, \"stringAnnotations\": "
 							+ "{\"Posting_Restriction\": [\"unspecified\"], \"citation\": [\"Integrative genomic profiling of human prostate cancer. Taylor BS, Schultz N, "
 							+ "Hieronymus H, Gopalan A, Xiao Y, Carver BS, Arora VK, Kaushik P, Cerami E, Reva B, Antipin Y, Mitsiades N, Landers T, Dolgalev I, "

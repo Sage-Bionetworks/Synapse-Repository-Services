@@ -58,9 +58,9 @@ public class ApplyMigrationData implements RevisionMigrationStep {
 				ENCODING encoding = rename.getFieldSchema().getContentEncoding();
 				if(encoding != null){
 					if(ENCODING.BINARY == encoding){
-						Map<String, Collection<byte[]>> annos = primaryAnnotations.getBlobAnnotations();
+						Map<String, List<byte[]>> annos = primaryAnnotations.getBlobAnnotations();
 						if(annos != null){
-							Collection<byte[]> valueToMigrate = annos.remove(rename.getOldFieldName());
+							List<byte[]> valueToMigrate = annos.remove(rename.getOldFieldName());
 							if(valueToMigrate != null){
 								annos.put(rename.getNewFieldName(), valueToMigrate);
 							}
@@ -73,9 +73,9 @@ public class ApplyMigrationData implements RevisionMigrationStep {
 						// This might be a date
 						if(FORMAT.DATE_TIME == rename.getFieldSchema().getFormat()){
 							// Migrate the Date annotations.
-							Map<String, Collection<Date>> annos = primaryAnnotations.getDateAnnotations();
+							Map<String, List<Date>> annos = primaryAnnotations.getDateAnnotations();
 							if(annos != null){
-								Collection<Date> valueToMigrate = annos.remove(rename.getOldFieldName());
+								List<Date> valueToMigrate = annos.remove(rename.getOldFieldName());
 								if(valueToMigrate != null){
 									annos.put(rename.getNewFieldName(), valueToMigrate);
 								}
@@ -85,9 +85,9 @@ public class ApplyMigrationData implements RevisionMigrationStep {
 						}
 					}else{
 						// Migrate the string annotations.
-						Map<String, Collection<String>> stringAnnos = primaryAnnotations.getStringAnnotations();
+						Map<String, List<String>> stringAnnos = primaryAnnotations.getStringAnnotations();
 						if(stringAnnos != null){
-							Collection<String> valueToMigrate = stringAnnos.remove(rename.getOldFieldName());
+							List<String> valueToMigrate = stringAnnos.remove(rename.getOldFieldName());
 							if(valueToMigrate != null){
 								stringAnnos.put(rename.getNewFieldName(), valueToMigrate);
 							}
@@ -95,18 +95,18 @@ public class ApplyMigrationData implements RevisionMigrationStep {
 					}
 				}else if(TYPE.INTEGER == fieldType){
 					// Migrate the string annotations.
-					Map<String, Collection<Long>> longAnnos = primaryAnnotations.getLongAnnotations();
+					Map<String, List<Long>> longAnnos = primaryAnnotations.getLongAnnotations();
 					if(longAnnos != null){
-						Collection<Long> valueToMigrate = longAnnos.remove(rename.getOldFieldName());
+						List<Long> valueToMigrate = longAnnos.remove(rename.getOldFieldName());
 						if(valueToMigrate != null){
 							longAnnos.put(rename.getNewFieldName(), valueToMigrate);
 						}
 					}
 				}else if(TYPE.NUMBER == fieldType){
 					// Migrate the string annotations.
-					Map<String, Collection<Double>> annos = primaryAnnotations.getDoubleAnnotations();
+					Map<String, List<Double>> annos = primaryAnnotations.getDoubleAnnotations();
 					if(annos != null){
-						Collection<Double> valueToMigrate = annos.remove(rename.getOldFieldName());
+						List<Double> valueToMigrate = annos.remove(rename.getOldFieldName());
 						if(valueToMigrate != null){
 							annos.put(rename.getNewFieldName(), valueToMigrate);
 						}

@@ -21,7 +21,7 @@ public class AnnotationUtils {
 	 * @param map
 	 * @return
 	 */
-	public static List<DBOStringAnnotation> createStringAnnotations(Long owner, Map<String, Collection<String>> map){
+	public static List<DBOStringAnnotation> createStringAnnotations(Long owner, Map<String, List<String>> map){
 		List<DBOStringAnnotation> results = new ArrayList<DBOStringAnnotation>();
 		if(map != null){
 			Iterator<String> keyIt = map.keySet().iterator();
@@ -56,7 +56,7 @@ public class AnnotationUtils {
 	 * @param map
 	 * @return
 	 */
-	public static List<DBOLongAnnotation> createLongAnnotations(Long ownerId, Map<String, Collection<Long>> map) {
+	public static List<DBOLongAnnotation> createLongAnnotations(Long ownerId, Map<String, List<Long>> map) {
 		List<DBOLongAnnotation> results = new ArrayList<DBOLongAnnotation>();
 		if(map != null){
 			Iterator<String> keyIt = map.keySet().iterator();
@@ -83,7 +83,7 @@ public class AnnotationUtils {
 	 * @param map
 	 * @return
 	 */
-	public static List<DBODoubleAnnotation> createDoubleAnnotations(Long ownerId, Map<String, Collection<Double>> map) {
+	public static List<DBODoubleAnnotation> createDoubleAnnotations(Long ownerId, Map<String, List<Double>> map) {
 		List<DBODoubleAnnotation> results = new ArrayList<DBODoubleAnnotation>();
 		if(map != null){
 			Iterator<String> keyIt = map.keySet().iterator();
@@ -110,7 +110,7 @@ public class AnnotationUtils {
 	 * @param map
 	 * @return
 	 */
-	public static List<DBODateAnnotation> createDateAnnotations(Long ownerId, Map<String, Collection<Date>> map) {
+	public static List<DBODateAnnotation> createDateAnnotations(Long ownerId, Map<String, List<Date>> map) {
 		List<DBODateAnnotation> results = new ArrayList<DBODateAnnotation>();
 		if(map != null){
 			Iterator<String> keyIt = map.keySet().iterator();

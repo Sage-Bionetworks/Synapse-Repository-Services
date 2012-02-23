@@ -62,7 +62,7 @@ public class ApplyMigrationDataTest {
 		// Now validate the rename
 		apply.migrateOneStep(toMigrate, mockType);
 		// Validate that the rename occured.
-		Map<String, Collection<String>> stringAnnos = primaryAnnos.getStringAnnotations();
+		Map<String, List<String>> stringAnnos = primaryAnnos.getStringAnnotations();
 		assertNull(stringAnnos.get(oldKey));
 		assertNotNull(stringAnnos.get(newKey));
 		assertEquals(1, stringAnnos.get(newKey).size());
@@ -107,7 +107,7 @@ public class ApplyMigrationDataTest {
 		// Now validate the rename
 		apply.migrateOneStep(toMigrate, mockType);
 		// Validate that the rename occured.
-		Map<String, Collection<Long>> annos = primaryAnnos.getLongAnnotations();
+		Map<String, List<Long>> annos = primaryAnnos.getLongAnnotations();
 		assertNull(annos.get(oldKey));
 		assertNotNull(annos.get(newKey));
 		assertEquals(2, annos.get(newKey).size());
@@ -133,7 +133,7 @@ public class ApplyMigrationDataTest {
 		// Now validate the rename
 		apply.migrateOneStep(toMigrate, mockType);
 		// Validate that the rename occured.
-		Map<String, Collection<Double>> annos = primaryAnnos.getDoubleAnnotations();
+		Map<String, List<Double>> annos = primaryAnnos.getDoubleAnnotations();
 		assertNull(annos.get(oldKey));
 		assertNotNull(annos.get(newKey));
 		assertEquals(2, annos.get(newKey).size());
@@ -160,7 +160,7 @@ public class ApplyMigrationDataTest {
 		// Now validate the rename
 		apply.migrateOneStep(toMigrate, mockType);
 		// Validate that the rename occured.
-		Map<String, Collection<Date>> annos = primaryAnnos.getDateAnnotations();
+		Map<String, List<Date>> annos = primaryAnnos.getDateAnnotations();
 		assertNull(annos.get(oldKey));
 		assertNotNull(annos.get(newKey));
 		assertEquals(2, annos.get(newKey).size());
@@ -187,7 +187,7 @@ public class ApplyMigrationDataTest {
 		// Now validate the rename
 		apply.migrateOneStep(toMigrate, mockType);
 		// Validate that the rename occured.
-		Map<String, Collection<byte[]>> annos = primaryAnnos.getBlobAnnotations();
+		Map<String, List<byte[]>> annos = primaryAnnos.getBlobAnnotations();
 		assertNull(annos.get(oldKey));
 		assertNotNull(annos.get(newKey));
 		assertEquals(2, annos.get(newKey).size());
