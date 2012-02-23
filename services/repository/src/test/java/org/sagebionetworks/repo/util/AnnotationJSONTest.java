@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.util.ArrayList;
 import java.util.Date;
 
 import org.codehaus.jackson.JsonGenerationException;
@@ -31,6 +32,8 @@ public class AnnotationJSONTest {
 		annos.addAnnotation("double", new Double(123.5));
 		annos.addAnnotation("long", new Long(345));
 		annos.addAnnotation("string", "String value");
+		annos.getStringAnnotations().put("nullValue", null);
+		annos.getStringAnnotations().put("empty", new ArrayList<String>());
 		StringWriter writer = new StringWriter();
 		objectMapper.writeValue(writer, annos);
 		String objectMapperJson = writer.toString();

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -91,6 +92,8 @@ public class AnnotationsTest {
 		anno.addAnnotation("date", new Date(1000));
 		anno.addAnnotation("double", new Double(3.5));
 		anno.addAnnotation("long", new Long(123));
+		anno.getStringAnnotations().put("nullString", null);
+		anno.getStringAnnotations().put("emptyList", new ArrayList<String>());
 		
 		String json = EntityFactory.createJSONStringForEntity(anno);
 		System.out.println(json);
