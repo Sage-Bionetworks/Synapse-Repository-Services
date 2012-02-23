@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.codehaus.jackson.JsonGenerationException;
 import org.codehaus.jackson.map.JsonMappingException;
@@ -32,8 +33,11 @@ public class AnnotationJSONTest {
 		annos.addAnnotation("double", new Double(123.5));
 		annos.addAnnotation("long", new Long(345));
 		annos.addAnnotation("string", "String value");
-		annos.getStringAnnotations().put("nullValue", null);
+		annos.getStringAnnotations().put("nullList", null);
 		annos.getStringAnnotations().put("empty", new ArrayList<String>());
+		List<String> withNull = new ArrayList<String>();
+		withNull.add(null);
+		annos.getStringAnnotations().put("nullValueInList", withNull);
 		StringWriter writer = new StringWriter();
 		objectMapper.writeValue(writer, annos);
 		String objectMapperJson = writer.toString();
@@ -51,5 +55,6 @@ public class AnnotationJSONTest {
 		Annotations cloneTwo = EntityFactory.createEntityFromJSONString(objectMapperJson, Annotations.class);
 		assertEquals(annos, cloneTwo);
 	}
+	
 
 }
