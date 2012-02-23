@@ -248,7 +248,7 @@
 			<dependency>
 				<groupId>com.amazonaws</groupId>
 				<artifactId>aws-java-sdk</artifactId>
-				<version>1.2.12</version>
+                <version>1.3.3</version>
 			</dependency>
 
 			<dependency>
@@ -263,11 +263,6 @@
 				<artifactId>schema-to-pojo-lib</artifactId>
 				<version>${schema-to-pojo.version}</version>
 			</dependency>
-            <dependency>
-                <groupId>com.amazonaws</groupId>
-                <artifactId>aws-java-sdk</artifactId>
-                <version>1.3.3</version>
-            </dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>schema-to-pojo-org-json</artifactId>
