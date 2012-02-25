@@ -15,6 +15,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 import org.sagebionetworks.tool.migration.dao.EntityQueryResults;
@@ -184,9 +185,12 @@ public class SearchRunnerImpl implements QueryRunner {
 			JSONObject row = rows.getJSONObject(i);
 			if (row.has("data")) {
 				JSONObject data = row.getJSONObject("data");
-				if (data.has("id") && data.has("etag")) {
-					EntityData entityData = new EntityData(data.getString("id"), data
-							.getString("etag"), null);
+				JSONArray idArray = data.optJSONArray("id");
+				JSONArray etagArray = data.optJSONArray("etag");
+				if ((null != idArray) && (0 < idArray.length())
+						&& (null != etagArray) && (0 < etagArray.length())) {
+					EntityData entityData = new EntityData(
+							idArray.getString(0), etagArray.getString(0), null);
 					results.add(entityData);
 				}
 			}

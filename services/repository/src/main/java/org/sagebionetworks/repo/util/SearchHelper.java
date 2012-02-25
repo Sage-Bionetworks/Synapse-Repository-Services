@@ -156,7 +156,7 @@ public class SearchHelper {
 			for (String dataName : JSONObject.getNames(csHit)) {
 				String dataValue;
 				JSONArray dataValueArray = csHit.optJSONArray(dataName);
-				if (null != dataValueArray) {
+				if ((null != dataValueArray) && (0 < dataValueArray.length()) ) {
 					dataValue = dataValueArray.getString(0);
 				} else {
 					dataValue = csHit.getString(dataName);
