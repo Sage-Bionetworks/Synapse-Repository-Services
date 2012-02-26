@@ -190,7 +190,7 @@ public class ObjectTypeSerializerTest {
 		System.out.println(outString);
 		assertFalse("The resulting JSON should not contain the schema",outString.indexOf("jsonschema") > -1);
 		// Make sure we can create a new entity with the path.
-		JSONObjectAdapter adapter = JSONObjectAdapterImpl.createAdapterFromJSONString(outString);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(outString);
 		PaginatedResults<EntityHeader> clone = new PaginatedResults<EntityHeader>(EntityHeader.class);
 		clone.initializeFromJSONObject(adapter);
 		assertEquals(paged, clone);

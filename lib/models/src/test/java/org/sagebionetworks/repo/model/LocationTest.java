@@ -46,7 +46,7 @@ public class LocationTest {
 
 		adapter1 = l1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
-		adapter2 = JSONObjectAdapterImpl.createAdapterFromJSONString(s);
+		adapter2 = new JSONObjectAdapterImpl(s);
 		Location l2 = new Location(adapter2);
 		
 		assertEquals(l1, l2);

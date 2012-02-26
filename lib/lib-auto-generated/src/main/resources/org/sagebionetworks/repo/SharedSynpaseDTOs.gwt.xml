@@ -2,5 +2,5 @@
 	<!-- Specify the paths for translatable code -->
 	<source path="model" />
 	<inherits name="com.google.gwt.junit.JUnit" />
-	<inherits name="org.sagebionetworks.SchemaToPojoLib" />
+	<inherits name="org.sagebionetworks.repo.AutoGenSynpaseDTOs" />
 </module>

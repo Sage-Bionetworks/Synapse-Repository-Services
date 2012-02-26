@@ -54,7 +54,7 @@ public class PreviewTest {
 
 		adapter1 = p1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
-		adapter2 = JSONObjectAdapterImpl.createAdapterFromJSONString(s);
+		adapter2 = new JSONObjectAdapterImpl(s);
 		Preview p2 = new Preview(adapter2);
 		
 		assertEquals(p1, p2);		return;

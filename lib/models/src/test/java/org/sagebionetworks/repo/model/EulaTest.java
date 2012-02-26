@@ -37,7 +37,7 @@ public class EulaTest {
 
 		adapter1 = e1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
-		adapter2 = JSONObjectAdapterImpl.createAdapterFromJSONString(s);
+		adapter2 = new JSONObjectAdapterImpl(s);
 		Eula e2 = new Eula(adapter2);
 		
 		assertEquals(e1, e2);

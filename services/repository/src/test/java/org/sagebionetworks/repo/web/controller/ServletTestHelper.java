@@ -796,8 +796,7 @@ public class ServletTestHelper {
 			JsonParseException, JsonMappingException, IOException {
 		PaginatedResults<T> pr = new PaginatedResults<T>(clazz);
 		try {
-			pr.initializeFromJSONObject(JSONObjectAdapterImpl
-					.createAdapterFromJSONString(jsonString));
+			pr.initializeFromJSONObject(new JSONObjectAdapterImpl(jsonString));
 			return pr;
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);

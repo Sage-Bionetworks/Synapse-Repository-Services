@@ -27,6 +27,7 @@
             ],
             
         },
+        
         "id":{
             "type":"string",
             "description":"The id assigned to the deamon processes."

@@ -61,7 +61,7 @@ public class EntityType {
 			InputStream in = classLoader.getResourceAsStream(REGISTER_JSON_FILE_NAME);
 			if(in == null) throw new IllegalStateException("Cannot find the "+REGISTER_JSON_FILE_NAME+" file on the classpath");
 			String jsonString = readToString(in);
-			JSONObjectAdapter adapter = JSONObjectAdapterImpl.createAdapterFromJSONString(jsonString);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonString);
 			// Get the model object
 			EntityRegistry registry = new EntityRegistry(adapter);
 			List<EntityTypeMetadata> typeList = registry.getEntityTypes();

@@ -36,7 +36,7 @@ public class AgreementTest {
 		adapter1 = a1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
 		System.out.println(s);
-		adapter2 = JSONObjectAdapterImpl.createAdapterFromJSONString(s);
+		adapter2 = new JSONObjectAdapterImpl(s);
 		Agreement a2 = new Agreement(adapter2);
 		
 		assertEquals(a1, a2);

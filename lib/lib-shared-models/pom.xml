@@ -12,6 +12,21 @@
 	<name>lib-shared-models</name>
 	<description>These model objects are shared between the client and server.  Only GWT compatible models should exist in this project</description>
 
+	<build>
+		<resources>
+			<resource>
+				<!-- This will add the source files to the jar, which is needed for GWT 
+					compile. -->
+				<directory>src/main/java</directory>
+			</resource>
+			<resource>
+				<!-- We also want the resources directory added -->
+				<directory>src/main/resources</directory>
+			</resource>
+		</resources>
+
+
+	</build>
 	<dependencies>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
@@ -19,7 +34,8 @@
 		</dependency>
 
 
-		<!-- This must remain at the test scope!  It uses GWT non-compatible dependencies and cannot be used in a GWT client! -->
+		<!-- This must remain at the test scope! It uses GWT non-compatible dependencies 
+			and cannot be used in a GWT client! -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-org-json</artifactId>

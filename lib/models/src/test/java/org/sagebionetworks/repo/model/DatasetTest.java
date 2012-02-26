@@ -75,7 +75,7 @@ public class DatasetTest {
 		
 		adapter1 = ds1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
-		adapter2 = JSONObjectAdapterImpl.createAdapterFromJSONString(s);
+		adapter2 = new JSONObjectAdapterImpl(s);
 		Dataset ds2 = new Dataset(adapter2);
 		
 		assertEquals(ds1, ds2);

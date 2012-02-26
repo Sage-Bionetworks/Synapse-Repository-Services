@@ -37,7 +37,7 @@ public class ProjectTest {
 
 		adapter1 = p1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
-		adapter2 = JSONObjectAdapterImpl.createAdapterFromJSONString(s);
+		adapter2 = new JSONObjectAdapterImpl(s);
 		Project p2 = new Project(adapter2);
 		
 		assertEquals(p1, p2);

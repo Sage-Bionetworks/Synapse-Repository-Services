@@ -41,7 +41,7 @@ public class SchemaCache {
 			try {
 				String jsonString = (String) clazz.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
 				if(jsonString == null) throw new IllegalArgumentException("The JSON Schema cannot be null for entity.getJSONSchema()");
-				schema = new ObjectSchema(JSONObjectAdapterImpl.createAdapterFromJSONString(jsonString));
+				schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 			} catch (Exception e) {
 				// convert this to a runtime.
 				throw new RuntimeException(e);

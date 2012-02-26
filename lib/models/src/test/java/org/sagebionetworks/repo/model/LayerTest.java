@@ -64,7 +64,7 @@ public class LayerTest {
 
 		adapter1 = l1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
-		adapter2 = JSONObjectAdapterImpl.createAdapterFromJSONString(s);
+		adapter2 = new JSONObjectAdapterImpl(s);
 		Layer l2 = new Layer(adapter2);
 		
 		assertEquals(l1, l2);

@@ -69,7 +69,7 @@ public class EntityObjectMapper {
 		if(isJSONEntity(clazz)){
 			try {
 				JSONEntity entity = (JSONEntity) clazz.newInstance();
-				entity.initializeFromJSONObject(JSONObjectAdapterImpl.createAdapterFromJSONString(json));
+				entity.initializeFromJSONObject(new JSONObjectAdapterImpl(json));
 				return (T) entity;
 			} catch (Exception e) {
 				throw new RuntimeException(e);

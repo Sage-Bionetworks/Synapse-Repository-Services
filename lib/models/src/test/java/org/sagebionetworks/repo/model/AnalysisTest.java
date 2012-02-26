@@ -38,7 +38,7 @@ public class AnalysisTest {
 
 		adapter1 = a1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
-		adapter2 = JSONObjectAdapterImpl.createAdapterFromJSONString(s);
+		adapter2 = new JSONObjectAdapterImpl(s);
 		Analysis a2 = new Analysis(adapter2);
 		
 		assertEquals(a1, a2);

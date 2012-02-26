@@ -5,6 +5,7 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -150,11 +151,10 @@ public class IT575WebClient {
 		
 		// provide for mocks
 		when(mockAuthenticationController.getLoggedInUser()).thenReturn(userData);
-		when(mockNodeModelCreator.createEULA(anyString())).thenReturn(eula);
-		EntityWrapper datasetWrapper = new EntityWrapper();
+		when(mockNodeModelCreator.createEntity(anyString(), eq(Eula.class))).thenReturn(eula);
 		JSONObjectAdapter datasetObj = jsonObjectAdapterProvider.createNew();
 		dataset.writeToJSONObject(datasetObj);
-		datasetWrapper.setEntityJson(datasetObj.toJSONString());
+		EntityWrapper datasetWrapper = new EntityWrapper(datasetObj.toJSONString(), Dataset.class.getName(), null);
 		when(mockNodeModelCreator.createEntity(datasetWrapper)).thenReturn(dataset);
 		
 		// create entity type provider

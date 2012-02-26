@@ -55,7 +55,7 @@ public class CodeTest {
 
 		adapter1 = c1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
-		adapter2 = JSONObjectAdapterImpl.createAdapterFromJSONString(s);
+		adapter2 = new JSONObjectAdapterImpl(s);
 		Code c2 = new Code(adapter2);
 		
 		assertEquals(c1, c2);
