@@ -19,12 +19,7 @@
             "format":"date-time",
             "title":"End Date",
             
-        },
-        "version":{
-            "type":"string",
-            "description":"This is a fake version label.  The entity needs to be converted to versionable",
-            
-        },
+        }
         
     }
 }

@@ -1,0 +1,16 @@
+{
+	"description": "Metadata to describe the migration of an entity type",
+	"properties": {
+		"entityType": {
+			"description": "The type of entity",
+			"type": "string"
+		},
+		"fields": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.registry.FieldMigrationSpec"
+			}
+		}
+	}
+}

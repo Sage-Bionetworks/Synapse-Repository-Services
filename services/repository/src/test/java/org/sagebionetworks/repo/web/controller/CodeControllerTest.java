@@ -400,9 +400,9 @@ public class CodeControllerTest {
 		assertTrue(results.has("createdOn"));
 		assertFalse("null".equals(results.getString("createdOn")));
 
-		// Check that optional properties that receive default values
-		assertTrue(results.has("version"));
-		String value = results.getString("version");
+//		// Check that optional properties that receive default values
+		assertTrue(results.has("versionNumber"));
+		Long value = results.getLong("versionNumber");
 		assertFalse("null".equals(value));
 
 		// Check that other properties are present, even if their value is null

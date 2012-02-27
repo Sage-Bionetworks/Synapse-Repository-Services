@@ -1,0 +1,8 @@
+{
+	"desscription": "Metadata to describe a field in a node migration",
+	"properties": {
+		"name": {"description": "Name of field", "type": "string"},
+		"type": {"description": "Type of field", "type": "string"},
+		"bucket": {"description": "Bucket where the field resides", "type": "string"}
+	}
+}

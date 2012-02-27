@@ -33,7 +33,6 @@ public class PreviewTest {
 		p1.setName("name");
 		p1.setParentId("0");
 		p1.setUri("uri");
-		p1.setVersion("1.0.0");
 
 		List<String> headers = new ArrayList<String>();
 		headers.add("header1");

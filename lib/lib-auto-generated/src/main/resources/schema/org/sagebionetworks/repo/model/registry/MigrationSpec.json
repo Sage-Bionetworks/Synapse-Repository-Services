@@ -1,0 +1,13 @@
+{
+	"description": "Metadata to describe the migration of nodes",
+	"properties": {
+		"migrationMetadata": {
+			"type": "array",
+			"items": {
+				"type": "object",
+				"$ref": "org.sagebionetworks.repo.model.registry.EntityTypeMigrationSpec"
+			}
+		}
+	}
+	
+}

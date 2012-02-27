@@ -33,11 +33,10 @@ public class CodeTest {
 		c1.setName("name");
 		c1.setParentId("0");
 		c1.setUri("uri");
-		c1.setVersion("1.0.0");
 
 		c1.setStartDate(d);
 		c1.setEndDate(d);
-		c1.setVersion("1.0.0");
+		
 		c1.setVersionComment("versionComment");
 		c1.setVersionLabel("versionLabel");
 		c1.setVersionNumber(1L);

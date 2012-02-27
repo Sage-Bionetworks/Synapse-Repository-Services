@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.LayerTypeNames;
 public class LayerMetadataProviderTest {
 	
 	
+// TODO: Needed if LayerMetadataProvider sets default version
 	@Test
 	public void testValidate() throws InvalidModelException{
 		LayerMetadataProvider provider = new LayerMetadataProvider();
@@ -30,6 +31,6 @@ public class LayerMetadataProviderTest {
 		list.add(parent);
 		
 		provider.validateEntity(mock, new EntityEvent(EventType.CREATE, list, null));
-		assertEquals("1.0.0", mock.getVersion());
+
 	}
 }

@@ -31,7 +31,6 @@ public class AnalysisTest {
 		a1.setName("name");
 		a1.setParentId("0");
 		a1.setUri("uri");
-		a1.setVersion("1.0.0");
 
 		a1.setSteps("/steps");
 		a1.setStatus("status");

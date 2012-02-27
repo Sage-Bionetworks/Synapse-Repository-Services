@@ -115,7 +115,6 @@ public class QueryManagerAutowireTest {
 		ds.setLayers("someLayerUrl"+i);
 		ds.setReleaseDate(new Date(15689));
 		ds.setStatus("someStatus"+i);
-		ds.setVersion("someVersion"+i);
 		ds.setUri("someUri"+i);
 		return ds;
 	}

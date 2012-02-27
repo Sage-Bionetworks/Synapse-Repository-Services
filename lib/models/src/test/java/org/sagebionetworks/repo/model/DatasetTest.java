@@ -33,7 +33,8 @@ public class DatasetTest {
 		ds1.setModifiedOn(d);
 		ds1.setName("name");
 		ds1.setUri("uri");
-		ds1.setVersion("1.0.0");
+
+
 		ds1.setVersionComment("versionComment");
 		ds1.setVersionLabel("versionLabel");
 		ds1.setVersionNumber(1L);
@@ -41,37 +42,20 @@ public class DatasetTest {
 		ds1.setVersions("versions");
 		ds1.setContentType("txt");
 		ds1.setMd5("abcdef");
-
-		ds1.setEulaId("0");
-		ds1.setHasClinicalData(Boolean.TRUE);
-		ds1.setHasGeneticData(Boolean.TRUE);
-		ds1.setHasExpressionData(Boolean.TRUE);
-
-//		CurationTrackingData cdt = new CurationTrackingData();
-//		cdt.setOwner("owner");
-//		cdt.setStatus(CurationStatusNames.loaded);
-//		ds1.setCurationStatus(cdt);
-
 		List<LocationData> ldl = new ArrayList<LocationData>();
 		LocationData ld = new LocationData();
 		ld.setPath("path");
 		ld.setType(LocationTypeNames.sage);
 		ldl.add(ld);
 		ds1.setLocations(ldl);
-		
-//		AcquisitionTrackingData adt = new AcquisitionTrackingData();
-//		adt.setComments("comments");
-//		adt.setDataAcquisitionReference("reference");
-//		adt.setFollowupRequirements("followupRequirements");
-//		adt.setRequestor("requestor");
-//		adt.setStatus(AcquisitionStatusNames.denied);
-//		
-//		List<StatusHistoryRecord> lshr = new ArrayList<StatusHistoryRecord>();
-//		StatusHistoryRecord shr = new StatusHistoryRecord();
-//		shr.setStatusName("status");
-//		lshr.add(shr);
-//		adt.setHistory(lshr);
-//		ds1.setAcquisitionStatus(adt);
+
+
+		ds1.setEulaId("0");
+		ds1.setHasClinicalData(Boolean.TRUE);
+		ds1.setHasGeneticData(Boolean.TRUE);
+		ds1.setHasExpressionData(Boolean.TRUE);
+		ds1.setStatus("status");
+
 		
 		adapter1 = ds1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();

@@ -1,0 +1,14 @@
+{
+	"description": "Metadata to describe the migration of a generic field",
+	"properties": {
+		"source": {
+			"description": "Metadata about the source field",
+			"$ref": "org.sagebionetworks.repo.model.registry.FieldDescription"
+		}
+		,
+		"destination": {
+			"description": "Metadata about the destination field",
+			"$ref": "org.sagebionetworks.repo.model.registry.FieldDescription"
+		}
+	}
+}

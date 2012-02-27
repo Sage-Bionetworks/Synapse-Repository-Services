@@ -86,7 +86,7 @@ public class CRUDWikiGenerator {
 							"/dataset",
 							new JSONObject(
 									"{\"status\": \"Pending\", \"description\": \"Genetic and epigenetic alterations have been identified that ...\", "
-											+ "\"createdBy\": \"Charles Sawyers\", \"releaseDate\": \"2008-09-14T00:00:00.000-07:00\", \"version\": \"1.0.0\", \"name\": \"MSKCC Prostate Cancer\", \"parentId\":\""
+											+ "\"createdBy\": \"Charles Sawyers\", \"releaseDate\": \"2008-09-14T00:00:00.000-07:00\", \"versionLabel\": \"1.0.0\", \"name\": \"MSKCC Prostate Cancer\", \"parentId\":\""
 											+ project.getString("id")
 											+ "\", \"eulaId\": \""
 											+ eula.getString("id") + "\"}"),
@@ -149,7 +149,7 @@ public class CRUDWikiGenerator {
 							new JSONObject(
 									"{\"parentId\":\""
 											+ dataset.getString("id")
-											+ "\", \"status\": \"curated\", \"name\": \"phenotypes\", \"numSamples\": \"261\", \"platform\": \"\", \"version\": \"1.0.0\", \"type\": \"C\"}"),
+											+ "\", \"status\": \"curated\", \"name\": \"phenotypes\", \"numSamples\": \"261\", \"platform\": \"\", \"versionLabel\": \"1.0.0\", \"type\": \"C\"}"),
 							"h3. Add a Layer to a Dataset",
 							"Create a new layer object and set its parentId to be that of the dataset");
 

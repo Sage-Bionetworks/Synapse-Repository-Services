@@ -526,7 +526,7 @@ public class DatasetControllerTest {
 		assertTrue(results.has(CREATION_DATE));
 		assertFalse("null".equals(results.getString(CREATION_DATE)));
 		// Check that optional properties that receive default values
-		assertTrue(results.has("version"));
-		assertFalse("null".equals(results.getString("version")));
+		assertTrue(results.has("versionNumber"));
+		assertFalse("null".equals(results.getLong("versionNumber")));
 	}
 }

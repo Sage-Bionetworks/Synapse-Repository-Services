@@ -77,9 +77,6 @@ public class LayerMetadataProvider implements
 
 	@Override
 	public void validateEntity(Layer entity, EntityEvent event) {
-		if (entity.getVersion() == null) {
-			entity.setVersion("1.0.0");
-		}
 		if (entity.getType() == null) {
 			throw new IllegalArgumentException("Layer.type cannot be null");
 		}

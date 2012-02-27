@@ -226,9 +226,9 @@ public class SerializationUseCases {
 		ds.setParentId("90");
 		ds.setReleaseDate(new Date(45669l));
 		ds.setStatus("cool");
-//		ds.setLocations("location/456");
+// TODO: Add location data back
 		ds.setUri("dataset/456");
-		ds.setVersion("1.0.0");
+		ds.setVersionLabel("1.0.0");
 		return ds;
 	}
 

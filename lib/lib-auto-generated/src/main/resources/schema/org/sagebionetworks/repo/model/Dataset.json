@@ -39,10 +39,6 @@
             "description":"the status of this dataset",
             "title":"Status"
         },
-        "version":{
-            "type":"string",
-            "description":"This is a fake value. Layers need to be changed to versionable."
-        },
         "releaseDate":{
             "type":"string",
             "format":"date-time",

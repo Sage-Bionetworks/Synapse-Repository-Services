@@ -106,9 +106,7 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	 */
 	@Override
 	public void validateEntity(Dataset entity, EntityEvent event) {
-		if(entity.getVersion() == null){
-			entity.setVersion("1.0.0");
-		}
+		//Nothing to do
 	}
 
 	@Override

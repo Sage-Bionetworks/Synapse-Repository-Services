@@ -99,18 +99,6 @@ public class DatasetMetadataProviderTest {
 	
 	
 	@Test
-	public void testValidate(){
-		DatasetMetadataProvider provider = new DatasetMetadataProvider();
-		// for now datasets must have a version.  If they do not then add it.
-		// The provider should set the version on the dataset
-		Dataset mockDs = Mockito.mock(Dataset.class);
-		when(mockDs.getId()).thenReturn("101");
-		when(mockDs.getVersion()).thenReturn(null);
-		provider.validateEntity(mockDs, new EntityEvent(EventType.CREATE, null, null));
-		verify(mockDs).setVersion("1.0.0");
-	}
-	
-	@Test
 	public void testCreateChildrenLayerQuery(){
 		BasicQuery query = DatasetMetadataProvider.createChildrenLayerQuery("123");
 		assertNotNull(query);

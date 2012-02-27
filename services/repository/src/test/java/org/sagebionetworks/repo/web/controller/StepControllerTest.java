@@ -12,6 +12,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.Ignore;
+
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Analysis;
@@ -98,12 +100,14 @@ public class StepControllerTest {
 		Set<Reference> refs = new HashSet<Reference>();
 		Reference ref = new Reference();
 		ref.setTargetId(layer.getId());
+		ref.setTargetVersionNumber(layer.getVersionNumber());
 		refs.add(ref);
 		step.setInput(refs);
 
 		Set<Reference> codeRefs = new HashSet<Reference>();
 		Reference codeRef = new Reference();
 		codeRef.setTargetId(code.getId());
+		codeRef.setTargetVersionNumber(code.getVersionNumber());
 		codeRefs.add(codeRef);
 		step.setCode(codeRefs);
 

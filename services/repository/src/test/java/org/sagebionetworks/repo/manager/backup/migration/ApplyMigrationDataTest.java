@@ -70,6 +70,66 @@ public class ApplyMigrationDataTest {
 		
 	}
 	
+//	@Test
+//	public void testRenameAdditionalString(){
+//		// Rename a string.
+//		String oldKey = "oldStringKey";
+//		String newKey = "newStringKey";
+//		Annotations additionalAnnos = toMigrate.getNamedAnnotations().getAdditionalAnnotations();
+//		String valueToMigrate = "This value should be migrated";
+//		additionalAnnos.addAnnotation(oldKey, valueToMigrate);
+//		List<RenameFieldData> renameList = new ArrayList<RenameFieldData>();
+//		
+//		RenameFieldData rename = new RenameFieldData(oldKey, newKey, new ObjectSchema(TYPE.STRING));
+//		renameList.add(rename);
+//		when(mockMigrationData.getRenameDataForEntity(mockType)).thenReturn(renameList);
+//		// Now validate the rename
+//		apply.migrateOneStep(toMigrate, mockType);
+//		// Validate that the rename occured.
+//		Map<String, List<String>> stringAnnos = additionalAnnos.getStringAnnotations();
+//		assertNull(stringAnnos.get(oldKey));
+//		assertNotNull(stringAnnos.get(newKey));
+//		assertEquals(1, stringAnnos.get(newKey).size());
+//		assertEquals(valueToMigrate, stringAnnos.get(newKey).iterator().next());
+//		
+//	}
+//	
+//	@Test
+//	public void testRenameBothString(){
+//		// Rename a string.
+//		String oldPrimaryKey = "oldPrimaryStringKey";
+//		String newPrimaryKey = "newPrimaryStringKey";
+//		String oldAdditionalKey = "oldAdditionalKey";
+//		String newAdditionalKey = "newAdditionalKey";
+//		Annotations primaryAnnos = toMigrate.getNamedAnnotations().getPrimaryAnnotations();
+//		Annotations additionalAnnos = toMigrate.getNamedAnnotations().getAdditionalAnnotations();
+//		String additionalValueToMigrate = "This additional value should be migrated";
+//		String primaryValueToMigrate = "This primary value should be migrated";
+//		additionalAnnos.addAnnotation(oldAdditionalKey, additionalValueToMigrate);
+//		primaryAnnos.addAnnotation(oldPrimaryKey, primaryValueToMigrate);
+//		List<RenameFieldData> renameList = new ArrayList<RenameFieldData>();
+//		
+//		RenameFieldData rename = new RenameFieldData(oldPrimaryKey, newPrimaryKey, new ObjectSchema(TYPE.STRING));
+//		renameList.add(rename);
+//		rename = new RenameFieldData(oldAdditionalKey, newAdditionalKey, new ObjectSchema(TYPE.STRING));
+//		renameList.add(rename);
+//		
+//		when(mockMigrationData.getRenameDataForEntity(mockType)).thenReturn(renameList);
+//		// Now validate the rename
+//		apply.migrateOneStep(toMigrate, mockType);
+//		// Validate that the rename occured.
+//		Map<String, List<String>> stringAnnos = primaryAnnos.getStringAnnotations();
+//		assertNull(stringAnnos.get(oldPrimaryKey));
+//		assertNotNull(stringAnnos.get(newPrimaryKey));
+//		assertEquals(1, stringAnnos.get(newPrimaryKey).size());
+//		assertEquals(primaryValueToMigrate, stringAnnos.get(newPrimaryKey).iterator().next());
+//		stringAnnos = additionalAnnos.getStringAnnotations();
+//		assertNull(stringAnnos.get(oldAdditionalKey));
+//		assertNotNull(stringAnnos.get(newAdditionalKey));
+//		assertEquals(1, stringAnnos.get(newAdditionalKey).size());
+//		assertEquals(additionalValueToMigrate, stringAnnos.get(newAdditionalKey).iterator().next());
+//		
+//	}
 	/**
 	 * Cannot rename any since it is not supported.
 	 */
@@ -114,6 +174,73 @@ public class ApplyMigrationDataTest {
 		assertEquals(valuesToRename, annos.get(newKey));
 		
 	}
+	
+//	@Test
+//	public void testRenameAdditionalLong(){
+//		// Rename a string.
+//		String oldKey = "oldStringKey";
+//		String newKey = "newStringKey";
+//		Annotations additionalAnnos = toMigrate.getNamedAnnotations().getAdditionalAnnotations();
+//		List<Long> valuesToRename = new ArrayList<Long>();
+//		valuesToRename.add(new Long(123));
+//		valuesToRename.add(new Long(456));
+//		additionalAnnos.addAnnotation(oldKey, valuesToRename);
+//		List<RenameFieldData> renameList = new ArrayList<RenameFieldData>();
+//		
+//		RenameFieldData rename = new RenameFieldData(oldKey, newKey, new ObjectSchema(TYPE.INTEGER));
+//		renameList.add(rename);
+//		when(mockMigrationData.getRenameDataForEntity(mockType)).thenReturn(renameList);
+//		// Now validate the rename
+//		apply.migrateOneStep(toMigrate, mockType);
+//		// Validate that the rename occured.
+//		Map<String, List<Long>> longAnnos = additionalAnnos.getLongAnnotations();
+//		assertNull(longAnnos.get(oldKey));
+//		assertNotNull(longAnnos.get(newKey));
+//		assertEquals(2, longAnnos.get(newKey).size());
+//		assertEquals(valuesToRename, longAnnos.get(newKey));
+//		
+//	}
+//	
+//	@Test
+//	public void testRenameBothLong(){
+//		// Rename a string.
+//		String oldPrimaryKey = "oldPrimaryStringKey";
+//		String newPrimaryKey = "newPrimaryStringKey";
+//		String oldAdditionalKey = "oldAdditionalKey";
+//		String newAdditionalKey = "newAdditionalKey";
+//		Annotations primaryAnnos = toMigrate.getNamedAnnotations().getPrimaryAnnotations();
+//		Annotations additionalAnnos = toMigrate.getNamedAnnotations().getAdditionalAnnotations();
+//		List<Long> valuesToMigrate1 = new ArrayList<Long>();
+//		valuesToMigrate1.add(new Long(12));
+//		valuesToMigrate1.add(new Long(34));
+//		List<Long> valuesToMigrate2 = new ArrayList<Long>();
+//		valuesToMigrate2.add(new Long(56));
+//		valuesToMigrate2.add(new Long(78));
+//		additionalAnnos.addAnnotation(oldAdditionalKey, valuesToMigrate1);
+//		primaryAnnos.addAnnotation(oldPrimaryKey, valuesToMigrate2);
+//		List<RenameFieldData> renameList = new ArrayList<RenameFieldData>();
+//		
+//		RenameFieldData rename = new RenameFieldData(oldPrimaryKey, newPrimaryKey, new ObjectSchema(TYPE.INTEGER));
+//		renameList.add(rename);
+//		rename = new RenameFieldData(oldAdditionalKey, newAdditionalKey, new ObjectSchema(TYPE.INTEGER));
+//		renameList.add(rename);
+//		
+//		when(mockMigrationData.getRenameDataForEntity(mockType)).thenReturn(renameList);
+//		// Now validate the rename
+//		apply.migrateOneStep(toMigrate, mockType);
+//		// Validate that the rename occured.
+//		Map<String, List<Long>> longAnnos = additionalAnnos.getLongAnnotations();
+//		assertNull(longAnnos.get(oldPrimaryKey));
+//		assertNotNull(longAnnos.get(newAdditionalKey));
+//		assertEquals(2, longAnnos.get(newAdditionalKey).size());
+//		assertEquals(valuesToMigrate1, longAnnos.get(newAdditionalKey));
+//		longAnnos = primaryAnnos.getLongAnnotations();
+//		assertNull(longAnnos.get(oldPrimaryKey));
+//		assertNotNull(longAnnos.get(newPrimaryKey));
+//		assertEquals(2, longAnnos.get(newPrimaryKey).size());
+//		assertEquals(valuesToMigrate2, longAnnos.get(newPrimaryKey));
+//		
+//	}
 	
 	@Test
 	public void testRenameDouble(){

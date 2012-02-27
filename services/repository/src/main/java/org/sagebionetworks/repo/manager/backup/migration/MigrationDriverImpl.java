@@ -6,6 +6,8 @@ import java.util.List;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.registry.MigrationDataLoaderImpl;
+import org.sagebionetworks.repo.model.registry.MigrationSpecDataLoaderImpl;
+import org.sagebionetworks.repo.model.registry.MigrationSpecData;
 
 /**
  * This is a simple step-wise migration driver implementation. 
@@ -26,10 +28,12 @@ public class MigrationDriverImpl implements MigrationDriver{
 	 */
 	public MigrationDriverImpl(){
 		revisionSteps = new LinkedList<RevisionMigrationStep>();
+		MigrationSpecData msd = new MigrationSpecDataLoaderImpl().loadMigrationSpecData();
 		// The first step goes from v0 to v1
-		revisionSteps.add(new RevisionStepV0toV1());
+		//revisionSteps.add(new RevisionStepV0toV1(msd));
 		// Apply an Migration data
 		revisionSteps.add(new ApplyMigrationData(new  MigrationDataLoaderImpl().loadMigrationData()));
+		revisionSteps.add(new GenericMigrator(msd));
 	}
 
 	/**

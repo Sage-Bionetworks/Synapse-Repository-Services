@@ -31,9 +31,7 @@ public class LocationTest {
 		l1.setName("name");
 		l1.setParentId("0");
 		l1.setUri("uri");
-		l1.setVersion("1.0.0");
 
-		l1.setVersion("1.0.0");
 		l1.setVersionComment("versionComment");
 		l1.setVersionLabel("versionLabel");
 		l1.setVersionNumber(1L);

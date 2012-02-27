@@ -33,9 +33,7 @@ public class LayerTest {
 		l1.setName("name");
 		l1.setParentId("0");
 		l1.setUri("uri");
-		l1.setVersion("1.0.0");
 
-		l1.setVersion("1.0.0");
 		l1.setVersionComment("versionComment");
 		l1.setVersionLabel("versionLabel");
 		l1.setVersionNumber(1L);
@@ -54,10 +52,7 @@ public class LayerTest {
 		l1.setNumSamples(1000L);
 		l1.setPlatform("platform");
 		l1.setPreviews("/previews");
-		l1.setProcessingFacility("processingFacility");
 		l1.setPublicationDate(d);
-		l1.setQcBy("qcBy");
-		l1.setQcDate(d);
 		l1.setReleaseNotes("releaseNotes");
 		l1.setTissueType("tissueType");
 		l1.setType(LayerTypeNames.E);

@@ -1451,7 +1451,7 @@ public class ServletTestHelper {
 	}
 
 	public static PaginatedResults<EntityHeader> getEntityReferences(HttpServlet dispatchServlet,
-			String id, int versionNumber, String userId) throws ServletException, IOException, JSONException {
+			String id, Long versionNumber, String userId) throws ServletException, IOException, JSONException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");

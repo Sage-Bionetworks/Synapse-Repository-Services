@@ -71,24 +71,11 @@
             "title":"Processing Facility",
             
         },
-        "qcBy":{
-            "type":"string",
-            "description":"Name of person who processed this layer"
-        },
-        "qcDate":{
-            "type":"string",
-            "format":"date-time",
-            "description":"Date this layer was Qc'ed"
-        },
         "status":{
             "type":"string",
             "description":"Status of this layer",
             "title":"Status",
             
-        },
-        "version":{
-            "type":"string",
-            "description":"This is a fake value.  Layers need to be changed to versionable."
         },
         "numSamples":{
             "type":"integer",

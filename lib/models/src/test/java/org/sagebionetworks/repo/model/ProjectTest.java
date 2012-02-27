@@ -13,7 +13,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 public class ProjectTest {
 	
 	@Test
-	public void projectRoundTripTest() throws JSONObjectAdapterException {
+	public void testRoundTripProject() throws JSONObjectAdapterException {
 		Project p1 = new Project();
 		JSONObjectAdapter adapter1 = new JSONObjectAdapterImpl();
 		JSONObjectAdapter adapter2 = new JSONObjectAdapterImpl();
@@ -31,7 +31,6 @@ public class ProjectTest {
 		p1.setName("name");
 		p1.setParentId("0");
 		p1.setUri("uri");
-		p1.setVersion("version");
 		
 		p1.setStatus("status");
 

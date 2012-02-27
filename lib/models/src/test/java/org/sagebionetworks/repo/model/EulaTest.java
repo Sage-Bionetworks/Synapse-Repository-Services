@@ -31,7 +31,6 @@ public class EulaTest {
 		e1.setName("name");
 		e1.setParentId("0");
 		e1.setUri("uri");
-		e1.setVersion("1.0.0");
 
 		e1.setAgreement("agreement");
 

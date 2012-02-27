@@ -344,6 +344,32 @@ public class Annotations implements JSONEntity, Base {
 		
 	}
 	
+	public List deleteAnnotation(String key) {
+		// Look in each set
+		if((this.stringAnnotations != null) && (this.stringAnnotations.containsKey(key))){
+			List<String> result = this.stringAnnotations.remove(key);
+			return result;
+		}
+		if((this.dateAnnotations != null) && (this.dateAnnotations.containsKey(key))){
+			List<Date> result = this.dateAnnotations.remove(key);
+			return result;
+		}
+		if((this.longAnnotations != null) && (this.longAnnotations.containsKey(key))){
+			List<Long> result = this.longAnnotations.remove(key);
+			return result;
+		}
+		if((this.doubleAnnotations != null) && (this.doubleAnnotations.containsKey(key))){
+		List<Double> result = this.doubleAnnotations.remove(key);
+			return result;
+		}
+		if((this.blobAnnotations != null) && (this.blobAnnotations.containsKey(key))){
+			List<byte[]> result = this.blobAnnotations.remove(key);
+			return result;
+		}
+		// did not find it.
+		return (List)null;
+	}
+	
 	public void replaceAnnotation(String key, String value){
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(value == null) throw new IllegalArgumentException("Value cannot be null");

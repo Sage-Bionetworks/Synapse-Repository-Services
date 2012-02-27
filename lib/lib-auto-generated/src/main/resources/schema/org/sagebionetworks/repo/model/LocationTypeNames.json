@@ -6,7 +6,8 @@
         "awss3",
         "awsebs",
         "sage",
-        "external",        
+        "external",
+		"github"
     ],
     
 }

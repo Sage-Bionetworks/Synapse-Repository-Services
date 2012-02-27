@@ -60,9 +60,6 @@ public class CodeMetadataProvider implements
 
 	@Override
 	public void validateEntity(Code entity, EntityEvent event) {
-		if (entity.getVersion() == null) {
-			entity.setVersion("1.0.0");
-		}
 		if (entity.getParentId() == null) {
 			throw new IllegalArgumentException("Code.parentId cannot be null");
 		}

@@ -45,6 +45,9 @@ public class EntityType {
 	public static final EntityType preview = new EntityType();
 	@Deprecated // Only added for backwards compatibility.
 	public static final EntityType code = new EntityType();
+	@Deprecated // Only added for backwards compatibility.
+	public static final EntityType analysis = new EntityType();
+
 	/**
 	 * The JSON file that contains the register data.
 	 */
@@ -91,6 +94,8 @@ public class EntityType {
 					type = preview;
 				}else if(PrefixConst.CODE.equals(meta.getUrlPrefix())){
 					type = code;
+				}else if(PrefixConst.ANALYSIS.equals(meta.getUrlPrefix())){
+					type = analysis;
 				}else{
 					type = new EntityType();
 				}				
