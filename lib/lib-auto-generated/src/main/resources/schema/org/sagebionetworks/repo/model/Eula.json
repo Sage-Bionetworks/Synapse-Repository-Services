@@ -1,4 +1,5 @@
 {
+    "title":"End-user License Agreement",
     "description":"JSON schema for EULA POJO",
     "implements":[
         {

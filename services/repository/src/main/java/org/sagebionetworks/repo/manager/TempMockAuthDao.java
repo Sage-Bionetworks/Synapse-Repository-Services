@@ -4,6 +4,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public class TempMockAuthDao implements AuthorizationManager{
@@ -29,10 +30,18 @@ public class TempMockAuthDao implements AuthorizationManager{
 	}
 
 	@Override
+	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo,
+			String entityId) throws NotFoundException, DatastoreException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
 	public boolean canCreate(UserInfo userInfo, Node node) {
 		// TODO Auto-generated method stub
 		return true;
 	}
+
 
 
 

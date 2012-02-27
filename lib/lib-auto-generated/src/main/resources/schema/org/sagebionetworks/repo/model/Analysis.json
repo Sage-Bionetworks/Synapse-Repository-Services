@@ -1,4 +1,5 @@
 {
+    "title":"Analysis",
     "description":"JSON schema for Analysis POJO",
     "implements":[
         {
@@ -11,8 +12,8 @@
     "properties":{
         "status":{
             "type":"string",
-            "description":"the status of this Analysis",
-            
+            "description":"The status of this Analysis",
+            "title":"Status"
         },
         
     }

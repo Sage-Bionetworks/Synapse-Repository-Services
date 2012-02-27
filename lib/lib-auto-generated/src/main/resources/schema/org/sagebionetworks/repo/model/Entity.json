@@ -5,10 +5,12 @@
         "name":{
             "type":"string",
             "description":"The name of this entity",
+            "title":"Name",
         },
         "description":{
             "description":"The description of this entity.",
-            "type":"string"
+            "type":"string",
+            "title":"Description",
         },
         "id":{
             "type":"string",
@@ -31,20 +33,24 @@
         "createdOn":{
             "type":"string",
             "format":"date-time",
-            "description":"The date this entity was created."
+            "description":"The date this entity was created.",
+            "title":"Created On",
         },
         "modifiedOn":{
             "type":"string",
             "format":"date-time",
-            "description":"The date this entity was last modified."
+            "description":"The date this entity was last modified.",
+            "title":"Modified On",
         },
         "createdBy":{
             "type":"string",
-            "description":"The user that created this entity."
+            "description":"The user that created this entity.",
+            "title":"Created By",
         },
         "modifiedBy":{
             "type":"string",
-            "description":"The user that last modified this entity."
+            "description":"The user that last modified this entity.",
+            "title":"Modified By",
         },
         "annotations":{
             "type":"string",

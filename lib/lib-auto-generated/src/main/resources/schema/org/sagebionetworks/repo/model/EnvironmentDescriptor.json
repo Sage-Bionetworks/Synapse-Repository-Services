@@ -4,17 +4,18 @@
         "type":{
             "type":"string",
             "description":"type the type to set",
+            "title":"Type",
             
         },
         "name":{
             "type":"string",
             "description":"name the name to set",
-            
+            "title":"Name",
         },
         "quantifier":{
             "type":"string",
             "description":"quantifier the quantifier to set",
-            
+            "title":"quantifier",
         },
         
     }

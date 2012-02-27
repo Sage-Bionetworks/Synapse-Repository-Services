@@ -1,0 +1,30 @@
+{
+    "title":"Entity Permissions",
+    "description":"The permission a User has for a given Entity",
+    "properties":{
+        "canView":{
+            "type":"boolean",
+            "description":"Can the user view this entity?",
+        },
+        "canEdit":{
+            "type":"boolean",
+            "description":"Can the user edit this entity?",
+        },
+        "canAddChild":{
+            "type":"boolean",
+            "description":"Can the user add a child entity to this entity?",
+        },
+        "canChangePermissions":{
+            "type":"boolean",
+            "description":"Can the user change the permissions of this entity?",            
+        },
+        "canDelete":{
+            "type":"boolean",
+            "description":"Can the user delete this entity?",            
+        },
+        "canDownload":{
+            "type":"boolean",
+            "description":"Can the user download this entity?",            
+        },
+    }
+}

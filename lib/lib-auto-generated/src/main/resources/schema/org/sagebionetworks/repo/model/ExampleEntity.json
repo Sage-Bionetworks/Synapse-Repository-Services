@@ -1,0 +1,112 @@
+{
+    "description":"JSON schema for an Example POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Locationable"
+        },
+        
+    ],
+    "properties":{
+        "singleString":{
+            "type":"string",
+            "description":"This is an example of a single string",
+            "title":"Single String",
+            
+        },
+        "stringList":{
+            "type":"array",
+            "items":{
+                "type":"string"
+            },
+            "description":"This is an example of a list of strings",
+            "title":"String List",
+            
+        },
+        "singleDate":{
+            "type":"string",
+            "format":"date-time",
+            "description":"This is an example of a single date",
+            "title":"Single Date",
+            
+        },
+        "dateList":{
+            "type":"array",
+            "items":{
+                "type":"string",
+                "format":"date-time",
+                
+            },
+            "description":"This is an example of a list of dates",
+            "title":"Date List",
+            
+        },
+        "singleDouble":{
+            "type":"number",
+            "description":"This is an example of a single Double",
+            "title":"Single Double",
+            
+        },
+        "doubleList":{
+            "type":"array",
+            "items":{
+                "type":"number",
+                
+            },
+            "description":"This is an example of a double list",
+            "title":"Double List",
+            
+        },
+        "singleInteger":{
+            "type":"integer",
+            "description":"This is an example of a single Integer",
+            "title":"Single Integer",
+            
+        },
+        "integerList":{
+            "type":"array",
+            "items":{
+                "type":"integer",
+                
+            },
+            "description":"This is an example of an Integer List.",
+            "title":"Integer List",
+            
+        },
+        "concept":{
+            "type":"string",
+            "description":"Type of tissue for the samples in this layer. Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
+            "links":[
+                {
+                    "rel":"describedby",
+                    "href":"http://synapse.sagebase.org/ontology#6501",
+                    
+                },
+                
+            ],
+            "title":"Concept",
+            
+        },
+        "references":{
+            "type":"array",
+            "uniqueItems":true,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.Reference"
+            },
+            "description":"References",
+            "title":"References",
+            
+        },
+        "environmentDescriptors":{
+            "type":"array",
+            "uniqueItems":true,
+            "contentEncoding":"binary",
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.EnvironmentDescriptor"
+            },
+            "description":"The list of environment descriptors",
+            "title":"Environment Descriptors",
+            
+        },
+        
+    }
+}

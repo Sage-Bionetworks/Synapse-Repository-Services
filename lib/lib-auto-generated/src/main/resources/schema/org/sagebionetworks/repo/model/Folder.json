@@ -1,4 +1,5 @@
 {
+    "title":"Folder",
     "description":"JSON schema for Folder POJO",
     "implements":[
         {

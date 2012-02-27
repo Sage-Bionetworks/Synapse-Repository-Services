@@ -1,4 +1,5 @@
 {
+    "title":"Layer",
     "description":"JSON schema for Layer POJO",
     "implements":[
         {
@@ -13,11 +14,15 @@
         "publicationDate":{
             "type":"string",
             "format":"date-time",
-            "description":"Date this layer was published"
+            "description":"Date this layer was published",
+            "title":"Publication Date",
+            
         },
         "releaseNotes":{
             "type":"string",
-            "description":"Free text about layer"
+            "description":"Free text about layer",
+            "title":"Release Notes",
+            
         },
         "type":{
             "type":"string",
@@ -39,17 +44,32 @@
                 {
                     "rel":"describedby",
                     "href":"http://synapse.sagebase.org/ontology#6501",
+                    
                 },
+                
             ],
+            "title":"Tissue Type",
             
         },
         "platform":{
             "type":"string",
-            "description":"Chip platform for the samples in this layer"
+            "description":"Chip platform for the samples in this layer",
+            "links":[
+                {
+                    "rel":"describedby",
+                    "href":"http://synapse.sagebase.org/ontology#6501",
+                    
+                },
+                
+            ],
+            "title":"Platform",
+            
         },
         "processingFacility":{
             "type":"string",
-            "description":"Location where the samples for this layer were processed"
+            "description":"Location where the samples for this layer were processed",
+            "title":"Processing Facility",
+            
         },
         "qcBy":{
             "type":"string",
@@ -62,7 +82,9 @@
         },
         "status":{
             "type":"string",
-            "description":"Status of this layer"
+            "description":"Status of this layer",
+            "title":"Status",
+            
         },
         "version":{
             "type":"string",
@@ -70,7 +92,8 @@
         },
         "numSamples":{
             "type":"integer",
-            "description":"Approximate number of samples in this layer"
+            "description":"Approximate number of samples in this layer",
+            "title":"Number of Samples"
         }
     }
 }

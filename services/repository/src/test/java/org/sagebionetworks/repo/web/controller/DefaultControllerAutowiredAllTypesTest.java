@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -859,6 +860,27 @@ public class DefaultControllerAutowiredAllTypesTest {
 				assertNotNull(token.getSessionToken());
 				assertNotNull(token.getPresignedUrl());
 			}
+		}
+	}
+	
+	@Test
+	public void testGetUserEntityPermissions() throws Exception {
+		// First create one of each type
+		List<Entity> created = createEntitesOfEachType(1);
+		assertNotNull(created);
+		assertTrue(created.size() >= EntityType.values().length);
+		
+		// Now update each
+		for(Entity entity: created){
+			// Make sure we can get the annotations for this entity.
+			UserEntityPermissions uep = ServletTestHelper.getUserEntityPermissions(dispatchServlet, entity.getId(), userName);
+			assertNotNull(uep);
+			assertEquals(false, uep.getCanDownload());
+			assertEquals(true, uep.getCanEdit());
+			assertEquals(true, uep.getCanChangePermissions());
+			assertEquals(true, uep.getCanDelete());
+			assertEquals(true, uep.getCanView());
+			assertEquals(true, uep.getCanAddChild());
 		}
 	}
 	

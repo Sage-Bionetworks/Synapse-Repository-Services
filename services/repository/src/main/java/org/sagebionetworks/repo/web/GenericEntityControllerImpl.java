@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.jdo.NodeField;
@@ -660,6 +661,14 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		EntityHeaderQueryResults results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, offset-1, limit);
 		String urlPath = request.getRequestURL()==null ? "" : request.getRequestURL().toString();
 		return new PaginatedResults(urlPath,  results.getEntityHeaders(), results.getTotalNumberOfResults(), offset, limit, /*sort*/null, /*ascending*/true);
+	}
+
+
+	@Override
+	public UserEntityPermissions getUserEntityPermissions(String userId, String entityId) throws NotFoundException, DatastoreException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		// TODO Auto-generated method stub
+		return permissionsManager.getUserPermissionsForEntity(userInfo, entityId);
 	}
 
 

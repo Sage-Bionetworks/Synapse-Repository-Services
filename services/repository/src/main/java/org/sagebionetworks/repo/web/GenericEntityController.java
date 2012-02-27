@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.web.controller.metadata.EventType;
 
@@ -477,4 +478,14 @@ public interface GenericEntityController {
 	 */
 	public PaginatedResults<EntityHeader> getEntityReferences(String userId, String entityId, Integer versionNumber, Integer offset, Integer limit, HttpServletRequest request)
 			throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Get the permission for a given user and entity combination.
+	 * @param userId
+	 * @param entityId
+	 * @return
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public UserEntityPermissions getUserEntityPermissions(String userId, String entityId) throws NotFoundException, DatastoreException;
 }

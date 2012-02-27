@@ -559,7 +559,7 @@
 		<org.aspectj.version>1.6.10</org.aspectj.version>
 		<org.apache.commons.commons-dbcp.version>1.4
 		</org.apache.commons.commons-dbcp.version>
-		<schema-to-pojo.version>0.1.18</schema-to-pojo.version>
+		<schema-to-pojo.version>0.1.21</schema-to-pojo.version>
 		<org.json.version>20090211</org.json.version>
 		<com.amazonaws.version>1.2.7</com.amazonaws.version>
 	</properties>

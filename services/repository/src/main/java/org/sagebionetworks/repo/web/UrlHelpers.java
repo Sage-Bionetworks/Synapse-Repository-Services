@@ -40,6 +40,8 @@ public class UrlHelpers {
 			.getName());
 	
 	public static final String ACCESS 			= "/access";
+	
+	public static final String PERMISSIONS 		= "/permissions";
 
 	public static final String ACCESS_TYPE_PARAM	= "accessType";
 
@@ -170,7 +172,6 @@ public class UrlHelpers {
 	public static final String DATASET_VERSION		= DATASET_ID+VERSION;
 	public static final String LAYER_VERSION		= LAYER_ID+VERSION;
 	public static final String CODE_VERSION			= CODE_ID+VERSION;
-	
 	/**
 	 * For Synapse objects that have children, these urls list all children of that type.
 	 */
@@ -185,7 +186,6 @@ public class UrlHelpers {
 	public static final String ANALYSIS_CHILDREN	= PARENT_TYPE_ID+ANALYSIS;
 	public static final String STEP_CHILDREN		= PARENT_TYPE_ID+STEP;
 	public static final String CODE_CHILDREN		= PARENT_TYPE_ID+CODE;
-
 	/**
 	 * Get the schema for each object type
 	 */

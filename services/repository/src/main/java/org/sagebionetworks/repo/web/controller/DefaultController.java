@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
@@ -875,6 +876,16 @@ public class DefaultController extends BaseController {
 		// pass it along.
 		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		return new BooleanResult(entityController.hasAccess(id, userId, request, type.getClassForType(), accessType));
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value={UrlHelpers.ENTITY+UrlHelpers.ID+UrlHelpers.PERMISSIONS}, method=RequestMethod.GET)
+	public @ResponseBody UserEntityPermissions getUserEntityPermissions(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
+		// pass it along.
+		return entityController.getUserEntityPermissions(userId, id);
 	}
 	
 	/**

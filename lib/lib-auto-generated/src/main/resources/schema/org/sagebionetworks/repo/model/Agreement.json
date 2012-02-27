@@ -1,4 +1,5 @@
 {
+    "title":"Agreement",
     "description":"JSON schema for Agreement POJO",
     "implements":[
         {

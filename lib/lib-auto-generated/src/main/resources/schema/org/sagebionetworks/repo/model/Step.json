@@ -1,4 +1,5 @@
 {
+    "title":"Step",
     "description":"JSON schema for Step POJO",
     "implements":[
         {
@@ -12,21 +13,30 @@
             "uniqueItems":true,
             "items":{
                 "$ref":"org.sagebionetworks.repo.model.Reference"
-            }
+            },
+            "description":"References to Code",
+            "title":"Code",
+            
         },
         "input":{
             "type":"array",
             "uniqueItems":true,
             "items":{
                 "$ref":"org.sagebionetworks.repo.model.Reference"
-            }
+            },
+            "description":"References to Input",
+            "title":"Input",
+            
         },
         "output":{
             "type":"array",
             "uniqueItems":true,
             "items":{
                 "$ref":"org.sagebionetworks.repo.model.Reference"
-            }
+            },
+            "description":"References to Output",
+            "title":"Output",
+            
         },
         "environmentDescriptors":{
             "type":"array",
@@ -34,20 +44,30 @@
             "contentEncoding":"binary",
             "items":{
                 "$ref":"org.sagebionetworks.repo.model.EnvironmentDescriptor"
-            }
+            },
+            "description":"The list of environment descriptors",
+            "title":"Environment Descriptors",
+            
         },
         "startDate":{
             "type":"string",
             "format":"date-time",
+            "description":"The start date of this Step",
+            "title":"Start Date",
             
         },
         "endDate":{
             "type":"string",
             "format":"date-time",
+            "description":"The end date of this Step",
+            "title":"End Date",
             
         },
         "commandLine":{
-            "type":"string",  
+            "type":"string",
+            "description":"The end date of this Step",
+            "title":"Command Line",
+            
         },
         
     }

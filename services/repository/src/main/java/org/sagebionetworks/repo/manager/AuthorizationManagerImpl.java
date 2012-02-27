@@ -2,32 +2,24 @@ package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional(readOnly = true)
 public class AuthorizationManagerImpl implements AuthorizationManager {
-	@Autowired
-	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
 	private NodeInheritanceDAO nodeInheritanceDAO;
 	
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
-	
-//	private boolean isAdmin(UserInfo userInfo) throws DatastoreException, NotFoundException {
-//		Collection<UserGroup> userGroups = userInfo.getGroups();
-//		UserGroup adminGroup = userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false);
-//		for (UserGroup ug: userGroups) if (ug.getId().equals(adminGroup.getId())) return true;
-//		return false;
-//	}
 	
 	/**
 	 * 
@@ -83,5 +75,31 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public String authorizationSQL(int n) {
 		return accessControlListDAO.authorizationSQL(n);
+	}
+	
+	@Transactional(readOnly = true)
+	@Override
+	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo,	String entityId) throws NotFoundException, DatastoreException {
+		UserEntityPermissions permission = new UserEntityPermissions();
+		// TODO Actually implement can download!
+		permission.setCanDownload(false);
+		// Admin gets all
+		if (userInfo.isAdmin()) {
+			permission.setCanAddChild(true);
+			permission.setCanChangePermissions(true);
+			permission.setCanDelete(true);
+			permission.setCanEdit(true);
+			permission.setCanView(true);
+			return permission;
+		}
+		// must look-up access
+		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(entityId);
+		// Child can be added if this entity is not null
+		permission.setCanAddChild(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CREATE));
+		permission.setCanChangePermissions(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CHANGE_PERMISSIONS));
+		permission.setCanDelete(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.DELETE));
+		permission.setCanEdit(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.UPDATE));
+		permission.setCanView(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.READ));
+		return permission;
 	}
 }
