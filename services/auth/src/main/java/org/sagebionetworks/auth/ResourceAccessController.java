@@ -33,7 +33,7 @@ public class ResourceAccessController {
 	
 	public static final String RESOURCE_ACCESS_URI = "/resourceAccess";
 	public static final String RESOURCE_NAME_PATH_VAR = "/{resourceName}";
-	public static final String RESOURCE_USER_NAME_PATH_VAR = "/{resourceUserName}";
+	public static final String RESOURCE_USER_NAME_PARAM = "resourceUserName";
 	public static final String RESOURCE_SESSION_URI = "/resourceSession";
 	public static final String RESOURCE_ACCESS_TOKEN_PATH_VAR = "/{resourceAccessToken}";
 
@@ -58,8 +58,8 @@ public class ResourceAccessController {
 	@RequestMapping(value = RESOURCE_ACCESS_URI+RESOURCE_NAME_PATH_VAR, method = RequestMethod.DELETE)
 	public void deleteResourceAccess(
 			@PathVariable String resourceName,
-			@PathVariable String resourceUserName,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userName,
+			@RequestParam(value = RESOURCE_USER_NAME_PARAM, required = false) String resourceUserName,
 			HttpServletRequest request) throws Exception {
 		if (null==userName) throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized.", null);
 		

@@ -29,8 +29,10 @@ public class HMACUtilsTest {
 //		String timeStampString = "2011-10-07T00:09:40.44-0700";
 		
 		String userId="serviceaccount@google.com";//"devUser1@sagebase.org";
-		String uri="/auth/v1/resourceSession/qUVzPsx6QgoNqZucWD00wHvFflKJ4g7+dyPTVL7+3kVkxJpgWh6ShKMRC6lDTcIN";//"/repo/v1/query";
-//		String timeStampString = "2011-12-14T14:20:26.554-08:00";
+		//String uri="/auth/v1/resourceSession/qUVzPsx6QgoNqZucWD00wHvFflKJ4g7+dyPTVL7+3kVkxJpgWh6ShKMRC6lDTcIN";//"/repo/v1/query";
+		//String uri="/auth/v1/resourceSession/0HQgst54p7FkDPzG6yNZ8+PB68eKRQfsdyPTVL7+3kVk-JpgWh6ShKMRC6lDTcIN";
+		String uri="/auth/v1/resourceSession/foo";
+		//		String timeStampString = "2011-12-14T14:20:26.554-08:00";
 		String base64EncodedSecretKey = //"XL4CIyGR8ooxwBwy+cDelpiU42TG6DQdA0LsuxHeZ0HIgPV4zevQ5WrH8TuI6I9yRDzKLOel2+E73EMOVZS+2A==";
 					"0AD0sHdeXfMwjZ7p7eXwbUxD2TSSirCquoaEOwmNvdCV9uAZ0/KbenvWOYqp5AjLpiy8f/Ubck/PjGqoTUUijQ==";
 		

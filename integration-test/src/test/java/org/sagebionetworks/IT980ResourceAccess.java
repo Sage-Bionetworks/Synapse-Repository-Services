@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.net.URLEncoder;
 import java.util.logging.Logger;
 
 import org.json.JSONObject;
@@ -45,8 +46,8 @@ public class IT980ResourceAccess {
 		obj.put("userName", resourceUserName);
 		obj.put("userData", USER_DATA);
 		synapse.createSynapseEntity(authEndpoint, "/resourceAccess/"+RESOURCE_NAME, obj);
-		// TODO need to URL encode/decode the user name!
-		//synapse.deleteSynapseEntity(authEndpoint, "/resourceAccess/"+RESOURCE_NAME+"/"+resourceUserName);
+		synapse.deleteSynapseEntity(authEndpoint, "/resourceAccess/"+RESOURCE_NAME+
+				"?resourceUserName="+URLEncoder.encode(resourceUserName, "UTF-8"));
 	}
 	
 	@Test
@@ -82,8 +83,8 @@ public class IT980ResourceAccess {
 		// finally, delete the resource-access record
 		synapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
 				StackConfiguration.getIntegrationTestUserAdminPassword());
-		// TODO need to URL encode/decode the user name!
-		//synapse.deleteSynapseEntity(authEndpoint, "/resourceAccess/"+RESOURCE_NAME+"/"+resourceUserName);
+		synapse.deleteSynapseEntity(authEndpoint, "/resourceAccess/"+RESOURCE_NAME+
+				"?resourceUserName="+URLEncoder.encode(resourceUserName, "UTF-8"));
 	}
 	
 
