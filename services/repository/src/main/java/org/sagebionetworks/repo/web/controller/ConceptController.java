@@ -34,7 +34,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *
  */
 @Controller
-public class ConceptController {
+public class ConceptController extends BaseController {
 	
 	@Autowired
 	ConceptManager conceptManager;

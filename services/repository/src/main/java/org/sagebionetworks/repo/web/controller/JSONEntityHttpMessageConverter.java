@@ -2,17 +2,22 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.Reader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
 import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
@@ -94,6 +99,28 @@ public class JSONEntityHttpMessageConverter implements
 			in.close();
 		}
 	}
+	
+	/**
+	 * Read a string from an input stream
+	 * 
+	 * @param in
+	 * @return
+	 * @throws IOException
+	 */
+	public static String readToString(Reader reader) throws IOException {
+		if(reader == null) throw new IllegalArgumentException("Reader cannot be null");
+		try {
+			char[] buffer = new char[1024];
+			StringBuilder builder = new StringBuilder();
+			int index = -1;
+			while ((index = reader.read(buffer, 0, buffer.length)) > 0) {
+				builder.append(buffer, 0, index);
+			}
+			return builder.toString();
+		} finally {
+			reader.close();
+		}
+	}
 
 	/**
 	 * Write a string to an oupt stream
@@ -141,6 +168,37 @@ public class JSONEntityHttpMessageConverter implements
 			throw new HttpMessageNotWritableException(e.getMessage());
 		}
 
+	}
+
+	/**
+	 * Read an entity from the reader.
+	 * @param reader
+	 * @return
+	 * @throws IOException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public static Entity readEntity(Reader reader) throws IOException, JSONObjectAdapterException {
+		// First read in the string
+		String jsonString = readToString(reader);
+		// Read it into an adapter
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonString);
+		// Get the entity type
+		if(!adapter.has("entityType")){
+			throw new IllegalArgumentException("Cannot determine the entity type.  The entityType property is null");
+		}
+		String typeClassName = adapter.getString("entityType");
+		if(typeClassName == null){
+			throw new IllegalArgumentException("Cannot determine the entity type.  The entityType property is null");
+		}
+		// Create a new instance using the full class name
+		try {
+			Class<? extends Entity> entityClass = (Class<? extends Entity>) Class.forName(typeClassName);
+			Entity newInstance = entityClass.newInstance();
+			newInstance.initializeFromJSONObject(adapter);
+			return newInstance;
+		} catch (Exception e) {
+			throw new IllegalArgumentException("Unknown entity type: "+typeClassName+". Message: "+e.getMessage());
+		}
 	}
 
 }

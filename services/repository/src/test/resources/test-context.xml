@@ -19,6 +19,9 @@
   <bean id="testHelper"
         class="org.sagebionetworks.repo.web.controller.ServletTestHelper"
         scope="prototype"/>
+  	<bean id="entityServletHelper"
+		class="org.sagebionetworks.repo.web.controller.EntityServletTestHelper"
+		scope="prototype" />
         
     <bean id="userDAO" class="org.sagebionetworks.repo.manager.TestUserDAO" scope="singleton"/>
 

@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -14,9 +15,12 @@ import java.util.HashSet;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.ExampleEntity;
 import org.sagebionetworks.sample.Example;
 import org.sagebionetworks.sample.ExampleContainer;
 import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
@@ -91,6 +95,45 @@ public class JSONEntityHttpMessageConverterTest {
 		// Make sure we can read it back
 		JSONEntity results = converter.read(ExampleContainer.class, mockInMessage);
 		assertEquals(container, results);
+	}
+	
+	@Test 
+	public void testReadToString() throws IOException{
+		String value = "This string should make a round trip!";
+		StringReader reader = new StringReader(value);
+		String clone = JSONEntityHttpMessageConverter.readToString(reader);
+		assertEquals(value, clone);
+	}
+	
+	@Test
+	public void testReadEntity() throws JSONObjectAdapterException, IOException{
+		ExampleEntity entity = new ExampleEntity();
+		entity.setName("name");
+		// this version requires a class name fo the entity type.
+		entity.setEntityType(ExampleEntity.class.getName());
+		entity.setDoubleList(new ArrayList<Double>());
+		entity.getDoubleList().add(123.45);
+		entity.getDoubleList().add(4.56);
+		// To string
+		String jsonString =EntityFactory.createJSONStringForEntity(entity);
+		StringReader reader = new StringReader(jsonString);
+		ExampleEntity clone = (ExampleEntity) JSONEntityHttpMessageConverter.readEntity(reader);
+		assertEquals(entity, clone);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testReadEntityNullType() throws JSONObjectAdapterException, IOException{
+		ExampleEntity entity = new ExampleEntity();
+		entity.setName("name");
+		// this version requires a class name fo the entity type.
+		entity.setEntityType(null);
+		entity.setDoubleList(new ArrayList<Double>());
+		entity.getDoubleList().add(123.45);
+		entity.getDoubleList().add(4.56);
+		// To string
+		String jsonString =EntityFactory.createJSONStringForEntity(entity);
+		StringReader reader = new StringReader(jsonString);
+		ExampleEntity clone = (ExampleEntity) JSONEntityHttpMessageConverter.readEntity(reader);
 	}
 
 }

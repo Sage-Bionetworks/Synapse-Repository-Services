@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -171,28 +172,7 @@ public class DefaultController extends BaseController {
 		return updatedEntity;
 	}
 	
-	/**
-	 * Get an existing entity with a GET.
-	 * @param userId -The user that is doing the get.
-	 * @param id - The ID of the entity to fetch.
-	 * @param request
-	 * @return The requested Entity if it exists.
-	 * @throws NotFoundException - Thrown if the requested entity does not exist.
-	 * @throws DatastoreException - Thrown when an there is a server failure. 
-	 * @throws UnauthorizedException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { 
-			UrlHelpers.ENTITY_ID_TYPE
-			}, method = RequestMethod.GET)
-	public @ResponseBody
-	EntityHeader getEntityType(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException, UnauthorizedException {
-		// Get the type of an entity by ID.
-		return entityController.getEntityHeader(userId, id);
-	}
+
 	
 	
 
@@ -723,10 +703,9 @@ public class DefaultController extends BaseController {
 		if(newAcl == null) throw new IllegalArgumentException("New ACL cannot be null");
 		if(id == null) throw new IllegalArgumentException("ACL ID in the path cannot be null");
 		// pass it along.
-		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		// This is a fix for PLFM-410
 		newAcl.setId(id);
-		AccessControlList acl = entityController.createEntityACL(userId, newAcl, request, type.getClassForType());
+		AccessControlList acl = entityController.createEntityACL(userId, newAcl, request);
 		return acl;
 	}
 	
@@ -753,8 +732,7 @@ public class DefaultController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, ACLInheritanceException {
 		// pass it along.
-		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
-		return entityController.getEntityACL(id, userId, request, type.getClassForType());
+		return entityController.getEntityACL(id, userId, request);
 	}
 	
 
@@ -878,67 +856,4 @@ public class DefaultController extends BaseController {
 		return new BooleanResult(entityController.hasAccess(id, userId, request, type.getClassForType(), accessType));
 	}
 	
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value={UrlHelpers.ENTITY+UrlHelpers.ID+UrlHelpers.PERMISSIONS}, method=RequestMethod.GET)
-	public @ResponseBody UserEntityPermissions getUserEntityPermissions(
-			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
-		// pass it along.
-		return entityController.getUserEntityPermissions(userId, id);
-	}
-	
-	/**
-	 * Get the headers for entities having references to an existing entity.
-	 * @param userId -The user that is doing the get.
-	 * @param id - The target entity's ID.
-	 * @param request
-	 * @return The headers of the entities having references to the given entity
-	 * @throws NotFoundException - Thrown if the requested entity does not exist.
-	 * @throws DatastoreException - Thrown when an there is a server failure. 
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { 
-			UrlHelpers.ENTITY_ID+UrlHelpers.REFERENCED_BY
-			}, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<EntityHeader> getEntityReferences(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@PathVariable String id, HttpServletRequest request)
-			throws NotFoundException, DatastoreException {
-		// Get the type of an entity by ID.
-		return entityController.getEntityReferences(userId, id, null, offset, limit, request);
-	}
-	
-	
-	/**
-	 * Get the headers for entities having references to an existing entity.
-	 * @param userId -The user that is doing the get.
-	 * @param id - The target entity's ID.
-	 * @param request
-	 * @return The headers of the entities having references to the given entity
-	 * @throws NotFoundException - Thrown if the requested entity does not exist.
-	 * @throws DatastoreException - Thrown when an there is a server failure. 
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { 
-			UrlHelpers.ENTITY_ID+UrlHelpers.VERSION+UrlHelpers.VERSION_NUMBER+UrlHelpers.REFERENCED_BY
-			}, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<EntityHeader> getEntityReferences(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@PathVariable String id, 
-			@PathVariable int versionNumber, 
-			HttpServletRequest request)
-			throws NotFoundException, DatastoreException {
-		// Get the type of an entity by ID.
-		return entityController.getEntityReferences(userId, id, versionNumber, offset, limit, request);
-	}
-	
-	
-
 }

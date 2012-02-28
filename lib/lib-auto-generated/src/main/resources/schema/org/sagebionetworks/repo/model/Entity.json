@@ -63,6 +63,11 @@
             "type":"string",
             "description":"The ID of the parent of this entity"
         },
+        "entityType":{
+            "type":"string",
+            "description":"The full class name of this entiy.",
+            "transient":true,
+        },
         
     }
 }

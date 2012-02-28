@@ -65,7 +65,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		try{
 			return KeyFactory.keyToString(simpleJdbcTempalte.queryForLong(SELECT_BENEFACTOR, KeyFactory.stringToKey(beneficiaryId)));
 		}catch(DataAccessException e){
-			throw new NotFoundException(e.getMessage());
+			throw new NotFoundException("Entity id: "+beneficiaryId+" not found");
 		}
 	}
 

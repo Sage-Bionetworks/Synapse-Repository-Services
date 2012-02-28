@@ -142,6 +142,7 @@ public class UrlHelpers {
 	public static final String ANALYSIS_ANNOTATIONS	= ANALYSIS_ID+ANNOTATIONS;
 	public static final String STEP_ANNOTATIONS 	= STEP_ID+ANNOTATIONS;
 	public static final String CODE_ANNOTATIONS 	= CODE_ID+ANNOTATIONS;
+	public static final String ENTITY_ANNOTATIONS 	= ENTITY_ID+ANNOTATIONS;
 
 	/**
 	 * All of the base URLs for locationable entity s3Tokens
@@ -172,6 +173,7 @@ public class UrlHelpers {
 	public static final String DATASET_VERSION		= DATASET_ID+VERSION;
 	public static final String LAYER_VERSION		= LAYER_ID+VERSION;
 	public static final String CODE_VERSION			= CODE_ID+VERSION;
+	public static final String ENTITY_VERSION		= ENTITY_ID+VERSION;
 	/**
 	 * For Synapse objects that have children, these urls list all children of that type.
 	 */
@@ -209,6 +211,7 @@ public class UrlHelpers {
 	public static final String DATASET_VERSION_NUMBER		= DATASET_VERSION+VERSION_NUMBER;
 	public static final String LAYER_VERSION_NUMBER			= LAYER_VERSION+VERSION_NUMBER;
 	public static final String CODE_VERSION_NUMBER			= CODE_VERSION+VERSION_NUMBER;
+	public static final String ENTITY_VERSION_NUMBER		= ENTITY_VERSION+VERSION_NUMBER;
 	
 	/**
 	 * Get the annotations of a specific version of an entity
@@ -513,6 +516,8 @@ public class UrlHelpers {
 		if(entity instanceof Versionable){
 			setVersionableUrl((Versionable)entity);
 		}
+		// Set the entity type
+		entity.setEntityType(entity.getClass().getName());
 	}
 	
 	/**
