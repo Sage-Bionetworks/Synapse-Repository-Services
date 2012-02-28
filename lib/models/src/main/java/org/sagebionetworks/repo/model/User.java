@@ -8,10 +8,6 @@ public class User implements Base {
 	private String uri;
 	private String etag;
 	private Date creationDate;
-	private String iamUserId;
-	private String iamAccessId;
-	private String iamSecretKey;
-	private Date iamCredsExpirationDate;
 	
 	public String getId() {
 		return id;
@@ -47,54 +43,6 @@ public class User implements Base {
 		this.creationDate = creationDate;
 	}
 	/**
-	 * @return the iamUserId
-	 */
-	public String getIamUserId() {
-		return iamUserId;
-	}
-	/**
-	 * @param iamUserId the iamUserId to set
-	 */
-	public void setIamUserId(String iamUserId) {
-		this.iamUserId = iamUserId;
-	}
-	/**
-	 * @return the iamAccessId
-	 */
-	public String getIamAccessId() {
-		return iamAccessId;
-	}
-	/**
-	 * @param iamAccessId the iamAccessId to set
-	 */
-	public void setIamAccessId(String iamAccessId) {
-		this.iamAccessId = iamAccessId;
-	}
-	/**
-	 * @return the iamSecretKey
-	 */
-	public String getIamSecretKey() {
-		return iamSecretKey;
-	}
-	/**
-	 * @param iamSecretKey the iamSecretKey to set
-	 */
-	public void setIamSecretKey(String iamSecretKey) {
-		this.iamSecretKey = iamSecretKey;
-	}
-	/**
-	 * @return the iamCredsExpirationDate
-	 */
-	public Date getIamCredsExpirationDate() {
-		return iamCredsExpirationDate;
-	}
-	/**
-	 * @param iamCredsExpirationDate the iamCredsExpirationDate to set
-	 */
-	public void setIamCredsExpirationDate(Date iamCredsExpirationDate) {
-		this.iamCredsExpirationDate = iamCredsExpirationDate;
-	}
-	/**
 	 * Is this a valid user?
 	 * @param user
 	 */
@@ -113,16 +61,6 @@ public class User implements Base {
 		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
-		result = prime * result
-				+ ((iamAccessId == null) ? 0 : iamAccessId.hashCode());
-		result = prime
-				* result
-				+ ((iamCredsExpirationDate == null) ? 0
-						: iamCredsExpirationDate.hashCode());
-		result = prime * result
-				+ ((iamSecretKey == null) ? 0 : iamSecretKey.hashCode());
-		result = prime * result
-				+ ((iamUserId == null) ? 0 : iamUserId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((uri == null) ? 0 : uri.hashCode());
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
@@ -149,26 +87,6 @@ public class User implements Base {
 			if (other.etag != null)
 				return false;
 		} else if (!etag.equals(other.etag))
-			return false;
-		if (iamAccessId == null) {
-			if (other.iamAccessId != null)
-				return false;
-		} else if (!iamAccessId.equals(other.iamAccessId))
-			return false;
-		if (iamCredsExpirationDate == null) {
-			if (other.iamCredsExpirationDate != null)
-				return false;
-		} else if (!iamCredsExpirationDate.equals(other.iamCredsExpirationDate))
-			return false;
-		if (iamSecretKey == null) {
-			if (other.iamSecretKey != null)
-				return false;
-		} else if (!iamSecretKey.equals(other.iamSecretKey))
-			return false;
-		if (iamUserId == null) {
-			if (other.iamUserId != null)
-				return false;
-		} else if (!iamUserId.equals(other.iamUserId))
 			return false;
 		if (id == null) {
 			if (other.id != null)

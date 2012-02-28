@@ -4,15 +4,13 @@ package org.sagebionetworks.repo.model;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import java.text.DateFormat;
-import org.joda.time.DateTime;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
+import org.joda.time.DateTime;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
@@ -40,8 +38,6 @@ public class CrowdUserDAOTest {
 		User user = userDAO.getUser(TEST_USER);
 		assertEquals(TEST_USER, user.getId());
 		assertEquals(TEST_USER, user.getUserId());
-		assertEquals("foo", user.getIamAccessId());
-		assertEquals("bar", user.getIamSecretKey());
 		Date createDate = new Date((new DateTime("2011-05-18")).getMillis());
 		assertEquals(createDate, user.getCreationDate());
 	}

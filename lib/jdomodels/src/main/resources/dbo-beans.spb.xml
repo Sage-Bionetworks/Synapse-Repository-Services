@@ -30,6 +30,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
 			</list>
 		</property>
 	</bean>

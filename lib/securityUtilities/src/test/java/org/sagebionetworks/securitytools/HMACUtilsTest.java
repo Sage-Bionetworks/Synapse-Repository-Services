@@ -36,6 +36,13 @@ public class HMACUtilsTest {
 		String base64EncodedSecretKey = //"XL4CIyGR8ooxwBwy+cDelpiU42TG6DQdA0LsuxHeZ0HIgPV4zevQ5WrH8TuI6I9yRDzKLOel2+E73EMOVZS+2A==";
 					"0AD0sHdeXfMwjZ7p7eXwbUxD2TSSirCquoaEOwmNvdCV9uAZ0/KbenvWOYqp5AjLpiy8f/Ubck/PjGqoTUUijQ==";
 		
+		
+		//username: serviceaccount@google.com
+		uri="/auth/v1/resourceSession/qUVzPsx6QgoNqZucWD00wHvFflKJ4g7+dyPTVL7+3kVk/JpgWh6ShKMRC6lDTcIN";
+		timeStampString="2012-02-27T15:17:18-0800";
+		base64EncodedSecretKey="0AD0sHdeXfMwjZ7p7eXwbUxD2TSSirCquoaEOwmNvdCV9uAZ0/KbenvWOYqp5AjLpiy8f/Ubck/PjGqoTUUijQ==";
+		//sig: MDc2ZjI0Y2QzZWNlODNhZWJlMDE2MTU1ZGM0YzcwOWRlZTE2ZDIyMg==
+		
 		String encoded = HMACUtils.generateHMACSHA1Signature(
 				userId,
 	    		uri,

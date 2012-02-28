@@ -60,6 +60,15 @@ public class SqlConstants {
 	public static final String TABLE_DATE_ANNOTATIONS	= "JDODATEANNOTATION";
 	public static final String TABLE_STACK_STATUS		= "JDOSTACKSTATUS";
 	
+	
+	// The User Profile table
+	public static final String TABLE_USER_PROFILE				= "JDOUSERPROFILE";
+	public static final String COL_USER_PROFILE_ID				= "ID";
+	public static final String COL_USER_PROFILE_NAME			= "NAME";
+	public static final String COL_USER_PROFILE_ETAG			= "ETAG";
+	public static final String COL_USER_PROFILE_PROPS_BLOB		= "PROPERTIES";
+	public static final String COL_USER_PROFILE_ANNOS_BLOB		= "ANNOTATIONS";
+	public static final String DDL_FILE_USER_PROFILE			="schema/UserProfile-ddl.sql";
 	// 
 	public static final String COL_STACK_STATUS_STATUS				= "STATUS";
 	public static final String COL_STACK_STATUS_CURRENT_MESSAGE		= "CURRENT_MESSAGE";

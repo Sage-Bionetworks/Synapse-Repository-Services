@@ -15,15 +15,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public class TestUserDAO implements UserDAO {
 	
-	/**
-	 * 
-	 */
-	public static final String FAKE_ACCESS_ID = "thisIsAFakeAWSAccessId";
-	/**
-	 * 
-	 */
-	public static final String FAKE_SECRET_KEY = "thisIsAFakeAWSSecretKey";
-	
 	public static final String TEST_GROUP_NAME = "test-group";
 	public static final String TEST_USER_NAME = "test-user@sagebase.org";
 	public static final String ADMIN_USER_NAME = "admin@sagebase.org";
@@ -40,10 +31,6 @@ public class TestUserDAO implements UserDAO {
 		if (dto.getUserId()==null) throw new NullPointerException("user-id required!");
 		dto.setId(dto.getUserId()); // make the user name also the object's id
 		
-		// TODO:  move this back to LayerLocationsControllerTest
-		dto.setIamUserId(StackConfiguration.getStack() + "-" + dto.getUserId());
-		dto.setIamAccessId(FAKE_ACCESS_ID);
-		dto.setIamSecretKey(FAKE_SECRET_KEY);
 
 		map.put(dto.getUserId(), dto);
 		return dto.getId();
