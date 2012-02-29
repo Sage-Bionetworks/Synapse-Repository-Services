@@ -1,13 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertNotNull;
-
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.List;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -18,15 +13,13 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -53,8 +46,6 @@ public class EntityServletTestHelper {
 
 	private static final Log log = LogFactory.getLog(ServletTestHelper.class);
 
-//	@Autowired
-//	private DispatcherServlet dispatcherServlet;
 	
 	private static HttpServlet dispatcherServlet = null;
 
@@ -305,6 +296,34 @@ public class EntityServletTestHelper {
 		}
 		// Read in the value.
 		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), UserEntityPermissions.class);
+	}
+	
+	/**
+	 * Get the user's permissions for an entity.
+	 * @param id
+	 * @param username
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws JSONObjectAdapterException
+	 */
+	public EntityPath getEntityPath(String id, String username) throws ServletException, IOException, NotFoundException, DatastoreException, JSONObjectAdapterException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ENTITY+"/"+id+UrlHelpers.PATH);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), EntityPath.class);
 	}
 
 }

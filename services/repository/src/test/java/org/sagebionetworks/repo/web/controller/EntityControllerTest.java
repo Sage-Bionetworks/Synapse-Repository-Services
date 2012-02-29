@@ -19,6 +19,8 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -129,6 +131,23 @@ public class EntityControllerTest {
 		UserEntityPermissions uep = entityServletHelper.getUserEntityPermissions(id, TEST_USER1);
 		assertNotNull(uep);
 		assertTrue(uep.getCanEdit());
+	}
+	
+	@Test
+	public void testEntityPath() throws JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException{
+		Project p = new Project();
+		p.setName("EntityPath");
+		p.setEntityType(p.getClass().getName());
+		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		String id = clone.getId();
+		toDelete.add(id);
+		EntityPath path = entityServletHelper.getEntityPath(id, TEST_USER1);
+		assertNotNull(path);
+		assertNotNull(path.getPath());
+		assertEquals(2, path.getPath().size());
+		EntityHeader header = path.getPath().get(1);
+		assertNotNull(header);
+		assertEquals(id, header.getId());
 	}
 	
 

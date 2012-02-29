@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -10,6 +11,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -335,6 +337,33 @@ public class BasicEntityController extends BaseController{
 			throws NotFoundException, DatastoreException {
 		// Get the type of an entity by ID.
 		return entityController.getEntityReferences(userId, id, versionNumber, offset, limit, request);
+	}
+	
+	/**
+	 * Get the path of an entity.
+	 * @param userId - The user that is doing the update.
+	 * @param id - The id of the entity to update.
+	 * @param request - Used to read the contents.
+	 * @return The annotations for the given entity.
+	 * @throws NotFoundException - Thrown if the given entity does not exist.
+	 * @throws DatastoreException - Thrown when there is a server side problem.
+	 * @throws UnauthorizedException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.ENTITY_PATH
+			}, method = RequestMethod.GET)
+	public @ResponseBody
+	EntityPath getEntityPath(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		// Wrap it up and pass it along
+		List<EntityHeader> paths = entityController.getEntityPath(userId, id);
+		EntityPath entityPath = new EntityPath();
+		entityPath.setPath(paths);
+		return entityPath;
 	}
 
 }

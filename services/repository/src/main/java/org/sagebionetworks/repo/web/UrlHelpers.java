@@ -165,6 +165,7 @@ public class UrlHelpers {
 	public static final String ANALYSIS_PATH	= ANALYSIS_ID+PATH;
 	public static final String STEP_PATH		= STEP_ID+PATH;
 	public static final String CODE_PATH		= CODE_ID+PATH;
+	public static final String ENTITY_PATH		= ENTITY_ID+PATH;
 	
 	/**
 	 * All of the base URLs for Synapse object's versions.

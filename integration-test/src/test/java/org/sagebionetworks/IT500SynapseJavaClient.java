@@ -1,5 +1,6 @@
 package org.sagebionetworks;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -21,12 +22,16 @@ import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.Agreement;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 
@@ -120,18 +125,53 @@ public class IT500SynapseJavaClient {
 		aNewDataset.setStatus("updated");
 		Dataset updatedDataset = synapse.putEntity(aNewDataset);
 		assertEquals("updated", updatedDataset.getStatus());
+		
+		
+		// Get the project using just using its ID. This is useful for cases where you
+		//  do not know what you are getting until it arives.
+		Project clone = (Project) synapse.getEntityById(project.getId());
+		assertNotNull(clone);
+		assertNotNull(clone.getEntityType());
+		assertEquals(project.getId(), clone.getId());
+		
+		// Get the entity annotations
+		Annotations annos = synapse.getAnnotations(aNewDataset.getId());
+		assertNotNull(annos);
+		assertEquals(aNewDataset.getId(), annos.getId());
+		assertNotNull(annos.getEtag());
+		// Add some values
+		annos.addAnnotation("longKey", new Long(999999));
+		annos.addAnnotation("blob", "This will be converted to a blob!".getBytes("UTF-8"));
+		Annotations updatedAnnos = synapse.updateAnnotations(aNewDataset.getId(), annos);
+		assertNotNull(updatedAnnos);
+		assertEquals(aNewDataset.getId(), annos.getId());
+		assertNotNull(updatedAnnos.getEtag());
+		// The Etag should have changed
+		assertFalse(updatedAnnos.getEtag().equals(annos.getEtag()));
+		
+		// Get the Users permission for this entity
+		UserEntityPermissions uep = synapse.getUsersEntityPermissions(aNewDataset.getId());
+		assertNotNull(uep);
+		assertEquals(true, uep.getCanEdit());
+		assertEquals(true, uep.getCanView());
+		
+		// Get the path
+		EntityPath path = synapse.getEntityPath(aNewDataset.getId());
+		assertNotNull(path);
+		assertNotNull(path.getPath());
+		assertEquals(3, path.getPath().size());
+		EntityHeader header = path.getPath().get(2);
+		assertNotNull(header);
+		assertEquals(aNewDataset.getId(), header.getId());
+	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testJavaClientCRUDEntity() throws Exception {
 
-		/* TODO upgrade the support for Annotations in the Synapse Java Client PLFM-820
-		Annotations annots = synapse.getObject(aNewDataset.getAnnotations(), Annotations.class);
-
-		annots.addAnnotation("annotStatus", "created");
-		annots = synapse.putObject(annots);
-		assertEquals("created", annots.getSingleValue("annotStatus"));
-
-		annots.replaceAnnotation("annotStatus", "updated");
-		annots = synapse.putObject(annots);
-		assertEquals("updated", annots.getSingleValue("annotStatus"));
-		*/
+		// Get the entity annotaions
 	}
 
 	/**

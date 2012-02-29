@@ -32,7 +32,9 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
@@ -40,6 +42,7 @@ import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -85,6 +88,7 @@ public class Synapse {
 	protected HttpClientProvider clientProvider;
 	protected DataUploader dataUploader;
 
+	protected AutoGenFactory autoGenFactory = new AutoGenFactory();
 	/**
 	 * Default constructor uses the default repository and auth services
 	 * endpoints.
@@ -346,6 +350,7 @@ public class Synapse {
 	}
 
 	/**
+	 * Get an entity using its ID.
 	 * @param entityId
 	 * @return the entity
 	 * @throws SynapseException
@@ -353,15 +358,78 @@ public class Synapse {
 	public Entity getEntityById(String entityId) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
-		String url = "/entity/" + entityId + "/type";
+		String url = "/entity/" + entityId;
 		JSONObject jsonObj = getEntity(url);
-		String objType;
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		// Get the type from the object
+		if(!adapter.has("entityType")) throw new RuntimeException("EntityType returned was null!");
 		try {
-			objType = jsonObj.getString("type");
-			EntityType type = EntityType.getFirstTypeInUrl(objType);
-			return getEntity(entityId, type.getClassForType());
-		} catch (JSONException e) {
-			throw new SynapseException(e);
+			String entityType = adapter.getString("entityType");
+			Entity entity = (Entity) autoGenFactory.newInstance(entityType);
+			entity.initializeFromJSONObject(adapter);
+			return entity;
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+	
+	/**
+	 * Get the current user's permission for a given entity.
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public UserEntityPermissions getUsersEntityPermissions(String entityId) throws SynapseException{
+		String url = "/entity/" + entityId+"/permissions";
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		UserEntityPermissions uep = new UserEntityPermissions();
+		try {
+			uep.initializeFromJSONObject(adapter);
+			return uep;
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Get the annotaions for an entity.
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public Annotations getAnnotations(String entityId) throws SynapseException{
+		String url = "/entity/" + entityId+"/annotations";
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		Annotations annos = new Annotations();
+		try {
+			annos.initializeFromJSONObject(adapter);
+			return annos;
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	/**
+	 * Update the annotaions of an entity.
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public Annotations updateAnnotations(String entityId, Annotations updated) throws SynapseException{
+		try {
+			String url = "/entity/" + entityId+"/annotations";
+			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(updated);
+			// Update
+			jsonObject = putEntity(url, jsonObject);
+			// Parse the results
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
+			Annotations annos = new Annotations();
+			annos.initializeFromJSONObject(adapter);
+			return annos;
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
 		}
 	}
 
@@ -392,6 +460,7 @@ public class Synapse {
 			throw new SynapseException(e);
 		}
 	}
+	
 
 	/**
 	 * Helper to create an Entity URI.
@@ -504,8 +573,7 @@ public class Synapse {
 	 * @throws SynapseException 
 	 */
 	public EntityPath getEntityPath(Entity entity) throws SynapseException {
-		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
-		return getEntityPath(entity.getId(), type.getUrlPrefix());
+		return getEntityPath(entity.getId());
 	}
 	
 	/**
@@ -515,21 +583,17 @@ public class Synapse {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public EntityPath getEntityPath(String entityId, String urlPrefix) throws SynapseException {
-		// TODO : replace urlPrefix with EntityType instance when web & model EntityType classes merge
-		// Build the URI
-		String uri = createEntityUri(urlPrefix, entityId) + REPO_SUFFIX_PATH;
-		JSONObject jsonObj = getEntity(uri);
-		
-		EntityPath entityPath  = null;
-		// Now convert to Object to an entity
+	public EntityPath getEntityPath(String entityId) throws SynapseException {
+		String url = "/entity/" + entityId+"/path";
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		EntityPath path = new EntityPath();
 		try {
-			entityPath = EntityFactory.createEntityFromJSONObject(jsonObj, EntityPath.class);					 
+			path.initializeFromJSONObject(adapter);
+			return path;
 		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+			throw new RuntimeException(e);
 		}
-		
-		return entityPath;
 	}	
 	
 	/**
