@@ -11,6 +11,16 @@
         
     ],
     "properties":{
+        "species":{
+            "type":"string",
+            "description":"The species associated with this dataset",
+            "title":"Species"
+        },
+		"disease":{
+            "type":"string",
+            "description":"The disease associated with this dataset",
+            "title":"Disease"
+		},
         "eulaId":{
             "type":"string",
             "description":"The id of the EULA for this dataset",
@@ -37,12 +47,12 @@
         "status":{
             "type":"string",
             "description":"the status of this dataset",
-            "title":"Status"
+            "title":"Status",
         },
         "releaseDate":{
             "type":"string",
             "format":"date-time",
-            "title":"Release Date"
+            "title":"Release Date",
         },
         
     }
