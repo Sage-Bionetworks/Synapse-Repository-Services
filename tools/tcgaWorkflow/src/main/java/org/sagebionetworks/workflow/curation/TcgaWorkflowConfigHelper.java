@@ -9,6 +9,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.log4j.Logger;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.workflow.WorkflowTemplatedConfiguration;
 import org.sagebionetworks.workflow.WorkflowTemplatedConfigurationImpl;
 
@@ -98,6 +99,9 @@ public class TcgaWorkflowConfigHelper {
 	 * @return the HttpClient
 	 */
 	public static HttpClient getHttpClient() {
+		// TODO PLFM-1041
+		HttpClientHelper.setGlobalConnectionTimeout(configuration.getHttpClient(), 100000);
+		HttpClientHelper.setGlobalSocketTimeout(configuration.getHttpClient(), 100000);
 		return configuration.getHttpClient();
 	}
 

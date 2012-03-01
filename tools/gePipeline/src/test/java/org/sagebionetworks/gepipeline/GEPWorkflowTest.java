@@ -51,7 +51,6 @@ public class GEPWorkflowTest {
 		public void notifyFollower(String recipient, String subject,
 				String message) {
 			try {
-				System.out.println("THERE!");
 				Thread.sleep(1000);
 				// Delay is for the purpose of illustration
 			} catch (InterruptedException e) {
