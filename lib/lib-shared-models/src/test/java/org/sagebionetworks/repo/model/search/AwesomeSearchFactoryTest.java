@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.search;
 
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -21,8 +20,9 @@ import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
  * 
  */
 public class AwesomeSearchFactoryTest {
-	
-	AwesomeSearchFactory factory = new AwesomeSearchFactory(new AdapterFactoryImpl());
+
+	AwesomeSearchFactory factory = new AwesomeSearchFactory(
+			new AdapterFactoryImpl());
 
 	/**
 	 * @throws Exception
@@ -31,8 +31,7 @@ public class AwesomeSearchFactoryTest {
 	public void testParseHits() throws Exception {
 
 		String response = "{\"rank\":\"-text_relevance\",\"match-expr\":\"(label 'prostate')\",\"hits\":{\"found\":260,\"start\":0,\"hit\":[{\"id\":\"4494\",\"data\":{\"name\":[\"MSKCC Prostate Cancer\"]}},{\"id\":\"4610\",\"data\":{\"name\":[\"Prostate Cancer FHCRC\"]}},{\"id\":\"4566\",\"data\":{\"name\":[\"Prostate Cancer ICGC\"]}},{\"id\":\"114535\",\"data\":{\"name\":[\"114535\"]}},{\"id\":\"115510\",\"data\":{\"name\":[\"115510\"]}},{\"id\":\"112949\",\"data\":{\"name\":[\"GSE11842\"]}},{\"id\":\"100287\",\"data\":{\"name\":[\"GSE11842\"]}},{\"id\":\"112846\",\"data\":{\"name\":[\"GSE15580\"]}},{\"id\":\"108857\",\"data\":{\"name\":[\"GSE17483\"]}},{\"id\":\"108942\",\"data\":{\"name\":[\"GSE25500\"]}}]},\"info\":{\"rid\":\"6ddcaa561c05c4cc85ddb10cb46568af0024f6e4f534231d8e5a4d7098b31e11e39838035983b8cc226dc7099b535033\",\"time-ms\":3,\"cpu-time-ms\":0}}";
-		SearchResults results = factory
-				.fromAwesomeSearchResults(response);
+		SearchResults results = factory.fromAwesomeSearchResults(response);
 		assertEquals(10, results.getHits().size());
 		assertEquals(0, results.getFacets().size());
 		assertEquals(new Long(260), results.getFound());
@@ -45,8 +44,7 @@ public class AwesomeSearchFactoryTest {
 	public void testParseNoHits() throws Exception {
 
 		String response = "{\"rank\":\"-text_relevance\",\"match-expr\":\"(and 'prostate,cancer' modified_on:1368973180..1429453180 (or acl:'test-user@sagebase.org' acl:'AUTHENTICATED_USERS' acl:'PUBLIC' acl:'test-group'))\",\"hits\":{\"found\":0,\"start\":0,\"hit\":[]},\"facets\":{},\"info\":{\"rid\":\"6ddcaa561c05c4cc85ddb10cb46568af0024f6e4f534231d657d53613aed2d4ea69ed14f5fdff3d1951b339a661631f4\",\"time-ms\":3,\"cpu-time-ms\":0}}";
-		SearchResults results = factory
-				.fromAwesomeSearchResults(response);
+		SearchResults results = factory.fromAwesomeSearchResults(response);
 		assertEquals(0, results.getFacets().size());
 		assertEquals(0, results.getHits().size());
 		assertEquals(new Long(0), results.getFound());
@@ -59,38 +57,34 @@ public class AwesomeSearchFactoryTest {
 	public void testEmptyFacets() throws Exception {
 
 		String response = "{\"rank\":\"-text_relevance\",\"match-expr\":\"(and 'deflaux' (or acl:'nicole.deflaux@sagebase.org' acl:'Sage Curators' acl:'AUTHENTICATED_USERS' acl:'PUBLIC'))\",\"hits\":{\"found\":26,\"start\":0,\"hit\":[{\"id\":\"114061\",\"data\":{\"id\":[\"114061\"],\"name\":[\"114061\"]}},{\"id\":\"114402\",\"data\":{\"id\":[\"114402\"],\"name\":[\"114402\"]}},{\"id\":\"105091\",\"data\":{\"id\":[\"105091\"],\"name\":[\"105091\"]}},{\"id\":\"114422\",\"data\":{\"id\":[\"114422\"],\"name\":[\"114422\"]}},{\"id\":\"120227\",\"data\":{\"id\":[\"120227\"],\"name\":[\"120227\"]}},{\"id\":\"47503\",\"data\":{\"id\":[\"47503\"],\"name\":[\"47503\"]}},{\"id\":\"88468\",\"data\":{\"id\":[\"88468\"],\"name\":[\"88468\"]}},{\"id\":\"47445\",\"data\":{\"id\":[\"47445\"],\"name\":[\"47445\"]}},{\"id\":\"88822\",\"data\":{\"id\":[\"88822\"],\"name\":[\"88822\"]}},{\"id\":\"48435\",\"data\":{\"id\":[\"48435\"],\"name\":[\"48435\"]}}]},\"facets\":{\"created_by\":{\"constraints\":[{\"value\":\"nicole.deflaux@sagebase.org\",\"count\":26}]},\"disease\":{},\"modified_on\":{\"min\":1319752773,\"max\":1326834983},\"node_type\":{\"constraints\":[{\"value\":\"step\",\"count\":24},{\"value\":\"project\",\"count\":2}]},\"num_samples\":{},\"species\":{},\"tissue\":{}},\"info\":{\"rid\":\"6ddcaa561c05c4cc3dae0f2d67b89419d013e1f60337fb4610e21037a54623211ceb8ad5c50b4f428d51562c55452e5e\",\"time-ms\":3,\"cpu-time-ms\":0}}";
-		SearchResults results = factory
-				.fromAwesomeSearchResults(response);
+		SearchResults results = factory.fromAwesomeSearchResults(response);
 		assertEquals(7, results.getFacets().size());
 		assertEquals(10, results.getHits().size());
 		assertEquals(new Long(26), results.getFound());
-		for(Facet facet : results.getFacets()) {
-			if("num_samples".equals(facet.getName())) {
+		for (Facet facet : results.getFacets()) {
+			if ("num_samples".equals(facet.getName())) {
 				assertEquals(FacetTypeNames.CONTINUOUS, facet.getType());
 				assertNull(facet.getMin());
 				assertNull(facet.getMax());
-			}
-			else if("modified_on".equals(facet.getName())) {
+			} else if ("modified_on".equals(facet.getName())) {
 				assertEquals(FacetTypeNames.DATE, facet.getType());
 				assertNotNull(facet.getMin());
 				assertNotNull(facet.getMax());
-			}
-			else if("node_type".equals(facet.getName())) {
+			} else if ("node_type".equals(facet.getName())) {
 				assertEquals(FacetTypeNames.LITERAL, facet.getType());
 				List<FacetConstraint> constraints = facet.getConstraints();
 				assertEquals(2, constraints.size());
-				for(FacetConstraint constraint : constraints) {
-					if("step".equals(constraint.getValue())) {
+				for (FacetConstraint constraint : constraints) {
+					if ("step".equals(constraint.getValue())) {
 						assertEquals(new Long(24), constraint.getCount());
-					}
-					else {
+					} else {
 						assertEquals(new Long(2), constraint.getCount());
 					}
 				}
 			}
 		}
 	}
-	
+
 	/**
 	 * @throws Exception
 	 */
@@ -99,19 +93,17 @@ public class AwesomeSearchFactoryTest {
 
 		// here they are single-valued
 		String response = "{\"rank\":\"-text_relevance\",\"match-expr\":\"(and 'deflaux' (or acl:'nicole.deflaux@sagebase.org' acl:'Sage Curators' acl:'AUTHENTICATED_USERS' acl:'PUBLIC'))\",\"hits\":{\"found\":26,\"start\":0,\"hit\":[{\"id\":\"114061\",\"data\":{\"id\":[\"114061\"],\"name\":[\"114061\"]}},{\"id\":\"114402\",\"data\":{\"id\":[\"114402\"],\"name\":[\"114402\"]}},{\"id\":\"105091\",\"data\":{\"id\":[\"105091\"],\"name\":[\"105091\"]}},{\"id\":\"114422\",\"data\":{\"id\":[\"114422\"],\"name\":[\"114422\"]}},{\"id\":\"120227\",\"data\":{\"id\":[\"120227\"],\"name\":[\"120227\"]}},{\"id\":\"47503\",\"data\":{\"id\":[\"47503\"],\"name\":[\"47503\"]}},{\"id\":\"88468\",\"data\":{\"id\":[\"88468\"],\"name\":[\"88468\"]}},{\"id\":\"47445\",\"data\":{\"id\":[\"47445\"],\"name\":[\"47445\"]}},{\"id\":\"88822\",\"data\":{\"id\":[\"88822\"],\"name\":[\"88822\"]}},{\"id\":\"48435\",\"data\":{\"id\":[\"48435\"],\"name\":[\"48435\"]}}]},\"facets\":{\"created_by\":{\"constraints\":[{\"value\":\"nicole.deflaux@sagebase.org\",\"count\":26}]},\"disease\":{},\"modified_on\":{\"min\":1319752773,\"max\":1326834983},\"node_type\":{\"constraints\":[{\"value\":\"step\",\"count\":24},{\"value\":\"project\",\"count\":2}]},\"num_samples\":{},\"species\":{},\"tissue\":{}},\"info\":{\"rid\":\"6ddcaa561c05c4cc3dae0f2d67b89419d013e1f60337fb4610e21037a54623211ceb8ad5c50b4f428d51562c55452e5e\",\"time-ms\":3,\"cpu-time-ms\":0}}";
-		SearchResults results = factory
-				.fromAwesomeSearchResults(response);
+		SearchResults results = factory.fromAwesomeSearchResults(response);
 		assertEquals(7, results.getFacets().size());
 		assertEquals(10, results.getHits().size());
 		assertEquals(new Long(26), results.getFound());
 		Hit hit = results.getHits().get(0);
 		assertEquals("114061", hit.getId());
 		assertEquals("114061", hit.getName());
-		
+
 		// here is the same response, but the data are array-valued
 		response = "{\"rank\":\"-text_relevance\",\"match-expr\":\"(and 'deflaux' (or acl:'nicole.deflaux@sagebase.org' acl:'Sage Curators' acl:'AUTHENTICATED_USERS' acl:'PUBLIC'))\",\"hits\":{\"found\":26,\"start\":0,\"hit\":[{\"id\":\"114061\",\"data\":{\"id\":[\"114061\"],\"name\":[\"114061\"]}},{\"id\":\"114402\",\"data\":{\"id\":[\"114402\"],\"name\":[\"114402\"]}},{\"id\":\"105091\",\"data\":{\"id\":[\"105091\"],\"name\":[\"105091\"]}},{\"id\":\"114422\",\"data\":{\"id\":[\"114422\"],\"name\":[\"114422\"]}},{\"id\":\"120227\",\"data\":{\"id\":[\"120227\"],\"name\":[\"120227\"]}},{\"id\":\"47503\",\"data\":{\"id\":[\"47503\"],\"name\":[\"47503\"]}},{\"id\":\"88468\",\"data\":{\"id\":[\"88468\"],\"name\":[\"88468\"]}},{\"id\":\"47445\",\"data\":{\"id\":[\"47445\"],\"name\":[\"47445\"]}},{\"id\":\"88822\",\"data\":{\"id\":[\"88822\"],\"name\":[\"88822\"]}},{\"id\":\"48435\",\"data\":{\"id\":[\"48435\"],\"name\":[\"48435\"]}}]},\"facets\":{\"created_by\":{\"constraints\":[{\"value\":\"nicole.deflaux@sagebase.org\",\"count\":26}]},\"disease\":{},\"modified_on\":{\"min\":1319752773,\"max\":1326834983},\"node_type\":{\"constraints\":[{\"value\":\"step\",\"count\":24},{\"value\":\"project\",\"count\":2}]},\"num_samples\":{},\"species\":{},\"tissue\":{}},\"info\":{\"rid\":\"6ddcaa561c05c4cc3dae0f2d67b89419d013e1f60337fb4610e21037a54623211ceb8ad5c50b4f428d51562c55452e5e\",\"time-ms\":3,\"cpu-time-ms\":0}}";
-		results = factory
-				.fromAwesomeSearchResults(response);
+		results = factory.fromAwesomeSearchResults(response);
 		assertEquals(7, results.getFacets().size());
 		assertEquals(10, results.getHits().size());
 		assertEquals(new Long(26), results.getFound());
@@ -119,7 +111,7 @@ public class AwesomeSearchFactoryTest {
 		assertEquals("114061", hit.getId());
 		assertEquals("114061", hit.getName());
 	}
-	
+
 	/**
 	 * @throws Exception
 	 */
@@ -130,7 +122,21 @@ public class AwesomeSearchFactoryTest {
 		assertEquals(10, results.getHits().size());
 		assertEquals(new Long(28), results.getFound());
 	}
-	
+
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testEmptyDescriptions() throws Exception {
+		String response = "{\"rank\":\"-text_relevance\",\"match-expr\":\"(label 'level_2')\",\"hits\":{\"found\":4089,\"start\":0,\"hit\":[{\"id\":\"134316\",\"data\":{\"description\":[],\"id\":[\"134316\"],\"name\":[\"134316\"]}},{\"id\":\"104197\",\"data\":{\"description\":[],\"id\":[\"104197\"],\"name\":[\"104197\"]}},{\"id\":\"104669\",\"data\":{\"description\":[],\"id\":[\"104669\"],\"name\":[\"104669\"]}},{\"id\":\"104742\",\"data\":{\"description\":[],\"id\":[\"104742\"],\"name\":[\"104742\"]}},{\"id\":\"105014\",\"data\":{\"description\":[],\"id\":[\"105014\"],\"name\":[\"105014\"]}},{\"id\":\"105023\",\"data\":{\"description\":[],\"id\":[\"105023\"],\"name\":[\"105023\"]}},{\"id\":\"105289\",\"data\":{\"description\":[],\"id\":[\"105289\"],\"name\":[\"105289\"]}},{\"id\":\"105635\",\"data\":{\"description\":[],\"id\":[\"105635\"],\"name\":[\"105635\"]}},{\"id\":\"110976\",\"data\":{\"description\":[],\"id\":[\"110976\"],\"name\":[\"110976\"]}},{\"id\":\"114117\",\"data\":{\"description\":[],\"id\":[\"114117\"],\"name\":[\"114117\"]}}]},\"info\":{\"rid\":\"3d0b49c233c06da5a98d6a26715eb085c379dbf6934aab25c6393fd661c3ff479815e25488a021f5\",\"time-ms\":23,\"cpu-time-ms\":0}}";
+		SearchResults results = factory.fromAwesomeSearchResults(response);
+		assertEquals(10, results.getHits().size());
+		assertEquals(new Long(4089), results.getFound());
+		Hit hit = results.getHits().get(0);
+		assertEquals("134316", hit.getId());
+		assertNull(hit.getDescription());
+	}
+
 	/**
 	 * @throws Exception
 	 */
@@ -143,5 +149,5 @@ public class AwesomeSearchFactoryTest {
 		Hit hit = results.getHits().get(0);
 		assertEquals("99911", hit.getId());
 		assertEquals("3", hit.getEtag());
-		}
+	}
 }
