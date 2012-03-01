@@ -11,9 +11,7 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.json.JSONException;
 import org.sagebionetworks.client.SynapseAdministration;
-import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.tool.migration.AllEntityDataWorker;
 import org.sagebionetworks.tool.migration.ClientFactoryImpl;
 import org.sagebionetworks.tool.migration.ResponseBundle;
@@ -49,12 +47,9 @@ public class SearchMigrationDriver {
 
 	/**
 	 * @param args
-	 * @throws SynapseException
-	 * @throws JSONException
-	 * @throws ExecutionException
+	 * @throws Exception
 	 */
-	public static void main(String[] args) throws SynapseException,
-			JSONException, ExecutionException {
+	public static void main(String[] args) throws Exception {
 
 		ClientFactoryImpl factory = new ClientFactoryImpl();
 		SynapseAdministration sourceClient = configuration

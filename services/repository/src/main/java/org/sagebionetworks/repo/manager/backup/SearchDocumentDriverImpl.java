@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.search.FacetTypeNames;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -45,11 +44,6 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
-	/**
-	 * The types of all facets one might ask for in search results from the
-	 * repository service.
-	 */
-	public static final Map<String, FacetTypeNames> FACET_TYPES;
 	/**
 	 * The index field holding the access control list info
 	 */
@@ -69,31 +63,26 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	MigrationDriver migrationDriver = new MigrationDriverImpl();
 
 	static {
+		// These are both node primary annotations and additional annotation
+		// names
 		Map<String, String> searchableNodeAnnotations = new HashMap<String, String>();
+		searchableNodeAnnotations.put("disease", "disease");
 		searchableNodeAnnotations.put("Disease", "disease");
 		searchableNodeAnnotations.put("Tissue_Tumor", "tissue");
+		searchableNodeAnnotations.put("sampleSource", "tissue");
+		searchableNodeAnnotations.put("SampleSource", "tissue");
+		searchableNodeAnnotations.put("species", "species");
 		searchableNodeAnnotations.put("Species", "species");
+		searchableNodeAnnotations.put("number_of_samples", "num_samples");
 		searchableNodeAnnotations.put("Number_of_Samples", "num_samples");
+		searchableNodeAnnotations.put("Number_of_samples", "num_samples");
 		searchableNodeAnnotations.put("numSamples", "num_samples");
 		searchableNodeAnnotations.put("platform", "platform");
+		searchableNodeAnnotations.put("Platform", "platform");
+		searchableNodeAnnotations.put("platformDesc", "platform");
+		searchableNodeAnnotations.put("platformVendor", "platform");
 		SEARCHABLE_NODE_ANNOTATIONS = Collections
 				.unmodifiableMap(searchableNodeAnnotations);
-
-		Map<String, FacetTypeNames> facetTypes = new HashMap<String, FacetTypeNames>();
-		facetTypes.put("node_type", FacetTypeNames.LITERAL);
-		facetTypes.put("disease", FacetTypeNames.LITERAL);
-		facetTypes.put("tissue", FacetTypeNames.LITERAL);
-		facetTypes.put("species", FacetTypeNames.LITERAL);
-		facetTypes.put("platform", FacetTypeNames.LITERAL);
-		facetTypes.put("created_by", FacetTypeNames.LITERAL);
-		facetTypes.put("modified_by", FacetTypeNames.LITERAL);
-		facetTypes.put("reference", FacetTypeNames.LITERAL);
-		facetTypes.put("acl", FacetTypeNames.LITERAL);
-		facetTypes.put("created_on", FacetTypeNames.DATE);
-		facetTypes.put("modified_on", FacetTypeNames.DATE);
-		facetTypes.put("num_samples", FacetTypeNames.CONTINUOUS);
-
-		FACET_TYPES = Collections.unmodifiableMap(facetTypes);
 	}
 
 	/**
@@ -367,10 +356,12 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 			String searchFieldName = SEARCHABLE_NODE_ANNOTATIONS.get(key);
 			for (int i = 0; i < objs.length; i++) {
-				if(null == objs[i]) continue;
-				
+				if (null == objs[i])
+					continue;
+
 				if (null != searchFieldName) {
-					addAnnotationToSearchDocument(fields, searchFieldName, objs[i]);
+					addAnnotationToSearchDocument(fields, searchFieldName,
+							objs[i]);
 				}
 
 				// Put ALL annotations into the catch-all field even if they are
@@ -380,12 +371,14 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				// TODO dates to epoch time? or skip them?
 				String catchAllValue = key + ":" + objs[i].toString();
 				catchAllValue = catchAllValue.replaceAll("\\s", "_");
-				addAnnotationToSearchDocument(fields, CATCH_ALL_FIELD, catchAllValue);
+				addAnnotationToSearchDocument(fields, CATCH_ALL_FIELD,
+						catchAllValue);
 			}
 		}
 	}
-	
-	static void addAnnotationToSearchDocument(JSONObject fields, String key, Object value) throws JSONException {
+
+	static void addAnnotationToSearchDocument(JSONObject fields, String key,
+			Object value) throws JSONException {
 		JSONArray fieldValues = fields.optJSONArray(key);
 		if (null == fieldValues) {
 			fieldValues = new JSONArray();

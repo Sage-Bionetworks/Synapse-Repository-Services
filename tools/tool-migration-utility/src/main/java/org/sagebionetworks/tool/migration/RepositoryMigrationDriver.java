@@ -14,17 +14,15 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.json.JSONException;
 import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.tool.migration.Progress.AggregateProgress;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 import org.sagebionetworks.tool.migration.dao.QueryRunner;
 import org.sagebionetworks.tool.migration.dao.QueryRunnerImpl;
 import org.sagebionetworks.tool.migration.job.AggregateResult;
-import org.sagebionetworks.tool.migration.job.CreationJobBuilder;
 import org.sagebionetworks.tool.migration.job.BuilderResponse;
+import org.sagebionetworks.tool.migration.job.CreationJobBuilder;
 import org.sagebionetworks.tool.migration.job.DeleteJobBuilder;
 import org.sagebionetworks.tool.migration.job.Job;
 import org.sagebionetworks.tool.migration.job.JobQueueWorker;
@@ -43,14 +41,9 @@ public class RepositoryMigrationDriver {
 
 	/**
 	 * @param args
-	 * @throws IOException
-	 * @throws SynapseException
-	 * @throws JSONException
-	 * @throws InterruptedException 
-	 * @throws ExecutionException 
+	 * @throws Exception 
 	 */
-	public static void main(String[] args) throws IOException,
-			SynapseException, JSONException, InterruptedException, ExecutionException {
+	public static void main(String[] args) throws Exception {
 
 		loadConfigUsingArgs(configuration, args);
 		

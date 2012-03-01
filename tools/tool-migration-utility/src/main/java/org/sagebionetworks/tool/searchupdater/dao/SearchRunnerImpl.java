@@ -10,18 +10,20 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.ClientProtocolException;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.search.AwesomeSearchFactory;
 import org.sagebionetworks.repo.model.search.Hit;
+import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 import org.sagebionetworks.tool.migration.dao.EntityQueryResults;
 import org.sagebionetworks.tool.migration.dao.QueryRunner;
 import org.sagebionetworks.tool.searchupdater.CloudSearchClient;
-import org.sagebionetworks.tool.searchupdater.SearchMigrationDriver;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
 /**
@@ -32,7 +34,8 @@ public class SearchRunnerImpl implements QueryRunner {
 
 	private static final String SEARCH_TOTAL_ENTITY = "bq=created_on:0..&return-fields=id,etag";
 	private static final String SEARCH_TOTAL_ENTITY_COUNT = "bq=created_on:0..";
-	static private Log log = LogFactory.getLog(SearchRunnerImpl.class);
+	private static Log log = LogFactory.getLog(SearchRunnerImpl.class);
+	private static final AwesomeSearchFactory searchResultsFactory = new AwesomeSearchFactory(new AdapterFactoryImpl());
 
 	private CloudSearchClient csClient;
 
@@ -45,7 +48,7 @@ public class SearchRunnerImpl implements QueryRunner {
 
 	@Override
 	public List<EntityData> getAllEntityData(BasicProgress progress)
-			throws SynapseException, JSONException, InterruptedException {
+			throws SynapseException, JSONException, InterruptedException, JSONObjectAdapterException {
 		try {
 			return searchForAllPages(SEARCH_TOTAL_ENTITY, ENTITY,
 					MAX_PAGE_SIZE, progress);
@@ -59,7 +62,7 @@ public class SearchRunnerImpl implements QueryRunner {
 	}
 
 	@Override
-	public long getTotalEntityCount() throws JSONException, SynapseException {
+	public long getTotalEntityCount() throws JSONException, SynapseException, JSONObjectAdapterException {
 		String response;
 		try {
 			response = csClient.performSearch(SEARCH_TOTAL_ENTITY_COUNT);
@@ -71,7 +74,7 @@ public class SearchRunnerImpl implements QueryRunner {
 		} catch (HttpClientHelperException e) {
 			throw new SynapseException(e);
 		}
-		EntityQueryResults results = translateFromSearchResultsToEntityQueryResults(response);
+		EntityQueryResults results = fromAwesomeSearchResults(response);
 		return results.getTotalCount();
 	}
 
@@ -88,18 +91,19 @@ public class SearchRunnerImpl implements QueryRunner {
 	 * @throws ClientProtocolException
 	 * @throws JSONException
 	 * @throws InterruptedException
+	 * @throws JSONObjectAdapterException 
 	 */
 	List<EntityData> searchForAllPages(String rootSearch, String prefix,
 			long limit, BasicProgress progress) throws ClientProtocolException,
 			IOException, HttpClientHelperException, JSONException,
-			InterruptedException {
+			InterruptedException, JSONObjectAdapterException {
 
 		List<EntityData> results = new ArrayList<EntityData>();
 		// First run the first page
 		long offset = 0;
 		String search = getPageSearch(rootSearch, limit, offset);
 		String response = csClient.performSearch(search);
-		EntityQueryResults page = translateFromSearchResultsToEntityQueryResults(response);
+		EntityQueryResults page = fromAwesomeSearchResults(response);
 		results.addAll(page.getResults());
 		long totalCount = page.getTotalCount();
 		// Update the progress if we have any
@@ -110,7 +114,7 @@ public class SearchRunnerImpl implements QueryRunner {
 		while ((offset = getNextOffset(offset, limit, totalCount)) > 0l) {
 			search = getPageSearch(rootSearch, limit, offset);
 			response = csClient.performSearch(search);
-			page = translateFromSearchResultsToEntityQueryResults(response);
+			page = fromAwesomeSearchResults(response);
 			if (progress != null) {
 				// Add this count to the current progress.
 				progress.setCurrent(progress.getCurrent()
@@ -167,36 +171,29 @@ public class SearchRunnerImpl implements QueryRunner {
 	 * 
 	 * @param json
 	 * @return
-	 * @throws JSONException
+	 * @throws JSONException 
+	 * @throws JSONObjectAdapterException
 	 */
-	EntityQueryResults translateFromSearchResultsToEntityQueryResults(
-			String searchResults) throws JSONException {
+	EntityQueryResults fromAwesomeSearchResults(
+			String awesomeSearchResults) throws JSONObjectAdapterException, JSONException {
 		List<EntityData> results = new ArrayList<EntityData>();
 
-		JSONObject json = new JSONObject(searchResults);
-
 		if (log.isDebugEnabled()) {
-			log.debug(json.toString(4));
+			log.debug(new JSONObject(awesomeSearchResults).toString(4));
 		}
 
-		long total = json.getJSONObject("hits").getLong("found");
-		JSONArray rows = json.getJSONObject("hits").getJSONArray("hit");
-		for (int i = 0; i < rows.length(); i++) {
-			JSONObject row = rows.getJSONObject(i);
-			if (row.has("data")) {
-				JSONObject data = row.getJSONObject("data");
-				JSONArray idArray = data.optJSONArray("id");
-				JSONArray etagArray = data.optJSONArray("etag");
-				if ((null != idArray) && (0 < idArray.length())
-						&& (null != etagArray) && (0 < etagArray.length())) {
-					EntityData entityData = new EntityData(
-							idArray.getString(0), etagArray.getString(0), null);
-					results.add(entityData);
-				}
+		SearchResults searchResults = searchResultsFactory
+				.fromAwesomeSearchResults(awesomeSearchResults);
+
+		for (Hit hit : searchResults.getHits()) {
+			if (null != hit.getId() && null != hit.getEtag()) {
+				EntityData entityData = new EntityData(hit.getId(), hit
+						.getEtag(), null);
+				results.add(entityData);
 			}
 		}
 
-		return new EntityQueryResults(results, total);
+		return new EntityQueryResults(results, searchResults.getFound());
 	}
 
 	@Override

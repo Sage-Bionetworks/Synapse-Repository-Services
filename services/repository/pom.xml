@@ -62,13 +62,6 @@
 			<version>1.2</version>
 		</dependency>
 
-		<!-- JSON -->
-		<dependency>
-			<groupId>org.json</groupId>
-			<artifactId>json</artifactId>
-			<version>20080701</version>
-		</dependency>
-
 		<!-- ATOM -->
 		<dependency>
 			<groupId>rome</groupId>

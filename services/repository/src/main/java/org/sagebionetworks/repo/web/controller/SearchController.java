@@ -14,9 +14,12 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.search.AwesomeSearchFactory;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.util.SearchHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,6 +51,7 @@ public class SearchController extends BaseController {
 	private static final String CLOUD_SEARCH_ENDPOINT = StackConfiguration
 			.getSearchServiceEndpoint();
 
+	private static final AwesomeSearchFactory searchResultsFactory = new AwesomeSearchFactory(new AdapterFactoryImpl());
 	private static final HttpClient httpClient;
 
 	static {
@@ -71,7 +75,6 @@ public class SearchController extends BaseController {
 	 * @throws ClientProtocolException
 	 * @throws IOException
 	 * @throws HttpClientHelperException
-	 * @throws JSONException
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
@@ -102,8 +105,8 @@ public class SearchController extends BaseController {
 		log.debug("Response from CloudSearch: " + response);
 
 		try {
-			return SearchHelper.csSearchResultsToSynapseSearchResults(response);
-		} catch (JSONException e) {
+			return searchResultsFactory.fromAwesomeSearchResults(response);
+		} catch (JSONObjectAdapterException e) {
 			throw new DatastoreException("Results conversion failed for request " + url + " with response " + response, e);
 		}
 	}

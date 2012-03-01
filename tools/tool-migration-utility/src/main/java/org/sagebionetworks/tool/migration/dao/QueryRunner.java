@@ -5,6 +5,7 @@ import java.util.List;
 import org.json.JSONException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 
 /**
@@ -33,8 +34,9 @@ public interface QueryRunner {
 	 * @throws IllegalAccessException
 	 * @throws JSONException 
 	 * @throws InterruptedException 
+	 * @throws JSONObjectAdapterException 
 	 */
-	public List<EntityData> getAllEntityData(BasicProgress progress) throws SynapseException, JSONException, InterruptedException;
+	public List<EntityData> getAllEntityData(BasicProgress progress) throws SynapseException, JSONException, InterruptedException, JSONObjectAdapterException;
 	
 	/**
 	 * Get all entity data for entities of a given type.
@@ -63,8 +65,9 @@ public interface QueryRunner {
 	 * @return
 	 * @throws SynapseException 
 	 * @throws JSONException 
+	 * @throws JSONObjectAdapterException 
 	 */
-	public long getTotalEntityCount() throws SynapseException, JSONException;
+	public long getTotalEntityCount() throws SynapseException, JSONException, JSONObjectAdapterException;
 	
 	/**
 	 * Get a count for an entity type
