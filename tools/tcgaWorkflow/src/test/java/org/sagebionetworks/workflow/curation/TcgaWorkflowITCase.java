@@ -12,12 +12,10 @@ import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
+import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.workflow.Constants;
+import org.sagebionetworks.workflow.Notification;
 import org.sagebionetworks.workflow.UnrecoverableException;
-import org.sagebionetworks.workflow.activity.Curation;
-import org.sagebionetworks.workflow.activity.Notification;
-import org.sagebionetworks.workflow.activity.Processing;
-import org.sagebionetworks.workflow.activity.Processing.ScriptResult;
 
 import com.amazonaws.AmazonServiceException;
 
@@ -39,9 +37,7 @@ public class TcgaWorkflowITCase {
 
 	// These variables are used to pass data between tests
 	static private String datasetId = null;
-	static private String clinicalLayerId = null;
-	static private String expressionLevel1LayerId = null;
-	static private String expressionLevel2LayerId = null;
+	static private String layerId = null;
 
 	/**
 	 * @throws java.lang.Exception
@@ -50,7 +46,7 @@ public class TcgaWorkflowITCase {
 	static public void setUpBeforeClass() throws Exception {
 		String datasetName = "Colon Adenocarcinoma TCGA";
 
-		synapse = ConfigHelper.createSynapseClient();
+		synapse = TcgaWorkflowConfigHelper.getSynapseClient();
 		JSONObject results = synapse
 				.query("select * from dataset where dataset.name == '"
 						+ datasetName + "'");
@@ -70,8 +66,9 @@ public class TcgaWorkflowITCase {
 	 */
 	@Test
 	public void testTCGAAbbreviation2Name() throws Exception {
-		assertEquals("Colon Adenocarcinoma TCGA", ConfigHelper
+		assertEquals("Colon Adenocarcinoma TCGA", TcgaWorkflowConfigHelper
 				.getTCGADatasetName("coad"));
+
 	}
 
 	/**
@@ -79,18 +76,21 @@ public class TcgaWorkflowITCase {
 	 */
 	@Test
 	public void testDoCreateClinicalMetadata() throws Exception {
-		clinicalLayerId = Curation
-				.doCreateSynapseMetadataForTcgaSourceLayer(
-						false,
-						datasetId,
-						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_public_coad.tar.gz");
-		assertFalse(Constants.WORKFLOW_DONE.equals(clinicalLayerId));
-
-		Layer layer = synapse.getEntity(clinicalLayerId, Layer.class);
+		String url = "http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/bcr/minbiotab/clin/clinical_public_coad.tar.gz";
+		layerId = TcgaCuration.createMetadata(datasetId, url, false);
+		assertFalse(Constants.WORKFLOW_DONE.equals(layerId));
+		boolean layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
+		assertTrue(layerWasUpdated);
+		layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
+		assertFalse(layerWasUpdated);
 		
+		Layer layer = synapse.getEntity(layerId, Layer.class);
+
 		assertTrue(0 < layer.getMd5().length());
 		assertEquals(1, layer.getLocations().size());
-		
+		assertEquals(LocationTypeNames.awss3, layer.getLocations().get(0)
+				.getType());
+
 		JSONObject allAnnotations = synapse.getEntity(layer.getAnnotations());
 		JSONObject annotations = allAnnotations
 				.getJSONObject("stringAnnotations");
@@ -106,14 +106,21 @@ public class TcgaWorkflowITCase {
 	 */
 	@Test
 	public void testDoCreateExpressionLevel1Metadata() throws Exception {
-		expressionLevel1LayerId = Curation
-				.doCreateSynapseMetadataForTcgaSourceLayer(
-						false,
-						datasetId,
-						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_1.1.4.0.tar.gz");
-		assertFalse(Constants.WORKFLOW_DONE.equals(expressionLevel1LayerId));
+		String url = "http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_1.1.4.0.tar.gz";
+		layerId = TcgaCuration.createMetadata(datasetId, url, false);
+		assertFalse(Constants.WORKFLOW_DONE.equals(layerId));
+		boolean layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
+		assertTrue(layerWasUpdated);
+		layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
+		assertFalse(layerWasUpdated);
 
-		Layer layer = synapse.getEntity(expressionLevel1LayerId, Layer.class);
+		Layer layer = synapse.getEntity(layerId, Layer.class);
+
+		assertTrue(0 < layer.getMd5().length());
+		assertEquals(1, layer.getLocations().size());
+		assertEquals(LocationTypeNames.external, layer.getLocations().get(0)
+				.getType());
+
 		JSONObject allAnnotations = synapse.getEntity(layer.getAnnotations());
 		JSONObject annotations = allAnnotations
 				.getJSONObject("stringAnnotations");
@@ -139,14 +146,21 @@ public class TcgaWorkflowITCase {
 	 */
 	@Test
 	public void testDoCreateExpressionLevel2Metadata() throws Exception {
-		expressionLevel2LayerId = Curation
-				.doCreateSynapseMetadataForTcgaSourceLayer(
-						false,
-						datasetId,
-						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
-		assertFalse(Constants.WORKFLOW_DONE.equals(expressionLevel2LayerId));
+		String url = "http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz";
+		layerId = TcgaCuration.createMetadata(datasetId, url, false);
+		assertFalse(Constants.WORKFLOW_DONE.equals(layerId));
+		boolean layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
+		assertTrue(layerWasUpdated);
+		layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
+		assertFalse(layerWasUpdated);
 
-		Layer layer = synapse.getEntity(expressionLevel2LayerId, Layer.class);
+		Layer layer = synapse.getEntity(layerId, Layer.class);
+
+		assertTrue(0 < layer.getMd5().length());
+		assertEquals(1, layer.getLocations().size());
+		assertEquals(LocationTypeNames.external, layer.getLocations().get(0)
+				.getType());
+
 		JSONObject allAnnotations = synapse.getEntity(layer.getAnnotations());
 		JSONObject annotations = allAnnotations
 				.getJSONObject("stringAnnotations");
@@ -172,14 +186,21 @@ public class TcgaWorkflowITCase {
 	 */
 	@Test
 	public void testDoCreateGeneticMetadata() throws Exception {
-		String geneticLayerId = Curation
-				.doCreateSynapseMetadataForTcgaSourceLayer(
-						false,
-						datasetId,
-						"http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/broad.mit.edu/genome_wide_snp_6/snp/broad.mit.edu_COAD.Genome_Wide_SNP_6.mage-tab.1.1007.0.tar.gz");
-		assertFalse(Constants.WORKFLOW_DONE.equals(geneticLayerId));
+		String url = "http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/broad.mit.edu/genome_wide_snp_6/snp/broad.mit.edu_COAD.Genome_Wide_SNP_6.mage-tab.1.1007.0.tar.gz";
+		layerId = TcgaCuration.createMetadata(datasetId, url, false);
+		assertFalse(Constants.WORKFLOW_DONE.equals(layerId));
+		boolean layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
+		assertTrue(layerWasUpdated);
+		layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
+		assertFalse(layerWasUpdated);
 
-		Layer layer = synapse.getEntity(geneticLayerId, Layer.class);
+		Layer layer = synapse.getEntity(layerId, Layer.class);
+
+		assertTrue(0 < layer.getMd5().length());
+		assertEquals(1, layer.getLocations().size());
+		assertEquals(LocationTypeNames.external, layer.getLocations().get(0)
+				.getType());
+
 		JSONObject allAnnotations = synapse.getEntity(layer.getAnnotations());
 		JSONObject annotations = allAnnotations
 				.getJSONObject("stringAnnotations");
@@ -205,64 +226,10 @@ public class TcgaWorkflowITCase {
 	 * @throws Exception
 	 */
 	@Test
-	public void testRScriptWorkflowSkip() throws Exception {
-
-		ScriptResult scriptResult = null;
-
-		Synapse synapse = ConfigHelper.createSynapseClient();
-		JSONObject results = synapse
-				.query("select * from dataset where dataset.name == 'MSKCC Prostate Cancer'");
-		assertTrue(1 <= results.getInt("totalNumberOfResults"));
-		String mskccId = results.getJSONArray("results").getJSONObject(0)
-				.getString("dataset.id");
-
-		// Pass the id for the
-		scriptResult = Processing.doProcessLayer(
-				"./src/test/resources/createMatrix.r", mskccId, "fakeLayerId");
-
-		assertEquals(Constants.WORKFLOW_DONE, scriptResult
-				.getProcessedLayerId());
-
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
 	public void testDoFormulateNotificationMessage() throws Exception {
-		String message = Curation
-				.formulateLayerCreationMessage(expressionLevel2LayerId);
+		String message = TcgaCuration
+				.formulateLayerNotificationMessage(layerId);
 		assertNotNull(message);
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testRScript() throws Exception {
-
-		ScriptResult scriptResult = null;
-
-		scriptResult = Processing.doProcessLayer(
-				"./src/test/resources/createMatrix.r", datasetId,
-				expressionLevel2LayerId);
-
-		assertFalse(Constants.WORKFLOW_DONE.equals(scriptResult
-				.getProcessedLayerId()));
-
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testDoProcessData() throws Exception {
-		ScriptResult scriptResult = Processing.doProcessLayer(
-				"./src/test/resources/stdoutKeepAlive.sh", datasetId,
-				expressionLevel2LayerId);
-		assertFalse(Constants.WORKFLOW_DONE.equals(scriptResult
-				.getProcessedLayerId()));
-
 	}
 
 	/**
@@ -270,9 +237,9 @@ public class TcgaWorkflowITCase {
 	@Test
 	public void testDoNotifyFollowers() {
 		try {
-			String topic = ConfigHelper.getWorkflowSnsTopic();
-			Notification.doSnsNotifyFollowers(topic,
-					"integration test subject",
+			String topic = TcgaWorkflowConfigHelper.getWorkflowSnsTopic();
+			Notification.doSnsNotifyFollowers(TcgaWorkflowConfigHelper.getSNSClient(),
+					topic, "integration test subject",
 					"integration test message, yay!");
 		} catch (AmazonServiceException e) {
 			log.error(e);

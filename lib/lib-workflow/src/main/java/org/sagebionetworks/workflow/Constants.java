@@ -10,4 +10,8 @@ public class Constants {
 	 * Use this value to indicate that no further activities need to occur for this workflow instance
 	 */
 	public static final String WORKFLOW_DONE = "workflowDone";
+	/**
+	 * A really long timeout to be used when you do not have a better idea of an appropriate timeout
+	 */
+	public static final int ONE_DAY_OF_SECONDS = 86400;
 }

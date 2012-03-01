@@ -13,7 +13,7 @@ import org.apache.commons.logging.LogFactory;
 /**
  * Provides configuration information 
  * 
- * TODO we can probably wrap this around an instance of TemplatedConfiguration for richer config loading options and support for encrypted passwords
+ * TODO we can probably wrap this around an instance of TemplatedConfigurationImpl for richer config loading options and support for encrypted passwords
  * 
  * @author John
  *

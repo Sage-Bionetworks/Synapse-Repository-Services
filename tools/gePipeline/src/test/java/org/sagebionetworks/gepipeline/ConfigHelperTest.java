@@ -19,7 +19,7 @@ public class ConfigHelperTest {
 	public void testGetProperty() throws Exception {
 		// get an arbitrary property.  This forces a bunch of machinery to run,
 		// testing that it works right
-		ConfigHelper.getGEPipelineSmallCapacityGB();
+		GEPWorkflowConfigHelper.getGEPipelineSmallCapacityGB();
 	}
 
 }

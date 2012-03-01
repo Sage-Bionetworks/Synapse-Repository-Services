@@ -3,6 +3,7 @@ package org.sagebionetworks.tool.searchupdater;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.sagebionetworks.TemplatedConfiguration;
+import org.sagebionetworks.TemplatedConfigurationImpl;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.tool.migration.Configuration;
@@ -30,9 +31,9 @@ public class SearchUpdaterConfigurationImpl implements Configuration {
 	 * 
 	 */
 	public SearchUpdaterConfigurationImpl() {
-		configuration = new TemplatedConfiguration(DEFAULT_PROPERTIES_FILENAME,
+		configuration = new TemplatedConfigurationImpl(DEFAULT_PROPERTIES_FILENAME,
 				TEMPLATE_PROPERTIES);
-		configuration.reloadStackConfiguration();
+		configuration.reloadConfiguration();
 	}
 
 	/**

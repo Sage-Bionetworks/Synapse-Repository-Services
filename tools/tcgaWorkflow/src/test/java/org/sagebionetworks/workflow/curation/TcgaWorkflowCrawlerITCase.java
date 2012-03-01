@@ -82,7 +82,7 @@ public class TcgaWorkflowCrawlerITCase {
 	@Test
 	public void testDoVersionConsolidationTcgaCrawl() throws Exception {
 		WebCrawler archiveCrawler = new WebCrawler();
-		ArchiveObserver observer = new TcgaWorkflowInitiator().new ArchiveObserver();
+		ArchiveObserver observer = new TcgaWorkflowInitiator(null).new ArchiveObserver();
 		archiveCrawler.addObserver(observer);
 		archiveCrawler
 				.doCrawl(

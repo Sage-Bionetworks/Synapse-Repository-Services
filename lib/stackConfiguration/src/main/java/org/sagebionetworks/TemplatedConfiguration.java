@@ -1,14 +1,6 @@
 package org.sagebionetworks;
 
-import java.io.IOException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Properties;
 import java.util.Set;
-
-import org.apache.log4j.Logger;
 
 /**
  * TemplatedConfiguration should serve as the base for any configuration we need
@@ -30,361 +22,111 @@ import org.apache.log4j.Logger;
  * 
  * (4) standardization of property names because since they are close together,
  * we can all see the naming pattern
+ * 
+ * @author deflaux
+ * 
  */
-public class TemplatedConfiguration {
-
-	private static final Logger log = Logger
-			.getLogger(TemplatedConfiguration.class.getName());
-
-	private String defaultPropertiesFilename;
-	private String templatePropertiesFilename;
-
-	private Properties defaultStackProperties = null;
-	private Properties stackPropertyOverrides = null;
-	private Properties requiredProperties = null;
-	private String propertyFileUrl = null;
-
-	/**
-	 * Pass in the default location for the properties file and also the
-	 * template to use
-	 * 
-	 * @param defaultPropertiesFilename
-	 * @param templatePropertiesFilename
-	 */
-	public TemplatedConfiguration(String defaultPropertiesFilename,
-			String templatePropertiesFilename) {
-		this.defaultPropertiesFilename = defaultPropertiesFilename;
-		this.templatePropertiesFilename = templatePropertiesFilename;
-	}
+public interface TemplatedConfiguration {
 
 	/**
 	 * Load stack configuration from properties files. Note that the System
 	 * property org.sagebionetworks.stack is used to let the system know for
 	 * which stack overrides should be loaded.
 	 */
-	public void reloadStackConfiguration() {
-		defaultStackProperties = new Properties();
-		stackPropertyOverrides = new Properties();
-		requiredProperties = new Properties();
-
-		// Load the default properties from the classpath.
-		loadPropertiesFromClasspath(defaultPropertiesFilename,
-				defaultStackProperties);
-		// Load the required properties
-		loadPropertiesFromClasspath(templatePropertiesFilename,
-				requiredProperties);
-		// If the system properties does not have the property file url,
-		// then we need to try and load the maven settings file.
-		if (System.getProperty(StackConstants.STACK_PROPERTY_FILE_URL) == null) {
-			// Try loading the settings file
-			addSettingsPropertiesToSystem();
-		}
-		// These three properties are required. If they are null, an exception
-		// will be thrown
-		String encryptionKey = getEncryptionKey();
-		String stack = getStack();
-		String stackInstance = getStackInstance();
-
-		propertyFileUrl = getPropertyOverridesFileURL();
-		if ((null != propertyFileUrl) && (0 < propertyFileUrl.length())) {
-			// Validate the property file
-			StackUtils.validateStackProperty(stack + stackInstance,
-					StackConstants.STACK_PROPERTY_FILE_URL, propertyFileUrl);
-
-			// If we have IAM id and key the load the properties using the
-			// Amazon
-			// client, else the URL should be public.
-			String iamId = getIAMUserId();
-			String iamKey = getIAMUserKey();
-			if (propertyFileUrl
-					.startsWith(StackConstants.S3_PROPERTY_FILENAME_PREFIX)
-					&& iamId != null && iamKey != null) {
-				try {
-					S3PropertyFileLoader.loadPropertiesFromS3(propertyFileUrl,
-							iamId, iamKey, stackPropertyOverrides);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
-				}
-			} else {
-				loadPropertiesFromURL(propertyFileUrl, stackPropertyOverrides);
-			}
-			// Validate the required properties
-			StackUtils.validateRequiredProperties(requiredProperties,
-					stackPropertyOverrides, stack, stackInstance);
-		}
-	}
-
-	public String getProperty(String propertyName) {
-		String propertyValue = null;
-		log
-				.info(propertyName
-						+ "="
-						+ System.getProperty(propertyName)
-						+ " from System properties (just FYI if replacement syntax was used in the props file)");
-		if (stackPropertyOverrides.containsKey(propertyName)) {
-			propertyValue = stackPropertyOverrides.getProperty(propertyName);
-			log.info(propertyName + "=" + propertyValue
-					+ " from stack property overrides " + propertyFileUrl);
-		} else {
-			propertyValue = defaultStackProperties.getProperty(propertyName);
-			log.info(propertyName + "=" + propertyValue
-					+ " from default stack properties "
-					+ defaultPropertiesFilename);
-		}
-		// NullPointerExceptions further downstream are not very helpful, throw
-		// here
-		// instead. In general folks calling methods here do not want null
-		// values,
-		// but if they do, they can try/catch.
-		//
-		// Also note that required properties should be checked for existence by
-		// out template
-		// so this should only happen for optional properties that code is
-		// requesting
-		if (null == propertyValue) {
-			throw new NullPointerException(
-					"no value found in StackConfiguration for property "
-							+ propertyName + " propertyFileURL="
-							+ propertyFileUrl);
-		}
-		return propertyValue;
-	}
-
-	public Set<String> getAllPropertyNames() {
-		Set<String> allPropertyNames = new HashSet<String>();
-		allPropertyNames.addAll(defaultStackProperties.stringPropertyNames());
-		allPropertyNames.addAll(stackPropertyOverrides.stringPropertyNames());
-		return allPropertyNames;
-	}
-
-	public String getDecryptedProperty(String propertyName) {
-		String stackEncryptionKey = getEncryptionKey();
-		if (stackEncryptionKey == null || stackEncryptionKey.length() == 0)
-			throw new RuntimeException(
-					"Expected system property org.sagebionetworks.stackEncryptionKey");
-		String encryptedProperty = getProperty(propertyName);
-		if (encryptedProperty == null || encryptedProperty.length() == 0)
-			throw new RuntimeException("Expected property for " + propertyName);
-		StringEncrypter se = new StringEncrypter(stackEncryptionKey);
-		String clearTextPassword = se.decrypt(encryptedProperty);
-		return clearTextPassword;
-	}
-
-	private void loadPropertiesFromClasspath(String filename,
-			Properties properties) {
-		if (filename == null)
-			throw new IllegalArgumentException("filename cannot be null");
-		if (properties == null)
-			throw new IllegalArgumentException("properties cannot be null");
-		URL propertiesLocation = TemplatedConfiguration.class
-				.getResource(filename);
-		if (null == propertiesLocation) {
-			throw new IllegalArgumentException(
-					"Could not load property file from classpath: " + filename);
-		}
-		try {
-			properties.load(propertiesLocation.openStream());
-		} catch (Exception e) {
-			throw new Error(e);
-		}
-	}
+	public void reloadConfiguration();
 
 	/**
-	 * Add the properties from the settings file to the system properties if
-	 * they are there.
+	 * @param propertyName
+	 * @return the property value or a NullPointerException will be thrown
+	 *         (throwing it preemptively here so as to provide a better error
+	 *         message)
 	 */
-	private void addSettingsPropertiesToSystem() {
-		Properties props;
-		try {
-			props = SettingsLoader.loadSettingsFile();
-			if (props != null) {
-				Iterator it = props.keySet().iterator();
-				while (it.hasNext()) {
-					String key = (String) it.next();
-					String value = props.getProperty(key);
-					System.setProperty(key, value);
-				}
-			}
-		} catch (Exception e) {
-			throw new Error(e);
-		}
-	}
+	public String getProperty(String propertyName);
 
 	/**
-	 * Load a property file from a URL
-	 * 
-	 * @param url
-	 * @param properties
-	 * @return
+	 * @return all property names
 	 */
-	private void loadPropertiesFromURL(String url, Properties properties) {
-		if (url == null)
-			throw new IllegalArgumentException("url cannot be null");
-		if (properties == null)
-			throw new IllegalArgumentException("properties cannot be null");
-		URL propertiesLocation;
-		try {
-			propertiesLocation = new URL(url);
-		} catch (MalformedURLException e1) {
-			throw new IllegalArgumentException(
-					"Could not load property file from url: " + url, e1);
-		}
-		try {
-			properties.load(propertiesLocation.openStream());
-		} catch (Exception e) {
-			throw new Error(e);
-		}
-	}
+	public Set<String> getAllPropertyNames();
 
 	/**
-	 * Throws the same RuntimeException when a required property is missing.
-	 * 
-	 * @param propertyKey
-	 * @param alternate
+	 * @param propertyName
+	 * @return the decrypted property value or a NullPointerException will be
+	 *         thrown (throwing it preemptively here so as to provide a better
+	 *         error message)
 	 */
-	private void throwRequiredPropertyException(String propertyKey,
-			String alternate) {
-		throw new RuntimeException("The property: " + propertyKey
-				+ " or its alternate: " + alternate
-				+ " is required and cannot be null");
-	}
+	public String getDecryptedProperty(String propertyName);
 
 	/**
 	 * The location of the property file that overrides configuration
 	 * properties.
 	 * 
-	 * @return
+	 * @return location of the property file that overrides configuration
+	 *         properties
 	 */
-	public String getPropertyOverridesFileURL() {
-		String url = System.getProperty(StackConstants.PARAM1);
-		if (url == null)
-			url = System.getProperty(StackConstants.STACK_PROPERTY_FILE_URL);
-		return url;
-	}
+	public String getPropertyOverridesFileURL();
 
 	/**
 	 * The encryption key used to read passwords in the configuration property
 	 * file.
 	 * 
-	 * @return
+	 * @return encryption key used to read passwords in the configuration
+	 *         property file
 	 */
-	public String getEncryptionKey() {
-		String ek = System.getProperty(StackConstants.PARAM2);
-		if (ek == null)
-			ek = System.getProperty(StackConstants.STACK_ENCRYPTION_KEY);
-		if (ek == null)
-			throwRequiredPropertyException(StackConstants.STACK_ENCRYPTION_KEY,
-					StackConstants.PARAM2);
-		return ek;
-	}
+	public String getEncryptionKey();
 
 	/**
 	 * The name of the stack.
 	 * 
-	 * @return
+	 * @return name of the stack
 	 */
-	public String getStack() {
-		String stack = System.getProperty(StackConstants.PARAM3);
-		if (stack == null)
-			stack = System.getProperty(StackConstants.STACK_PROPERTY_NAME);
-		if (stack == null)
-			throwRequiredPropertyException(StackConstants.STACK_PROPERTY_NAME,
-					StackConstants.PARAM3);
-		return stack;
-	}
+	public String getStack();
 
 	/**
 	 * The stack instance (i.e 'A', or 'B')
 	 * 
-	 * @return
+	 * @return stack instance (i.e 'A', or 'B')
 	 */
-	public String getStackInstance() {
-		String instance = System.getProperty(StackConstants.PARAM4);
-		if (instance == null)
-			instance = System
-					.getProperty(StackConstants.STACK_INSTANCE_PROPERTY_NAME);
-		if (instance == null)
-			throwRequiredPropertyException(
-					StackConstants.STACK_INSTANCE_PROPERTY_NAME,
-					StackConstants.PARAM4);
-		return instance;
-	}
+	public String getStackInstance();
 
 	/**
-	 * Get the IAM user ID (Access Key ID)
+	 * Get the IAM user ID (AWS Access Key ID)
 	 * 
-	 * @return
+	 * @return IAM user ID (AWS Access Key ID)
 	 */
-	public String getIAMUserId() {
-		// There are a few places where we can find this
-		String id = System.getProperty("AWS_ACCESS_KEY_ID");
-		if (id != null)
-			return id;
-		id = System.getProperty(StackConstants.STACK_IAM_ID);
-		if (id == null)
-			return null;
-		id = id.trim();
-		if ("".equals(id))
-			return null;
-		return id;
-	}
+	public String getIAMUserId();
 
 	/**
-	 * Get the IAM user Key (Secret Access Key)
+	 * Get the IAM user Key (AWS Secret Access Key)
 	 * 
-	 * @return
+	 * @return IAM user Key (AWS Secret Access Key)
 	 */
-	public String getIAMUserKey() {
-		// There are a few places to look for this
-		String key = System.getProperty("AWS_SECRET_KEY");
-		if (key != null)
-			return key;
-		key = System.getProperty(StackConstants.STACK_IAM_KEY);
-		if (key == null)
-			return null;
-		key = key.trim();
-		if ("".equals(key))
-			return null;
-		return key;
-	}
+	public String getIAMUserKey();
 
-	public String getAuthenticationServicePrivateEndpoint() {
-		return getProperty("org.sagebionetworks.authenticationservice.privateendpoint");
-	}
+	/**
+	 * @return authentication service private endpoint
+	 */
+	public String getAuthenticationServicePrivateEndpoint();
 
-	public String getAuthenticationServicePublicEndpoint() {
-		return getProperty("org.sagebionetworks.authenticationservice.publicendpoint");
-	}
+	/**
+	 * @return authentication service public endpoint
+	 */
+	public String getAuthenticationServicePublicEndpoint();
 
-	public String getRepositoryServiceEndpoint() {
-		return getProperty("org.sagebionetworks.repositoryservice.endpoint");
-	}
+	/**
+	 * @return repository service endpoint
+	 */
+	public String getRepositoryServiceEndpoint();
 
-	public String getPortalEndpoint() {
-		return getProperty("org.sagebionetworks.portal.endpoint");
-	}
+	/**
+	 * @return portal endpoint
+	 */
+	public String getPortalEndpoint();
 
 	/**
 	 * The repository Apache HttpClient connection pool properties
 	 * 
 	 * @return the max number of connections per route
 	 */
-	public int getHttpClientMaxConnsPerRoute() {
-		// We get connection timeouts from HttpClient if max conns is zero,
-		// which is a confusing
-		// error, so instead check more vigorously for that configuration
-		// mistake
-		String maxConnsPropertyName = "org.sagebionetworks.httpclient.connectionpool.maxconnsperroute";
-		int maxConns = Integer.parseInt(getProperty(maxConnsPropertyName));
-		if (1 > maxConns) {
-			throw new IllegalArgumentException(maxConnsPropertyName
-					+ " must be greater than zero");
-		}
-		return maxConns;
-	}
-
-	public String getRScriptPath() {
-		return getProperty("org.sagebionetworks.rScript.path");
-	}
+	public int getHttpClientMaxConnsPerRoute();
 
 }

@@ -43,14 +43,14 @@ public class ScriptProcessor {
 		String rScriptPath = "";
 		if (script.matches(R_SCRIPT_REGEXP)) {
 			 argsDelimiter = R_ARGS_DELIMITER;
-			 rScriptPath = ConfigHelper.getRScriptPath();
+			 rScriptPath = GEPWorkflowConfigHelper.getRScriptPath();
 		}
 		
 		String scriptInput[] = new String[] {rScriptPath, VERBOSE_OPTION, script, argsDelimiter,
-				SYNAPSE_USERNAME_KEY, ConfigHelper.getSynapseUsername(),
-				SYNAPSE_SECRETKEY_KEY, ConfigHelper.getSynapseSecretKey(),
-				AUTH_ENDPOINT_KEY, ConfigHelper.getAuthenticationServicePublicEndpoint(),
-				REPO_ENDPOINT_KEY, ConfigHelper.getRepositoryServiceEndpoint()
+				SYNAPSE_USERNAME_KEY, GEPWorkflowConfigHelper.getSynapseUsername(),
+				SYNAPSE_SECRETKEY_KEY, GEPWorkflowConfigHelper.getSynapseSecretKey(),
+				AUTH_ENDPOINT_KEY, GEPWorkflowConfigHelper.getAuthenticationServicePublicEndpoint(),
+				REPO_ENDPOINT_KEY, GEPWorkflowConfigHelper.getRepositoryServiceEndpoint()
 				};
 		
 		// now append the parameters onto the end

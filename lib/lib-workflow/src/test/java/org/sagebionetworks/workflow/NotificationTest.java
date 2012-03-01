@@ -1,4 +1,4 @@
-package org.sagebionetworks.gepipeline;
+package org.sagebionetworks.workflow;
 
 import org.junit.Assert;
 import org.junit.Test;

@@ -1,5 +1,9 @@
 package org.sagebionetworks;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -13,13 +17,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
-
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
@@ -28,11 +25,9 @@ import org.sagebionetworks.gepipeline.GEPWorkflowInitiator;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
-import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 public class IT800GEPWorkflowInitiator {
 	private static Synapse synapse = null;
@@ -71,7 +66,7 @@ public class IT800GEPWorkflowInitiator {
 		layer.setType(LayerTypeNames.E);
 		layer = synapse.createEntity(layer);
 		File dataFile = createDataFile();
-		layer = (Layer)synapse.uploadLocationableToSynapse(layer, dataFile);
+		layer = (Layer) synapse.uploadLocationableToSynapse(layer, dataFile);
 		assertNotNull(layer.getContentType());
 		assertNotNull(layer.getMd5());
 
@@ -81,12 +76,16 @@ public class IT800GEPWorkflowInitiator {
 		assertEquals(LocationTypeNames.awss3, locationData.getType());
 		assertNotNull(locationData.getPath());
 		assertTrue(locationData.getPath().startsWith("http"));
-		
-		// now check that we can get the location data starting from a Layer query
-		JSONObject queryResult = synapse.query("select id from layer where parentId=="+dataset.getId());
-		JSONArray a = (JSONArray)queryResult.get("results");
+
+		// now check that we can get the location data starting from a Layer
+		// query
+		JSONObject queryResult = synapse
+				.query("select id from layer where parentId=="
+						+ dataset.getId());
+		JSONArray a = (JSONArray) queryResult.get("results");
 		assertEquals(1, a.length());
-		layer = (Layer)synapse.getEntityById(((JSONObject)a.get(0)).getString("layer.id"));
+		layer = (Layer) synapse.getEntityById(((JSONObject) a.get(0))
+				.getString("layer.id"));
 		locations = layer.getLocations();
 		assertEquals(1, locations.size());
 		locationData = locations.get(0);
@@ -94,7 +93,7 @@ public class IT800GEPWorkflowInitiator {
 		assertNotNull(locationData.getPath());
 		assertTrue(locationData.getPath().startsWith("http"));
 	}
-	
+
 	public static File createDataFile() throws IOException {
 		File file = File.createTempFile("foo", "bar");
 		PrintWriter pw = new PrintWriter(file);
@@ -112,10 +111,10 @@ public class IT800GEPWorkflowInitiator {
 	 */
 	@AfterClass
 	public static void afterClass() throws Exception {
-		if(null != sourceProject) {
+		if (null != sourceProject) {
 			synapse.deleteEntity(sourceProject);
 		}
-		if(null != targetProject) {
+		if (null != targetProject) {
 			synapse.deleteEntity(targetProject);
 		}
 	}
@@ -127,7 +126,8 @@ public class IT800GEPWorkflowInitiator {
 	public void testCommonsCrawler() throws Exception {
 		String sourceProjectId = sourceProject.getId();
 		String targetProjectId = targetProject.getId();
-		Collection<Map<String,Object>> layerTasks = GEPWorkflowInitiator.crawlSourceProject(synapse, sourceProjectId, targetProjectId);
+		Collection<Map<String, Object>> layerTasks = GEPWorkflowInitiator
+				.crawlSourceProject(synapse, sourceProjectId, targetProjectId);
 		assertEquals(1, layerTasks.size());
 	}
 }

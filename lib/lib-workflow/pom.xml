@@ -1,135 +1,166 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-
+  
   <parent>
     <artifactId>lib</artifactId>
     <groupId>org.sagebionetworks</groupId>
     <version>0.11-SNAPSHOT</version>
   </parent>
-
+  
   <groupId>org.sagebionetworks</groupId>
   <artifactId>lib-workflow</artifactId>
   <version>0.11-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Workflow Library</name>
-
+  
   <dependencies>
+    
+    <dependency>
+	  <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk</artifactId>
+    </dependency>
 
+    <dependency>
+	  <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-flow-build-tools</artifactId>
+    </dependency>
+    
+    <!-- Dependencies of flow-build-tools, need a proper pom for that -->
+    <dependency>
+      <groupId>org.aspectj</groupId>
+      <artifactId>aspectjweaver</artifactId>
+      <scope>runtime</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.freemarker</groupId>
+      <artifactId>freemarker</artifactId>
+      <!-- Latest 2.3.x (not 2.4.x), at least 2.3.18 -->
+      <version>[2.3.18,2.4)</version>
+    </dependency>
+    
+    <!-- Logging -->
+    <dependency>
+      <groupId>commons-logging</groupId>
+      <artifactId>commons-logging</artifactId>
+    </dependency>
+    
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+    </dependency>
+    
+    <!-- Test Dependencies -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
+    
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-test</artifactId>
+      <scope>test</scope>
+    </dependency>
 
-		<dependency>
-			<groupId>joda-time</groupId>
-			<artifactId>joda-time</artifactId>
-		</dependency>
+    <dependency>
+      <groupId>org.springframework</groupId>
+      <artifactId>spring-core</artifactId>
+      <scope>test</scope>
+    </dependency>
 
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-communicationUtilities</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-securityUtilities</artifactId>
-		</dependency>
-
-		<!-- Simple Workflow Framework -->
-		<dependency>
-			<groupId>com.amazonaws.services.simpleworkflow</groupId>
-			<artifactId>AWSSimpleWorkflowSDK</artifactId>
-			<version>1.2</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.amazonaws.services.simpleworkflow</groupId>
-			<artifactId>SimpleWorkflowCore</artifactId>
-			<version>2010.03.10</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.amazonaws.services.simpleworkflow</groupId>
-			<artifactId>Asynchrony</artifactId>
-			<version>1.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.amazonaws.services.simpleworkflow</groupId>
-			<artifactId>AsynchronyDecider</artifactId>
-			<version>2.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.amazonaws.services.simpleworkflow</groupId>
-			<artifactId>AWSSimpleWorkflowJavaClientFrameworkCommon</artifactId>
-			<version>1.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.amazonaws.services.simpleworkflow</groupId>
-			<artifactId>AWSSimpleWorkflowJavaClientFrameworkActivityCommon</artifactId>
-			<version>1.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.amazonaws.services.simpleworkflow</groupId>
-			<artifactId>AWSSimpleWorkflowJavaClientFrameworkDataConverterCommon</artifactId>
-			<version>1.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.amazonaws.services.simpleworkflow</groupId>
-			<artifactId>AWSSimpleWorkflowJavaClientFrameworkPollingActivityExecutorService</artifactId>
-			<version>1.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>com.amazonaws.services.simpleworkflow</groupId>
-			<artifactId>AWSSimpleWorkflowJavaClientFrameworkPollingDeciderExecutorService</artifactId>
-			<version>1.0</version>
-		</dependency>
-
-		<!-- Stuff needed by SWF -->
-
-        <!-- Note that SWF only works with a particular old version of AWS SDK -->
-        <dependency>
-		  <groupId>com.amazonaws</groupId>
-          <artifactId>aws-java-sdk</artifactId>
-          <version>1.1.5</version>
-        </dependency>
-
-        <!-- Codec -->
-		<dependency>
-			<groupId>commons-codec</groupId>
-			<artifactId>commons-codec</artifactId>
-		</dependency>
-
-        <!-- Jackson JSON Mapper -->
-		<dependency>
-          <groupId>org.codehaus.jackson</groupId>
-          <artifactId>jackson-mapper-asl</artifactId>
-        </dependency>
-
-        <dependency>
-			<groupId>javassist</groupId>
-			<artifactId>javassist</artifactId>
-			<version>3.9.0.GA</version>
-		</dependency>
-
-		<dependency>
-			<groupId>net.sf.scannotation</groupId>
-			<artifactId>scannotation</artifactId>
-			<version>1.0.2</version>
-		</dependency>
-
+    
+    <!-- Platform Dependencies -->
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>lib-stackConfiguration</artifactId>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>synapseJavaClient</artifactId>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>lib-auto-generated</artifactId>
+    </dependency>
+    
+    <dependency>
+      <groupId>org.sagebionetworks</groupId>
+      <artifactId>schema-to-pojo-gwt</artifactId>
+    </dependency>
+    
+	<dependency>
+	  <groupId>org.sagebionetworks</groupId>
+	  <artifactId>lib-communicationUtilities</artifactId>
+	</dependency>
+    
   </dependencies>
 
-  <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-  </properties>
+  <build>
+    <plugins>
 
+<!-- See http://relation.to/Bloggers/HibernateStaticMetamodelGeneratorAnnotationProcessor -->
+      
+      <plugin>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <configuration>
+          <source>1.6</source>
+          <target>1.6</target>
+          <compilerArgument>-proc:none</compilerArgument>
+        </configuration>
+      </plugin>
+      
+      <plugin>
+        <groupId>org.bsc.maven</groupId>
+        <artifactId>maven-processor-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>process</id>
+            <goals>
+              <goal>process</goal>
+            </goals>
+            <phase>generate-sources</phase>
+            <configuration>
+              <outputDirectory>target/generated-sources/annotations</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.3</version>
+        <executions>
+          <execution>
+            <id>add-source</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>target/generated-sources/annotations</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <forkMode>pertest</forkMode>
+          <argLine>-javaagent:${settings.localRepository}/org/aspectj/aspectjweaver/${org.aspectj.version}/aspectjweaver-${org.aspectj.version}.jar</argLine>
+        </configuration>
+      </plugin>
+      
+    </plugins>
+  </build>
+  
 </project>

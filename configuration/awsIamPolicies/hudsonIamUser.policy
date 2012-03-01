@@ -7,7 +7,7 @@
                     "s3:PutObject"
                 ],
                 "Effect": "Allow",
-                "Resource": "arn:aws:s3:::configuration.sagebase.org/Hudson/*"
+                "Resource": "arn:aws:s3:::configuration.sagebase.org/*"
             }
         ]
     }

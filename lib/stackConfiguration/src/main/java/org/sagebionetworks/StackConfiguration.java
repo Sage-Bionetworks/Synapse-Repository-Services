@@ -9,7 +9,7 @@ import org.apache.log4j.Logger;
  * StackConfiguration wraps all configuration needed for a Synapse service stack
  * and exposes it via this programmatic API.
  * 
- * Note that it wraps an instance of TemplatedConfiguration which was
+ * Note that it wraps an instance of TemplatedConfigurationImpl which was
  * initialized with a template for the properties a Synapse service stack should
  * have and default property values for service stacks.
  * 
@@ -25,11 +25,11 @@ public class StackConfiguration {
 	private static TemplatedConfiguration configuration = null;
 
 	static {
-		configuration = new TemplatedConfiguration(DEFAULT_PROPERTIES_FILENAME,
+		configuration = new TemplatedConfigurationImpl(DEFAULT_PROPERTIES_FILENAME,
 				TEMPLATE_PROPERTIES);
 		// Load the stack configuration the first time this class is referenced
 		try {
-			configuration.reloadStackConfiguration();
+			configuration.reloadConfiguration();
 		} catch (Throwable t) {
 			log.error(t.getMessage(), t);
 			throw new RuntimeException(t);
@@ -37,7 +37,7 @@ public class StackConfiguration {
 	}
 
 	public static void reloadStackConfiguration() {
-		configuration.reloadStackConfiguration();
+		configuration.reloadConfiguration();
 	}
 
 	/**

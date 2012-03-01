@@ -15,7 +15,6 @@ import org.sagebionetworks.utils.ExternalProcessHelper.ExternalProcessResult;
 
 public class ScriptResult {
 	
-//	private static final String OUTPUT_LAYER_JSON_KEY = "layerId";
 	private static final Pattern OUTPUT_DELIMITER_PATTERN = Pattern.compile(
 			".*SynapseWorkflowResult_START(.*)SynapseWorkflowResult_END.*",
 			Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);

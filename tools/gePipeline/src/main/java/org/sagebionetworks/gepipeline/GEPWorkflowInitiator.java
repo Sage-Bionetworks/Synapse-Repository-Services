@@ -2,7 +2,6 @@ package org.sagebionetworks.gepipeline;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -18,15 +17,12 @@ import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
-import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
+import org.sagebionetworks.workflow.Notification;
 
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
-import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.ActivityAnnotationProcessor;
-import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.annotations.AsyncWorkflowStartContext;
 
 /**
 
@@ -46,21 +42,30 @@ public class GEPWorkflowInitiator {
 	private static final String SOURCE_LAYER_LOCATION_PROPERTY_NAME = "layerLocation";
 	private static final int MAX_LISTED_LOCATIONS = 200;
 
+	GEPWorkflowClientExternalFactory clientFactory;
+	
+	/**
+	 * @param clientFactory
+	 */
+	public GEPWorkflowInitiator(GEPWorkflowClientExternalFactory clientFactory) {
+		this.clientFactory = clientFactory;
+	}
+
 	/**
 	 * Crawl all top level datasets and identify the ones in which we are
 	 * interested
 	 */
-	public static void initiateWorkflowTasks() {
+	public void initiateWorkflowTasks() {
 		
-		String projectId = ConfigHelper.getGEPipelineTargetProjectId();
+		String projectId = GEPWorkflowConfigHelper.getGEPipelineTargetProjectId();
 		
 		Synapse synapse = connectToSynapse();
-		String sourceProjectId = ConfigHelper.getGEPipelineSourceProjectId();
-		String targetProjectId = ConfigHelper.getGEPipelineTargetProjectId();
+		String sourceProjectId = GEPWorkflowConfigHelper.getGEPipelineSourceProjectId();
+		String targetProjectId = GEPWorkflowConfigHelper.getGEPipelineTargetProjectId();
 		Collection<Map<String,Object>> layerTasks = crawlSourceProject(synapse, sourceProjectId, targetProjectId);
 		
 		
-		String maxInstances = ConfigHelper.getGEPipelineMaxWorkflowInstances();
+		String maxInstances = GEPWorkflowConfigHelper.getGEPipelineMaxWorkflowInstances();
 		int max = maxInstances==null ? -1 : Integer.parseInt(maxInstances); // set to -1 to disable
 		int i = 0;
 		System.out.println("Got "+layerTasks.size()+" datasets to run and will run "+
@@ -78,7 +83,8 @@ public class GEPWorkflowInitiator {
 					int numSamples = (int)jsonParameters.getLong(NUMBER_OF_SAMPLES_PROPERTY_NAME);
 					activityRequirement = getActivityRequirementFromSampleCount(numSamples); 
 				}
-				GEPWorkflow.doWorkflow(parameterString, activityRequirement);
+				GEPWorkflowClientExternal workflow = clientFactory.getClient();
+				workflow.runMetaGenomicsPipeline(parameterString, activityRequirement);
 			} catch (JSONException e) {
 				throw new RuntimeException(e);
 			}
@@ -91,7 +97,7 @@ public class GEPWorkflowInitiator {
 			if (++listed>MAX_LISTED_LOCATIONS) break;
 			crawlerOutput.append("\n"+loc);
 		}
-		Notification.doSnsNotifyFollowers(GEPWorkflow.NOTIFICATION_SNS_TOPIC, 
+		Notification.doSnsNotifyFollowers(GEPWorkflowConfigHelper.getSNSClient(), GEPWorkflowConfigHelper.getWorkflowSnsTopic(), 
 				NOTIFICATION_SUBJECT + new LocalDate().toString(),
 				crawlerOutput.toString());		
 	}
@@ -100,11 +106,11 @@ public class GEPWorkflowInitiator {
 		Synapse synapse = new Synapse();
 		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
 		HttpClientHelper.setGlobalSocketTimeout(DefaultHttpClientSingleton.getInstance(), 30000);
-		synapse.setAuthEndpoint(ConfigHelper.getAuthenticationServicePublicEndpoint());
-		String repositoryServiceEndpoint = ConfigHelper.getRepositoryServiceEndpoint();
+		synapse.setAuthEndpoint(GEPWorkflowConfigHelper.getAuthenticationServicePublicEndpoint());
+		String repositoryServiceEndpoint = GEPWorkflowConfigHelper.getRepositoryServiceEndpoint();
 		synapse.setRepositoryEndpoint(repositoryServiceEndpoint);
-		String user = ConfigHelper.getSynapseUsername();
-		String apiKey = ConfigHelper.getSynapseSecretKey();
+		String user = GEPWorkflowConfigHelper.getSynapseUsername();
+		String apiKey = GEPWorkflowConfigHelper.getSynapseSecretKey();
 
 		synapse.setUserName(user);
 		synapse.setApiKey(apiKey);
@@ -280,9 +286,9 @@ public class GEPWorkflowInitiator {
 	}
 	
 	private static final int MEAGABYTES_PER_SAMPLE = 40;
-	private static final int SMALL_CAPACITY_GB = ConfigHelper.getGEPipelineSmallCapacityGB();
-	private static final int MEDIUM_CAPACITY_GB = ConfigHelper.getGEPipelineMediumCapacityGB();
-	private static final int LARGE_CAPACITY_GB = ConfigHelper.getGEPipelineLargeCapacityGB();
+	private static final int SMALL_CAPACITY_GB = GEPWorkflowConfigHelper.getGEPipelineSmallCapacityGB();
+	private static final int MEDIUM_CAPACITY_GB = GEPWorkflowConfigHelper.getGEPipelineMediumCapacityGB();
+	private static final int LARGE_CAPACITY_GB = GEPWorkflowConfigHelper.getGEPipelineLargeCapacityGB();
 
 
 	/**
@@ -291,24 +297,23 @@ public class GEPWorkflowInitiator {
 	 */
 	public static void main(String[] args) throws Exception {
 		Logger.getLogger(Synapse.class.getName()).setLevel(Level.WARN);
-		 // Running Annotation Processor is very important, otherwise it will
-		// treat Workflows and Activities as regular java method calls
-		ActivityAnnotationProcessor.processAnnotations();
-
 		// Create the client for Simple Workflow Service
-		AmazonSimpleWorkflow swfService = ConfigHelper.createSWFClient();
-		AsyncWorkflowStartContext.initialize(swfService);
+		AmazonSimpleWorkflow swfService = GEPWorkflowConfigHelper.getSWFClient();
+		String domain = GEPWorkflowConfigHelper.getStack();
 
-		GEPWorkflowInitiator initiator = new GEPWorkflowInitiator();
+		GEPWorkflowClientExternalFactory clientFactory = new GEPWorkflowClientExternalFactoryImpl(
+				swfService, domain);
+
+		GEPWorkflowInitiator initiator = new GEPWorkflowInitiator(clientFactory);
 
 		if (true) {
 //			initiator.kickoffPeriodicWorkflow();
-			GEPWorkflowInitiator.initiateWorkflowTasks();
+			initiator.initiateWorkflowTasks();
 		} else {
 			// this allows us to see what jobs will be started, without actually scheduling them.
 			Synapse synapse = initiator.connectToSynapse();
-			String sourceProjectId = ConfigHelper.getGEPipelineSourceProjectId();
-			String targetProjectId = ConfigHelper.getGEPipelineTargetProjectId();
+			String sourceProjectId = GEPWorkflowConfigHelper.getGEPipelineSourceProjectId();
+			String targetProjectId = GEPWorkflowConfigHelper.getGEPipelineTargetProjectId();
 			Collection<Map<String,Object>> layerTasks = initiator.crawlSourceProject(synapse, sourceProjectId, targetProjectId);
 		}
 

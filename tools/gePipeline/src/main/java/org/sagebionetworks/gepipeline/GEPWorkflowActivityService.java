@@ -7,7 +7,7 @@ import java.util.StringTokenizer;
 import java.util.concurrent.TimeUnit;
 
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
-import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.AsynchronyExecutorService;
+import com.amazonaws.services.simpleworkflow.flow.ActivityWorker;
 
 /**
  * This is the process which hosts all the SWF activities exposed in this
@@ -19,21 +19,6 @@ import com.amazonaws.services.simpleworkflow.client.asynchrony.decider.Asynchron
  */
 public class GEPWorkflowActivityService {
 
-	private static AmazonSimpleWorkflow swfService;
-	private static GEPWorkflowActivityService gepWorkflowActivityServiceInstance;
-	private static AsynchronyExecutorService activityExecutor;
-
-	/**
-	 * @return the activity service instance
-	 */
-	public synchronized static GEPWorkflowActivityService getGEPWorkflowActivityServiceInstance() {
-		if (gepWorkflowActivityServiceInstance == null) {
-			gepWorkflowActivityServiceInstance = new GEPWorkflowActivityService();
-		}
-
-		return gepWorkflowActivityServiceInstance;
-	}
-	
 	private static final String CAPABILITY_PROPERTY_NAME = "org.sagebionetworks.gepipeline.capability";
 
 	/**
@@ -46,71 +31,74 @@ public class GEPWorkflowActivityService {
 		// Return a helpful error message to the user if the environment is not
 		// sufficient for this service to run.
 
-		// Create the client for Simple Workflow Service
-		swfService = ConfigHelper.createSWFClient();
-
 		// Enable routing to specific hosts, based on capabilities
-		// Note, we do NOT want to put this property into a properties file, which may be used by multiple
-		// hosts sharing a common file system.  Rather we pass in as a command-line property
-		// the property contains multiple capabilities, separated by comma, colon, or semi-colon
-		String capabilitiesString = System.getProperty(CAPABILITY_PROPERTY_NAME);
+		// Note, we do NOT want to put this property into a properties file,
+		// which may be used by multiple
+		// hosts sharing a common file system. Rather we pass in as a
+		// command-line property
+		// the property contains multiple capabilities, separated by comma,
+		// colon, or semi-colon
+		String capabilitiesString = System
+				.getProperty(CAPABILITY_PROPERTY_NAME);
 		List<String> capabilities = new ArrayList<String>();
 		StringTokenizer st = new StringTokenizer(capabilitiesString, ",:;");
 		while (st.hasMoreTokens()) {
 			capabilities.add(st.nextToken());
 		}
 
-		// Start Activity Executor Service
-		getGEPWorkflowActivityServiceInstance()
-				.startGEPWorkflowActivityService(capabilities);
+		AmazonSimpleWorkflow swfService = GEPWorkflowConfigHelper
+				.getSWFClient();
+		String domain = GEPWorkflowConfigHelper.getStack();
 
-		// Add a Shutdown hook to close ActivityExecutorService
-		Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
-
-			public void run() {
-				try {
-					getGEPWorkflowActivityServiceInstance()
-							.stopGEPWorkflowActivityService();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
+		for (String activityRequirement : capabilities) {
+			String taskList;
+			if (GEPWorkflow.ACTIVITY_REQUIREMENT_SMALL.equals(activityRequirement)) {
+				taskList = GEPWorkflow.SMALL_ACTIVITY_TASK_LIST;
+			} else if (GEPWorkflow.ACTIVITY_REQUIREMENT_MEDIUM.equals(activityRequirement)) {
+				taskList = GEPWorkflow.MEDIUM_ACTIVITY_TASK_LIST;
+			} else if (GEPWorkflow.ACTIVITY_REQUIREMENT_LARGE.equals(activityRequirement)) {
+				taskList = GEPWorkflow.LARGE_ACTIVITY_TASK_LIST;
+			} else if (GEPWorkflow.ACTIVITY_REQUIREMENT_EXTRA_LARGE.equals(activityRequirement)) {
+				taskList = GEPWorkflow.EXTRA_LARGE_ACTIVITY_TASK_LIST;
+			} else {
+				throw new IllegalArgumentException("Unexpected "
+						+ activityRequirement);
 			}
-		}));
+			
+			final ActivityWorker worker = new ActivityWorker(swfService,
+					domain, taskList);
 
+			// Create activity implementations
+			GEPActivities activities = new GEPActivitiesImpl();
+			worker.addActivitiesImplementation(activities);
+
+			worker.start();
+
+			System.out.println("Activity Worker Started for Task List: "
+					+ worker.getTaskListToPoll());
+
+			Runtime.getRuntime().addShutdownHook(new Thread() {
+
+				@Override
+				public void run() {
+					try {
+						worker
+								.shutdownAndAwaitTermination(10,
+										TimeUnit.MINUTES);
+						System.out.println("Activity Worker Exited.");
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+			});
+		}
 		System.out.println("Please press any key to terminate service.");
+
 		try {
 			System.in.read();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-
 		System.exit(0);
 	}
-
-	private void startGEPWorkflowActivityService(List<String> capabilities) throws Exception {
-		System.out.println("Starting Agent Service...");
-
-		activityExecutor = new AsynchronyExecutorService(swfService);
-
-		// Discover and register all activities exposed by this package
-		activityExecutor
-				.addActivitiesFromPackage(GEPWorkflowActivityService.class
-						.getPackage().getName());
-
-		activityExecutor.setCapabilities(capabilities);
-
-		// Start ActivityExecutor Service
-		activityExecutor.start();
-
-		System.out.println("Agent Service Started...");
-	}
-
-	private void stopGEPWorkflowActivityService() throws InterruptedException {
-		System.out.println("Stopping Agent Service...");
-		activityExecutor.shutdownNow();
-		swfService.shutdown();
-		activityExecutor.awaitTermination(Long.MAX_VALUE, TimeUnit.DAYS);
-		System.out.println("Agent Service Stopped.");
-	}
-
 }

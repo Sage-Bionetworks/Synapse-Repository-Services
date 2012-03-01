@@ -11,7 +11,7 @@
                     "s3:GetObject"
                 ],
                 "Effect": "Allow",
-                "Resource": "arn:aws:s3:::prodworkflow.sagebase.org/prod*.properties"
+                "Resource": "arn:aws:s3:::configuration.sagebase.org/Workflow/prod*.properties"
             },
             {
                 "Action": [

@@ -12,7 +12,7 @@
                 ],
                 "Effect": "Allow",
                 "Resource": [
-                    "arn:aws:sns:us-east-1:325565585839:*"
+                    "arn:aws:sns:us-east-1:325565585839:Test*"
                 ]
             }
         ]
