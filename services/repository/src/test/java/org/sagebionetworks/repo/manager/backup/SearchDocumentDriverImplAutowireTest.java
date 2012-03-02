@@ -61,26 +61,26 @@ public class SearchDocumentDriverImplAutowireTest {
 				null);
 		assertTrue(256 < destination.length());
 		String serializedSearchDocuments = readFile(destination);
-		System.out.println("FIX ME: " + serializedSearchDocuments);
 		JSONArray searchDocuments = new JSONArray(serializedSearchDocuments);
 		assertTrue(0 < searchDocuments.length());
 		JSONObject searchDocument = searchDocuments.getJSONObject(0);
-		Document document = EntityFactory.createEntityFromJSONObject(searchDocument, Document.class);
+		Document document = EntityFactory.createEntityFromJSONObject(
+				searchDocument, Document.class);
 		assertNotNull(document);
 	}
-	
+
 	// http://stackoverflow.com/questions/326390/how-to-create-a-java-string-from-the-contents-of-a-file
 	private static String readFile(File file) throws IOException {
-		  FileInputStream stream = new FileInputStream(file);
-		  try {
-		    FileChannel fc = stream.getChannel();
-		    MappedByteBuffer bb = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc.size());
-		    /* Instead of using default, pass in a decoder. */
-		    return Charset.forName("UTF-8").decode(bb).toString();
-		  }
-		  finally {
-		    stream.close();
-		  }
+		FileInputStream stream = new FileInputStream(file);
+		try {
+			FileChannel fc = stream.getChannel();
+			MappedByteBuffer bb = fc.map(FileChannel.MapMode.READ_ONLY, 0, fc
+					.size());
+			/* Instead of using default, pass in a decoder. */
+			return Charset.forName("UTF-8").decode(bb).toString();
+		} finally {
+			stream.close();
 		}
+	}
 
 }

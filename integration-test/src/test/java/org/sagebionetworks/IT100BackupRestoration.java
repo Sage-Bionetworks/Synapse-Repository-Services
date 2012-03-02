@@ -32,8 +32,10 @@ import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -219,8 +221,8 @@ public class IT100BackupRestoration {
 		JSONArray searchDocuments = new JSONArray(serializedSearchDocuments);
 		assertEquals(1, searchDocuments.length());
 		JSONObject searchDocument = searchDocuments.getJSONObject(0);
-		assertEquals(projectDescription, searchDocument.getJSONObject("fields").getString("description"));
-		
+		Document document = EntityFactory.createEntityFromJSONObject(searchDocument, Document.class);
+		assertEquals(projectDescription, document.getFields().getDescription());
 	}
 	
 	@Test
