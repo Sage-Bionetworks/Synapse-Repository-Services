@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * @author deflaux
@@ -22,8 +23,9 @@ public interface SearchDocumentDriver {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws InterruptedException
+	 * @throws JSONObjectAdapterException 
 	 */
-	public void writeSearchDocument(File destination, Progress progress, Set<String> entitiesToBackup) throws IOException, DatastoreException, NotFoundException, InterruptedException;
+	public void writeSearchDocument(File destination, Progress progress, Set<String> entitiesToBackup) throws IOException, DatastoreException, NotFoundException, InterruptedException, JSONObjectAdapterException;
 	
 
 }

@@ -15,9 +15,6 @@ import java.util.Set;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -29,7 +26,12 @@ import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.search.DocumentFields;
+import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -53,6 +55,11 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	private static final String PATH_DELIMITER = "/";
 	private static final String CATCH_ALL_FIELD = "annotations";
+	private static final String DISEASE_FIELD = "disease";
+	private static final String TISSUE_FIELD = "tissue";
+	private static final String SPECIES_FIELD = "species";
+	private static final String PLATFORM_FIELD = "platform";
+	private static final String NUM_SAMPLES_FIELD = "num_samples";
 	private static final Map<String, String> SEARCHABLE_NODE_ANNOTATIONS;
 
 	@Autowired
@@ -66,21 +73,21 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// These are both node primary annotations and additional annotation
 		// names
 		Map<String, String> searchableNodeAnnotations = new HashMap<String, String>();
-		searchableNodeAnnotations.put("disease", "disease");
-		searchableNodeAnnotations.put("Disease", "disease");
-		searchableNodeAnnotations.put("Tissue_Tumor", "tissue");
-		searchableNodeAnnotations.put("sampleSource", "tissue");
-		searchableNodeAnnotations.put("SampleSource", "tissue");
-		searchableNodeAnnotations.put("species", "species");
-		searchableNodeAnnotations.put("Species", "species");
-		searchableNodeAnnotations.put("number_of_samples", "num_samples");
-		searchableNodeAnnotations.put("Number_of_Samples", "num_samples");
-		searchableNodeAnnotations.put("Number_of_samples", "num_samples");
-		searchableNodeAnnotations.put("numSamples", "num_samples");
-		searchableNodeAnnotations.put("platform", "platform");
-		searchableNodeAnnotations.put("Platform", "platform");
-		searchableNodeAnnotations.put("platformDesc", "platform");
-		searchableNodeAnnotations.put("platformVendor", "platform");
+		searchableNodeAnnotations.put("disease", DISEASE_FIELD);
+		searchableNodeAnnotations.put("Disease", DISEASE_FIELD);
+		searchableNodeAnnotations.put("Tissue_Tumor", TISSUE_FIELD);
+		searchableNodeAnnotations.put("sampleSource", TISSUE_FIELD);
+		searchableNodeAnnotations.put("SampleSource", TISSUE_FIELD);
+		searchableNodeAnnotations.put("species", SPECIES_FIELD);
+		searchableNodeAnnotations.put("Species", SPECIES_FIELD);
+		searchableNodeAnnotations.put("platform", PLATFORM_FIELD);
+		searchableNodeAnnotations.put("Platform", PLATFORM_FIELD);
+		searchableNodeAnnotations.put("platformDesc", PLATFORM_FIELD);
+		searchableNodeAnnotations.put("platformVendor", PLATFORM_FIELD);
+		searchableNodeAnnotations.put("number_of_samples", NUM_SAMPLES_FIELD);
+		searchableNodeAnnotations.put("Number_of_Samples", NUM_SAMPLES_FIELD);
+		searchableNodeAnnotations.put("Number_of_samples", NUM_SAMPLES_FIELD);
+		searchableNodeAnnotations.put("numSamples", NUM_SAMPLES_FIELD);
 		SEARCHABLE_NODE_ANNOTATIONS = Collections
 				.unmodifiableMap(searchableNodeAnnotations);
 	}
@@ -110,10 +117,11 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws InterruptedException
+	 * @throws JSONObjectAdapterException 
 	 */
 	public void writeSearchDocument(File destination, Progress progress,
 			Set<String> entitiesToBackup) throws IOException,
-			DatastoreException, NotFoundException, InterruptedException {
+			DatastoreException, NotFoundException, InterruptedException, JSONObjectAdapterException {
 		if (destination == null)
 			throw new IllegalArgumentException(
 					"Destination file cannot be null");
@@ -139,8 +147,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		progress.setTotalCount(backupManager.getTotalNodeCount());
 		// First write to the file
 		FileOutputStream outputStream = new FileOutputStream(destination);
-		// DEV NOTE: (1) CloudSearch cannot currently accept zipped content so
-		// we are not making a ZipOutputStream here (2) CloudSearch expects a
+		// DEV NOTE: (1) AwesomeSearch cannot currently accept zipped content so
+		// we are not making a ZipOutputStream here (2) AwesomeSearch expects a
 		// raw JSON array so we cannot use something like
 		// org.sagebionetworks.repo.model.search.DocumentBatch here . . . also
 		// building up a gigantic DocumentBatch isn't appropriate for the
@@ -149,38 +157,32 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// anyway
 		outputStream.write('[');
 		boolean isFirstEntry = true;
-		try {
-			// First write the root node as its own entry
-			for (String idToBackup : listToBackup) {
-				// Recursively write each node.
-				NodeBackup backup = backupManager.getNode(idToBackup);
-				if (backup == null)
-					throw new IllegalArgumentException("Cannot backup node: "
-							+ idToBackup + " because it does not exists");
-				writeSearchDocumentBatch(outputStream, backup, "", progress,
-						isRecursive, isFirstEntry);
-				isFirstEntry = false;
-			}
-		} catch (JSONException e) {
-			throw new DatastoreException(e);
-		} finally {
-			if (outputStream != null) {
-				outputStream.write(']');
-				outputStream.flush();
-				outputStream.close();
-			}
+		// First write the root node as its own entry
+		for (String idToBackup : listToBackup) {
+			// Recursively write each node.
+			NodeBackup backup = backupManager.getNode(idToBackup);
+			if (backup == null)
+				throw new IllegalArgumentException("Cannot backup node: "
+						+ idToBackup + " because it does not exists");
+			writeSearchDocumentBatch(outputStream, backup, "", progress,
+					isRecursive, isFirstEntry);
+			isFirstEntry = false;
 		}
+		outputStream.write(']');
+		outputStream.flush();
+		outputStream.close();
 	}
 
 	/**
 	 * This is a recursive method that will write the full tree of node data to
 	 * the search document batch.
+	 * @throws JSONObjectAdapterException 
 	 */
 	private void writeSearchDocumentBatch(OutputStream outputStream,
 			NodeBackup backup, String path, Progress progress,
-			boolean isRecursive, boolean isFirstEntry) throws JSONException,
-			NotFoundException, DatastoreException, InterruptedException,
-			IOException {
+			boolean isRecursive, boolean isFirstEntry)
+			throws NotFoundException, DatastoreException, InterruptedException,
+			IOException, JSONObjectAdapterException {
 		if (backup == null)
 			throw new IllegalArgumentException("NodeBackup cannot be null");
 		if (backup.getNode() == null)
@@ -234,10 +236,11 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	/**
 	 * Write a single search document
+	 * @throws JSONObjectAdapterException 
 	 */
 	private void writeSearchDocument(OutputStream outputStream,
-			NodeBackup backup, String path) throws JSONException,
-			NotFoundException, DatastoreException, IOException {
+			NodeBackup backup, String path) throws NotFoundException,
+			DatastoreException, IOException, JSONObjectAdapterException {
 		if (backup == null)
 			throw new IllegalArgumentException("NodeBackup cannot be null");
 		if (backup.getNode() == null)
@@ -251,20 +254,17 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		NodeRevisionBackup rev = backupManager.getNodeRevision(node.getId(),
 				revId);
 
-		// TODO convert individual search documents from JSONObject to
-		// org.sagebionetworks.repo.model.search.Document
-
-		JSONObject document = formulateSearchDocument(node, rev,
-				benefactorBackup.getAcl());
+		Document document = formulateSearchDocument(node, rev, benefactorBackup
+				.getAcl());
 		outputStream.write(cleanSearchDocument(document));
 		outputStream.flush();
 	}
 
-	static byte[] cleanSearchDocument(JSONObject document)
-			throws JSONException, UnsupportedEncodingException {
-		String serializedDocument = document.toString(4);
+	static byte[] cleanSearchDocument(Document document)
+			throws UnsupportedEncodingException, JSONObjectAdapterException {
+		String serializedDocument = EntityFactory.createJSONStringForEntity(document);
 
-		// CloudSearch pukes on control characters. Some descriptions have
+		// AwesomeSearch pukes on control characters. Some descriptions have
 		// control characters in them for some reason, in any case, just get rid
 		// of all control characters in the search document
 		String cleanedDocument = serializedDocument.replaceAll("\\p{Cc}", "");
@@ -273,38 +273,57 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]",
 				"");
 
-		// CloudSearch expects UTF-8
+		// AwesomeSearch expects UTF-8
 		return cleanedDocument.getBytes("UTF-8");
 	}
 
-	// TODO convert to org.sagebionetworks.repo.model.search.Document
-	static JSONObject formulateSearchDocument(Node node,
-			NodeRevisionBackup rev, AccessControlList acl) throws JSONException {
-		JSONObject document = new JSONObject();
-		JSONObject fields = new JSONObject();
+	static Document formulateSearchDocument(Node node, NodeRevisionBackup rev,
+			AccessControlList acl) {
+		Document document = new Document();
+		DocumentFields fields = new DocumentFields();
+		document.setFields(fields);
 
+		document.setType(DocumentTypeNames.add);
+		document.setLang("en"); // TODO this should have been set via "default" in the schema for this
+		
 		// Node fields
-		document.put("type", "add");
-		document.put("id", node.getId());
-		document.put("version", node.getETag());
-		document.put("lang", "en");
-		document.put("fields", fields);
-		fields.put("id", node.getId()); // this is redundant because document id
-		// is returned in search results
-		fields.put("etag", node.getETag()); // this is _not_ redundant because
+		document.setId(node.getId());
+		document.setVersion(Long.valueOf(node.getETag()));
+		fields.setId(node.getId()); // this is redundant because document id
+		// is returned in search results, but its cleaner to have this also show
+		// up in the "data" section of AwesomeSearch results
+		fields.setEtag(node.getETag()); // this is _not_ redundant because
 		// document version is not returned
 		// in search results
-		fields.put("name", node.getName());
-		fields.put("node_type", node.getNodeType());
+		fields.setParent_id(node.getParentId());
+		fields.setName(node.getName());
+		fields.setNode_type(node.getNodeType());
 		if (null != node.getDescription()) {
-			fields.put("description", node.getDescription());
+			fields.setDescription(node.getDescription());
 		}
-		fields.put("created_by", node.getCreatedBy());
-		fields.put("created_on", node.getCreatedOn().getTime() / 1000);
-		fields.put("modified_by", node.getModifiedBy());
-		fields.put("modified_on", node.getModifiedOn().getTime() / 1000);
+		fields.setCreated_by(node.getCreatedBy());
+		fields.setCreated_on(node.getCreatedOn().getTime() / 1000);
+		fields.setModified_by(node.getModifiedBy());
+		fields.setModified_on(node.getModifiedOn().getTime() / 1000);
+
+		// Stuff in this field any extra copies of data that you would like to
+		// boost in free text search
+		List<String> boost = new ArrayList<String>();
+		fields.setBoost(boost);
+		boost.add(node.getName());
+		boost.add(node.getName());
+		boost.add(node.getName());
+		boost.add(node.getId());
+		boost.add(node.getId());
+		boost.add(node.getId());
 
 		// Annotations
+		fields.setAnnotations(new ArrayList<String>());
+		fields.setDisease(new ArrayList<String>());
+		fields.setSpecies(new ArrayList<String>());
+		fields.setTissue(new ArrayList<String>());
+		fields.setPlatform(new ArrayList<String>());
+		fields.setNum_samples(new ArrayList<Long>());
 		addAnnotationsToSearchDocument(fields, rev.getNamedAnnotations()
 				.getPrimaryAnnotations());
 		addAnnotationsToSearchDocument(fields, rev.getNamedAnnotations()
@@ -314,30 +333,30 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// currently adding the version or the type of the reference (e.g.,
 		// code/input/output)
 		if ((null != node.getReferences()) && (0 < node.getReferences().size())) {
-			JSONArray referenceValues = new JSONArray();
-			fields.put("reference", referenceValues);
+			List<String> referenceValues = new ArrayList<String>();
+			fields.setReferences(referenceValues);
 			for (Set<Reference> refs : node.getReferences().values()) {
 				for (Reference ref : refs) {
-					referenceValues.put(ref.getTargetId());
+					referenceValues.add(ref.getTargetId());
 				}
 			}
 		}
 
 		// ACL
-		JSONArray aclValues = new JSONArray();
-		fields.put("acl", aclValues);
+		List<String> aclValues = new ArrayList<String>();
+		fields.setAcl(aclValues);
 		for (ResourceAccess access : acl.getResourceAccess()) {
 			if (access.getAccessType().contains(
 					AuthorizationConstants.ACCESS_TYPE.READ)) {
-				aclValues.put(access.getGroupName());
+				aclValues.add(access.getGroupName());
 			}
 		}
 		return document;
 	}
 
 	@SuppressWarnings("unchecked")
-	static void addAnnotationsToSearchDocument(JSONObject fields,
-			Annotations annots) throws JSONException {
+	static void addAnnotationsToSearchDocument(DocumentFields fields,
+			Annotations annots) {
 
 		for (String key : annots.keySet()) {
 			Collection values = annots.getAllValues(key);
@@ -370,6 +389,11 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 				// TODO dates to epoch time? or skip them?
 				String catchAllValue = key + ":" + objs[i].toString();
+
+				// A multi-word annotation gets underscores so we can
+				// exact-match find it but I'm not positive this is actually
+				// true because AwesomeSearch might be splitting free text on
+				// underscores
 				catchAllValue = catchAllValue.replaceAll("\\s", "_");
 				addAnnotationToSearchDocument(fields, CATCH_ALL_FIELD,
 						catchAllValue);
@@ -377,13 +401,25 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		}
 	}
 
-	static void addAnnotationToSearchDocument(JSONObject fields, String key,
-			Object value) throws JSONException {
-		JSONArray fieldValues = fields.optJSONArray(key);
-		if (null == fieldValues) {
-			fieldValues = new JSONArray();
-			fields.put(key, fieldValues);
+	static void addAnnotationToSearchDocument(DocumentFields fields,
+			String key, Object value) {
+		if (CATCH_ALL_FIELD == key) {
+			fields.getAnnotations().add((String) value);
+		} else if (DISEASE_FIELD == key) {
+			fields.getDisease().add((String) value);
+		} else if (TISSUE_FIELD == key) {
+			fields.getTissue().add((String) value);
+		} else if (SPECIES_FIELD == key) {
+			fields.getSpecies().add((String) value);
+		} else if (PLATFORM_FIELD == key) {
+			fields.getPlatform().add((String) value);
+		} else if (NUM_SAMPLES_FIELD == key) {
+			fields.getNum_samples().add((Long) value);
+		} else {
+			throw new IllegalArgumentException(
+					"Annotation "
+							+ key
+							+ " added to searchable annotations map but not added to addAnnotationToSearchDocument");
 		}
-		fieldValues.put(value);
 	}
 }

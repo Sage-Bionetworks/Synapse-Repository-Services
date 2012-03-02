@@ -1,13 +1,132 @@
 {
-    "description":"JSON schema for the fields of a search document.",
+    "description":"JSON schema for the fields of a search document.  Note that awesome search does not support camel case so we have to deviate from the usual naming scheme for properties.",
     "properties":{
+        "name":{
+            "type":"string",
+            "description":"The name of this entity",
+            "title":"Name",
+        },
+        "description":{
+            "type":"string",
+            "description":"The description of this entity.",
+            "title":"Description",
+        },
         "id":{
             "type":"string",
-            "description":"Tthe Synapse entity id."
+            "description":"The unique immutable ID for this entity.  A new ID will be generated for new Entities.  Once issued, this ID is guaranteed to never change or be re-issued"
+        },
+        "parent_id":{
+            "type":"string",
+            "description":"The ID of the parent of this entity"
+        },
+        "node_type":{
+            "type":"string",
+            "description":"The type of this entity.",
         },
         "etag":{
-            "type":"integer",
-            "description":"The Synapse entity etag."
+            "type":"string",
+            "description":"Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an entity is out-of-date."
         },
-    }
+        "created_on":{
+            "type":"integer",
+            "description":"The seconds since epoch date this entity was created.",
+            "title":"Created On",
+        },
+        "modified_on":{
+            "type":"integer",
+            "description":"The seconds since epoch date this entity was last modified.",
+            "title":"Modified On",
+        },
+        "created_by":{
+            "type":"string",
+            "description":"The user that created this entity.",
+            "title":"Created By",
+        },
+        "modified_by":{
+            "type":"string",
+            "description":"The user that last modified this entity.",
+            "title":"Modified By",
+        },
+        "annotations":{
+            "type":"array",
+            "items":{
+                "type":"string"
+            },
+            "description":"The URI to get to this entity's annotations",
+        },
+        "boost":{
+            "type":"array",
+            "items":{
+                "type":"string"
+            },
+            "description":"stuff in this field any extra copies of data that you would like to boost in free text search",
+        },
+        "references":{
+            "type":"array",
+            "items":{
+                "type":"string"
+            },
+            "description":"The the id of the entity to which this reference refers",
+        },
+        "acl":{
+            "type":"array",
+            "items":{
+                "type":"string"
+            },
+            "description":"The URI to get to this entity's access control list",
+            
+        },
+         "species":{
+            "type":"array",
+            "items":{
+                "type":"string"
+            },
+            "description":"The species associated with this dataset",
+            "title":"Species"
+        },
+		"disease":{
+            "type":"array",
+            "items":{
+                "type":"string"
+            },
+            "description":"The disease associated with this dataset",
+            "title":"Disease"
+		},
+        "tissue":{
+            "type":"array",
+            "items":{
+                "type":"string"
+            },
+            "description":"Type of tissue for the samples in this layer. Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
+            "links":[
+                {
+                    "rel":"describedby",
+                    "href":"http://synapse.sagebase.org/ontology#6501",
+                },
+            ],
+            "title":"Tissue Type",
+        },
+        "platform":{
+            "type":"array",
+            "items":{
+                "type":"string"
+            },
+            "description":"Chip platform for the samples in this layer",
+            "links":[
+                {
+                    "rel":"describedby",
+                    "href":"http://synapse.sagebase.org/ontology#6501",
+                },
+            ],
+            "title":"Platform",
+        },
+        "num_samples":{
+            "type":"array",
+            "items":{
+                "type":"integer"
+            },
+            "description":"Approximate number of samples in this layer",
+            "title":"Number of Samples"
+        }
+   }
 }

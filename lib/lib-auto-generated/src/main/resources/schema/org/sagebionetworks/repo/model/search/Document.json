@@ -24,6 +24,7 @@
         },
         "lang":{
             "type":"string",
+            "required":true,
             "description":"The language of the free text search found in the document.",
             "default":"en"
         },

@@ -7,7 +7,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONArray;
 import org.json.JSONObject;
+import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.tool.migration.ClientFactory;
 import org.sagebionetworks.tool.migration.Configuration;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
@@ -54,11 +56,12 @@ public class SearchDocumentDeleteWorker implements Callable<WorkerResult> {
 			// just a JSON array
 			JSONArray documentBatch = new JSONArray();
 			for (String entityId : this.entities) {
-				JSONObject document = new JSONObject();
-				document.put("type", DocumentTypeNames.delete);
-				document.put("id", entityId);
-				document.put("version", Integer.MAX_VALUE);
-				documentBatch.put(document);
+				Document document = new Document();
+				document.setType(DocumentTypeNames.delete);
+				document.setId(entityId);
+				document.setVersion(new Long(Integer.MAX_VALUE));
+				document.setLang("en"); // TODO this should have been set via "default" in the schema for this
+				documentBatch.put(EntityFactory.createJSONObjectForEntity(document));
 			}
 
 			log.info("Deleting from search index "

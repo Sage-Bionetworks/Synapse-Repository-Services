@@ -5,10 +5,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -18,6 +17,8 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.search.DocumentFields;
 
 /**
  * @author deflaux
@@ -49,6 +50,9 @@ public class SearchDocumentDriverImplTest {
 		// some are _also_ facets in the search index
 
 		Node node = new Node();
+		node.setId("5678");
+		node.setParentId("1234");
+		node.setETag("0");
 		node.setDescription("Test annotations");
 		node.setCreatedBy("test");
 		node.setCreatedOn(new Date());
@@ -58,12 +62,14 @@ public class SearchDocumentDriverImplTest {
 		NodeRevisionBackup rev = new NodeRevisionBackup();
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations primaryAnnos = named.getAdditionalAnnotations();
-		primaryAnnos.addAnnotation("Species", "Unicorn");
+		primaryAnnos.addAnnotation("species", "Dragon");
 		primaryAnnos.addAnnotation("numSamples", 999L);
 		Annotations additionalAnnos = named.getAdditionalAnnotations();
+		additionalAnnos.addAnnotation("Species", "Unicorn");
 		additionalAnnos.addAnnotation("stringKey", "a multi-word annotation gets underscores so we can exact-match find it");
 		additionalAnnos.addAnnotation("longKey", 10L);
-		additionalAnnos.addAnnotation("dateKey", new Date());
+		Date dateValue = new Date();
+		additionalAnnos.addAnnotation("dateKey", dateValue);
 		additionalAnnos.addAnnotation("blobKey", new String("bytes").getBytes());
 		rev.setNamedAnnotations(named);
 
@@ -71,28 +77,26 @@ public class SearchDocumentDriverImplTest {
 		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(resourceAccess);
 
-		JSONObject document = SearchDocumentDriverImpl.formulateSearchDocument(
+		Document document = SearchDocumentDriverImpl.formulateSearchDocument(
 				node, rev, acl);
-
+		assertEquals("en", document.getLang());
+		DocumentFields fields = document.getFields();
+		
 		// Check the facted fields
-		assertTrue(document.getJSONObject("fields").has("num_samples"));
-		assertEquals(999, document.getJSONObject("fields").getJSONArray(
-				"num_samples").getInt(0));
-		assertTrue(document.getJSONObject("fields").has("species"));
-		assertEquals("Unicorn", document.getJSONObject("fields").getJSONArray(
-				"species").getString(0));
-		assertTrue(document.getJSONObject("fields").has("annotations"));
+		assertEquals(1, fields.getNum_samples().size());
+		assertEquals(new Long(999), fields.getNum_samples().get(0));
+		assertEquals(2, fields.getSpecies().size());
+		assertEquals("Dragon", fields.getSpecies().get(0));
+		assertEquals("Unicorn", fields.getSpecies().get(1));
+		assertEquals(6, fields.getAnnotations().size());
 
 		// Check the free text annotations
-		JSONArray annotations = document.getJSONObject("fields").getJSONArray(
-				"annotations");
-		String joinedAnnotations = annotations.join(" ");
-		assertTrue(-1 < joinedAnnotations.indexOf("numSamples:999"));
-		assertTrue(-1 < joinedAnnotations.indexOf("Species:Unicorn"));
-		assertTrue(-1 < joinedAnnotations.indexOf("stringKey:a_multi-word_annotation_gets_underscores_so_we_can_exact-match_find_it"));
-		assertTrue(-1 < joinedAnnotations.indexOf("longKey:10"));
-		assertTrue(-1 < joinedAnnotations.indexOf("dateKey:"));
-		assertTrue(-1 == joinedAnnotations.indexOf("blobKey:"));		
+		List<String> annotations = fields.getAnnotations();
+		assertTrue(annotations.contains("species:Dragon"));
+		assertTrue(annotations.contains("Species:Unicorn"));
+		assertTrue(annotations.contains("stringKey:a_multi-word_annotation_gets_underscores_so_we_can_exact-match_find_it"));
+		assertTrue(annotations.contains("longKey:10"));
+		assertTrue(annotations.contains("dateKey:" + dateValue.toString().replaceAll("\\s", "_")));
 	}
 
 	/**
@@ -105,6 +109,9 @@ public class SearchDocumentDriverImplTest {
 		// search document
 
 		Node node = new Node();
+		node.setId("5678");
+		node.setParentId("1234");
+		node.setETag("0");
 		node
 				.setDescription("For the microarray experiments, MV4-11 and MOLM-14 ... Midi Kit, according to the manufacturer\u0019s instruction (Qiagen, Valencia, USA).");
 		node.setCreatedBy("test");
@@ -126,7 +133,7 @@ public class SearchDocumentDriverImplTest {
 		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(resourceAccess);
 
-		JSONObject document = SearchDocumentDriverImpl.formulateSearchDocument(
+		Document document = SearchDocumentDriverImpl.formulateSearchDocument(
 				node, rev, acl);
 		byte[] cloudSearchDocument = SearchDocumentDriverImpl
 				.cleanSearchDocument(document);
