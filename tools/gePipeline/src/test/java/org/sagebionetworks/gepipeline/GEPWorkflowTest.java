@@ -35,7 +35,7 @@ public class GEPWorkflowTest {
 		}
 
 		@Override
-		public String processData(String script,
+		public ProcessDataResult processData(String script,
 				String activityInput) {
 			try {
 				Thread.sleep(1000);
@@ -44,7 +44,11 @@ public class GEPWorkflowTest {
 			} catch (InterruptedException e) {
 			}
 			result += ":processData";
-			return result;
+			ProcessDataResult activityResult = new ProcessDataResult();
+			activityResult.setResult(result);
+			activityResult.setStdout("some stdout");
+			activityResult.setStderr("some stderr");
+			return activityResult;
 		}
 
 		@Override

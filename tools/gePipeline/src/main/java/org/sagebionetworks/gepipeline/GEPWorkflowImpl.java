@@ -57,19 +57,16 @@ public class GEPWorkflowImpl implements GEPWorkflow {
 				boolean noop = (NOOP != null && NOOP.equalsIgnoreCase("true"));
 
 				if (noop) {
-					Promise<String> result = Promise.asPromise("NO-OP for "
-							+ activityInput);
-					notifyDataProcessed(result);
+					ProcessDataResult noopResult = new ProcessDataResult();
+					noopResult.setResult("NO-OP for " + activityInput);
+					notifyDataProcessed(Promise.asPromise(noopResult));
 					return;
 				}
 
 				/**
 				 * Run the processing step(s) on this data
 				 */
-				// 'result' is the message returned by the workflow,
-				// other returned data are in 'processedLayerId', 'stdout',
-				// 'stderr'
-				Promise<String> result = processData(activityInput,
+				Promise<ProcessDataResult> result = processData(activityInput,
 						activityRequirement);
 
 				notifyDataProcessed(result);
@@ -88,12 +85,18 @@ public class GEPWorkflowImpl implements GEPWorkflow {
 
 	}
 
+	/**
+	 * Only send a notification if the data has actually changed
+	 * 
+	 * @param result
+	 */
 	@Asynchronous
-	private void notifyDataProcessed(Promise<String> result) {
-		if (hasChanged(result.get())) {
+	private void notifyDataProcessed(Promise<ProcessDataResult> result) {
+		
+		if (hasChanged(result.get().getResult())) {
 			// note, the output is in 'message'
 			client.notifyFollower(NOTIFICATION_SNS_TOPIC, NOTIFICATION_SUBJECT
-					+ new LocalDate().toString(), result.get());
+					+ new LocalDate().toString(), result.get().getResult());
 		}
 	}
 
@@ -101,11 +104,15 @@ public class GEPWorkflowImpl implements GEPWorkflow {
 		return msg.indexOf(NO_CHANGE_MESSAGE) < 0;
 	}
 
-	// different datasets require different size machines. The capacity
-	// requirement is
-	// passed in as 'activityRequirement'
+	/**
+	 * Different datasets require different size machines. The capacity requirement is passed in as 'activityRequirement'
+	 * 
+	 * @param activityInput
+	 * @param activityRequirement
+	 * @return
+	 */
 	@Asynchronous
-	private Promise<String> processData(String activityInput,
+	private Promise<ProcessDataResult> processData(String activityInput,
 			String activityRequirement) {
 
 		ActivitySchedulingOptions options = new ActivitySchedulingOptions();

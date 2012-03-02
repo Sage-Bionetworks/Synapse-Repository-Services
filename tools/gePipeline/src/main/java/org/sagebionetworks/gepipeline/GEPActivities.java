@@ -38,7 +38,7 @@ public interface GEPActivities {
 	@Activity(version = GEPWorkflow.VERSION)
 	@ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS, defaultTaskStartToCloseTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS)
 	@ExponentialRetry(initialRetryIntervalSeconds = INITIAL_RETRY_INTERVAL_SECONDS, maximumAttempts = NUM_RETRIES)
-	String processData(String script, String activityInput);
+	ProcessDataResult processData(String script, String activityInput);
 
 	/**
 	 * @param recipient

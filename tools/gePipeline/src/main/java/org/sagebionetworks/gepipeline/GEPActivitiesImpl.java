@@ -10,6 +10,12 @@ import org.sagebionetworks.workflow.Notification;
  * 
  */
 public class GEPActivitiesImpl implements GEPActivities {
+	/**
+	* Even though we are sending stdout and stderr from the R script to a log
+	* file, include a portion of that output in the workflow history for
+	* convenience. We only want to dig through the logs if we need to.
+	*/
+	private static final int MAX_SCRIPT_OUTPUT = 10240;
 
 	/**
 	 * @param s
@@ -27,23 +33,28 @@ public class GEPActivitiesImpl implements GEPActivities {
 	}
 
 	@Override
-	public String processData(String script, String activityInput) {
-		ScriptResult result = ScriptProcessor.doProcess(script, Arrays
+	public ProcessDataResult processData(String script, String activityInput) {
+
+		ScriptResult scriptResult = ScriptProcessor.doProcess(script, Arrays
 				.asList(new String[] { GEPWorkflow.INPUT_DATA_PARAMETER_KEY,
 						formatAsScriptParam(activityInput), }));
-		
-		// TODO stdout and stderr are no longer in the workflow history, this needs to be fixed
+
 		// Truncate stdout and stderr to a more reasonable size so that we fit
 		// withing the workflow state constraints
-		/*
-		stdout = (MAX_SCRIPT_OUTPUT > scriptResult.getStdout().length()) ? scriptResult
+		String stdout = (MAX_SCRIPT_OUTPUT > scriptResult.getStdout().length()) ? scriptResult
 				.getStdout()
 				: scriptResult.getStdout().substring(0, MAX_SCRIPT_OUTPUT);
-		stderr = (MAX_SCRIPT_OUTPUT > scriptResult.getStderr().length()) ? scriptResult
+		String stderr = (MAX_SCRIPT_OUTPUT > scriptResult.getStderr().length()) ? scriptResult
 				.getStderr()
 				: scriptResult.getStderr().substring(0, MAX_SCRIPT_OUTPUT);
-		*/
-		return result.getStringResult(ScriptResult.OUTPUT_JSON_KEY);
+
+		ProcessDataResult activityResult = new ProcessDataResult();
+		activityResult.setResult(scriptResult
+				.getStringResult(ScriptResult.OUTPUT_JSON_KEY));
+		activityResult.setStdout(stdout);
+		activityResult.setStderr(stderr);
+
+		return activityResult;
 	}
 
 	@Override
