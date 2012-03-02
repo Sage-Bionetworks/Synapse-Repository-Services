@@ -8,7 +8,6 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLEncoder;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -36,12 +35,15 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -591,6 +593,45 @@ public class Synapse {
 		try {
 			path.initializeFromJSONObject(adapter);
 			return path;
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}	
+	
+	/**
+	 * Get the hierarchical path to this entity
+	 * @param entity
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public PaginatedResults<EntityHeader> getEntityReferencedBy(Entity entity) throws SynapseException {
+		String version = null;
+		if(entity instanceof Versionable) {
+			version = ((Versionable)entity).getVersionNumber().toString();
+		}
+		return getEntityReferencedBy(entity.getId(), version);
+	}
+	
+	/**
+	 * Get the hierarchical path to this entity via its id and urlPrefix 
+	 * @param entityId
+	 * @param urlPrefix
+	 * @return
+	 * @throws SynapseException
+	 */
+	public PaginatedResults<EntityHeader> getEntityReferencedBy(String entityId, String targetVersion) throws SynapseException {
+		String url = "/entity/" + entityId;
+		if(targetVersion != null) {
+			url += "/version/" + targetVersion;
+		}
+		url += "/referencedBy";
+		
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(EntityHeader.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}

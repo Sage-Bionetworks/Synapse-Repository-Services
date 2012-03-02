@@ -7,8 +7,11 @@ import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
@@ -20,6 +23,9 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -149,6 +155,38 @@ public class SynapseTest {
 		EntityHeader firstHeader = returnedHeaders.get(0);
 		assertEquals(layerHeader, firstHeader);
 		
+	}
+	
+	@Test
+	public void testGetEntityReferencedBy() throws Exception {							
+		Project proj2 = new Project();
+		proj2.setId("5");
+		proj2.setName("proj2");
+		
+		EntityHeader proj1Header = new EntityHeader();
+		proj1Header.setId("id");
+		proj1Header.setName("name");
+		proj1Header.setType("type");		
+		List<EntityHeader> eHeaderList = new ArrayList<EntityHeader>();
+		eHeaderList.add(proj1Header);		
+		
+		PaginatedResults<EntityHeader> paginatedResult = new PaginatedResults<EntityHeader>();
+		paginatedResult.setResults(eHeaderList);
+		paginatedResult.setTotalNumberOfResults(1);
+		paginatedResult.setPaging(new HashMap<String, String>());
+				
+		// setup mock
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		paginatedResult.writeToJSONObject(adapter);		
+		StringEntity responseEntity = new StringEntity(adapter.toJSONString());
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		
+		
+		PaginatedResults<EntityHeader> realResults = synapse.getEntityReferencedBy(proj2);
+		
+		assertEquals(1, realResults.getTotalNumberOfResults());
+		EntityHeader firstHeader = realResults.getResults().get(0);
+		assertEquals(proj1Header, firstHeader);
 	}
 		
 }
