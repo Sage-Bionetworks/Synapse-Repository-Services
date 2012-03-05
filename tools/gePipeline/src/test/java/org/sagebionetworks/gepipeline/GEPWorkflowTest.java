@@ -81,7 +81,7 @@ public class GEPWorkflowTest {
 	public void setUp() throws Exception {
 		workflowTest.addWorkflowImplementationType(GEPWorkflowImpl.class);
 		activitiesImplementation = new TestGEPActivities();
-		workflowTest.addActivitiesImplementation(activitiesImplementation);
+		workflowTest.addActivitiesImplementation(GEPWorkflow.SMALL_ACTIVITY_TASK_LIST, activitiesImplementation);
 	}
 
 	/**

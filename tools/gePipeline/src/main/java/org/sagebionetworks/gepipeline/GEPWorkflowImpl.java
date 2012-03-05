@@ -115,22 +115,25 @@ public class GEPWorkflowImpl implements GEPWorkflow {
 	private Promise<ProcessDataResult> processData(String activityInput,
 			String activityRequirement) {
 
-		ActivitySchedulingOptions options = new ActivitySchedulingOptions();
-
+		String taskList = null;
 		if (ACTIVITY_REQUIREMENT_SMALL.equals(activityRequirement)) {
-			options.setTaskList(SMALL_ACTIVITY_TASK_LIST);
+			taskList = SMALL_ACTIVITY_TASK_LIST;
 		} else if (ACTIVITY_REQUIREMENT_MEDIUM.equals(activityRequirement)) {
-			options.setTaskList(MEDIUM_ACTIVITY_TASK_LIST);
+			taskList = MEDIUM_ACTIVITY_TASK_LIST;
 		} else if (ACTIVITY_REQUIREMENT_LARGE.equals(activityRequirement)) {
-			options.setTaskList(LARGE_ACTIVITY_TASK_LIST);
+			taskList = LARGE_ACTIVITY_TASK_LIST;
 		} else if (ACTIVITY_REQUIREMENT_EXTRA_LARGE.equals(activityRequirement)) {
-			options.setTaskList(EXTRA_LARGE_ACTIVITY_TASK_LIST);
+			taskList = EXTRA_LARGE_ACTIVITY_TASK_LIST;
 		} else {
 			throw new IllegalArgumentException("Unexpected "
 					+ activityRequirement);
 		}
 
-		return client.processData(script, activityInput);
+		ActivitySchedulingOptions options = new ActivitySchedulingOptions();
+		options.setTaskList(taskList);
+		Promise<ProcessDataResult> results = client.processData(script, activityInput, options); 
+		
+		return results;
 	}
 
 }
