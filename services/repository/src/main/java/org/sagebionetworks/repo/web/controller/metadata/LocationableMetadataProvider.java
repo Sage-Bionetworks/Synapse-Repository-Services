@@ -29,6 +29,8 @@ import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -250,8 +252,28 @@ public class LocationableMetadataProvider implements
 		// layer
 		Dataset dataset = null;
 		if (locationable instanceof Layer) {
-			dataset = entityManager.getEntity(userInfo, locationable
+
+			// TODO is there a better way to escalate privilege? this is a major hack
+			// Dev Note: this method will be nuked soon for the reimpl of governance
+			User tempAdminUser = new User();
+			tempAdminUser.setUserId("temp@foo.com");
+
+			UserGroup tempAdminGroup = new UserGroup();
+			tempAdminGroup.setId("123");
+			tempAdminGroup.setName("fake");
+
+			List<UserGroup> tempGroups = new ArrayList<UserGroup>();
+			tempGroups.add(tempAdminGroup);
+
+			UserInfo tempAdmin = new UserInfo(true);
+			tempAdmin.setUser(tempAdminUser);
+			tempAdmin.setGroups(tempGroups);
+			tempAdmin.setIndividualGroup(tempAdminGroup);
+			
+			// Run this as an administrator
+			dataset = entityManager.getEntity(tempAdmin, locationable
 					.getParentId(), Dataset.class);
+			
 		} else if (locationable instanceof Dataset) {
 			dataset = (Dataset) locationable;
 		} else {
