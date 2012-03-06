@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.query.jdo;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -12,15 +11,12 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
+import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -48,9 +44,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	// This is better suited for simple JDBC query.
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
-	
-	@Autowired
-	FieldTypeDAO fieldTypeDao;
 
 	/**
 	 * The maximum number of bytes allowed per query.
@@ -96,7 +89,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 */
 	private FieldType getFieldType(String name) {
 		// Look up this name
-		return fieldTypeDao.getTypeForName(name);
+		return FieldTypeCache.getInstance().getTypeForName(name);
 	}
 
 	/**
@@ -405,6 +398,11 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 				FieldType type = getFieldType(id.getFieldName());
 				// We only need to add a from for non-primary fileds
 				if(FieldType.PRIMARY_FIELD != type){
+					// try to determine the type from the parameter
+//					FieldType typeFromValue = determineTypeFromValue(expression.getValue());
+//					if(typeFromValue != null){
+//						type = typeFromValue;
+//					}
 					addFrom(fromBuilder, SqlConstants.EXPRESSION_ALIAS_PREFIX+i, type, aliasMap);
 				}
 			}
@@ -432,6 +430,41 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		
 		// The where clause is started if there is more than one alias used
 		return aliasMap;
+	}
+	
+	/**
+	 * Try to determin the type from the value
+	 * @param value
+	 * @return
+	 */
+	public static FieldType determineTypeFromValue(Object value){
+		if(value == null) return null;
+		if(value instanceof Long){
+			return FieldType.LONG_ATTRIBUTE;
+		}
+		if(value instanceof Double){
+			return FieldType.DOUBLE_ATTRIBUTE;
+		}
+		if(value instanceof String){
+			String string = (String) value;
+			// Try to parse long
+			try{
+				Long.parseLong(string);
+				return FieldType.LONG_ATTRIBUTE;
+			}catch (NumberFormatException e) {
+				// Not a long
+				try{
+					Double.parseDouble(string);
+					return FieldType.DOUBLE_ATTRIBUTE;
+				}catch(NumberFormatException e2){
+					// Not a long or a double so it is a string
+					return FieldType.STRING_ATTRIBUTE;
+				}
+			}
+
+		}
+		// All others are treated as strings
+		return FieldType.STRING_ATTRIBUTE;
 	}
 	
 	/**

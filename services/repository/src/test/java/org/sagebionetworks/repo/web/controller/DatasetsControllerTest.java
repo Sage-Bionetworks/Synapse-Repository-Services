@@ -14,6 +14,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -300,6 +301,9 @@ public class DatasetsControllerTest {
 	 * 
 	 * @throws Exception
 	 */
+	@Ignore 
+	// We no longer gaurentee that onces an annotation name is used it is bound to a type.  
+	// As a result we must do a string sort on annotation fields. See: PLFM-1019.
 	@SuppressWarnings("unchecked")
 	@Test
 	public void testGetDatasetsSortByDateAnnotationAscending() throws Exception {
@@ -367,6 +371,9 @@ public class DatasetsControllerTest {
 	 * @throws Exception
 	 */
 	@SuppressWarnings("unchecked")
+		@Ignore 
+	// We no longer gaurentee that onces an annotation name is used it is bound to a type.  
+	// As a result we must do a string sort on annotation fields. See: PLFM-1019.
 	@Test
 	public void testGetDatasetsSortByDateAnnotationDescending()
 			throws Exception {

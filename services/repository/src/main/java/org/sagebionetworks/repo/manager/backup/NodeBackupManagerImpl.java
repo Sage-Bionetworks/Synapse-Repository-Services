@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeBackup;
@@ -22,6 +21,7 @@ import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,9 +52,6 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	
 	@Autowired
 	private NodeInheritanceDAO inheritanceDAO;
-	
-	@Autowired
-	FieldTypeDAO fieldTypeDao;
 
 	@Transactional(readOnly = true)
 	@Override
@@ -196,7 +193,7 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 				NamedAnnotations named = rev.getNamedAnnotations();
 				Iterator<String> it = named.nameIterator();
 				while(it.hasNext()){
-					fieldTypeDao.validateAnnotations(named.getAnnotationsForName(it.next()));
+					FieldTypeCache.validateAnnotations(named.getAnnotationsForName(it.next()));
 				}
 			}
 			if(nodeDao.doesNodeRevisionExist(rev.getNodeId(), rev.getRevisionNumber())){

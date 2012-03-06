@@ -534,6 +534,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			// Replace the annotations in the tables
 			Annotations merged = JDOSecondaryPropertyUtils.mergeAnnotations(updatedAnnos);
 			merged.setId(KeyFactory.keyToString(rev.getOwner()));
+			// We need to add data types to the strings, to support mixed query
+			merged = JDOSecondaryPropertyUtils.addAllToStrings(merged);
 			dboAnnotationsDao.replaceAnnotations(merged);
 		} catch (IOException e) {
 			throw new DatastoreException(e);

@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.query.jdo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -22,7 +22,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.FieldTypeDAO;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -84,8 +83,6 @@ public class JDONodeQueryDAOImplTest {
 	@Autowired
 	private NodeDAO nodeDao;
 	
-	@Autowired
-	private FieldTypeDAO fieldTypeDao;
 	
 	private UserInfo mockUserInfo = null;
 	
@@ -95,7 +92,6 @@ public class JDONodeQueryDAOImplTest {
 		// Make sure the Autowire is working
 		assertNotNull(nodeQueryDao);
 		assertNotNull(nodeDao);
-		assertNotNull(fieldTypeDao);
 		
 		mockUserInfo = Mockito.mock(UserInfo.class);
 		// All tests in the suite assume the user is an admin.
@@ -123,7 +119,6 @@ public class JDONodeQueryDAOImplTest {
 		while(it.hasNext()){
 			String key = it.next();
 			FieldType type = fieldTypeMap.get(key);
-			fieldTypeDao.addNewType(key, type);
 		}
 		
 		// Create a few datasets
@@ -220,19 +215,6 @@ public class JDONodeQueryDAOImplTest {
 				}
 			}
 		}
-		if(fieldTypeMap != null && fieldTypeDao != null){
-			Iterator<String> it = fieldTypeMap.keySet().iterator();
-			while(it.hasNext()){
-				String key = it.next();
-				try{
-					fieldTypeDao.delete(key);
-				}catch(Exception e){
-					
-				}
-			}
-		}
-		
-
 	}
 	
 

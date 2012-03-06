@@ -9,7 +9,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -23,11 +22,10 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
-import org.sagebionetworks.repo.model.FieldTypeDAO;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ReferenceDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
@@ -48,7 +46,6 @@ public class NodeManagerImpleUnitTest {
 	private AuthorizationManager mockAuthDao = null;
 	private NodeManagerImpl nodeManager = null;
 	private AccessControlListDAO mockAclDao = null;
-	private FieldTypeDAO mockFieldTypeDao = null;
 	private EntityBootstrapper mockEntityBootstrapper;
 	private NodeInheritanceManager mockNodeInheritanceManager = null;
 	private ReferenceDao mockReferenceDao = null;
@@ -60,13 +57,12 @@ public class NodeManagerImpleUnitTest {
 	public void before() throws Exception {
 		mockNodeDao = Mockito.mock(NodeDAO.class);
 		mockAuthDao = Mockito.mock(AuthorizationManager.class);
-		mockFieldTypeDao = Mockito.mock(FieldTypeDAO.class);
 		mockAclDao = Mockito.mock(AccessControlListDAO.class);
 		mockEntityBootstrapper = Mockito.mock(EntityBootstrapper.class);
 		mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		mockReferenceDao = Mockito.mock(ReferenceDao.class);
 		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao, 
+		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockAclDao, 
 				mockEntityBootstrapper, mockNodeInheritanceManager, mockReferenceDao);
 
 		UserGroup userGroup = new UserGroup();

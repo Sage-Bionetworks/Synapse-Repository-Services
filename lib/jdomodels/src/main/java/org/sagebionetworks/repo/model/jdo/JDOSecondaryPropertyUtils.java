@@ -6,8 +6,10 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.zip.GZIPInputStream;
@@ -45,6 +47,54 @@ public class JDOSecondaryPropertyUtils {
 			}
 		}
 		return merged;
+	}
+	
+	/**
+	 * Add all annotaions to strings.
+	 * @param annos
+	 * @return
+	 */
+	public static Annotations addAllToStrings(Annotations annos){
+		// Add all longs
+		if(annos.getLongAnnotations() != null){
+			for(String key: annos.getLongAnnotations().keySet()){
+				List<Long> list = annos.getLongAnnotations().get(key);
+				if(list != null){
+					for(Long value: list){
+						if(value != null){
+							annos.addAnnotation(key, Long.toString(value));
+						}
+					}
+				}
+			}
+		}
+		// Doubles
+		if(annos.getDoubleAnnotations() != null){
+			for(String key: annos.getDoubleAnnotations().keySet()){
+				List<Double> list = annos.getDoubleAnnotations().get(key);
+				if(list != null){
+					for(Double value: list){
+						if(value != null){
+							annos.addAnnotation(key, Double.toString(value));
+						}
+					}
+				}
+			}
+		}
+		// dates
+		if(annos.getDateAnnotations() != null){
+			for(String key: annos.getDateAnnotations().keySet()){
+				List<Date> list = annos.getDateAnnotations().get(key);
+				if(list != null){
+					for(Date value: list){
+						if(value != null){
+							annos.addAnnotation(key, Long.toString(value.getTime()));
+						}
+					}
+				}
+			}
+		}
+		return annos;
 	}
 	
 	/**

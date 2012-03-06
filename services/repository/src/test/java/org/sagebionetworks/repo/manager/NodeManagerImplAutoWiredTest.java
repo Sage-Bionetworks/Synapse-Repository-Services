@@ -26,13 +26,12 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.FieldTypeDAO;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
@@ -524,11 +523,10 @@ public class NodeManagerImplAutoWiredTest {
 		//I need a NodeManagerImpl with the mocked dependencies so behavior
 		//can be verified
 		NodeDAO mockNodeDao = Mockito.mock(NodeDAO.class);
-		FieldTypeDAO mockFieldTypeDao = Mockito.mock(FieldTypeDAO.class);
 		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		
 		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, 
-				mockFieldTypeDao, aclDAO, entityBootstrapper, mockNodeInheritanceManager, null);		
+				aclDAO, entityBootstrapper, mockNodeInheritanceManager, null);		
 		
 		//set child's parentId to the newProject
 		fetchedChild.setParentId(newProjectId);
@@ -564,11 +562,10 @@ public class NodeManagerImplAutoWiredTest {
 		//I need a NodeManagerImpl with the mocked dependencies so behavior
 		//can be verified
 		NodeDAO mockNodeDao = Mockito.mock(NodeDAO.class);
-		FieldTypeDAO mockFieldTypeDao = Mockito.mock(FieldTypeDAO.class);
 		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		
 		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, 
-				mockFieldTypeDao, aclDAO, entityBootstrapper, mockNodeInheritanceManager, null);	
+				aclDAO, entityBootstrapper, mockNodeInheritanceManager, null);	
 		
 		//make a non parentId change to the child
 		Node fetchedNode = nodeManager.get(testUser, childId);

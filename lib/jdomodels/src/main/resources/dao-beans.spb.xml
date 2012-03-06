@@ -33,9 +33,6 @@
 
 	<bean id="userGroupDAO" class="org.sagebionetworks.repo.model.jdo.JDOUserGroupDAOImpl" />
 
-	<!-- Annotation Field name enforcer -->
-	<bean id="fieldTypeDao" class="org.sagebionetworks.repo.model.jdo.JDOFieldTypeDAOImpl" />
-
 	<bean id="userGroupCache" class="org.sagebionetworks.repo.model.jdo.UserGroupCacheImpl"
 		scope="singleton" />
 

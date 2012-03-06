@@ -8,20 +8,18 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.FieldTypeDAO;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.NodeInheritanceDAO;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -35,7 +33,6 @@ public class NodeManagerAuthorizationTest {
 	private AuthorizationManager mockAuthDao = null;
 	private NodeManagerImpl nodeManager = null;
 	private AccessControlListDAO mockAclDao = null;
-	private FieldTypeDAO mockFieldTypeDao = null;
 	private Node mockNode;
 	private Annotations mockAnnotations;
 	private NamedAnnotations mockNamed;
@@ -50,12 +47,11 @@ public class NodeManagerAuthorizationTest {
 		mockNodeDao = Mockito.mock(NodeDAO.class);
 		mockAuthDao = Mockito.mock(AuthorizationManager.class);
 		// Say no to everything.
-		mockFieldTypeDao = Mockito.mock(FieldTypeDAO.class);
 		mockAclDao = Mockito.mock(AccessControlListDAO.class);
 		mockEntityBootstrapper = Mockito.mock(EntityBootstrapper.class);
 		mockInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockFieldTypeDao, mockAclDao, mockEntityBootstrapper, mockInheritanceManager, null );
+		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockAclDao, mockEntityBootstrapper, mockInheritanceManager, null );
 		// The mocks user for tests
 		mockNode = Mockito.mock(Node.class);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project.name());

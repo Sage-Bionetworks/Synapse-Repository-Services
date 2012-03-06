@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -19,7 +17,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -29,6 +26,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
+import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,9 +50,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	AuthorizationManager authorizationManager;
 	
 	@Autowired
-	FieldTypeDAO fieldTypeDao;
-	
-	@Autowired
 	private AccessControlListDAO aclDAO;
 	
 	@Autowired
@@ -76,12 +71,11 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 * @param nodeDao
 	 * @param authDoa
 	 */
-	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, FieldTypeDAO fieldTypeday, 
+	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, 
 			AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper, 
 			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao){
 		this.nodeDao = nodeDao;
 		this.authorizationManager = authDoa;
-		this.fieldTypeDao = fieldTypeday;
 		this.aclDAO = aclDao;
 		this.entityBootstrapper = entityBootstrapper;
 		this.nodeInheritanceManager = nodeInheritanceManager;
@@ -405,7 +399,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(updated == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(updated.getEtag() == null) throw new IllegalArgumentException("Cannot update Annotations with a null eTag");
 		// Validate the annotation names
-		fieldTypeDao.validateAnnotations(updated);
+		FieldTypeCache.validateAnnotations(updated);
 	}
 
 	@Override

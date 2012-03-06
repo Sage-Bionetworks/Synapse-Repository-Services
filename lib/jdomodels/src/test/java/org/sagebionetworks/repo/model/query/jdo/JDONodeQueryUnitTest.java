@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
+import org.sagebionetworks.repo.model.query.FieldType;
 
 /**
  * 
@@ -84,5 +85,33 @@ public class JDONodeQueryUnitTest {
 		assertNotNull(groupBindValue1);
 		assertTrue(123L == groupBindValue0.longValue() || 123L == groupBindValue1.longValue());
 		assertTrue(124L == groupBindValue0.longValue() || 124L == groupBindValue1.longValue());
+	}
+	
+	@Test
+	public void testDetermineTypeFromValueNull(){
+		assertEquals(null, JDONodeQueryDaoImpl.determineTypeFromValue(null));
+	}
+	
+	@Test
+	public void testDetermineTypeFromValueString(){
+		assertEquals(FieldType.STRING_ATTRIBUTE, JDONodeQueryDaoImpl.determineTypeFromValue("StringValue"));
+	}
+	
+	@Test
+	public void testDetermineTypeFromValueLong(){
+		assertEquals(FieldType.LONG_ATTRIBUTE, JDONodeQueryDaoImpl.determineTypeFromValue(new Long(123)));
+	}
+	
+	@Test
+	public void testDetermineTypeFromValueDouble(){
+		assertEquals(FieldType.DOUBLE_ATTRIBUTE, JDONodeQueryDaoImpl.determineTypeFromValue(new Double(123.99)));
+	}
+	@Test
+	public void testDetermineTypeFromValueLongAsString(){
+		assertEquals(FieldType.LONG_ATTRIBUTE, JDONodeQueryDaoImpl.determineTypeFromValue("435"));
+	}
+	@Test
+	public void testDetermineTypeFromValueDoubleAsString(){
+		assertEquals(FieldType.DOUBLE_ATTRIBUTE, JDONodeQueryDaoImpl.determineTypeFromValue("435.99"));
 	}
 }

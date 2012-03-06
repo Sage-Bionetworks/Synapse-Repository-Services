@@ -19,17 +19,15 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.FieldTypeDAO;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -40,7 +38,6 @@ import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
-import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,9 +55,6 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 
 	@Autowired
 	private NodeDAO nodeDao;
-
-	@Autowired
-	private FieldTypeDAO fieldTypeDao;
 
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -98,7 +92,6 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	public void before() throws Exception {
 		assertNotNull(nodeQueryDao);
 		assertNotNull(nodeDao);
-		assertNotNull(fieldTypeDao);
 		assertNotNull(userGroupDAO);
 	}
 	
@@ -479,7 +472,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 			// Add an attribute to nodes in group B
 			NamedAnnotations annos = nodeDao.getAnnotations(id);
 			assertNotNull(annos);
-			fieldTypeDao.addNewType(attributeName, FieldType.LONG_ATTRIBUTE);
+//			fieldTypeDao.addNewType(attributeName, FieldType.LONG_ATTRIBUTE);
 			annos.getAdditionalAnnotations().addAnnotation(attributeName, new Long(i));
 			nodeDao.updateAnnotations(id, annos);
 		}

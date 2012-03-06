@@ -10,9 +10,11 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -110,6 +112,52 @@ public class JDOSecondaryPropertyUtilsTest {
 		assertNotNull(second);
 		assertEquals(1, second.size());
 		assertEquals(values[2], new String(second.iterator().next(), "UTF-8"));
+
+	}
+	
+	/**
+	 * Test for adding all values to strings.
+	 */
+	@Test
+	public void testAddAllToString(){
+		Annotations annos = new Annotations();
+		annos.addAnnotation("one", "a");
+		annos.addAnnotation("one", "b");
+		long now = System.currentTimeMillis();
+		annos.addAnnotation("date", new Date(now));
+		annos.addAnnotation("double", new Double(123.5));
+		annos.addAnnotation("long", new Long(999));
+		// These conflict with the string
+		annos.addAnnotation("one", new Long(45));
+		// add some nulls
+		annos.getLongAnnotations().put("nullLong", null);
+		annos.getLongAnnotations().put("emptyLong", new ArrayList<Long>());
+		List<Long> list = new ArrayList<Long>();
+		list.add(null);
+		annos.getLongAnnotations().put("nullValue", list);
+		// Add them all to strings
+		JDOSecondaryPropertyUtils.addAllToStrings(annos);
+		List<String> values = annos.getStringAnnotations().get("one");
+		assertEquals(3, values.size());
+		assertEquals("a", values.get(0));
+		assertEquals("b", values.get(1));
+		assertEquals("45", values.get(2));
+		// Date
+		values = annos.getStringAnnotations().get("date");
+		assertEquals(1, values.size());
+		assertEquals(Long.toString(now), values.get(0));
+		// Double
+		values = annos.getStringAnnotations().get("double");
+		assertEquals(1, values.size());
+		assertEquals(Double.toString(123.5), values.get(0));
+		// Long
+		values = annos.getStringAnnotations().get("long");
+		assertEquals(1, values.size());
+		assertEquals(Long.toString(999), values.get(0));
+		// the values should still be in their original location as well
+		List<Long> longValues = annos.getLongAnnotations().get("long");
+		assertEquals(1, longValues.size());
+		assertEquals(new Long(999), longValues.get(0));
 
 	}
 	

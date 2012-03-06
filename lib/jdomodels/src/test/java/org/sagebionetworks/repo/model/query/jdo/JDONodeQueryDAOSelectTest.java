@@ -15,7 +15,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.FieldTypeDAO;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -53,9 +52,6 @@ public class JDONodeQueryDAOSelectTest {
 	@Autowired
 	private NodeDAO nodeDao;
 	
-	@Autowired
-	private FieldTypeDAO fieldTypeDao;
-	
 	private UserInfo mockUserInfo = null;
 	
 	private static List<String> nodeIds = new ArrayList<String>();
@@ -66,7 +62,6 @@ public class JDONodeQueryDAOSelectTest {
 		// Make sure the Autowire is working
 		assertNotNull(nodeQueryDao);
 		assertNotNull(nodeDao);
-		assertNotNull(fieldTypeDao);
 		
 		mockUserInfo = Mockito.mock(UserInfo.class);
 		// All tests in the suite assume the user is an admin.
