@@ -414,7 +414,12 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		} else if (PLATFORM_FIELD == key) {
 			fields.getPlatform().add((String) value);
 		} else if (NUM_SAMPLES_FIELD == key) {
-			fields.getNum_samples().add((Long) value);
+			if(value instanceof Long) {
+				fields.getNum_samples().add((Long) value);
+			}
+			else if (value instanceof String) {
+				fields.getNum_samples().add(Long.valueOf((String) value));				
+			}
 		} else {
 			throw new IllegalArgumentException(
 					"Annotation "

@@ -68,6 +68,7 @@ public class SearchDocumentDriverImplTest {
 		additionalAnnos.addAnnotation("Species", "Unicorn");
 		additionalAnnos.addAnnotation("stringKey", "a multi-word annotation gets underscores so we can exact-match find it");
 		additionalAnnos.addAnnotation("longKey", 10L);
+		additionalAnnos.addAnnotation("number_of_samples", "42");
 		Date dateValue = new Date();
 		additionalAnnos.addAnnotation("dateKey", dateValue);
 		additionalAnnos.addAnnotation("blobKey", new String("bytes").getBytes());
@@ -83,17 +84,20 @@ public class SearchDocumentDriverImplTest {
 		DocumentFields fields = document.getFields();
 		
 		// Check the facted fields
-		assertEquals(1, fields.getNum_samples().size());
-		assertEquals(new Long(999), fields.getNum_samples().get(0));
+		assertEquals(2, fields.getNum_samples().size());
+		assertEquals(new Long(42), fields.getNum_samples().get(0));
+		assertEquals(new Long(999), fields.getNum_samples().get(1));
 		assertEquals(2, fields.getSpecies().size());
 		assertEquals("Dragon", fields.getSpecies().get(0));
 		assertEquals("Unicorn", fields.getSpecies().get(1));
-		assertEquals(6, fields.getAnnotations().size());
+		assertEquals(7, fields.getAnnotations().size());
 
 		// Check the free text annotations
 		List<String> annotations = fields.getAnnotations();
 		assertTrue(annotations.contains("species:Dragon"));
 		assertTrue(annotations.contains("Species:Unicorn"));
+		assertTrue(annotations.contains("numSamples:999"));
+		assertTrue(annotations.contains("number_of_samples:42"));
 		assertTrue(annotations.contains("stringKey:a_multi-word_annotation_gets_underscores_so_we_can_exact-match_find_it"));
 		assertTrue(annotations.contains("longKey:10"));
 		assertTrue(annotations.contains("dateKey:" + dateValue.toString().replaceAll("\\s", "_")));
