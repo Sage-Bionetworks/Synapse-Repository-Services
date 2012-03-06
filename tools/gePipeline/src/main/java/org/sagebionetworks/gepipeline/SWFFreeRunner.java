@@ -9,6 +9,8 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.json.JSONObject;
+import org.sagebionetworks.workflow.ScriptProcessor;
+import org.sagebionetworks.workflow.ScriptResult;
 
 public class SWFFreeRunner {
 	private static final Logger log = Logger
@@ -23,7 +25,7 @@ public class SWFFreeRunner {
 		));
 		String crawlerScript = GEPWorkflowConfigHelper.getGEPipelineCrawlerScript();
 		if (crawlerScript==null || crawlerScript.length()==0) throw new RuntimeException("Missing crawler script parameter.");
-		ScriptResult results = ScriptProcessor.doProcess(crawlerScript, scriptParams);
+		ScriptResult results = ScriptProcessor.runSynapseScript(GEPWorkflowConfigHelper.getConfig(), crawlerScript, scriptParams);
 		Map<String,String> idToActivityInputMap = new HashMap<String,String>(results.getStringMapResult(ScriptResult.OUTPUT_JSON_KEY));
 		log.info("datasetIds: "+idToActivityInputMap.keySet());
 		int max = -1; // set to -1 to disable
@@ -41,7 +43,7 @@ public class SWFFreeRunner {
 			String workflowScript = GEPWorkflowConfigHelper.getGEPipelineWorkflowScript();
 			if (workflowScript==null || workflowScript.length()==0) throw new RuntimeException("No workflow script param");
 			try {
-			    ScriptResult result = ScriptProcessor.doProcess(workflowScript,
+			    ScriptResult result = ScriptProcessor.runSynapseScript(GEPWorkflowConfigHelper.getConfig(), workflowScript,
 					Arrays.asList(new String[]{
 							GEPWorkflow.INPUT_DATA_PARAMETER_KEY, GEPActivitiesImpl.formatAsScriptParam(parameterString),
 							}));

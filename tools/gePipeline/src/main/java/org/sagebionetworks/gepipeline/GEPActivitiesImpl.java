@@ -1,10 +1,15 @@
 package org.sagebionetworks.gepipeline;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.util.Arrays;
 
+import org.json.JSONException;
 import org.sagebionetworks.workflow.Notification;
+import org.sagebionetworks.workflow.ScriptProcessor;
+import org.sagebionetworks.workflow.ScriptResult;
+import org.sagebionetworks.workflow.UnrecoverableException;
 
 /**
  * 
@@ -33,9 +38,9 @@ public class GEPActivitiesImpl implements GEPActivities {
 	}
 
 	@Override
-	public ProcessDataResult processData(String script, String activityInput) {
+	public ProcessDataResult processData(String script, String activityInput) throws IOException, InterruptedException, UnrecoverableException, JSONException {
 
-		ScriptResult scriptResult = ScriptProcessor.doProcess(script, Arrays
+		ScriptResult scriptResult = ScriptProcessor.runSynapseScript(GEPWorkflowConfigHelper.getConfig(), script, Arrays
 				.asList(new String[] { GEPWorkflow.INPUT_DATA_PARAMETER_KEY,
 						formatAsScriptParam(activityInput), }));
 

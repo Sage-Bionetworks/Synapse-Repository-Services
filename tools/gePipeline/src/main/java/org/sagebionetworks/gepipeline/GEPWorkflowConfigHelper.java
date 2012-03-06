@@ -43,6 +43,15 @@ public class GEPWorkflowConfigHelper {
 	}
 
 	/**
+	 * Get the wrapped instance of WorkflowTemplatedConfiguration for use in other utilities in lib-workflow
+	 * 
+	 * @return
+	 */
+	public static WorkflowTemplatedConfiguration getConfig() {
+		return configuration;
+	}
+	
+	/**
 	 * Get the shared synchronous Simple Workflow Framework (SWF) Client
 	 * 
 	 * @return the SWF client

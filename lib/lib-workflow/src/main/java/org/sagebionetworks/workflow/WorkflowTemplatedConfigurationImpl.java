@@ -21,6 +21,10 @@ import com.amazonaws.services.sns.AmazonSNSClient;
  */
 public class WorkflowTemplatedConfigurationImpl extends
 		TemplatedConfigurationImpl implements WorkflowTemplatedConfiguration {
+
+	public static final String DEFAULT_PROPERTIES_FILENAME = "/libWorkflow.properties";
+	public static final String TEMPLATE_PROPERTIES = "/libWorkflowTemplate.properties";
+
 	/**
 	 * Default socket timeout for connections to Simple Workflow Service
 	 */
@@ -44,6 +48,16 @@ public class WorkflowTemplatedConfigurationImpl extends
 	protected Synapse synapseClient = null;
 
 	/**
+	 * In general, only tests in lib-workflow use this
+	 */
+	public WorkflowTemplatedConfigurationImpl() {
+		super(DEFAULT_PROPERTIES_FILENAME, TEMPLATE_PROPERTIES);
+	}
+
+	/**
+	 * Most workflows will use this constructor to pass in their own default
+	 * property values and property template
+	 * 
 	 * @param defaultPropertiesFilename
 	 * @param templatePropertiesFilename
 	 */
@@ -131,7 +145,7 @@ public class WorkflowTemplatedConfigurationImpl extends
 	public String getSynapsePassword() {
 		return getDecryptedProperty("org.sagebionetworks.synapse.password");
 	}
-	
+
 	@Override
 	public String getSynapseSecretKey() {
 		return getDecryptedProperty("org.sagebionetworks.synapse.secretkey");

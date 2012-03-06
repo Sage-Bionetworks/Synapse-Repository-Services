@@ -1,6 +1,10 @@
 package org.sagebionetworks.gepipeline;
 
+import java.io.IOException;
+
+import org.json.JSONException;
 import org.sagebionetworks.workflow.Constants;
+import org.sagebionetworks.workflow.UnrecoverableException;
 
 import com.amazonaws.services.simpleworkflow.flow.annotations.Activities;
 import com.amazonaws.services.simpleworkflow.flow.annotations.Activity;
@@ -34,11 +38,15 @@ public interface GEPActivities {
 	 * @param script
 	 * @param activityInput
 	 * @return results of the run of the script
+	 * @throws JSONException 
+	 * @throws UnrecoverableException 
+	 * @throws InterruptedException 
+	 * @throws IOException 
 	 */
 	@Activity(version = GEPWorkflow.VERSION)
 	@ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS, defaultTaskStartToCloseTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS)
 	@ExponentialRetry(initialRetryIntervalSeconds = INITIAL_RETRY_INTERVAL_SECONDS, maximumAttempts = NUM_RETRIES)
-	ProcessDataResult processData(String script, String activityInput);
+	ProcessDataResult processData(String script, String activityInput) throws IOException, InterruptedException, UnrecoverableException, JSONException;
 
 	/**
 	 * @param recipient

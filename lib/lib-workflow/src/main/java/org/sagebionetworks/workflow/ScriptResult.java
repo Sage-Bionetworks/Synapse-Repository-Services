@@ -1,4 +1,4 @@
-package org.sagebionetworks.gepipeline;
+package org.sagebionetworks.workflow;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -14,27 +14,31 @@ import org.json.JSONObject;
 import org.sagebionetworks.utils.ExternalProcessHelper.ExternalProcessResult;
 
 public class ScriptResult {
-	
+
+	public static final String SYNAPSE_WORKFLOW_RESULT_START_DELIMITER = "SynapseWorkflowResult_START";
+	public static final String SYNAPSE_WORKFLOW_RESULT_END_DELIMITER = "SynapseWorkflowResult_END";
+
 	private static final Pattern OUTPUT_DELIMITER_PATTERN = Pattern.compile(
-			".*SynapseWorkflowResult_START(.*)SynapseWorkflowResult_END.*",
+			".*" + SYNAPSE_WORKFLOW_RESULT_START_DELIMITER + "(.*)"
+					+ SYNAPSE_WORKFLOW_RESULT_START_DELIMITER + ".*",
 			Pattern.CASE_INSENSITIVE | Pattern.DOTALL | Pattern.MULTILINE);
 
 	public static final String OUTPUT_JSON_KEY = "output";
 
-	
 	JSONObject structuredOutput;
-	
+
 	ExternalProcessResult result;
-	
+
 	public ScriptResult(ExternalProcessResult result) throws JSONException {
 		this.result = result;
-		
-		Matcher resultMatcher = OUTPUT_DELIMITER_PATTERN.matcher(result.getStdout());
+
+		Matcher resultMatcher = OUTPUT_DELIMITER_PATTERN.matcher(result
+				.getStdout());
 		if (resultMatcher.matches()) {
 			structuredOutput = new JSONObject(resultMatcher.group(1));
 		}
 	}
-	
+
 	public String getStringResult(String key) {
 		String ans = null;
 		if (structuredOutput.has(key)) {
@@ -52,23 +56,26 @@ public class ScriptResult {
 		if (structuredOutput.has(key)) {
 			try {
 				JSONArray a = structuredOutput.getJSONArray(key);
-				for (int i=0; i<a.length(); i++) ans.add(a.getString(i));
+				for (int i = 0; i < a.length(); i++)
+					ans.add(a.getString(i));
 			} catch (JSONException e) {
 				throw new RuntimeException(e);
 			}
 		}
 		return ans;
 	}
-	
-	public Map<String,String> getStringMapResult(String key) {
+
+	public Map<String, String> getStringMapResult(String key) {
 		try {
 			JSONObject map = structuredOutput.getJSONObject(key);
 			List<String> gseids = Arrays.asList(JSONObject.getNames(map));
-			Map<String,String> gseToDateMap = new HashMap<String,String>();
-			for (String gseid : gseids) gseToDateMap.put(gseid, map.getString(gseid));
+			Map<String, String> gseToDateMap = new HashMap<String, String>();
+			for (String gseid : gseids)
+				gseToDateMap.put(gseid, map.getString(gseid));
 			return gseToDateMap;
 		} catch (JSONException e) {
-			throw new RuntimeException((structuredOutput==null?null:structuredOutput.toString()), e);
+			throw new RuntimeException((structuredOutput == null ? null
+					: structuredOutput.toString()), e);
 		}
 	}
 
