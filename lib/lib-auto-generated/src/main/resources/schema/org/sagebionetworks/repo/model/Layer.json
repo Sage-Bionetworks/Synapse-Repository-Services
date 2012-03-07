@@ -8,6 +8,9 @@
         {
             "$ref":"org.sagebionetworks.repo.model.HasPreviews"
         },
+        {
+            "$ref":"org.sagebionetworks.repo.model.HasShortcuts"
+        },
         
     ],
     "properties":{

@@ -5,6 +5,9 @@
         {
             "$ref":"org.sagebionetworks.repo.model.Locationable"
         },
+        {
+            "$ref":"org.sagebionetworks.repo.model.HasShortcuts"
+        },
         
     ],
     "properties":{
@@ -19,7 +22,7 @@
             "format":"date-time",
             "title":"End Date",
             
-        }
+        },
         
     }
 }

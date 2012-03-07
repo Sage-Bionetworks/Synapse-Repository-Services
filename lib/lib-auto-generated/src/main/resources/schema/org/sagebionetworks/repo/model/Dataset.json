@@ -8,6 +8,9 @@
         {
             "$ref":"org.sagebionetworks.repo.model.HasLayers"
         },
+        {
+            "$ref":"org.sagebionetworks.repo.model.HasShortcuts"
+        }
         
     ],
     "properties":{
@@ -53,7 +56,6 @@
             "type":"string",
             "format":"date-time",
             "title":"Release Date",
-        },
-        
+        },        
     }
 }

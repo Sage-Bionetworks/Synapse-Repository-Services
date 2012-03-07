@@ -1,0 +1,22 @@
+{
+    "description":"Any Entity that has shortcuts should implement this interface",
+    "type":"interface",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Entity"
+        },
+    ],
+    "properties":{
+        "shortcuts":{
+            "type":"array",
+            "uniqueItems":true,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.Reference"
+            },
+            "description":"Shortcuts to other Entities",
+            "title":"Shortcuts",
+            
+        },
+                
+    }
+}
