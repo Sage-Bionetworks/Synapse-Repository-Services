@@ -17,18 +17,21 @@ package com.amazonaws.services.simpleworkflow.flow.examples.helloworld;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import org.sagebionetworks.workflow.WorkflowTemplatedConfiguration;
+import org.sagebionetworks.workflow.WorkflowTemplatedConfigurationImpl;
+
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.flow.WorkflowWorker;
-import com.amazonaws.services.simpleworkflow.flow.examples.common.ConfigHelper;
 
 public class WorkflowHost {
 
     private static final String DECISION_TASK_LIST = "HelloWorldWorkflow";
     
     public static void main(String[] args) throws Exception {
-        ConfigHelper configHelper = ConfigHelper.createConfig();
-        AmazonSimpleWorkflow swfService = configHelper.createSWFClient();
-        String domain = configHelper.getDomain();
+		WorkflowTemplatedConfiguration config = new WorkflowTemplatedConfigurationImpl();
+		config.reloadConfiguration();
+		AmazonSimpleWorkflow swfService = config.getSWFClient();
+		String domain = config.getStack();
 
         final WorkflowWorker worker = new WorkflowWorker(swfService, domain, DECISION_TASK_LIST);
         worker.addWorkflowImplementationType(HelloWorldWorkflowImpl.class);

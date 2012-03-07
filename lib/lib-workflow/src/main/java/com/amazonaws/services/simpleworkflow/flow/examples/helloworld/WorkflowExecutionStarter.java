@@ -14,28 +14,32 @@
  */
 package com.amazonaws.services.simpleworkflow.flow.examples.helloworld;
 
+import org.sagebionetworks.workflow.WorkflowTemplatedConfiguration;
+import org.sagebionetworks.workflow.WorkflowTemplatedConfigurationImpl;
+
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
-import com.amazonaws.services.simpleworkflow.flow.examples.common.ConfigHelper;
 import com.amazonaws.services.simpleworkflow.model.WorkflowExecution;
 
 public class WorkflowExecutionStarter {
 
-    public static void main(String[] args) throws Exception {
-        ConfigHelper configHelper = ConfigHelper.createConfig();
-        AmazonSimpleWorkflow swfService = configHelper.createSWFClient();
-        String domain = configHelper.getDomain();
+	public static void main(String[] args) throws Exception {
+		WorkflowTemplatedConfiguration config = new WorkflowTemplatedConfigurationImpl();
+		config.reloadConfiguration();
+		AmazonSimpleWorkflow swfService = config.getSWFClient();
+		String domain = config.getStack();
 
-        HelloWorldWorkflowClientExternalFactory clientFactory = new HelloWorldWorkflowClientExternalFactoryImpl(swfService,
-                domain);
-        HelloWorldWorkflowClientExternal workflow = clientFactory.getClient();
-        
-        // Start Wrokflow Execution
-        workflow.helloWorld("SanityCheckUser");
-        
-        // WorkflowExecution is available after workflow creation 
-        WorkflowExecution workflowExecution = workflow.getWorkflowExecution();
-        System.out.println("Started helloWorld workflow with workflowId=\"" + workflowExecution.getWorkflowId()
-                + "\" and runId=\"" + workflowExecution.getRunId() + "\"");
-    }
+		HelloWorldWorkflowClientExternalFactory clientFactory = new HelloWorldWorkflowClientExternalFactoryImpl(
+				swfService, domain);
+		HelloWorldWorkflowClientExternal workflow = clientFactory.getClient();
+
+		// Start Wrokflow Execution
+		workflow.helloWorld("SanityCheckUser");
+
+		// WorkflowExecution is available after workflow creation
+		WorkflowExecution workflowExecution = workflow.getWorkflowExecution();
+		System.out.println("Started helloWorld workflow with workflowId=\""
+				+ workflowExecution.getWorkflowId() + "\" and runId=\""
+				+ workflowExecution.getRunId() + "\"");
+	}
 
 }

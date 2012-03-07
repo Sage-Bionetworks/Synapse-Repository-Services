@@ -17,9 +17,11 @@ package com.amazonaws.services.simpleworkflow.flow.examples.helloworld;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import org.sagebionetworks.workflow.WorkflowTemplatedConfiguration;
+import org.sagebionetworks.workflow.WorkflowTemplatedConfigurationImpl;
+
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.flow.ActivityWorker;
-import com.amazonaws.services.simpleworkflow.flow.examples.common.ConfigHelper;
 
 /**
  * This is the process which hosts all Activities in this sample
@@ -29,9 +31,10 @@ public class ActivityHost {
     private static final String ACTIVITIES_TASK_LIST = "HelloWorld";
 
     public static void main(String[] args) throws Exception {
-        ConfigHelper configHelper = ConfigHelper.createConfig();
-        AmazonSimpleWorkflow swfService = configHelper.createSWFClient();
-        String domain = configHelper.getDomain();
+    	WorkflowTemplatedConfiguration config = new WorkflowTemplatedConfigurationImpl();
+		config.reloadConfiguration();
+        AmazonSimpleWorkflow swfService = config.getSWFClient();
+        String domain = config.getStack();
 
         final ActivityWorker worker = new ActivityWorker(swfService, domain, ACTIVITIES_TASK_LIST);
 
