@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.Step;
 import org.sagebionetworks.sample.Example;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -165,6 +166,14 @@ public class NodeTranslationUtilsTest {
 		ldata.setType(LocationTypeNames.sage);
 		locations.add(ldata);
 		
+		//Shortcuts
+		Set<Reference> references = new HashSet<Reference>();
+		Reference ref1 = new Reference();
+		ref1.setTargetId("99");
+		ref1.setTargetVersionNumber((long)1);
+		references.add(ref1);
+		ds.setShortcuts(references);
+
 //		List<String> diseases = new ArrayList<String>();
 //		diseases.add("disease1");
 //		diseases.add("disease2");
@@ -279,6 +288,12 @@ public class NodeTranslationUtilsTest {
 		layer.setTissueType("type");
 		layer.setType(LayerTypeNames.C);
 		layer.setUri("someUri");
+		Set<Reference> references = new HashSet<Reference>();
+		Reference ref1 = new Reference();
+		ref1.setTargetId("99");
+		ref1.setTargetVersionNumber((long)1);
+		references.add(ref1);
+		layer.setShortcuts(references);
 		
 		// Create a clone using node translation
 		Layer clone = cloneUsingNodeTranslation(layer);
