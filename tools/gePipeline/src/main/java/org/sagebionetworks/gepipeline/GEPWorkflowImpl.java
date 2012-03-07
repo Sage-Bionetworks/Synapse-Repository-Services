@@ -1,6 +1,7 @@
 package org.sagebionetworks.gepipeline;
 
 import org.joda.time.LocalDate;
+import org.sagebionetworks.workflow.ActivityScriptResult;
 
 import com.amazonaws.services.simpleworkflow.flow.ActivitySchedulingOptions;
 import com.amazonaws.services.simpleworkflow.flow.annotations.Asynchronous;
@@ -57,7 +58,7 @@ public class GEPWorkflowImpl implements GEPWorkflow {
 				boolean noop = (NOOP != null && NOOP.equalsIgnoreCase("true"));
 
 				if (noop) {
-					ProcessDataResult noopResult = new ProcessDataResult();
+					ActivityScriptResult noopResult = new ActivityScriptResult();
 					noopResult.setResult("NO-OP for " + activityInput);
 					notifyDataProcessed(Promise.asPromise(noopResult));
 					return;
@@ -66,7 +67,7 @@ public class GEPWorkflowImpl implements GEPWorkflow {
 				/**
 				 * Run the processing step(s) on this data
 				 */
-				Promise<ProcessDataResult> result = processData(activityInput,
+				Promise<ActivityScriptResult> result = processData(activityInput,
 						activityRequirement);
 
 				notifyDataProcessed(result);
@@ -91,7 +92,7 @@ public class GEPWorkflowImpl implements GEPWorkflow {
 	 * @param result
 	 */
 	@Asynchronous
-	private void notifyDataProcessed(Promise<ProcessDataResult> result) {
+	private void notifyDataProcessed(Promise<ActivityScriptResult> result) {
 		
 		if (hasChanged(result.get().getResult())) {
 			// note, the output is in 'message'
@@ -112,7 +113,7 @@ public class GEPWorkflowImpl implements GEPWorkflow {
 	 * @return
 	 */
 	@Asynchronous
-	private Promise<ProcessDataResult> processData(String activityInput,
+	private Promise<ActivityScriptResult> processData(String activityInput,
 			String activityRequirement) {
 
 		String taskList = null;
@@ -131,7 +132,7 @@ public class GEPWorkflowImpl implements GEPWorkflow {
 
 		ActivitySchedulingOptions options = new ActivitySchedulingOptions();
 		options.setTaskList(taskList);
-		Promise<ProcessDataResult> results = client.processData(script, activityInput, options); 
+		Promise<ActivityScriptResult> results = client.processData(script, activityInput, options); 
 		
 		return results;
 	}

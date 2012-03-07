@@ -7,6 +7,7 @@ import java.util.Arrays;
 
 import org.json.JSONException;
 import org.sagebionetworks.workflow.Notification;
+import org.sagebionetworks.workflow.ActivityScriptResult;
 import org.sagebionetworks.workflow.ScriptProcessor;
 import org.sagebionetworks.workflow.ScriptResult;
 import org.sagebionetworks.workflow.UnrecoverableException;
@@ -15,12 +16,6 @@ import org.sagebionetworks.workflow.UnrecoverableException;
  * 
  */
 public class GEPActivitiesImpl implements GEPActivities {
-	/**
-	* Even though we are sending stdout and stderr from the R script to a log
-	* file, include a portion of that output in the workflow history for
-	* convenience. We only want to dig through the logs if we need to.
-	*/
-	private static final int MAX_SCRIPT_OUTPUT = 10240;
 
 	/**
 	 * @param s
@@ -38,26 +33,24 @@ public class GEPActivitiesImpl implements GEPActivities {
 	}
 
 	@Override
-	public ProcessDataResult processData(String script, String activityInput) throws IOException, InterruptedException, UnrecoverableException, JSONException {
+	public ActivityScriptResult processData(String script, String activityInput)
+			throws IOException, InterruptedException, UnrecoverableException,
+			JSONException {
 
-		ScriptResult scriptResult = ScriptProcessor.runSynapseScript(GEPWorkflowConfigHelper.getConfig(), script, Arrays
-				.asList(new String[] { GEPWorkflow.INPUT_DATA_PARAMETER_KEY,
-						formatAsScriptParam(activityInput), }));
+		ScriptResult scriptResult = ScriptProcessor.runSynapseScript(
+				GEPWorkflowConfigHelper.getConfig(), script, Arrays
+						.asList(new String[] {
+								GEPWorkflow.INPUT_DATA_PARAMETER_KEY,
+								formatAsScriptParam(activityInput), }));
 
-		// Truncate stdout and stderr to a more reasonable size so that we fit
-		// withing the workflow state constraints
-		String stdout = (MAX_SCRIPT_OUTPUT > scriptResult.getStdout().length()) ? scriptResult
-				.getStdout()
-				: scriptResult.getStdout().substring(0, MAX_SCRIPT_OUTPUT);
-		String stderr = (MAX_SCRIPT_OUTPUT > scriptResult.getStderr().length()) ? scriptResult
-				.getStderr()
-				: scriptResult.getStderr().substring(0, MAX_SCRIPT_OUTPUT);
+		// Dev Note: we cannot return an instance of ScriptResult from an
+		// activity because it is not serializable by SWF in its current form
 
-		ProcessDataResult activityResult = new ProcessDataResult();
+		ActivityScriptResult activityResult = new ActivityScriptResult();
 		activityResult.setResult(scriptResult
 				.getStringResult(ScriptResult.OUTPUT_JSON_KEY));
-		activityResult.setStdout(stdout);
-		activityResult.setStderr(stderr);
+		activityResult.setStdout(scriptResult.getStdout());
+		activityResult.setStderr(scriptResult.getStderr());
 
 		return activityResult;
 	}

@@ -5,6 +5,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.workflow.ActivityScriptResult;
 
 import com.amazonaws.services.simpleworkflow.flow.annotations.Asynchronous;
 import com.amazonaws.services.simpleworkflow.flow.core.Promise;
@@ -35,7 +36,7 @@ public class GEPWorkflowTest {
 		}
 
 		@Override
-		public ProcessDataResult processData(String script,
+		public ActivityScriptResult processData(String script,
 				String activityInput) {
 			try {
 				Thread.sleep(1000);
@@ -44,7 +45,7 @@ public class GEPWorkflowTest {
 			} catch (InterruptedException e) {
 			}
 			result += ":processData";
-			ProcessDataResult activityResult = new ProcessDataResult();
+			ActivityScriptResult activityResult = new ActivityScriptResult();
 			activityResult.setResult(result);
 			activityResult.setStdout("some stdout");
 			activityResult.setStderr("some stderr");
