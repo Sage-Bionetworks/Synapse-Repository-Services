@@ -18,6 +18,7 @@
       <module>gePipeline</module>
       <module>SynapseDeployer</module>
       <module>tool-migration-utility</module>
-    </modules>
+      <module>sageCommonsWorkflow</module>
+  </modules>
 
 </project>
