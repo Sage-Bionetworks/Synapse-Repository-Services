@@ -1,14 +1,13 @@
 package org.sagebionetworks.workflow;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.json.JSONException;
 import org.junit.Assert;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -126,6 +125,10 @@ public class SageCommonsWorkflowTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
+//		Collection<Class<?>> workflowTypes = new ArrayList<Class<?>>();
+//		workflowTypes.add(SageCommonsWorkflowImpl.class);
+//		workflowTypes.add(SageCommonsRScriptWorkflowImpl.class);
+//		workflowTest.setWorkflowImplementationTypes(workflowTypes);
 		workflowTest
 				.addWorkflowImplementationType(SageCommonsWorkflowImpl.class);
 		workflowTest
@@ -141,7 +144,6 @@ public class SageCommonsWorkflowTest {
 	 * 
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testThroughClient() throws Exception {
 		SageCommonsWorkflowClient workflow = workflowFactory.getClient();
@@ -158,7 +160,6 @@ public class SageCommonsWorkflowTest {
 	/**
 	 * @throws Exception
 	 */
-	@Ignore
 	@Test
 	public void testThroughClientAssertWithTask() throws Exception {
 		SageCommonsWorkflowClient workflow = workflowFactory.getClient();
@@ -177,7 +178,6 @@ public class SageCommonsWorkflowTest {
 	 * Instantiate workflow implementation object directly. Note that any object
 	 * that is part of workflow can be unit tested through direct instantiation.
 	 */
-	@Ignore
 	@Test
 	public void directTest() {
 		final SageCommonsWorkflow workflow = new SageCommonsWorkflowImpl();

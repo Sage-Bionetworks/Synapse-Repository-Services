@@ -5,10 +5,12 @@ import org.sagebionetworks.workflow.Constants;
 import com.amazonaws.services.simpleworkflow.flow.annotations.Execute;
 import com.amazonaws.services.simpleworkflow.flow.annotations.Workflow;
 import com.amazonaws.services.simpleworkflow.flow.annotations.WorkflowRegistrationOptions;
+import com.amazonaws.services.simpleworkflow.model.ChildPolicy;
 
 @Workflow
 @WorkflowRegistrationOptions(defaultExecutionStartToCloseTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS,
-		defaultTaskList = SageCommonsWorkflow.DECISIONS_TASK_LIST) 
+		defaultTaskList = SageCommonsWorkflow.DECISIONS_TASK_LIST,
+		defaultChildPolicy = ChildPolicy.TERMINATE) 
 public interface SageCommonsWorkflow {
 	
 	/**

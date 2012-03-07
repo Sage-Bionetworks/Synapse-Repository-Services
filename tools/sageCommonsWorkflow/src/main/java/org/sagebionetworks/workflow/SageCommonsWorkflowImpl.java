@@ -46,6 +46,7 @@ public class SageCommonsWorkflowImpl implements SageCommonsWorkflow {
 				}
 				else {
 					Promise<Layer> layer = client.getLayer(submission);
+					processLayerSubmission(layer);
 				}
 			}
 
