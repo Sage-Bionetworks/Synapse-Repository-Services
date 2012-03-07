@@ -1,8 +1,8 @@
 package org.sagebionetworks.workflow;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import org.json.JSONException;
@@ -32,8 +32,8 @@ import com.amazonaws.services.simpleworkflow.flow.junit.WorkflowTest;
 public class SageCommonsWorkflowTest {
 
 	private static final String EXPECTED_RESULT = "workflow" + ":getLayer"
-			+ ":processSpreadsheet" + ":formulateNotificationMessage"
-			+ ":notifyFollowers";
+			+ ":processSpreadsheet" + ":runRScript" + ":runRScript"
+			+ ":runRScript" + ":formulateNotificationMessage" + ":notifyFollowers";
 
 	private final class TestSageCommonsActivities implements
 			SageCommonsActivities {
@@ -74,17 +74,15 @@ public class SageCommonsWorkflowTest {
 				HttpClientHelperException {
 
 			result += ":processSpreadsheet";
-
-			// TODO get sample from Brig
-//			File file = new File("./src/test/resources/sample.csv");
-//			return realImpl.processSpreadsheetContents(file);
-			return 5;
+			// use a sample file from Brig
+			File file = new File("./src/test/resources/tcga.txt");
+			return realImpl.processSpreadsheetContents(file);
 		}
 
 		@Override
-		public ScriptResult runRScript(String script, String spreadsheetData)
-				throws IOException, InterruptedException,
-				UnrecoverableException, JSONException {
+		public ActivityScriptResult runRScript(String script,
+				String spreadsheetData) throws IOException,
+				InterruptedException, UnrecoverableException, JSONException {
 			result += ":runRScript";
 			return realImpl.runRScript(script, spreadsheetData);
 		}
@@ -94,7 +92,8 @@ public class SageCommonsWorkflowTest {
 				Integer numJobsDispatched) throws SynapseException,
 				JSONException, UnrecoverableException {
 			result += ":formulateNotificationMessage";
-			return realImpl.formulateNotificationMessage(layer, numJobsDispatched);
+			return realImpl.formulateNotificationMessage(layer,
+					numJobsDispatched);
 		}
 
 		@Override
@@ -125,10 +124,10 @@ public class SageCommonsWorkflowTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-//		Collection<Class<?>> workflowTypes = new ArrayList<Class<?>>();
-//		workflowTypes.add(SageCommonsWorkflowImpl.class);
-//		workflowTypes.add(SageCommonsRScriptWorkflowImpl.class);
-//		workflowTest.setWorkflowImplementationTypes(workflowTypes);
+		// Collection<Class<?>> workflowTypes = new ArrayList<Class<?>>();
+		// workflowTypes.add(SageCommonsWorkflowImpl.class);
+		// workflowTypes.add(SageCommonsRScriptWorkflowImpl.class);
+		// workflowTest.setWorkflowImplementationTypes(workflowTypes);
 		workflowTest
 				.addWorkflowImplementationType(SageCommonsWorkflowImpl.class);
 		workflowTest

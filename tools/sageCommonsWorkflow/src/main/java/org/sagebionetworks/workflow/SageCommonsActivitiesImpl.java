@@ -55,7 +55,6 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 		String header = reader.readLine();
 		String line;
 		while ((line = reader.readLine()) != null) {
-			// TODO set child workflow policy
 			SageCommonsRScriptWorkflowClient childWorkflow = clientFactory
 					.getClient();
 			childWorkflow.runRScript(SAGE_COMMONS_SCRIPT, header + "\n" + line);
@@ -65,10 +64,11 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 	}
 
 	@Override
-	public ScriptResult runRScript(String script, String spreadsheetData)
+	public ActivityScriptResult runRScript(String script, String spreadsheetData)
 			throws IOException, InterruptedException, UnrecoverableException,
 			JSONException {
-		ScriptResult result = null;
+
+		ScriptResult scriptResult = null;
 		File tempFile = File.createTempFile("sageCommonsJob", "csv");
 
 		try {
@@ -80,16 +80,18 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 			scriptArgs.add(SPREADSHEET_SCRIPT_ARG);
 			scriptArgs.add(tempFile.getAbsolutePath());
 
-			result = ScriptProcessor.runScript(SageCommonsConfigHelper
+			scriptResult = ScriptProcessor.runScript(SageCommonsConfigHelper
 					.getConfig(), script, scriptArgs);
 
 		} finally {
 			tempFile.delete();
 		}
 		
-		// TODO trim stdout and stderr like we do in the MetaGenomics workflow
-		
-		return result;
+		ActivityScriptResult activityResult = new ActivityScriptResult();
+		activityResult.setStdout(scriptResult.getStdout());
+		activityResult.setStderr(scriptResult.getStderr());
+
+		return activityResult;
 	}
 
 	@Override
@@ -104,7 +106,8 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 
 	@Override
 	public void notifyFollowers(String recipient, String subject, String message) {
-		Notification.doEmailNotifyFollower(recipient, subject, message);
+		// Reenable this once the method is implemented
+		// Notification.doEmailNotifyFollower(recipient, subject, message);
 	}
 
 }

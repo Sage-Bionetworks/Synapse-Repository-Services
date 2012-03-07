@@ -1,7 +1,7 @@
 package org.sagebionetworks.workflow;
 
+import org.apache.log4j.Logger;
 import org.sagebionetworks.repo.model.Layer;
-import org.sagebionetworks.workflow.Constants;
 
 import com.amazonaws.services.simpleworkflow.flow.annotations.Asynchronous;
 import com.amazonaws.services.simpleworkflow.flow.core.Promise;
@@ -13,6 +13,8 @@ import com.amazonaws.services.simpleworkflow.flow.core.TryCatchFinally;
  */
 public class SageCommonsWorkflowImpl implements SageCommonsWorkflow {
 
+	private static final Logger log = Logger.getLogger(SageCommonsWorkflow.class
+			.getName());
 	private static final String NOTIFICATION_SUBJECT = "Sage Commons Workflow Notification ";
 
 	private SageCommonsActivitiesClient client;
@@ -47,17 +49,20 @@ public class SageCommonsWorkflowImpl implements SageCommonsWorkflow {
 				else {
 					Promise<Layer> layer = client.getLayer(submission);
 					processLayerSubmission(layer);
+
 				}
 			}
 
 			@Override
 			protected void doCatch(Throwable e) throws Throwable {
+				log.error("processSubmission failed: ", e);
 				throw e;
 			}
 
 			@Override
 			protected void doFinally() throws Throwable {
-				// do nothing
+				// nothing to clean up
+				log.info("workflow complete");
 			}
 		};
 	}

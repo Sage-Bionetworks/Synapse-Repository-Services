@@ -66,7 +66,7 @@ public interface SageCommonsActivities {
 	@ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS, 
 			defaultTaskStartToCloseTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS)
 	@ExponentialRetry(initialRetryIntervalSeconds = INITIAL_RETRY_INTERVAL_SECONDS, maximumAttempts = NUM_RETRIES)
-	ScriptResult runRScript(String script, String spreadsheetData) throws IOException, InterruptedException, UnrecoverableException, JSONException;
+	ActivityScriptResult runRScript(String script, String spreadsheetData) throws IOException, InterruptedException, UnrecoverableException, JSONException;
 
 	/**
 	 * @param layerId

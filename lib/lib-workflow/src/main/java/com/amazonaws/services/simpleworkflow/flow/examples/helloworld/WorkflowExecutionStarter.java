@@ -20,8 +20,16 @@ import org.sagebionetworks.workflow.WorkflowTemplatedConfigurationImpl;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflow;
 import com.amazonaws.services.simpleworkflow.model.WorkflowExecution;
 
+/**
+ * @author deflaux
+ *
+ */
 public class WorkflowExecutionStarter {
 
+	/**
+	 * @param args
+	 * @throws Exception
+	 */
 	public static void main(String[] args) throws Exception {
 		WorkflowTemplatedConfiguration config = new WorkflowTemplatedConfigurationImpl();
 		config.reloadConfiguration();
