@@ -37,6 +37,18 @@
 					"source": {"name": "Disease", "type": "string", "bucket": "additional"},
 					"destination": {"name": "disease", "type": "string", "bucket": "primary"}
 				},
+				{
+					"source": {"name": "Posting_Restriction", "type": "string", "bucket": "additional"},
+					"destination": {"name": "", "type": "", "bucket": "deleted"}
+				},
+				{
+					"source": {"name": "pubmed_id", "type": "string", "bucket": "additional"},
+					"destination": {"name": "pubmedId", "type": "string", "bucket": "additional"}
+				},
+				{
+					"source": {"name": "releaseDate", "type": "string", "bucket": "additional"},
+					"destination": {"name": "", "type": "", "bucket": "deleted"}
+				},
 			]
 		},
 		{
@@ -53,7 +65,15 @@
 				{
 					"source": {"name": "QcDate", "type": "string", "bucket": "primary"},
 					"destination": {"name": "", "type": "", "bucket": "deleted"}
-				}
+				},
+				{
+					"source": {"name": "qcBy", "type": "string", "bucket": "primary"},
+					"destination": {"name": "", "type": "", "bucket": "deleted"}
+				},
+				{
+					"source": {"name": "qcDate", "type": "string", "bucket": "primary"},
+					"destination": {"name": "", "type": "", "bucket": "deleted"}
+				},
 			]
 		},
 		{
