@@ -4,7 +4,6 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 
 /**
@@ -39,7 +38,6 @@ public class ScriptProcessorTest {
 	/**
 	 * @throws Exception
 	 */
-	@Ignore // these don't work on bamboo right now
 	@Test
 	public void testRScriptThatSucceeds() throws Exception {
 		ScriptResult scriptResult = ScriptProcessor.runScript(config,
@@ -52,7 +50,6 @@ public class ScriptProcessorTest {
 	/**
 	 * @throws Exception
 	 */
-	@Ignore // these don't work on bamboo right now
 	@Test(expected=UnrecoverableException.class)
 	public void testRScriptThatFails() throws Exception {
 		ScriptProcessor.runScript(config,
