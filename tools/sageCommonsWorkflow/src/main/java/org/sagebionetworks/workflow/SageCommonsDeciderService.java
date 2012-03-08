@@ -23,6 +23,7 @@ public class SageCommonsDeciderService {
 		final WorkflowWorker worker = new WorkflowWorker(swfService, domain,
 				SageCommonsWorkflow.DECISIONS_TASK_LIST);
 		worker.addWorkflowImplementationType(SageCommonsWorkflowImpl.class);
+		worker.addWorkflowImplementationType(SageCommonsRScriptWorkflowImpl.class);
 		worker.start();
 
 		System.out.println("Workflow Host Service Started...");

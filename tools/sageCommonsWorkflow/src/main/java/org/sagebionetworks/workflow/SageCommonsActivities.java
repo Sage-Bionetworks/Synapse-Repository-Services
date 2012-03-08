@@ -27,12 +27,7 @@ public interface SageCommonsActivities {
 	 * The parameter key to pass to the R script for the spreadsheet it should process
 	 */
 	public static final String SPREADSHEET_SCRIPT_ARG = "--spreadsheet";
-	
-	/**
-	 * The workflow R entry point script
-	 */
-	public static final String SAGE_COMMONS_SCRIPT = "./src/main/resources/simpleScriptThatSucceeds.r";
-	
+		
 	/**
 	 * The one and only task list to use for activitites this workflow
 	 */
@@ -40,7 +35,7 @@ public interface SageCommonsActivities {
 	/**
 	 * This version should roughly match our sprint version each time we modify this workflow
 	 */
-	static final String VERSION = "0.12.1"; 
+	static final String VERSION = "0.12.2"; 
 
 	/**
 	 * Retries for script processing
@@ -53,13 +48,13 @@ public interface SageCommonsActivities {
 	
 	@Activity(version = VERSION)
 	@ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS, 
-			defaultTaskStartToCloseTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS)
+			defaultTaskStartToCloseTimeoutSeconds = Constants.FIVE_MINUTES_OF_SECONDS)
 	@ExponentialRetry(initialRetryIntervalSeconds = INITIAL_RETRY_INTERVAL_SECONDS, maximumAttempts = NUM_RETRIES)
 	Layer getLayer(String layerId) throws SynapseException;
 	
 	@Activity(version = VERSION)
 	@ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS, 
-			defaultTaskStartToCloseTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS)
+			defaultTaskStartToCloseTimeoutSeconds = Constants.FIVE_MINUTES_OF_SECONDS)
 	@ExponentialRetry(initialRetryIntervalSeconds = INITIAL_RETRY_INTERVAL_SECONDS, maximumAttempts = NUM_RETRIES)
 	List<String> processSpreadsheet(String url) throws IOException, HttpClientHelperException;
 
@@ -78,7 +73,7 @@ public interface SageCommonsActivities {
 	 */
 	@Activity(version = VERSION)
 	@ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS, 
-			defaultTaskStartToCloseTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS)
+			defaultTaskStartToCloseTimeoutSeconds = Constants.FIVE_MINUTES_OF_SECONDS)
 	String formulateNotificationMessage(Layer layer, Integer numJobsDispatched) throws SynapseException, JSONException, UnrecoverableException;
 
 	/**
@@ -88,7 +83,7 @@ public interface SageCommonsActivities {
 	 */
 	@Activity(version = VERSION)
 	@ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS, 
-			defaultTaskStartToCloseTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS)
+			defaultTaskStartToCloseTimeoutSeconds = Constants.FIVE_MINUTES_OF_SECONDS)
 	void notifyFollowers(String recipient, String subject, String message);
 
 }

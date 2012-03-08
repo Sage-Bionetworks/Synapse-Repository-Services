@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.Layer;
 import com.amazonaws.services.simpleworkflow.flow.annotations.Asynchronous;
 import com.amazonaws.services.simpleworkflow.flow.core.Promise;
 import com.amazonaws.services.simpleworkflow.flow.core.TryCatchFinally;
+import com.amazonaws.services.simpleworkflow.model.WorkflowExecution;
 
 /**
  * @author deflaux
@@ -87,8 +88,13 @@ public class SageCommonsWorkflowImpl implements SageCommonsWorkflow {
 		for(String job : jobs.get()) {
 			SageCommonsRScriptWorkflowClient childWorkflow = clientFactory
 					.getClient();
-			childWorkflow.runRScript(SageCommonsActivities.SAGE_COMMONS_SCRIPT, job);
+			childWorkflow.runRScript(SageCommonsConfigHelper.getWorkflowScript(), job);
 			numJobs++;
+			
+			WorkflowExecution workflowExecution = childWorkflow.getWorkflowExecution();
+			log.debug("Started runRScript workflow with workflowId=\""
+					+ workflowExecution.getWorkflowId() + "\" and runId=\""
+					+ workflowExecution.getRunId() + "\"");
 		}		
 		Promise<String> message = client.formulateNotificationMessage(Promise.asPromise(layer), Promise.asPromise(numJobs));
 		client.notifyFollowers(Promise

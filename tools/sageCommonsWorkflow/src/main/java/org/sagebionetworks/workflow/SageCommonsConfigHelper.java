@@ -96,4 +96,11 @@ public class SageCommonsConfigHelper {
 	public static String getPortalEndpoint() {
 		return configuration.getPortalEndpoint();
 	}
+	
+	/**
+	 * @return the absolute path for the script that this workflow should run
+	 */
+	public static String getWorkflowScript() {
+		return configuration.getProperty("org.sagebionetworks.workflow.script");
+	}
 }
