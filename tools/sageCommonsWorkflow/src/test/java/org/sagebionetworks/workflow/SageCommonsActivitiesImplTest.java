@@ -6,6 +6,8 @@ package org.sagebionetworks.workflow;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -44,8 +46,8 @@ public class SageCommonsActivitiesImplTest {
 		Layer layer = activities.getLayer("160264"); // on prod "159677");
 		assertEquals("tcgaInput.txt", layer.getName());
 
-		Integer numJobs = activities.processSpreadsheet(layer.getLocations().get(0).getPath());
-		assertEquals(Integer.valueOf(5), numJobs);
+		List<String> jobs = activities.processSpreadsheet(layer.getLocations().get(0).getPath());
+		assertEquals(5, jobs.size());
 	}
 
 	/**

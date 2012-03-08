@@ -32,8 +32,9 @@ import com.amazonaws.services.simpleworkflow.flow.junit.WorkflowTest;
 public class SageCommonsWorkflowTest {
 
 	private static final String EXPECTED_RESULT = "workflow" + ":getLayer"
-			+ ":processSpreadsheet" + ":runRScript" + ":runRScript"
-			+ ":runRScript" + ":formulateNotificationMessage" + ":notifyFollowers";
+			+ ":processSpreadsheet" + ":formulateNotificationMessage"
+			+ ":notifyFollowers" + ":runRScript" + ":runRScript"
+			+ ":runRScript";
 
 	private final class TestSageCommonsActivities implements
 			SageCommonsActivities {
@@ -70,12 +71,12 @@ public class SageCommonsWorkflowTest {
 		}
 
 		@Override
-		public Integer processSpreadsheet(String url) throws IOException,
+		public List<String> processSpreadsheet(String url) throws IOException,
 				HttpClientHelperException {
 
 			result += ":processSpreadsheet";
 			// use a sample file from Brig
-			File file = new File("./src/test/resources/tcga.txt");
+			File file = new File("./src/test/resources/tcga.zip");
 			return realImpl.processSpreadsheetContents(file);
 		}
 

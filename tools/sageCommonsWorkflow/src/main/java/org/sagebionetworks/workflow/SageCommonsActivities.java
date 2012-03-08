@@ -1,6 +1,7 @@
 package org.sagebionetworks.workflow;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.json.JSONException;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -60,7 +61,7 @@ public interface SageCommonsActivities {
 	@ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS, 
 			defaultTaskStartToCloseTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS)
 	@ExponentialRetry(initialRetryIntervalSeconds = INITIAL_RETRY_INTERVAL_SECONDS, maximumAttempts = NUM_RETRIES)
-	Integer processSpreadsheet(String url) throws IOException, HttpClientHelperException;
+	List<String> processSpreadsheet(String url) throws IOException, HttpClientHelperException;
 
 	@Activity(version = VERSION)
 	@ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS, 

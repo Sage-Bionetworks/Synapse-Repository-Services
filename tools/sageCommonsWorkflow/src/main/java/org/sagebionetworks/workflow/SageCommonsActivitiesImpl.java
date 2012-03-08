@@ -1,12 +1,17 @@
 package org.sagebionetworks.workflow;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Enumeration;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
 
 import org.json.JSONException;
 import org.sagebionetworks.client.Synapse;
@@ -29,38 +34,46 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 	}
 
 	@Override
-	public Integer processSpreadsheet(String url) throws IOException,
+	public List<String> processSpreadsheet(String url) throws IOException,
 			HttpClientHelperException {
 
 		// Download the spreadsheet
 		File tempFile = File.createTempFile("sageCommons", "csv");
-		int numJobs = 0;
+		List<String> jobs = null;
 		try {
 			tempFile = HttpClientHelper.getContent(SageCommonsConfigHelper
 					.getHttpClient(), url, tempFile);
-			numJobs = processSpreadsheetContents(tempFile);
+			jobs = processSpreadsheetContents(tempFile);
 		} finally {
 			tempFile.delete();
 		}
-		return numJobs;
+		return jobs;
 	}
 
-	Integer processSpreadsheetContents(File file) throws IOException {
-		int numJobs = 0;
-		// Get a factory for these child workflows
-		SageCommonsRScriptWorkflowClientFactory clientFactory = new SageCommonsRScriptWorkflowClientFactoryImpl();
+	List<String> processSpreadsheetContents(File file) throws IOException {
+		List<String> jobs = new ArrayList<String>();
 
 		// Read it line by line, kicking off child workflows
-		BufferedReader reader = new BufferedReader(new FileReader(file));
-		String header = reader.readLine();
-		String line;
-		while ((line = reader.readLine()) != null) {
-			SageCommonsRScriptWorkflowClient childWorkflow = clientFactory
-					.getClient();
-			childWorkflow.runRScript(SAGE_COMMONS_SCRIPT, header + "\n" + line);
-			numJobs++;
+		ZipFile zipFile = new ZipFile(file);
+		Enumeration zipFileEntries = zipFile.entries();
+		while (zipFileEntries.hasMoreElements()) {
+			// grab a zip file entry
+			ZipEntry entry = (ZipEntry) zipFileEntries.nextElement();
+			BufferedInputStream inputStream = new BufferedInputStream(zipFile
+		            .getInputStream(entry));
+			try {
+			BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
+			String header = reader.readLine();
+			String line;
+			while ((line = reader.readLine()) != null) {
+				jobs.add(header + "\n" + line);
+			}
+			}
+			finally {
+				inputStream.close();
+			}
 		}
-		return numJobs;
+		return jobs;
 	}
 
 	@Override
@@ -86,7 +99,7 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 		} finally {
 			tempFile.delete();
 		}
-		
+
 		ActivityScriptResult activityResult = new ActivityScriptResult();
 		activityResult.setStdout(scriptResult.getStdout());
 		activityResult.setStderr(scriptResult.getStderr());
