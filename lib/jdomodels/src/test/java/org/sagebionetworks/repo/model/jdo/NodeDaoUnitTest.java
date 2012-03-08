@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 
 /**
  * Unit test for the NodeDAO
@@ -78,6 +80,34 @@ public class NodeDaoUnitTest {
 		param = "nam3";
 		assertEquals("child", params.get(param));
 		assertTrue(sql.indexOf(param) > 0);
+	}
+	
+	@Test
+	public void testPrepareAnnotationsForDBReplacement(){
+		NamedAnnotations namedAnnos = new NamedAnnotations();
+		namedAnnos.getPrimaryAnnotations().addAnnotation("string", "a");
+		namedAnnos.getPrimaryAnnotations().addAnnotation("string", "b");
+		namedAnnos.getPrimaryAnnotations().addAnnotation("long", new Long(123));
+		namedAnnos.getPrimaryAnnotations().addAnnotation("long", new Long(456));
+		namedAnnos.getAdditionalAnnotations().addAnnotation("addString", "c");
+		Annotations forDb = NodeDAOImpl.prepareAnnotationsForDBReplacement(namedAnnos, "9810");
+		assertNotNull(forDb);
+		assertEquals("9810", forDb.getId());
+		// the primary and secondary should be merged
+		List<String> strings = forDb.getStringAnnotations().get("string");
+		assertEquals(2, strings.size());
+		assertEquals("a", strings.get(0));
+		assertEquals("b", strings.get(1));
+		// Did additional property get merged?
+		strings = forDb.getStringAnnotations().get("addString");
+		assertEquals(1, strings.size());
+		assertEquals("c", strings.get(0));
+		// Are all longs put in the string.
+		strings = forDb.getStringAnnotations().get("long");
+		assertEquals(2, strings.size());
+		assertEquals("123", strings.get(0));
+		assertEquals("456", strings.get(1));
+
 	}
 
 }
