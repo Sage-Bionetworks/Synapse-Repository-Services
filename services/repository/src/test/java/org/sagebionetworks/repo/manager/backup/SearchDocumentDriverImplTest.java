@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.backup;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
@@ -90,10 +91,14 @@ public class SearchDocumentDriverImplTest {
 		assertEquals(2, fields.getSpecies().size());
 		assertEquals("Dragon", fields.getSpecies().get(0));
 		assertEquals("Unicorn", fields.getSpecies().get(1));
-		assertEquals(7, fields.getAnnotations().size());
+		
+		// Annotations are always of length 1 
+		assertEquals(1, fields.getAnnotations().size());
 
 		// Check the free text annotations
-		List<String> annotations = fields.getAnnotations();
+		String annotationValues[] = fields.getAnnotations().get(0).split(" ");
+		List<String> annotations = Arrays.asList(annotationValues);
+		assertEquals(7, annotations.size());
 		assertTrue(annotations.contains("species:Dragon"));
 		assertTrue(annotations.contains("Species:Unicorn"));
 		assertTrue(annotations.contains("numSamples:999"));

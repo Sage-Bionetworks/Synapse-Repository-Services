@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
@@ -50,6 +51,9 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * The index field holding the access control list info
 	 */
 	public static final String ACL_INDEX_FIELD = "acl";
+	public static final int FIELD_VALUE_SIZE_LIMIT = 100; // no more than 100
+	// values in a field
+	// value array
 
 	private static Log log = LogFactory.getLog(SearchDocumentDriverImpl.class);
 
@@ -117,11 +121,12 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws InterruptedException
-	 * @throws JSONObjectAdapterException 
+	 * @throws JSONObjectAdapterException
 	 */
 	public void writeSearchDocument(File destination, Progress progress,
 			Set<String> entitiesToBackup) throws IOException,
-			DatastoreException, NotFoundException, InterruptedException, JSONObjectAdapterException {
+			DatastoreException, NotFoundException, InterruptedException,
+			JSONObjectAdapterException {
 		if (destination == null)
 			throw new IllegalArgumentException(
 					"Destination file cannot be null");
@@ -176,7 +181,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	/**
 	 * This is a recursive method that will write the full tree of node data to
 	 * the search document batch.
-	 * @throws JSONObjectAdapterException 
+	 * 
+	 * @throws JSONObjectAdapterException
 	 */
 	private void writeSearchDocumentBatch(OutputStream outputStream,
 			NodeBackup backup, String path, Progress progress,
@@ -236,7 +242,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	/**
 	 * Write a single search document
-	 * @throws JSONObjectAdapterException 
+	 * 
+	 * @throws JSONObjectAdapterException
 	 */
 	private void writeSearchDocument(OutputStream outputStream,
 			NodeBackup backup, String path) throws NotFoundException,
@@ -262,7 +269,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	static byte[] cleanSearchDocument(Document document)
 			throws UnsupportedEncodingException, JSONObjectAdapterException {
-		String serializedDocument = EntityFactory.createJSONStringForEntity(document);
+		String serializedDocument = EntityFactory
+				.createJSONStringForEntity(document);
 
 		// AwesomeSearch pukes on control characters. Some descriptions have
 		// control characters in them for some reason, in any case, just get rid
@@ -284,8 +292,9 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		document.setFields(fields);
 
 		document.setType(DocumentTypeNames.add);
-		document.setLang("en"); // TODO this should have been set via "default" in the schema for this
-		
+		document.setLang("en"); // TODO this should have been set via "default"
+		// in the schema for this
+
 		// Node fields
 		document.setId(node.getId());
 		document.setVersion(Long.valueOf(node.getETag()));
@@ -328,6 +337,15 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				.getPrimaryAnnotations());
 		addAnnotationsToSearchDocument(fields, rev.getNamedAnnotations()
 				.getAdditionalAnnotations());
+
+		// Transform the annotations array back to an array containing a single
+		// string since we often overflow the upper limit on value array length
+		// for AwesomeSearch
+		String joinedAnnotations = StringUtils.join(fields.getAnnotations(),
+				" ");
+		List<String> annotationsValue = new ArrayList<String>();
+		annotationsValue.add(joinedAnnotations);
+		fields.setAnnotations(annotationsValue);
 
 		// References, just put the node id to which the reference refers. Not
 		// currently adding the version or the type of the reference (e.g.,
@@ -414,11 +432,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		} else if (PLATFORM_FIELD == key) {
 			fields.getPlatform().add((String) value);
 		} else if (NUM_SAMPLES_FIELD == key) {
-			if(value instanceof Long) {
+			if (value instanceof Long) {
 				fields.getNum_samples().add((Long) value);
-			}
-			else if (value instanceof String) {
-				fields.getNum_samples().add(Long.valueOf((String) value));				
+			} else if (value instanceof String) {
+				fields.getNum_samples().add(Long.valueOf((String) value));
 			}
 		} else {
 			throw new IllegalArgumentException(

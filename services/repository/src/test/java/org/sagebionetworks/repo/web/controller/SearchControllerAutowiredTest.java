@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -13,6 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -140,6 +142,23 @@ public class SearchControllerAutowiredTest {
 			String cloudSearchMatchExpr = result.getMatchExpression();
 			// We don't add an authorization filter for admin users
 			assertEquals(-1, cloudSearchMatchExpr.indexOf("acl"));
+		}
+	}	
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testDescription() throws Exception {
+		testHelper.setTestUser(TestUserDAO.ADMIN_USER_NAME);
+		SearchResults result = testSearchHelper("q=prostate&return-fields=id,name,description", 1);
+		if(null != result) {
+			for(Hit hit : result.getHits()) {
+				String description = hit.getDescription();
+				if(null != description) {
+					assertFalse("[]".equals(description));
+				}
+			}
 		}
 	}	
 
