@@ -303,9 +303,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			// Update the annotations
 			try {
 				NamedAnnotations nammedAnnos = JDOSecondaryPropertyUtils.decompressedAnnotations(rev.getAnnotations());
-				Annotations newAnnos = JDOSecondaryPropertyUtils.mergeAnnotations(nammedAnnos);
-				newAnnos.setId(KeyFactory.keyToString(rev.getOwner()));
-				dboAnnotationsDao.replaceAnnotations(newAnnos);
+				Annotations forDb = prepareAnnotationsForDBReplacement(nammedAnnos, KeyFactory.keyToString(rev.getOwner()));
+				dboAnnotationsDao.replaceAnnotations(forDb);
 			} catch (IOException e) {
 				throw new DatastoreException(e);
 			}			
@@ -531,15 +530,27 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			rev.setAnnotations(newAnnos);
 			// Save the change
 			dboBasicDao.update(rev);
-			// Replace the annotations in the tables
-			Annotations merged = JDOSecondaryPropertyUtils.mergeAnnotations(updatedAnnos);
-			merged.setId(KeyFactory.keyToString(rev.getOwner()));
-			// We need to add data types to the strings, to support mixed query
-			merged = JDOSecondaryPropertyUtils.addAllToStrings(merged);
-			dboAnnotationsDao.replaceAnnotations(merged);
+			// Prepare the annotations for the database.
+			Annotations forDb = prepareAnnotationsForDBReplacement(updatedAnnos, KeyFactory.keyToString(rev.getOwner()));
+			dboAnnotationsDao.replaceAnnotations(forDb);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
+	}
+	
+	/**
+	 * Prepare annotations to be written to the database.
+	 * @param annos
+	 * @param ownerId
+	 * @return
+	 */
+	protected static Annotations prepareAnnotationsForDBReplacement(NamedAnnotations annos, String ownerId){
+		// Replace the annotations in the tables
+		Annotations merged = JDOSecondaryPropertyUtils.mergeAnnotations(annos);
+		merged.setId(ownerId);
+		// We need to add all data types to the strings, to support mixed query
+		merged = JDOSecondaryPropertyUtils.addAllToStrings(merged);
+		return merged;
 	}
 	
 	@Transactional(readOnly = true)
