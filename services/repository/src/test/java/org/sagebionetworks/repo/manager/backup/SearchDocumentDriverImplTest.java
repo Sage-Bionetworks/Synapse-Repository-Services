@@ -5,8 +5,10 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.After;
@@ -17,6 +19,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
@@ -75,22 +78,37 @@ public class SearchDocumentDriverImplTest {
 		additionalAnnos.addAnnotation("blobKey", new String("bytes").getBytes());
 		rev.setNamedAnnotations(named);
 
+		Set<Reference> references = new HashSet<Reference>();
+		Map<String, Set<Reference>> referenceMap = new HashMap<String, Set<Reference>>();
+		referenceMap.put("tooMany", references);
+		node.setReferences(referenceMap);
+		for(int i = 0; i <= SearchDocumentDriverImpl.FIELD_VALUE_SIZE_LIMIT + 10; i++) {
+			Reference ref = new Reference();
+			ref.setTargetId("123" + i);
+			ref.setTargetVersionNumber(1L);
+			references.add(ref);
+		}
+		
 		AccessControlList acl = new AccessControlList();
 		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(resourceAccess);
-
+		
 		Document document = SearchDocumentDriverImpl.formulateSearchDocument(
 				node, rev, acl);
 		assertEquals("en", document.getLang());
 		DocumentFields fields = document.getFields();
 		
-		// Check the facted fields
+		// Check the faceted fields
 		assertEquals(2, fields.getNum_samples().size());
 		assertEquals(new Long(42), fields.getNum_samples().get(0));
 		assertEquals(new Long(999), fields.getNum_samples().get(1));
 		assertEquals(2, fields.getSpecies().size());
 		assertEquals("Dragon", fields.getSpecies().get(0));
 		assertEquals("Unicorn", fields.getSpecies().get(1));
+		
+		// Make sure our references were trimmed
+		assertTrue(10 < fields.getReferences().size());
+		assertEquals(SearchDocumentDriverImpl.FIELD_VALUE_SIZE_LIMIT, fields.getReferences().size());
 		
 		// Annotations are always of length 1 
 		assertEquals(1, fields.getAnnotations().size());

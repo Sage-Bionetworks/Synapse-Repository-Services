@@ -355,7 +355,13 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			fields.setReferences(referenceValues);
 			for (Set<Reference> refs : node.getReferences().values()) {
 				for (Reference ref : refs) {
-					referenceValues.add(ref.getTargetId());
+					if (FIELD_VALUE_SIZE_LIMIT > referenceValues.size()) {
+						referenceValues.add(ref.getTargetId());
+					} else {
+						log.warn("Had to leave reference " + ref.getTargetId()
+								+ " out of search document " + node.getId()
+								+ " due to AwesomeSearch limits");
+					}
 				}
 			}
 		}
@@ -366,7 +372,13 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		for (ResourceAccess access : acl.getResourceAccess()) {
 			if (access.getAccessType().contains(
 					AuthorizationConstants.ACCESS_TYPE.READ)) {
-				aclValues.add(access.getGroupName());
+				if (FIELD_VALUE_SIZE_LIMIT > aclValues.size()) {
+					aclValues.add(access.getGroupName());
+				} else {
+					log.error("Had to leave acl " + access.getGroupName()
+							+ " out of search document " + node.getId()
+							+ " due to AwesomeSearch limits");
+				}
 			}
 		}
 		return document;
@@ -422,16 +434,24 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	static void addAnnotationToSearchDocument(DocumentFields fields,
 			String key, Object value) {
 		if (CATCH_ALL_FIELD == key) {
+			// Since the annotations field is a text field, after this we just
+			// join it into a single string instead of truncating it here since
+			// there is no need to truncate for free text
 			fields.getAnnotations().add((String) value);
-		} else if (DISEASE_FIELD == key) {
+		} else if (DISEASE_FIELD == key
+				&& FIELD_VALUE_SIZE_LIMIT > fields.getDisease().size()) {
 			fields.getDisease().add((String) value);
-		} else if (TISSUE_FIELD == key) {
+		} else if (TISSUE_FIELD == key
+				&& FIELD_VALUE_SIZE_LIMIT > fields.getTissue().size()) {
 			fields.getTissue().add((String) value);
-		} else if (SPECIES_FIELD == key) {
+		} else if (SPECIES_FIELD == key
+				&& FIELD_VALUE_SIZE_LIMIT > fields.getSpecies().size()) {
 			fields.getSpecies().add((String) value);
-		} else if (PLATFORM_FIELD == key) {
+		} else if (PLATFORM_FIELD == key
+				&& FIELD_VALUE_SIZE_LIMIT > fields.getPlatform().size()) {
 			fields.getPlatform().add((String) value);
-		} else if (NUM_SAMPLES_FIELD == key) {
+		} else if (NUM_SAMPLES_FIELD == key
+				&& FIELD_VALUE_SIZE_LIMIT > fields.getNum_samples().size()) {
 			if (value instanceof Long) {
 				fields.getNum_samples().add((Long) value);
 			} else if (value instanceof String) {
