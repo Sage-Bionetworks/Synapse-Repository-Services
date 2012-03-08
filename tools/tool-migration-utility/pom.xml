@@ -4,11 +4,11 @@
 	<parent>
 		<artifactId>tools</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>0.11-SNAPSHOT</version>
+		<version>0.12-SNAPSHOT</version>
 	</parent>
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>tool-migration-utility</artifactId>
-	<version>0.11-SNAPSHOT</version>
+	<version>0.12-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>tool-migration-utility</name>
 	<description>A Utility for migrating Synapse data from one stack to another</description>
@@ -23,7 +23,7 @@
             <groupId>org.sagebionetworks</groupId>
             <artifactId>lib-stackConfiguration</artifactId>
         </dependency>
-        
+
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
@@ -42,7 +42,7 @@
 	  <org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
 	  <org.sagebionetworks.portal.endpoint>http://localhost:8080/portal-${project.version}</org.sagebionetworks.portal.endpoint>
 	</properties>
-    
+
 	<build>
 		<resources>
 			<resource>

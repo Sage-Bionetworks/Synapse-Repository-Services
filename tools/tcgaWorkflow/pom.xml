@@ -3,46 +3,46 @@
    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
    xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-  
+
   <parent>
     <artifactId>tools</artifactId>
     <groupId>org.sagebionetworks</groupId>
-    <version>0.11-SNAPSHOT</version>
+    <version>0.12-SNAPSHOT</version>
   </parent>
-  
+
   <groupId>org.sagebionetworks</groupId>
   <artifactId>tcgaWorkflow</artifactId>
   <packaging>jar</packaging>
   <name>tcgaWorkflow</name>
-  
+
   <dependencies>
-    
+
     <dependency>
       <groupId>org.sagebionetworks</groupId>
       <artifactId>lib-workflow</artifactId>
     </dependency>
-    
+
     <!-- Test Dependencies -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-test</artifactId>
       <scope>test</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-core</artifactId>
       <scope>test</scope>
     </dependency>
-    
+
   </dependencies>
-  
+
   <properties>
     <!-- Build time-determined default property values -->
 	<org.sagebionetworks.authenticationservice.privateendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.privateendpoint>
@@ -50,7 +50,7 @@
 	<org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
 	<org.sagebionetworks.portal.endpoint>http://localhost:8080/portal-${project.version}</org.sagebionetworks.portal.endpoint>
   </properties>
-  
+
   <build>
 	<resources>
 	  <resource>
@@ -65,13 +65,13 @@
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>buildnumber-maven-plugin</artifactId>
       </plugin>
-      
+
       <!-- The shade plugin is building a jar with all the other jar dependencies
            bundled inside. We can use this to run all three of our main classes in this
            package (not just the one we have listed as the main class). -->
       <!-- See http://sagebionetworks.jira.com/wiki/display/PLFM/Workflow+Deployment
            for how to run this -->
-      
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
@@ -93,9 +93,9 @@
           </execution>
         </executions>
       </plugin>
-      
+
       <!-- See http://relation.to/Bloggers/HibernateStaticMetamodelGeneratorAnnotationProcessor -->
-      
+
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
@@ -104,7 +104,7 @@
           <compilerArgument>-proc:none</compilerArgument>
         </configuration>
       </plugin>
-      
+
       <plugin>
         <groupId>org.bsc.maven</groupId>
         <artifactId>maven-processor-plugin</artifactId>
@@ -121,7 +121,7 @@
           </execution>
         </executions>
       </plugin>
-      
+
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
@@ -141,7 +141,7 @@
           </execution>
         </executions>
       </plugin>
-      
+
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
@@ -150,8 +150,8 @@
           <argLine>-javaagent:${settings.localRepository}/org/aspectj/aspectjweaver/${org.aspectj.version}/aspectjweaver-${org.aspectj.version}.jar</argLine>
         </configuration>
       </plugin>
-      
+
     </plugins>
   </build>
-  
+
 </project>

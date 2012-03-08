@@ -5,11 +5,11 @@
   <parent>
     <artifactId>client</artifactId>
     <groupId>org.sagebionetworks</groupId>
-    <version>0.11-SNAPSHOT</version>
+    <version>0.12-SNAPSHOT</version>
   </parent>
   <groupId>org.sagebionetworks</groupId>
   <artifactId>commandLineInterface</artifactId>
-  <version>0.11-SNAPSHOT</version>
+  <version>0.12-SNAPSHOT</version>
   <name>commandLineInterface</name>
   <url>http://maven.apache.org</url>
 

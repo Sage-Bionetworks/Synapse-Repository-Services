@@ -2,21 +2,21 @@
 <project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-  
+
   <parent>
     <artifactId>lib</artifactId>
     <groupId>org.sagebionetworks</groupId>
-    <version>0.11-SNAPSHOT</version>
+    <version>0.12-SNAPSHOT</version>
   </parent>
-  
+
   <groupId>org.sagebionetworks</groupId>
   <artifactId>lib-workflow</artifactId>
-  <version>0.11-SNAPSHOT</version>
+  <version>0.12-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Workflow Library</name>
-  
+
   <dependencies>
-    
+
     <dependency>
 	  <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk</artifactId>
@@ -26,7 +26,7 @@
 	  <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-flow-build-tools</artifactId>
     </dependency>
-    
+
     <!-- Dependencies of flow-build-tools, need a proper pom for that -->
     <dependency>
       <groupId>org.aspectj</groupId>
@@ -40,25 +40,25 @@
       <!-- Latest 2.3.x (not 2.4.x), at least 2.3.18 -->
       <version>[2.3.18,2.4)</version>
     </dependency>
-    
+
     <!-- Logging -->
     <dependency>
       <groupId>commons-logging</groupId>
       <artifactId>commons-logging</artifactId>
     </dependency>
-    
+
     <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
     </dependency>
-    
+
     <!-- Test Dependencies -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <scope>test</scope>
     </dependency>
-    
+
     <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-test</artifactId>
@@ -71,40 +71,40 @@
       <scope>test</scope>
     </dependency>
 
-    
+
     <!-- Platform Dependencies -->
     <dependency>
       <groupId>org.sagebionetworks</groupId>
       <artifactId>lib-stackConfiguration</artifactId>
     </dependency>
-    
+
     <dependency>
       <groupId>org.sagebionetworks</groupId>
       <artifactId>synapseJavaClient</artifactId>
     </dependency>
-    
+
     <dependency>
       <groupId>org.sagebionetworks</groupId>
       <artifactId>lib-auto-generated</artifactId>
     </dependency>
-    
+
     <dependency>
       <groupId>org.sagebionetworks</groupId>
       <artifactId>schema-to-pojo-gwt</artifactId>
     </dependency>
-    
+
 	<dependency>
 	  <groupId>org.sagebionetworks</groupId>
 	  <artifactId>lib-communicationUtilities</artifactId>
 	</dependency>
-    
+
   </dependencies>
 
   <build>
     <plugins>
 
 <!-- See http://relation.to/Bloggers/HibernateStaticMetamodelGeneratorAnnotationProcessor -->
-      
+
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
@@ -113,7 +113,7 @@
           <compilerArgument>-proc:none</compilerArgument>
         </configuration>
       </plugin>
-      
+
       <plugin>
         <groupId>org.bsc.maven</groupId>
         <artifactId>maven-processor-plugin</artifactId>
@@ -130,7 +130,7 @@
           </execution>
         </executions>
       </plugin>
-      
+
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
@@ -159,8 +159,8 @@
           <argLine>-javaagent:${settings.localRepository}/org/aspectj/aspectjweaver/${org.aspectj.version}/aspectjweaver-${org.aspectj.version}.jar</argLine>
         </configuration>
       </plugin>
-      
+
     </plugins>
   </build>
-  
+
 </project>

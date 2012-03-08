@@ -33,16 +33,17 @@ DEV_A_CONFIG = SynapseInstanceConfig(DEV_APPLICATION_NAME, 'auth-dev-a', None, N
 
 # Parameters to drive Deployment - Change these as needed
 deployment_bucket = PLATFORM_DEPLOYMENT_BUCKET
-version = '0.10'
+version = '0.11'
 isSnapshot = True
 workDir = os.sep + 'temp' + os.sep 
-stacksToUpgrade = [STAGING_B_CONFIG, PROD_A_CONFIG]
+stacksToUpgrade = [STAGING_A_CONFIG]
 componentsToUpgrade = [AUTH_SERVICE_WAR, REPO_SERVICE_WAR, PORTAL_WAR]
+#componentsToUpgrade = [PORTAL_WAR]
 #stacksToUpgrade = [DEV_A_CONFIG]
 
 #version = '0.11'
 #componentsToUpgrade = [AUTH_SERVICE_WAR]
-update_environments = True # if false just create the beanstalk versions, if true also do update of running instance.
+update_environments = False # if false just create the beanstalk versions, if true also do update of running instance.
 
 
 # Get the .wars to local work directory
