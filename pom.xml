@@ -31,24 +31,24 @@
 	</modules>
 
 	<repositories>
-      <repository>
-        <id>sagebionetworks-snapshots-local</id>
-        <name>sagebionetworks-snapshots-local</name>
-        <url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-snapshots-local
-        </url>
-      </repository>
-	  <repository>
-		<id>sagebionetworks-releases-local</id>
-		<name>sagebionetworks-releases-local</name>
-		<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local
-		</url>
-	  </repository>
-	  <repository>
-		<id>sagebionetworks-ext</id>
-		<name>sagebionetworks-releases-ext</name>
-		<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/ext-releases-local
-		</url>
-	  </repository>
+		<repository>
+			<id>sagebionetworks</id>
+			<name>sagebionetworks-releases</name>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local
+			</url>
+		</repository>
+		<repository>
+			<id>sagebionetworks-plugins-releases-local</id>
+			<name>sagebionetworks-plugins-releases-local</name>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/plugins-releases-local
+			</url>
+		</repository>
+		<repository>
+			<id>sagebionetworks-ext</id>
+			<name>sagebionetworks-releases-ext</name>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/ext-releases-local
+			</url>
+		</repository>
 		<repository>
 			<id>atlassian-m2-repository</id>
 			<url>https://m2proxy.atlassian.com/repository/public</url>
@@ -256,7 +256,7 @@
 				<artifactId>aws-java-sdk-flow-build-tools</artifactId>
 				<version>${com.amazonaws.version}</version>
 			</dependency>
-
+            
 			<dependency>
 				<groupId>org.apache.httpcomponents</groupId>
 				<artifactId>httpclient</artifactId>
@@ -540,11 +540,11 @@
 	</build>
 
 	<!-- Specify hard-coded project properties that should be shared here -->
-	<!-- Note, do not put in custom developer configuration that should not
+	<!-- Note, do not put in custom developer configuration that should not 
 		be shared, esp passwords. Those go in settings.xml -->
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading
+		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading 
 			sources -->
 		<downloadSources>true</downloadSources>
 
@@ -574,7 +574,7 @@
 		<repository>
 			<id>sagebionetworks</id>
 			<name>sagebionetworks-releases</name>
-			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-snapshots-local
 			</url>
 		</repository>
 		<snapshotRepository>
