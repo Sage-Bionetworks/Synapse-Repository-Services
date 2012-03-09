@@ -582,6 +582,7 @@
 			<name>sagebionetworks-snapshots</name>
 			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-snapshots-local
 			</url>
+			<uniqueVersion>false</uniqueVersion>
 		</snapshotRepository>
 
 	</distributionManagement>
