@@ -32,9 +32,12 @@ import com.amazonaws.services.simpleworkflow.flow.junit.WorkflowTest;
 public class SageCommonsWorkflowTest {
 
 	private static final String EXPECTED_RESULT = "workflow" + ":getLayer"
-			+ ":processSpreadsheet" + ":formulateNotificationMessage"
-			+ ":notifyFollowers" + ":runRScript" + ":runRScript"
-			+ ":runRScript";
+			+ ":processSpreadsheet"
+			+ ":runRScript" 
+			+ ":runRScript"
+			+ ":runRScript"
+			+ ":formulateNotificationMessage"
+			+ ":notifyFollowers" ;
 
 	private final class TestSageCommonsActivities implements
 			SageCommonsActivities {
@@ -43,7 +46,7 @@ public class SageCommonsWorkflowTest {
 
 		// We can directly test some of the activity impl in the context of a
 		// workflow unit test, so here we call what we can and mock out the rest
-		SageCommonsActivitiesImpl realImpl = new SageCommonsActivitiesImpl();
+		SageCommonsActivitiesImpl realImpl = new SageCommonsActivitiesImpl(new MockSageCommonsChildWorkflowDispatcher(childWorkflowFactory));
 
 		/**
 		 * @return the result
@@ -71,7 +74,7 @@ public class SageCommonsWorkflowTest {
 		}
 
 		@Override
-		public List<String> processSpreadsheet(String url) throws IOException,
+		public Integer processSpreadsheet(String url) throws IOException,
 				HttpClientHelperException {
 
 			result += ":processSpreadsheet";
@@ -108,6 +111,12 @@ public class SageCommonsWorkflowTest {
 			result += ":notifyFollowers";
 		}
 
+		@Override
+		public Integer processSpreadsheetContents(File file) throws IOException {
+			// TODO Auto-generated method stub
+			return null;
+		}
+
 	}
 
 	/**
@@ -117,6 +126,7 @@ public class SageCommonsWorkflowTest {
 	public WorkflowTest workflowTest = new WorkflowTest();
 
 	private final SageCommonsWorkflowClientFactory workflowFactory = new SageCommonsWorkflowClientFactoryImpl();
+	private final SageCommonsRScriptWorkflowClientFactory childWorkflowFactory = new SageCommonsRScriptWorkflowClientFactoryImpl();
 
 	private TestSageCommonsActivities activitiesImplementation;
 
@@ -125,10 +135,6 @@ public class SageCommonsWorkflowTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
-		// Collection<Class<?>> workflowTypes = new ArrayList<Class<?>>();
-		// workflowTypes.add(SageCommonsWorkflowImpl.class);
-		// workflowTypes.add(SageCommonsRScriptWorkflowImpl.class);
-		// workflowTest.setWorkflowImplementationTypes(workflowTypes);
 		workflowTest
 				.addWorkflowImplementationType(SageCommonsWorkflowImpl.class);
 		workflowTest

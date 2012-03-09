@@ -32,6 +32,18 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 	private static final Logger log = Logger
 			.getLogger(SageCommonsActivitiesImpl.class.getName());
 
+	private static final int MAX_NUM_DEBUG_MODE_CHILD_WORKFLOWS = 5;
+
+	SageCommonsChildWorkflowDispatcher dispatcher;
+
+	/**
+	 * @param dispatcher
+	 */
+	public SageCommonsActivitiesImpl(
+			SageCommonsChildWorkflowDispatcher dispatcher) {
+		this.dispatcher = dispatcher;
+	}
+
 	@Override
 	public Layer getLayer(String layerId) throws SynapseException {
 		Synapse synapse = SageCommonsConfigHelper.getSynapseClient();
@@ -39,29 +51,30 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 	}
 
 	@Override
-	public List<String> processSpreadsheet(String url) throws IOException,
+	public Integer processSpreadsheet(String url) throws IOException,
 			HttpClientHelperException {
+		int numJobs = 0;
 
-		log.debug("Downloading: " + url);
-		
 		URL parsedUrl = new URL(url);
 		String filename = parsedUrl.getPath().replace("/", "_");
-		
+
 		// Download the spreadsheet
 		File tempFile = File.createTempFile("sageCommons", filename);
-		List<String> jobs = null;
 		try {
+			log.debug("Downloading: " + url);
 			tempFile = HttpClientHelper.getContent(SageCommonsConfigHelper
 					.getHttpClient(), url, tempFile);
-			jobs = processSpreadsheetContents(tempFile);
+			numJobs = processSpreadsheetContents(tempFile);
 		} finally {
 			tempFile.delete();
 		}
-		return jobs;
+		return numJobs;
 	}
 
-	List<String> processSpreadsheetContents(File file) throws IOException {
-		List<String> jobs = new ArrayList<String>();
+	@SuppressWarnings("unchecked")
+	@Override
+	public Integer processSpreadsheetContents(File file) throws IOException {
+		int numJobs = 0;
 		BufferedReader reader = null;
 
 		if (file.getName().endsWith("zip")) {
@@ -76,7 +89,7 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 					log.debug("Processing file: " + entry.getName());
 					reader = new BufferedReader(new InputStreamReader(
 							inputStream));
-					processSpreadsheetContents(reader, jobs);
+					numJobs += processSpreadsheetContents(reader);
 				} finally {
 					inputStream.close();
 				}
@@ -84,25 +97,28 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 		} else {
 			log.debug("Processing file: " + file.getName());
 			reader = new BufferedReader(new FileReader(file));
-			processSpreadsheetContents(reader, jobs);
+			numJobs += processSpreadsheetContents(reader);
 		}
-		return jobs;
+		return numJobs;
 	}
 
-	void processSpreadsheetContents(BufferedReader reader, List<String> jobs) throws IOException {
+	int processSpreadsheetContents(BufferedReader reader) throws IOException {
+		int numJobs = 0;
 		// Read it line by line
 		String header = reader.readLine();
 		String line;
 		while ((line = reader.readLine()) != null) {
-			jobs.add(header + "\n" + line);
 			log.debug("Adding job: \n" + header + "\n" + line);
-			
-			// TODO FIXME this activity is returning too much data, stop it here as a sanity check
-			if(4 <= jobs.size()) {
-				return;
+			dispatcher.dispatchRScriptChildWorkflow(SageCommonsConfigHelper
+					.getWorkflowScript(), header + "\n" + line);
+			numJobs++;
+
+			if (SageCommonsConfigHelper.debugMode()
+					&& MAX_NUM_DEBUG_MODE_CHILD_WORKFLOWS <= numJobs) {
+				return numJobs;
 			}
-			
 		}
+		return numJobs;
 	}
 
 	@Override

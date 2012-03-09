@@ -28,9 +28,9 @@ public class WorkflowTemplatedConfigurationImpl extends
 	/**
 	 * Default socket timeout for connections to Simple Workflow Service, note
 	 * that The documentation for both PollForActivityTask and
-	 * PollForDecisionTask says that it's important to"set the client side socket 
-	 * timeout to at least 70 seconds (10 seconds higher than the maximum time service 
-	 * may hold the poll request)."
+	 * PollForDecisionTask says that it's important to"set the client side
+	 * socket timeout to at least 70 seconds (10 seconds higher than the maximum
+	 * time service may hold the poll request)."
 	 */
 	public static final int DEFAULT_SWF_SOCKET_TIMEOUT_SECONDS = 70;
 
@@ -200,6 +200,13 @@ public class WorkflowTemplatedConfigurationImpl extends
 	@Override
 	public String getRScriptPath() {
 		return getProperty("org.sagebionetworks.rScript.path");
+	}
+
+	@Override
+	public boolean debugMode() {
+		String answer = getProperty("org.sagebionetworks.workflow.debugmode");
+		boolean theValue = Boolean.parseBoolean(answer);
+		return theValue;
 	}
 
 }

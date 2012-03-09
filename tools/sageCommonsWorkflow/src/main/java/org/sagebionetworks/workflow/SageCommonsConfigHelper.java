@@ -98,6 +98,13 @@ public class SageCommonsConfigHelper {
 	}
 	
 	/**
+	 * @return whether debug mode is on or off
+	 */
+	public static boolean debugMode() {
+		return configuration.debugMode();
+	}
+	
+	/**
 	 * @return the absolute path for the script that this workflow should run
 	 */
 	public static String getWorkflowScript() {

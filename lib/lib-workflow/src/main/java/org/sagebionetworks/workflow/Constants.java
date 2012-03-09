@@ -23,7 +23,12 @@ public class Constants {
 	public static final int	ONE_HOUR_OF_SECONDS = 3600;
 
 	/**
+	 * A longer timeout
+	 */
+	public static final int	FOUR_HOURS_OF_SECONDS = ONE_HOUR_OF_SECONDS * 4;
+	
+	/**
 	 * A really long timeout to be used when you do not have a better idea of an appropriate timeout
 	 */
-	public static final int ONE_DAY_OF_SECONDS = 86400;
+	public static final int ONE_DAY_OF_SECONDS = ONE_HOUR_OF_SECONDS * 24;
 }

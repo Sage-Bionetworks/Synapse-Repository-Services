@@ -24,7 +24,7 @@ public class SageCommonsActivityService {
         final ActivityWorker worker = new ActivityWorker(swfService, domain, SageCommonsActivities.ACTIVITIES_TASK_LIST);
 
         // Create activity implementations
-        SageCommonsActivities tcgaActivitiesImpl = new SageCommonsActivitiesImpl();
+        SageCommonsActivities tcgaActivitiesImpl = new SageCommonsActivitiesImpl(new SageCommonsChildWorkflowDispatcherImpl());
         worker.addActivitiesImplementation(tcgaActivitiesImpl);
 
         worker.start();

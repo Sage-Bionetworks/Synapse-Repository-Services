@@ -1,12 +1,18 @@
 package org.sagebionetworks.workflow;
 
+import org.apache.log4j.Logger;
+
 import com.amazonaws.services.simpleworkflow.flow.core.TryCatchFinally;
 
 /**
  * @author deflaux
  * 
  */
-public class SageCommonsRScriptWorkflowImpl implements SageCommonsRScriptWorkflow {
+public class SageCommonsRScriptWorkflowImpl implements
+		SageCommonsRScriptWorkflow {
+
+	private static final Logger log = Logger
+			.getLogger(SageCommonsRScriptWorkflow.class.getName());
 
 	private SageCommonsActivitiesClient client;
 
@@ -38,13 +44,14 @@ public class SageCommonsRScriptWorkflowImpl implements SageCommonsRScriptWorkflo
 
 			@Override
 			protected void doCatch(Throwable e) throws Throwable {
-				// TODO notify someone?
+				log.error("processSubmission failed: ", e);
 				throw e;
 			}
 
 			@Override
 			protected void doFinally() throws Throwable {
-				// do nothing
+				// nothing to clean up
+				log.info("workflow complete");
 			}
 		};
 	}

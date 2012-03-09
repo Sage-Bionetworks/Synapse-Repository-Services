@@ -1,16 +1,11 @@
 package org.sagebionetworks.workflow;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
-import java.util.List;
-
 import org.apache.log4j.Logger;
 import org.sagebionetworks.repo.model.Layer;
 
 import com.amazonaws.services.simpleworkflow.flow.annotations.Asynchronous;
 import com.amazonaws.services.simpleworkflow.flow.core.Promise;
 import com.amazonaws.services.simpleworkflow.flow.core.TryCatchFinally;
-import com.amazonaws.services.simpleworkflow.model.WorkflowExecution;
 
 /**
  * @author deflaux
@@ -75,28 +70,8 @@ public class SageCommonsWorkflowImpl implements SageCommonsWorkflow {
 	@Asynchronous
 	private void processLayerSubmission(Promise<Layer> layerPromise) {
 		Layer layer = layerPromise.get();
-		Promise<List<String>> jobs = client.processSpreadsheet(layer.getLocations().get(0).getPath());
-		kickOffJobs(layer, jobs);
-	}
-	
-	@Asynchronous
-	private void kickOffJobs(Layer layer, Promise<List<String>> jobs) {
-		int numJobs = 0;
-		// Get a factory for these child workflows
-		SageCommonsRScriptWorkflowClientFactory clientFactory = new SageCommonsRScriptWorkflowClientFactoryImpl();
-
-		for(String job : jobs.get()) {
-			SageCommonsRScriptWorkflowClient childWorkflow = clientFactory
-					.getClient();
-			childWorkflow.runRScript(SageCommonsConfigHelper.getWorkflowScript(), job);
-			numJobs++;
-			
-			WorkflowExecution workflowExecution = childWorkflow.getWorkflowExecution();
-			log.debug("Started runRScript workflow with workflowId=\""
-					+ workflowExecution.getWorkflowId() + "\" and runId=\""
-					+ workflowExecution.getRunId() + "\"");
-		}		
-		Promise<String> message = client.formulateNotificationMessage(Promise.asPromise(layer), Promise.asPromise(numJobs));
+		Promise<Integer> numJobs = client.processSpreadsheet(layer.getLocations().get(0).getPath());
+		Promise<String> message = client.formulateNotificationMessage(Promise.asPromise(layer), numJobs);
 		client.notifyFollowers(Promise
 		.asPromise(layer.getCreatedBy()), Promise
 		.asPromise(NOTIFICATION_SUBJECT), message);		
