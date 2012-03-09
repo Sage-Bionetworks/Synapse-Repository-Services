@@ -41,12 +41,6 @@ public class IT101LoadMigratedData {
 		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
 		
-//		InputStream in = IT101LoadMigratedData.class.getClassLoader().getResourceAsStream("samplePreview2.txt");
-//		String preivewExample = readToString(in);
-//		System.out.println(preivewExample);
-//		String encoded = new String(Base64.encodeBase64(preivewExample.getBytes("UTF-8")),"UTF-8");
-//		System.out.println(encoded);
-		
 	}
 	
 	/**

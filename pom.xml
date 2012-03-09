@@ -43,11 +43,6 @@
 		<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local
 		</url>
 	  </repository>
-      <repository>
-        <id>sagebionetworks-plugins-snapshots-local</id>
-        <name>sagebionetworks-plugins-snapshots-local</name>
-        <url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/plugins-snapshots-local</url>
-      </repository>
 	  <repository>
 		<id>sagebionetworks-plugins-releases-local</id>
 		<name>sagebionetworks-plugins-releases-local</name>

@@ -10,7 +10,7 @@
                 "approved",
                 "denied",
                 "pending",
-                "acquired"
+                "acquired",
             ]
         },
         "dataAcquisitionReference": {

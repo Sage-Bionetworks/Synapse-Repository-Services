@@ -9,8 +9,9 @@
     "properties":{
         "versionNumber":{
             "type":"integer",
-            "description":"The version number for this entity",
-            "title":"Version Number"
+            "description":"The version number issued to this version on the entity.",
+            "title":"Version Number",
+            "transient":true,
         },
         "versionLabel":{
             "type":"string",
