@@ -57,6 +57,9 @@ public class SampleConsumer
     private static final String DISCOVERY_INFO_COOKIE_NAME = "org.sagebionetworks.auth.discoveryInfoCookie";
     private static final int DISCOVERY_INFO_COOKIE_MAX_AGE = 60; // sec
     
+	private static final String encryptionKey = StackConfiguration.getEncryptionKey();
+
+    
     /**
      * Serializes, encrypts and Base-64 encodes an object, so that it can be safely put in a cookie.
      * Note:  Encryption/decryption doesn't seem to work on the binary serialized object directly,
@@ -69,7 +72,7 @@ public class SampleConsumer
 	    oos.writeObject(o);
 	    oos.close();
 	    byte[] serializedAndBase64Encoded = Base64.encodeBase64(out.toByteArray());
-	    StringEncrypter se = new StringEncrypter(StackConfiguration.getEncryptionKey());
+	    StringEncrypter se = new StringEncrypter(encryptionKey);
 	    String encrypted = se.encrypt(new String(serializedAndBase64Encoded));
 	    return encrypted;
     }
@@ -79,7 +82,7 @@ public class SampleConsumer
      */
     public static <T> T decryptingDeserializer(String s) throws IOException {
 		String encryptedDI = s;
-	   	StringEncrypter se = new StringEncrypter(StackConfiguration.getEncryptionKey());
+	   	StringEncrypter se = new StringEncrypter(encryptionKey);
 	   	String serializedAndBase64EncodedDI = se.decrypt(encryptedDI);
 	   	byte[] serializedByteArray = Base64.decodeBase64(serializedAndBase64EncodedDI.getBytes());
 		ByteArrayInputStream bais = new ByteArrayInputStream(serializedByteArray);

@@ -138,6 +138,8 @@ public class AuthenticationController {
 	private static final String RETURN_TO_URL_COOKIE_NAME = "org.sagebionetworks.auth.returnToUrl";
 	private static final int RETURN_TO_URL_COOKIE_MAX_AGE_SECONDS = 60; // seconds
 	
+	private static final String authenticationServicePublicEndpoint = StackConfiguration.getAuthenticationServicePublicEndpoint();
+	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = OPEN_ID_URI, method = RequestMethod.POST)
 	public void openID(
@@ -154,7 +156,7 @@ public class AuthenticationController {
 		String thisUrl = request.getRequestURL().toString();
 		int i = thisUrl.indexOf(OPEN_ID_URI);
 		if (i<0) throw new RuntimeException("Current URI, "+OPEN_ID_URI+", not found in "+thisUrl);
-		String openIDCallbackURL = StackConfiguration.getAuthenticationServicePublicEndpoint()+OPENID_CALLBACK_URI;
+		String openIDCallbackURL = authenticationServicePublicEndpoint+OPENID_CALLBACK_URI;
 //	    Here is an alternate way to do it which makes sure that the domain of the call back URL matches
 //		that of the incoming request:
 //		String openIDCallbackURL = thisUrl.substring(0, i)+OPENID_CALLBACK_URI;

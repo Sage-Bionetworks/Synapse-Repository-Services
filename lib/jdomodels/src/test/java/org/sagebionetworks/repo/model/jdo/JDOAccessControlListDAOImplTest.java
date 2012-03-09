@@ -19,6 +19,7 @@ import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -51,7 +52,9 @@ public class JDOAccessControlListDAOImplTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-
+	
+	@Autowired
+	private UserGroupCache userGroupCache;
 
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Collection<UserGroup> groupList = new ArrayList<UserGroup>();
@@ -109,7 +112,7 @@ public class JDOAccessControlListDAOImplTest {
 		assertEquals(node.getId(), acl.getId());
 		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
 		ResourceAccess ra = new ResourceAccess();
-		ra.setGroupName(group.getName());
+		ra.setGroupName(group.getName()); 
 		ra.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
 				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
 						AuthorizationConstants.ACCESS_TYPE.READ
@@ -128,10 +131,14 @@ public class JDOAccessControlListDAOImplTest {
 	@After
 	public void tearDown() throws Exception {
 		for (Node n : nodeList) nodeDAO.delete(n.getId());
+		nodeList.clear();
 		for (UserGroup g : groupList) userGroupDAO.delete(g.getId());
+		groupList.clear();
+		aclList.clear();
 		this.node=null;
 		this.acl=null;
 		this.group=null;
+		this.group2=null;
 	}
 
 	/**
@@ -150,6 +157,11 @@ public class JDOAccessControlListDAOImplTest {
 		String rid = "-598787";
 		AccessControlList acl = accessControlListDAO.getForResource(rid);
 		assertNull(acl);
+	}
+	
+	@Test
+	public void testNOOP() {
+	
 	}
 
 	

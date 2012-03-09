@@ -17,8 +17,6 @@ import org.sagebionetworks.client.Synapse;
  */
 
 public class IT980ResourceAccess {
-	private static final Logger log = Logger.getLogger(IT980ResourceAccess.class.getName());
-	
 	private static Synapse synapse = null;
 	private static String authEndpoint = null;
 	
@@ -72,7 +70,8 @@ public class IT980ResourceAccess {
 		
 		// get the session:  can be done by another user (e.g. some service account) 
 		Synapse secondUser = new Synapse();
-		synapse.login(StackConfiguration.getIntegrationTestUserTwoName(),
+		secondUser.setAuthEndpoint(authEndpoint);
+		secondUser.login(StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
 		JSONObject userData = secondUser.getSynapseEntity(authEndpoint, "/resourceSession/"+resourceAccessToken);
 		assertTrue(userData.has("userName"));

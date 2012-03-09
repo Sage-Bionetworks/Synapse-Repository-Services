@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
 import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.FieldType;
@@ -60,14 +61,11 @@ public class SqlConstants {
 	public static final String TABLE_DATE_ANNOTATIONS	= "JDODATEANNOTATION";
 	public static final String TABLE_STACK_STATUS		= "JDOSTACKSTATUS";
 	
-	
 	// The User Profile table
 	public static final String TABLE_USER_PROFILE				= "JDOUSERPROFILE";
-	public static final String COL_USER_PROFILE_ID				= "ID";
-	public static final String COL_USER_PROFILE_NAME			= "NAME";
+	public static final String COL_USER_PROFILE_ID				= "OWNER_ID";
 	public static final String COL_USER_PROFILE_ETAG			= "ETAG";
 	public static final String COL_USER_PROFILE_PROPS_BLOB		= "PROPERTIES";
-	public static final String COL_USER_PROFILE_ANNOS_BLOB		= "ANNOTATIONS";
 	public static final String DDL_FILE_USER_PROFILE			="schema/UserProfile-ddl.sql";
 	// 
 	public static final String COL_STACK_STATUS_STATUS				= "STATUS";
@@ -101,7 +99,10 @@ public class SqlConstants {
 	public static final String COL_USER_GROUP_ID			= "ID";
 	public static final String COL_USER_GROUP_NAME 			= "NAME";
 	public static final String COL_USER_GROUP_IS_INDIVIDUAL = "ISINDIVIDUAL";
-	
+	public static final String COL_USER_GROUP_E_TAG = "ETAG";
+	public static final String COL_USER_GROUP_CREATION_DATE = "CREATION_DATE";
+	public static final String DDL_FILE_USER_GROUP			="schema/UserGroup-ddl.sql";
+
 	public static final String TABLE_ACCESS_CONTROL_LIST = "ACL";
 	public static final String COL_ACL_ID				= "ID";
 	public static final String COL_ACL_OWNER_ID			= "NODE_OWNER";

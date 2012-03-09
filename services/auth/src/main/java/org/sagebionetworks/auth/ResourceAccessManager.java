@@ -101,8 +101,10 @@ public class ResourceAccessManager {
 		return s;
 	}
 	
+	private static final String encryptionKey = StackConfiguration.getEncryptionKey();
+	
 	public static String createResourceAccessToken(String sessionToken, String resourceName) {
-		return createResourceAccessToken(sessionToken, resourceName, StackConfiguration.getEncryptionKey());
+		return createResourceAccessToken(sessionToken, resourceName, encryptionKey);
 	}
 	
 	// for unit testing
@@ -113,7 +115,7 @@ public class ResourceAccessManager {
 	}
 	
 	public static String extractSessionToken(String resourceAccessToken) {
-		StringEncrypter se = new StringEncrypter(StackConfiguration.getEncryptionKey());
+		StringEncrypter se = new StringEncrypter(encryptionKey);
 		String unencryptedString = se.decrypt(urlSafeToBase64(resourceAccessToken));
 		int i = unencryptedString.indexOf(separator);
 		if (i<0) throw new IllegalArgumentException("Bad resource access token.");
@@ -121,7 +123,7 @@ public class ResourceAccessManager {
 	}
 
 	public static String extractResourceName(String resourceAccessToken) {
-		StringEncrypter se = new StringEncrypter(StackConfiguration.getEncryptionKey());
+		StringEncrypter se = new StringEncrypter(encryptionKey);
 		String unencryptedString = se.decrypt(urlSafeToBase64(resourceAccessToken));
 		int i = unencryptedString.indexOf(separator);
 		if (i<0) throw new IllegalArgumentException("Bad resource access token.");

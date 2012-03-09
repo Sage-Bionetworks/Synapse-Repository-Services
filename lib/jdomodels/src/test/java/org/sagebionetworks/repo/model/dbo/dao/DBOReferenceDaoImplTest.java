@@ -399,6 +399,7 @@ public class DBOReferenceDaoImplTest {
 		UserGroup group = new UserGroup();
 		group.setName(GROUP_NAME);
 		String groupId = userGroupDAO.create(group);
+		group.setId(groupId);
 		groupsToDelete.add(groupId);
 		
 		// create an ACL for node0

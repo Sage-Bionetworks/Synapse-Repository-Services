@@ -39,7 +39,7 @@ public interface UserGroupDAO extends BaseDAO<UserGroup> {
 	/**
 	 * 
 	 * @param name
-	 * @return
+	 * @return true if deletion occurs
 	 */
 	public boolean deletePrincipal(String name);
 }

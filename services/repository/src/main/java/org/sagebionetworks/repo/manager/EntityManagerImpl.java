@@ -6,19 +6,17 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;

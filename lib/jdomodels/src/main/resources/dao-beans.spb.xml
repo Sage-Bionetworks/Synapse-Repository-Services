@@ -31,7 +31,9 @@
 	<bean id="nodeInheritanceDao"
 		class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
 
-	<bean id="userGroupDAO" class="org.sagebionetworks.repo.model.jdo.JDOUserGroupDAOImpl" />
+	<bean id="userGroupDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOUserGroupDAOImpl" />
+
+	<bean id="userProfileDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOUserProfileDAOImpl" />
 
 	<bean id="userGroupCache" class="org.sagebionetworks.repo.model.jdo.UserGroupCacheImpl"
 		scope="singleton" />

@@ -2,20 +2,12 @@ package org.sagebionetworks.auth;
 
 import static org.junit.Assert.assertEquals;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.codec.binary.Base64;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StringEncrypter;
 
 public class SerializationTest {
 

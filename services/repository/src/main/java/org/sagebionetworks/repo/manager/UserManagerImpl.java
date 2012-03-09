@@ -19,7 +19,10 @@ import org.sagebionetworks.repo.model.UserDAO;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,6 +34,9 @@ public class UserManagerImpl implements UserManager {
 
 	@Autowired
 	UserGroupDAO userGroupDAO;
+	
+	@Autowired
+	UserProfileDAO userProfileDAO;
 
 	private static Map<DEFAULT_GROUPS, UserGroup> defaultGroups;
 
@@ -61,15 +67,6 @@ public class UserManagerImpl implements UserManager {
 	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {
 		this.userGroupDAO = userGroupDAO;
 	}
-
-	// private boolean isAdmin(Collection<UserGroup> userGroups) throws
-	// DatastoreException, NotFoundException {
-	// UserGroup adminGroup =
-	// userGroupDAO.findGroup(AuthorizationConstants.ADMIN_GROUP_NAME, false);
-	// for (UserGroup ug: userGroups) if (ug.getId().equals(adminGroup.getId()))
-	// return true;
-	// return false;
-	// }
 
 	/**
 	 * 
@@ -150,6 +147,24 @@ public class UserManagerImpl implements UserManager {
 				} catch (InvalidModelException ime) {
 					// shouldn't happen!
 					throw new DatastoreException(ime);
+				}
+				// we also make an user profile for this individual
+				ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
+				UserProfile userProfile = null;
+				try {
+					userProfile = userProfileDAO.get(individualGroup.getId(), schema);
+				} catch (NotFoundException nfe) {
+					userProfile = null;
+				}
+				if (userProfile==null) {
+					userProfile = new UserProfile();
+					userProfile.setOwnerId(individualGroup.getId());
+					// TODO mirror first name, last name, display name from Crowd to this object
+					try {
+						userProfileDAO.create(userProfile, schema);
+					} catch (InvalidModelException e) {
+						throw new RuntimeException(e);
+					}
 				}
 			}
 			// All authenticated users belong to the public group and the

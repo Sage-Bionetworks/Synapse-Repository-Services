@@ -19,6 +19,7 @@ public class PrefixConst {
 	public final static String ANALYSIS =	"/analysis";
 	public final static String STEP =		"/step";
 	public final static String CODE =		"/code";
+	public final static String USER_PROFILE =		"/userProfile";
 	
 	// Default means a default parent will be chosen.
 	public final static String DEFAULT =		"DEFAULT";

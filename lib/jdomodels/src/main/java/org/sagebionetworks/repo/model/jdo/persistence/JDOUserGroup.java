@@ -13,7 +13,9 @@ import javax.jdo.annotations.Unique;
 import org.sagebionetworks.repo.model.jdo.JDOBase;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
-@PersistenceCapable(detachable = "false", table=SqlConstants.TABLE_USER_GROUP)
+// TODO delete this deprecated class
+//@PersistenceCapable(detachable = "false", table=SqlConstants.TABLE_USER_GROUP)
+@Deprecated()
 public class JDOUserGroup implements JDOBase {
 	@PrimaryKey 
 	@Persistent(valueStrategy = IdGeneratorStrategy.IDENTITY)

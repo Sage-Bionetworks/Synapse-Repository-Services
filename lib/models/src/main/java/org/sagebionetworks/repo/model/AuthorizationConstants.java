@@ -82,6 +82,11 @@ public class AuthorizationConstants {
 	public static final String USER_ID_PARAM = "userId";
 	
 	/**
+	 * A reserved parameter name for passing in a user id (not necessarily the name of the requestor,
+	 * which is given by USER_ID_PARAM)
+	 */
+	public static final String USER_NAME_PARAM = "userName";
+	/**
 	 * The header for the session token
 	 */
 	public static final String SESSION_TOKEN_PARAM = "sessionToken";

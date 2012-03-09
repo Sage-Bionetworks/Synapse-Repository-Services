@@ -109,6 +109,7 @@ public class UrlHelpers {
 	public static final String ANALYSIS	 = PrefixConst.ANALYSIS;
 	public static final String STEP 	 = PrefixConst.STEP;
 	public static final String CODE 	 = PrefixConst.CODE;
+	public static final String USER_PROFILE  = PrefixConst.USER_PROFILE;
 	
 	/**
 	 * All of the base URLs for Synapse objects with ID.
@@ -125,6 +126,7 @@ public class UrlHelpers {
 	public static final String ANALYSIS_ID	= ANALYSIS+ID;
 	public static final String STEP_ID		= STEP+ID;
 	public static final String CODE_ID		= CODE+ID;
+	public static final String USER_PROFILE_ID		= USER_PROFILE+ID;
 	
 	public static final String ENTITY_ID_TYPE = ENTITY_ID+TYPE;
 	

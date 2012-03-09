@@ -36,6 +36,8 @@
 	
 	<bean id="permissionsManager" class="org.sagebionetworks.repo.manager.PermissionsManagerImpl" />
 	
+	<bean id="userProfileManager" class="org.sagebionetworks.repo.manager.UserProfileManagerImpl" />
+	
 	<bean id="amazonClientFactory" class="org.sagebionetworks.repo.util.AmazonClientFactoryImpl"  scope="singleton"/>
 	
 	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />

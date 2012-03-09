@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 
 import org.junit.After;
 import org.junit.Before;
@@ -26,12 +27,14 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 
-public class JDOUserGroupDAOImplTest {
+public class DBOUserGroupDAOImplTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 		
 	List<String> groupsToDelete;
+	
+	private static final String GROUP_NAME = "test-group";
 
 	@Before
 	public void setUp() throws Exception {
@@ -51,13 +54,42 @@ public class JDOUserGroupDAOImplTest {
 		}
 	}
 	
+	@Test
+	public void testRoundTrip() throws Exception {
+		UserGroup group = new UserGroup();
+		group.setName(GROUP_NAME);
+		String groupId = userGroupDAO.create(group);
+		assertNotNull(groupId);
+		UserGroup clone = userGroupDAO.get(groupId);
+		assertEquals(groupId, clone.getId());
+		assertEquals(GROUP_NAME, clone.getName());
+		assertEquals(group.isIndividual(), clone.isIndividual());
+	}
+	
 	
 	@Test
 	public void findAnonymousUser() throws Exception {
 		assertNotNull(userGroupDAO.findGroup(AuthorizationConstants.ANONYMOUS_USER_ID, true));
 	}
+	@Test
+	public void testDoesPrincipalExist() throws Exception {
+		UserGroup group = new UserGroup();
+		group.setName(GROUP_NAME);
+		String groupId = userGroupDAO.create(group);
+		assertNotNull(groupId);
 
-	private static final String GROUP_NAME = "test-group";
+		assertTrue(userGroupDAO.doesPrincipalExist(GROUP_NAME));
+		
+		assertFalse(userGroupDAO.doesPrincipalExist(""+(new Random()).nextLong()));
+	}
+	@Test
+	public void testGetGroupsByNamesEmptySet()  throws Exception {
+
+		Collection<String> groupNames = new HashSet<String>();
+		Map<String,UserGroup> map =  userGroupDAO.getGroupsByNames(groupNames);
+		assertTrue(map.isEmpty());
+	}
+
 	@Test
 	public void testGetGroupsByNames() throws Exception {
 		Collection<UserGroup> allGroups = null; 

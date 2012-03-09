@@ -65,6 +65,8 @@ public class JDOAccessControlListDAOScaleTest {
 		userGroup.setCreationDate(new Date());
 		userGroup.setIndividual(true);
 		userId = userGroupDAO.create(userGroup);
+		// update the object from the database so it has its ID
+		userGroup = userGroupDAO.get(userId);
 		// Create 100 projects root project
 		for (int i = 0; i < 200; i++) {
 			Node node = new Node();
@@ -126,6 +128,7 @@ public class JDOAccessControlListDAOScaleTest {
 		// Time the can access methods
 		ArrayList<UserGroup> groups = new ArrayList<UserGroup>();
 		groups.add(userGroup);
+		System.out.println("userGroup ID: \t"+userGroup.getId());
 		System.out.println("Number of base projects: \t"+toDelete.size());
 		for(ACCESS_TYPE type: ACCESS_TYPE.values()){
 			long start = System.nanoTime();
