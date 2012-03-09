@@ -455,7 +455,13 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			if (value instanceof Long) {
 				fields.getNum_samples().add((Long) value);
 			} else if (value instanceof String) {
-				fields.getNum_samples().add(Long.valueOf(((String) value).trim()));
+				try {
+					fields.getNum_samples().add(
+							Long.valueOf(((String) value).trim()));
+				} catch (NumberFormatException e) {
+					// swallow this exception, this is just a best-effort
+					// attempt to push more annotations into search
+				}
 			}
 		} else {
 			throw new IllegalArgumentException(
