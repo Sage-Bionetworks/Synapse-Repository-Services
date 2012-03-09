@@ -44,12 +44,6 @@
 		</url>
 	  </repository>
 	  <repository>
-		<id>sagebionetworks-plugins-releases-local</id>
-		<name>sagebionetworks-plugins-releases-local</name>
-		<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/plugins-releases-local
-		</url>
-	  </repository>
-	  <repository>
 		<id>sagebionetworks-ext</id>
 		<name>sagebionetworks-releases-ext</name>
 		<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/ext-releases-local
@@ -580,7 +574,7 @@
 		<repository>
 			<id>sagebionetworks</id>
 			<name>sagebionetworks-releases</name>
-			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-snapshots-local
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local
 			</url>
 		</repository>
 		<snapshotRepository>
@@ -588,7 +582,6 @@
 			<name>sagebionetworks-snapshots</name>
 			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-snapshots-local
 			</url>
-			<uniqueVersion>false</uniqueVersion>
 		</snapshotRepository>
 
 	</distributionManagement>
