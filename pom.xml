@@ -31,24 +31,18 @@
 	</modules>
 
 	<repositories>
-		<repository>
-			<id>sagebionetworks</id>
-			<name>sagebionetworks-releases</name>
-			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local
-			</url>
-		</repository>
-		<repository>
-			<id>sagebionetworks-plugins-releases-local</id>
-			<name>sagebionetworks-plugins-releases-local</name>
-			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/plugins-releases-local
-			</url>
-		</repository>
-		<repository>
-			<id>sagebionetworks-ext</id>
-			<name>sagebionetworks-releases-ext</name>
-			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/ext-releases-local
-			</url>
-		</repository>
+	  <repository>
+		<id>sagebionetworks-releases-local</id>
+		<name>sagebionetworks-releases-local</name>
+		<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local
+		</url>
+	  </repository>
+	  <repository>
+		<id>sagebionetworks-ext</id>
+		<name>sagebionetworks-releases-ext</name>
+		<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/ext-releases-local
+		</url>
+	  </repository>
 		<repository>
 			<id>atlassian-m2-repository</id>
 			<url>https://m2proxy.atlassian.com/repository/public</url>
@@ -574,7 +568,7 @@
 		<repository>
 			<id>sagebionetworks</id>
 			<name>sagebionetworks-releases</name>
-			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-snapshots-local
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local
 			</url>
 		</repository>
 		<snapshotRepository>
