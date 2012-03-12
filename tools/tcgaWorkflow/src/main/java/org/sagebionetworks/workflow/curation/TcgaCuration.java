@@ -68,11 +68,10 @@ public class TcgaCuration {
 	 * @throws SynapseException
 	 * @throws JSONException
 	 */
-	public static String createMetadata (
-			String datasetId, String tcgaUrl, Boolean doneIfExists)
-			throws ClientProtocolException, NoSuchAlgorithmException,
-			UnrecoverableException, IOException, HttpClientHelperException,
-			SynapseException, JSONException {
+	public static String createMetadata(String datasetId, String tcgaUrl,
+			Boolean doneIfExists) throws ClientProtocolException,
+			NoSuchAlgorithmException, UnrecoverableException, IOException,
+			HttpClientHelperException, SynapseException, JSONException {
 
 		Map<String, String> metadata = formulateMetadataFromTcgaUrl(tcgaUrl);
 
@@ -86,7 +85,10 @@ public class TcgaCuration {
 		if (1 == numLayersFound) {
 			layer = synapse.getEntity(results.getJSONArray("results")
 					.getJSONObject(0).getString("layer.id"), Layer.class);
-			if (doneIfExists || (layer.getType() != LayerTypeNames.C)) {
+			if (doneIfExists && (null != layer.getMd5())
+					&& (layer.getType() != LayerTypeNames.C)) {
+				// if the layer has an md5 and isn't a clinical layer, if it
+				// exists, no need to do anything else
 				return Constants.WORKFLOW_DONE;
 			}
 		} else if (1 < numLayersFound) {
@@ -156,28 +158,28 @@ public class TcgaCuration {
 	 * @throws SynapseException
 	 * @throws JSONException
 	 */
-	public static boolean updateLocation(
-			String tcgaUrl, String layerId) throws ClientProtocolException,
-			NoSuchAlgorithmException, UnrecoverableException, IOException,
-			HttpClientHelperException, SynapseException, JSONException {
+	public static boolean updateLocation(String tcgaUrl, String layerId)
+			throws ClientProtocolException, NoSuchAlgorithmException,
+			UnrecoverableException, IOException, HttpClientHelperException,
+			SynapseException, JSONException {
 
 		Synapse synapse = TcgaWorkflowConfigHelper.getSynapseClient();
 		Layer layer = synapse.getEntity(layerId, Layer.class);
 		String md5;
-		
+
 		try {
-			String md5FileContents = HttpClientHelper.getContent(TcgaWorkflowConfigHelper
-					.getHttpClient(), tcgaUrl + ".md5");
+			String md5FileContents = HttpClientHelper.getContent(
+					TcgaWorkflowConfigHelper.getHttpClient(), tcgaUrl + ".md5");
 			String fileInfo[] = md5FileContents.split("\\s+");
 			if (2 != fileInfo.length) {
 				throw new UnrecoverableException(
 						"malformed md5 file from tcga: " + md5FileContents);
 			}
 			md5 = fileInfo[0];
-			if(md5.equals(layer.getMd5())) {
+			if (md5.equals(layer.getMd5())) {
 				return false;
 			}
-			
+
 			layer.setMd5(md5);
 			List<LocationData> locations = new ArrayList<LocationData>();
 			LocationData location = new LocationData();
@@ -186,7 +188,7 @@ public class TcgaCuration {
 			locations.add(location);
 			layer.setLocations(locations);
 			layer = synapse.putEntity(layer);
-			
+
 		} catch (HttpClientHelperException e) {
 			// 404s are okay, not all TCGA files have a corresponding md5 file
 			// (e.g., clinical data), later on we will download the file and
@@ -197,19 +199,19 @@ public class TcgaCuration {
 			// If this was unversionsed data from TCGA, download it and import
 			// it to our datastore
 			File tempFile = File.createTempFile("tcga", "data");
-			tempFile = HttpClientHelper.getContent(
-					TcgaWorkflowConfigHelper.getHttpClient(), tcgaUrl, tempFile);
+			tempFile = HttpClientHelper.getContent(TcgaWorkflowConfigHelper
+					.getHttpClient(), tcgaUrl, tempFile);
 			md5 = MD5ChecksumHelper.getMD5Checksum(tempFile.getAbsolutePath());
 
-			if(md5.equals(layer.getMd5())) {
+			if (md5.equals(layer.getMd5())) {
 				return false;
 			}
 
-			layer = (Layer) synapse
-					.uploadLocationableToSynapse(layer, tempFile, md5);
+			layer = (Layer) synapse.uploadLocationableToSynapse(layer,
+					tempFile, md5);
 			tempFile.delete();
 		}
-		
+
 		return true;
 	}
 
@@ -328,9 +330,11 @@ public class TcgaCuration {
 		message.append(" for dataset ").append(
 				datasetResults.getJSONArray("results").getJSONObject(0).get(
 						"dataset.name"));
-		message.append("\n").append(TcgaWorkflowConfigHelper.getPortalEndpoint()).append(
-				"/#Layer:").append(layerQueryResult.get("layer.id")).append(
-				";Dataset:").append(layerQueryResult.get("layer.parentId"));
+		message.append("\n").append(
+				TcgaWorkflowConfigHelper.getPortalEndpoint())
+				.append("/#Layer:").append(layerQueryResult.get("layer.id"))
+				.append(";Dataset:").append(
+						layerQueryResult.get("layer.parentId"));
 		message.append("\n\nLayer\n").append(layerResults.toString(4));
 		message.append("\n\nDataset\n").append(datasetResults.toString(4));
 		return message.toString();
