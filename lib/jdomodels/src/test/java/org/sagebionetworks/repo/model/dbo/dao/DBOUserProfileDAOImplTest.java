@@ -82,6 +82,10 @@ public class DBOUserProfileDAOImplTest {
 		UserProfile clone = userProfileDAO.get(id, schema);
 		assertNotNull(clone);
 		assertEquals(userProfile, clone);
+		
+		// update it
+		userProfileDAO.update(userProfile, schema);
+		
 		// Delete it
 		userProfileDAO.delete(id);
 	}

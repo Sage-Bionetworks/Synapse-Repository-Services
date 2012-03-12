@@ -37,7 +37,7 @@ public class UserProfileUtils {
 		}
 	}
 	
-	public static void copyJdoToDbo(DBOUserProfile dbo, UserProfile dto, ObjectSchema schema) throws DatastoreException {
+	public static void copyDboToDto(DBOUserProfile dbo, UserProfile dto, ObjectSchema schema) throws DatastoreException {
 		NamedAnnotations properties = null;
 		try {
 			byte[] compressedProperties = dbo.getProperties();

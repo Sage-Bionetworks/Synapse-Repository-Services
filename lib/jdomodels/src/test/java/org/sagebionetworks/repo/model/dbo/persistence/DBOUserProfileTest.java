@@ -84,6 +84,15 @@ public class DBOUserProfileTest {
 		clone = dboBasicDao.getObjectById(DBOUserProfile.class, params);
 		assertNotNull(clone);
 		assertEquals(userProfile.getOwnerId(), clone.getOwnerId());
+		
+		// Update it
+		String newContent = "Your dog has fleas!";
+		clone.setProperties(newContent.getBytes());
+		dboBasicDao.update(clone);
+		clone = dboBasicDao.getObjectById(DBOUserProfile.class, params);
+		assertNotNull(clone);
+		assertEquals(newContent, new String(clone.getProperties()));
+		
 		// Delete it
 		boolean result = dboBasicDao.deleteObjectById(DBOUserProfile.class,  params);
 		assertTrue("Failed to delete the type created", result);

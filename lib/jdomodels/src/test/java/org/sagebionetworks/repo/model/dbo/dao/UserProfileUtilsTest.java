@@ -26,8 +26,23 @@ public class UserProfileUtilsTest {
 		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		UserProfileUtils.copyDtoToDbo(dto, dbo, schema);
 		UserProfile dto2 = new UserProfile();
-		UserProfileUtils.copyJdoToDbo(dbo, dto2, schema);
+		UserProfileUtils.copyDboToDto(dbo, dto2, schema);
 		assertEquals(dto, dto2);
+	}
+
+	@Test(expected = NumberFormatException.class)
+	public void testInvalidEtag() throws Exception {
+		UserProfile dto = new UserProfile();
+		dto.setOwnerId("101");
+		dto.setFirstName("foo");
+		dto.setLastName("bar");
+		dto.setRStudioUrl("http://rstudio.com");
+		dto.setDisplayName("foo bar");
+		dto.setEtag("not a number");
+		DBOUserProfile dbo = new DBOUserProfile();
+		String jsonString = (String) UserProfile.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
+		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
+		UserProfileUtils.copyDtoToDbo(dto, dbo, schema);
 	}
 
 	@Test
@@ -44,7 +59,7 @@ public class UserProfileUtilsTest {
 		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		UserProfileUtils.copyDtoToDbo(dto, dbo, schema);
 		UserProfile dto2 = new UserProfile();
-		UserProfileUtils.copyJdoToDbo(dbo, dto2, schema);
+		UserProfileUtils.copyDboToDto(dbo, dto2, schema);
 		assertEquals(dto, dto2);
 	}
 
