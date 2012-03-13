@@ -110,4 +110,18 @@ public class SageCommonsConfigHelper {
 	public static String getWorkflowScript() {
 		return configuration.getProperty("org.sagebionetworks.workflow.script");
 	}
+	
+	/**
+	 * @return the Synapse username for this workflow
+	 */
+	public static String getSynapseUsername() {
+		return configuration.getSynapseUsername();
+	}
+	
+	/**
+	 * @return the Synapse password for this workflow
+	 */
+	public static String getSynapsePassword() {
+		return configuration.getSynapsePassword();
+	}
 }

@@ -137,6 +137,10 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 			List<String> scriptArgs = new ArrayList<String>();
 			scriptArgs.add(SPREADSHEET_SCRIPT_ARG);
 			scriptArgs.add(tempFile.getAbsolutePath());
+			scriptArgs.add(USERNAME_ARG);
+			scriptArgs.add(SageCommonsConfigHelper.getSynapseUsername());
+			scriptArgs.add(PASSWORD_ARG);
+			scriptArgs.add(SageCommonsConfigHelper.getSynapsePassword());
 
 			scriptResult = ScriptProcessor.runScript(SageCommonsConfigHelper
 					.getConfig(), script, scriptArgs);

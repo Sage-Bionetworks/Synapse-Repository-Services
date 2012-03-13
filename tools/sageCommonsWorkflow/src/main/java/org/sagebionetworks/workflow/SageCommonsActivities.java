@@ -33,6 +33,16 @@ public interface SageCommonsActivities {
 	public static final String SPREADSHEET_SCRIPT_ARG = "--spreadsheet";
 		
 	/**
+	 * Script arg for Synapse username
+	 */
+	public static final String USERNAME_ARG = "--username";
+
+	/**
+	 * Script arg for Synapse password
+	 */
+	public static final String PASSWORD_ARG = "--password";
+	
+	/**
 	 * The one and only task list to use for activitites this workflow
 	 */
 	static final String ACTIVITIES_TASK_LIST = "activities";
