@@ -52,7 +52,7 @@
             "items":{
                 "type":"string"
             },
-            "description":"The URI to get to this entity's annotations",
+            "description":"The entity's primary and secondary annotations are stuffed into here so that we can do free text search over them.",
         },
         "boost":{
             "type":"array",
@@ -73,7 +73,15 @@
             "items":{
                 "type":"string"
             },
-            "description":"The URI to get to this entity's access control list",
+            "description":"All group names with READ access to this entity",
+            
+        },
+        "update_acl":{
+            "type":"array",
+            "items":{
+                "type":"string"
+            },
+            "description":"All group names with UPDATE access to this entity",
             
         },
          "species":{

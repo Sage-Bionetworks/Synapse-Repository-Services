@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 
@@ -89,9 +90,25 @@ public class SearchDocumentDriverImplTest {
 			references.add(ref);
 		}
 		
+		Set<ACCESS_TYPE> rwAccessType = new HashSet<ACCESS_TYPE>();
+		rwAccessType.add(ACCESS_TYPE.READ);
+		rwAccessType.add(ACCESS_TYPE.UPDATE);
+		ResourceAccess rwResourceAccess = new ResourceAccess();
+		rwResourceAccess.setGroupName("readWriteTest@sagebase.org");
+		rwResourceAccess.setAccessType(rwAccessType);
+
+		Set<ACCESS_TYPE> roAccessType = new HashSet<ACCESS_TYPE>();
+		roAccessType.add(ACCESS_TYPE.READ);
+		ResourceAccess roResourceAccess = new ResourceAccess();
+		roResourceAccess.setGroupName("readOnlyTest@sagebase.org");
+		roResourceAccess.setAccessType(roAccessType);
+	
+		Set<ResourceAccess> resourceAccesses = new HashSet<ResourceAccess>();
+		resourceAccesses.add(rwResourceAccess);
+		resourceAccesses.add(roResourceAccess);
+
 		AccessControlList acl = new AccessControlList();
-		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
-		acl.setResourceAccess(resourceAccess);
+		acl.setResourceAccess(resourceAccesses);
 		
 		Document document = SearchDocumentDriverImpl.formulateSearchDocument(
 				node, rev, acl);
@@ -105,6 +122,8 @@ public class SearchDocumentDriverImplTest {
 		assertEquals(2, fields.getSpecies().size());
 		assertEquals("Dragon", fields.getSpecies().get(0));
 		assertEquals("Unicorn", fields.getSpecies().get(1));
+		assertEquals(2, fields.getAcl().size());
+		assertEquals(1, fields.getUpdate_acl().size());
 		
 		// Make sure our references were trimmed
 		assertTrue(10 < fields.getReferences().size());

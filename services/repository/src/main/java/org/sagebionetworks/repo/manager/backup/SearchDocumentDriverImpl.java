@@ -16,6 +16,7 @@ import java.util.Set;
 import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.joda.time.DateTime;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -287,6 +288,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	static Document formulateSearchDocument(Node node, NodeRevisionBackup rev,
 			AccessControlList acl) {
+		DateTime now = DateTime.now();
 		Document document = new Document();
 		DocumentFields fields = new DocumentFields();
 		document.setFields(fields);
@@ -297,13 +299,11 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 		// Node fields
 		document.setId(node.getId());
-		document.setVersion(Long.valueOf(node.getETag()));
+		document.setVersion(now.getMillis()/1000);
 		fields.setId(node.getId()); // this is redundant because document id
 		// is returned in search results, but its cleaner to have this also show
 		// up in the "data" section of AwesomeSearch results
-		fields.setEtag(node.getETag()); // this is _not_ redundant because
-		// document version is not returned
-		// in search results
+		fields.setEtag(node.getETag()); 
 		fields.setParent_id(node.getParentId());
 		fields.setName(node.getName());
 		fields.setNode_type(node.getNodeType());
@@ -366,16 +366,28 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			}
 		}
 
-		// ACL
-		List<String> aclValues = new ArrayList<String>();
-		fields.setAcl(aclValues);
+		// READ and UPDATE ACLs
+		List<String> readAclValues = new ArrayList<String>();
+		fields.setAcl(readAclValues);
+		List<String> updateAclValues = new ArrayList<String>();
+		fields.setUpdate_acl(updateAclValues);
 		for (ResourceAccess access : acl.getResourceAccess()) {
 			if (access.getAccessType().contains(
 					AuthorizationConstants.ACCESS_TYPE.READ)) {
-				if (FIELD_VALUE_SIZE_LIMIT > aclValues.size()) {
-					aclValues.add(access.getGroupName());
+				if (FIELD_VALUE_SIZE_LIMIT > readAclValues.size()) {
+					readAclValues.add(access.getGroupName());
 				} else {
-					log.error("Had to leave acl " + access.getGroupName()
+					log.error("Had to leave READ acl " + access.getGroupName()
+							+ " out of search document " + node.getId()
+							+ " due to AwesomeSearch limits");
+				}
+			}
+			if (access.getAccessType().contains(
+					AuthorizationConstants.ACCESS_TYPE.UPDATE)) {
+				if (FIELD_VALUE_SIZE_LIMIT > updateAclValues.size()) {
+					updateAclValues.add(access.getGroupName());
+				} else {
+					log.error("Had to leave UPDATE acl " + access.getGroupName()
 							+ " out of search document " + node.getId()
 							+ " due to AwesomeSearch limits");
 				}

@@ -5,8 +5,8 @@ import java.util.concurrent.Callable;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.joda.time.DateTime;
 import org.json.JSONArray;
-import org.json.JSONObject;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -51,6 +51,7 @@ public class SearchDocumentDeleteWorker implements Callable<WorkerResult> {
 
 	@Override
 	public WorkerResult call() throws Exception {
+		DateTime now = DateTime.now();
 		try {
 			// Note that we cannot use a JSONEntity here because the format is
 			// just a JSON array
@@ -59,7 +60,7 @@ public class SearchDocumentDeleteWorker implements Callable<WorkerResult> {
 				Document document = new Document();
 				document.setType(DocumentTypeNames.delete);
 				document.setId(entityId);
-				document.setVersion(new Long(Integer.MAX_VALUE));
+				document.setVersion(now.getMillis() / 1000);
 				document.setLang("en"); // TODO this should have been set via "default" in the schema for this
 				documentBatch.put(EntityFactory.createJSONObjectForEntity(document));
 			}

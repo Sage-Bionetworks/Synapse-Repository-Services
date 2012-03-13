@@ -150,6 +150,7 @@ public class TcgaCuration {
 	 * 
 	 * @param tcgaUrl
 	 * @param layerId
+	 * @return whether we actually needed to update the location
 	 * @throws ClientProtocolException
 	 * @throws NoSuchAlgorithmException
 	 * @throws UnrecoverableException

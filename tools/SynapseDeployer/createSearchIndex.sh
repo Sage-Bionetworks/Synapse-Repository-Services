@@ -2,6 +2,8 @@
 
 DOMAIN=$1
 
+echo Note that this script is idempotent so its okay to add a new index field and then re-run the script to configure the new index field 
+
 if [ -z "$DOMAIN" ] ; then
         echo "missing AwesomeSearch domain name, the name of the search index to be created (e.g., prod-20120401)"
                 exit 0
@@ -41,7 +43,7 @@ cs-configure-indexing --domain-name $DOMAIN --option noresult --type text --name
 # Literal text fields
 cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name parent_id
 cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name acl
-cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name update-acl
+cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name update_acl
 cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name created_by
 cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name modified_by
 cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name disease 

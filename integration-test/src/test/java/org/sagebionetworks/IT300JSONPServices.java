@@ -24,7 +24,7 @@ import org.sagebionetworks.utils.DefaultHttpClientSingleton;
  * @author John
  *
  */
-public class IT103JSONPServices {
+public class IT300JSONPServices {
 	
 	@Test
 	public void testGetChildrenTransitiveJSONP() throws ClientProtocolException, IOException, JSONObjectAdapterException{
