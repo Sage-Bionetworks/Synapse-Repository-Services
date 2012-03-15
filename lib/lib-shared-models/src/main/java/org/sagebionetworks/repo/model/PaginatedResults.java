@@ -6,12 +6,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.repo.web.ServiceConstants;
+import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONArrayAdapterImpl;
 
 /**
  * Generic class used to encapsulate a paginated list of results of objects of
@@ -207,7 +206,7 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 		if(adapter == null) throw new IllegalArgumentException("Adapter cannot be null");
 		adapter.put("totalNumberOfResults", totalNumberOfResults);
 		if(this.results != null){
-			JSONArrayAdapterImpl array = new JSONArrayAdapterImpl();
+			JSONArrayAdapter array = adapter.createNewArray();
 			adapter.put("results", array);
 			int index = 0;
 			for(JSONEntity entity: results){

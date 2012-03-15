@@ -3,23 +3,31 @@ package org.sagebionetworks.repo.web.controller;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.util.List;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 
+import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.json.JSONException;
+import org.json.JSONObject;
+import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -324,6 +332,39 @@ public class EntityServletTestHelper {
 		}
 		// Read in the value.
 		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), EntityPath.class);
+	}
+	
+	/**
+	 * @param ids
+	 * @param username
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws JSONException
+	 * @throws JSONObjectAdapterException
+	 */
+	public BatchResults<EntityHeader> getEntityTypeBatch(List<String> ids,
+			String username) throws ServletException, IOException, NotFoundException, DatastoreException, JSONException, JSONObjectAdapterException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ENTITY_TYPE);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
+		request.setParameter(ServiceConstants.BATCH_PARAM, StringUtils.join(ids, ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR));
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.error("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(new JSONObject(response.getContentAsString()));
+		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(EntityHeader.class);
+		results.initializeFromJSONObject(adapter);
+		return results;
 	}
 
 }

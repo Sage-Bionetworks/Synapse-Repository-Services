@@ -1,7 +1,7 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -23,6 +23,7 @@ import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -163,6 +164,22 @@ public class IT500SynapseJavaClient {
 		EntityHeader header = path.getPath().get(2);
 		assertNotNull(header);
 		assertEquals(aNewDataset.getId(), header.getId());
+		
+		// Get the entity headers
+		List<String> entityIds = new ArrayList<String>();
+		entityIds.add(project.getId());
+		entityIds.add(dataset.getId());
+		entityIds.add(aNewDataset.getId());
+		BatchResults<EntityHeader> entityHeaders = synapse.getEntityTypeBatch(entityIds);
+		assertNotNull(entityHeaders);
+		assertEquals(3, entityHeaders.getTotalNumberOfResults());
+		List<String> outputIds = new ArrayList<String>();
+		for(EntityHeader entityHeader : entityHeaders.getResults()) {
+			outputIds.add(entityHeader.getId());
+		}
+		assertEquals(entityIds.size(), outputIds.size());
+		assertTrue(entityIds.containsAll(outputIds));
+		
 	}
 	
 	/**

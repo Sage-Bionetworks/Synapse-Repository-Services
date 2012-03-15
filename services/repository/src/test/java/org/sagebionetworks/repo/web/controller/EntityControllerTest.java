@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -131,6 +132,30 @@ public class EntityControllerTest {
 		UserEntityPermissions uep = entityServletHelper.getUserEntityPermissions(id, TEST_USER1);
 		assertNotNull(uep);
 		assertTrue(uep.getCanEdit());
+	}
+	
+	@Test
+	public void testEntityTypeBatch() throws Exception {
+		List<String> ids = new ArrayList<String>();
+		for(int i = 0; i < 12; i++) {
+			Project p = new Project();
+			p.setName("EntityTypeBatchItem" + i);
+			p.setEntityType(p.getClass().getName());
+			Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+			String id = clone.getId();
+			toDelete.add(id);
+			ids.add(id);
+		}
+	
+		BatchResults<EntityHeader> results = entityServletHelper.getEntityTypeBatch(ids, TEST_USER1);
+		assertNotNull(results);
+		assertEquals(12, results.getTotalNumberOfResults());
+		List<String> outputIds = new ArrayList<String>();
+		for(EntityHeader header : results.getResults()) {
+			outputIds.add(header.getId());
+		}
+		assertEquals(ids.size(), outputIds.size());
+		assertTrue(ids.containsAll(outputIds));
 	}
 	
 	@Test

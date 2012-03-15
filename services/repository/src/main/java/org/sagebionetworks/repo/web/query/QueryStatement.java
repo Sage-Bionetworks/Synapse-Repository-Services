@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.queryparser.QueryNode;
 import org.sagebionetworks.repo.queryparser.QueryParser;
 import org.sagebionetworks.repo.queryparser.TokenMgrError;
-import org.sagebionetworks.repo.web.ServiceConstants;
+import org.sagebionetworks.repo.ServiceConstants;
 
 /**
  * QueryStatement encapsulates the logic that extracts values from the parse

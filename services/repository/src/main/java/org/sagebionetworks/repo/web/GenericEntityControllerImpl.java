@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.EntityToMapUtil;
 import org.sagebionetworks.repo.manager.PermissionsManager;

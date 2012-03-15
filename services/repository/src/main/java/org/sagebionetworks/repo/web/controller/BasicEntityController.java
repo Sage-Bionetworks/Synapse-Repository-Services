@@ -1,12 +1,14 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -19,7 +21,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceConstants;
+import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -278,6 +280,44 @@ public class BasicEntityController extends BaseController{
 		return entityController.getEntityHeader(userId, id);
 	}
 
+    /**
+     * Get the EntityHeader for an existing entity with a GET.  If any item in the batch fails (e.g., with a 404) they all fail.
+     * 
+     * @param userId
+     *            -The user that is doing the get.
+     * @param batch
+     *            - The comma-separated list of IDs of the entity to fetch.
+     * @param request
+     * @return The requested Entity if it exists.
+     * @throws NotFoundException
+     *             - Thrown if the requested entity does not exist.
+     * @throws DatastoreException
+     *             - Thrown when an there is a server failure.
+     * @throws UnauthorizedException
+     */
+    @ResponseStatus(HttpStatus.OK)
+    @RequestMapping(value = { UrlHelpers.ENTITY_TYPE }, method = RequestMethod.GET)
+    public @ResponseBody
+    BatchResults<EntityHeader> getEntityTypeBatch(
+                    @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+                    @RequestParam(value = ServiceConstants.BATCH_PARAM, required = true) String batch,
+                    HttpServletRequest request) throws NotFoundException,
+                    DatastoreException, UnauthorizedException {
+
+            String ids[] = batch.split(",");
+
+            List<EntityHeader> entityHeaders = new ArrayList<EntityHeader>();
+            for (String id : ids) {
+                    // Get the type of an entity by ID.
+                    EntityHeader entityHeader = entityController.getEntityHeader(userId, id);
+                    entityHeaders.add(entityHeader);
+            }
+
+            BatchResults<EntityHeader> results = new BatchResults<EntityHeader>();
+            results.setResults(entityHeaders);
+            results.setTotalNumberOfResults(entityHeaders.size());
+            return results;
+    }
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value={UrlHelpers.ENTITY_ID+UrlHelpers.PERMISSIONS}, method=RequestMethod.GET)

@@ -23,7 +23,7 @@ import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceConstants;
+import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.springframework.beans.factory.annotation.Autowired;

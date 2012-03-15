@@ -8,6 +8,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.binary.Base64;
 import org.json.JSONException;
+import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Entity;
 import org.springframework.ui.ExtendedModelMap;

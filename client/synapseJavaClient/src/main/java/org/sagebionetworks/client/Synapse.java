@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
@@ -31,9 +32,11 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
+import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -593,6 +596,20 @@ public class Synapse {
 		try {
 			path.initializeFromJSONObject(adapter);
 			return path;
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}	
+
+	public BatchResults<EntityHeader> getEntityTypeBatch(List<String> entityIds) throws SynapseException {
+		String url = "/entity/type"; // TODO move UrlHelpers someplace shared so that we can UrlHelpers.ENTITY_TYPE
+		url += "?" + ServiceConstants.BATCH_PARAM + "=" + StringUtils.join(entityIds, ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR);
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(EntityHeader.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}

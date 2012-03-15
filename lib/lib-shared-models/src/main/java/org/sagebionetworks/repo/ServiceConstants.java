@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web;
+package org.sagebionetworks.repo;
 
 /**
  * Constants for query parameter keys, header names, and field names used by the
@@ -26,9 +26,10 @@ public class ServiceConstants {
 	 * Default value for offset parameter used RequestParam annotations which
 	 * require a static string
 	 */
-	@Deprecated // SEE: PLFM-972
+	@Deprecated
+	// SEE: PLFM-972
 	public static final String DEFAULT_PAGINATION_OFFSET_PARAM = "1";
-	
+
 	/**
 	 * As PLFM-972 points out offsets should start at zero not one.
 	 */
@@ -48,14 +49,14 @@ public class ServiceConstants {
 	 * section on paging</a>
 	 */
 	public static final String PAGINATION_LIMIT_PARAM = "limit";
-	
 
 	/**
 	 * Default value for limit parameter used RequestParam annotations which
 	 * require a static string
 	 */
 	public static final String DEFAULT_PAGINATION_LIMIT_PARAM = "10";
-	public static final Integer DEFAULT_PAGINATION_LIMIT_PARAM_INT = Integer.parseInt(DEFAULT_PAGINATION_LIMIT_PARAM);
+	public static final Integer DEFAULT_PAGINATION_LIMIT_PARAM_INT = Integer
+			.parseInt(DEFAULT_PAGINATION_LIMIT_PARAM);
 	/**
 	 * Default value for limit parameter
 	 */
@@ -104,6 +105,16 @@ public class ServiceConstants {
 	 * This is modeled after http://developers.facebook.com/docs/reference/fql/
 	 */
 	public static final String QUERY_PARAM = "query";
+
+	/**
+	 * Request parameter for the ids in a batch request.
+	 */
+	public static final String BATCH_PARAM = "batch";
+
+	/**
+	 * Separator string for the list of ids in a batch request.
+	 */
+	public static final String BATCH_PARAM_VALUE_SEPARATOR = ",";
 
 	/**
 	 * Request parameter specific to GET requests for layer locations so that we
@@ -163,5 +174,5 @@ public class ServiceConstants {
 		}
 		return;
 	}
-	
+
 }
