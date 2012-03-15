@@ -641,7 +641,7 @@ public class Synapse {
 		if(targetVersion != null) {
 			url += "/version/" + targetVersion;
 		}
-		url += "/referencedBy";
+		url += "/referencedby";
 		
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
