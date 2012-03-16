@@ -159,13 +159,6 @@ public class ResourceAccessManager {
 			throw new RuntimeException(e);
 		}
 	}
-	
-	public static boolean isAdmin(String userName) throws NotFoundException {
-		try {
-			return CrowdAuthUtil.getUsersGroups(userName).contains(AuthorizationConstants.ADMIN_GROUP_NAME);
-		} catch (IOException e) {
-			throw new RuntimeException(e);
-		}
-	}
+
 	
 }

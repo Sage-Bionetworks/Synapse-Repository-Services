@@ -67,6 +67,75 @@ public class UserManagerImpl implements UserManager {
 	public void setUserGroupDAO(UserGroupDAO userGroupDAO) {
 		this.userGroupDAO = userGroupDAO;
 	}
+	
+	// adds the existing groups to the 'groups' collection passed in
+	// returns true iff the user 'userName' is an administrator
+	private  boolean addGroups(String userName, Collection<UserGroup> groups) throws NotFoundException, DatastoreException {
+		Collection<String> groupNames = userDAO.getUserGroupNames(userName);
+		// Filter out bad group names
+		groupNames = filterInvalidGroupNames(groupNames);
+		// these groups omit the individual group
+		Map<String, UserGroup> existingGroups = userGroupDAO
+				.getGroupsByNames(groupNames);
+		boolean isAdmin = false;
+		for (String groupName : groupNames) {
+			if (AuthorizationConstants.ADMIN_GROUP_NAME.equals(groupName)) {
+				isAdmin = true;
+				continue;
+			}
+			UserGroup group = existingGroups.get(groupName);
+			if (group != null) {
+				groups.add(group);
+			} else {
+				// the group needs to be created
+				group = new UserGroup();
+				group.setName(groupName);
+				group.setIndividual(false);
+				group.setCreationDate(new Date());
+				try {
+					String id = userGroupDAO.create(group);
+					group.setId(id);
+				} catch (InvalidModelException ime) {
+					// should not happen if our code is written correctly
+					throw new RuntimeException(ime);
+				}
+				groups.add(group);
+			}
+		}
+		return isAdmin;
+	}
+	
+	private UserGroup createIndividualGroup(String userName) throws DatastoreException {
+		UserGroup individualGroup = new UserGroup();
+		individualGroup.setName(userName);
+		individualGroup.setIndividual(true);
+		individualGroup.setCreationDate(new Date());
+		try {
+			individualGroup.setId(userGroupDAO.create(individualGroup));
+		} catch (InvalidModelException ime) {
+			// shouldn't happen!
+			throw new DatastoreException(ime);
+		}
+		// we also make an user profile for this individual
+		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
+		UserProfile userProfile = null;
+		try {
+			userProfile = userProfileDAO.get(individualGroup.getId(), schema);
+		} catch (NotFoundException nfe) {
+			userProfile = null;
+		}
+		if (userProfile==null) {
+			userProfile = new UserProfile();
+			userProfile.setOwnerId(individualGroup.getId());
+			// TODO mirror first name, last name, display name from Crowd to this object
+			try {
+				userProfileDAO.create(userProfile, schema);
+			} catch (InvalidModelException e) {
+				throw new RuntimeException(e);
+			}
+		}
+		return individualGroup;
+	}
 
 	/**
 	 * 
@@ -106,66 +175,10 @@ public class UserManagerImpl implements UserManager {
 			if (user == null)
 				throw new NullPointerException("No user named " + userName
 						+ ". Users: " + userDAO.getAll());
-			Collection<String> groupNames = userDAO.getUserGroupNames(userName);
-			// Filter out bad group names
-			groupNames = filterInvalidGroupNames(groupNames);
-			// these groups omit the individual group
-			Map<String, UserGroup> existingGroups = userGroupDAO
-					.getGroupsByNames(groupNames);
-			for (String groupName : groupNames) {
-				if (AuthorizationConstants.ADMIN_GROUP_NAME.equals(groupName)) {
-					isAdmin = true;
-					continue;
-				}
-				UserGroup group = existingGroups.get(groupName);
-				if (group != null) {
-					groups.add(group);
-				} else {
-					// the group needs to be created
-					group = new UserGroup();
-					group.setName(groupName);
-					group.setIndividual(false);
-					group.setCreationDate(new Date());
-					try {
-						String id = userGroupDAO.create(group);
-						group.setId(id);
-					} catch (InvalidModelException ime) {
-						// should not happen if our code is written correctly
-						throw new RuntimeException(ime);
-					}
-					groups.add(group);
-				}
-			}
+			isAdmin = addGroups(userName, groups);
 			individualGroup = userGroupDAO.findGroup(userName, true);
 			if (individualGroup == null) {
-				individualGroup = new UserGroup();
-				individualGroup.setName(userName);
-				individualGroup.setIndividual(true);
-				individualGroup.setCreationDate(new Date());
-				try {
-					individualGroup.setId(userGroupDAO.create(individualGroup));
-				} catch (InvalidModelException ime) {
-					// shouldn't happen!
-					throw new DatastoreException(ime);
-				}
-				// we also make an user profile for this individual
-				ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-				UserProfile userProfile = null;
-				try {
-					userProfile = userProfileDAO.get(individualGroup.getId(), schema);
-				} catch (NotFoundException nfe) {
-					userProfile = null;
-				}
-				if (userProfile==null) {
-					userProfile = new UserProfile();
-					userProfile.setOwnerId(individualGroup.getId());
-					// TODO mirror first name, last name, display name from Crowd to this object
-					try {
-						userProfileDAO.create(userProfile, schema);
-					} catch (InvalidModelException e) {
-						throw new RuntimeException(e);
-					}
-				}
+				individualGroup = createIndividualGroup(userName);
 			}
 			// All authenticated users belong to the public group and the
 			// authenticated user group.

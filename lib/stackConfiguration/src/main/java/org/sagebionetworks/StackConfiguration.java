@@ -404,6 +404,30 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * @return The name of a user for integration tests
+	 */
+	public static String getIntegrationTestRejectTermsOfUseName() {
+		return configuration
+				.getProperty("org.sagebionetworks.integration.test.username.rejecttermsofuse");
+	}
+
+	/**
+	 * @return The name of a user for integration tests
+	 */
+	public static String getIntegrationTestRejectTermsOfUseEmail() {
+		return configuration
+				.getProperty("org.sagebionetworks.integration.test.email.rejecttermsofuse");
+	}
+
+	/**
+	 * @return The password of a user for integration tests
+	 */
+	public static String getIntegrationTestRejectTermsOfUsePassword() {
+		return configuration
+				.getProperty("org.sagebionetworks.integration.test.password.rejecttermsofuse");
+	}
+
+	/**
 	 * @return whether the cloudWatch profiler should be on or off boolean. True
 	 *         means on, false means off.
 	 */

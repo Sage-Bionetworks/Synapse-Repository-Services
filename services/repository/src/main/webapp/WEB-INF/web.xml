@@ -68,6 +68,16 @@
 	</filter-mapping>
 
 	<filter>
+		<filter-name>TermsOfUse</filter-name>
+		<filter-class>org.sagebionetworks.authutil.TermsOfUseFilter</filter-class>
+	</filter>
+
+	<filter-mapping>
+		<filter-name>TermsOfUse</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+
+	<filter>
 		<filter-name>profileFilter</filter-name>
 		<filter-class>profiler.org.sagebionetworks.ProfileFilter</filter-class>
 		<init-param>

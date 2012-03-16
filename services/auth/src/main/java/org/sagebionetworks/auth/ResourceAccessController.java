@@ -7,6 +7,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.authutil.AuthenticationException;
+import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpStatus;
@@ -47,7 +48,7 @@ public class ResourceAccessController {
 			HttpServletRequest request) throws Exception {
 		if (null==userName) throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized.", null);
 		
-		if (!ResourceAccessManager.isAdmin(userName)) {
+		if (!CrowdAuthUtil.isAdmin(userName)) {
 			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized: "+userName+" is not an administrator.", null);
 		}
 		
@@ -63,7 +64,7 @@ public class ResourceAccessController {
 			HttpServletRequest request) throws Exception {
 		if (null==userName) throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized.", null);
 		
-		if (!ResourceAccessManager.isAdmin(userName)) {
+		if (!CrowdAuthUtil.isAdmin(userName)) {
 			throw new AuthenticationException(HttpStatus.UNAUTHORIZED.value(), "Not authorized: "+userName+" is not an administrator.", null);
 		}
 		

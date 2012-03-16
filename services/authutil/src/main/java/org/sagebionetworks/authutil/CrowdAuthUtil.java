@@ -470,4 +470,13 @@ public class CrowdAuthUtil {
 		HttpsURLConnection.setDefaultHostnameVerifier(hv);
 
 	}
+	
+	
+	public static boolean isAdmin(String userName) throws NotFoundException {
+		try {
+			return getUsersGroups(userName).contains(AuthorizationConstants.ADMIN_GROUP_NAME);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+	}
 }

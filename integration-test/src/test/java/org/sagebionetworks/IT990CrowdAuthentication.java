@@ -1,8 +1,8 @@
 package org.sagebionetworks;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -12,7 +12,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.logging.Logger;
 
 import org.json.JSONObject;
 import org.junit.BeforeClass;
@@ -31,8 +30,6 @@ import org.springframework.http.HttpStatus;
  */
 
 public class IT990CrowdAuthentication {
-	private static final Logger log = Logger.getLogger(IT990CrowdAuthentication.class.getName());
-	
 	private static Synapse synapse = null;
 	private static String authEndpoint = null;
 
