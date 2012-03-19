@@ -152,13 +152,6 @@ public class EntityTypeTest {
 	}
 	
 	@Test
-	public void testLocation(){
-		assertNotNull(EntityType.location);
-		assertEquals(PrefixConst.LOCATION, EntityType.location.getUrlPrefix());
-		assertEquals(Location.class, EntityType.location.getClassForType());
-	}
-	
-	@Test
 	public void testEula(){
 		assertNotNull(EntityType.eula);
 		assertEquals(PrefixConst.EULA, EntityType.eula.getUrlPrefix());

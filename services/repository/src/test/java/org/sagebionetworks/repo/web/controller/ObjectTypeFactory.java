@@ -7,8 +7,6 @@ import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
-import org.sagebionetworks.repo.model.Location;
-import org.sagebionetworks.repo.model.LocationTypeNames;
 
 /**
  * A utility for creating various object types with all of the required fields set.
@@ -35,11 +33,6 @@ public class ObjectTypeFactory {
 		if(object instanceof Layer){
 			Layer layer = (Layer) object;
 			layer.setType(LayerTypeNames.C);
-		} else if(object instanceof Location){
-			Location location = (Location) object;
-			location.setType(LocationTypeNames.sage);
-			location.setPath("/somePath");
-			location.setMd5sum("9ca4d9623b655ba970e7b8173066b58f");
 		} else if(object instanceof Eula){
 			Eula eula = (Eula) object;
 			eula.setAgreement("this is a fake agreement");

@@ -79,7 +79,7 @@ public class ControllerTest {
 				"/layer/schema",
 				"/preview/schema",
 				"/acl/schema",
-				"/location/schema",
+				"/dataset/schema",
 				"/query/schema", 
 				"/annotations/schema",
 		};

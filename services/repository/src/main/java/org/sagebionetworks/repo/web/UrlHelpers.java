@@ -100,7 +100,6 @@ public class UrlHelpers {
 	public static final String DATASET 	= PrefixConst.DATASET;
 	public static final String LAYER 	= PrefixConst.LAYER;
 	public static final String PREVIEW 	= PrefixConst.PREVIEW;
-	public static final String LOCATION = PrefixConst.LOCATION;
 	public static final String PROJECT	= PrefixConst.PROJECT;
 	public static final String EULA 	= PrefixConst.EULA;
 	public static final String AGREEMENT = PrefixConst.AGREEMENT;
@@ -110,7 +109,7 @@ public class UrlHelpers {
 	public static final String STEP 	 = PrefixConst.STEP;
 	public static final String CODE 	 = PrefixConst.CODE;
 	public static final String USER_PROFILE  = PrefixConst.USER_PROFILE;
-
+	
 	/**
 	 * All of the base URLs for Synapse object batch requests
 	 */
@@ -122,7 +121,6 @@ public class UrlHelpers {
 	public static final String DATASET_ID	= DATASET+ID;
 	public static final String LAYER_ID 	= LAYER+ID;
 	public static final String PREVIEW_ID 	= PREVIEW+ID;
-	public static final String LOCATION_ID	= LOCATION+ID;
 	public static final String PROJECT_ID 	= PROJECT+ID;
 	public static final String EULA_ID 		= EULA+ID;
 	public static final String AGREEMENT_ID = AGREEMENT+ID;
@@ -144,7 +142,6 @@ public class UrlHelpers {
 	public static final String DATASET_ANNOTATIONS	= DATASET_ID+ANNOTATIONS;
 	public static final String LAYER_ANNOTATIONS 	= LAYER_ID+ANNOTATIONS;
 	public static final String PREVIEW_ANNOTATIONS 	= PREVIEW_ID+ANNOTATIONS;
-	public static final String LOCATION_ANNOTATIONS = LOCATION_ID+ANNOTATIONS;
 	public static final String PROJECT_ANNOTATIONS	= PROJECT_ID+ANNOTATIONS;
 	public static final String EULA_ANNOTATIONS		= EULA_ID+ANNOTATIONS;
 	public static final String AGREEMENT_ANNOTATIONS = AGREEMENT_ID+ANNOTATIONS;
@@ -167,7 +164,6 @@ public class UrlHelpers {
 	public static final String DATASET_PATH		= DATASET_ID+PATH;
 	public static final String LAYER_PATH 		= LAYER_ID+PATH;
 	public static final String PREVIEW_PATH 	= PREVIEW_ID+PATH;
-	public static final String LOCATION_PATH 	= LOCATION_ID+PATH;
 	public static final String PROJECT_PATH		= PROJECT_ID+PATH;
 	public static final String EULA_PATH		= EULA_ID+PATH;
 	public static final String AGREEMENT_PATH	= AGREEMENT_ID+PATH;
@@ -180,7 +176,6 @@ public class UrlHelpers {
 	/**
 	 * All of the base URLs for Synapse object's versions.
 	 */
-	public static final String LOCATION_VERSION		= LOCATION_ID+VERSION;
 	public static final String DATASET_VERSION		= DATASET_ID+VERSION;
 	public static final String LAYER_VERSION		= LAYER_ID+VERSION;
 	public static final String CODE_VERSION			= CODE_ID+VERSION;
@@ -191,7 +186,6 @@ public class UrlHelpers {
 	public static final String DATASET_CHILDREN 	= PARENT_TYPE_ID+DATASET;
 	public static final String LAYER_CHILDREN	 	= PARENT_TYPE_ID+LAYER;
 	public static final String PREVIEW_CHILDREN		= PARENT_TYPE_ID+PREVIEW;
-	public static final String LOCATION_CHILDREN	= PARENT_TYPE_ID+LOCATION;
 	public static final String PROJECT_CHILDREN		= PARENT_TYPE_ID+PROJECT;
 	public static final String EULA_CHILDREN		= PARENT_TYPE_ID+EULA;
 	public static final String AGREEMENT_CHILDREN	= PARENT_TYPE_ID+AGREEMENT;
@@ -205,7 +199,6 @@ public class UrlHelpers {
 	public static final String DATASET_SCHEMA	= DATASET+SCHEMA;
 	public static final String LAYER_SCHEMA 	= LAYER+SCHEMA;
 	public static final String PREVIEW_SCHEMA 	= PREVIEW+SCHEMA;
-	public static final String LOCATION_SCHEMA	= LOCATION+SCHEMA;
 	public static final String PROJECT_SCHEMA 	= PROJECT+SCHEMA;
 	public static final String EULA_SCHEMA 		= EULA+SCHEMA;
 	public static final String AGREEMENT_SCHEMA = AGREEMENT+SCHEMA;
@@ -218,7 +211,6 @@ public class UrlHelpers {
 	/**
 	 * Get a specific version of an entity
 	 */
-	public static final String LOCATION_VERSION_NUMBER		= LOCATION_VERSION+VERSION_NUMBER;
 	public static final String DATASET_VERSION_NUMBER		= DATASET_VERSION+VERSION_NUMBER;
 	public static final String LAYER_VERSION_NUMBER			= LAYER_VERSION+VERSION_NUMBER;
 	public static final String CODE_VERSION_NUMBER			= CODE_VERSION+VERSION_NUMBER;
@@ -227,7 +219,6 @@ public class UrlHelpers {
 	/**
 	 * Get the annotations of a specific version of an entity
 	 */
-	public static final String LOCATION_VERSION_ANNOTATIONS = 	LOCATION_VERSION_NUMBER+ANNOTATIONS;
 	public static final String DATASET_VERSION_ANNOTATIONS = 	DATASET_VERSION_NUMBER+ANNOTATIONS;
 	public static final String LAYER_VERSION_ANNOTATIONS = 		LAYER_VERSION_NUMBER+ANNOTATIONS;
 	public static final String CODE_VERSION_ANNOTATIONS = 		CODE_VERSION_NUMBER+ANNOTATIONS;

@@ -152,7 +152,9 @@ public class CRUDWikiGenerator {
 											+ "\", \"status\": \"curated\", \"name\": \"phenotypes\", \"numSamples\": \"261\", \"platform\": \"\", \"versionLabel\": \"1.0.0\", \"type\": \"C\"}"),
 							"h3. Add a Layer to a Dataset",
 							"Create a new layer object and set its parentId to be that of the dataset");
-
+			
+// TODO PLFM-1083 Documentation: refurbish the wiki generator			
+/*
 			log.info("h3. Add a Location to a Layer");
 
 			JSONObject cannedLocation = new JSONObject(
@@ -166,7 +168,6 @@ public class CRUDWikiGenerator {
 							cannedLocation,
 							"h4. First create the location to which to PUT your data.",
 							"First get the presigned S3 URL to use for the upload.  You must specify the parentId of the Layer (or Dataset) to which this location belongs.");
-
 			log.info("h4. The PUT the data to S3");
 			log
 					.info("Then PUT the data to S3 via an HTTP Client that supports multipart upload.  Note that you must: ");
@@ -213,7 +214,7 @@ public class CRUDWikiGenerator {
 			
 			// Call the version CRUD
 			doVersionCRUD(wiki, s3Location);
-			
+*/			
 			wiki
 					.doDelete(
 							project.getString("uri"),

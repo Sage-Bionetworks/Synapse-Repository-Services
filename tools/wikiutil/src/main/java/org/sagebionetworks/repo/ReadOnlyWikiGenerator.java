@@ -211,6 +211,9 @@ public class ReadOnlyWikiGenerator {
 						"h4. Get preview data as a map for a " + type
 								+ " Dataset Layer",
 						"This returns the preview data for a dataset layer.");
+				
+				// TODO PLFM-1083 Documentation: refurbish the wiki generator			
+				/*
 				JSONObject locationsResult = wiki
 						.doGet(layer.getString("uri")+"/location",
 								"h4. Get the locations for a " + type
@@ -274,6 +277,7 @@ public class ReadOnlyWikiGenerator {
 
 					}
 				}
+				*/
 				break; // we have displayed one clinical layer, don't bother with any others
 			}
 			
@@ -342,11 +346,6 @@ public class ReadOnlyWikiGenerator {
 					.doGet(
 							"/preview/schema",
 							"h3. Layer Preview Schema",
-							"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-			wiki
-					.doGet(
-							"/location/schema",
-							"h3. Dataset or Layer Locations Schema",
 							"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 			wiki
 					.doGet(

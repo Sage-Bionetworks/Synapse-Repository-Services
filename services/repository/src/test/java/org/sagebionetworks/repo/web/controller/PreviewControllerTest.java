@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -13,7 +13,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -145,73 +144,6 @@ public class PreviewControllerTest {
 		JSONObject storedLayerPreview = helper.testGetJsonEntity(layerPreview.getString("uri"));
 		assertEquals("this is an updated preview of a layer",
 				storedLayerPreview.getString("previewString"));
-	}
-
-	/**
-	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.LayerLocationsController#updateDependentEntity}
-	 * .
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testUpdateLayerLocations() throws Exception {
-
-		JSONObject newLayer = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
-
-		// Modify the locations
-		// Create three locations for this layer
-		JSONObject location = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"awss3\",\"path\":\"tcga_glioblastoma_data.tar.gz\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
-		assertExpectedLayerLocationProperties(location);
-		
-		location = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\", \"contentType\": \"application/octet-stream\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
-		assertExpectedLayerLocationProperties(location);
-		
-		location = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"awsebs\", \"path\":\"snap-29d33a42 (US West)\", \"contentType\": \"application/octet-stream\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
-		assertExpectedLayerLocationProperties(location);
-		
-		location = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ UrlHelpers.LOCATION, "{\"type\":\"sage\", \"path\":\"smb://fremont/C$/external-data/DAT_001__TCGA_Glioblastoma/Mar2010/tcga_glioblastoma_data.tar.gz\", \"md5sum\":\"b4c1e441ecb754271e0dee5020fd38e4\", \"parentId\":\""+newLayer.getString("id")+"\"}");
-		assertExpectedLayerLocationProperties(location);
-
-		// Now make sure the stored one reflects the change too
-		JSONObject paginatedLocations = helper.testGetJsonObject(newLayer.getString("uri")+UrlHelpers.LOCATION);
-		assertNotNull(paginatedLocations.getInt("totalNumberOfResults"));
-		assertNotNull(paginatedLocations.getJSONArray("results"));
-		assertEquals(4, paginatedLocations.getJSONArray("results").length());
-		JSONObject storedLayerLocation = (JSONObject) paginatedLocations.getJSONArray("results").get(0);
-		assertExpectedLayerLocationProperties(storedLayerLocation);
-	}
-
-	/**
-	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.controller.LayerLocationsController#updateDependentEntity}
-	 * .
-	 * 
-	 * @throws Exception
-	 */
-	@Test
-	public void testLayerLocationsSanityCheck() throws Exception {
-
-		testUpdateLayerLocations();
-
-		// As a sanity check, make sure we can walk from one end to the other
-		JSONObject saneDataset = helper.testGetJsonEntity(dataset
-				.getString("uri"));
-		JSONObject saneLayers = helper.testGetJsonEntities(saneDataset
-				.getString("layers"), null, null, null, null);
-		JSONObject saneLayer = helper.testGetJsonEntity(saneLayers
-				.getJSONArray("results").getJSONObject(0).getString("uri"));
-		
-		for (int i = 0; i < saneLayers.getJSONArray("results").length(); i++) {
-			JSONObject location = saneLayers.getJSONArray("results").getJSONObject(i);
-			String locationUri = location.getString("uri");
-			helper.testGetJsonObject(locationUri);
-		}
 	}
 
 	/*****************************************************************************************************

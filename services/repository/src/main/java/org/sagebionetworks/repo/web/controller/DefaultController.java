@@ -73,7 +73,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET,
 			UrlHelpers.LAYER,
 			UrlHelpers.PREVIEW,
-			UrlHelpers.LOCATION,
 			UrlHelpers.PROJECT,
 			UrlHelpers.FOLDER,
 			UrlHelpers.EULA,
@@ -117,8 +116,7 @@ public class DefaultController extends BaseController {
 	@RequestMapping(value = { 
 			UrlHelpers.CODE_VERSION,
 			UrlHelpers.LAYER_VERSION,
-			UrlHelpers.DATASET_VERSION,
-			UrlHelpers.LOCATION_VERSION
+			UrlHelpers.DATASET_VERSION
 			}, method = RequestMethod.PUT)
 	public @ResponseBody
 	Versionable createNewVersion(
@@ -149,7 +147,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET_ID,
 			UrlHelpers.LAYER_ID,
 			UrlHelpers.PREVIEW_ID,
-			UrlHelpers.LOCATION_ID,
 			UrlHelpers.PROJECT_ID,
 			UrlHelpers.FOLDER_ID,
 			UrlHelpers.EULA_ID,
@@ -191,8 +188,7 @@ public class DefaultController extends BaseController {
 	@RequestMapping(value = { 
 			UrlHelpers.CODE_VERSION_NUMBER,
 			UrlHelpers.LAYER_VERSION_NUMBER,
-			UrlHelpers.DATASET_VERSION_NUMBER,
-			UrlHelpers.LOCATION_VERSION_NUMBER
+			UrlHelpers.DATASET_VERSION_NUMBER
 			}, method = RequestMethod.GET)
 	public @ResponseBody
 	Entity getEntityForVersion(
@@ -231,7 +227,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET_ID,
 			UrlHelpers.LAYER_ID,
 			UrlHelpers.PREVIEW_ID,
-			UrlHelpers.LOCATION_ID,
 			UrlHelpers.PROJECT_ID,
 			UrlHelpers.FOLDER_ID,
 			UrlHelpers.EULA_ID,
@@ -299,7 +294,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET_ANNOTATIONS,
 			UrlHelpers.LAYER_ANNOTATIONS,
 			UrlHelpers.PREVIEW_ANNOTATIONS,
-			UrlHelpers.LOCATION_ANNOTATIONS,
 			UrlHelpers.PROJECT_ANNOTATIONS,
 			UrlHelpers.FOLDER_ANNOTATIONS,
 			UrlHelpers.EULA_ANNOTATIONS,
@@ -333,7 +327,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET_PATH,
 			UrlHelpers.LAYER_PATH,
 			UrlHelpers.PREVIEW_PATH,
-			UrlHelpers.LOCATION_PATH,
 			UrlHelpers.PROJECT_PATH,
 			UrlHelpers.FOLDER_PATH,
 			UrlHelpers.EULA_PATH,
@@ -370,8 +363,7 @@ public class DefaultController extends BaseController {
 	@RequestMapping(value = { 
 			UrlHelpers.CODE_VERSION_ANNOTATIONS,
 			UrlHelpers.LAYER_VERSION_ANNOTATIONS,
-			UrlHelpers.DATASET_VERSION_ANNOTATIONS,
-			UrlHelpers.LOCATION_VERSION_ANNOTATIONS
+			UrlHelpers.DATASET_VERSION_ANNOTATIONS
 			}, method = RequestMethod.GET)
 	public @ResponseBody
 	Annotations getEntityAnnotationsForVersion(
@@ -404,7 +396,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET_ANNOTATIONS,
 			UrlHelpers.LAYER_ANNOTATIONS,
 			UrlHelpers.PREVIEW_ANNOTATIONS,
-			UrlHelpers.LOCATION_ANNOTATIONS,
 			UrlHelpers.PROJECT_ANNOTATIONS,
 			UrlHelpers.FOLDER_ANNOTATIONS,
 			UrlHelpers.EULA_ANNOTATIONS,
@@ -438,7 +429,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET_ID,
 			UrlHelpers.LAYER_ID,
 			UrlHelpers.PREVIEW_ID,
-			UrlHelpers.LOCATION_ID,
 			UrlHelpers.PROJECT_ID,
 			UrlHelpers.FOLDER_ID,
 			UrlHelpers.EULA_ID,
@@ -473,8 +463,7 @@ public class DefaultController extends BaseController {
 	@RequestMapping(value = { 	
 			UrlHelpers.CODE_VERSION_NUMBER,
 			UrlHelpers.LAYER_VERSION_NUMBER,
-			UrlHelpers.DATASET_VERSION_NUMBER,
-			UrlHelpers.LOCATION_VERSION_NUMBER
+			UrlHelpers.DATASET_VERSION_NUMBER
 			}, method = RequestMethod.DELETE)
 	public void deleteEntityVersion(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
@@ -504,7 +493,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET,
 			UrlHelpers.LAYER,
 			UrlHelpers.PREVIEW,
-			UrlHelpers.LOCATION,
 			UrlHelpers.PROJECT,
 			UrlHelpers.FOLDER,
 			UrlHelpers.EULA,
@@ -552,8 +540,7 @@ public class DefaultController extends BaseController {
 	@RequestMapping(value = { 
 			UrlHelpers.CODE_VERSION,
 			UrlHelpers.LAYER_VERSION,
-			UrlHelpers.DATASET_VERSION,
-			UrlHelpers.LOCATION_VERSION
+			UrlHelpers.DATASET_VERSION
 		}, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Versionable> getAllVersionsOfEntity(
@@ -596,7 +583,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET_CHILDREN,
 			UrlHelpers.LAYER_CHILDREN,
 			UrlHelpers.PREVIEW_CHILDREN,
-			UrlHelpers.LOCATION_CHILDREN,
 			UrlHelpers.PROJECT_CHILDREN,
 			UrlHelpers.FOLDER_CHILDREN,
 			UrlHelpers.EULA_CHILDREN,
@@ -644,7 +630,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.DATASET_SCHEMA,
 			UrlHelpers.LAYER_SCHEMA,
 			UrlHelpers.PREVIEW_SCHEMA,
-			UrlHelpers.LOCATION_SCHEMA,
 			UrlHelpers.PROJECT_SCHEMA,
 			UrlHelpers.FOLDER_SCHEMA,
 			UrlHelpers.EULA_SCHEMA,

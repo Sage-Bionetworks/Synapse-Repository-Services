@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
@@ -18,8 +17,6 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.ServiceConstants;
-import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.controller.metadata.LocationMetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
@@ -478,15 +475,6 @@ public class LayerControllerTest {
 		assertTrue(results.has("versionNumber"));
 		Long value = results.getLong("versionNumber");
 		assertFalse("null".equals(value));
-
-		// Check that other properties are present, even if their value is null
-		String locations = results.getString("uri")+UrlHelpers.LOCATION;
-		assertNotNull(locations);
-//		for (int i = 0; i < locations.length(); i++) {
-//			String location = locations.getString(i);
-//			assertTrue(location
-//					.matches(".*/dataset/[^/]+/layer/[^/]+/(locations|.*Location)$"));
-//		}
 	}
 
 }

@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.web.controller.metadata;
 import java.net.FileNameMap;
 import java.net.URLConnection;
 import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -21,13 +20,11 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Layer;
-import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationStatusNames;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -38,9 +35,7 @@ import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.util.LocationHelper;
-import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -169,21 +164,6 @@ public class LocationableMetadataProvider implements
 
 		Locationable locationable = (Locationable) entity;
 
-        // HACK ALERT - we "migrating" location entities on the fly, see
-        // PLFM-840 for the real fix
-        boolean locationsWereMigrated = false;
-        try {
-        	locationsWereMigrated = migrateLocationsAsNeeded(locationable,
-        			request, user);
-        }
-        catch (UnauthorizedException ex) {
-            // We used to throw an exception, now we just change a field in
-            // the Locationable and null out the locations
-            locationable.setLocations(null);
-            locationable.setLocationStatus(LocationStatusNames.pendingEula);
-            return;
-        }
-        
 		if (needsToAgreeToEula(user, locationable)) {
 			// We used to throw an exception, now we just change a field in
 			// the Locationable and null out the locations
@@ -197,7 +177,7 @@ public class LocationableMetadataProvider implements
 		String method = request.getParameter(ServiceConstants.METHOD_PARAM);
 
 		List<LocationData> locations = locationable.getLocations();
-		if (!locationsWereMigrated && (null != locations)) {
+		if (null != locations) {
 			for (LocationData location : locations) {
 				if (location.getType().equals(LocationTypeNames.awss3)) {
 					String signedPath = null;
@@ -305,96 +285,4 @@ public class LocationableMetadataProvider implements
 		}
 		return false;
 	}
-
-	/**********************************************************************************************
-	 * 
-	 * HACK ALERT - we "migrating" location entities on the fly, see PLFM-840
-	 * for the real fix, all code below this should be nuked upon completion of
-	 * the migration
-	 * 
-	 * Also note that if anyone tries to update a locationable *without*
-	 * migrating the data stored in S3, the update will fail because if the
-	 * integrity check on the S3 URL path
-	 * 
-	 * So all this does is allow users to load existing data in Synapse with no
-	 * interruptions. If they need to modify anything existing, it will be a
-	 * little confusing till the migration is done.
-	 * 
-	 */
-	@Autowired
-	GenericEntityController entityController;
-
-	private boolean migrateLocationsAsNeeded(Locationable locationable,
-			HttpServletRequest request, UserInfo user)
-			throws DatastoreException, UnauthorizedException, NotFoundException {
-
-		if (null != locationable.getLocations()
-				&& 0 < locationable.getLocations().size()) {
-			// No migration needed
-			return false;
-		}
-
-		// Yes, this is outside of a transaction, we can move this inside a
-		// transaction is we are really worried about concurrent updates to old
-		// location entities
-		PaginatedParameters paging = new PaginatedParameters(0, Long.MAX_VALUE,
-				null, true);
-		PaginatedResults<Location> results = entityController
-				.getEntityChildrenOfTypePaginated(user.getUser().getId(),
-						locationable.getId(), Location.class, paging, request);
-
-		if (0 == results.getResults().size()) {
-			// No migration needed
-			return false;
-		}
-
-		// Just throw an exception when we cannot do the on-the-fly migration
-		if (results.getTotalNumberOfResults() != results.getResults().size()) {
-			throw new DatastoreException(
-					"too many locations to migrate for entity "
-							+ locationable.getId()
-							+ " File a Jira to the platform team and include this message if you want this entity fixed");
-		}
-
-		try {
-			List<LocationData> locations = new LinkedList<LocationData>();
-			locationable.setLocations(locations);
-			for (Location location : results.getResults()) {
-				if (null == locationable.getMd5()) {
-					locationable.setMd5(location.getMd5sum());
-				} else if (!locationable.getMd5().equals(location.getMd5sum())) {
-					throw new DatastoreException("md5 checksums do not match for entity "
-							+ locationable.getId()
-							+ " File a Jira to the platform team and include this message if you want this entity fixed");
-				}
-
-				if (null == locationable.getContentType()) {
-					locationable.setContentType(location.getContentType());
-				} else if (!locationable.getContentType().equals(
-						location.getContentType())) {
-					throw new DatastoreException(
-							"content types do not match for entity "
-							+ locationable.getId()
-							+ "File a Jira to the platform team and include this message if you want this entity fixed");
-				}
-
-				LocationData locationData = new LocationData();
-				locationData.setType(location.getType());
-				locationData.setPath(location.getPath());
-				locations.add(locationData);
-			}
-		}
-		catch (DatastoreException e) {
-			// Allow admin users to get these broken locationables so that they can fix them
-			if(!user.isAdmin()) {
-				throw e;
-			}
-			locationable.setLocations(null);
-			locationable.setContentType(null);
-			locationable.setMd5(null);
-			log.error(e);
-		}
-		return true;
-	}
-
 }

@@ -78,19 +78,18 @@ public class IT101LoadMigratedData {
 	@Test
 	public void testLoadPreview() throws Exception {
 		// Load preview 149
-		Preview preview = synapse.getEntity("149", Preview.class);
+		Preview preview = synapse.getEntity("113327", Preview.class);
 		assertNotNull(preview);
 		assertNotNull(preview.getPreviewString());
 		assertNotNull(preview.getHeaders());
-		assertEquals(38, preview.getHeaders().size());
+		assertEquals(50, preview.getHeaders().size());
 		assertNotNull(preview.getRows());
 		assertEquals(5, preview.getRows().size());
 	}
 
 	@Test
-	public void testLoadAgreement() throws Exception {
-		// Load preview 149
-		Eula agreement = synapse.getEntity("5", Eula.class);
+	public void testLoadEula() throws Exception {
+		Eula agreement = synapse.getEntity("4493", Eula.class);
 		assertNotNull(agreement);
 		assertNotNull(agreement.getAgreement());
 	}

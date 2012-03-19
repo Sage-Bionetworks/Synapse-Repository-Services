@@ -20,17 +20,6 @@
         },
         {
             "validParentTypes":[
-                "/dataset",
-                "/layer",
-                "/code"
-            ],
-            "urlPrefix":"/location",
-            "name":"location",
-            "className":"org.sagebionetworks.repo.model.Location",
-            "defaultParentPath":"/root"
-        },
-        {
-            "validParentTypes":[
                 "/folder",
                 "/project",
                 "DEFAULT"

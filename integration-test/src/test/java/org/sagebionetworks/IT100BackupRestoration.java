@@ -53,7 +53,7 @@ public class IT100BackupRestoration {
 
 	public static final long TEST_TIME_OUT = 1000 * 60 * 4; // Currently 4 mins
 
-	public static final String BACKUP_FILE_NAME = "BackupDaemonJob512-958031189387028378.zip";
+	public static final String BACKUP_FILE_NAME = "Backup-staging-A-66004-4066545524488105200.zip";
 	private static final String S3_DOMAIN = "https://s3.amazonaws.com/";
 	private static String S3_WORKFLOW_BUCKET = StackConfiguration.getS3WorkflowBucket();
 	private static final String S3_WORKFLOW_URL_PREFIX = S3_DOMAIN + S3_WORKFLOW_BUCKET + "/";

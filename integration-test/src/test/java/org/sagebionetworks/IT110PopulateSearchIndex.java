@@ -57,7 +57,7 @@ public class IT110PopulateSearchIndex {
 		// There may be more entities than this, but there should always be at
 		// least this many if we have successfully restored the backup
 		// containing the SageBioCuration project
-		assertTrue(500 < destTotal);
+		assertTrue(200 < destTotal);
 	}
 
 }

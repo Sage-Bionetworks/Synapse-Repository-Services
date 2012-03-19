@@ -12,18 +12,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.junit.Ignore;
 import org.junit.Test;
-import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.backup.SerializationUseCases;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
-import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Node;
@@ -361,14 +359,15 @@ public class NodeTranslationUtilsTest {
 	
 	@Test
 	public void testVersionableRoundTrip() throws InstantiationException, IllegalAccessException{
-		Location location = new Location();
-		location.setVersionComment("version comment");
-		location.setVersionNumber(new Long(134));
-		location.setVersionLabel("1.133.0");
-		location.setName("mame");
-		location.setType(LocationTypeNames.awsebs);
-		Location clone = cloneUsingNodeTranslation(location);
-		assertEquals(location, clone);
+		Code code = new Code();
+		code.setVersionComment("version comment");
+		code.setVersionNumber(new Long(134));
+		code.setVersionLabel("1.133.0");
+		code.setName("mame");
+		Set<Reference> shortcuts = new HashSet<Reference>();
+		code.setShortcuts(shortcuts);
+		Code clone = cloneUsingNodeTranslation(code);
+		assertEquals(code, clone);
 	}
 	
 	@Test

@@ -22,11 +22,10 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Location;
+import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -90,12 +89,14 @@ public class GenericEntityControllerImpleAutowiredTest {
 			for(int layer=0; layer<layers; layer++){
 				Layer inLayer = createLayerForTest(i*10+layer);
 				inLayer.setParentId(ds.getId());
-				inLayer = entityController.createEntity(userName, inLayer, mockRequest);
+				inLayer.setMd5("b960413cf33e1333b2b709319c29870d");
+				List<LocationData> locationDatas = new ArrayList<LocationData>();
+				inLayer.setLocations(locationDatas);
 				for(int loc=0; loc<locations; loc++){
-					Location loca = createLayerLocatoinsForTest(i*10+layer*10+loc);
-					loca.setParentId(inLayer.getId());
-					entityController.createEntity(userName, loca, mockRequest);
+					LocationData loca = createLayerLocatoinsForTest(i*10+layer*10+loc);
+					locationDatas.add(loca);
 				}
+				inLayer = entityController.createEntity(userName, inLayer, mockRequest);
 			}
 			toDelete.add(ds.getId());
 		}
@@ -128,12 +129,11 @@ public class GenericEntityControllerImpleAutowiredTest {
 		return layer;
 	}
 	
-	private Location createLayerLocatoinsForTest(int i) throws InvalidModelException{
-		Location location = new Location();
-		location.setMd5sum("9ca4d9623b655ba970e7b8173066b58f");
-		location.setPath("a/very/long/path/"+i);
-		location.setType(LocationTypeNames.awsebs);
-		return location;
+	private LocationData createLayerLocatoinsForTest(int i) throws InvalidModelException{
+		LocationData locationData = new LocationData();
+		locationData.setPath("a/very/long/path/"+i);
+		locationData.setType(LocationTypeNames.awsebs);
+		return locationData;
 	}
 	
 	@After
@@ -185,11 +185,10 @@ public class GenericEntityControllerImpleAutowiredTest {
 		for(Layer layer: list){
 			// Check all of the urls
 			UrlHelpers.validateAllUrls(layer);
+			// Now get the locations.
+			assertNotNull(layer.getLocations());
+			assertEquals(locations, layer.getLocations().size());
 		}
-		// Now get the locations.
-		List<Location> locationList = entityController.getEntityChildrenOfType(userName, lastLayer.getId(), Location.class, mockRequest);
-		assertNotNull(locationList);
-		assertEquals(locations, locationList.size());
 	}
 	
 	@Test 
@@ -204,15 +203,8 @@ public class GenericEntityControllerImpleAutowiredTest {
 		Layer lastLayer = list.get(layers -1);
 		assertNotNull(lastLayer);
 		// Now get the locations.
-		PaginatedResults<Location> locationResults = entityController.getEntityChildrenOfTypePaginated(userName, lastLayer.getId(),  Location.class, new PaginatedParameters(0, 1000, null, true), mockRequest);
-		assertNotNull(locationResults);
-		List<Location> locationList = locationResults.getResults();
-		assertNotNull(locationList);
-		assertEquals(locations, locationList.size());
-		for(Location location: locationList){
-			// Check all of the urls
-			UrlHelpers.validateAllUrls(location);
-		}
+		assertNotNull(lastLayer.getLocations());
+		assertEquals(locations, lastLayer.getLocations().size());
 	}
 	
 	@Test

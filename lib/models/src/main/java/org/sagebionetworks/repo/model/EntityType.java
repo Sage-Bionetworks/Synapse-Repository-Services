@@ -36,8 +36,6 @@ public class EntityType {
 	@Deprecated // Only added for backwards compatibility.
 	public static final EntityType folder = new EntityType();
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType location = new EntityType();
-	@Deprecated // Only added for backwards compatibility.
 	public static final EntityType eula = new EntityType();
 	@Deprecated // Only added for backwards compatibility.
 	public static final EntityType step = new EntityType();
@@ -84,8 +82,6 @@ public class EntityType {
 					type = agreement;
 				}else if(PrefixConst.FOLDER.equals(meta.getUrlPrefix())){
 					type = folder;
-				}else if(PrefixConst.LOCATION.equals(meta.getUrlPrefix())){
-					type = location;
 				}else if(PrefixConst.EULA.equals(meta.getUrlPrefix())){
 					type = eula;
 				}else if(PrefixConst.STEP.equals(meta.getUrlPrefix())){

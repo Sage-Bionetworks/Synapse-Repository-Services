@@ -7,13 +7,13 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.HasLayers;
 import org.sagebionetworks.repo.model.HasPreviews;
 import org.sagebionetworks.repo.model.Layer;
-import org.sagebionetworks.repo.model.Location;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -77,7 +77,7 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testsetEntityUriNullPrefix(){
-		UrlHelpers.createEntityUri("12", Location.class, null);
+		UrlHelpers.createEntityUri("12", Layer.class, null);
 	}
 	
 	@Test 
@@ -189,31 +189,31 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetVersionableNullUri(){
-		Location location = new Location();
-		location.setUri(null);
-		UrlHelpers.setVersionableUrl(location);
+		Dataset dataset = new Dataset();
+		dataset.setUri(null);
+		UrlHelpers.setVersionableUrl(dataset);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetVersionableNullVersionNumber(){
-		Location location = new Location();
-		String baseUri = "/repo/v1"+EntityType.location.getUrlPrefix()+"/42";
-		location.setUri(baseUri);
+		Layer layer = new Layer();
+		String baseUri = "/repo/v1"+EntityType.layer.getUrlPrefix()+"/42";
+		layer.setUri(baseUri);
 		// set the version number to be null
-		location.setVersionNumber(null);
-		UrlHelpers.setVersionableUrl(location);
+		layer.setVersionNumber(null);
+		UrlHelpers.setVersionableUrl(layer);
 	}
 	
 	@Test
 	public void testSetVersionable(){
-		Location location = new Location();
-		location.setVersionNumber(new Long(12));
-		// Make sure the location has a uri
-		String baseUri = "/repo/v1"+EntityType.location.getUrlPrefix()+"/42";
-		location.setUri(baseUri);
-		UrlHelpers.setVersionableUrl(location);
-		assertEquals(baseUri+UrlHelpers.VERSION, location.getVersions());
-		assertEquals(baseUri+UrlHelpers.VERSION+"/12", location.getVersionUrl());
+		Layer layer = new Layer();
+		layer.setVersionNumber(new Long(12));
+		// Make sure the layer has a uri
+		String baseUri = "/repo/v1"+EntityType.layer.getUrlPrefix()+"/42";
+		layer.setUri(baseUri);
+		UrlHelpers.setVersionableUrl(layer);
+		assertEquals(baseUri+UrlHelpers.VERSION, layer.getVersions());
+		assertEquals(baseUri+UrlHelpers.VERSION+"/12", layer.getVersionUrl());
 	}
 	
 	@Test
@@ -308,22 +308,22 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllNullVersions(){
-		Location location = new Location();
-		location.setVersionNumber(45l);
-		location.setUri("repo/v1/location/33");
-		UrlHelpers.setAllEntityUrls(location);
-		location.setVersions(null);
-		UrlHelpers.validateAllUrls(location);
+		Code code = new Code();
+		code.setVersionNumber(45l);
+		code.setUri("repo/v1/code/33");
+		UrlHelpers.setAllEntityUrls(code);
+		code.setVersions(null);
+		UrlHelpers.validateAllUrls(code);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllNullVersionUrl(){
-		Location location = new Location();
-		location.setVersionNumber(1l);
-		location.setUri("repo/v1/location/33");
-		UrlHelpers.setAllEntityUrls(location);
-		location.setVersionUrl(null);
-		UrlHelpers.validateAllUrls(location);
+		Code code = new Code();
+		code.setVersionNumber(1l);
+		code.setUri("repo/v1/code/33");
+		UrlHelpers.setAllEntityUrls(code);
+		code.setVersionUrl(null);
+		UrlHelpers.validateAllUrls(code);
 	}
 
 	@Test

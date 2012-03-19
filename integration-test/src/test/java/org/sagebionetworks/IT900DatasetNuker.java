@@ -27,9 +27,9 @@ public class IT900DatasetNuker {
 				"--authEndpoint",
 				StackConfiguration.getAuthenticationServicePrivateEndpoint(),
 				"--user",
-				StackConfiguration.getIntegrationTestUserOneName(),
+				StackConfiguration.getIntegrationTestUserAdminName(),
 				"--password",
-				StackConfiguration.getIntegrationTestUserOnePassword(),
+				StackConfiguration.getIntegrationTestUserAdminPassword(),
 		};
 		ExternalProcessResult result = ExternalProcessHelper.runExternalProcess(cmd);
 		assertEquals(0, result.getReturnCode());

@@ -7,12 +7,15 @@ import static org.junit.Assert.assertTrue;
 
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
+import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.workflow.Constants;
 import org.sagebionetworks.workflow.Notification;
 import org.sagebionetworks.workflow.UnrecoverableException;
@@ -39,6 +42,7 @@ public class IT525TcgaWorkflow {
 	static private Synapse synapse;
 
 	// These variables are used to pass data between tests
+	static private Project project = null;
 	static private String datasetId = null;
 	static private String layerId = null;
 
@@ -47,23 +51,21 @@ public class IT525TcgaWorkflow {
 	 */
 	@BeforeClass
 	static public void setUpBeforeClass() throws Exception {
-		String datasetName = "Colon Adenocarcinoma TCGA";
-
 		synapse = TcgaWorkflowConfigHelper.getSynapseClient();
-		JSONObject results = synapse
-				.query("select * from dataset where dataset.name == '"
-						+ datasetName + "'");
-
-		int numDatasetsFound = results.getInt("totalNumberOfResults");
-		if (1 == numDatasetsFound) {
-			datasetId = results.getJSONArray("results").getJSONObject(0)
-					.getString("dataset.id");
-		} else {
-			throw new UnrecoverableException("We have " + numDatasetsFound
-					+ " datasets with name " + datasetName);
-		}
+		project = synapse.createEntity(new Project());
+		Dataset dataset = new Dataset();
+		dataset.setParentId(project.getId());
+		dataset = synapse.createEntity(dataset);
+		datasetId = dataset.getId();
 	}
 
+	@AfterClass
+	static public void tearDownAfterClass() throws Exception {
+		if(null != project) {
+			synapse.deleteEntity(project);			
+		}
+	}
+	
 	/**
 	 * @throws Exception
 	 */

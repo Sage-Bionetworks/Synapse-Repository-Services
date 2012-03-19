@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.model;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -74,12 +75,6 @@ public class ObjectTypeTest {
 	public void testLayerValidParent(){
 		EntityType[] expectedValid = new EntityType[]{EntityType.dataset};
 		testValidParents(expectedValid, EntityType.layer);
-	}
-	
-	@Test
-	public void testLocationValidParent(){
-		EntityType[] expectedValid = new EntityType[]{EntityType.dataset, EntityType.layer, EntityType.code};
-		testValidParents(expectedValid, EntityType.location);
 	}
 	
 	@Test
