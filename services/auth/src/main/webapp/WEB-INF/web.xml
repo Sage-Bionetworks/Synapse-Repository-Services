@@ -69,6 +69,19 @@
     <load-on-startup>1</load-on-startup>
   </servlet>
   
+  
+	<servlet>
+	  <servlet-name>tomcatDefaultServlet</servlet-name>
+	  <servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
+	</servlet>
+
+
+	<servlet-mapping>
+	  <servlet-name>tomcatDefaultServlet</servlet-name>
+	  <url-pattern>/auth/v1/termsOfUse</url-pattern>
+	</servlet-mapping> 
+
+
   <servlet-mapping>
     <servlet-name>authentication</servlet-name>
     <url-pattern>/auth/v1/*</url-pattern>

@@ -15,7 +15,7 @@ import java.util.logging.Logger;
 
 import org.junit.Ignore;
 import org.junit.Test;
-import org.sagebionetworks.repo.model.query.Compartor;
+import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.web.query.QueryStatement;
 
@@ -72,7 +72,7 @@ public class QueryParserTest {
 		assertEquals("Number_of_Samples", expression.getId().getFieldName());
 		assertTrue(expression.getValue() instanceof Long);
 		assertEquals(101, ((Long)expression.getValue()).longValue());
-		assertEquals(Compartor.GREATER_THAN, expression.getCompare());
+		assertEquals(Comparator.GREATER_THAN, expression.getCompare());
 	}
 	
 	@Test
@@ -87,7 +87,7 @@ public class QueryParserTest {
 		assertEquals("Number_of_Samples", expression.getId().getFieldName());
 		assertTrue(expression.getValue() instanceof Long);
 		assertEquals(101, ((Long)expression.getValue()).longValue());
-		assertEquals(Compartor.GREATER_THAN_OR_EQUALS, expression.getCompare());
+		assertEquals(Comparator.GREATER_THAN_OR_EQUALS, expression.getCompare());
 	}
 	
 	@Test
@@ -102,7 +102,7 @@ public class QueryParserTest {
 		assertEquals("Number_of_Samples", expression.getId().getFieldName());
 		assertTrue(expression.getValue() instanceof Long);
 		assertEquals(101, ((Long)expression.getValue()).longValue());
-		assertEquals(Compartor.LESS_THAN, expression.getCompare());
+		assertEquals(Comparator.LESS_THAN, expression.getCompare());
 	}
 	
 	@Test
@@ -117,7 +117,7 @@ public class QueryParserTest {
 		assertEquals("Number_of_Samples", expression.getId().getFieldName());
 		assertTrue(expression.getValue() instanceof Long);
 		assertEquals(101, ((Long)expression.getValue()).longValue());
-		assertEquals(Compartor.LESS_THAN_OR_EQUALS, expression.getCompare());
+		assertEquals(Comparator.LESS_THAN_OR_EQUALS, expression.getCompare());
 	}
 	
 	@Test
@@ -132,7 +132,7 @@ public class QueryParserTest {
 		assertEquals("SomeString", expression.getId().getFieldName());
 		assertTrue(expression.getValue() instanceof String);
 		assertEquals("Value String", expression.getValue());
-		assertEquals(Compartor.NOT_EQUALS, expression.getCompare());
+		assertEquals(Comparator.NOT_EQUALS, expression.getCompare());
 	}
 
 	/**
@@ -164,14 +164,14 @@ public class QueryParserTest {
 		Expression expression = stmt.getSearchCondition().get(1);
 		assertEquals("dataset", expression.getId().getTableName());
 		assertEquals("Disease", expression.getId().getFieldName());
-		assertEquals(Compartor.EQUALS, expression.getCompare());
+		assertEquals(Comparator.EQUALS, expression.getCompare());
 		assertEquals("Cancer", expression.getValue());
 		
 		// Next should be an expression.
 		expression = stmt.getSearchCondition().get(0);
 		assertEquals("dataset", expression.getId().getTableName());
 		assertEquals("Species", expression.getId().getFieldName());
-		assertEquals(Compartor.EQUALS, expression.getCompare());
+		assertEquals(Comparator.EQUALS, expression.getCompare());
 		assertEquals("Human", expression.getValue());
 		
 	}

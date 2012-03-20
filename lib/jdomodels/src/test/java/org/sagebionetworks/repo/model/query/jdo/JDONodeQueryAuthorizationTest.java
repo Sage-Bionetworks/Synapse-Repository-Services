@@ -35,7 +35,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.query.BasicQuery;
-import org.sagebionetworks.repo.model.query.Compartor;
+import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -273,7 +273,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		query.setLimit(1000);
 		query.setSort(attributeName);
 		query.setAscending(true);
-		query.addExpression(new Expression(new CompoundId(null, attributeName), Compartor.GREATER_THAN, 0));
+		query.addExpression(new Expression(new CompoundId(null, attributeName), Comparator.GREATER_THAN, 0));
 		Iterator<String> it = usersInGroupB.keySet().iterator();
 		while(it.hasNext()){
 			String name = it.next();

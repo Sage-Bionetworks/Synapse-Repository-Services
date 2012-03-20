@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
-import org.sagebionetworks.repo.model.query.Compartor;
+import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl.AttributeDoesNotExist;
  
@@ -244,21 +244,21 @@ public class SqlConstants {
 	 * @param comp
 	 * @return
 	 */
-	public static String getSqlForComparator(Compartor comp){
-		if(Compartor.EQUALS == comp){
+	public static String getSqlForComparator(Comparator comp){
+		if(Comparator.EQUALS == comp){
 			return OPERATOR_SQL_EQUALS;
-		}else if(Compartor.NOT_EQUALS == comp){
+		}else if(Comparator.NOT_EQUALS == comp){
 			return OPERATOR_SQL_DOES_NOT_EQUAL;
-		}else if(Compartor.GREATER_THAN == comp){
+		}else if(Comparator.GREATER_THAN == comp){
 			return OPERATOR_SQL_GREATER_THAN;
-		}else if(Compartor.LESS_THAN == comp){
+		}else if(Comparator.LESS_THAN == comp){
 			return OPERATOR_SQL_LESS_THAN;
-		}else if(Compartor.GREATER_THAN_OR_EQUALS == comp){
+		}else if(Comparator.GREATER_THAN_OR_EQUALS == comp){
 			return OPERATOR_SQL_GREATER_THAN_OR_EQUALS;
-		}else if(Compartor.LESS_THAN_OR_EQUALS == comp){
+		}else if(Comparator.LESS_THAN_OR_EQUALS == comp){
 			return OPERATOR_SQL_LESS_THAN_OR_EQUALS;
 		}else{
-			throw new IllegalArgumentException("Unsupported Compartor: "+comp);
+			throw new IllegalArgumentException("Unsupported Comparator: "+comp);
 		}
 	}
 	

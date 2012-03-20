@@ -8,6 +8,10 @@ public class User implements Base {
 	private String uri;
 	private String etag;
 	private Date creationDate;
+	private boolean agreesToTermsOfUse;
+	private String fname;
+	private String lname;
+	private String displayName;
 	
 	public String getId() {
 		return id;
@@ -41,6 +45,54 @@ public class User implements Base {
 	}
 	public void setCreationDate(Date creationDate) {
 		this.creationDate = creationDate;
+	}
+	/**
+	 * @return the agreesToTermsOfUse
+	 */
+	public boolean isAgreesToTermsOfUse() {
+		return agreesToTermsOfUse;
+	}
+	/**
+	 * @param agreesToTermsOfUse the agreesToTermsOfUse to set
+	 */
+	public void setAgreesToTermsOfUse(boolean agreesToTermsOfUse) {
+		this.agreesToTermsOfUse = agreesToTermsOfUse;
+	}
+	/**
+	 * @return the fname
+	 */
+	public String getFname() {
+		return fname;
+	}
+	/**
+	 * @param fname the fname to set
+	 */
+	public void setFname(String fname) {
+		this.fname = fname;
+	}
+	/**
+	 * @return the lname
+	 */
+	public String getLname() {
+		return lname;
+	}
+	/**
+	 * @param lname the lname to set
+	 */
+	public void setLname(String lname) {
+		this.lname = lname;
+	}
+	/**
+	 * @return the displayName
+	 */
+	public String getDisplayName() {
+		return displayName;
+	}
+	/**
+	 * @param displayName the displayName to set
+	 */
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
 	}
 	/**
 	 * Is this a valid user?

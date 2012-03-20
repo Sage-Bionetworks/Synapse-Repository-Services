@@ -9,6 +9,7 @@ public class User {
 	private String firstName;
 	private String lastName;
 	private String displayName;
+	private Boolean acceptsTermsOfUse;
 	
 	public User() {}
 	
@@ -50,6 +51,20 @@ public class User {
 
 	public void setLastName(String lastName) {
 		this.lastName = lastName;
+	}
+
+	/**
+	 * @return the acceptsTermsOfUse
+	 */
+	public Boolean isAcceptsTermsOfUse() {
+		return acceptsTermsOfUse;
+	}
+
+	/**
+	 * @param acceptsTermsOfUse the acceptsTermsOfUse to set
+	 */
+	public void setAcceptsTermsOfUse(Boolean acceptsTermsOfUse) {
+		this.acceptsTermsOfUse = acceptsTermsOfUse;
 	}
 
 	/* (non-Javadoc)

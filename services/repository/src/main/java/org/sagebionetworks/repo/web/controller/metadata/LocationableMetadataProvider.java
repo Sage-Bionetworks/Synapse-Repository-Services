@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.controller.metadata;
 
 import java.net.FileNameMap;
 import java.net.URLConnection;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
@@ -10,33 +9,23 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.repo.ServiceConstants;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
-import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationStatusNames;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
-import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.query.BasicQuery;
-import org.sagebionetworks.repo.model.query.Compartor;
-import org.sagebionetworks.repo.model.query.CompoundId;
-import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMethod;
 
@@ -60,13 +49,13 @@ public class LocationableMetadataProvider implements
 	LocationHelper locationHelper;
 
 	@Autowired
-	NodeQueryDao nodeQueryDao;
-
-	@Autowired
 	PermissionsManager permissionsManager;
 
 	@Autowired
 	EntityManager entityManager;
+	
+	@Autowired
+	AuthorizationManager authorizationManager;
 
 	@Override
 	public void validateEntity(Entity entity, EntityEvent event)
@@ -164,7 +153,7 @@ public class LocationableMetadataProvider implements
 
 		Locationable locationable = (Locationable) entity;
 
-		if (needsToAgreeToEula(user, locationable)) {
+		if (!authorizationManager.canAccess(user, entity.getId(), ACCESS_TYPE.DOWNLOAD)) {
 			// We used to throw an exception, now we just change a field in
 			// the Locationable and null out the locations
 			locationable.setLocations(null);
@@ -209,80 +198,5 @@ public class LocationableMetadataProvider implements
 	public void entityDeleted(Entity deleted) {
 	}
 
-	private boolean needsToAgreeToEula(UserInfo userInfo,
-			Locationable locationable) throws NotFoundException,
-			DatastoreException, UnauthorizedException {
 
-		if (null == locationable.getLocations()
-				|| 0 == locationable.getLocations().size()) {
-			// There are not locations to protect
-			return false;
-		}
-
-		if (permissionsManager.hasAccess(locationable.getId(),
-				ACCESS_TYPE.UPDATE, userInfo)) {
-			// Users that have sufficient permission to modify the location are
-			// not subject to signing the eula because they are either the
-			// dataset creator or someone the creator granted write access to
-			return false;
-		}
-
-		// Users without write access must have agreed to the use
-		// agreement in order to see any location info about the dataset or
-		// layer
-		Dataset dataset = null;
-		if (locationable instanceof Layer) {
-
-			// TODO is there a better way to escalate privilege? this is a major hack
-			// Dev Note: this method will be nuked soon for the reimpl of governance
-			User tempAdminUser = new User();
-			tempAdminUser.setUserId("temp@foo.com");
-
-			UserGroup tempAdminGroup = new UserGroup();
-			tempAdminGroup.setId("123");
-			tempAdminGroup.setName("fake");
-
-			List<UserGroup> tempGroups = new ArrayList<UserGroup>();
-			tempGroups.add(tempAdminGroup);
-
-			UserInfo tempAdmin = new UserInfo(true);
-			tempAdmin.setUser(tempAdminUser);
-			tempAdmin.setGroups(tempGroups);
-			tempAdmin.setIndividualGroup(tempAdminGroup);
-			
-			// Run this as an administrator
-			dataset = entityManager.getEntity(tempAdmin, locationable
-					.getParentId(), Dataset.class);
-			
-		} else if (locationable instanceof Dataset) {
-			dataset = (Dataset) locationable;
-		} else {
-			// We do not enforce use agreements on other types of locationable
-			// objects
-			return false;
-		}
-
-		if (null == dataset.getEulaId()) {
-			// If the dataset has no Eula, there is nothing to enforce
-			return false;
-		}
-
-		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.getNodeTypeForClass(Agreement.class));
-		List<Expression> filters = new ArrayList<Expression>();
-		filters.add(new Expression(new CompoundId(null, "datasetId"),
-				Compartor.EQUALS, dataset.getId()));
-		filters.add(new Expression(new CompoundId(null, "eulaId"),
-				Compartor.EQUALS, dataset.getEulaId()));
-		filters.add(new Expression(new CompoundId(null, "createdBy"),
-				Compartor.EQUALS, userInfo.getUser().getId()));
-		query.setFilters(filters);
-
-		long numAgreements = nodeQueryDao.executeCountQuery(query, userInfo);
-		if (1 > numAgreements) {
-			// No agreements have been made, one is needed
-			return true;
-		}
-		return false;
-	}
 }

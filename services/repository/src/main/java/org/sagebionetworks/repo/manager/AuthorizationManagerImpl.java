@@ -4,8 +4,12 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.NodeQueryDao;
+import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -20,6 +24,40 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
+	
+	@Autowired
+	NodeQueryDao nodeQueryDao;
+	
+	@Autowired
+	NodeDAO nodeDao;
+
+	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
+		User user = userInfo.getUser();
+		if (user==null) return false;
+		// can't agree if you are anonymous
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(user.getUserId())) return false;
+		return user.isAgreesToTermsOfUse();
+	}
+	
+	private boolean canDownload(UserInfo userInfo, final String nodeId) throws DatastoreException, NotFoundException {
+		if (userInfo.isAdmin()) return true;
+		if (!agreesToTermsOfUse(userInfo)) return false;
+		// TODO node-specific checks to see if download is allowed:
+		// Tier 2:
+		// 1) if the node is a dataset, see if it has a EULA
+		// if its parent is a dataset, see if the dataset has a EULA
+		// (TODO this should probably be generalized to something like a 'Download permissions benefactor')
+		//
+		// 2) If so, see if there is an Agreement (a) pointing to the EULA and (b) dataset, (c) *owned* by the current user
+		//	If there is no such Agreement, then do not allow the download
+		//
+		// Tier 3:
+		// 3) Check to see if there is an ApprovalNeeded object.  The object will refer to an ACT UserGroup
+		// 4) If so, see if there is an Approval (a) pointing to the ACT UserGroup and (b) dataset, (c) owned by the current user
+		// If there is no such approval, then do not allow the download
+		//
+		return true;
+	}
 	
 	/**
 	 * 
@@ -37,6 +75,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		throws NotFoundException, DatastoreException {
 		// if is an administrator, return true
 		if (userInfo.isAdmin()) return true;
+		if (accessType.equals(AuthorizationConstants.ACCESS_TYPE.DOWNLOAD)) {
+			return canDownload(userInfo, nodeId);
+		}
 		// must look-up access
 		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(nodeId);
 		return accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, accessType);
@@ -81,8 +122,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo,	String entityId) throws NotFoundException, DatastoreException {
 		UserEntityPermissions permission = new UserEntityPermissions();
-		// TODO Actually implement can download!
-		permission.setCanDownload(false);
 		// Admin gets all
 		if (userInfo.isAdmin()) {
 			permission.setCanAddChild(true);
@@ -90,6 +129,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			permission.setCanDelete(true);
 			permission.setCanEdit(true);
 			permission.setCanView(true);
+			permission.setCanDownload(true);
 			return permission;
 		}
 		// must look-up access
@@ -100,6 +140,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		permission.setCanDelete(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.DELETE));
 		permission.setCanEdit(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.UPDATE));
 		permission.setCanView(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.READ));
+		permission.setCanDownload(this.canDownload(userInfo, entityId));
 		return permission;
 	}
 }

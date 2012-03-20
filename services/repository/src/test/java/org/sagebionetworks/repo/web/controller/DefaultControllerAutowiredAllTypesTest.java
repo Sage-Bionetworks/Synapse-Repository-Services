@@ -875,7 +875,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 			// Make sure we can get the annotations for this entity.
 			UserEntityPermissions uep = ServletTestHelper.getUserEntityPermissions(dispatchServlet, entity.getId(), userName);
 			assertNotNull(uep);
-			assertEquals(false, uep.getCanDownload());
+			assertEquals(true, uep.getCanDownload());
 			assertEquals(true, uep.getCanEdit());
 			assertEquals(true, uep.getCanChangePermissions());
 			assertEquals(true, uep.getCanDelete());

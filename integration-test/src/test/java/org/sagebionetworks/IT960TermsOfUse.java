@@ -1,9 +1,13 @@
 package org.sagebionetworks;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.util.EntityUtils;
+import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -11,12 +15,19 @@ import org.junit.Test;
 import org.sagebionetworks.client.HttpClientProvider;
 import org.sagebionetworks.client.HttpClientProviderImpl;
 import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
+import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.LocationData;
+import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.repo.model.Project;
 
 public class IT960TermsOfUse {
 	private static Synapse synapse = null;
+	private static Synapse adminSynapse = null;
 	private static String authEndpoint = null;
 	private static String repoEndpoint = null;
+	
+	private static Project project;
+	private static Dataset dataset;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -28,17 +39,48 @@ public class IT960TermsOfUse {
 		synapse.setRepositoryEndpoint(repoEndpoint);
 		synapse.login(StackConfiguration.getIntegrationTestUserThreeName(),
 				StackConfiguration.getIntegrationTestUserThreePassword());
+		
+		adminSynapse = new Synapse();
+		adminSynapse.setAuthEndpoint(authEndpoint);
+		adminSynapse.setRepositoryEndpoint(repoEndpoint);
+		adminSynapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
+				StackConfiguration.getIntegrationTestUserAdminPassword());
+		
+		project = new Project();
+		project.setName("foo");
+		project = adminSynapse.createEntity(project);
+		// make the project public readable
+		String aclUri = project.getAccessControlList();
+		JSONObject acl = adminSynapse.getEntity(aclUri);
+		// now add public-readable and push it back
+		JSONArray resourceAccessSet = acl.getJSONArray("resourceAccess");
+		JSONArray accessTypes = new JSONArray();
+		accessTypes.put("READ");
+		JSONObject resourceAccess = new JSONObject();
+		resourceAccess.put("groupName", "PUBLIC"); // add PUBLIC, READ access
+		resourceAccess.put("accessType", accessTypes); // add PUBLIC, READ access
+		resourceAccessSet.put(resourceAccess); // add it to the list
+		adminSynapse.updateEntity(aclUri, acl); // push back to Synapse
+		dataset = new Dataset();
+		dataset.setName("bar");
+		dataset.setParentId(project.getId());
+		List<LocationData> locations = new ArrayList<LocationData>();
+		LocationData ld = new LocationData();
+		ld.setPath("http://foobar.com");
+		ld.setType(LocationTypeNames.external);
+		locations.add(ld);
+		dataset.setLocations(locations);
+		dataset.setMd5("12345678123456781234567812345678");
+		dataset = adminSynapse.createEntity(dataset);
 	}
 	
 	// make sure that after the test suite is done running the user has signed the Terms of Use
 	@AfterClass
 	public static void afterClass() throws Exception {
-		JSONObject agreement = new JSONObject();
-		agreement.put("agrees", true);
-		synapse.createAuthEntity("/termsOfUseAgreement", agreement);
-		
+		if (adminSynapse!=null && project!=null) adminSynapse.deleteEntity(project);
 	}
 
+	@Test
 	public void testGetTermsOfUse() throws Exception {
 		HttpClientProvider clientProvider = new HttpClientProviderImpl();
 		String requestUrl = authEndpoint+"/termsOfUse";
@@ -50,50 +92,35 @@ public class IT960TermsOfUse {
 	}
 	
 	@Test
-	public void testSetAndGetAgreement() throws Exception {
-		JSONObject agreement = new JSONObject();
-		agreement.put("agrees", false);
-		
-		synapse.createAuthEntity("/termsOfUseAgreement", agreement);
-		
-		JSONObject agreement2 = synapse.getSynapseEntity(authEndpoint, "/termsOfUseAgreement");
-
-		assertEquals(agreement.getBoolean("agrees"), agreement2.getBoolean("agrees"));
-		
-		agreement.put("agrees", true);
-		
-		synapse.createAuthEntity("/termsOfUseAgreement", agreement);
-		
-		agreement2 = synapse.getSynapseEntity(authEndpoint, "/termsOfUseAgreement");
-
-		assertEquals(agreement.getBoolean("agrees"), agreement2.getBoolean("agrees"));
-		
-	}
-	
-	@Test
-	public void testFilterWithTermsOfUse() throws Exception {
-		// make sure the terms of use have been signed
-		JSONObject agreement = new JSONObject();
-		agreement.put("agrees", true);
-		synapse.createAuthEntity("/termsOfUseAgreement", agreement);
-		// now we can make authenticated requests
-		synapse.getEntity("/dataset");
+	public void testRepoSvcWithTermsOfUse() throws Exception {
+		// should not be able to see locations
+		Dataset ds = synapse.getEntity(dataset);
+		List<LocationData> locations = ds.getLocations();
+		assertTrue(locations!=null && locations.size()==1);
 	}
 
-	@Test(expected=SynapseForbiddenException.class)
-	public void testFilterNoTermsOfUse() throws Exception {
-		Synapse notou = new Synapse();
-		notou.setAuthEndpoint(authEndpoint);
-		notou.setRepositoryEndpoint(repoEndpoint);
-		notou.login(StackConfiguration.getIntegrationTestRejectTermsOfUseName(),
-				StackConfiguration.getIntegrationTestRejectTermsOfUsePassword());
+	public void testRepoSvcNoTermsOfUse() throws Exception {
+		Synapse anonymous = new Synapse();
+		anonymous.setAuthEndpoint(authEndpoint);
+		anonymous.setRepositoryEndpoint(repoEndpoint);
 		
-		// make sure the terms of use have NOT been signed
-		JSONObject agreement = new JSONObject();
-		agreement.put("agrees", false);
-		notou.createAuthEntity("/termsOfUseAgreement", agreement);
-		// should throw '403' (Forbidden)
-		notou.getEntity("/dataset");  
+		Dataset ds = synapse.getEntity(dataset);
+		List<LocationData> locations = ds.getLocations();
+		assertTrue(locations==null || locations.size()==0);
+		
+		// now updating the object should not 'nuke' the locations!
+		ds.setName("bas");
+		synapse.putEntity(ds);
+		
+		Dataset idHolder = new Dataset();
+		idHolder.setId(ds.getId());
+		// an admin should be able to retreive the entity, including the locations
+		ds = adminSynapse.getEntity(idHolder);
+		
+		assertEquals("bas", ds.getName());
+		locations = ds.getLocations();
+		assertTrue(locations!=null && locations.size()==1);
+
 	}
 	
 

@@ -5,7 +5,7 @@ package org.sagebionetworks.repo.model.query;
  * @author jmhill
  *
  */
-public enum Compartor{
+public enum Comparator{
 	EQUALS,
 	NOT_EQUALS,
 	GREATER_THAN,

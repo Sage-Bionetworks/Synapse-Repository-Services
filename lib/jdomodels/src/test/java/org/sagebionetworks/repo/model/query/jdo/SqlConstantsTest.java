@@ -8,7 +8,7 @@ import java.lang.reflect.Field;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.Layer;
-import org.sagebionetworks.repo.model.query.Compartor;
+import org.sagebionetworks.repo.model.query.Comparator;
 
 public class SqlConstantsTest {
 	
@@ -16,8 +16,8 @@ public class SqlConstantsTest {
 	@Test
 	public void testGetSqlForAllComparator(){
 		// Make sure we support all types
-		Compartor[] all = Compartor.values();
-		for(Compartor comp: all){
+		Comparator[] all = Comparator.values();
+		for(Comparator comp: all){
 			String sql = SqlConstants.getSqlForComparator(comp);
 			assertNotNull(sql);
 		}
@@ -25,27 +25,27 @@ public class SqlConstantsTest {
 	
 	@Test
 	public void testEquals(){
-		assertEquals("=", SqlConstants.getSqlForComparator(Compartor.EQUALS));
+		assertEquals("=", SqlConstants.getSqlForComparator(Comparator.EQUALS));
 	}
 
 	@Test
 	public void testGreater(){
-		assertEquals(">", SqlConstants.getSqlForComparator(Compartor.GREATER_THAN));
+		assertEquals(">", SqlConstants.getSqlForComparator(Comparator.GREATER_THAN));
 	}
 	
 	@Test
 	public void testLesss(){
-		assertEquals("<", SqlConstants.getSqlForComparator(Compartor.LESS_THAN));
+		assertEquals("<", SqlConstants.getSqlForComparator(Comparator.LESS_THAN));
 	}
 	
 	@Test
 	public void testGreaterThanOrEquals(){
-		assertEquals(">=", SqlConstants.getSqlForComparator(Compartor.GREATER_THAN_OR_EQUALS));
+		assertEquals(">=", SqlConstants.getSqlForComparator(Comparator.GREATER_THAN_OR_EQUALS));
 	}
 	
 	@Test
 	public void testLessThanOrEquals(){
-		assertEquals("<=", SqlConstants.getSqlForComparator(Compartor.LESS_THAN_OR_EQUALS));
+		assertEquals("<=", SqlConstants.getSqlForComparator(Comparator.LESS_THAN_OR_EQUALS));
 	}
 	
 	@Test

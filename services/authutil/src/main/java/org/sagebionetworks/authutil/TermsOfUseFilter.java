@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpStatus;
 
+// TODO delete this class, no longer used
 public class TermsOfUseFilter implements Filter {
 
 	// maps userIds to a boolean value which says whether the user has signed the terms of use

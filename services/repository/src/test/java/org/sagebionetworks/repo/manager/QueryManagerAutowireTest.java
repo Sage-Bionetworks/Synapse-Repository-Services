@@ -32,7 +32,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
-import org.sagebionetworks.repo.model.query.Compartor;
+import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.model.query.jdo.NodeField;
@@ -148,7 +148,7 @@ public class QueryManagerAutowireTest {
 		query.setLimit(totalEntities-2);
 		query.setSort("longKey");
 		query.setAscending(false);
-		query.addExpression(new Expression(new CompoundId("dataset", "doubleKey"), Compartor.GREATER_THAN, "0.0"));
+		query.addExpression(new Expression(new CompoundId("dataset", "doubleKey"), Comparator.GREATER_THAN, "0.0"));
 		// Execute it.
 		long start = System.currentTimeMillis();
 		QueryResults results = entityController.executeQueryWithAnnotations(userId, query, mockRequest);

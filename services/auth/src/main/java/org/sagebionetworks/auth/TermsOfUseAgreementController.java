@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.TERMS_OF_USE_AGREEMENT_URI;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCEPTS_TERMS_OF_USE_ATTRIBUTE;
 
+// TODO delete this class, no longer used
 @Controller
 public class TermsOfUseAgreementController extends BaseController {
 	

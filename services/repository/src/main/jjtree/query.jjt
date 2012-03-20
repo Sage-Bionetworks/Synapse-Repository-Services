@@ -13,7 +13,7 @@
 PARSER_BEGIN(QueryParser)
 package org.sagebionetworks.repo.queryparser;
 
-import org.sagebionetworks.repo.model.query.Compartor;
+import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.Operator;
 
 public class QueryParser {}
@@ -226,12 +226,12 @@ void Expression() : {}
 
 void Comparators() : {}
 {
-  <EQUALS> { jjtThis.value = Compartor.EQUALS; }
-  | <NOT_EQUALS> { jjtThis.value = Compartor.NOT_EQUALS; }
-  | <GREATER_THAN> { jjtThis.value = Compartor.GREATER_THAN; }
-  | <LESS_THAN> { jjtThis.value = Compartor.LESS_THAN; }
-  | <GREATER_THAN_OR_EQUALS> { jjtThis.value = Compartor.GREATER_THAN_OR_EQUALS; }
-  | <LESS_THAN_OR_EQUALS> { jjtThis.value = Compartor.LESS_THAN_OR_EQUALS; }
+  <EQUALS> { jjtThis.value = Comparator.EQUALS; }
+  | <NOT_EQUALS> { jjtThis.value = Comparator.NOT_EQUALS; }
+  | <GREATER_THAN> { jjtThis.value = Comparator.GREATER_THAN; }
+  | <LESS_THAN> { jjtThis.value = Comparator.LESS_THAN; }
+  | <GREATER_THAN_OR_EQUALS> { jjtThis.value = Comparator.GREATER_THAN_OR_EQUALS; }
+  | <LESS_THAN_OR_EQUALS> { jjtThis.value = Comparator.LESS_THAN_OR_EQUALS; }
 }
 
 void OrderBy() : {}

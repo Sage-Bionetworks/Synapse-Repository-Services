@@ -21,6 +21,7 @@ import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.springframework.http.HttpStatus;
 
@@ -62,12 +63,38 @@ public class IT990CrowdAuthentication {
 		assertEquals(StackConfiguration.getIntegrationTestUserThreeDisplayName(), session.getString("displayName"));
 	}
 	
+	@Test
+	public void testCreateSessionSigningTermsOfUse() throws Exception {
+		JSONObject loginRequest = new JSONObject();
+		String username = StackConfiguration.getIntegrationTestUserThreeName();
+		String password = StackConfiguration.getIntegrationTestUserThreePassword();
+		loginRequest.put("email", username);
+		loginRequest.put("password", password);
+
+		JSONObject session = synapse.createAuthEntity("/session?acceptsTermsOfUse=true", loginRequest);
+		assertTrue(session.has(SESSION_TOKEN_LABEL));
+		assertEquals(StackConfiguration.getIntegrationTestUserThreeDisplayName(), session.getString("displayName"));
+	}
+	
 	@Test(expected = SynapseBadRequestException.class)
 	public void testCreateSessionBadCredentials() throws Exception {
 		JSONObject loginRequest = new JSONObject();
 		String username = StackConfiguration.getIntegrationTestUserThreeName();
 		loginRequest.put("email", username);
 		loginRequest.put("password", "incorrectPassword");
+	
+		// should throw SynapseBadRequestException
+		synapse.createAuthEntity("/session", loginRequest);
+
+	}
+	
+	@Test(expected = SynapseForbiddenException.class)
+	public void testCreateSessionNoTermsOfUse() throws Exception {
+		JSONObject loginRequest = new JSONObject();
+		String username = StackConfiguration.getIntegrationTestRejectTermsOfUseEmail();
+		String password = StackConfiguration.getIntegrationTestRejectTermsOfUsePassword();
+		loginRequest.put("email", username);
+		loginRequest.put("password", password);
 	
 		// should throw SynapseBadRequestException
 		synapse.createAuthEntity("/session", loginRequest);

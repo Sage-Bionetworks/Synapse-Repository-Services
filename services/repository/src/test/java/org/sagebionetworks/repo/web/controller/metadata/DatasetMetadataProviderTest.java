@@ -33,7 +33,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.BasicQuery;
-import org.sagebionetworks.repo.model.query.Compartor;
+import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -109,7 +109,7 @@ public class DatasetMetadataProviderTest {
 		assertNotNull(expression);
 		assertNotNull(expression.getId());
 		assertEquals(NodeConstants.COL_PARENT_ID, expression.getId().getFieldName());
-		assertEquals(Compartor.EQUALS, expression.getCompare());
+		assertEquals(Comparator.EQUALS, expression.getCompare());
 		assertEquals(123L, expression.getValue());
 	}
 	
@@ -125,7 +125,7 @@ public class DatasetMetadataProviderTest {
 			assertNotNull(expression);
 			assertNotNull(expression.getId());
 			if(NodeConstants.COLUMN_LAYER_TYPE.equals(expression.getId().getFieldName())){
-				assertEquals(Compartor.EQUALS, expression.getCompare());
+				assertEquals(Comparator.EQUALS, expression.getCompare());
 				assertEquals(LayerTypeNames.C, expression.getValue());
 			}
 		}
@@ -143,7 +143,7 @@ public class DatasetMetadataProviderTest {
 			assertNotNull(expression);
 			assertNotNull(expression.getId());
 			if(NodeConstants.COLUMN_LAYER_TYPE.equals(expression.getId().getFieldName())){
-				assertEquals(Compartor.EQUALS, expression.getCompare());
+				assertEquals(Comparator.EQUALS, expression.getCompare());
 				assertEquals(LayerTypeNames.E, expression.getValue());
 			}
 		}
@@ -161,7 +161,7 @@ public class DatasetMetadataProviderTest {
 			assertNotNull(expression);
 			assertNotNull(expression.getId());
 			if(NodeConstants.COLUMN_LAYER_TYPE.equals(expression.getId().getFieldName())){
-				assertEquals(Compartor.EQUALS, expression.getCompare());
+				assertEquals(Comparator.EQUALS, expression.getCompare());
 				assertEquals(LayerTypeNames.G, expression.getValue());
 			}
 		}

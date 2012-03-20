@@ -105,7 +105,7 @@ public class UserManagerImpl implements UserManager {
 		return isAdmin;
 	}
 	
-	private UserGroup createIndividualGroup(String userName) throws DatastoreException {
+	private UserGroup createIndividualGroup(String userName, User user) throws DatastoreException {
 		UserGroup individualGroup = new UserGroup();
 		individualGroup.setName(userName);
 		individualGroup.setIndividual(true);
@@ -127,7 +127,9 @@ public class UserManagerImpl implements UserManager {
 		if (userProfile==null) {
 			userProfile = new UserProfile();
 			userProfile.setOwnerId(individualGroup.getId());
-			// TODO mirror first name, last name, display name from Crowd to this object
+			userProfile.setFirstName(user.getFname());
+			userProfile.setLastName(user.getLname());
+			userProfile.setDisplayName(user.getDisplayName());
 			try {
 				userProfileDAO.create(userProfile, schema);
 			} catch (InvalidModelException e) {
@@ -178,7 +180,7 @@ public class UserManagerImpl implements UserManager {
 			isAdmin = addGroups(userName, groups);
 			individualGroup = userGroupDAO.findGroup(userName, true);
 			if (individualGroup == null) {
-				individualGroup = createIndividualGroup(userName);
+				individualGroup = createIndividualGroup(userName, user);
 			}
 			// All authenticated users belong to the public group and the
 			// authenticated user group.

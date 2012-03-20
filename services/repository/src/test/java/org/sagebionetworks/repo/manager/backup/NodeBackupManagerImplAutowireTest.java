@@ -29,7 +29,6 @@ import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
-import org.sagebionetworks.repo.model.query.Compartor;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.model.util.RandomNodeUtil;
@@ -122,7 +121,8 @@ public class NodeBackupManagerImplAutowireTest {
 		// We should be able to find this node with this query
 		queryForNode = new BasicQuery();
 		queryForNode.setFrom(EntityType.folder);
-		queryForNode.addExpression(new Expression(new CompoundId(null, uniqueAnnotationName), Compartor.EQUALS, uniqueAnnotationValue));
+		queryForNode.addExpression(new Expression(new CompoundId(null, uniqueAnnotationName), 
+				org.sagebionetworks.repo.model.query.Comparator.EQUALS, uniqueAnnotationValue));
 		assertEquals(1, nodeQueryDao.executeCountQuery(queryForNode, nonAdminUser));
 	}
 	

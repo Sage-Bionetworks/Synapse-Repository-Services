@@ -4,7 +4,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.query.Compartor;
+import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.model.query.Operator;
@@ -165,7 +165,7 @@ public class QueryStatement {
 		QueryNode idNode = (QueryNode) expressionNode.jjtGetChild(0);
 		CompoundId id = parseId(idNode);
 		QueryNode compareNode = (QueryNode) expressionNode.jjtGetChild(1);
-		Compartor comp = (Compartor)compareNode.jjtGetValue();
+		Comparator comp = (Comparator)compareNode.jjtGetValue();
 		QueryNode valueNode = (QueryNode) ((QueryNode) expressionNode.jjtGetChild(2)).jjtGetChild(0);
 		Object value = valueNode.jjtGetValue();
 		return new Expression(id, comp, value);

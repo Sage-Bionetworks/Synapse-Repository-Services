@@ -242,8 +242,12 @@ public class EulaControllerTest {
 	public void testEnforceUseAgreementDataset() throws Exception {
 		setupSecondaryUser();
 		dataset = testHelper.getEntity(dataset, null);
-		assertNull(dataset.getLocations());
-		assertEquals(LocationStatusNames.pendingEula, dataset
+		// currently download is only controlled by terms-of-use
+//		assertNull(dataset.getLocations());
+//		assertEquals(LocationStatusNames.pendingEula, dataset
+//				.getLocationStatus());
+		assertNotNull(dataset.getLocations());
+		assertEquals(LocationStatusNames.available, dataset
 				.getLocationStatus());
 	}
 	
@@ -252,9 +256,11 @@ public class EulaControllerTest {
 		setupSecondaryUser();
 		// Same for the layer in this dataset, no locations
 		layer = testHelper.getEntity(layer, null);
-		assertNull(layer.getLocations());
-		assertEquals(LocationStatusNames.pendingEula, layer.getLocationStatus());
-
+		// currently download is only controlled by terms-of-use
+//		assertNull(layer.getLocations());
+//		assertEquals(LocationStatusNames.pendingEula, layer.getLocationStatus());
+		assertNotNull(layer.getLocations());
+		assertEquals(LocationStatusNames.available, layer.getLocationStatus());
 	}
 	
 	@Test
@@ -264,10 +270,14 @@ public class EulaControllerTest {
 		QueryResults queryResult = testHelper.query("select * from dataset");
 		assertEquals(1, queryResult.getResults().size());
 		Map<String, Object> queryValues = queryResult.getResults().get(0);
-		assertEquals(LocationStatusNames.pendingEula.name(), queryValues
+		// currently download is controlled only by terms-of-use
+//		assertEquals(LocationStatusNames.pendingEula.name(), queryValues
+//				.get("dataset.locationStatus"));
+		assertEquals(LocationStatusNames.available.name(), queryValues
 				.get("dataset.locationStatus"));
 		assertTrue(queryValues.containsKey("dataset.locations"));
-		assertNull(queryValues.get("dataset.locations"));
+//		assertNull(queryValues.get("dataset.locations"));
+		assertNotNull(queryValues.get("dataset.locations"));
 	}
 	
 	@Test
@@ -276,10 +286,13 @@ public class EulaControllerTest {
 		QueryResults queryResult = testHelper.query("select * from layer");
 		assertEquals(1, queryResult.getResults().size());
 		Map<String, Object> queryValues = queryResult.getResults().get(0);
-		assertEquals(LocationStatusNames.pendingEula.name(), queryValues
+		// currently download is only controlled by terms-of-use
+//		assertEquals(LocationStatusNames.pendingEula.name(), queryValues
+//				.get("layer.locationStatus"));
+//		assertNull(queryValues.get("layer.locations"));
+		assertEquals(LocationStatusNames.available.name(), queryValues
 				.get("layer.locationStatus"));
-		assertNull(queryValues.get("layer.locations"));
-		
+		assertNotNull(queryValues.get("layer.locations"));	
 	}
 	
 	@Test

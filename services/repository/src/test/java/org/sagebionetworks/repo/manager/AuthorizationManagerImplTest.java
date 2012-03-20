@@ -307,6 +307,7 @@ public class AuthorizationManagerImplTest {
 	@Test
 	public void testGetUserPermissionsForEntity() throws Exception{
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		assertTrue(adminInfo.isAdmin());
 		// the admin user can do it all
 		UserEntityPermissions uep = authorizationManager.getUserPermissionsForEntity(adminInfo,  node.getId());
 		assertNotNull(uep);
@@ -315,7 +316,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(true, uep.getCanDelete());
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
-		assertEquals(false, uep.getCanDownload());
+		assertEquals(true, uep.getCanDownload());
 		
 		// the user cannot do anything
 		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
@@ -324,7 +325,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanDelete());
 		assertEquals(false, uep.getCanEdit());
 		assertEquals(false, uep.getCanView());
-		assertEquals(false, uep.getCanDownload());
+		assertEquals(true, uep.getCanDownload()); // can't read but CAN download, which is controlled separately
 		
 		// Let the user read.
 		AccessControlList acl = permissionsManager.getACL(node.getId(), userInfo);
@@ -338,7 +339,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanDelete());
 		assertEquals(false, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
-		assertEquals(false, uep.getCanDownload());
+		assertEquals(true, uep.getCanDownload()); // can't read but CAN download, which is controlled separately
 		
 		// Let the user update.
 		acl = permissionsManager.getACL(node.getId(), userInfo);
@@ -352,7 +353,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanDelete());
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
-		assertEquals(false, uep.getCanDownload());
+		assertEquals(true, uep.getCanDownload()); // can't read but CAN download, which is controlled separately
 		
 		// Let the user delete.
 		acl = permissionsManager.getACL(node.getId(), userInfo);
@@ -366,7 +367,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(true, uep.getCanDelete());
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
-		assertEquals(false, uep.getCanDownload());
+		assertEquals(true, uep.getCanDownload()); // can't read but CAN download, which is controlled separately
 		
 		// Let the user change permissions.
 		acl = permissionsManager.getACL(node.getId(), userInfo);
@@ -380,7 +381,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(true, uep.getCanDelete());
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
-		assertEquals(false, uep.getCanDownload());
+		assertEquals(true, uep.getCanDownload()); // can't read but CAN download, which is controlled separately
 		
 		// Let the user change create.
 		acl = permissionsManager.getACL(node.getId(), userInfo);
@@ -394,7 +395,7 @@ public class AuthorizationManagerImplTest {
 		assertEquals(true, uep.getCanDelete());
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
-		assertEquals(false, uep.getCanDownload());
+		assertEquals(true, uep.getCanDownload()); // can't read but CAN download, which is controlled separately
 	}
 
 }

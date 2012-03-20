@@ -29,6 +29,7 @@ public class UserProviderImpl implements UserProvider, InitializingBean {
 	public void afterPropertiesSet() throws Exception {
 		// Create the test admin user
 		testAdminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		if (!testAdminUser.isAdmin()) throw new IllegalStateException(TestUserDAO.ADMIN_USER_NAME+" should be an administrator.");
 		testUser = userManager.getUserInfo(TestUserDAO.TEST_USER_NAME);
 		Collection<UserGroup> groups = testUser.getGroups();
 		for(UserGroup group : groups) {

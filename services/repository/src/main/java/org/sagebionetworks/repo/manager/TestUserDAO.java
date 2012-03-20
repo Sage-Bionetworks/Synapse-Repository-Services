@@ -78,6 +78,7 @@ public class TestUserDAO implements UserDAO {
 		if (user==null) {
 			user = new User();
 			user.setUserId(userName);
+			user.setAgreesToTermsOfUse(true);
 			try {
 				create(user);
 			} catch (InvalidModelException ime) {
