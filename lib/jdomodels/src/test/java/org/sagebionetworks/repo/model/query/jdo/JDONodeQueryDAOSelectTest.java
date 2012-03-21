@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Comparator;
@@ -125,7 +126,7 @@ public class JDONodeQueryDAOSelectTest {
 		query.setFrom(null);
 		// A null select should be treated as a select *
 		query.setSelect(null);
-		query.addExpression(new Expression(new CompoundId(null, "id"), Comparator.EQUALS, id));
+		query.addExpression(new Expression(new CompoundId(null, "id"), Comparator.EQUALS, KeyFactory.stringToKey(id)));
 		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		assertEquals(1, results.getTotalNumberOfResults());
@@ -135,7 +136,7 @@ public class JDONodeQueryDAOSelectTest {
 		Map<String, Object> row = results.getAllSelectedData().get(0);
 		// The map should contain all primary fields.
 		for(NodeField field: NodeField.values()){
-			assertTrue(row.containsKey(field.getFieldName()));
+			assertTrue(field.name(), row.containsKey(field.getFieldName()));
 		}
 		// The map should also have all of the annotations.
 		assertTrue(row.containsKey(STRING_KEY_SECONDARY));
@@ -155,7 +156,7 @@ public class JDONodeQueryDAOSelectTest {
 		// A null select should be treated as a select *
 		query.setSelect(new ArrayList<String>());
 		query.getSelect().add(NodeField.ID.getFieldName());
-		query.addExpression(new Expression(new CompoundId(null, "id"), Comparator.EQUALS, id));
+		query.addExpression(new Expression(new CompoundId(null, "id"), Comparator.EQUALS, KeyFactory.stringToKey(id)));
 		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		assertEquals(1, results.getTotalNumberOfResults());
@@ -183,7 +184,7 @@ public class JDONodeQueryDAOSelectTest {
 		// A null select should be treated as a select *
 		query.setSelect(new ArrayList<String>());
 		query.getSelect().add(STRING_KEY_PRIMARY);
-		query.addExpression(new Expression(new CompoundId(null, "id"), Comparator.EQUALS, id));
+		query.addExpression(new Expression(new CompoundId(null, "id"), Comparator.EQUALS, KeyFactory.stringToKey(id)));
 		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		assertEquals(1, results.getTotalNumberOfResults());
@@ -214,7 +215,7 @@ public class JDONodeQueryDAOSelectTest {
 			select.add(value.getFieldName());
 		}
 		query.setSelect(select);
-		query.addExpression(new Expression(new CompoundId(null, "id"), Comparator.EQUALS, id));
+		query.addExpression(new Expression(new CompoundId(null, "id"), Comparator.EQUALS, KeyFactory.stringToKey(id)));
 		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
 		assertNotNull(results);
 		assertEquals(1, results.getTotalNumberOfResults());

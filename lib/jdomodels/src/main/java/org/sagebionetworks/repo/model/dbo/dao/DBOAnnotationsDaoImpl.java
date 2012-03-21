@@ -1,10 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_OWNER_ID_COLUMN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_VALUE_COLUMN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATE_ANNOTATIONS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOUBLE_ANNOTATIONS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_LONG_ANNOTATIONS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STRING_ANNOTATIONS;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -120,7 +125,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		Long ownerId = KeyFactory.stringToKey(annotations.getId());
 		// First we must delete all annotations for this node.
 		for(String deleteSql: ALL_DELETE_SQL){
-			simpleJdbcTempalte.update(deleteSql, annotations.getId());
+			simpleJdbcTempalte.update(deleteSql, ownerId);
 		}
 		// Create the string.
 		Map<String, List<String>> stringAnnos = annotations.getStringAnnotations();

@@ -7,6 +7,7 @@ import java.util.Date;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class UserGroupUtilsTest {
 
@@ -14,7 +15,7 @@ public class UserGroupUtilsTest {
 	public void testRoundtrip() throws Exception {
 		UserGroup dto = new UserGroup();
 		// TODO set all the fields
-		dto.setId("1001");
+		dto.setId(KeyFactory.keyToString(1001L));
 		dto.setName("foo@domain.org");
 		dto.setCreationDate(new Date());
 		dto.setEtag("1");

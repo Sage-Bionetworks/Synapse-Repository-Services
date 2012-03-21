@@ -39,7 +39,7 @@ public class JDONodeLockCheckerImpl implements JDONodeLockChecker {
 	public void aquireAndHoldLock(String stringId, String currentETag) throws InterruptedException, NotFoundException, DatastoreException {
 		holdLock = true;
 		lockAcquired = false;
-		nodeId = Long.parseLong(stringId);
+		nodeId = KeyFactory.stringToKey(stringId);
 		etag = -1;
 		threadId = Thread.currentThread().getId();
 		printStatusToLog();

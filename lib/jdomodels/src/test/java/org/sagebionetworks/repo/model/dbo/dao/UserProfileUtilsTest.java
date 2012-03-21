@@ -6,6 +6,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -15,7 +16,7 @@ public class UserProfileUtilsTest {
 	@Test
 	public void testRoundtrip() throws Exception {
 		UserProfile dto = new UserProfile();
-		dto.setOwnerId("101");
+		dto.setOwnerId(KeyFactory.keyToString(101L));
 		dto.setFirstName("foo");
 		dto.setLastName("bar");
 		dto.setRStudioUrl("http://rstudio.com");

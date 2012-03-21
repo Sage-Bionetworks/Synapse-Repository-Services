@@ -2,14 +2,10 @@ package org.sagebionetworks.repo.model.jdo;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 
@@ -33,7 +29,7 @@ public class JDONodeUtils {
 		jdo.setName(dto.getName());
 		jdo.setDescription(dto.getDescription());
 		if(dto.getId() != null){
-			jdo.setId(Long.parseLong(dto.getId()));
+			jdo.setId(KeyFactory.stringToKey(dto.getId()));
 		}
 		if(dto.getCreatedOn() != null){
 			jdo.setCreatedOn(dto.getCreatedOn().getTime());
@@ -92,7 +88,7 @@ public class JDONodeUtils {
 		dto.setName(jdo.getName());
 		dto.setDescription(jdo.getDescription());
 		if(jdo.getId() != null){
-			dto.setId(jdo.getId().toString());
+			dto.setId(KeyFactory.keyToString(jdo.getId()));
 		}
 		if(jdo.getParentId() != null){
 			dto.setParentId(KeyFactory.keyToString(jdo.getParentId()));

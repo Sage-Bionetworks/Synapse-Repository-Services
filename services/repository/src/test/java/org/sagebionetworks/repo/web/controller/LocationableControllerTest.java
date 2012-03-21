@@ -15,9 +15,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.ServiceConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -77,7 +79,7 @@ public class LocationableControllerTest {
 
 		// construct a fake prefix, S3Token creation would have added this
 		// prefix to the path, see the integration tests for the real deal
-		String s3KeyPrefix = "/" + dataset.getId() + "/123/";
+		String s3KeyPrefix = "/" + KeyFactory.stringToKey(dataset.getId()) + "/123/";
 
 		LocationData s3Location = new LocationData();
 		s3Location.setType(LocationTypeNames.awss3);
@@ -144,7 +146,7 @@ public class LocationableControllerTest {
 	}
 
 	private void assertS3UrlsArePresigned(Dataset dataset,
-			LocationData externalLocation, int numLocationsExpected) {
+			LocationData externalLocation, int numLocationsExpected) throws DatastoreException {
 		// Ensure we have the correct number of locations under this dataset
 		assertEquals(numLocationsExpected, dataset.getLocations().size());
 
@@ -156,7 +158,7 @@ public class LocationableControllerTest {
 						.matches(
 								"^https://s3.amazonaws.com/"
 										+ StackConfiguration.getS3Bucket()
-										+ "/" + dataset.getId() // Also check
+										+ "/" + KeyFactory.stringToKey(dataset.getId()) // Also check
 										// that S3
 										// path contains the
 										// entity id

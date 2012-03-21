@@ -154,7 +154,7 @@ public class QueryRunnerImpl implements QueryRunner {
 
 	@Override
 	public List<EntityData> getAllAllChildrenOfEntity(String parentId) throws SynapseException, JSONException, InterruptedException {
-		String rootQuery = QUERY_CHILDREN_OF_ENTITY1 +parentId;
+		String rootQuery = QUERY_CHILDREN_OF_ENTITY1 + "\"" + parentId + "\"";
 		return queryForAllPages(rootQuery, ENTITY, MAX_PAGE_SIZE, null);
 	}
 	

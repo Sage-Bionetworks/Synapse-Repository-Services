@@ -218,7 +218,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	public UserGroup get(String id) throws DatastoreException,
 			NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);		
+		param.addValue(ID_PARAM_NAME, KeyFactory.stringToKey(id));		
 		DBOUserGroup dbo = basicDao.getObjectById(DBOUserGroup.class, param);
 		UserGroup dto = new UserGroup();
 		UserGroupUtils.copyDboToDto(dbo, dto);
@@ -253,7 +253,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		userGroupCache.delete(KeyFactory.stringToKey(id));
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID_PARAM_NAME, KeyFactory.stringToKey(id));
 		basicDao.deleteObjectById(DBOUserGroup.class, param);
 	}
 

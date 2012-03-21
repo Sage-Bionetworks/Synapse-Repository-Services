@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
@@ -78,12 +79,13 @@ public class LayerTypeCountCacheImpl implements LayerTypeCountCache {
 	 * Create a query that selects the layer children of this dataset.
 	 * @param parentId
 	 * @return
+	 * @throws DatastoreException  
 	 */
-	public static BasicQuery createChildrenLayerQuery(String parentId){
+	public static BasicQuery createChildrenLayerQuery(String parentId) throws DatastoreException {
 		BasicQuery query = new BasicQuery();
 		// We want all children
 		query.setFrom(EntityType.layer);
-		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Comparator.EQUALS, Long.parseLong(parentId)));
+		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Comparator.EQUALS, KeyFactory.stringToKey(parentId)));
 		return query;
 	}
 	
@@ -91,8 +93,9 @@ public class LayerTypeCountCacheImpl implements LayerTypeCountCache {
 	 * Build a query to find the Clinical layers of the given dataset.
 	 * @param datasetId
 	 * @return
+	 * @throws DatastoreException  
 	 */
-	public static BasicQuery createQuery(String datasetId, LayerTypeNames type){
+	public static BasicQuery createQuery(String datasetId, LayerTypeNames type) throws DatastoreException {
 		// Start with the children query
 		BasicQuery query = createChildrenLayerQuery(datasetId);
 		// Now add a filter for the clinical layer type.

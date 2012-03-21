@@ -96,9 +96,11 @@ public interface LocationHelper {
 	 * @param method
 	 * @param s3Key
 	 * @return the securityToken credentials
+	 * @throws DatastoreException 
+	 * @throws NumberFormatException 
 	 */
 	Credentials createFederationTokenForS3(String userId, HttpMethod method,
-			String s3Key);
+			String s3Key) throws NumberFormatException, DatastoreException;
 
 	/**
 	 * Retrieve just the s3Key portion of an S3 URL
@@ -113,7 +115,9 @@ public interface LocationHelper {
 	 * 
 	 * @param s3Url
 	 * @return the entity id
+	 * @throws DatastoreException 
+	 * @throws NumberFormatException 
 	 */
-	String getEntityIdFromS3Url(String s3Url);
+	String getEntityIdFromS3Url(String s3Url) throws NumberFormatException, DatastoreException;
 
 }

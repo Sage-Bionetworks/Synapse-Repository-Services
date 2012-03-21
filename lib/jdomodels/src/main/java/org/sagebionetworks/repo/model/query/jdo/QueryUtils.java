@@ -6,11 +6,13 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.jdo.AuthorizationSqlUtil;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl.AttributeDoesNotExist;
 
@@ -64,8 +66,9 @@ public class QueryUtils {
 	 * @param userInfo
 	 * @param parameters a mutable parameter list
 	 * @return
+	 * @throws DatastoreException 
 	 */
-	public static String buildAuthorizationFilter(UserInfo userInfo, Map<String, Object> parameters) {
+	public static String buildAuthorizationFilter(UserInfo userInfo, Map<String, Object> parameters) throws DatastoreException {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(parameters == null) throw new IllegalArgumentException("Parameters cannot be null");
 		// First off, if the user is an administrator then there is no filter
@@ -86,7 +89,7 @@ public class QueryUtils {
 			UserGroup ug = it.next();
 			if(ug == null) throw new IllegalArgumentException("UserGroup was null");
 			if(ug.getId() == null) throw new IllegalArgumentException("UserGroup.id cannot be null");
-			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+index, Long.parseLong(ug.getId()));
+			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+index, KeyFactory.stringToKey(ug.getId()));
 			index++;
 		}
 		StringBuilder builder = new StringBuilder();

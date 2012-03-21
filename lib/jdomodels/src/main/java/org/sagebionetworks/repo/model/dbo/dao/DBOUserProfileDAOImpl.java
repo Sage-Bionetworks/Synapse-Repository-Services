@@ -3,6 +3,9 @@
  */
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
+
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -12,7 +15,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,11 +23,6 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ETAG;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_PROPS_BLOB;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_USER_PROFILE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 
 /**
@@ -45,7 +42,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, id);
+		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, KeyFactory.stringToKey(id));
 		basicDao.deleteObjectById(DBOUserProfile.class, param);
 	}
 
@@ -64,7 +61,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	public UserProfile get(String id, ObjectSchema schema) throws DatastoreException,
 			NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, id);
+		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, KeyFactory.stringToKey(id));
 		DBOUserProfile jdo = basicDao.getObjectById(DBOUserProfile.class, param);
 		UserProfile dto = new UserProfile();
 		UserProfileUtils.copyDboToDto(jdo, dto, schema);
@@ -84,7 +81,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		// LOCK the record
 		DBOUserProfile dbo = null;
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, dto.getOwnerId());
+		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, KeyFactory.stringToKey(dto.getOwnerId()));
 		try{
 			dbo = simpleJdbcTempalte.queryForObject(SELECT_FOR_UPDATE_SQL, TABLE_MAPPING, param);
 		}catch (EmptyResultDataAccessException e) {

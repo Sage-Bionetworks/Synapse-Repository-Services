@@ -28,7 +28,7 @@ public class JDONodeUtilsTest {
 		Node node = new Node();
 		node.setName("myName");
 		node.setDescription("someDescription");
-		node.setId("101");
+		node.setId(KeyFactory.keyToString(101L));
 //		node.setNodeType(ObjectType.project.name());
 		node.setCreatedBy("createdByMe");
 		node.setModifiedBy("modifiedByMe");
@@ -52,7 +52,7 @@ public class JDONodeUtilsTest {
 		Node copy = JDONodeUtils.copyFromJDO(jdoNode, jdoRev);
 		assertNotNull(copy);
 		// It should match
-		assertEquals(copy, node);
+		assertEquals(node, copy);
 	}
 	
 	@Test
@@ -71,7 +71,7 @@ public class JDONodeUtilsTest {
 		rev.setRevisionNumber(new Long(21));
 		Node dto = JDONodeUtils.copyFromJDO(child, rev);
 		assertNotNull(dto);
-		assertEquals(parent.getId().toString(), dto.getParentId());
+		assertEquals(KeyFactory.keyToString(parent.getId()), dto.getParentId());
 		assertEquals(new Long(21), dto.getVersionNumber());
 	}
 	

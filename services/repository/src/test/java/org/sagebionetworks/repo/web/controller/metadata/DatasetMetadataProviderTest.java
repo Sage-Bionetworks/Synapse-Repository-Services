@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
@@ -23,12 +22,12 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Layer;
-import org.sagebionetworks.repo.model.LayerTypeNames;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.LayerTypeNames;
+import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -99,7 +98,7 @@ public class DatasetMetadataProviderTest {
 	
 	
 	@Test
-	public void testCreateChildrenLayerQuery(){
+	public void testCreateChildrenLayerQuery() throws DatastoreException{
 		BasicQuery query = DatasetMetadataProvider.createChildrenLayerQuery("123");
 		assertNotNull(query);
 		assertEquals(EntityType.layer, query.getFrom());
@@ -114,7 +113,7 @@ public class DatasetMetadataProviderTest {
 	}
 	
 	@Test
-	public void testCreateHasClinicalQuery(){
+	public void testCreateHasClinicalQuery() throws DatastoreException{
 		BasicQuery query = DatasetMetadataProvider.createHasClinicalQuery("123");
 		assertNotNull(query);
 		assertEquals(EntityType.layer, query.getFrom());
@@ -132,7 +131,7 @@ public class DatasetMetadataProviderTest {
 	}
 	
 	@Test
-	public void testCreateHasExpressionQuery(){
+	public void testCreateHasExpressionQuery() throws DatastoreException{
 		BasicQuery query = DatasetMetadataProvider.createHasExpressionQuery("123");
 		assertNotNull(query);
 		assertEquals(EntityType.layer, query.getFrom());
@@ -150,7 +149,7 @@ public class DatasetMetadataProviderTest {
 	}
 	
 	@Test
-	public void testCreateHasGeneticQuery(){
+	public void testCreateHasGeneticQuery() throws DatastoreException{
 		BasicQuery query = DatasetMetadataProvider.createHasGeneticQuery("123");
 		assertNotNull(query);
 		assertEquals(EntityType.layer, query.getFrom());

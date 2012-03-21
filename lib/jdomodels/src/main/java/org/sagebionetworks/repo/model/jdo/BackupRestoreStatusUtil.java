@@ -27,7 +27,7 @@ public class BackupRestoreStatusUtil {
 	public static BackupRestoreStatus createDtoFromJdo(JDODaemonStatus jdo) throws DatastoreException{
 		BackupRestoreStatus dto = new BackupRestoreStatus();
 		if(jdo.getId() != null){
-			dto.setId(KeyFactory.keyToString(jdo.getId()));
+			dto.setId(jdo.getId().toString());
 		}
 		dto.setStatus(DaemonStatus.valueOf(jdo.getStatus()));
 		dto.setType(DaemonType.valueOf(jdo.getType()));
@@ -59,7 +59,7 @@ public class BackupRestoreStatusUtil {
 	 */
 	public static void updateJdoFromDto(BackupRestoreStatus dto, JDODaemonStatus jdo) throws DatastoreException{
 		if(jdo.getId() != null){
-			jdo.setId(KeyFactory.stringToKey(dto.getId()));
+			jdo.setId(Long.parseLong(dto.getId()));
 		}
 		jdo.setStatus(dto.getStatus().name());
 		jdo.setType(dto.getType().name());
@@ -100,7 +100,7 @@ public class BackupRestoreStatusUtil {
 		JDODaemonStatus jdo = new JDODaemonStatus();
 		updateJdoFromDto(dto, jdo);
 		if(dto.getId() != null){
-			jdo.setId(KeyFactory.stringToKey(dto.getId()));
+			jdo.setId(Long.parseLong(dto.getId()));
 		}
 		return createDtoFromJdo(jdo);
 	}

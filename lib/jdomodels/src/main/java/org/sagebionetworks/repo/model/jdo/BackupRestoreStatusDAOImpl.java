@@ -53,7 +53,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 		terminateJdo.setOwner(jdo);
 		terminateJdo.setForceTerminate(false);
 		jdoTemplate.makePersistent(terminateJdo);
-		return KeyFactory.keyToString(jdo.getId());
+		return jdo.getId().toString();
 	}
 
 	/**
@@ -83,7 +83,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 			NotFoundException {
 		try {
 			return jdoTemplate.getObjectById(JDODaemonStatus.class,
-					KeyFactory.stringToKey(id));
+					Long.parseLong(id));
 		} catch (JdoObjectRetrievalFailureException e) {
 			throw new NotFoundException(
 					"Cannot find a BackupRestoreStatus with ID: " + id);

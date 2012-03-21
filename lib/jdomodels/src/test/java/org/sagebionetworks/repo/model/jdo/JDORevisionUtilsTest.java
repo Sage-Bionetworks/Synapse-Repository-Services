@@ -62,7 +62,7 @@ public class JDORevisionUtilsTest {
 	@Test
 	public void testRoundTrip() throws IOException, DatastoreException{
 		NodeRevisionBackup dto = new NodeRevisionBackup();
-		dto.setNodeId("123");
+		dto.setNodeId(KeyFactory.keyToString(123L));
 		dto.setRevisionNumber(new Long(3));
 		dto.setComment("I comment therefore I am!");
 		dto.setLabel("1.0.1");

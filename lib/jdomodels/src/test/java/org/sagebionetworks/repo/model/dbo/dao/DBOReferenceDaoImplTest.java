@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -132,12 +133,12 @@ public class DBOReferenceDaoImplTest {
 		references.put("groupTwo", two);
 		// Add one to one
 		Reference ref = new Reference();
-		ref.setTargetId("123");
+		ref.setTargetId(KeyFactory.keyToString(123L));
 		ref.setTargetVersionNumber(new Long(1));
 		one.add(ref);
 		// Add one to two
 		 ref = new Reference();
-		ref.setTargetId("456");
+		ref.setTargetId(KeyFactory.keyToString(456L));
 		ref.setTargetVersionNumber(new Long(0));
 		two.add(ref);
 		// Now save to the DB
@@ -145,19 +146,28 @@ public class DBOReferenceDaoImplTest {
 		// Now fetch them back
 		Map<String, Set<Reference>> clone = dboReferenceDao.getReferences(node.getId());
 		assertEquals(references, clone);
+		
+		// Make sure our returned ids have the syn prefix
+		assertEquals(KeyFactory.keyToString(123L), clone.get("groupOne").iterator().next().getTargetId());
+		assertEquals(KeyFactory.keyToString(456L), clone.get("groupTwo").iterator().next().getTargetId());
+		
 		// Now change the values and make sure we can replace them.
 		clone.remove("groupOne");
 		Set<Reference> three = new HashSet<Reference>();
 		clone.put("groupThree", three);
 		// Add one to two
 		ref = new Reference();
-		ref.setTargetId("789");
+		ref.setTargetId(KeyFactory.keyToString(789L));
 		ref.setTargetVersionNumber(new Long(10));
 		three.add(ref);
 		// Replace them 
 		dboReferenceDao.replaceReferences(node.getId(), clone);
 		Map<String, Set<Reference>> clone2 = dboReferenceDao.getReferences(node.getId());
 		assertEquals(clone, clone2);
+		
+		// Make sure our returned ids have the syn prefix
+		assertEquals(KeyFactory.keyToString(456L), clone2.get("groupTwo").iterator().next().getTargetId());
+		assertEquals(KeyFactory.keyToString(789L), clone2.get("groupThree").iterator().next().getTargetId());
 	}
 	
 	@Test
@@ -169,12 +179,12 @@ public class DBOReferenceDaoImplTest {
 		references.put("groupOne", one);
 		// Add one to one
 		Reference ref = new Reference();
-		ref.setTargetId("123");
+		ref.setTargetId(KeyFactory.keyToString(123L));
 		ref.setTargetVersionNumber(null);
 		one.add(ref);
 		// Add one to two
 		 ref = new Reference();
-		ref.setTargetId("456");
+		ref.setTargetId(KeyFactory.keyToString(456L));
 		ref.setTargetVersionNumber(new Long(12));
 		two.add(ref);
 		// Now save to the DB
@@ -192,12 +202,12 @@ public class DBOReferenceDaoImplTest {
 		references.put("groupOne", one);
 		// Add one to one
 		Reference ref = new Reference();
-		ref.setTargetId("123");
+		ref.setTargetId(KeyFactory.keyToString(123L));
 		ref.setTargetVersionNumber(new Long(12));
 		one.add(ref);
 		// Add one to two
 		ref = new Reference();
-		ref.setTargetId("123");
+		ref.setTargetId(KeyFactory.keyToString(123L));
 		ref.setTargetVersionNumber(new Long(12));
 		one.add(ref);
 		// The set is actually enforcing this for us.
@@ -217,12 +227,12 @@ public class DBOReferenceDaoImplTest {
 		references.put("groupOne", one);
 		// Add one to one
 		Reference ref = new Reference();
-		ref.setTargetId("123");
+		ref.setTargetId(KeyFactory.keyToString(123L));
 		ref.setTargetVersionNumber(null);
 		one.add(ref);
 		// Add one to two
 		ref = new Reference();
-		ref.setTargetId("123");
+		ref.setTargetId(KeyFactory.keyToString(123L));
 		ref.setTargetVersionNumber(null);
 		one.add(ref);
 		// The set is actually enforcing this for us.
@@ -242,12 +252,12 @@ public class DBOReferenceDaoImplTest {
 		references.put("groupOne", one);
 		// Add one to one
 		Reference ref = new Reference();
-		ref.setTargetId("123");
+		ref.setTargetId(KeyFactory.keyToString(123L));
 		ref.setTargetVersionNumber(new Long(1));
 		one.add(ref);
 		// Add one to two
 		ref = new Reference();
-		ref.setTargetId("123");
+		ref.setTargetId(KeyFactory.keyToString(123L));
 		ref.setTargetVersionNumber(null);
 		one.add(ref);
 		// The set is actually enforcing this for us.
@@ -259,9 +269,9 @@ public class DBOReferenceDaoImplTest {
 		assertEquals(references, clone);
 	}
 	
-	private static Set<Long> justIds(Collection<EntityHeader> ehs) {
-		Set<Long> ans = new HashSet<Long>();
-		for (EntityHeader eh : ehs) ans.add(Long.parseLong(eh.getId()));
+	private static Set<String> justIds(Collection<EntityHeader> ehs) throws DatastoreException {
+		Set<String> ans = new HashSet<String>();
+		for (EntityHeader eh : ehs) ans.add(eh.getId());
 		return ans;
 	}
 	
@@ -282,12 +292,12 @@ public class DBOReferenceDaoImplTest {
 			references.put("groupTwo", two);
 			// Add one to one
 			Reference ref = new Reference();
-			ref.setTargetId("123");
+			ref.setTargetId(KeyFactory.keyToString(123L));
 			ref.setTargetVersionNumber(new Long(1));
 			one.add(ref);
 			// Add one to two
 			 ref = new Reference();
-			ref.setTargetId("456");
+			ref.setTargetId(KeyFactory.keyToString(456L));
 			ref.setTargetVersionNumber(new Long(0));
 			two.add(ref);
 			// Now save to the DB
@@ -301,7 +311,7 @@ public class DBOReferenceDaoImplTest {
 			references.put("groupOne", one);
 			// Add one to one
 			Reference ref = new Reference();
-			ref.setTargetId("123");
+			ref.setTargetId(KeyFactory.keyToString(123L));
 			ref.setTargetVersionNumber(new Long(1));
 			one.add(ref);
 			// Now save to the DB
@@ -313,16 +323,17 @@ public class DBOReferenceDaoImplTest {
 		EntityHeaderQueryResults ehqr = dboReferenceDao.getReferrers(123L, null, userInfo, null, null);
 		long count = ehqr.getTotalNumberOfResults();
 		Collection<EntityHeader> referrers = ehqr.getEntityHeaders();
-		Set<Long> expected = new HashSet<Long>(); 
-		expected.add(node0.getId()); expected.add(node1.getId());
+		Set<String> expected = new HashSet<String>(); 
+		// Make sure our referrers have the syn prefix
+		expected.add(KeyFactory.keyToString(node0.getId())); expected.add(KeyFactory.keyToString(node1.getId()));
 		assertEquals(2, count);
 		assertEquals(expected, justIds(referrers));
 		// but just one refers to id=456
 		ehqr = dboReferenceDao.getReferrers(456L, null, userInfo, null, null);
 		count = ehqr.getTotalNumberOfResults();
 		referrers = ehqr.getEntityHeaders();
-		expected = new HashSet<Long>(); 
-		expected.add(node0.getId());
+		expected = new HashSet<String>(); 
+		expected.add(KeyFactory.keyToString(node0.getId()));
 		assertEquals(1, count);
 		assertEquals(expected, justIds(referrers));
 		EntityHeader eh = referrers.iterator().next();
@@ -337,7 +348,7 @@ public class DBOReferenceDaoImplTest {
 			references.put("groupOne", one);
 			// Add one to one
 			Reference ref = new Reference();
-			ref.setTargetId("123");
+			ref.setTargetId(KeyFactory.keyToString(123L));
 			ref.setTargetVersionNumber(new Long(2));
 			one.add(ref);
 			// Now save to the DB
@@ -348,8 +359,8 @@ public class DBOReferenceDaoImplTest {
 		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, null, null);
 		count = ehqr.getTotalNumberOfResults();
 		referrers = ehqr.getEntityHeaders();
-		expected = new HashSet<Long>(); 
-		expected.add(node0.getId());
+		expected = new HashSet<String>(); 
+		expected.add(KeyFactory.keyToString(node0.getId()));
 		assertEquals(1, count);
 		assertEquals(expected, justIds(referrers));
 		
@@ -357,8 +368,8 @@ public class DBOReferenceDaoImplTest {
 		ehqr = dboReferenceDao.getReferrers(123L, 2, userInfo, null, null);
 		count = ehqr.getTotalNumberOfResults();
 		referrers = ehqr.getEntityHeaders();
-		expected = new HashSet<Long>(); 
-		expected.add(node1.getId());
+		expected = new HashSet<String>(); 
+		expected.add(KeyFactory.keyToString(node1.getId()));
 		assertEquals(1, count);
 		assertEquals(expected, justIds(referrers));
 		
@@ -366,8 +377,8 @@ public class DBOReferenceDaoImplTest {
 		ehqr = dboReferenceDao.getReferrers(123L, null, userInfo, null, null);
 		count = ehqr.getTotalNumberOfResults();
 		referrers = ehqr.getEntityHeaders();
-		expected = new HashSet<Long>(); 
-		expected.add(node0.getId()); expected.add(node1.getId());
+		expected = new HashSet<String>(); 
+		expected.add(KeyFactory.keyToString(node0.getId())); expected.add(KeyFactory.keyToString(node1.getId()));
 		assertEquals(2, count);
 		assertEquals(expected, justIds(referrers));
 		
@@ -379,7 +390,7 @@ public class DBOReferenceDaoImplTest {
 			references.put("groupOne", one);
 			// Add one to one
 			Reference ref = new Reference();
-			ref.setTargetId("123");
+			ref.setTargetId(KeyFactory.keyToString(123L));
 			//ref.setTargetVersionNumber(new Long(2)); <<<< LEAVE IT BLANK
 			one.add(ref);
 			// Now save to the DB
@@ -390,8 +401,8 @@ public class DBOReferenceDaoImplTest {
 		ehqr = dboReferenceDao.getReferrers(123L, 1, userInfo, null, null);
 		count = ehqr.getTotalNumberOfResults();
 		referrers = ehqr.getEntityHeaders();
-		expected = new HashSet<Long>(); 
-		expected.add(node0.getId());
+		expected = new HashSet<String>(); 
+		expected.add(KeyFactory.keyToString(node0.getId()));
 		assertEquals(1, count);
 		assertEquals(expected, justIds(referrers));
 
@@ -432,7 +443,7 @@ public class DBOReferenceDaoImplTest {
 		// check that permissions are set up.  'userInfo' should be able to get node0 but not node1
 		String permissionsBenefactor0 = nodeInheritanceDao.getBenefactor(""+node0.getId());
 		// node0 is its own permissions supplier
-		assertEquals(""+node0.getId()+"!="+permissionsBenefactor0, ""+node0.getId(), permissionsBenefactor0);
+		assertEquals(""+node0.getId()+"!="+permissionsBenefactor0, ""+KeyFactory.keyToString(node0.getId()), permissionsBenefactor0);
 		AccessControlList acl2 = accessControlListDao.getForResource(""+node0.getId());
 		assertNotNull(acl2);
 		Set<ResourceAccess> ras2 = acl2.getResourceAccess();
@@ -442,15 +453,15 @@ public class DBOReferenceDaoImplTest {
 		assertTrue(accessControlListDao.canAccess(userInfo.getGroups(), permissionsBenefactor0, ACCESS_TYPE.READ));
 		String permissionsBenefactor1 = nodeInheritanceDao.getBenefactor(""+node1.getId());
 		// node1 is its own permissions supplier
-		assertEquals(""+node1.getId()+"!="+permissionsBenefactor1, ""+node1.getId(), permissionsBenefactor1);
+		assertEquals(""+node1.getId()+"!="+permissionsBenefactor1, KeyFactory.keyToString(node1.getId()), permissionsBenefactor1);
 		assertFalse(accessControlListDao.canAccess(userInfo.getGroups(), permissionsBenefactor1, ACCESS_TYPE.READ));
 		
 		// now should only find referrers which allow the created group
 		ehqr = dboReferenceDao.getReferrers(123L, null, userInfo, null, null);
 		count = ehqr.getTotalNumberOfResults();
 		referrers = ehqr.getEntityHeaders();
-		expected = new HashSet<Long>(); 
-		expected.add(node0.getId());
+		expected = new HashSet<String>(); 
+		expected.add(KeyFactory.keyToString(node0.getId()));
 		assertEquals(expected, justIds(referrers));
 		
 		
@@ -461,7 +472,7 @@ public class DBOReferenceDaoImplTest {
 			references.put("groupOne", one);
 			// Add one to one
 			Reference ref = new Reference();
-			ref.setTargetId("123");
+			ref.setTargetId(KeyFactory.keyToString(123L));
 			ref.setTargetVersionNumber(new Long(1));
 			one.add(ref);
 			// Now save to the DB
@@ -476,7 +487,7 @@ public class DBOReferenceDaoImplTest {
 		ehqr = dboReferenceDao.getReferrers(123L, 99, userInfo, null, null);
 		count = ehqr.getTotalNumberOfResults();
 		referrers = ehqr.getEntityHeaders();
-		expected = new HashSet<Long>(); 
+		expected = new HashSet<String>(); 
 		assertEquals(expected, justIds(referrers));
 	}
 	

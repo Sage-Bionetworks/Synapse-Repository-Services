@@ -10,7 +10,6 @@ import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -33,7 +32,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	DDLUtils ddlUtils;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	/**
 	 * Injected via Spring
@@ -97,12 +96,12 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 //		System.out.println(toCreate);
 		SqlParameterSource namedParameters = new BeanPropertySqlParameterSource(toCreate);
 		try{
-			int updatedCount = simpleJdbcTempalte.update(insertSQl, namedParameters);
+			int updatedCount = simpleJdbcTemplate.update(insertSQl, namedParameters);
 			if(updatedCount != 1) throw new DatastoreException("Failed to insert without error");
 			// If this is an auto-increment class we need to fetch the new ID.
 			if(toCreate instanceof AutoIncrementDatabaseObject){
 				AutoIncrementDatabaseObject autoDBO = (AutoIncrementDatabaseObject) toCreate;
-				Long id = simpleJdbcTempalte.queryForLong(GET_LAST_ID_SQL);
+				Long id = simpleJdbcTemplate.queryForLong(GET_LAST_ID_SQL);
 				autoDBO.setId(id);
 			}
 			return toCreate;
@@ -124,13 +123,13 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 			namedParameters[i] = new BeanPropertySqlParameterSource(batch.get(i));
 		}
 		try{
-			int[] updatedCountArray = simpleJdbcTempalte.batchUpdate(insertSQl, namedParameters);
+			int[] updatedCountArray = simpleJdbcTemplate.batchUpdate(insertSQl, namedParameters);
 			for(int count: updatedCountArray){
 				if(count != 1) throw new DatastoreException("Failed to insert without error");
 			}
 			// If this is an auto-increment class we need to fetch the new ID.
 			if(batch.get(0) instanceof AutoIncrementDatabaseObject){
-				Long id = simpleJdbcTempalte.queryForLong(GET_LAST_ID_SQL);
+				Long id = simpleJdbcTemplate.queryForLong(GET_LAST_ID_SQL);
 				// Now get each ID
 				int delta = batch.size()-1;
 				for(int i=0; i<batch.size(); i++){
@@ -150,7 +149,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		String sql = getUpdateSQL(toUpdate.getClass());
 		SqlParameterSource namedParameters = new BeanPropertySqlParameterSource(toUpdate);
 		try{
-			int updatedCount = simpleJdbcTempalte.update(sql, namedParameters);
+			int updatedCount = simpleJdbcTemplate.update(sql, namedParameters);
 			return updatedCount > 0;
 		}catch(DataIntegrityViolationException e){
 			throw new IllegalArgumentException(e);
@@ -167,7 +166,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		if(mapping == null) throw new IllegalArgumentException("Cannot find the mapping for Class: "+clazz+" The class must be added to the 'databaseObjectRegister'");
 		String fetchSql = getFetchSQL(clazz);
 		try{
-			return simpleJdbcTempalte.queryForObject(fetchSql, mapping, namedParameters);
+			return simpleJdbcTemplate.queryForObject(fetchSql, mapping, namedParameters);
 		}catch(EmptyResultDataAccessException e){
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
@@ -179,7 +178,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
 		if(namedParameters == null) throw new IllegalArgumentException("namedParameters cannot be null");
 		String sql = getDeleteSQL(clazz);
-		int count = simpleJdbcTempalte.update(sql, namedParameters);
+		int count = simpleJdbcTemplate.update(sql, namedParameters);
 		return count == 1;
 	}
 	

@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -56,6 +55,7 @@ public interface NodeDAO {
 	/**
 	 * Delete a node using its id.
 	 * @param id
+	 * @return boolean
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
@@ -103,8 +103,9 @@ public interface NodeDAO {
 	 * @param id
 	 * @return a list of verison numbers
 	 * @throws NotFoundException
+	 * @throws DatastoreException 
 	 */
-	public List<Long> getVersionNumbers(String id) throws NotFoundException;
+	public List<Long> getVersionNumbers(String id) throws NotFoundException, DatastoreException;
 	
 	/**
 	 * Get all of the IDs for a given node's children
@@ -218,8 +219,9 @@ public interface NodeDAO {
 	 * @param nodeId
 	 * @param annotationKey
 	 * @return whether or not the annotation is queryable
+	 * @throws DatastoreException 
 	 */
-	public boolean isStringAnnotationQueryable(String nodeId, String annotationKey);
+	public boolean isStringAnnotationQueryable(String nodeId, String annotationKey) throws DatastoreException;
 	
 	/**
 	 * Returns string of parentId for a Node
@@ -263,9 +265,10 @@ public interface NodeDAO {
 	/**
 	 * Get the current revision number for a node.
 	 * @param nodeId
-	 * @return
+	 * @return the current revision number
 	 * @throws NotFoundException
+	 * @throws DatastoreException 
 	 */
-	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException;
+	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException, DatastoreException;
 
 }

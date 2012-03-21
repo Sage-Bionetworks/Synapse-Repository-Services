@@ -96,7 +96,7 @@ public class IT500SynapseJavaClient {
 		JSONArray datasets = results.getJSONArray("results");
 
 		if (0 < datasets.length()) {
-			int datasetId = datasets.getJSONObject(0).getInt("dataset.id");
+			String datasetId = datasets.getJSONObject(0).getString("dataset.id");
 
 			JSONObject aStoredDataset = synapse.getEntity("/dataset/"
 					+ datasetId);
@@ -225,9 +225,9 @@ public class IT500SynapseJavaClient {
 				"results").getJSONObject(0);
 
 		JSONObject agreementQueryResults = synapse
-				.query("select * from agreement where datasetId == "
+				.query("select * from agreement where datasetId == \""
 						+ datasetQueryResult.getString("dataset.id")
-						+ " and eulaId == \""
+						+ "\" and eulaId == \""
 						+ datasetQueryResult.getString("dataset.eulaId")
 						+ "\" and userId == \""
 						+ StackConfiguration.getIntegrationTestUserOneName()
@@ -282,7 +282,7 @@ public class IT500SynapseJavaClient {
 		File dataDestinationFile = File.createTempFile("integrationTest",
 				".download");
 		dataDestinationFile.deleteOnExit();
-		HttpClientHelper.downloadFile(DefaultHttpClientSingleton.getInstance(), location.getPath(), dataDestinationFile.getAbsolutePath());
+		HttpClientHelper.getContent(DefaultHttpClientSingleton.getInstance(), location.getPath(), dataDestinationFile);
 		assertTrue(dataDestinationFile.isFile());
 		assertTrue(dataDestinationFile.canRead());
 		assertTrue(0 < dataDestinationFile.length());

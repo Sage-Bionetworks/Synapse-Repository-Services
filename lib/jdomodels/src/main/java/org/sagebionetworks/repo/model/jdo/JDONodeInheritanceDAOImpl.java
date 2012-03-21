@@ -31,7 +31,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	@Autowired
 	DBOBasicDao dboBasicDao;
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	/**
 	 * Try to get a node, and throw a NotFoundException if it fails.
@@ -51,10 +51,14 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	@Override
 	public Set<String> getBeneficiaries(String benefactorId) throws NotFoundException, DatastoreException {
 		Long id = KeyFactory.stringToKey(benefactorId);
-		List<String> list = simpleJdbcTempalte.query(SELECT_BENEFICIARIES, new RowMapper<String>(){
+		List<String> list = simpleJdbcTemplate.query(SELECT_BENEFICIARIES, new RowMapper<String>(){
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return rs.getString(COL_NODE_ID);
+				try {
+					return KeyFactory.keyToString(rs.getLong(COL_NODE_ID));
+				} catch (DatastoreException e) {
+					throw new SQLException(e);
+				}
 			}}, id);
 		return new HashSet<String>(list);
 	}
@@ -63,7 +67,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	@Override
 	public String getBenefactor(String beneficiaryId) throws NotFoundException, DatastoreException {
 		try{
-			return KeyFactory.keyToString(simpleJdbcTempalte.queryForLong(SELECT_BENEFACTOR, KeyFactory.stringToKey(beneficiaryId)));
+			return KeyFactory.keyToString(simpleJdbcTemplate.queryForLong(SELECT_BENEFACTOR, KeyFactory.stringToKey(beneficiaryId)));
 		}catch(DataAccessException e){
 			throw new NotFoundException("Entity id: "+beneficiaryId+" not found");
 		}

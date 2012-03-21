@@ -28,7 +28,7 @@ public class JDOAccessControlListDAOImpl implements AccessControlListDAO {
 	
 	// This is better suited for simple JDBC query.
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 
 	/**
 	 * Find the access control list for the given resource
@@ -52,15 +52,15 @@ public class JDOAccessControlListDAOImpl implements AccessControlListDAO {
 		Map<String,Object> parameters = new HashMap<String,Object>();
 		int i=0;
 		for (UserGroup gId : groups) {
-			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+(i++), gId.getId());
+			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+(i++), KeyFactory.stringToKey(gId.getId()));
 		}
 		// Bind the type
 		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, accessType.name());
 		// Bind the node id
-		parameters.put(AuthorizationSqlUtil.NODE_ID_BIND_VAR, resourceId);
+		parameters.put(AuthorizationSqlUtil.NODE_ID_BIND_VAR, KeyFactory.stringToKey(resourceId));
 		String sql = AuthorizationSqlUtil.authorizationCanAccessSQL(groups.size());
 		try{
-			Long count = simpleJdbcTempalte.queryForLong(sql, parameters);
+			Long count = simpleJdbcTemplate.queryForLong(sql, parameters);
 			return count.longValue() > 0;
 		}catch (DataAccessException e){
 			throw new DatastoreException(e);

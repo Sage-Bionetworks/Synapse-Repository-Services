@@ -79,7 +79,7 @@ public class ITMigrationQueryRunner {
 		}
 		// Now make sure we can find all of the children
 		QueryRunnerImpl queryRunner = new QueryRunnerImpl(synapse);
-		String query = QueryRunnerImpl.QUERY_CHILDREN_OF_ENTITY1+parent.getId();
+		String query = QueryRunnerImpl.QUERY_CHILDREN_OF_ENTITY1 + "\"" + parent.getId() + "\"";
 		List<EntityData> results = 	queryRunner.queryForAllPages(query, Constants.ENTITY, 1L, null);
 		assertEquals(expectedList, results);
 		// Try various page sizes.
@@ -95,7 +95,7 @@ public class ITMigrationQueryRunner {
 	}
 	
 	@Test
-	public void testGetAllEntites() throws Exception {
+	public void testGetAllEntities() throws Exception {
 		// First build up some hierarchy
 		// Get the root
 		List<EntityData> expectedOrder = new ArrayList<EntityData>();

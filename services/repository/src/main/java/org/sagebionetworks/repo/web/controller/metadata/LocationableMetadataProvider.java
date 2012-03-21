@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -24,6 +23,8 @@ import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -128,7 +129,8 @@ public class LocationableMetadataProvider implements
 				 * for that user.
 				 */
 
-				String s3KeyPrefixPattern = "^/" + locationable.getId()
+				// To avoid having to move all of our s3 data, use the entity id without the prefix
+				String s3KeyPrefixPattern = "^/" + KeyFactory.stringToKey(locationable.getId())
 						+ "/\\d+/.*$";
 				if (!location.getPath().matches(s3KeyPrefixPattern)) {
 					throw new InvalidModelException(

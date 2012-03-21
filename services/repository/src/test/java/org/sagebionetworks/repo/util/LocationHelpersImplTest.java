@@ -11,6 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -105,9 +106,9 @@ public class LocationHelpersImplTest {
 	 */
 	@Test
 	public void testGetEntityIdFromS3Url() throws Exception {
-		assertEquals("123", helper.getEntityIdFromS3Url("/123/blahblah"));
-		assertEquals("123", helper.getEntityIdFromS3Url("123/blahblah"));
-		assertEquals("123", helper.getEntityIdFromS3Url("https://s3.amazonaws.com/" + StackConfiguration.getS3Bucket() + "/123/blahblah"));
+		assertEquals(KeyFactory.keyToString(123L), helper.getEntityIdFromS3Url("/123/blahblah"));
+		assertEquals(KeyFactory.keyToString(123L), helper.getEntityIdFromS3Url("123/blahblah"));
+		assertEquals(KeyFactory.keyToString(123L), helper.getEntityIdFromS3Url("https://s3.amazonaws.com/" + StackConfiguration.getS3Bucket() + "/123/blahblah"));
 	}
 	
 }

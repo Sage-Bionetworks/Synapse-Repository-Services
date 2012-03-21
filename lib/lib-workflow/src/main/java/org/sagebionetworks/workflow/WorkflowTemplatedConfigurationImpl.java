@@ -22,6 +22,7 @@ import com.amazonaws.services.sns.AmazonSNSClient;
 public class WorkflowTemplatedConfigurationImpl extends
 		TemplatedConfigurationImpl implements WorkflowTemplatedConfiguration {
 
+	public static final String PROD_STACK = "prod";
 	public static final String DEFAULT_PROPERTIES_FILENAME = "/libWorkflow.properties";
 	public static final String TEMPLATE_PROPERTIES = "/libWorkflowTemplate.properties";
 
@@ -55,7 +56,7 @@ public class WorkflowTemplatedConfigurationImpl extends
 	 * In general, only tests in lib-workflow use this
 	 */
 	public WorkflowTemplatedConfigurationImpl() {
-		super(DEFAULT_PROPERTIES_FILENAME, TEMPLATE_PROPERTIES);
+		this(DEFAULT_PROPERTIES_FILENAME, TEMPLATE_PROPERTIES);
 	}
 
 	/**
@@ -68,6 +69,25 @@ public class WorkflowTemplatedConfigurationImpl extends
 	public WorkflowTemplatedConfigurationImpl(String defaultPropertiesFilename,
 			String templatePropertiesFilename) {
 		super(defaultPropertiesFilename, templatePropertiesFilename);
+	}
+	
+	@Override
+	public void reloadConfiguration() {
+		super.reloadConfiguration();
+		
+		// Extra sanity checks for prod
+		if (-1 < getRepositoryServiceEndpoint().indexOf(PROD_STACK)) {
+			if (!PROD_STACK.equals(getStack())) {
+				throw new IllegalArgumentException(
+						"Workflow is configured to hit the prod repo service endpoint but the stack name is not prod");
+			}
+		}
+		if (PROD_STACK.equals(getStack())) {
+			if (-1 == getRepositoryServiceEndpoint().indexOf(PROD_STACK)) {
+				throw new IllegalArgumentException(
+						"Workflow is configured to hit the prod stack but the repo service endpoint is not prod");
+			}
+		}
 	}
 
 	@Override

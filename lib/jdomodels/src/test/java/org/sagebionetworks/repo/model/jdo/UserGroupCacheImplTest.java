@@ -63,7 +63,7 @@ public class UserGroupCacheImplTest {
 		// Look up even object using the ID and Odd using the name
 		for(int i=0; i<userGroups.size(); i++){
 			UserGroup ug = userGroups.get(i);
-			Long expectedId = new Long(ug.getId());
+			Long expectedId = KeyFactory.stringToKey(ug.getId());
 			if(i%2 == 0){
 				Long id = userGroupCache.getIdForUserGroupName(ug.getName());
 				assertNotNull(id);

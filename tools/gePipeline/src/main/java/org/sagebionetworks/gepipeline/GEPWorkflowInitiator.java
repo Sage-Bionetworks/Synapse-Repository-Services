@@ -148,7 +148,7 @@ public class GEPWorkflowInitiator {
 		do {
 			try {
 				// get a batch of datasets
-				JSONObject ids = synapse.query("select id from dataset where parentId=="+sourceProjectId+" LIMIT "+batchSize+" OFFSET "+offset);
+				JSONObject ids = synapse.query("select id from dataset where parentId==\""+sourceProjectId+"\" LIMIT "+batchSize+" OFFSET "+offset);
 				total = (int)ids.getLong("totalNumberOfResults");
 				System.out.println("Datasets: "+offset+"->"+Math.min(total, offset+batchSize-1)+" of "+total);
 				JSONArray a = ids.getJSONArray("results");
@@ -166,7 +166,7 @@ public class GEPWorkflowInitiator {
 					String status = ds.getStatus();
 					String createdBy = ds.getCreatedBy();
 					// get the genomic and genetic layers
-					JSONObject layerIds = synapse.query("select id from layer where parentId=="+id);
+					JSONObject layerIds = synapse.query("select id from layer where parentId==\""+id+"\"");
 					JSONArray layersIdsArray = layerIds.getJSONArray("results");
 					Dataset targetDataset = null;
 					JSONObject targetDatasetJSON = null;
@@ -202,7 +202,7 @@ public class GEPWorkflowInitiator {
 						if (targetDataset==null || !targetDatasetName.equals(targetDataset.getName())) {
 							// TODO:  In long run, migrate away from 'select *'.  For now we need to do this
 							// in order to get the annotations
-							JSONObject dsQueryResult = synapse.query("select * from dataset where parentId=="+targetProjectId+" AND name==\""+targetDatasetName+"\"");
+							JSONObject dsQueryResult = synapse.query("select * from dataset where parentId==\""+targetProjectId+"\" AND name==\""+targetDatasetName+"\"");
 							JSONArray datasets = dsQueryResult.getJSONArray("results");
 							if (datasets.length()>0) {
 								targetDatasetJSON = datasets.getJSONObject(0);

@@ -1,12 +1,7 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
 import java.util.Map;
 import java.util.Set;
-
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.UserInfo;
 
 public interface ReferenceDao {
 	
@@ -33,8 +28,9 @@ public interface ReferenceDao {
 	 * @param offset ZERO based pagination param
 	 * @param limit pagination param
 	 * @return a List of EntityHeaders
+	 * @throws DatastoreException 
 	 * 
 	 */
-	public EntityHeaderQueryResults getReferrers(Long targetId, Integer targetVersion, UserInfo userInfo, Integer offset, Integer limit);
+	public EntityHeaderQueryResults getReferrers(Long targetId, Integer targetVersion, UserInfo userInfo, Integer offset, Integer limit) throws DatastoreException;
 
 }

@@ -77,8 +77,8 @@ public class TcgaCuration {
 
 		Synapse synapse = TcgaWorkflowConfigHelper.getSynapseClient();
 		JSONObject results = synapse
-				.query("select * from layer where layer.parentId == "
-						+ datasetId + " and layer.name == '"
+				.query("select * from layer where layer.parentId == \""
+						+ datasetId + "\" and layer.name == '"
 						+ metadata.get("name") + "'");
 		int numLayersFound = results.getInt("totalNumberOfResults");
 		Layer layer = null;
@@ -308,7 +308,7 @@ public class TcgaCuration {
 
 		Synapse synapse = TcgaWorkflowConfigHelper.getSynapseClient();
 		JSONObject layerResults = synapse
-				.query("select * from layer where layer.id == " + layerId);
+				.query("select * from layer where layer.id == \"" + layerId + "\"");
 		if (0 == layerResults.getInt("totalNumberOfResults")) {
 			throw new UnrecoverableException(
 					"Unable to formulate message for layer " + layerId);
@@ -317,8 +317,8 @@ public class TcgaCuration {
 				.getJSONObject(0);
 
 		JSONObject datasetResults = synapse
-				.query("select * from dataset where dataset.id == "
-						+ layerQueryResult.getString("layer.parentId"));
+				.query("select * from dataset where dataset.id == \""
+						+ layerQueryResult.getString("layer.parentId") + "\"");
 		if (0 == datasetResults.getInt("totalNumberOfResults")) {
 			throw new UnrecoverableException(
 					"Unable to formulate message for dataset "

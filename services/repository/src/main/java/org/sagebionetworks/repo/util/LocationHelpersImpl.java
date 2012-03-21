@@ -9,6 +9,7 @@ import org.apache.commons.codec.binary.Hex;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
@@ -216,7 +217,7 @@ public class LocationHelpersImpl implements LocationHelper {
 
 	@Override
 	public Credentials createFederationTokenForS3(String userId, HttpMethod method,
-			String s3Key) {
+			String s3Key) throws NumberFormatException, DatastoreException {
 
 		// Append the stack name to the federated username for prod vs. test
 		// isolation
@@ -235,7 +236,8 @@ public class LocationHelpersImpl implements LocationHelper {
 				: READ_ACCESS_EXPIRY_HOURS) * 3600;
 		String policy = (HttpMethod.PUT == method) ? READWRITE_DATA_POLICY
 				: READONLY_DATA_POLICY;
-		policy = policy.replace(ENTITY_ID_PLACEHOLDER, entityId);
+		// To avoid having to move all of our s3 data, use the entity id without the prefix
+		policy = policy.replace(ENTITY_ID_PLACEHOLDER, KeyFactory.stringToKey(entityId).toString());
 		if(MAX_POLICY_LENGTH < policy.length()) {
 			throw new IllegalArgumentException("Security token policy too long: " + policy);
 		}
@@ -261,12 +263,13 @@ public class LocationHelpersImpl implements LocationHelper {
 	}
 	
 	@Override 
-	public String getEntityIdFromS3Url(String s3Url) {
+	public String getEntityIdFromS3Url(String s3Url) throws NumberFormatException, DatastoreException {
 		Matcher matcher = ENTITY_FROM_S3KEY_REGEX.matcher(s3Url);
 		if(!matcher.matches()) {
 			throw new IllegalArgumentException("s3 url or key is malformed " + s3Url);
 		}
-		return matcher.group(3);
+		// To avoid having to move all of our s3 data, use the entity id without the prefix
+		return KeyFactory.keyToString(Long.parseLong(matcher.group(3)));
 	}
 	
 	/**

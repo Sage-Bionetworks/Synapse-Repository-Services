@@ -1,18 +1,15 @@
 package org.sagebionetworks.repo.web.controller.metadata;
 
-import java.util.List;
-
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
@@ -52,12 +49,13 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	 * Create a query that selects the layer children of this dataset.
 	 * @param parentId
 	 * @return the query object
+	 * @throws DatastoreException 
 	 */
-	public static BasicQuery createChildrenLayerQuery(String parentId){
+	public static BasicQuery createChildrenLayerQuery(String parentId) throws DatastoreException{
 		BasicQuery query = new BasicQuery();
 		// We want all children
 		query.setFrom(EntityType.layer);
-		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Comparator.EQUALS, Long.parseLong(parentId)));
+		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Comparator.EQUALS, KeyFactory.stringToKey(parentId)));
 		return query;
 	}
 	
@@ -65,8 +63,9 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	 * Build a query to find the Clinical layers of the given dataset.
 	 * @param datasetId
 	 * @return the query object
+	 * @throws DatastoreException 
 	 */
-	public static BasicQuery createHasClinicalQuery(String datasetId){
+	public static BasicQuery createHasClinicalQuery(String datasetId) throws DatastoreException{
 		// Start with the children query
 		BasicQuery query = createChildrenLayerQuery(datasetId);
 		// Now add a filter for the clinical layer type.
@@ -78,8 +77,9 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	 * Build a query to find the expression layers of the given dataset.
 	 * @param datasetId
 	 * @return the query object
+	 * @throws DatastoreException 
 	 */
-	public static BasicQuery createHasExpressionQuery(String datasetId){
+	public static BasicQuery createHasExpressionQuery(String datasetId) throws DatastoreException{
 		// Start with the children query
 		BasicQuery query = createChildrenLayerQuery(datasetId);
 		// Now add a filter for the clinical layer type.
@@ -91,8 +91,9 @@ public class DatasetMetadataProvider implements TypeSpecificMetadataProvider<Dat
 	 * Build a query to find the expression layers of the given dataset.
 	 * @param datasetId
 	 * @return the query object
+	 * @throws DatastoreException 
 	 */
-	public static BasicQuery createHasGeneticQuery(String datasetId){
+	public static BasicQuery createHasGeneticQuery(String datasetId) throws DatastoreException{
 		// Start with the children query
 		BasicQuery query = createChildrenLayerQuery(datasetId);
 		// Now add a filter for the clinical layer type.

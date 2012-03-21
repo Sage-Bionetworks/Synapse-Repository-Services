@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.ServiceConstants;
@@ -189,14 +190,15 @@ public class S3TokenController extends BaseController {
 	 * owning entity so that we can correctly enforce authorization
 	 * 
 	 * @throws InvalidModelException
+	 * @throws DatastoreException 
 	 */
 	private void validatePath(String entityId, S3Token s3Token)
-			throws InvalidModelException {
+			throws InvalidModelException, DatastoreException {
 
 		if (null == s3Token.getPath())
 			throw new IllegalArgumentException("S3Token path cannot be null");
 
-		String pathPrefix = "/" + entityId + "/" + idGenerator.generateNewId();
+		String pathPrefix = "/" + KeyFactory.stringToKey(entityId) + "/" + idGenerator.generateNewId();
 
 		// If this is an update, the user may have passed an S3 URL from a
 		// prior GET of a location, scrub the S3 stuff out of the URL. This

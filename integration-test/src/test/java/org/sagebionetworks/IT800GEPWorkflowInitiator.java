@@ -80,8 +80,8 @@ public class IT800GEPWorkflowInitiator {
 		// now check that we can get the location data starting from a Layer
 		// query
 		JSONObject queryResult = synapse
-				.query("select id from layer where parentId=="
-						+ dataset.getId());
+				.query("select id from layer where parentId==\""
+						+ dataset.getId() + "\"");
 		JSONArray a = (JSONArray) queryResult.get("results");
 		assertEquals(1, a.length());
 		layer = (Layer) synapse.getEntityById(((JSONObject) a.get(0))

@@ -80,7 +80,7 @@ public class DBOUserProfileTest {
 		assertEquals(userProfile, clone);
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("ownerId", individualGroup.getId());
+		params.addValue("ownerId", KeyFactory.stringToKey(individualGroup.getId()));
 		clone = dboBasicDao.getObjectById(DBOUserProfile.class, params);
 		assertNotNull(clone);
 		assertEquals(userProfile.getOwnerId(), clone.getOwnerId());

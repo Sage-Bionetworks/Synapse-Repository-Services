@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -103,7 +104,7 @@ public class S3TokenControllerTest {
 
 		assertEquals(StackConfiguration.getS3Bucket(), token.getBucket());
 		assertTrue(token.getPath().matches(
-				"^/" + layer.getId() + "/\\d+" + initialPath + "$"));
+				"^/" + KeyFactory.stringToKey(layer.getId()) + "/\\d+" + initialPath + "$"));
 		assertEquals(TEST_MD5, token.getMd5());
 		assertEquals("application/zip", token.getContentType());
 		assertNotNull(token.getSecretAccessKey());
@@ -132,7 +133,7 @@ public class S3TokenControllerTest {
 
 		assertEquals(StackConfiguration.getS3Bucket(), token.getBucket());
 		assertTrue(token.getPath().matches(
-				"^/" + code.getId() + "/\\d+/" + initialPath + "$"));
+				"^/" + KeyFactory.stringToKey(code.getId()) + "/\\d+/" + initialPath + "$"));
 		assertEquals(TEST_MD5, token.getMd5());
 		assertEquals("text/plain", token.getContentType());
 		assertNotNull(token.getSecretAccessKey());

@@ -27,7 +27,7 @@ public class JDONodeQueryUnitTest {
 	Log log = LogFactory.getLog(JDONodeQueryUnitTest.class);
 	
 	@Test
-	public void testAuthorizationSqlAdminUser(){
+	public void testAuthorizationSqlAdminUser() throws Exception {
 		UserInfo adminUserInfo = Mockito.mock(UserInfo.class);
 		when(adminUserInfo.isAdmin()).thenReturn(true);
 		HashMap<String, Object> params = new HashMap<String, Object>();
@@ -38,7 +38,7 @@ public class JDONodeQueryUnitTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testAuthorizationSqlNonAdminuserNullGroups(){
+	public void testAuthorizationSqlNonAdminuserNullGroups() throws Exception {
 		UserInfo nonAdminUserInfo = Mockito.mock(UserInfo.class);
 		when(nonAdminUserInfo.isAdmin()).thenReturn(false);
 		when(nonAdminUserInfo.getGroups()).thenReturn(null);
@@ -48,7 +48,7 @@ public class JDONodeQueryUnitTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testAuthorizationSqlNonAdminuserEmptyGroups(){
+	public void testAuthorizationSqlNonAdminuserEmptyGroups() throws Exception {
 		UserInfo nonAdminUserInfo = Mockito.mock(UserInfo.class);
 		when(nonAdminUserInfo.isAdmin()).thenReturn(false);
 		when(nonAdminUserInfo.getGroups()).thenReturn(new ArrayList<UserGroup>());
@@ -58,7 +58,7 @@ public class JDONodeQueryUnitTest {
 	}
 	
 	@Test
-	public void testAuthorizationSqlNonAdminWithGroups(){
+	public void testAuthorizationSqlNonAdminWithGroups() throws Exception {
 		HashMap<String, Object> params = new HashMap<String, Object>();
 		UserInfo nonAdminUserInfo = Mockito.mock(UserInfo.class);
 		when(nonAdminUserInfo.isAdmin()).thenReturn(false);

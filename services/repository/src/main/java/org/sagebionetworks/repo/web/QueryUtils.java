@@ -2,8 +2,10 @@ package org.sagebionetworks.repo.web;
 
 import java.util.ArrayList;
 
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
@@ -24,9 +26,10 @@ public class QueryUtils {
 	 * @param paging
 	 * @param type
 	 * @return
+	 * @throws DatastoreException 
 	 */
 	public static BasicQuery createChildrenOfTypePaginated(String parentId,
-			PaginatedParameters paging, EntityType type) {
+			PaginatedParameters paging, EntityType type) throws DatastoreException {
 		BasicQuery query = new BasicQuery();
 		query.setSelect(new ArrayList<String>());
 		query.getSelect().add(NodeField.ID.getFieldName());
@@ -36,7 +39,7 @@ public class QueryUtils {
 		query.setSort(paging.getSortBy());
 		query.setAscending(paging.getAscending());
 		query.setFrom(type);
-		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Comparator.EQUALS, Long.parseLong(parentId)));
+		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Comparator.EQUALS, KeyFactory.stringToKey(parentId)));
 		return query;
 	}
 	

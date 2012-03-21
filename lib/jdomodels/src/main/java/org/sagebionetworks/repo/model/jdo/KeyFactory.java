@@ -17,6 +17,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 public class KeyFactory {
 
 	/**
+	 * Synapse keys sent to the repo svc may be optionally prefixed with this
+	 * string. All keys leaving the repo svc should have this prefix.
+	 */
+	public static final String SYNAPSE_ID_PREFIX = "syn";
+
+	/**
 	 * Converts a Long into a websafe string.
 	 * 
 	 * @param key
@@ -25,7 +31,8 @@ public class KeyFactory {
 	 */
 	public static String keyToString(Long key) throws DatastoreException {
 		try {
-			return URLEncoder.encode(key.toString(), "UTF-8");
+			return SYNAPSE_ID_PREFIX
+					+ URLEncoder.encode(key.toString(), "UTF-8");
 		} catch (UnsupportedEncodingException e) {
 			throw new DatastoreException(e);
 		}
@@ -41,7 +48,11 @@ public class KeyFactory {
 	 */
 	public static Long stringToKey(String id) throws DatastoreException {
 		try {
-			return new Long(URLDecoder.decode(id, "UTF-8"));
+			String decodedId = URLDecoder.decode(id.trim(), "UTF-8");
+			if (decodedId.startsWith(SYNAPSE_ID_PREFIX)) {
+				decodedId = decodedId.substring(SYNAPSE_ID_PREFIX.length());
+			}
+			return new Long(decodedId);
 		} catch (NumberFormatException e) {
 			throw new DatastoreException(e);
 		} catch (UnsupportedEncodingException e) {

@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Comparator;
@@ -257,6 +258,33 @@ public class JDONodeQueryDAOImplTest {
 		}
 	}
 
+	@Test
+	public void testBasicQueryOnChildren() throws Exception {
+		// This query is basically "select * from datasets"
+		BasicQuery query = new BasicQuery();
+		query.setFrom(EntityType.layer);
+		NodeQueryResults results = nodeQueryDao.executeQuery(query, mockUserInfo);
+		assertNotNull(results);
+		assertEquals(totalNumberOfDatasets, results.getTotalNumberOfResults());
+		// Validate all of the data is there
+		int numRows = results.getResultIds().size();
+		assertTrue(0 < numRows);
+		// Each row should have each primary field
+		for (int i = 0 ; i < numRows; i++) {
+			String id = results.getResultIds().get(i);
+			Map<String, Object> row = results.getAllSelectedData().get(i);
+			
+			assertNotNull(id);
+			// Get the node with this id
+			Node node = nodeDao.getNode(id);
+			assertNotNull(node);
+			assertEquals(EntityType.layer.name(), node.getNodeType());
+			
+			// Make sure ids in query results have the syn prefix too
+			assertEquals(node.getId(), row.get(NodeField.ID.name()));
+			assertEquals(node.getParentId(), row.get(NodeField.PARENT_ID.getFieldName()));
+		}
+	}
 
 	@Test
 	public void testPagingFromZero() throws DatastoreException {
@@ -629,7 +657,7 @@ public class JDONodeQueryDAOImplTest {
 		query.setLimit(3);
 		query.setOffset(0);
 		List<Expression> filters = new ArrayList<Expression>();
-		Expression expression = new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Comparator.EQUALS, nodeIds.get(1));
+		Expression expression = new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Comparator.EQUALS, KeyFactory.stringToKey(nodeIds.get(1)));
 		filters.add(expression);
 		query.setFilters(filters);
 		// Execute the query.
@@ -655,7 +683,7 @@ public class JDONodeQueryDAOImplTest {
 		query.setLimit(3);
 		query.setOffset(0);
 		List<Expression> filters = new ArrayList<Expression>();
-		Long id = new Long(nodeIds.get(1));
+		Long id = KeyFactory.stringToKey(nodeIds.get(1));
 		Expression expression = new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Comparator.EQUALS, id);
 		filters.add(expression);
 		query.setFilters(filters);
@@ -671,7 +699,7 @@ public class JDONodeQueryDAOImplTest {
 		Node node = nodeDao.getNode(nodeId);
 		assertNotNull(node);
 		assertEquals("layerName1", node.getName());	
-		assertEquals(id.toString(), node.getParentId());
+		assertEquals(KeyFactory.keyToString(id), node.getParentId());
 	}
 	
 	@Test
