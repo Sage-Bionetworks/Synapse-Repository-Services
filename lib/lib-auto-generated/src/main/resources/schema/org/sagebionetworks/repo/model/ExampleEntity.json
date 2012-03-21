@@ -74,17 +74,28 @@
         },
         "concept":{
             "type":"string",
-            "description":"Type of tissue for the samples in this layer. Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
+            "description":"Type of tissue for the samples in this layer. <skos:altLabel>Tissue Types</skos:altLabel> Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
             "links":[
                 {
                     "rel":"describedby",
-                    "href":"http://synapse.sagebase.org/ontology#6501",
+                    "href":"http://synapse.sagebase.org/ontology#6522",
                     
                 },
                 
             ],
             "title":"Concept",
             
+        },
+        "someEnum":{
+            "type":"string",
+            "name":"pets",
+            "enum":[
+                "CAT",
+                "DOG",
+                "FISH"
+            ],
+            "description":"The property is constrained by an enumeration",
+            "title":"Enumeration Example",
         },
         "references":{
             "type":"array",

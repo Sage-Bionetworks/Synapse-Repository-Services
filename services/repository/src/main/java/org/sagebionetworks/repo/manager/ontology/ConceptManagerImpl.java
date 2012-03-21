@@ -93,7 +93,8 @@ public class ConceptManagerImpl implements ConceptManager {
 		for(ConceptSummary summary: list){
 			fullList.add(getConcept(summary.getUri()));
 		}
-		Map<String, List<Concept>> result = new HashMap<String, List<Concept>>();
+		// Initialize this with one as it might be small.
+		Map<String, List<Concept>> result = new HashMap<String, List<Concept>>(1);
 		// Add the full list to the map using the unique part.
 		result.put(uniquePart, fullList);
 		// Now get all of the concepts 
