@@ -2,12 +2,16 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.*;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.query.BasicQuery;
+import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.query.QueryStatement;
 
 public class QueryTranslatorTest {
@@ -95,6 +99,42 @@ public class QueryTranslatorTest {
 		expectedSelect.add("b");
 		expectedSelect.add("c");
 		assertEquals(expectedSelect, results.getSelect());
+	}
+	
+	@Test
+	public void testForPLFM_901() throws ParseException{
+		QueryStatement stmt = new QueryStatement("select * from dataset where dataset.id == \"4494\" and dataset.parentId == \"4492\"");
+		assertNotNull(stmt);
+		BasicQuery results = QueryTranslator.createBasicQuery(stmt);
+		assertNotNull(results.getFilters());
+		System.out.println(results.getFilters());
+		assertEquals(2, results.getFilters().size());
+	}
+	@Test
+	public void testForPLFM_901_A() throws ParseException{
+		QueryStatement stmt = new QueryStatement("select * from dataset where dataset.id == '4494' and dataset.parentId == '4492'");
+		assertNotNull(stmt);
+		BasicQuery results = QueryTranslator.createBasicQuery(stmt);
+		assertNotNull(results.getFilters());
+		System.out.println(results.getFilters());
+		assertEquals(2, results.getFilters().size());
+		assertEquals("4494", results.getFilters().get(0).getValue());
+		assertEquals("4492", results.getFilters().get(1).getValue());
+	}
+	
+	@Test
+	public void testForPLFM_901_B() throws ParseException, UnsupportedEncodingException{
+		String urlEncoded = "select+*+from+dataset+where+dataset.Species+==+%22Human%22+and+dataset.Number_of_Samples+%3E+100+limit+3+offset+1";
+		String decoded = URLDecoder.decode(urlEncoded, "UTF-8");
+		System.out.println(decoded);
+		QueryStatement stmt = new QueryStatement(decoded);
+		assertNotNull(stmt);
+		BasicQuery results = QueryTranslator.createBasicQuery(stmt);
+		assertNotNull(results.getFilters());
+		System.out.println(results.getFilters());
+		assertEquals(2, results.getFilters().size());
+		assertEquals("Human", results.getFilters().get(0).getValue());
+		assertEquals(100L, results.getFilters().get(1).getValue());
 	}
 
 }

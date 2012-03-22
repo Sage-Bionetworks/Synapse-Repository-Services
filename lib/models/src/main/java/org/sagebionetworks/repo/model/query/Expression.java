@@ -35,5 +35,10 @@ public class Expression {
 	public void setValue(Object value) {
 		this.value = value;
 	}
+	@Override
+	public String toString() {
+		return "Expression [id=" + id + ", compare=" + compare + ", value="
+				+ value + "]";
+	}
 	
 }
