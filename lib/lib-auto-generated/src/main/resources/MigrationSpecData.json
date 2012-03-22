@@ -49,6 +49,22 @@
 					"source": {"name": "releaseDate", "type": "string", "bucket": "additional"},
 					"destination": {"name": "", "type": "", "bucket": "deleted"}
 				},
+				{
+					"source": {"name": "eulaId", "type": "string", "bucket": "primary"},
+					"destination": {"name": "", "type": "", "bucket": "deleted"}
+				},
+				{
+					"source": {"name": "hasExpressionData", "type": "string", "bucket": "primary"},
+					"destination": {"name": "", "type": "", "bucket": "deleted"}
+				},
+				{
+					"source": {"name": "hasGeneticData", "type": "string", "bucket": "primary"},
+					"destination": {"name": "", "type": "", "bucket": "deleted"}
+				},
+				{
+					"source": {"name": "hasClinicalData", "type": "string", "bucket": "primary"},
+					"destination": {"name": "", "type": "", "bucket": "deleted"}
+				},
 			]
 		},
 		{
@@ -77,25 +93,7 @@
 			]
 		},
 		{
-			"entityType": "eula",
-			"fields": [
-				{
-					"source": {"name": "version", "type": "string", "bucket": "primary"},
-					"destination": {"name": "", "type": "", "bucket": "deleted"}
-				}
-			]
-		},
-		{
 			"entityType": "analysis",
-			"fields": [
-				{
-					"source": {"name": "version", "type": "string", "bucket": "primary"},
-					"destination": {"name": "", "type": "", "bucket": "deleted"}
-				}
-			]
-		},
-		{
-			"entityType": "agreement",
 			"fields": [
 				{
 					"source": {"name": "version", "type": "string", "bucket": "primary"},

@@ -54,6 +54,10 @@ public class NodeBackupDriverImplTest {
 				grandChild.getChildren().add(great);
 			}
 		}
+//		// Add an entity type that no longer exits
+//		TreeNodeBackup child = NodeBackupDriverImplTest.generateRandomLeaf(rand, true, 2, 3);
+//		child.getNode().setNodeType("unknownType");
+//		root.getChildren().add(child);
 		stubSource = new NodeBackupStub(root);
 		stubDestination = new NodeBackupStub();
 		sourceDriver = new NodeBackupDriverImpl(stubSource);
@@ -269,6 +273,45 @@ public class NodeBackupDriverImplTest {
 			progress = new Progress();
 			progress.setTerminate(true);
 			sourceDriver.restoreFromBackup(temp, progress);
+		}finally{
+			// Cleanup the file
+			temp.delete();
+		}
+	}
+	
+	@Test
+	public void testUnknownType() throws IOException, DatastoreException, NotFoundException, InterruptedException{
+		// create a root
+		Random rand = new Random(5445);
+		TreeNodeBackup root = NodeBackupDriverImplTest.generateRandomLeaf(rand, true, 3, 12);
+		root.getNode().setParentId(null);
+		// Add a child of an unknown type
+		TreeNodeBackup child = NodeBackupDriverImplTest.generateRandomLeaf(rand, true, 2, 3);
+		child.getNode().setNodeType("unknownType");
+		root.getChildren().add(child);
+		stubSource = new NodeBackupStub(root);
+		stubDestination = new NodeBackupStub();
+		sourceDriver = new NodeBackupDriverImpl(stubSource);
+		destinationDriver = new NodeBackupDriverImpl(stubDestination);
+
+		// Now test a round trip
+		// Create a temp file
+		File temp = File.createTempFile("NodeBackupDriverImplTest", ".zip");
+		try{
+			// Try to write to the temp file
+			Progress progress = new Progress();
+			sourceDriver.writeBackup(temp, progress, null);
+			System.out.println("Resulting file: "+temp.getAbsolutePath()+" with a size of: "+temp.length()+" bytes");
+			assertTrue(temp.length() > 10);
+			// They should start off as non equal
+			assertFalse(stubSource.equals(stubDestination));
+			// Now read push the backup
+			progress = new Progress();
+			destinationDriver.restoreFromBackup(temp, progress);
+			// The destination should have only the root.
+			assertNotNull(stubDestination.getRoot());
+			// It should not have any children
+			assertEquals(1, stubDestination.getTotalNodeCount());
 		}finally{
 			// Cleanup the file
 			temp.delete();

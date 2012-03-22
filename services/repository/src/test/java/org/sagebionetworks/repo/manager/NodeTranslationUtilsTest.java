@@ -16,11 +16,11 @@ import org.junit.Test;
 import org.sagebionetworks.repo.manager.backup.SerializationUseCases;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Code;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
@@ -139,7 +139,7 @@ public class NodeTranslationUtilsTest {
 	@Test
 	public void testDatasetRoundTrip1() throws InstantiationException, IllegalAccessException{
 		// First we create a dataset with all fields filled in.
-		Dataset ds = new Dataset();
+		Study ds = new Study();
 		ds.setName("someName");
 		ds.setDescription("someDesc");
 		ds.setCreatedBy("magic");
@@ -147,9 +147,6 @@ public class NodeTranslationUtilsTest {
 		ds.setAnnotations("someAnnoUrl");
 		ds.setEtag("110");
 		ds.setId("12");
-		ds.setHasClinicalData(false);
-		ds.setHasExpressionData(true);
-		ds.setHasGeneticData(true);
 		ds.setLayers("someLayerUrl");
 		ds.setReleaseDate(new Date(System.currentTimeMillis()));
 		ds.setStatus("someStatus");
@@ -183,7 +180,7 @@ public class NodeTranslationUtilsTest {
 //		ds.setSampleType(sampleTypes);
 		
 		// Create a clone using node translation
-		Dataset clone = cloneUsingNodeTranslation(ds);
+		Study clone = cloneUsingNodeTranslation(ds);
 		
 		// Now our clone should match the original dataset.
 		System.out.println("Original: "+ds.toString());
@@ -269,7 +266,7 @@ public class NodeTranslationUtilsTest {
 	@Test
 	public void testLayerRoundTrip() throws InstantiationException, IllegalAccessException, InvalidModelException{
 		// First we create a layer with all fields filled in.
-		Layer layer = new Layer();
+		Data layer = new Data();
 		layer.setAnnotations("someAnnoUrl");
 		layer.setCreatedOn(new Date(System.currentTimeMillis()));
 		layer.setDescription("someDescr");
@@ -294,7 +291,7 @@ public class NodeTranslationUtilsTest {
 		layer.setShortcuts(references);
 		
 		// Create a clone using node translation
-		Layer clone = cloneUsingNodeTranslation(layer);
+		Data clone = cloneUsingNodeTranslation(layer);
 		
 		// Now our clone should match the original layer.
 		System.out.println("Original: "+layer.toString());
@@ -330,7 +327,7 @@ public class NodeTranslationUtilsTest {
 	
 	@Test
 	public void testDoubleAdd() throws InvalidModelException{
-		Layer layer = new Layer();
+		Data layer = new Data();
 		layer.setType(LayerTypeNames.C);
 		Annotations annos = new Annotations();
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(layer, annos, null);

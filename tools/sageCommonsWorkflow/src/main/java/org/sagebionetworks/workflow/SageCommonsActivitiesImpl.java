@@ -18,7 +18,7 @@ import org.apache.log4j.Logger;
 import org.json.JSONException;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
@@ -45,9 +45,9 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 	}
 
 	@Override
-	public Layer getLayer(String layerId) throws SynapseException {
+	public Data getLayer(String layerId) throws SynapseException {
 		Synapse synapse = SageCommonsConfigHelper.getSynapseClient();
-		return synapse.getEntity(layerId, Layer.class);
+		return synapse.getEntity(layerId, Data.class);
 	}
 
 	@Override
@@ -157,7 +157,7 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 	}
 
 	@Override
-	public String formulateNotificationMessage(Layer layer,
+	public String formulateNotificationMessage(Data layer,
 			Integer numJobsDispatched) throws SynapseException, JSONException,
 			UnrecoverableException {
 

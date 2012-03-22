@@ -22,12 +22,12 @@ import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.gepipeline.GEPWorkflowInitiator;
-import org.sagebionetworks.repo.model.Dataset;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Study;
 
 public class IT800GEPWorkflowInitiator {
 	private static Synapse synapse = null;
@@ -55,18 +55,18 @@ public class IT800GEPWorkflowInitiator {
 		p = new Project();
 		p.setName("dest_project");
 		targetProject = synapse.createEntity(p);
-		Dataset dataset = new Dataset();
+		Study dataset = new Study();
 		dataset.setParentId(sourceProject.getId());
 		dataset.setName("test_dataset");
 		dataset = synapse.createEntity(dataset);
 		// create layer with type E or G
-		Layer layer = new Layer();
+		Data layer = new Data();
 		layer.setParentId(dataset.getId());
 		layer.setName("test_layer");
 		layer.setType(LayerTypeNames.E);
 		layer = synapse.createEntity(layer);
 		File dataFile = createDataFile();
-		layer = (Layer) synapse.uploadLocationableToSynapse(layer, dataFile);
+		layer = (Data) synapse.uploadLocationableToSynapse(layer, dataFile);
 		assertNotNull(layer.getContentType());
 		assertNotNull(layer.getMd5());
 
@@ -84,7 +84,7 @@ public class IT800GEPWorkflowInitiator {
 						+ dataset.getId() + "\"");
 		JSONArray a = (JSONArray) queryResult.get("results");
 		assertEquals(1, a.length());
-		layer = (Layer) synapse.getEntityById(((JSONObject) a.get(0))
+		layer = (Data) synapse.getEntityById(((JSONObject) a.get(0))
 				.getString("layer.id"));
 		locations = layer.getLocations();
 		assertEquals(1, locations.size());

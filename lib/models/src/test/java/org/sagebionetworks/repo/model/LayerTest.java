@@ -16,7 +16,7 @@ public class LayerTest {
 	
 	@Test
 	public void testRoundTripLayer() throws JSONObjectAdapterException {
-		Layer l1 = new Layer();
+		Data l1 = new Data();
 		JSONObjectAdapter adapter1 = new JSONObjectAdapterImpl();
 		JSONObjectAdapter adapter2 = new JSONObjectAdapterImpl();
 		Date d = new Date();
@@ -60,7 +60,7 @@ public class LayerTest {
 		adapter1 = l1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
 		adapter2 = new JSONObjectAdapterImpl(s);
-		Layer l2 = new Layer(adapter2);
+		Data l2 = new Data(adapter2);
 		
 		assertEquals(l1, l2);
 		return;

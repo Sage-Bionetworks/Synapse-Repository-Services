@@ -1,6 +1,6 @@
 package org.sagebionetworks;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -15,10 +15,10 @@ import org.junit.Test;
 import org.sagebionetworks.client.HttpClientProvider;
 import org.sagebionetworks.client.HttpClientProviderImpl;
 import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.repo.model.Dataset;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Study;
 
 public class IT960TermsOfUse {
 	private static Synapse synapse = null;
@@ -27,7 +27,7 @@ public class IT960TermsOfUse {
 	private static String repoEndpoint = null;
 	
 	private static Project project;
-	private static Dataset dataset;
+	private static Study dataset;
 
 	@BeforeClass
 	public static void beforeClass() throws Exception {
@@ -61,7 +61,7 @@ public class IT960TermsOfUse {
 		resourceAccess.put("accessType", accessTypes); // add PUBLIC, READ access
 		resourceAccessSet.put(resourceAccess); // add it to the list
 		adminSynapse.updateEntity(aclUri, acl); // push back to Synapse
-		dataset = new Dataset();
+		dataset = new Study();
 		dataset.setName("bar");
 		dataset.setParentId(project.getId());
 		List<LocationData> locations = new ArrayList<LocationData>();
@@ -94,7 +94,7 @@ public class IT960TermsOfUse {
 	@Test
 	public void testRepoSvcWithTermsOfUse() throws Exception {
 		// should not be able to see locations
-		Dataset ds = synapse.getEntity(dataset);
+		Study ds = synapse.getEntity(dataset);
 		List<LocationData> locations = ds.getLocations();
 		assertTrue(locations!=null && locations.size()==1);
 	}
@@ -104,7 +104,7 @@ public class IT960TermsOfUse {
 		anonymous.setAuthEndpoint(authEndpoint);
 		anonymous.setRepositoryEndpoint(repoEndpoint);
 		
-		Dataset ds = synapse.getEntity(dataset);
+		Study ds = synapse.getEntity(dataset);
 		List<LocationData> locations = ds.getLocations();
 		assertTrue(locations==null || locations.size()==0);
 		
@@ -112,7 +112,7 @@ public class IT960TermsOfUse {
 		ds.setName("bas");
 		synapse.putEntity(ds);
 		
-		Dataset idHolder = new Dataset();
+		Study idHolder = new Study();
 		idHolder.setId(ds.getId());
 		// an admin should be able to retreive the entity, including the locations
 		ds = adminSynapse.getEntity(idHolder);

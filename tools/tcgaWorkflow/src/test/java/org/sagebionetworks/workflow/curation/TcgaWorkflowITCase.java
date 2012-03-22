@@ -10,7 +10,7 @@ import org.json.JSONObject;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.workflow.Constants;
@@ -85,7 +85,7 @@ public class TcgaWorkflowITCase {
 		layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
 		assertFalse(layerWasUpdated);
 		
-		Layer layer = synapse.getEntity(layerId, Layer.class);
+		Data layer = synapse.getEntity(layerId, Data.class);
 
 		assertTrue(0 < layer.getMd5().length());
 		assertEquals(1, layer.getLocations().size());
@@ -115,7 +115,7 @@ public class TcgaWorkflowITCase {
 		layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
 		assertFalse(layerWasUpdated);
 
-		Layer layer = synapse.getEntity(layerId, Layer.class);
+		Data layer = synapse.getEntity(layerId, Data.class);
 
 		assertTrue(0 < layer.getMd5().length());
 		assertEquals(1, layer.getLocations().size());
@@ -155,7 +155,7 @@ public class TcgaWorkflowITCase {
 		layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
 		assertFalse(layerWasUpdated);
 
-		Layer layer = synapse.getEntity(layerId, Layer.class);
+		Data layer = synapse.getEntity(layerId, Data.class);
 
 		assertTrue(0 < layer.getMd5().length());
 		assertEquals(1, layer.getLocations().size());
@@ -195,7 +195,7 @@ public class TcgaWorkflowITCase {
 		layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
 		assertFalse(layerWasUpdated);
 
-		Layer layer = synapse.getEntity(layerId, Layer.class);
+		Data layer = synapse.getEntity(layerId, Data.class);
 
 		assertTrue(0 < layer.getMd5().length());
 		assertEquals(1, layer.getLocations().size());

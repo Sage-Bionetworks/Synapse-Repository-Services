@@ -1,0 +1,38 @@
+{
+    "title":"Study",
+    "description":"JSON schema for Study POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Locationable"
+        },
+        {
+            "$ref":"org.sagebionetworks.repo.model.HasLayers"
+        },
+        {
+            "$ref":"org.sagebionetworks.repo.model.HasShortcuts"
+        }
+        
+    ],
+    "properties":{
+        "species":{
+            "type":"string",
+            "description":"The species associated with this Study",
+            "title":"Species"
+        },
+		"disease":{
+            "type":"string",
+            "description":"The disease associated with this Study",
+            "title":"Disease"
+		},
+        "status":{
+            "type":"string",
+            "description":"the status of this Study",
+            "title":"Status",
+        },
+        "releaseDate":{
+            "type":"string",
+            "format":"date-time",
+            "title":"Release Date",
+        },        
+    }
+}

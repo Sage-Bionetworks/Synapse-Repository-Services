@@ -18,9 +18,9 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -82,16 +82,16 @@ public class EntityManagerImplAutowireTest {
 	@Test
 	public void testAllInOne() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		// Create a datset
-		Dataset ds = createDataset();
+		Study ds = createDataset();
 		String id = entityManager.createEntity(userInfo, ds);
 		assertNotNull(id);
 		toDelete.add(id);
 		// Get another copy
-		EntityWithAnnotations<Dataset> ewa = entityManager.getEntityWithAnnotations(userInfo, id, Dataset.class);
+		EntityWithAnnotations<Study> ewa = entityManager.getEntityWithAnnotations(userInfo, id, Study.class);
 		assertNotNull(ewa);
 		assertNotNull(ewa.getAnnotations());
 		assertNotNull(ewa.getEntity());
-		Dataset fetched = entityManager.getEntity(userInfo, id, Dataset.class);
+		Study fetched = entityManager.getEntity(userInfo, id, Study.class);
 		assertNotNull(fetched);
 		assertEquals(ewa.getEntity(), fetched);
 		System.out.println("Original: "+ds.toString());
@@ -110,44 +110,44 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(annos);
 		assertEquals("someStringValue", annos.getSingleValue("someNewTestAnnotation"));
 		// Now update the dataset
-		fetched = entityManager.getEntity(userInfo, id, Dataset.class);
+		fetched = entityManager.getEntity(userInfo, id, Study.class);
 		fetched.setName("myNewName");
 		entityManager.updateEntity(userInfo, fetched, false);
-		fetched = entityManager.getEntity(userInfo, id, Dataset.class);
+		fetched = entityManager.getEntity(userInfo, id, Study.class);
 		assertNotNull(fetched);
 		assertEquals("myNewName", fetched.getName());
 	}
 	
 	@Test
 	public void testAggregateUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
-		Dataset ds = createDataset();
+		Study ds = createDataset();
 		String parentId = entityManager.createEntity(userInfo, ds);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
-		List<Layer> layerList = new ArrayList<Layer>();
+		List<Data> layerList = new ArrayList<Data>();
 		int layers = 3;
 		for(int i=0; i<layers; i++){
-			Layer layer = createLayerForTest(i);
+			Data layer = createLayerForTest(i);
 			layerList.add(layer);
 		}
 		List<String> childrenIds = entityManager.aggregateEntityUpdate(userInfo, parentId, layerList);
 		assertNotNull(childrenIds);
 		assertEquals(layers, childrenIds.size());
 		
-		List<Layer> children = entityManager.getEntityChildren(userInfo, parentId, Layer.class);
+		List<Data> children = entityManager.getEntityChildren(userInfo, parentId, Data.class);
 		assertNotNull(children);
 		assertEquals(layers, children.size());
-		Layer toUpdate = children.get(0);
+		Data toUpdate = children.get(0);
 		String udpatedId = toUpdate.getId();
 		assertNotNull(udpatedId);
 		toUpdate.setName("updatedName");
 		// Do it again
 		entityManager.aggregateEntityUpdate(userInfo, parentId, children);
-		children = entityManager.getEntityChildren(userInfo, parentId, Layer.class);
+		children = entityManager.getEntityChildren(userInfo, parentId, Data.class);
 		assertNotNull(children);
 		assertEquals(layers, children.size());
 		// find the one with the updated name
-		Layer updatedLayer = entityManager.getEntity(userInfo, udpatedId, Layer.class);
+		Data updatedLayer = entityManager.getEntity(userInfo, udpatedId, Data.class);
 		assertNotNull(updatedLayer);
 		assertEquals("updatedName", updatedLayer.getName());
 	}
@@ -164,9 +164,9 @@ public class EntityManagerImplAutowireTest {
 	 */
 	@Test
 	public void testPLFM_203() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ConflictingUpdateException{
-		Dataset ds = createDataset();
+		Study ds = createDataset();
 		// This primary field is stored as an annotation.
-		ds.setEulaId("45");
+		ds.setDisease("disease");
 		String id = entityManager.createEntity(userInfo, ds);
 		assertNotNull(id);
 		toDelete.add(id);
@@ -176,9 +176,9 @@ public class EntityManagerImplAutowireTest {
 		// None of the primary field annotations should be in this set, in fact it should be emtpy
 		assertEquals(0, annos.getStringAnnotations().size());
 		assertEquals(0, annos.getDateAnnotations().size());
-		Dataset clone = entityManager.getEntity(userInfo, id, Dataset.class);
+		Study clone = entityManager.getEntity(userInfo, id, Study.class);
 		assertNotNull(clone);
-		assertEquals(ds.getEulaId(), clone.getEulaId());
+		assertEquals(ds.getDisease(), clone.getDisease());
 		// Now add an annotation
 		annos.addAnnotation("stringKey", "some string value");
 		entityManager.updateAnnotations(userInfo, id, annos);
@@ -186,15 +186,15 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(annos);
 		assertEquals("some string value", annos.getSingleValue("stringKey"));
 		// Make sure we did not lose any primary annotations.
-		clone = entityManager.getEntity(userInfo, id, Dataset.class);
+		clone = entityManager.getEntity(userInfo, id, Study.class);
 		assertNotNull(clone);
-		assertEquals(ds.getEulaId(), clone.getEulaId());
+		assertEquals(ds.getDisease(), clone.getDisease());
 		// Now change the primary field
-		clone.setEulaId("101");
+		clone.setDisease("disease2");
 		entityManager.updateEntity(userInfo, clone, false);
-		clone = entityManager.getEntity(userInfo, id, Dataset.class);
+		clone = entityManager.getEntity(userInfo, id, Study.class);
 		assertNotNull(clone);
-		assertEquals("101", clone.getEulaId());
+		assertEquals("disease2", clone.getDisease());
 		// We should not have lost any of the additional annotations
 		annos = entityManager.getAnnotations(userInfo, id);
 		assertNotNull(annos);
@@ -202,8 +202,8 @@ public class EntityManagerImplAutowireTest {
 		
 	}
 	
-	private Layer createLayerForTest(int i){
-		Layer layer = new Layer();
+	private Data createLayerForTest(int i){
+		Data layer = new Data();
 		layer.setName("layerName"+i);
 		layer.setDescription("layerDesc"+i);
 		layer.setCreatedOn(new Date(1001));
@@ -214,9 +214,9 @@ public class EntityManagerImplAutowireTest {
 	 * Create a dataset with all of its fields filled in.
 	 * @return
 	 */
-	public Dataset createDataset(){
+	public Study createDataset(){
 		// First we create a dataset with all fields filled in.
-		Dataset ds = new Dataset();
+		Study ds = new Study();
 		ds.setName("someName");
 		ds.setDescription("someDesc");
 		ds.setCreatedBy("magic");
@@ -224,9 +224,6 @@ public class EntityManagerImplAutowireTest {
 		ds.setAnnotations("someAnnoUrl");
 		ds.setEtag("110");
 		ds.setId("12");
-		ds.setHasClinicalData(false);
-		ds.setHasExpressionData(true);
-		ds.setHasGeneticData(true);
 		ds.setLayers("someLayerUrl");
 		ds.setReleaseDate(new Date(15689));
 		ds.setStatus("someStatus");

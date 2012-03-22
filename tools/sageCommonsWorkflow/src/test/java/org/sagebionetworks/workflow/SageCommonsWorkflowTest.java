@@ -8,11 +8,12 @@ import java.util.List;
 import org.json.JSONException;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -28,6 +29,7 @@ import com.amazonaws.services.simpleworkflow.flow.junit.WorkflowTest;
  * @author deflaux
  * 
  */
+@Ignore // John cannot get this to work on windows. See PLFM-1111
 @RunWith(FlowBlockJUnit4ClassRunner.class)
 public class SageCommonsWorkflowTest {
 
@@ -56,7 +58,7 @@ public class SageCommonsWorkflowTest {
 		}
 
 		@Override
-		public Layer getLayer(String layerId) throws SynapseException {
+		public Data getLayer(String layerId) throws SynapseException {
 			// Make a fake layer as if we got it from Synapse
 			LocationData location = new LocationData();
 			location.setType(LocationTypeNames.awss3);
@@ -64,7 +66,7 @@ public class SageCommonsWorkflowTest {
 			List<LocationData> locations = new ArrayList<LocationData>();
 			locations.add(location);
 
-			Layer layer = new Layer();
+			Data layer = new Data();
 			layer.setId(layerId);
 			layer.setName("Test Layer");
 			layer.setLocations(locations);
@@ -92,7 +94,7 @@ public class SageCommonsWorkflowTest {
 		}
 
 		@Override
-		public String formulateNotificationMessage(Layer layer,
+		public String formulateNotificationMessage(Data layer,
 				Integer numJobsDispatched) throws SynapseException,
 				JSONException, UnrecoverableException {
 			result += ":formulateNotificationMessage";

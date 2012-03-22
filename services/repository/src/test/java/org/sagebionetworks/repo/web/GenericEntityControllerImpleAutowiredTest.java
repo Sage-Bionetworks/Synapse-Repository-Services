@@ -19,10 +19,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LocationData;
@@ -83,11 +83,11 @@ public class GenericEntityControllerImpleAutowiredTest {
 		
 		// Create some datasetst.
 		for(int i=0; i<totalEntities; i++){
-			Dataset ds = createForTest(i);
+			Study ds = createForTest(i);
 			ds.setParentId(project.getId());
 			ds = entityController.createEntity(userName, ds, mockRequest);
 			for(int layer=0; layer<layers; layer++){
-				Layer inLayer = createLayerForTest(i*10+layer);
+				Data inLayer = createLayerForTest(i*10+layer);
 				inLayer.setParentId(ds.getId());
 				inLayer.setMd5("b960413cf33e1333b2b709319c29870d");
 				List<LocationData> locationDatas = new ArrayList<LocationData>();
@@ -103,16 +103,13 @@ public class GenericEntityControllerImpleAutowiredTest {
 		toDelete.add(project.getId());
 	}
 	
-	private Dataset createForTest(int i){
-		Dataset ds = new Dataset();
+	private Study createForTest(int i){
+		Study ds = new Study();
 		ds.setName("someName"+i);
 		ds.setDescription("someDesc"+i);
 		ds.setCreatedBy("magic"+i);
 		ds.setCreatedOn(new Date(1001));
 		ds.setAnnotations("someAnnoUrl"+1);
-		ds.setHasClinicalData(false);
-		ds.setHasExpressionData(true);
-		ds.setHasGeneticData(true);
 		ds.setLayers("someLayerUrl"+i);
 		ds.setReleaseDate(new Date(15689));
 		ds.setStatus("someStatus"+i);
@@ -120,8 +117,8 @@ public class GenericEntityControllerImpleAutowiredTest {
 		return ds;
 	}
 	
-	private Layer createLayerForTest(int i) throws InvalidModelException{
-		Layer layer = new Layer();
+	private Data createLayerForTest(int i) throws InvalidModelException{
+		Data layer = new Data();
 		layer.setName("layerName"+i);
 		layer.setDescription("layerDesc"+i);
 		layer.setCreatedOn(new Date(1001));
@@ -150,22 +147,18 @@ public class GenericEntityControllerImpleAutowiredTest {
 	@Test
 	public void testQuery() throws DatastoreException, NotFoundException, UnauthorizedException{
 		// Basic query
-		PaginatedResults<Dataset> paginated = entityController.getEntities(userName, new PaginatedParameters(1,100, null, true), mockRequest, Dataset.class);
+		PaginatedResults<Study> paginated = entityController.getEntities(userName, new PaginatedParameters(1,100, null, true), mockRequest, Study.class);
 		assertNotNull(paginated);
 		assertNotNull(paginated.getPaging());
-		List<Dataset> results = paginated.getResults();
+		List<Study> results = paginated.getResults();
 		assertNotNull(results);
 		assertEquals(totalEntities, results.size());
 		// Check the urls for each object
-		for(Dataset ds: results){
+		for(Study ds: results){
 			UrlHelpers.validateAllUrls(ds);
-			// Each dataset should also have a genetic layer
-			assertFalse(ds.getHasClinicalData());
-			assertFalse(ds.getHasExpressionData());
-			assertTrue(ds.getHasGeneticData());
 		}
 		// Sorted
-		paginated = entityController.getEntities(userName, new PaginatedParameters(1, 3, "name", true), mockRequest, Dataset.class);
+		paginated = entityController.getEntities(userName, new PaginatedParameters(1, 3, "name", true), mockRequest, Study.class);
 		results = paginated.getResults();
 		assertNotNull(results);
 		assertEquals(3, results.size());
@@ -176,13 +169,13 @@ public class GenericEntityControllerImpleAutowiredTest {
 	@Test 
 	public void testGetChildrenOfType() throws DatastoreException, NotFoundException, UnauthorizedException{
 		String datasetOneId = toDelete.get(0);
-		List<Layer> list = entityController.getEntityChildrenOfType(userName, datasetOneId, Layer.class, mockRequest);
+		List<Data> list = entityController.getEntityChildrenOfType(userName, datasetOneId, Data.class, mockRequest);
 		assertNotNull(list);
 		assertEquals(layers, list.size());
-		Layer lastLayer = list.get(layers -1);
+		Data lastLayer = list.get(layers -1);
 		assertNotNull(lastLayer);
 		// Check the urls for each object
-		for(Layer layer: list){
+		for(Data layer: list){
 			// Check all of the urls
 			UrlHelpers.validateAllUrls(layer);
 			// Now get the locations.
@@ -194,13 +187,13 @@ public class GenericEntityControllerImpleAutowiredTest {
 	@Test 
 	public void testGetChildrenOfTypePaginated() throws DatastoreException, NotFoundException, UnauthorizedException{
 		String datasetOneId = toDelete.get(0);
-		PaginatedResults<Layer> resutls = entityController.getEntityChildrenOfTypePaginated(userName, datasetOneId, Layer.class, new PaginatedParameters(), mockRequest);
+		PaginatedResults<Data> resutls = entityController.getEntityChildrenOfTypePaginated(userName, datasetOneId, Data.class, new PaginatedParameters(), mockRequest);
 		assertNotNull(resutls);
 		assertEquals(layers, resutls.getTotalNumberOfResults());
-		List<Layer> list = resutls.getResults();
+		List<Data> list = resutls.getResults();
 		assertNotNull(list);
 		assertEquals(layers, list.size());
-		Layer lastLayer = list.get(layers -1);
+		Data lastLayer = list.get(layers -1);
 		assertNotNull(lastLayer);
 		// Now get the locations.
 		assertNotNull(lastLayer.getLocations());

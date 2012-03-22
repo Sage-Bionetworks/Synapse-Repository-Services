@@ -6,8 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import java.lang.reflect.Field;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.Dataset;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.query.Comparator;
 
 public class SqlConstantsTest {
@@ -50,7 +50,7 @@ public class SqlConstantsTest {
 	
 	@Test
 	public void testgetColumnNameForPrimaryFieldDatasets(){
-		Field[] fields = Dataset.class.getDeclaredFields();
+		Field[] fields = Study.class.getDeclaredFields();
 		for(int i=0; i<fields.length; i++){
 			if(!fields[i].isAccessible()){
 				fields[i].setAccessible(true);
@@ -65,7 +65,7 @@ public class SqlConstantsTest {
 	
 	@Test
 	public void testgetColumnNameForPrimaryFieldLayers(){
-		Field[] fields = Layer.class.getDeclaredFields();
+		Field[] fields = Data.class.getDeclaredFields();
 		for(int i=0; i<fields.length; i++){
 			if(!fields[i].isAccessible()){
 				fields[i].setAccessible(true);

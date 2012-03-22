@@ -18,11 +18,11 @@ import org.apache.http.entity.StringEntity;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
@@ -60,7 +60,7 @@ public class SynapseTest {
 	
 	@Test
 	public void testCreateEntity() throws Exception {
-		Dataset ds = EntityCreator.createNewDataset();
+		Study ds = EntityCreator.createNewDataset();
 		// This is what we want returned.
 		String jsonString = EntityFactory.createJSONStringForEntity(ds);
 //		System.out.println(jsonString);
@@ -68,7 +68,7 @@ public class SynapseTest {
 		// We want the mock response to return JSON for this entity.
 		when(mockResponse.getEntity()).thenReturn(responseEntity);
 		// Now create an entity
-		Dataset clone = synapse.createEntity(ds);
+		Study clone = synapse.createEntity(ds);
 		// For this test we want return 
 		assertNotNull(clone);
 		// The clone should equal the original ds
@@ -77,7 +77,7 @@ public class SynapseTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testGetEntityNullId() throws Exception{
-		synapse.getEntity(null, Dataset.class);
+		synapse.getEntity(null, Study.class);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -87,14 +87,14 @@ public class SynapseTest {
 	
 	@Test
 	public void testGetEntity() throws Exception {
-		Dataset ds = EntityCreator.createNewDataset();
+		Study ds = EntityCreator.createNewDataset();
 		// This is what we want returned.
 		String jsonString = EntityFactory.createJSONStringForEntity(ds);
 //		System.out.println(jsonString);
 		StringEntity responseEntity = new StringEntity(jsonString);
 		// We want the mock response to return JSON for this entity.
 		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		Dataset clone = synapse.getEntity(ds.getId(), Dataset.class);
+		Study clone = synapse.getEntity(ds.getId(), Study.class);
 		// For this test we want return 
 		assertNotNull(clone);
 		// The clone should equal the original ds
@@ -108,14 +108,14 @@ public class SynapseTest {
 	
 	@Test
 	public void testPutEntity() throws Exception {
-		Dataset ds = EntityCreator.createNewDataset();
+		Study ds = EntityCreator.createNewDataset();
 		// This is what we want returned.
 		String jsonString = EntityFactory.createJSONStringForEntity(ds);
 //		System.out.println(jsonString);
 		StringEntity responseEntity = new StringEntity(jsonString);
 		// We want the mock response to return JSON for this entity.
 		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		Dataset clone = synapse.putEntity(ds);
+		Study clone = synapse.putEntity(ds);
 		// For this test we want return 
 		assertNotNull(clone);
 		// The clone should equal the original ds
@@ -129,7 +129,7 @@ public class SynapseTest {
 
 	@Test
 	public void testGetEntityPath() throws Exception {
-		Layer layer = new Layer();
+		Data layer = new Data();
 		// create test hierarchy
 		
 		EntityHeader layerHeader = new EntityHeader();

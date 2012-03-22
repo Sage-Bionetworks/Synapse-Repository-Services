@@ -32,11 +32,7 @@ public class EntityType {
 	@Deprecated // Only added for backwards compatibility.
 	public static final EntityType project = new EntityType();
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType agreement = new EntityType();
-	@Deprecated // Only added for backwards compatibility.
 	public static final EntityType folder = new EntityType();
-	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType eula = new EntityType();
 	@Deprecated // Only added for backwards compatibility.
 	public static final EntityType step = new EntityType();
 	@Deprecated // Only added for backwards compatibility.
@@ -45,6 +41,8 @@ public class EntityType {
 	public static final EntityType code = new EntityType();
 	@Deprecated // Only added for backwards compatibility.
 	public static final EntityType analysis = new EntityType();
+	@Deprecated // Only added for backwards compatibility.
+	public static final EntityType unknown = new EntityType();
 
 	/**
 	 * The JSON file that contains the register data.
@@ -78,12 +76,8 @@ public class EntityType {
 					type = layer;
 				}else if(PrefixConst.PROJECT.equals(meta.getUrlPrefix())){
 					type = project;
-				}else if(PrefixConst.AGREEMENT.equals(meta.getUrlPrefix())){
-					type = agreement;
 				}else if(PrefixConst.FOLDER.equals(meta.getUrlPrefix())){
 					type = folder;
-				}else if(PrefixConst.EULA.equals(meta.getUrlPrefix())){
-					type = eula;
 				}else if(PrefixConst.STEP.equals(meta.getUrlPrefix())){
 					type = step;
 				}else if(PrefixConst.PREVIEW.equals(meta.getUrlPrefix())){

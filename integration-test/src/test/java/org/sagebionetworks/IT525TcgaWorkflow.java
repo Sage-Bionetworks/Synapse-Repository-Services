@@ -14,18 +14,17 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.repo.model.Dataset;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.sagebionetworks.workflow.Constants;
 import org.sagebionetworks.workflow.Notification;
-import org.sagebionetworks.workflow.UnrecoverableException;
-import org.sagebionetworks.workflow.curation.TcgaWorkflowConfigHelper;
 import org.sagebionetworks.workflow.curation.TcgaCuration;
+import org.sagebionetworks.workflow.curation.TcgaWorkflowConfigHelper;
 
 import com.amazonaws.AmazonServiceException;
 
@@ -58,7 +57,7 @@ public class IT525TcgaWorkflow {
 	static public void setUpBeforeClass() throws Exception {
 		synapse = TcgaWorkflowConfigHelper.getSynapseClient();
 		project = synapse.createEntity(new Project());
-		Dataset dataset = new Dataset();
+		Study dataset = new Study();
 		dataset.setParentId(project.getId());
 		dataset = synapse.createEntity(dataset);
 		datasetId = dataset.getId();
@@ -94,7 +93,7 @@ public class IT525TcgaWorkflow {
 		layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
 		assertFalse(layerWasUpdated);
 
-		Layer layer = synapse.getEntity(layerId, Layer.class);
+		Data layer = synapse.getEntity(layerId, Data.class);
 
 		assertTrue(0 < layer.getMd5().length());
 		assertEquals(1, layer.getLocations().size());
@@ -130,7 +129,7 @@ public class IT525TcgaWorkflow {
 		layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
 		assertFalse(layerWasUpdated);
 
-		Layer layer = synapse.getEntity(layerId, Layer.class);
+		Data layer = synapse.getEntity(layerId, Data.class);
 
 		assertTrue(0 < layer.getMd5().length());
 		assertEquals(1, layer.getLocations().size());
@@ -170,7 +169,7 @@ public class IT525TcgaWorkflow {
 		layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
 		assertFalse(layerWasUpdated);
 
-		Layer layer = synapse.getEntity(layerId, Layer.class);
+		Data layer = synapse.getEntity(layerId, Data.class);
 
 		assertTrue(0 < layer.getMd5().length());
 		assertEquals(1, layer.getLocations().size());
@@ -210,7 +209,7 @@ public class IT525TcgaWorkflow {
 		layerWasUpdated = TcgaCuration.updateLocation(url, layerId);
 		assertFalse(layerWasUpdated);
 
-		Layer layer = synapse.getEntity(layerId, Layer.class);
+		Data layer = synapse.getEntity(layerId, Data.class);
 
 		assertTrue(0 < layer.getMd5().length());
 		assertEquals(1, layer.getLocations().size());

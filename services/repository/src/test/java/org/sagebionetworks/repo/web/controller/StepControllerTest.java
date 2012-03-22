@@ -19,9 +19,9 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Code;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.EnvironmentDescriptor;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
@@ -51,8 +51,8 @@ public class StepControllerTest {
 	private static final String TEST_USER2 = "testuser2@test.org";
 	
 	private Project project;
-	private Dataset dataset;
-	private Layer layer;
+	private Study dataset;
+	private Data layer;
 	private Code code;
 
 	/**
@@ -67,11 +67,11 @@ public class StepControllerTest {
 		project = new Project();
 		project = testHelper.createEntity(project, null);
 
-		dataset = new Dataset();
+		dataset = new Study();
 		dataset.setParentId(project.getId());
 		dataset = testHelper.createEntity(dataset, null);
 
-		layer = new Layer();
+		layer = new Data();
 		layer.setParentId(dataset.getId());
 		layer.setType(LayerTypeNames.E);
 		layer = testHelper.createEntity(layer, null);
@@ -164,7 +164,7 @@ public class StepControllerTest {
 
 		// Create a new layer, side effect should be to add it to output
 		// references
-		Layer outputLayer = new Layer();
+		Data outputLayer = new Data();
 		outputLayer.setParentId(dataset.getId());
 		outputLayer.setType(LayerTypeNames.M);
 		outputLayer = testHelper.createEntity(outputLayer, extraParams);

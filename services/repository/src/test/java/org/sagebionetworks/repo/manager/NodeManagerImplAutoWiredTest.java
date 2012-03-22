@@ -146,7 +146,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node newNode = new Node();
 		newNode.setName("NodeManagerImplAutoWiredTest.testCreateWithAnnotations");
 		// We are using an agreement because the user should have permission to create it but not update it
-		newNode.setNodeType(EntityType.agreement.name());
+		newNode.setNodeType(EntityType.project.name());
 		NamedAnnotations named = new NamedAnnotations();
 		Annotations annos = named.getAdditionalAnnotations();
 		annos.addAnnotation("stringKey", "stringValue");

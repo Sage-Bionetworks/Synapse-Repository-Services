@@ -2,7 +2,7 @@ package org.sagebionetworks.client;
 
 import java.util.Date;
 
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 
 /**
  * Helper to create sample entities for tests.
@@ -15,8 +15,8 @@ public class EntityCreator {
 	 * Create a new dataset with all of the fields set.
 	 * @return
 	 */
-	public static Dataset createNewDataset(){
-		Dataset toCreate = new Dataset();
+	public static Study createNewDataset(){
+		Study toCreate = new Study();
 		String id = "123";
 		toCreate.setId("123");
 		toCreate.setName("The Big Cheese");
@@ -29,10 +29,6 @@ public class EntityCreator {
 		toCreate.setCreatedOn(new Date(now));
 		toCreate.setDescription("A detailed description");
 		toCreate.setEtag("334");
-		toCreate.setEulaId("4445");
-		toCreate.setHasClinicalData(true);
-		toCreate.setHasExpressionData(false);
-		toCreate.setHasGeneticData(true);
 		toCreate.setParentId("1");
 		toCreate.setUri("/dataset/"+id);
 		return toCreate;

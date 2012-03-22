@@ -14,7 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
@@ -73,7 +73,7 @@ public class LocationableControllerTest {
 	@Test
 	public void testLocationsCRUD() throws Exception {
 
-		Dataset dataset = new Dataset();
+		Study dataset = new Study();
 		dataset.setParentId(project.getId());
 		dataset = helper.createEntity(dataset, null);
 
@@ -132,7 +132,7 @@ public class LocationableControllerTest {
 		 * make a new version
 		 */
 		dataset.setMd5("fff83779e53ce0cfc35f59cc2a762fff");
-		Dataset datasetV1 = dataset;
+		Study datasetV1 = dataset;
 		dataset = helper.updateEntity(dataset, null);
 		assertS3UrlsArePresigned(dataset, externalLocation, 2);
 		assertTrue(!datasetV1.getVersionNumber().equals(dataset.getVersionNumber()));
@@ -145,7 +145,7 @@ public class LocationableControllerTest {
 		assertS3UrlsArePresigned(dataset, externalLocation, 1);
 	}
 
-	private void assertS3UrlsArePresigned(Dataset dataset,
+	private void assertS3UrlsArePresigned(Study dataset,
 			LocationData externalLocation, int numLocationsExpected) throws DatastoreException {
 		// Ensure we have the correct number of locations under this dataset
 		assertEquals(numLocationsExpected, dataset.getLocations().size());
@@ -180,7 +180,7 @@ public class LocationableControllerTest {
 	 */
 	@Test
 	public void testS3LocationWithNoEntityIdPrefix() throws Exception {
-		Dataset dataset = new Dataset();
+		Study dataset = new Study();
 		dataset.setParentId(project.getId());
 		dataset = helper.createEntity(dataset, null);
 

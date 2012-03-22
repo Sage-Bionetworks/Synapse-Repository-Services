@@ -1,11 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
 import org.sagebionetworks.repo.model.Analysis;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 
 /**
@@ -30,12 +29,9 @@ public class ObjectTypeFactory {
 		Entity object = type.getClassForType().newInstance();
 		object.setName(name);
 		// Handle layers
-		if(object instanceof Layer){
-			Layer layer = (Layer) object;
+		if(object instanceof Data){
+			Data layer = (Data) object;
 			layer.setType(LayerTypeNames.C);
-		} else if(object instanceof Eula){
-			Eula eula = (Eula) object;
-			eula.setAgreement("this is a fake agreement");
 		} else if(object instanceof Analysis){
 			Analysis analysis = (Analysis) object;
 			analysis.setDescription("this is a fake description");

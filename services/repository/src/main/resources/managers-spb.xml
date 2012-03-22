@@ -45,8 +45,6 @@
 	<bean id="userDAO" class="org.sagebionetworks.repo.util.UserDAOProxy" scope="singleton"/>
 	<bean id="userDAOImpl" class="org.sagebionetworks.authutil.CrowdUserDAO" scope="singleton"/>
 	
-	<bean id="layerTypeCountCache" class="org.sagebionetworks.repo.web.controller.metadata.LayerTypeCountCacheImpl" scope="singleton"/>
-	
 	<bean id="backupManager" class="org.sagebionetworks.repo.manager.backup.NodeBackupManagerImpl" scope="singleton"/>
 	
 	<bean id="nodeSerializer" class="org.sagebionetworks.repo.manager.backup.NodeSerializerImpl" scope="singleton"/>
@@ -93,8 +91,6 @@
 	<bean id="inputDataLayerProvider" class="org.sagebionetworks.repo.web.controller.metadata.LayerMetadataProvider" scope="singleton"/>
 	<bean id="projectMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.ProjectMetadataProvider" scope="singleton"/>
 	<bean id="storedLayerPreviewMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.PreviewMetadataProvider" scope="singleton"/>
-	<bean id="eulaMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.EulaMetadataProvider" scope="singleton"/>
-	<bean id="agreementMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.AgreementMetadataProvider" scope="singleton"/>
 	<bean id="folderMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.FolderMetadataProvider" scope="singleton"/>
 	<bean id="analysisMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.AnalysisMetadataProvider" scope="singleton"/>
 	<bean id="stepMetadataProvider" class="org.sagebionetworks.repo.web.controller.metadata.StepMetadataProvider" scope="singleton"/>
@@ -109,8 +105,6 @@
 			<entry key="layer"><ref bean="inputDataLayerProvider" /></entry>
 			<entry key="project"><ref bean="projectMetadataProvider" /></entry>
 			<entry key="preview"><ref bean="storedLayerPreviewMetadataProvider" /></entry>
-			<entry key="eula"><ref bean="eulaMetadataProvider" /></entry>
-			<entry key="agreement"><ref bean="agreementMetadataProvider" /></entry>
 			<entry key="folder"><ref bean="folderMetadataProvider" /></entry>
 			<entry key="analysis"><ref bean="analysisMetadataProvider" /></entry>
 			<entry key="step"><ref bean="stepMetadataProvider" /></entry>

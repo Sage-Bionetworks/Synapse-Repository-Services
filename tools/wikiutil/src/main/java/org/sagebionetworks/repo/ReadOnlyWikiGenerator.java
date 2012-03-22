@@ -132,14 +132,6 @@ public class ReadOnlyWikiGenerator {
 									+ "{code}SELECT * FROM layer WHERE layer.parentId == <parentId> ORDER BY <field name> [ASC|DESC] [LIMIT <#>] [OFFSET <#>]{code}\n"
 									+"where <field name> is the name of a primary field or annotation.");
 
-			wiki
-					.doGet(
-							"/query?query=select+*+from+agreement+where+agreement.datasetId+==+%22"
-									+ dataset.getString("dataset.id") + "%22",
-							"h3. 'Select *' Query for the all the people who have agreed to the terms in the End User License Agreement for a Dataset",
-							"These queries are generally of the form:\n"
-									+ QUERY_SYNTAX);
-
 			log.info("h2. Schema");
 			wiki
 					.doGet(
@@ -199,9 +191,6 @@ public class ReadOnlyWikiGenerator {
 				wiki.doGet(layer.getString("annotations"),
 						"h4. Get Annotations for a " + type + " Dataset Layer",
 						"This returns the annotations for a dataset layer.");
-				wiki.doGet("/eula/" + dataset.getString("eulaId"),
-						"h4. Get the Eula for a " + type + " Dataset",
-						"This returns the eula for a dataset.");
 				wiki
 						.doGet(layer.getString("uri") + "/preview",
 								"h4. Get preview data for a " + type
@@ -321,16 +310,6 @@ public class ReadOnlyWikiGenerator {
 					.doGet(
 							"/project/schema",
 							"h3. Project Schema",
-							"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-			wiki
-					.doGet(
-							"/eula/schema",
-							"h3. Eula Schema",
-							"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
-			wiki
-					.doGet(
-							"/agreement/schema",
-							"h3. Agreement Schema",
 							"The [JsonSchema|http://json-schema.org/] is an emerging standard similar to DTDs for XML.");
 			wiki
 					.doGet(

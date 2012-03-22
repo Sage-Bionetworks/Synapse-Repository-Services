@@ -11,9 +11,9 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LocationData;
 
 @Ignore
@@ -44,7 +44,7 @@ public class SanityCheck {
 	
 	@Test
 	public void testS3() throws SynapseException{
-		Dataset ds = synapse.getEntity("4494", Dataset.class);
+		Study ds = synapse.getEntity("4494", Study.class);
 		assertNotNull(ds);
 		assertEquals("ac9ceeafae9e8ccde9059c509a50d38d", ds.getMd5());
 //		assertNotNull(ds.getContentType());
@@ -61,7 +61,7 @@ public class SanityCheck {
 	
 	@Test
 	public void testExternal() throws SynapseException{
-		Layer layer = synapse.getEntity("13353", Layer.class);
+		Data layer = synapse.getEntity("13353", Data.class);
 		assertNotNull(layer);
 		assertEquals("e231b80b7e69a78636a7c67e88262003", layer.getMd5());
 		assertNotNull(layer.getLocations());

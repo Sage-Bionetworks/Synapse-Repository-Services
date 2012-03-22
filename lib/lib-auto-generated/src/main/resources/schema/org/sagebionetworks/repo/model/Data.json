@@ -1,6 +1,6 @@
 {
-    "title":"Layer",
-    "description":"JSON schema for Layer POJO",
+    "title":"Data",
+    "description":"JSON schema for Data POJO",
     "implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.Locationable"
@@ -17,19 +17,19 @@
         "publicationDate":{
             "type":"string",
             "format":"date-time",
-            "description":"Date this layer was published",
+            "description":"Date this Data was published",
             "title":"Publication Date",
             
         },
         "releaseNotes":{
             "type":"string",
-            "description":"Free text about layer",
+            "description":"Free text about Data",
             "title":"Release Notes",
             
         },
         "type":{
             "type":"string",
-            "description":"Type of layer",
+            "description":"Type of Data",
             "name":"LayerTypeNames",
             "id":"org.sagebionetworks.repo.model.LayerTypeNames",
             "enum":[
@@ -42,7 +42,7 @@
         },
         "tissueType":{
             "type":"string",
-            "description":"Type of tissue for the samples in this layer. Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
+            "description":"Type of tissue for the samples in this Data. Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
             "links":[
                 {
                     "rel":"describedby",
@@ -56,7 +56,7 @@
         },
         "platform":{
             "type":"string",
-            "description":"Chip platform for the samples in this layer",
+            "description":"Chip platform for the samples in this Data",
             "links":[
                 {
                     "rel":"describedby",
@@ -70,19 +70,19 @@
         },
         "processingFacility":{
             "type":"string",
-            "description":"Location where the samples for this layer were processed",
+            "description":"Location where the samples for this Data were processed",
             "title":"Processing Facility",
             
         },
         "status":{
             "type":"string",
-            "description":"Status of this layer",
+            "description":"Status of this Data",
             "title":"Status",
             
         },
         "numSamples":{
             "type":"integer",
-            "description":"Approximate number of samples in this layer",
+            "description":"Approximate number of samples in this Data",
             "title":"Number of Samples"
         }
     }

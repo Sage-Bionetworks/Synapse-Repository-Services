@@ -22,12 +22,6 @@ public class EntityMigrationTest {
 		renameData.setNewFieldName("previewString");
 		em.getToRename().add(renameData);
 		
-		renameData = new RenameData();
-		renameData.setEntityTypeName(EntityType.eula.name());
-		renameData.setOldFieldName("agreementBlob");
-		renameData.setNewFieldName("agreement");
-		em.getToRename().add(renameData);
-		
 		// Write out the datat to JSON
 		String json = EntityFactory.createJSONStringForEntity(em);
 		System.out.println(json);

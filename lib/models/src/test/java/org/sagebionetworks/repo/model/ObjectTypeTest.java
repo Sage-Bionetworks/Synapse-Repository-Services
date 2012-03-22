@@ -73,7 +73,7 @@ public class ObjectTypeTest {
 	
 	@Test
 	public void testLayerValidParent(){
-		EntityType[] expectedValid = new EntityType[]{EntityType.dataset};
+		EntityType[] expectedValid = new EntityType[]{EntityType.dataset, EntityType.project};
 		testValidParents(expectedValid, EntityType.layer);
 	}
 	
@@ -81,18 +81,6 @@ public class ObjectTypeTest {
 	public void testPreviewValidParent(){
 		EntityType[] expectedValid = new EntityType[]{ EntityType.layer};
 		testValidParents(expectedValid, EntityType.preview);
-	}
-	
-	@Test
-	public void testEulaValidParent(){
-		EntityType[] expectedValid = new EntityType[]{ null, EntityType.folder  };
-		testValidParents(expectedValid, EntityType.eula);
-	}
-	
-	@Test
-	public void testAgreementValidParent(){
-		EntityType[] expectedValid = new EntityType[]{ null, EntityType.folder };
-		testValidParents(expectedValid, EntityType.eula);
 	}
 	
 	/**

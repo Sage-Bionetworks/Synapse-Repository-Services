@@ -8,12 +8,12 @@ import javax.servlet.http.HttpServletRequest;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Code;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.HasLayers;
 import org.sagebionetworks.repo.model.HasPreviews;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -67,7 +67,7 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testsetEntityUriNullId(){
-		UrlHelpers.createEntityUri(null, Dataset.class, "http://localhost:8080/repo/v1");
+		UrlHelpers.createEntityUri(null, Study.class, "http://localhost:8080/repo/v1");
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -77,7 +77,7 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testsetEntityUriNullPrefix(){
-		UrlHelpers.createEntityUri("12", Layer.class, null);
+		UrlHelpers.createEntityUri("12", Data.class, null);
 	}
 	
 	@Test 
@@ -102,7 +102,7 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetBaseUriForEntityNullRequest(){
-		Dataset mockDs = Mockito.mock(Dataset.class);
+		Study mockDs = Mockito.mock(Study.class);
 		when(mockDs.getId()).thenReturn("123");
 		UrlHelpers.setBaseUriForEntity(mockDs, null);
 	}
@@ -112,7 +112,7 @@ public class UrlHelperTest {
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getContextPath()).thenReturn("http://localhost:8080");
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
-		Dataset ds = new Dataset();
+		Study ds = new Study();
 		ds.setId("456");
 		UrlHelpers.setBaseUriForEntity(ds, mockRequest);
 		String expectedUri = "http://localhost:8080/repo/v1/dataset/456";
@@ -149,14 +149,14 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testHasLayersUrlNullUri(){
-		Dataset ds = new Dataset();
+		Study ds = new Study();
 		ds.setUri(null);
 		UrlHelpers.setHasLayersUrl(ds);
 	}
 	
 	@Test
 	public void testHasLayersUrlUrls(){
-		Dataset ds = new Dataset();
+		Study ds = new Study();
 		// Make sure the preview has a uri
 		String baseUri = "/repo/v1"+EntityType.dataset.getUrlPrefix()+"/42";
 		ds.setUri(baseUri);
@@ -171,14 +171,14 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testHasPreviewNullUri(){
-		Layer layer = new Layer();
+		Data layer = new Data();
 		layer.setUri(null);
 		UrlHelpers.setHasPreviewsUrl(layer);
 	}
 	
 	@Test
 	public void testHasPreviewUrls(){
-		Layer layer = new Layer();
+		Data layer = new Data();
 		// Make sure the preview has a uri
 		String baseUri = "/repo/v1"+EntityType.layer.getUrlPrefix()+"/42";
 		layer.setUri(baseUri);
@@ -189,14 +189,14 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetVersionableNullUri(){
-		Dataset dataset = new Dataset();
+		Study dataset = new Study();
 		dataset.setUri(null);
 		UrlHelpers.setVersionableUrl(dataset);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetVersionableNullVersionNumber(){
-		Layer layer = new Layer();
+		Data layer = new Data();
 		String baseUri = "/repo/v1"+EntityType.layer.getUrlPrefix()+"/42";
 		layer.setUri(baseUri);
 		// set the version number to be null
@@ -206,7 +206,7 @@ public class UrlHelperTest {
 	
 	@Test
 	public void testSetVersionable(){
-		Layer layer = new Layer();
+		Data layer = new Data();
 		layer.setVersionNumber(new Long(12));
 		// Make sure the layer has a uri
 		String baseUri = "/repo/v1"+EntityType.layer.getUrlPrefix()+"/42";
@@ -266,13 +266,13 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllUrlsNullBase(){
-		Layer layer = new Layer();
+		Data layer = new Data();
 		UrlHelpers.validateAllUrls(layer);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllNullAnnos(){
-		Layer layer = new Layer();
+		Data layer = new Data();
 		layer.setUri("repo/v1/layer/33");
 		UrlHelpers.setAllEntityUrls(layer);
 		layer.setAnnotations(null);
@@ -281,7 +281,7 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllNullACL(){
-		Layer layer = new Layer();
+		Data layer = new Data();
 		layer.setUri("repo/v1/layer/33");
 		UrlHelpers.setAllEntityUrls(layer);
 		layer.setAccessControlList(null);
@@ -290,7 +290,7 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllNullLocations(){
-		Layer layer = new Layer();
+		Data layer = new Data();
 		layer.setUri("repo/v1/layer/33");
 		UrlHelpers.setAllEntityUrls(layer);
 		layer.setLocations(null);
@@ -299,7 +299,7 @@ public class UrlHelperTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllNullPreview(){
-		Layer layer = new Layer();
+		Data layer = new Data();
 		layer.setUri("repo/v1/layer/33");
 		UrlHelpers.setAllEntityUrls(layer);
 		layer.setPreviews(null);

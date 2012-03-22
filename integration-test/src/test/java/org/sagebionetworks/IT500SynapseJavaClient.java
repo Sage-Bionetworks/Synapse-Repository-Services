@@ -21,17 +21,16 @@ import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
-import org.sagebionetworks.repo.model.Agreement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -46,7 +45,7 @@ public class IT500SynapseJavaClient {
 
 	private static Synapse synapse = null;
 	private static Project project = null;
-	private static Dataset dataset = null;
+	private static Study dataset = null;
 
 	/**
 	 * @throws Exception
@@ -64,7 +63,7 @@ public class IT500SynapseJavaClient {
 				StackConfiguration.getIntegrationTestUserOnePassword());
 
 		project = synapse.createEntity(new Project());
-		dataset = new Dataset();
+		dataset = new Study();
 		dataset.setParentId(project.getId());
 		dataset = synapse.createEntity(dataset);
 	}
@@ -117,14 +116,14 @@ public class IT500SynapseJavaClient {
 	 */
 	@Test
 	public void testJavaClientCRUD() throws Exception {
-		Dataset aNewDataset = new Dataset();
+		Study aNewDataset = new Study();
 		aNewDataset.setStatus("created");
 		aNewDataset.setParentId(project.getId());
 
 		aNewDataset = synapse.createEntity(aNewDataset);
 		assertEquals("created", aNewDataset.getStatus());
 		aNewDataset.setStatus("updated");
-		Dataset updatedDataset = synapse.putEntity(aNewDataset);
+		Study updatedDataset = synapse.putEntity(aNewDataset);
 		assertEquals("updated", updatedDataset.getStatus());
 		
 		
@@ -216,41 +215,6 @@ public class IT500SynapseJavaClient {
 	 * @throws Exception
 	 */
 	@Test
-	public void testJavaClientCreateAgreementIfNeeded() throws Exception {
-
-		JSONObject datasetQueryResults = synapse
-				.query("select * from dataset where name == \"MSKCC Prostate Cancer\"");
-		assertEquals(1, datasetQueryResults.getJSONArray("results").length());
-		JSONObject datasetQueryResult = datasetQueryResults.getJSONArray(
-				"results").getJSONObject(0);
-
-		JSONObject agreementQueryResults = synapse
-				.query("select * from agreement where datasetId == \""
-						+ datasetQueryResult.getString("dataset.id")
-						+ "\" and eulaId == \""
-						+ datasetQueryResult.getString("dataset.eulaId")
-						+ "\" and userId == \""
-						+ StackConfiguration.getIntegrationTestUserOneName()
-						+ "\"");
-
-		// Agree to the eula, if needed
-		// Dev Note: ReadOnlyWikiGenerator has a dependency upon this if the
-		// user running the generator is not an admin or has not signed the EULA
-		// for the MSKCC dataset
-		if (0 == agreementQueryResults.getJSONArray("results").length()) {
-			Agreement agreement = new Agreement();
-			agreement.setDatasetId(datasetQueryResult
-					.getString("dataset.id"));
-			agreement.setEulaId(datasetQueryResult
-					.getString("dataset.eulaId"));
-			synapse.createEntity(agreement);
-		}
-	}
-
-	/**
-	 * @throws Exception
-	 */
-	@Test
 	public void testJavaClientUploadDownloadLayerFromS3() throws Exception {
 		
 		File dataSourceFile = File.createTempFile("integrationTest", ".txt");
@@ -259,12 +223,12 @@ public class IT500SynapseJavaClient {
 		writer.write("Hello world!");
 		writer.close();
 
-		Layer layer = new Layer();
+		Data layer = new Data();
 		layer.setType(LayerTypeNames.E);
 		layer.setParentId(dataset.getId());
 		layer = synapse.createEntity(layer);
 
-		layer = (Layer) synapse.uploadLocationableToSynapse(layer,
+		layer = (Data) synapse.uploadLocationableToSynapse(layer,
 				dataSourceFile);
 		
 		// TODO!!!!!!!!!!!! test upload more than once, do we clutter LocationData?
@@ -309,7 +273,7 @@ public class IT500SynapseJavaClient {
 		List<LocationData> locations = new ArrayList<LocationData>();
 		locations.add(externalLocation);
 
-		Layer layer = new Layer();
+		Data layer = new Data();
 		layer.setType(LayerTypeNames.M);
 		layer.setMd5(externalUrlMD5);
 		layer.setParentId(dataset.getId());

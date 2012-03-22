@@ -121,13 +121,13 @@ public class EntityTypeTest {
 	public void testDataset(){
 		assertNotNull(EntityType.dataset);
 		assertEquals(PrefixConst.DATASET, EntityType.dataset.getUrlPrefix());
-		assertEquals(Dataset.class, EntityType.dataset.getClassForType());
+		assertEquals(Study.class, EntityType.dataset.getClassForType());
 	}
 	@Test
 	public void testLayer(){
 		assertNotNull(EntityType.layer);
 		assertEquals(PrefixConst.LAYER, EntityType.layer.getUrlPrefix());
-		assertEquals(Layer.class, EntityType.layer.getClassForType());
+		assertEquals(Data.class, EntityType.layer.getClassForType());
 	}
 	
 	@Test
@@ -138,24 +138,10 @@ public class EntityTypeTest {
 	}
 	
 	@Test
-	public void testAgreement(){
-		assertNotNull(EntityType.agreement);
-		assertEquals(PrefixConst.AGREEMENT, EntityType.agreement.getUrlPrefix());
-		assertEquals(Agreement.class, EntityType.agreement.getClassForType());
-	}
-	
-	@Test
 	public void testFolder(){
 		assertNotNull(EntityType.folder);
 		assertEquals(PrefixConst.FOLDER, EntityType.folder.getUrlPrefix());
 		assertEquals(Folder.class, EntityType.folder.getClassForType());
-	}
-	
-	@Test
-	public void testEula(){
-		assertNotNull(EntityType.eula);
-		assertEquals(PrefixConst.EULA, EntityType.eula.getUrlPrefix());
-		assertEquals(Eula.class, EntityType.eula.getClassForType());
 	}
 
 	@Test

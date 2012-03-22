@@ -16,8 +16,8 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Code;
-import org.sagebionetworks.repo.model.Dataset;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -45,7 +45,7 @@ public class S3TokenControllerTest {
 	private static final String TEST_MD5 = "4053f00b39aae693a6969f37102e2764";
 
 	private Project project;
-	private Dataset dataset;
+	private Study dataset;
 
 	/**
 	 * @throws java.lang.Exception
@@ -58,7 +58,7 @@ public class S3TokenControllerTest {
 		project = new Project();
 		project = testHelper.createEntity(project, null);
 
-		dataset = new Dataset();
+		dataset = new Study();
 		dataset.setParentId(project.getId());
 		dataset = testHelper.createEntity(dataset, null);
 
@@ -88,7 +88,7 @@ public class S3TokenControllerTest {
 	 */
 	@Test
 	public void testCreateS3TokenAbsolutePath() throws Exception {
-		Layer layer = new Layer();
+		Data layer = new Data();
 		layer.setParentId(dataset.getId());
 		layer.setType(LayerTypeNames.E);
 		layer = testHelper.createEntity(layer, null);

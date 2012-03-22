@@ -14,8 +14,8 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.repo.model.Dataset;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
@@ -153,7 +153,7 @@ public class GEPWorkflowInitiator {
 				System.out.println("Datasets: "+offset+"->"+Math.min(total, offset+batchSize-1)+" of "+total);
 				JSONArray a = ids.getJSONArray("results");
 				for (int i=0; i<ids.length(); i++) {
-					Dataset ds = (Dataset) synapse.getEntityById(((JSONObject)a.get(i)).getString("dataset.id"));
+					Study ds = (Study) synapse.getEntityById(((JSONObject)a.get(i)).getString("dataset.id"));
 					String id = ds.getId();
 					String sourceDatasetName = ds.getName();
 					
@@ -168,10 +168,10 @@ public class GEPWorkflowInitiator {
 					// get the genomic and genetic layers
 					JSONObject layerIds = synapse.query("select id from layer where parentId==\""+id+"\"");
 					JSONArray layersIdsArray = layerIds.getJSONArray("results");
-					Dataset targetDataset = null;
+					Study targetDataset = null;
 					JSONObject targetDatasetJSON = null;
 					for (int j=0; j<layersIdsArray.length(); j++) {
-						Layer layer = (Layer) synapse.getEntityById(((JSONObject)layersIdsArray.get(j)).getString("layer.id"));
+						Data layer = (Data) synapse.getEntityById(((JSONObject)layersIdsArray.get(j)).getString("layer.id"));
 						
 						String layerId = layer.getId();
 						
@@ -206,7 +206,7 @@ public class GEPWorkflowInitiator {
 							JSONArray datasets = dsQueryResult.getJSONArray("results");
 							if (datasets.length()>0) {
 								targetDatasetJSON = datasets.getJSONObject(0);
-								targetDataset =  (Dataset) synapse.getEntityById(targetDatasetJSON.getString("dataset.id"));
+								targetDataset =  (Study) synapse.getEntityById(targetDatasetJSON.getString("dataset.id"));
 //								targetDataset = (Dataset)EntityFactory.createEntityFromJSONObject(targetDatasetJSON, Dataset.class);
 //								String tdsId = targetDataset.getId();
 							}

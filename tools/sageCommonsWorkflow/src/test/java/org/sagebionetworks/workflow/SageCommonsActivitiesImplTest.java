@@ -68,6 +68,7 @@ public class SageCommonsActivitiesImplTest {
 	 * Test method for {@link org.sagebionetworks.workflow.SageCommonsActivitiesImpl#runRScript(java.lang.String, java.lang.String)}.
 	 * @throws Exception 
 	 */
+	@Ignore // John cannot get this to work on windows. See PLFM-1111
 	@Test
 	public void testRunRScript() throws Exception {
 		String spreadsheetData = "foo, bar, baz, bat\n123, friday, http://fun.com/data.tar.gz, 42\n";

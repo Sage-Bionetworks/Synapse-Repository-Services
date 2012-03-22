@@ -16,7 +16,7 @@ public class DatasetTest {
 	
 	@Test
 	public void testRoundTripDataset() throws JSONObjectAdapterException {
-		Dataset ds1 = new Dataset();
+		Study ds1 = new Study();
 		JSONObjectAdapter adapter1 = new JSONObjectAdapterImpl();
 		JSONObjectAdapter adapter2 = new JSONObjectAdapterImpl();
 		Date d = new Date();
@@ -50,17 +50,13 @@ public class DatasetTest {
 		ds1.setLocations(ldl);
 
 
-		ds1.setEulaId("0");
-		ds1.setHasClinicalData(Boolean.TRUE);
-		ds1.setHasGeneticData(Boolean.TRUE);
-		ds1.setHasExpressionData(Boolean.TRUE);
 		ds1.setStatus("status");
 
 		
 		adapter1 = ds1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
 		adapter2 = new JSONObjectAdapterImpl(s);
-		Dataset ds2 = new Dataset(adapter2);
+		Study ds2 = new Study(adapter2);
 		
 		assertEquals(ds1, ds2);
 	}

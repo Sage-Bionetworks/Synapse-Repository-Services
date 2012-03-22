@@ -7,11 +7,11 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 
-import java.lang.reflect.Modifier;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -29,30 +29,28 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
-import org.sagebionetworks.repo.model.Agreement;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.Eula;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Layer;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -175,10 +173,10 @@ public class DefaultControllerAutowiredAllTypesTest {
 		assertNotNull(project);
 		toDelete.add(project.getId());
 		// Create a dataset
-		Dataset datasetParent = (Dataset) ObjectTypeFactory.createObjectForTest("datasetParent", EntityType.dataset, project.getId());
+		Study datasetParent = (Study) ObjectTypeFactory.createObjectForTest("datasetParent", EntityType.dataset, project.getId());
 		datasetParent = ServletTestHelper.createEntity(dispatchServlet, datasetParent, userName);
 		// Create a layer parent
-		Layer layerParent = (Layer) ObjectTypeFactory.createObjectForTest("layerParent", EntityType.layer, datasetParent.getId());
+		Data layerParent = (Data) ObjectTypeFactory.createObjectForTest("layerParent", EntityType.layer, datasetParent.getId());
 		layerParent = ServletTestHelper.createEntity(dispatchServlet, layerParent, userName);
 		// Now get the path of the layer
 		List<EntityHeader> path = entityController.getEntityPath(userName, layerParent.getId());
@@ -189,21 +187,12 @@ public class DefaultControllerAutowiredAllTypesTest {
 		EntityType[] types = EntityType.values();
 		for(int i=0; i<countPerType; i++){
 			int index = i;
-			Dataset dataset = null;
-			Eula eula = null;
+			Study dataset = null;
 			for(EntityType type: types){
 				String name = type.name()+index;
 				// use the correct parent type.
 				String parentId = findCompatableParentId(path, type);
 				Entity object = ObjectTypeFactory.createObjectForTest(name, type, parentId);
-				if (EntityType.agreement == type) {
-					// Dev Note: we are depending upon the fact that in the
-					// object type enumeration, agreement comes after dataset
-					// and eula
-					Agreement agreement = (Agreement) object;
-					agreement.setDatasetId(dataset.getId());
-					agreement.setEulaId(eula.getId());
-				}
 				Entity clone = ServletTestHelper.createEntity(dispatchServlet, object, userName);
 				assertNotNull(clone);
 				assertNotNull(clone.getId());
@@ -215,10 +204,8 @@ public class DefaultControllerAutowiredAllTypesTest {
 				
 				// Stash these for later use
 				if (EntityType.dataset == type) {
-					dataset = (Dataset) clone;
-				} else if (EntityType.eula == type) {
-					eula = (Eula) clone;
-				} 
+					dataset = (Study) clone;
+				}
 				
 				// Check the base ursl
 				UrlHelpers.validateAllUrls(clone);
@@ -288,7 +275,6 @@ public class DefaultControllerAutowiredAllTypesTest {
 		EntityType[] types = EntityType.values();
 		int index = 0;
 		for(EntityType type: types){
-			if (EntityType.agreement == type) continue;
 			// Try with all default values
 			PaginatedResults<Entity> result = ServletTestHelper.getAllEntites(dispatchServlet, type.getClassForType(), null, null, null, null, userName);
 			assertNotNull(result);
@@ -325,10 +311,10 @@ public class DefaultControllerAutowiredAllTypesTest {
 		toDelete.add(root.getId());
 		
 		// Create a dataset
-		Dataset datasetParent = (Dataset) ObjectTypeFactory.createObjectForTest("datasetParent", EntityType.dataset, root.getId());
+		Study datasetParent = (Study) ObjectTypeFactory.createObjectForTest("datasetParent", EntityType.dataset, root.getId());
 		datasetParent = ServletTestHelper.createEntity(dispatchServlet, datasetParent, userName);
 		// Create a layer parent
-		Layer layerParent = (Layer) ObjectTypeFactory.createObjectForTest("layerParent", EntityType.layer, datasetParent.getId());
+		Data layerParent = (Data) ObjectTypeFactory.createObjectForTest("layerParent", EntityType.layer, datasetParent.getId());
 		layerParent = ServletTestHelper.createEntity(dispatchServlet, layerParent, userName);
 		// Now get the path of the layer
 		List<EntityHeader> path = entityController.getEntityPath(userName, layerParent.getId());
@@ -337,10 +323,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		EntityType[] types = EntityType.values();
 		int count = 0;
 		for(EntityType parent: types){
-			if(EntityType.agreement == parent) continue;
 			for(EntityType child: types){
-				if(EntityType.agreement == child) continue;
-				if(EntityType.agreement == child) continue;
 				// Only test valid parent child combinations
 				if(child.isValidParentType(parent)){
 					// First create a parent of this type

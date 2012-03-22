@@ -11,10 +11,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.Code;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,14 +46,14 @@ public class MetadataProviderFactoryTest {
 
 	@Test
 	public void testGetDatasetMetadataProvider() {
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(Dataset.class));
+		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(Study.class));
 		assertNotNull(providers);
 		assertEquals(2, providers.size());
 	}
 
 	@Test
 	public void testGetLayerMetadataProvider() {
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(Layer.class));
+		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(EntityType.getNodeTypeForClass(Data.class));
 		assertNotNull(providers);
 		assertEquals(2, providers.size());
 	}

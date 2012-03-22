@@ -7,7 +7,6 @@ import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.commons.codec.binary.Base64;
 import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
 import org.junit.BeforeClass;
@@ -15,7 +14,6 @@ import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
-import org.sagebionetworks.repo.model.Eula;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
@@ -87,10 +85,4 @@ public class IT101LoadMigratedData {
 		assertEquals(5, preview.getRows().size());
 	}
 
-	@Test
-	public void testLoadEula() throws Exception {
-		Eula agreement = synapse.getEntity("4493", Eula.class);
-		assertNotNull(agreement);
-		assertNotNull(agreement.getAgreement());
-	}
 }

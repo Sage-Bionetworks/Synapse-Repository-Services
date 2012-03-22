@@ -101,8 +101,6 @@ public class UrlHelpers {
 	public static final String LAYER 	= PrefixConst.LAYER;
 	public static final String PREVIEW 	= PrefixConst.PREVIEW;
 	public static final String PROJECT	= PrefixConst.PROJECT;
-	public static final String EULA 	= PrefixConst.EULA;
-	public static final String AGREEMENT = PrefixConst.AGREEMENT;
 	public static final String FOLDER	 = PrefixConst.FOLDER;
 	public static final String ENTITY	 = PrefixConst.ENTITY;
 	public static final String ANALYSIS	 = PrefixConst.ANALYSIS;
@@ -122,8 +120,6 @@ public class UrlHelpers {
 	public static final String LAYER_ID 	= LAYER+ID;
 	public static final String PREVIEW_ID 	= PREVIEW+ID;
 	public static final String PROJECT_ID 	= PROJECT+ID;
-	public static final String EULA_ID 		= EULA+ID;
-	public static final String AGREEMENT_ID = AGREEMENT+ID;
 	public static final String FOLDER_ID 	= FOLDER+ID;
 	public static final String ENTITY_ID	= ENTITY+ID;
 	public static final String ANALYSIS_ID	= ANALYSIS+ID;
@@ -143,8 +139,6 @@ public class UrlHelpers {
 	public static final String LAYER_ANNOTATIONS 	= LAYER_ID+ANNOTATIONS;
 	public static final String PREVIEW_ANNOTATIONS 	= PREVIEW_ID+ANNOTATIONS;
 	public static final String PROJECT_ANNOTATIONS	= PROJECT_ID+ANNOTATIONS;
-	public static final String EULA_ANNOTATIONS		= EULA_ID+ANNOTATIONS;
-	public static final String AGREEMENT_ANNOTATIONS = AGREEMENT_ID+ANNOTATIONS;
 	public static final String FOLDER_ANNOTATIONS 	= FOLDER_ID+ANNOTATIONS;
 	public static final String ANALYSIS_ANNOTATIONS	= ANALYSIS_ID+ANNOTATIONS;
 	public static final String STEP_ANNOTATIONS 	= STEP_ID+ANNOTATIONS;
@@ -165,8 +159,6 @@ public class UrlHelpers {
 	public static final String LAYER_PATH 		= LAYER_ID+PATH;
 	public static final String PREVIEW_PATH 	= PREVIEW_ID+PATH;
 	public static final String PROJECT_PATH		= PROJECT_ID+PATH;
-	public static final String EULA_PATH		= EULA_ID+PATH;
-	public static final String AGREEMENT_PATH	= AGREEMENT_ID+PATH;
 	public static final String FOLDER_PATH		= FOLDER_ID+PATH;
 	public static final String ANALYSIS_PATH	= ANALYSIS_ID+PATH;
 	public static final String STEP_PATH		= STEP_ID+PATH;
@@ -187,8 +179,6 @@ public class UrlHelpers {
 	public static final String LAYER_CHILDREN	 	= PARENT_TYPE_ID+LAYER;
 	public static final String PREVIEW_CHILDREN		= PARENT_TYPE_ID+PREVIEW;
 	public static final String PROJECT_CHILDREN		= PARENT_TYPE_ID+PROJECT;
-	public static final String EULA_CHILDREN		= PARENT_TYPE_ID+EULA;
-	public static final String AGREEMENT_CHILDREN	= PARENT_TYPE_ID+AGREEMENT;
 	public static final String FOLDER_CHILDREN		= PARENT_TYPE_ID+FOLDER;
 	public static final String ANALYSIS_CHILDREN	= PARENT_TYPE_ID+ANALYSIS;
 	public static final String STEP_CHILDREN		= PARENT_TYPE_ID+STEP;
@@ -200,8 +190,6 @@ public class UrlHelpers {
 	public static final String LAYER_SCHEMA 	= LAYER+SCHEMA;
 	public static final String PREVIEW_SCHEMA 	= PREVIEW+SCHEMA;
 	public static final String PROJECT_SCHEMA 	= PROJECT+SCHEMA;
-	public static final String EULA_SCHEMA 		= EULA+SCHEMA;
-	public static final String AGREEMENT_SCHEMA = AGREEMENT+SCHEMA;
 	public static final String FOLDER_SCHEMA 	= FOLDER+SCHEMA;
 	public static final String ANALYSIS_SCHEMA 	= ANALYSIS+SCHEMA;
 	public static final String STEP_SCHEMA 		= STEP+SCHEMA;

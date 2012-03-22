@@ -9,12 +9,12 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.Code;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
@@ -46,7 +46,7 @@ public class LocationableMetadataProviderTest {
 		locations.add(location1);
 		locations.add(location1);
 
-		Layer mock = new Layer();
+		Data mock = new Data();
 		mock.setId("13");
 		mock.setParentId("12");
 		mock.setMd5("85e8c666f57573345d7b9fbe8d704f05");
@@ -92,7 +92,7 @@ public class LocationableMetadataProviderTest {
 		List<LocationData> locations = new LinkedList<LocationData>();
 		locations.add(location);
 
-		Layer mock = new Layer();
+		Data mock = new Data();
 		mock.setParentId("12");
 		mock.setMd5("85e8c666f57573345d7b9fbe8d704f055");
 		mock.setType(LayerTypeNames.G);
@@ -112,7 +112,7 @@ public class LocationableMetadataProviderTest {
 		List<LocationData> locations = new LinkedList<LocationData>();
 		locations.add(location);
 
-		Dataset mock = new Dataset();
+		Study mock = new Study();
 		mock.setParentId("12");
 		// Letter O instead of zero
 		mock.setMd5("85e8c666f57573345d7b9fbe8d704fO5");
@@ -131,7 +131,7 @@ public class LocationableMetadataProviderTest {
 		List<LocationData> locations = new LinkedList<LocationData>();
 		locations.add(location);
 
-		Layer mock = new Layer();
+		Data mock = new Data();
 		mock.setParentId("12");
 		mock.setMd5("85e8c666f57573345d7b9fbe8d704f05");
 		mock.setType(LayerTypeNames.E);

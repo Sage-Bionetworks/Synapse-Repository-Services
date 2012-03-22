@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -22,7 +22,7 @@ public class SchemaCacheTest {
 	
 	@Test
 	public void testGetSchema() throws JSONObjectAdapterException{
-		Dataset ds = new Dataset();
+		Study ds = new Study();
 		ObjectSchema schema = SchemaCache.getSchema(ds);
 		assertNotNull(schema);
 		assertNotNull(schema.getProperties());

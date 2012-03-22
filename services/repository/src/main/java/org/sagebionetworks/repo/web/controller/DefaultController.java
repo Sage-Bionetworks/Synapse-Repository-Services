@@ -75,8 +75,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW,
 			UrlHelpers.PROJECT,
 			UrlHelpers.FOLDER,
-			UrlHelpers.EULA,
-			UrlHelpers.AGREEMENT,
 			UrlHelpers.ANALYSIS,
 			UrlHelpers.STEP,
 			UrlHelpers.CODE
@@ -149,8 +147,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ID,
 			UrlHelpers.PROJECT_ID,
 			UrlHelpers.FOLDER_ID,
-			UrlHelpers.EULA_ID,
-			UrlHelpers.AGREEMENT_ID,
 			UrlHelpers.ANALYSIS_ID,
 			UrlHelpers.STEP_ID,
 			UrlHelpers.CODE_ID
@@ -229,8 +225,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ID,
 			UrlHelpers.PROJECT_ID,
 			UrlHelpers.FOLDER_ID,
-			UrlHelpers.EULA_ID,
-			UrlHelpers.AGREEMENT_ID,
 			UrlHelpers.ANALYSIS_ID,
 			UrlHelpers.STEP_ID,
 			UrlHelpers.CODE_ID
@@ -296,8 +290,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ANNOTATIONS,
 			UrlHelpers.PROJECT_ANNOTATIONS,
 			UrlHelpers.FOLDER_ANNOTATIONS,
-			UrlHelpers.EULA_ANNOTATIONS,
-			UrlHelpers.AGREEMENT_ANNOTATIONS,
 			UrlHelpers.ANALYSIS_ANNOTATIONS,
 			UrlHelpers.STEP_ANNOTATIONS,
 			UrlHelpers.CODE_ANNOTATIONS
@@ -329,8 +321,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_PATH,
 			UrlHelpers.PROJECT_PATH,
 			UrlHelpers.FOLDER_PATH,
-			UrlHelpers.EULA_PATH,
-			UrlHelpers.AGREEMENT_PATH,
 			UrlHelpers.ANALYSIS_PATH,
 			UrlHelpers.STEP_PATH,
 			UrlHelpers.CODE_PATH
@@ -398,8 +388,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ANNOTATIONS,
 			UrlHelpers.PROJECT_ANNOTATIONS,
 			UrlHelpers.FOLDER_ANNOTATIONS,
-			UrlHelpers.EULA_ANNOTATIONS,
-			UrlHelpers.AGREEMENT_ANNOTATIONS,
 			UrlHelpers.ANALYSIS_ANNOTATIONS,
 			UrlHelpers.STEP_ANNOTATIONS,
 			UrlHelpers.CODE_ANNOTATIONS
@@ -431,8 +419,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_ID,
 			UrlHelpers.PROJECT_ID,
 			UrlHelpers.FOLDER_ID,
-			UrlHelpers.EULA_ID,
-			UrlHelpers.AGREEMENT_ID,
 			UrlHelpers.ANALYSIS_ID,
 			UrlHelpers.STEP_ID,
 			UrlHelpers.CODE_ID
@@ -495,8 +481,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW,
 			UrlHelpers.PROJECT,
 			UrlHelpers.FOLDER,
-			UrlHelpers.EULA,
-			UrlHelpers.AGREEMENT,
 			UrlHelpers.ANALYSIS,
 			UrlHelpers.STEP,
 			UrlHelpers.CODE
@@ -585,8 +569,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_CHILDREN,
 			UrlHelpers.PROJECT_CHILDREN,
 			UrlHelpers.FOLDER_CHILDREN,
-			UrlHelpers.EULA_CHILDREN,
-			UrlHelpers.AGREEMENT_CHILDREN,
 			UrlHelpers.ANALYSIS_CHILDREN,
 			UrlHelpers.STEP_CHILDREN,
 			UrlHelpers.CODE_CHILDREN
@@ -632,8 +614,6 @@ public class DefaultController extends BaseController {
 			UrlHelpers.PREVIEW_SCHEMA,
 			UrlHelpers.PROJECT_SCHEMA,
 			UrlHelpers.FOLDER_SCHEMA,
-			UrlHelpers.EULA_SCHEMA,
-			UrlHelpers.AGREEMENT_SCHEMA,
 			UrlHelpers.ANALYSIS_SCHEMA,
 			UrlHelpers.STEP_SCHEMA,
 			UrlHelpers.CODE_SCHEMA,

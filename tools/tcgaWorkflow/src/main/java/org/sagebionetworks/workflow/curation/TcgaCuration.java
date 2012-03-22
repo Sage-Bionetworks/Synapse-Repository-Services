@@ -17,7 +17,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
@@ -81,10 +81,10 @@ public class TcgaCuration {
 						+ datasetId + "\" and layer.name == '"
 						+ metadata.get("name") + "'");
 		int numLayersFound = results.getInt("totalNumberOfResults");
-		Layer layer = null;
+		Data layer = null;
 		if (1 == numLayersFound) {
 			layer = synapse.getEntity(results.getJSONArray("results")
-					.getJSONObject(0).getString("layer.id"), Layer.class);
+					.getJSONObject(0).getString("layer.id"), Data.class);
 			if (doneIfExists && (null != layer.getMd5())
 					&& (layer.getType() != LayerTypeNames.C)) {
 				// if the layer has an md5 and isn't a clinical layer, if it
@@ -95,7 +95,7 @@ public class TcgaCuration {
 			throw new UnrecoverableException("We have " + numLayersFound
 					+ " layers with name " + metadata.get("name"));
 		} else {
-			layer = new Layer();
+			layer = new Data();
 			layer.setParentId(datasetId);
 		}
 
@@ -165,7 +165,7 @@ public class TcgaCuration {
 			SynapseException, JSONException {
 
 		Synapse synapse = TcgaWorkflowConfigHelper.getSynapseClient();
-		Layer layer = synapse.getEntity(layerId, Layer.class);
+		Data layer = synapse.getEntity(layerId, Data.class);
 		String md5;
 
 		try {
@@ -216,7 +216,7 @@ public class TcgaCuration {
 				}
 			}
 
-			layer = (Layer) synapse.uploadLocationableToSynapse(layer,
+			layer = (Data) synapse.uploadLocationableToSynapse(layer,
 					tempFile, md5);
 			tempFile.delete();
 		}

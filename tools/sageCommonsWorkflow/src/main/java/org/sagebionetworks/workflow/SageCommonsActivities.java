@@ -5,7 +5,7 @@ import java.io.IOException;
 
 import org.json.JSONException;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
 import com.amazonaws.services.simpleworkflow.flow.annotations.Activities;
@@ -70,7 +70,7 @@ public interface SageCommonsActivities {
 	@ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS, 
 			defaultTaskStartToCloseTimeoutSeconds = Constants.FIVE_MINUTES_OF_SECONDS)
 	@ExponentialRetry(initialRetryIntervalSeconds = INITIAL_RETRY_INTERVAL_SECONDS, maximumAttempts = NUM_RETRIES)
-	Layer getLayer(String layerId) throws SynapseException;
+	Data getLayer(String layerId) throws SynapseException;
 	
 	/**
 	 * Given a url to a spreadsheet from Brig's crawlers, kick off a workflow for each row
@@ -114,7 +114,7 @@ public interface SageCommonsActivities {
 	@Activity(version = VERSION)
 	@ActivityRegistrationOptions(defaultTaskScheduleToStartTimeoutSeconds = Constants.ONE_DAY_OF_SECONDS, 
 			defaultTaskStartToCloseTimeoutSeconds = Constants.FIVE_MINUTES_OF_SECONDS)
-	String formulateNotificationMessage(Layer layer, Integer numJobsDispatched) throws SynapseException, JSONException, UnrecoverableException;
+	String formulateNotificationMessage(Data layer, Integer numJobsDispatched) throws SynapseException, JSONException, UnrecoverableException;
 
 	/**
 	 * @param recipient

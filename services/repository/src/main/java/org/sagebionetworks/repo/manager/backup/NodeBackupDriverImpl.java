@@ -250,8 +250,17 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 					}
 					// This is a backup file.
 					backup = nodeSerializer.readNodeBackup(zin);
-					revisions = new ArrayList<NodeRevisionBackup>();;
-					nodeType = EntityType.valueOf(backup.getNode().getNodeType());
+					revisions = new ArrayList<NodeRevisionBackup>();
+					try{
+						nodeType = EntityType.valueOf(backup.getNode().getNodeType());
+					}catch(IllegalArgumentException e){
+						// This was likely a deleted entity type.
+						nodeType = EntityType.unknown;
+						backup = null;
+						// for now skip unknown types
+						continue;
+					}
+					
 					// Are we restoring the root node?
 					if(backup.getNode().getParentId() == null){
 						// This node is a root.  Does it match the current root?
@@ -264,8 +273,11 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 						}
 					}
 				}else if(isNodeRevisionFile(entry.getName())){
+					// Skip unknown types.
+					if(EntityType.unknown == nodeType) continue;
 					if(backup == null) throw new IllegalArgumentException("Found a revsions without a matching entity.");
 					if(revisions == null) throw new IllegalArgumentException("Found a revisoin without any matching entity");
+
 					// This is a revision file.
 					NodeRevisionBackup revision = NodeSerializerUtil.readNodeRevision(zin);
 					// Add this to the list

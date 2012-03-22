@@ -8,7 +8,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.manager.NodeTranslationUtils;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.EnvironmentDescriptor;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -34,7 +34,7 @@ public class SerializationUseCases {
 	 */
 	public static NodeRevisionBackup createV0DatasetRevision() {
 		// Create a dataset with data
-		Dataset ds = createDatasetWithAllFields();
+		Study ds = createDatasetWithAllFields();
 
 		// Get the annotations for this object
 		Annotations annos = createAnnotationsV0(ds);
@@ -47,7 +47,7 @@ public class SerializationUseCases {
 
 	public static NodeRevisionBackup createV1DatasetRevision() {
 		// Create a dataset with data
-		Dataset ds = createDatasetWithAllFields();
+		Study ds = createDatasetWithAllFields();
 
 		// Get the annotations for this object
 		NamedAnnotations annos = createAnnotationsV1(ds);
@@ -208,20 +208,16 @@ public class SerializationUseCases {
 	 * 
 	 * @return
 	 */
-	public static Dataset createDatasetWithAllFields() {
-		Dataset ds = new Dataset();
+	public static Study createDatasetWithAllFields() {
+		Study ds = new Study();
 		ds.setName("exampleName");
 		ds.setCreatedOn(new Date(100l));
 		ds.setDescription("Examle description");
-		ds.setEulaId("123");
 		ds.setId("546");
 		ds.setAccessControlList("acl/456");
 		ds.setAnnotations("annotations/456");
 		ds.setCreatedBy("sam@bogus.com");
 		ds.setEtag("2");
-		ds.setHasClinicalData(true);
-		ds.setHasExpressionData(false);
-		ds.setHasGeneticData(true);
 		ds.setLayers("layer/456");
 		ds.setParentId("90");
 		ds.setReleaseDate(new Date(45669l));

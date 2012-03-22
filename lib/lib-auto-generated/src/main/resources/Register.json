@@ -6,16 +6,17 @@
             ],
             "urlPrefix":"/dataset",
             "name":"dataset",
-            "className":"org.sagebionetworks.repo.model.Dataset",
+            "className":"org.sagebionetworks.repo.model.Study",
             "defaultParentPath":"/root"
         },
         {
             "validParentTypes":[
-                "/dataset"
+                "/dataset",
+                "/project",
             ],
             "urlPrefix":"/layer",
             "name":"layer",
-            "className":"org.sagebionetworks.repo.model.Layer",
+            "className":"org.sagebionetworks.repo.model.Data",
             "defaultParentPath":"/root"
         },
         {
@@ -37,26 +38,6 @@
             "name":"preview",
             "className":"org.sagebionetworks.repo.model.Preview",
             "defaultParentPath":"/root"
-        },
-        {
-            "validParentTypes":[
-                "DEFAULT",
-                "/folder"
-            ],
-            "urlPrefix":"/eula",
-            "name":"eula",
-            "className":"org.sagebionetworks.repo.model.Eula",
-            "defaultParentPath":"/root/eulas"
-        },
-        {
-            "validParentTypes":[
-                "DEFAULT",
-                "/folder"
-            ],
-            "urlPrefix":"/agreement",
-            "name":"agreement",
-            "className":"org.sagebionetworks.repo.model.Agreement",
-            "defaultParentPath":"/root/agreements"
         },
         {
             "validParentTypes":[

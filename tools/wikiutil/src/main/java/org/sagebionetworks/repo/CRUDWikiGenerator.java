@@ -73,14 +73,6 @@ public class CRUDWikiGenerator {
 							"h3. Create a Project",
 							"Note that the request is a POST and the content type of the data we are sending to the service is json");
 
-			JSONObject eula = wiki
-					.doPost(
-							"/eula",
-							new JSONObject(
-									"{\"name\": \"SageBioCurationEula " + timestamp + "\", \"agreement\": \"<p><b><larger>Copyright 2011 Sage Bionetworks</larger></b><br/><br/></p><p>Licensed under the Apache License, Version 2.0 ...\"}"),
-							"h3. Create a new End-User Licence Agreement",
-							"Create a new End-User License Agreement to specify the terms of use for a dataset and how the dataset should be cited.");
-
 			JSONObject dataset = wiki
 					.doPost(
 							"/dataset",
@@ -88,10 +80,9 @@ public class CRUDWikiGenerator {
 									"{\"status\": \"Pending\", \"description\": \"Genetic and epigenetic alterations have been identified that ...\", "
 											+ "\"createdBy\": \"Charles Sawyers\", \"releaseDate\": \"2008-09-14T00:00:00.000-07:00\", \"versionLabel\": \"1.0.0\", \"name\": \"MSKCC Prostate Cancer\", \"parentId\":\""
 											+ project.getString("id")
-											+ "\", \"eulaId\": \""
-											+ eula.getString("id") + "\"}"),
+											+ "\"}"),
 							"h3. Create a Dataset",
-							"Note that the id of the End-User License Agreement we just created is passed as the value of {{eulaId}} for the dataset so that the End-User License Agreement is bound to the dataset");
+							"");
 
 			dataset.put("status", "Current");
 			wiki

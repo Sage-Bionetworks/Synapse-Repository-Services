@@ -6,7 +6,7 @@ import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -33,7 +33,7 @@ public class AllTypesValidatorTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testNullEvent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
-		Dataset mockDataset =  Mockito.mock(Dataset.class);
+		Study mockDataset =  Mockito.mock(Study.class);
 		allTypesValidator.validateEntity(mockDataset, null);
 	}
 	

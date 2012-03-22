@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.Step;
@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
  * 
  */
 public class LayerMetadataProvider implements
-		TypeSpecificMetadataProvider<Layer> {
+		TypeSpecificMetadataProvider<Data> {
 
 	private static final Logger log = Logger
 			.getLogger(LayerMetadataProvider.class.getName());
@@ -37,18 +37,9 @@ public class LayerMetadataProvider implements
 	@Autowired
 	EntityManager entityManager;
 
-	@Autowired
-	LayerTypeCountCache layerTypeCountCache;
-
 	@Override
-	public void addTypeSpecificMetadata(Layer entity,
+	public void addTypeSpecificMetadata(Data entity,
 			HttpServletRequest request, UserInfo user, EventType eventType) {
-
-		// Only clear the cache for a CREATE or UPDATE event. (See
-		// http://sagebionetworks.jira.com/browse/PLFM-232)
-		if (EventType.CREATE == eventType || EventType.UPDATE == eventType) {
-			clearCountsForLayer(entity);
-		}
 
 		// As a side-effect, update a provenance record, if specified
 		String stepId = request
@@ -59,24 +50,8 @@ public class LayerMetadataProvider implements
 
 	}
 
-	/**
-	 * Helper for clearing the cache.
-	 * 
-	 * @param entity
-	 */
-	private void clearCountsForLayer(Layer entity) {
-		if (entity != null) {
-			if (entity.getParentId() != null) {
-				if (entity.getType() != null) {
-					// Clear any cached counts for this layer
-					layerTypeCountCache.clearCacheFor(entity.getParentId(),	entity.getType());
-				}
-			}
-		}
-	}
-
 	@Override
-	public void validateEntity(Layer entity, EntityEvent event) {
+	public void validateEntity(Data entity, EntityEvent event) {
 		if (entity.getType() == null) {
 			throw new IllegalArgumentException("Layer.type cannot be null");
 		}
@@ -86,9 +61,7 @@ public class LayerMetadataProvider implements
 	}
 
 	@Override
-	public void entityDeleted(Layer entity) {
-		// Clear the counts for this entity.
-		clearCountsForLayer(entity);
+	public void entityDeleted(Data entity) {
 	}
 
 	/**
@@ -107,7 +80,7 @@ public class LayerMetadataProvider implements
 	 * primary request to fail.
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	private void updateProvenanceRecord(String stepId, Layer entity,
+	private void updateProvenanceRecord(String stepId, Data entity,
 			UserInfo user, EventType eventType) {
 		
 		// Deleting a layer has no effect on provenance

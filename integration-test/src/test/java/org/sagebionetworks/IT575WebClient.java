@@ -1,11 +1,8 @@
 package org.sagebionetworks;
 
 
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.*;
 
 import java.io.BufferedWriter;
 import java.io.File;
@@ -23,11 +20,10 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.repo.model.Dataset;
-import org.sagebionetworks.repo.model.Eula;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.web.client.EntityTypeProvider;
@@ -39,7 +35,6 @@ import org.sagebionetworks.web.client.security.AuthenticationController;
 import org.sagebionetworks.web.client.services.NodeServiceAsync;
 import org.sagebionetworks.web.client.transform.NodeModelCreator;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAsync;
-import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloader;
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloaderView;
 import org.sagebionetworks.web.shared.EntityWrapper;
 import org.sagebionetworks.web.shared.users.UserData;
@@ -57,9 +52,8 @@ public class IT575WebClient {
 	private static File testUploadfile = null;
 	private static Synapse synapse = null;
 	private static Project project = null;
-	private static Dataset dataset = null;
-	private static Layer layer = null;
-	private static Eula eula = null;
+	private static Study dataset = null;
+	private static Data layer = null;
 
 	
 	List<String> toDelete;
@@ -85,16 +79,12 @@ public class IT575WebClient {
 		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
 		
-		eula = new Eula();
-		eula.setAgreement("Agreement");
-		eula = synapse.createEntity(eula);
 		
 		project = synapse.createEntity(new Project());
-		dataset = new Dataset();
+		dataset = new Study();
 		dataset.setParentId(project.getId());
-		dataset.setEulaId(eula.getId());
 		dataset = synapse.createEntity(dataset);
-		layer = new Layer();
+		layer = new Data();
 		layer.setParentId(dataset.getId());
 		layer.setType(LayerTypeNames.G);			
 		layer = synapse.createEntity(layer);		
@@ -151,22 +141,21 @@ public class IT575WebClient {
 		
 		// provide for mocks
 		when(mockAuthenticationController.getLoggedInUser()).thenReturn(userData);
-		when(mockNodeModelCreator.createEntity(anyString(), eq(Eula.class))).thenReturn(eula);
 		JSONObjectAdapter datasetObj = jsonObjectAdapterProvider.createNew();
 		dataset.writeToJSONObject(datasetObj);
-		EntityWrapper datasetWrapper = new EntityWrapper(datasetObj.toJSONString(), Dataset.class.getName(), null);
+		EntityWrapper datasetWrapper = new EntityWrapper(datasetObj.toJSONString(), Study.class.getName(), null);
 		when(mockNodeModelCreator.createEntity(datasetWrapper)).thenReturn(dataset);
 		
 		// create entity type provider
 		EntityTypeProvider entityTypeProvider = new EntityTypeProvider(synapseClient, new JSONObjectAdapterImpl());		
 		
-		// create, run and verify
-		LicensedDownloader downloader = new LicensedDownloader(mockView,
-				nodeService, licenseService, mockNodeModelCreator,
-				mockAuthenticationController, mockGlobalApplicationState,
-				synapseClient, jsonObjectAdapterProvider, entityTypeProvider);
-		reset(mockView);				
-		downloader.configureHeadless(layer, false);		
+//		// create, run and verify
+//		LicensedDownloader downloader = new LicensedDownloader(mockView,
+//				nodeService, licenseService, mockNodeModelCreator,
+//				mockAuthenticationController, mockGlobalApplicationState,
+//				synapseClient, jsonObjectAdapterProvider, entityTypeProvider);
+//		reset(mockView);				
+//		downloader.configureHeadless(layer, false);		
 		
 		// test 
 		verify(mockView).setDownloadLocations(layer.getLocations(), layer.getMd5());

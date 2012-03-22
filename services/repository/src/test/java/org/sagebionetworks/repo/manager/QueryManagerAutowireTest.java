@@ -21,11 +21,11 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.Dataset;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -78,7 +78,7 @@ public class QueryManagerAutowireTest {
 		
 		// Create some datasets
 		for(int i=0; i<totalEntities; i++){
-			Dataset ds = createForTest(i);
+			Study ds = createForTest(i);
 			ds.setParentId(project.getId());
 			ds = entityController.createEntity(userId, ds, mockRequest);
 			assertNotNull(ds);
@@ -96,22 +96,19 @@ public class QueryManagerAutowireTest {
 			annos.addAnnotation("doubleKey", new Double(42*i));
 			entityController.updateEntityAnnotations(userId, ds.getId(), annos, mockRequest);
 			// Add a layer to each dataset
-			Layer inLayer = createLayerForTest(i);
+			Data inLayer = createLayerForTest(i);
 			inLayer.setParentId(ds.getId());
 			inLayer = entityController.createEntity(userId, inLayer, mockRequest);
 		}
 	}
 	
-	private Dataset createForTest(int i){
-		Dataset ds = new Dataset();
+	private Study createForTest(int i){
+		Study ds = new Study();
 		ds.setName("someName"+i);
 		ds.setDescription("someDesc"+i);
 		ds.setCreatedBy("magic"+i);
 		ds.setCreatedOn(new Date(1001));
 		ds.setAnnotations("someAnnoUrl"+1);
-		ds.setHasClinicalData(false);
-		ds.setHasExpressionData(true);
-		ds.setHasGeneticData(true);
 		ds.setLayers("someLayerUrl"+i);
 		ds.setReleaseDate(new Date(15689));
 		ds.setStatus("someStatus"+i);
@@ -119,8 +116,8 @@ public class QueryManagerAutowireTest {
 		return ds;
 	}
 	
-	private Layer createLayerForTest(int i) throws InvalidModelException{
-		Layer layer = new Layer();
+	private Data createLayerForTest(int i) throws InvalidModelException{
+		Data layer = new Data();
 		layer.setName("layerName"+i);
 		layer.setDescription("layerDesc"+i);
 		layer.setCreatedOn(new Date(1001));
@@ -169,10 +166,6 @@ public class QueryManagerAutowireTest {
 		Collection<String> collect = (Collection<String>) ob;
 		assertTrue(collect.contains("three"));
 		
-		// Every dataset should have these properties
-		assertFalse((Boolean) row.get("hasClinicalData"));
-		assertTrue((Boolean) row.get("hasGeneticData"));
-		assertFalse((Boolean) row.get("hasExpressionData"));
 		assertFalse("Test for bug PLFM-834", row.containsKey("jsonschema"));
 	}
 

@@ -1,7 +1,7 @@
 package org.sagebionetworks.workflow;
 
 import org.apache.log4j.Logger;
-import org.sagebionetworks.repo.model.Layer;
+import org.sagebionetworks.repo.model.Data;
 
 import com.amazonaws.services.simpleworkflow.flow.annotations.Asynchronous;
 import com.amazonaws.services.simpleworkflow.flow.core.Promise;
@@ -47,7 +47,7 @@ public class SageCommonsWorkflowImpl implements SageCommonsWorkflow {
 					client.processSpreadsheet(submission);
 				}
 				else {
-					Promise<Layer> layer = client.getLayer(submission);
+					Promise<Data> layer = client.getLayer(submission);
 					processLayerSubmission(layer);
 
 				}
@@ -68,8 +68,8 @@ public class SageCommonsWorkflowImpl implements SageCommonsWorkflow {
 	}
 	
 	@Asynchronous
-	private void processLayerSubmission(Promise<Layer> layerPromise) {
-		Layer layer = layerPromise.get();
+	private void processLayerSubmission(Promise<Data> layerPromise) {
+		Data layer = layerPromise.get();
 		Promise<Integer> numJobs = client.processSpreadsheet(layer.getLocations().get(0).getPath());
 		Promise<String> message = client.formulateNotificationMessage(Promise.asPromise(layer), numJobs);
 		client.notifyFollowers(Promise

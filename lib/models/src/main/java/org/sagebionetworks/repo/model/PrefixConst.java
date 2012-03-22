@@ -12,8 +12,6 @@ public class PrefixConst {
 	public final static String PROJECT =	"/project";
 	public final static String LOCATION =	"/location";
 	public final static String PREVIEW =	"/preview";
-	public final static String EULA =		"/eula";
-	public final static String AGREEMENT =	"/agreement";
 	public final static String FOLDER=		"/folder";
 	public final static String ENTITY=		"/entity";
 	public final static String ANALYSIS =	"/analysis";
