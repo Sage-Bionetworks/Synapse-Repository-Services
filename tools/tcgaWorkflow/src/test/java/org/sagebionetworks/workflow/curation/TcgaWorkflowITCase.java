@@ -28,6 +28,7 @@ import com.amazonaws.AmazonServiceException;
  * @author deflaux
  * 
  */
+@Deprecated // See integration-test/src/test/java/org/sagebionetworks/IT525TcgaWorkflow.java
 public class TcgaWorkflowITCase {
 
 	private static final Logger log = Logger.getLogger(TcgaWorkflowITCase.class

@@ -5,6 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.File;
+import java.net.URL;
+
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.junit.AfterClass;
@@ -16,6 +19,8 @@ import org.sagebionetworks.repo.model.Layer;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.utils.HttpClientHelper;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 import org.sagebionetworks.workflow.Constants;
 import org.sagebionetworks.workflow.Notification;
 import org.sagebionetworks.workflow.UnrecoverableException;
@@ -96,6 +101,12 @@ public class IT525TcgaWorkflow {
 		assertEquals(LocationTypeNames.awss3, layer.getLocations().get(0)
 				.getType());
 
+		URL parsedOriginalUrl = new URL(url);
+		String originalFilename = parsedOriginalUrl.getPath().substring(
+				parsedOriginalUrl.getPath().lastIndexOf("/") + 1);
+		URL parsedUrl = new URL(layer.getLocations().get(0).getPath());
+		assertTrue(parsedUrl.getPath().endsWith(originalFilename));
+		
 		JSONObject allAnnotations = synapse.getEntity(layer.getAnnotations());
 		JSONObject annotations = allAnnotations
 				.getJSONObject("stringAnnotations");

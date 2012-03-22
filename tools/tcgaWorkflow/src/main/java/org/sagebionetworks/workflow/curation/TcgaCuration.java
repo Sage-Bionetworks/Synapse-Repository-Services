@@ -199,13 +199,21 @@ public class TcgaCuration {
 			}
 			// If this was unversionsed data from TCGA, download it and import
 			// it to our datastore
-			File tempFile = File.createTempFile("tcga", "data");
+			URL parsedUrl = new URL(tcgaUrl);
+			String originalFilename = parsedUrl.getPath().substring(
+					parsedUrl.getPath().lastIndexOf("/") + 1);
+			File tempFile = File.createTempFile("tcga", originalFilename);
 			tempFile = HttpClientHelper.getContent(TcgaWorkflowConfigHelper
 					.getHttpClient(), tcgaUrl, tempFile);
 			md5 = MD5ChecksumHelper.getMD5Checksum(tempFile.getAbsolutePath());
 
 			if (md5.equals(layer.getMd5())) {
-				return false;
+				String currentLocation = layer.getLocations().get(0).getPath();
+				if (-1 < currentLocation.indexOf(originalFilename)) {
+					// The MD5 has not changed and we don't need to repair the
+					// filepath due to bug PLFM-1110 so just skip the upload
+					return false;
+				}
 			}
 
 			layer = (Layer) synapse.uploadLocationableToSynapse(layer,
@@ -308,7 +316,8 @@ public class TcgaCuration {
 
 		Synapse synapse = TcgaWorkflowConfigHelper.getSynapseClient();
 		JSONObject layerResults = synapse
-				.query("select * from layer where layer.id == \"" + layerId + "\"");
+				.query("select * from layer where layer.id == \"" + layerId
+						+ "\"");
 		if (0 == layerResults.getInt("totalNumberOfResults")) {
 			throw new UnrecoverableException(
 					"Unable to formulate message for layer " + layerId);
