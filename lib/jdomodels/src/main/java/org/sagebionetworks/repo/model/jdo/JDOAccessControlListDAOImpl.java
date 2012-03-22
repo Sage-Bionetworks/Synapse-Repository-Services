@@ -52,7 +52,7 @@ public class JDOAccessControlListDAOImpl implements AccessControlListDAO {
 		Map<String,Object> parameters = new HashMap<String,Object>();
 		int i=0;
 		for (UserGroup gId : groups) {
-			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+(i++), KeyFactory.stringToKey(gId.getId()));
+			parameters.put(AuthorizationSqlUtil.BIND_VAR_PREFIX+(i++), gId.getId());
 		}
 		// Bind the type
 		parameters.put(AuthorizationSqlUtil.ACCESS_TYPE_BIND_VAR, accessType.name());

@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,7 +41,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, KeyFactory.stringToKey(id));
+		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, id);
 		basicDao.deleteObjectById(DBOUserProfile.class, param);
 	}
 
@@ -54,14 +53,14 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		UserProfileUtils.copyDtoToDbo(dto, jdo, schema);
 		if (jdo.geteTag()==null) jdo.seteTag(0L);
 		jdo = basicDao.createNew(jdo);
-		return KeyFactory.keyToString(jdo.getOwnerId());
+		return jdo.getOwnerId().toString();
 	}
 
 	@Override
 	public UserProfile get(String id, ObjectSchema schema) throws DatastoreException,
 			NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, KeyFactory.stringToKey(id));
+		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, id);
 		DBOUserProfile jdo = basicDao.getObjectById(DBOUserProfile.class, param);
 		UserProfile dto = new UserProfile();
 		UserProfileUtils.copyDboToDto(jdo, dto, schema);
@@ -81,7 +80,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		// LOCK the record
 		DBOUserProfile dbo = null;
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, KeyFactory.stringToKey(dto.getOwnerId()));
+		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, dto.getOwnerId());
 		try{
 			dbo = simpleJdbcTempalte.queryForObject(SELECT_FOR_UPDATE_SQL, TABLE_MAPPING, param);
 		}catch (EmptyResultDataAccessException e) {
@@ -89,7 +88,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		}
 		// check dbo's etag against dto's etag
 		// if different rollback and throw a meaningful exception
-		if (!dbo.geteTag().equals(KeyFactory.stringToKey(dto.getEtag())))
+		if (!dbo.geteTag().equals(Long.parseLong(dto.getEtag())))
 			throw new ConflictingUpdateException("Use profile was updated since you last fetched it, retrieve it again and reapply the update.");
 		UserProfileUtils.copyDtoToDbo(dto, dbo, schema);
 		dbo.seteTag(1L+dbo.geteTag());

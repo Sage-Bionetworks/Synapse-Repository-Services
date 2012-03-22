@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
 import java.util.ArrayList;
@@ -12,14 +11,13 @@ import java.util.Map;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.UserGroupCache;
 import org.sagebionetworks.repo.model.jdo.UserGroupDAOInitializingBean;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
@@ -172,7 +170,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		try {
 			DBOUserGroup ug = findGroup(name);
 			if (ug==null) return false;
-			delete(KeyFactory.keyToString(ug.getId()));
+			delete(ug.getId().toString());
 			return true;
 		} catch (DatastoreException e) {
 			throw new RuntimeException(e);
@@ -198,7 +196,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			dbo.seteTag(0L);
 		}
 		dbo = basicDao.createNew(dbo);
-		return KeyFactory.keyToString(dbo.getId());
+		return dbo.getId().toString();
 	}
 
 	@Transactional(readOnly = true)
@@ -218,7 +216,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	public UserGroup get(String id) throws DatastoreException,
 			NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, KeyFactory.stringToKey(id));		
+		param.addValue(ID_PARAM_NAME, id);		
 		DBOUserGroup dbo = basicDao.getObjectById(DBOUserGroup.class, param);
 		UserGroup dto = new UserGroup();
 		UserGroupUtils.copyDboToDto(dbo, dto);
@@ -251,9 +249,9 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
-		userGroupCache.delete(KeyFactory.stringToKey(id));
+		userGroupCache.delete(Long.parseLong(id));
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, KeyFactory.stringToKey(id));
+		param.addValue(ID_PARAM_NAME, id);
 		basicDao.deleteObjectById(DBOUserGroup.class, param);
 	}
 

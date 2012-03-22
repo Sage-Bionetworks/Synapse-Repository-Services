@@ -12,7 +12,6 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.schema.ObjectSchema;
 
 public class UserProfileUtils {
@@ -21,7 +20,7 @@ public class UserProfileUtils {
 		if (dto.getOwnerId()==null) {
 			dbo.setOwnerId(null);
 		} else {
-			dbo.setOwnerId(KeyFactory.stringToKey(dto.getOwnerId()));
+			dbo.setOwnerId(Long.parseLong(dto.getOwnerId()));
 		}
 		if (dto.getEtag()==null) {
 			dbo.seteTag(null);
@@ -49,7 +48,7 @@ public class UserProfileUtils {
 		if (dbo.getOwnerId()==null) {
 			dto.setOwnerId(null);
 		} else {
-			dto.setOwnerId(KeyFactory.keyToString(dbo.getOwnerId()));
+			dto.setOwnerId(dbo.getOwnerId().toString());
 		}
 		if (dbo.geteTag()==null) {
 			dto.setEtag(null);

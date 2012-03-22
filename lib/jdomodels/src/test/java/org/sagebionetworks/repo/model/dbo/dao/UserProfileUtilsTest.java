@@ -16,7 +16,7 @@ public class UserProfileUtilsTest {
 	@Test
 	public void testRoundtrip() throws Exception {
 		UserProfile dto = new UserProfile();
-		dto.setOwnerId(KeyFactory.keyToString(101L));
+		dto.setOwnerId("101");
 		dto.setFirstName("foo");
 		dto.setLastName("bar");
 		dto.setRStudioUrl("http://rstudio.com");

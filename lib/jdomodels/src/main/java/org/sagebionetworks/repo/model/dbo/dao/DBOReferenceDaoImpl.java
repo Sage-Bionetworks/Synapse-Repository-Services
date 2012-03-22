@@ -101,14 +101,10 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 				}
 				// Create the reference
 				Reference reference = new Reference();
-				try {
-					reference.setTargetId(KeyFactory.keyToString(rs.getLong(COL_REFERENCE_TARGET_NODE)));
-					reference.setTargetVersionNumber(rs.getLong(COL_REFERENCE_TARGET_REVISION_NUMBER));
-					if(rs.wasNull()){
-						reference.setTargetVersionNumber(null);
-					}
-				} catch (DatastoreException e) {
-					throw new SQLException(e);
+				reference.setTargetId(KeyFactory.keyToString(rs.getLong(COL_REFERENCE_TARGET_NODE)));
+				reference.setTargetVersionNumber(rs.getLong(COL_REFERENCE_TARGET_REVISION_NUMBER));
+				if(rs.wasNull()){
+					reference.setTargetVersionNumber(null);
 				}
 				// Add it to its group
 				set.add(reference);
@@ -160,17 +156,12 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 		simpleJdbcTemplate.query(fullQuery, new RowMapper<EntityHeader>() {
 			@Override
 			public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
-				try {
-					EntityHeader referrer = new EntityHeader();
-					referrer.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
-					referrer.setName(rs.getString(COL_NODE_NAME));
-					referrer.setType(EntityType.getTypeForId((short)rs.getInt(COL_NODE_TYPE)).name());
-					results.add(referrer);
-					return referrer;
-				}
-				catch(DatastoreException e) {
-					throw new SQLException(e);
-				}
+				EntityHeader referrer = new EntityHeader();
+				referrer.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+				referrer.setName(rs.getString(COL_NODE_NAME));
+				referrer.setType(EntityType.getTypeForId((short)rs.getInt(COL_NODE_TYPE)).name());
+				results.add(referrer);
+				return referrer;
 			}
 		}, fullParameters);
 		EntityHeaderQueryResults ehqr = new EntityHeaderQueryResults();

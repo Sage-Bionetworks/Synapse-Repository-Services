@@ -1,17 +1,15 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class UserGroupUtils {
 	
-	public static void copyDtoToDbo(UserGroup dto, DBOUserGroup dbo) throws DatastoreException{
+	public static void copyDtoToDbo(UserGroup dto, DBOUserGroup dbo) {
 		if (dto.getId()==null) {
 			dbo.setId(null);
 		} else {
-			dbo.setId(KeyFactory.stringToKey(dto.getId()));
+			dbo.setId(Long.parseLong(dto.getId()));
 		}
 		if (dto.getEtag()==null) {
 			dbo.seteTag(null);
@@ -24,11 +22,11 @@ public class UserGroupUtils {
 
 	}
 	
-	public static void copyDboToDto(DBOUserGroup dbo, UserGroup dto) throws DatastoreException {
+	public static void copyDboToDto(DBOUserGroup dbo, UserGroup dto) {
 		if (dbo.getId()==null) {
 			dto.setId(null); 
 		} else {
-			dto.setId(KeyFactory.keyToString(dbo.getId()));
+			dto.setId(dbo.getId().toString());
 		}
 		if (dbo.geteTag()==null) {
 			dto.setEtag(null);

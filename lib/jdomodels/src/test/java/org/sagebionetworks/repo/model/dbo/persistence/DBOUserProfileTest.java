@@ -14,7 +14,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -70,7 +69,7 @@ public class DBOUserProfileTest {
 	public void testCRUD() throws Exception{
 		// Create a new type
 		DBOUserProfile userProfile = new DBOUserProfile();
-		userProfile.setOwnerId(KeyFactory.stringToKey(individualGroup.getId()));
+		userProfile.setOwnerId(Long.parseLong(individualGroup.getId()));
 		userProfile.seteTag(10L);
 		userProfile.setProperties("My dog has fleas.".getBytes());
 		
@@ -80,7 +79,7 @@ public class DBOUserProfileTest {
 		assertEquals(userProfile, clone);
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("ownerId", KeyFactory.stringToKey(individualGroup.getId()));
+		params.addValue("ownerId", individualGroup.getId());
 		clone = dboBasicDao.getObjectById(DBOUserProfile.class, params);
 		assertNotNull(clone);
 		assertEquals(userProfile.getOwnerId(), clone.getOwnerId());

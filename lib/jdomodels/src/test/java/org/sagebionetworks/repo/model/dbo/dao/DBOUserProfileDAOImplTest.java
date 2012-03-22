@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Date;
 
@@ -8,18 +11,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
-import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -82,10 +82,25 @@ public class DBOUserProfileDAOImplTest {
 		UserProfile clone = userProfileDAO.get(id, schema);
 		assertNotNull(clone);
 		assertEquals(userProfile, clone);
-		
+
 		// update it
-		userProfileDAO.update(userProfile, schema);
-		
+		clone.setDisplayName("Mr. Foo Bar");
+		UserProfile updatedProfile = userProfileDAO.update(clone, schema);
+		assertEquals(clone.getDisplayName(), updatedProfile.getDisplayName());
+
+		// TODO fix me PLFM-1105
+/*		
+		assertTrue("etags should be incremented after an update", !clone.getEtag().equals(updatedProfile.getEtag()));
+
+		try {
+			clone.setDisplayName("This Should Fail");
+			userProfileDAO.update(clone, schema);
+			fail("conflicting update exception not thrown");
+		}
+		catch(ConflictingUpdateException e){
+			// We expected this exception
+		}
+*/		
 		// Delete it
 		userProfileDAO.delete(id);
 	}

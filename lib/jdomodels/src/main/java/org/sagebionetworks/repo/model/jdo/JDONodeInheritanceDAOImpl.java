@@ -54,11 +54,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		List<String> list = simpleJdbcTemplate.query(SELECT_BENEFICIARIES, new RowMapper<String>(){
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				try {
-					return KeyFactory.keyToString(rs.getLong(COL_NODE_ID));
-				} catch (DatastoreException e) {
-					throw new SQLException(e);
-				}
+				return KeyFactory.keyToString(rs.getLong(COL_NODE_ID));
 			}}, id);
 		return new HashSet<String>(list);
 	}

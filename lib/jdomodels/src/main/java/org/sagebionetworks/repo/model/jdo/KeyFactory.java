@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.jdo;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 
@@ -27,15 +26,9 @@ public class KeyFactory {
 	 * 
 	 * @param key
 	 * @return a web-safe string representation of a key
-	 * @throws DatastoreException
 	 */
-	public static String keyToString(Long key) throws DatastoreException {
-		try {
-			return SYNAPSE_ID_PREFIX
-					+ URLEncoder.encode(key.toString(), "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			throw new DatastoreException(e);
-		}
+	public static String keyToString(Long key) {
+		return SYNAPSE_ID_PREFIX + key.toString();
 	}
 
 	/**
@@ -48,7 +41,7 @@ public class KeyFactory {
 	 */
 	public static Long stringToKey(String id) throws DatastoreException {
 		try {
-			String decodedId = URLDecoder.decode(id.trim(), "UTF-8");
+			String decodedId = URLDecoder.decode(id, "UTF-8").trim().toLowerCase();
 			if (decodedId.startsWith(SYNAPSE_ID_PREFIX)) {
 				decodedId = decodedId.substring(SYNAPSE_ID_PREFIX.length());
 			}
