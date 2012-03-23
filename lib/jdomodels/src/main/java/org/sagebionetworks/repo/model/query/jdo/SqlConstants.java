@@ -90,6 +90,12 @@ public class SqlConstants {
 	public static final String COL_NODE_TYPE_ID 			= "ID";
 	public static final String DDL_FILE_NODE_TYPE			= "schema/NodeType-ddl.sql";
 	
+	// The name of the node type table.
+	public static final String TABLE_NODE_TYPE_ALIAS		= "NODE_TYPE_ALIAS";
+	public static final String COL_OWNER_TYPE	 			= "OWNER_TYPE";
+	public static final String COL_NODE_TYPE_ALIAS 			= "ALIAS";
+	public static final String DDL_FILE_NODE_TYPE_ALIAS		= "schema/NodeTypeAlias-ddl.sql";
+	
 	
 	public static final String TABLE_ANNOTATION_TYPE		= "ANNOTATION_TYPE";
 
@@ -186,6 +192,7 @@ public class SqlConstants {
 	public static final String OPERATOR_SQL_LESS_THAN				= "<";
 	public static final String OPERATOR_SQL_GREATER_THAN_OR_EQUALS	= ">=";
 	public static final String OPERATOR_SQL_LESS_THAN_OR_EQUALS		= "<=";
+	public static final String OPERATOR_SQL_IN						= "in";
 		
 	public static final String INPUT_DATA_LAYER_DATASET_ID = "INPUT_LAYERS_ID_OWN";
 	
@@ -257,6 +264,8 @@ public class SqlConstants {
 			return OPERATOR_SQL_GREATER_THAN_OR_EQUALS;
 		}else if(Comparator.LESS_THAN_OR_EQUALS == comp){
 			return OPERATOR_SQL_LESS_THAN_OR_EQUALS;
+		}else if(Comparator.IN == comp){
+			return OPERATOR_SQL_IN;
 		}else{
 			throw new IllegalArgumentException("Unsupported Comparator: "+comp);
 		}

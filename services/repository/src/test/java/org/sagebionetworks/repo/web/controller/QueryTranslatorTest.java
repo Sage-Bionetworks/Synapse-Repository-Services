@@ -21,7 +21,7 @@ public class QueryTranslatorTest {
 		QueryStatement stmt = new QueryStatement("select * from dataset");
 		assertNotNull(stmt);
 		BasicQuery results = QueryTranslator.createBasicQuery(stmt);
-		assertEquals(EntityType.dataset, results.getFrom());
+		assertEquals(EntityType.dataset.name(), results.getFrom());
 	}
 	
 	@Test
@@ -29,7 +29,7 @@ public class QueryTranslatorTest {
 		QueryStatement stmt = new QueryStatement("select * from entity");
 		assertNotNull(stmt);
 		BasicQuery results = QueryTranslator.createBasicQuery(stmt);
-		assertEquals(null, results.getFrom());
+		assertEquals("entity", results.getFrom());
 	}
 	
 	@Test

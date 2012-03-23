@@ -560,54 +560,11 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	@Override
 	public QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
 		if(query == null) throw new IllegalArgumentException("Query cannot be null");
-		// This is still here to support the old way of doing things.
-		if(query.getSelect() == null){
-			return executeQueryWithAnnotationsOld(userId, query, request);
-		}
 		// Lookup the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
 		// done
 		return new QueryResults(nodeResults.getAllSelectedData(), nodeResults.getTotalNumberOfResults());
-	}
-	
-
-	@Deprecated
-	public QueryResults executeQueryWithAnnotationsOld(String userId, BasicQuery query,
-			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
-		if(query == null) throw new IllegalArgumentException("Query cannot be null");
-		// Lookup the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
-		// Select the nodeId and type
-		List<String> select = new ArrayList<String>();
-		select.add(NodeField.ID.getFieldName());
-		select.add(NodeField.NODE_TYPE.getFieldName());
-		query.setSelect(select);
-		List<String> ids = nodeResults.getResultIds();
-		List<Map<String, Object>> all = nodeResults.getAllSelectedData();
-		// Convert the list of ids to entities.
-		List<Map<String, Object>> allRows = new ArrayList<Map<String, Object>>();
-		for(Map<String, Object> rowStart: all){
-			String id = (String) rowStart.get(NodeField.ID.getFieldName());
-			Integer nodeType = (Integer) rowStart.get(NodeField.NODE_TYPE.getFieldName());
-			try {
-				// Lookup the entity type
-				EntityType type = EntityType.getTypeForId(nodeType.shortValue());
-
-				Entity entity = this.getEntity(userInfo, id, request, type.getClassForType(), EventType.GET);
-				Annotations annos = this.getEntityAnnotations(userInfo, id, request);
-				Map<String, Object> row = EntityToMapUtil.createMapFromEntity(entity, annos);
-				// Add this row
-				allRows.add(row);
-			} catch (NotFoundException e) {
-				// This should never occur
-				throw new DatastoreException("Node query returned node id: "+id+" but we failed to load this node: "+e.getMessage(), e);
-			} 
-			// Dev Note: queries upon locations where the user has not yet signed the use agreement can correctly result in UnauthorizedException being thrown
-		}
-		// done
-		return new QueryResults(allRows, nodeResults.getTotalNumberOfResults());
 	}
 	
 	/**

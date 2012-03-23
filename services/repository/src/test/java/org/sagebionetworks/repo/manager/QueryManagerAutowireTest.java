@@ -140,7 +140,7 @@ public class QueryManagerAutowireTest {
 	public void testExecuteQuery() throws DatastoreException, NotFoundException, UnauthorizedException {
 		// Build up the query.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.dataset);
+		query.setFrom(EntityType.dataset.name());
 		query.setOffset(0);
 		query.setLimit(totalEntities-2);
 		query.setSort("longKey");

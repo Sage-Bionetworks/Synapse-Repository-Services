@@ -52,5 +52,32 @@ public class DBONodeTypeTest {
 		assertTrue("Failed to delete the type created", result);
 		
 	}
+	
+	@Test
+	public void testAliasCRUD() throws Exception{
+		// Create a new type
+		DBONodeType nodeType = new DBONodeType();
+		nodeType.setId(id);
+		nodeType.setName("FakeType");
+		// Create it
+		DBONodeType clone = dboBasicDao.createNew(nodeType);
+		assertNotNull(clone);
+		assertEquals(nodeType, clone);
+		// Add some aliases
+		for(int i=0; i<12; i++){
+			DBONodeTypeAlias alias = new DBONodeTypeAlias();
+			alias.setTypeOwner(nodeType.getId());
+			String aliasValue = "alias-"+i;
+			alias.setAlias(aliasValue);
+			dboBasicDao.createNew(alias);
+			// Make sure we can fetch it.
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue("typeOwner", id);
+			params.addValue("alias", aliasValue);
+			DBONodeTypeAlias aliasClone = dboBasicDao.getObjectById(DBONodeTypeAlias.class, params);
+			assertEquals(alias, aliasClone);
+		}
+		
+	}
 
 }

@@ -4,6 +4,11 @@
             "validParentTypes":[
                 "/project"
             ],
+            "aliases":[
+                "dataset",
+                "study",
+                
+            ],
             "urlPrefix":"/dataset",
             "name":"dataset",
             "className":"org.sagebionetworks.repo.model.Study",
@@ -13,6 +18,12 @@
             "validParentTypes":[
                 "/dataset",
                 "/project",
+                
+            ],
+            "aliases":[
+                "layer",
+                "data",
+                
             ],
             "urlPrefix":"/layer",
             "name":"layer",
@@ -77,6 +88,6 @@
             "urlPrefix":"/code",
             "className":"org.sagebionetworks.repo.model.Code",
             "defaultParentPath":"/root"
-        }        
+        }
     ]
-} 
+}

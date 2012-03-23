@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.web.query.QueryStatement;
 
@@ -20,14 +19,7 @@ public class QueryTranslator {
 	 */
 	public static BasicQuery createBasicQuery(QueryStatement stmt){
 		BasicQuery basic = new BasicQuery();
-		if(stmt.getTableName() != null){
-			if(ENTITY.equals(stmt.getTableName().toLowerCase())){
-				basic.setFrom(null);
-			}else{
-				EntityType type = EntityType.valueOf(stmt.getTableName());
-				basic.setFrom(type);
-			}
-		}
+		basic.setFrom(stmt.getTableName());
 		basic.setSort(stmt.getSortField());
 		basic.setAscending(stmt.getSortAcending());
 		basic.setLimit(stmt.getLimit());

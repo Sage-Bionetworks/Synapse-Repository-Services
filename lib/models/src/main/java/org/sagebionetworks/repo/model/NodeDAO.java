@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -270,5 +271,12 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 */
 	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Get all of the node types for a given alias.
+	 * @param alias
+	 * @return
+	 */
+	public List<Short> getAllNodeTypesForAlias(String alias);
 
 }

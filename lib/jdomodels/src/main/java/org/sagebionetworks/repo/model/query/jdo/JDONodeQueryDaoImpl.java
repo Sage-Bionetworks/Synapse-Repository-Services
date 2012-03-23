@@ -13,6 +13,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -44,6 +45,9 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	// This is better suited for simple JDBC query.
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	
+	@Autowired
+	private NodeAliasCache alaisCache;
 
 	/**
 	 * The maximum number of bytes allowed per query.
@@ -173,7 +177,8 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 		// Add a filter on type if needed
 		if(in.getFrom() != null){
 			// Add the type to the filter
-			in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.EQUALS, in.getFrom().getId()));
+			List<Short> ids = alaisCache.getAllNodeTypesForAlias(in.getFrom());
+			in.addExpression(new Expression(new CompoundId(null, SqlConstants.TYPE_COLUMN_NAME), Comparator.IN, ids));
 		}
 		
 		// A count query is composed of the following parts
@@ -588,6 +593,9 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 						whereBuilder.append(" IS NULL ");
 					}else{
 						whereBuilder.append(SqlConstants.getSqlForComparator(exp.getCompare()));
+						if(Comparator.IN == exp.getCompare()){
+							whereBuilder.append("(");
+						}
 						whereBuilder.append(" :");
 						// Add a bind variable
 						String bindKey = "expKey" + i;
@@ -598,6 +606,9 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 						}
 						else {
 							parameters.put(bindKey, exp.getValue());
+						}
+						if(Comparator.IN == exp.getCompare()){
+							whereBuilder.append(")");
 						}
 					}
 				} else {

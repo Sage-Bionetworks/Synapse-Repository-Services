@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -442,4 +443,40 @@ public class DefaultControllerAutowiredTest {
 
 	}
 
+	@Test
+	public void testForPLFM_1096() throws ServletException, IOException, ACLInheritanceException{
+		Project project = new Project();
+		project.setName(null);
+		project = ServletTestHelper.createEntity(dispatchServlet, project, TestUserDAO.TEST_USER_NAME);;
+		toDelete.add(project.getId());
+		// Create a dataset
+		Study ds = new Study();
+		ds.setParentId(project.getId());
+		ds = ServletTestHelper.createEntity(dispatchServlet, ds, userName);
+		assertNotNull(ds);
+		toDelete.add(ds.getId());
+		
+		// Create a layer
+		Data data = new Data();
+		data.setParentId(project.getId());
+		data = ServletTestHelper.createEntity(dispatchServlet, data, userName);
+		assertNotNull(data);
+		toDelete.add(data.getId());
+		// Make sure we can find both
+		QueryResults qr = ServletTestHelper.query(dispatchServlet, "select * from study where parentId=='"+project.getId()+"'", userName);
+		assertNotNull(qr);
+		assertEquals(1, qr.getTotalNumberOfResults());
+		assertEquals(ds.getId(), qr.getResults().get(0).get("study.id"));
+		
+		// Make sure we can find both
+		qr = ServletTestHelper.query(dispatchServlet, "select * from data where parentId=='"+project.getId()+"'", userName);
+		assertNotNull(qr);
+		assertEquals(1, qr.getTotalNumberOfResults());
+		assertEquals(data.getId(), qr.getResults().get(0).get("data.id"));
+		// Make sure we can find both with versionable
+		qr = ServletTestHelper.query(dispatchServlet, "select * from versionable where parentId=='"+project.getId()+"'", userName);
+		assertNotNull(qr);
+		assertEquals(2, qr.getTotalNumberOfResults());
+
+	}
 }

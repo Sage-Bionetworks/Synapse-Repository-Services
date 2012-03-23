@@ -100,7 +100,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		assertNotNull(adminUser);
 		// An administrator can see everything.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.project);
+		query.setFrom(EntityType.project.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort("name");
@@ -122,7 +122,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		assertNotNull(adminUser);
 		// An administrator can see everything.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.dataset);
+		query.setFrom(EntityType.dataset.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort("name");
@@ -142,7 +142,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		assertNotNull(adminUser);
 		// An administrator can see everything.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.project);
+		query.setFrom(EntityType.project.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort("name");
@@ -172,7 +172,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		assertNotNull(adminUser);
 		// An administrator can see everything.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.project);
+		query.setFrom(EntityType.project.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort("name");
@@ -202,7 +202,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		assertNotNull(adminUser);
 		// An administrator can see everything.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.dataset);
+		query.setFrom(EntityType.dataset.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort("name");
@@ -233,7 +233,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		assertNotNull(adminUser);
 		// An administrator can see everything.
 		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.dataset);
+		query.setFrom(EntityType.dataset.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort("name");
@@ -268,7 +268,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	@Test
 	public void testQueryWithAnnotations() throws DatastoreException{
 		BasicQuery query = new BasicQuery();
-		query.setFrom(EntityType.dataset);
+		query.setFrom(EntityType.dataset.name());
 		query.setOffset(0);
 		query.setLimit(1000);
 		query.setSort(attributeName);

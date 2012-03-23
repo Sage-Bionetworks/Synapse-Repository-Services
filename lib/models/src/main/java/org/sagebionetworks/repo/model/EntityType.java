@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -207,6 +208,38 @@ public class EntityType {
 	 */
 	public String[] getValidChildTypes(){
 		return validChildren;
+	}
+	
+	/**
+	 * Get all of the aliases that can be used to look then entity type.
+	 * @return
+	 */
+	public Set<String> getAllAliases(){
+		LinkedHashSet<String> set = new LinkedHashSet<String>();
+		if(this.metadata != null){
+			if(this.metadata.getAliases() != null){
+				for(String alias: this.metadata.getAliases()){
+					// Add all values as lower case.
+					set.add(alias.toLowerCase());
+				}
+			}
+		}
+		// Add all of the types this Class implements
+		addAllInterfacesRecursive(set, this.clazz);
+		return set;
+	}
+	
+	private static void addAllInterfacesRecursive(HashSet<String> set, Class<?> clazz){
+		set.add(clazz.getSimpleName().toLowerCase());
+		// Add all of the types this Class implements
+		Class<?>[] interfaces = clazz.getInterfaces();
+		if(interfaces != null){
+			for(Class<?> interClass: interfaces){
+				set.add(interClass.getSimpleName().toLowerCase());
+				// Add all this interfances interfaces
+				addAllInterfacesRecursive(set, interClass);
+			}
+		}
 	}
 	
 	public String getDefaultParentPath(){

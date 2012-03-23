@@ -38,7 +38,7 @@ public class QueryUtils {
 		query.setOffset(paging.getOffset()-1);
 		query.setSort(paging.getSortBy());
 		query.setAscending(paging.getAscending());
-		query.setFrom(type);
+		query.setFrom(type.name());
 		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COL_PARENT_ID), Comparator.EQUALS, KeyFactory.stringToKey(parentId)));
 		return query;
 	}
@@ -53,7 +53,7 @@ public class QueryUtils {
 		BasicQuery query = new BasicQuery();
 		query.setSelect(new ArrayList<String>());
 		query.getSelect().add(NodeField.ID.getFieldName());
-		query.setFrom(type);
+		query.setFrom(type.name());
 		query.setLimit(paging.getLimit());
 		query.setOffset(paging.getOffset()-1);
 		query.setAscending(paging.getAscending());

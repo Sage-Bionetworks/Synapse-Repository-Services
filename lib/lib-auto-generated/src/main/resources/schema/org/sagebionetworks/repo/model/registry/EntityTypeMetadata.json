@@ -25,6 +25,13 @@
             "items":{
                 "type":"string"
             }
+        },
+        "aliases":{
+            "type":"array",
+            "description":"The list of aliases that can be used to look an entity type with a query.",
+            "items":{
+                "type":"string"
+            }
         }
     }
 }

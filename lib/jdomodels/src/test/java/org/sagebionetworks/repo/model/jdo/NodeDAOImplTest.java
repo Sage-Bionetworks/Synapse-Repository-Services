@@ -1419,4 +1419,39 @@ public class NodeDAOImplTest {
 		// This should throw a NotFoundException exception
 		Long currentRev = nodeDao.getCurrentRevisionNumber(KeyFactory.keyToString(new Long(-12)));
 	}
+	
+	@Test
+	public void testGetAllNodeTypesForAlias(){
+		// This should return all entity types.
+		List<Short> expected = new ArrayList<Short>();
+		for(short i=0; i<EntityType.values().length; i++){
+			expected.add(i);
+		}
+		List<Short> ids = nodeDao.getAllNodeTypesForAlias("entity");
+		assertNotNull(ids);
+		System.out.println(ids);
+		assertEquals(expected, ids);
+		
+		// Test some of the known types
+		ids = nodeDao.getAllNodeTypesForAlias("dataset");
+		assertNotNull(ids);
+		assertEquals(1, ids.size());
+		assertEquals(new Short(EntityType.dataset.getId()), ids.get(0));
+		
+		ids = nodeDao.getAllNodeTypesForAlias("study");
+		assertNotNull(ids);
+		assertEquals(1, ids.size());
+		assertEquals(new Short(EntityType.dataset.getId()), ids.get(0));
+		
+		ids = nodeDao.getAllNodeTypesForAlias("layer");
+		assertNotNull(ids);
+		assertEquals(1, ids.size());
+		assertEquals(new Short(EntityType.layer.getId()), ids.get(0));
+		
+		ids = nodeDao.getAllNodeTypesForAlias("data");
+		assertNotNull(ids);
+		assertEquals(1, ids.size());
+		assertEquals(new Short(EntityType.layer.getId()), ids.get(0));
+		
+	}
 }

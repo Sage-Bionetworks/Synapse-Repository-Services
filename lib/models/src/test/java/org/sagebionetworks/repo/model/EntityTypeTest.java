@@ -6,7 +6,9 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.junit.Test;
 
@@ -163,5 +165,39 @@ public class EntityTypeTest {
 		assertNotNull(EntityType.code);
 		assertEquals(PrefixConst.CODE, EntityType.code.getUrlPrefix());
 		assertEquals(Code.class, EntityType.code.getClassForType());
+	}
+	
+	@Test
+	public void testStudyAlais(){
+		LinkedHashSet<String> expected = new LinkedHashSet<String>();
+		Set<String> aliases = EntityType.dataset.getAllAliases();
+		assertTrue(aliases.contains("dataset"));
+		assertTrue(aliases.contains("study"));
+		assertTrue(aliases.contains("entity"));
+	}
+	
+	@Test
+	public void testDataAlais(){
+		LinkedHashSet<String> expected = new LinkedHashSet<String>();
+		Set<String> aliases = EntityType.layer.getAllAliases();
+		assertTrue(aliases.contains("data"));
+		assertTrue(aliases.contains("layer"));
+		assertTrue(aliases.contains("entity"));
+	}
+	
+	@Test
+	public void testProjectAlais(){
+		LinkedHashSet<String> expected = new LinkedHashSet<String>();
+		Set<String> aliases = EntityType.project.getAllAliases();
+		assertTrue(aliases.contains("project"));
+		assertTrue(aliases.contains("entity"));
+	}
+	
+	@Test
+	public void testFolderAlais(){
+		LinkedHashSet<String> expected = new LinkedHashSet<String>();
+		Set<String> aliases = EntityType.folder.getAllAliases();
+		assertTrue(aliases.contains("folder"));
+		assertTrue(aliases.contains("entity"));
 	}
 }

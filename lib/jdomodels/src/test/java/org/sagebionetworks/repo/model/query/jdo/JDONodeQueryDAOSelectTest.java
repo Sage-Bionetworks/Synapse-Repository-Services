@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -243,5 +244,6 @@ public class JDONodeQueryDAOSelectTest {
 		assertNotNull(results);
 		assertTrue(results.getTotalNumberOfResults() > 0);
 	}
+	
 
 }

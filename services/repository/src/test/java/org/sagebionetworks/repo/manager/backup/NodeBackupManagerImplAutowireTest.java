@@ -120,7 +120,7 @@ public class NodeBackupManagerImplAutowireTest {
 		
 		// We should be able to find this node with this query
 		queryForNode = new BasicQuery();
-		queryForNode.setFrom(EntityType.folder);
+		queryForNode.setFrom(EntityType.folder.name());
 		queryForNode.addExpression(new Expression(new CompoundId(null, uniqueAnnotationName), 
 				org.sagebionetworks.repo.model.query.Comparator.EQUALS, uniqueAnnotationValue));
 		assertEquals(1, nodeQueryDao.executeCountQuery(queryForNode, nonAdminUser));

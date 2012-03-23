@@ -8,14 +8,19 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_TYPE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STRING_ANNOTATIONS;
 
 import java.io.IOException;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -42,12 +47,14 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeType;
+import org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -62,6 +69,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = true)
 public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	
+	private static final String SQL_SELECT_TYPE_FOR_ALIAS = "SELECT DISTINCT "+COL_OWNER_TYPE+" FROM "+TABLE_NODE_TYPE_ALIAS+" WHERE "+COL_NODE_TYPE_ALIAS+" = ?";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_COUNT_NODES = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
@@ -605,6 +613,13 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 				jdo.setId(type.getId());
 				jdo.setName(type.name());
 				dboBasicDao.createNew(jdo);
+				// Create the aliases for this type.
+				for(String aliasString: type.getAllAliases()){
+					DBONodeTypeAlias alias = new DBONodeTypeAlias();
+					alias.setTypeOwner(type.getId());
+					alias.setAlias(aliasString);
+					dboBasicDao.createNew(alias);
+				}
 			}
 		}
 	}
@@ -959,6 +974,18 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}catch(EmptyResultDataAccessException e){
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
+	}
+
+	@Override
+	public List<Short> getAllNodeTypesForAlias(String alias) {
+		if(alias == null) throw new IllegalArgumentException("Alias cannot be null");
+		// Run the query.
+		return this.simpleJdbcTemplate.query(SQL_SELECT_TYPE_FOR_ALIAS, new RowMapper<Short>() {
+			@Override
+			public Short mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return  rs.getShort(COL_OWNER_TYPE);
+			}
+		}, alias);
 	}
 
 

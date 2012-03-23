@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.EntityType;
 public class BasicQuery {
 	
 	List<String> select;
-	EntityType from;
+	String from;
 	String sort;
 	List<Expression> filters;
 	boolean ascending = true;
@@ -27,10 +27,10 @@ public class BasicQuery {
 	public void setSelect(List<String> select) {
 		this.select = select;
 	}
-	public EntityType getFrom() {
+	public String getFrom() {
 		return from;
 	}
-	public void setFrom(EntityType from) {
+	public void setFrom(String from) {
 		this.from = from;
 	}
 

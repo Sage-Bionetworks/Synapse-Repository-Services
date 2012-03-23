@@ -20,6 +20,7 @@
 		<property name="databaseObjectRegister">
 			<list>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeType" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORevision" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation" />

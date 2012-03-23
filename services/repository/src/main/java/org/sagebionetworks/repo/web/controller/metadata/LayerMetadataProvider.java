@@ -52,9 +52,9 @@ public class LayerMetadataProvider implements
 
 	@Override
 	public void validateEntity(Data entity, EntityEvent event) {
-		if (entity.getType() == null) {
-			throw new IllegalArgumentException("Layer.type cannot be null");
-		}
+//		if (entity.getType() == null) {
+//			throw new IllegalArgumentException("Layer.type cannot be null");
+//		}
 		if (entity.getParentId() == null) {
 			throw new IllegalArgumentException("Layer.parentId cannot be null");
 		}

@@ -49,6 +49,11 @@ public class SqlConstantsTest {
 	}
 	
 	@Test
+	public void testIn(){
+		assertEquals("in", SqlConstants.getSqlForComparator(Comparator.IN));
+	}
+	
+	@Test
 	public void testgetColumnNameForPrimaryFieldDatasets(){
 		Field[] fields = Study.class.getDeclaredFields();
 		for(int i=0; i<fields.length; i++){
