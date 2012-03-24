@@ -15,7 +15,7 @@
 	<build>
 		<resources>
 			<resource>
-				<!-- This will add the source files to the jar, which is needed for GWT
+				<!-- This will add the source files to the jar, which is needed for GWT 
 					compile. -->
 				<directory>src/main/java</directory>
 			</resource>
@@ -23,9 +23,62 @@
 				<!-- We also want the resources directory added -->
 				<directory>src/main/resources</directory>
 			</resource>
+			<resource>
+				<!-- This will add all of the auto-generated sources files, which is 
+					needed for GWT compile. -->
+				<directory>target/auto-generated</directory>
+			</resource>
 		</resources>
-
-
+		<plugins>
+			<!-- GWT Maven Plugin -->
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>gwt-maven-plugin</artifactId>
+				<version>2.4.0</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>clean</goal>
+							<goal>compile</goal>
+							<goal>test</goal>
+						</goals>
+					</execution>
+				</executions>
+				<!-- Plugin configuration. There are many available options, see gwt-maven-plugin 
+					documentation at codehaus.org -->
+				<configuration>
+					<!-- There are the GWT tests -->
+					<includes>**/*GwtTest*.java</includes>
+					<!-- Run the GWT test with the headless html unit. -->
+					<mode>htmlunit</mode>
+					<module>org.sagebionetworks.repo.SharedSynpaseDTOs</module>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.2.1</version>
+				<executions>
+					<execution>
+						<id>exec-one</id>
+						<phase>generate-resources</phase>
+						<configuration>
+							<!-- This will auto-generate a RegisterConstants.properties file containing 
+								the current Register.json -->
+							<mainClass>org.sagebionetworks.ResourceEncoder</mainClass>
+							<arguments>
+								<argument>Register.json</argument>
+								<argument>${project.build.directory}/auto-generated/org/sagebionetworks/repo/model/RegisterConstants.properties</argument>
+								<argument>org.sagebionetworks.entity.register</argument>
+							</arguments>
+						</configuration>
+						<goals>
+							<goal>java</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
 	</build>
 	<dependencies>
 		<dependency>
@@ -34,7 +87,7 @@
 		</dependency>
 
 
-		<!-- This must remain at the test scope! It uses GWT non-compatible dependencies
+		<!-- This must remain at the test scope! It uses GWT non-compatible dependencies 
 			and cannot be used in a GWT client! -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
@@ -42,10 +95,22 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>com.google.gwt</groupId>
+			<artifactId>gwt-user</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>schema-to-pojo-gwt</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
 	</dependencies>
+
+
 </project>

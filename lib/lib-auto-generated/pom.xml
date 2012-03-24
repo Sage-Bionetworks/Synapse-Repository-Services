@@ -16,7 +16,7 @@
 	<build>
 		<resources>
 			<resource>
-				<!-- This will add the source files to the jar, which is needed for GWT
+				<!-- This will add the source files to the jar, which is needed for GWT 
 					compile. -->
 				<directory>src/main/java</directory>
 			</resource>
@@ -25,8 +25,8 @@
 				<directory>src/main/resources</directory>
 			</resource>
 			<resource>
-				<!-- This will add all of the auto-generated sources files, which is needed for GWT
-					compile. -->
+				<!-- This will add all of the auto-generated sources files, which is 
+					needed for GWT compile. -->
 				<directory>target/auto-generated-pojos</directory>
 			</resource>
 		</resources>
@@ -55,6 +55,12 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>schema-to-pojo-lib</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>commons-codec</groupId>
+			<artifactId>commons-codec</artifactId>
+			<scope>provided</scope>
 		</dependency>
 
 		<dependency>

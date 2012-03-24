@@ -6,8 +6,7 @@
             ],
             "aliases":[
                 "dataset",
-                "study",
-                
+                "study"
             ],
             "urlPrefix":"/dataset",
             "name":"dataset",
@@ -17,13 +16,11 @@
         {
             "validParentTypes":[
                 "/dataset",
-                "/project",
-                
+                "/project"
             ],
             "aliases":[
                 "layer",
-                "data",
-                
+                "data"
             ],
             "urlPrefix":"/layer",
             "name":"layer",
