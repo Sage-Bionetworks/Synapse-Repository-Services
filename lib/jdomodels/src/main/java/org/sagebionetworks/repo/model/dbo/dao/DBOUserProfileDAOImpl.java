@@ -94,8 +94,9 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		dbo.seteTag(1L+dbo.geteTag());
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user profile in database.");
-		UserProfileUtils.copyDboToDto(dbo,  dto, schema);
-		return dto;
+		UserProfile resultantDto = new UserProfile();
+		UserProfileUtils.copyDboToDto(dbo,  resultantDto, schema);
+		return resultantDto;
 	} // the 'commit' is implicit in returning from a method annotated 'Transactional'
 
 	private static final String SELECT_FOR_UPDATE_SQL = "select * from "+TABLE_USER_PROFILE+" where "+COL_USER_PROFILE_ID+

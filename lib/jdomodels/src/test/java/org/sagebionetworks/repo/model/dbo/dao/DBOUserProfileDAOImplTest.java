@@ -88,8 +88,6 @@ public class DBOUserProfileDAOImplTest {
 		UserProfile updatedProfile = userProfileDAO.update(clone, schema);
 		assertEquals(clone.getDisplayName(), updatedProfile.getDisplayName());
 
-		// TODO fix me PLFM-1105
-/*		
 		assertTrue("etags should be incremented after an update", !clone.getEtag().equals(updatedProfile.getEtag()));
 
 		try {
@@ -99,8 +97,7 @@ public class DBOUserProfileDAOImplTest {
 		}
 		catch(ConflictingUpdateException e){
 			// We expected this exception
-		}
-*/		
+		}	
 		// Delete it
 		userProfileDAO.delete(id);
 	}
