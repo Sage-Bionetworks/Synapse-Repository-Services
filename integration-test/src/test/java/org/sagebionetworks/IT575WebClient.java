@@ -39,7 +39,6 @@ import org.sagebionetworks.web.client.widget.licenseddownloader.LicenceServiceAs
 import org.sagebionetworks.web.client.widget.licenseddownloader.LicensedDownloaderView;
 import org.sagebionetworks.web.shared.EntityWrapper;
 import org.sagebionetworks.web.shared.users.UserData;
-import org.sagebionetworks.web.unitclient.RegisterConstantsStub;
 
 import com.gdevelop.gwt.syncrpc.SyncProxy;
 
@@ -149,7 +148,7 @@ public class IT575WebClient {
 		when(mockNodeModelCreator.createEntity(datasetWrapper)).thenReturn(dataset);
 		
 		// create entity type provider
-		EntityTypeProvider entityTypeProvider = new EntityTypeProvider(new RegisterConstantsStub(), new AdapterFactoryImpl());		
+//		EntityTypeProvider entityTypeProvider = new EntityTypeProvider(new RegisterConstantsStub(), new AdapterFactoryImpl());		
 		
 //		// create, run and verify
 //		LicensedDownloader downloader = new LicensedDownloader(mockView,
