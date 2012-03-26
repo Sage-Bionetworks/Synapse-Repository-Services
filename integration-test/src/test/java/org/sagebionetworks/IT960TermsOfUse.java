@@ -83,7 +83,7 @@ public class IT960TermsOfUse {
 	@Test
 	public void testGetTermsOfUse() throws Exception {
 		HttpClientProvider clientProvider = new HttpClientProviderImpl();
-		String requestUrl = authEndpoint+"/termsOfUse";
+		String requestUrl = authEndpoint+"/termsOfUse.html";
 		String requestMethod = "GET";
 		HttpResponse response = clientProvider.performRequest(requestUrl, requestMethod, null, null);
 		String responseBody = (null != response.getEntity()) ? EntityUtils

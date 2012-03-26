@@ -79,6 +79,8 @@ public class AuthorizationConstants {
 	public static final String TERMS_OF_USE_AGREEMENT_URI = "/termsOfUseAgreement";
 	
 	public static final String ACCEPTS_TERMS_OF_USE_ATTRIBUTE = "org.sagebionetworks.termsOfUseAgreement.AcceptsTermsOfUse";
+
+
 	/**
 	 * Request parameter for the authenticated user id or anonymous. Note that
 	 * callers of the service do not actually use this parameter. Instead they

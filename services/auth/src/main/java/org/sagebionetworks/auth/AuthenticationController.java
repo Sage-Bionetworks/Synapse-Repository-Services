@@ -1,6 +1,7 @@
 package org.sagebionetworks.auth;
 
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCEPTS_TERMS_OF_USE_ATTRIBUTE;
+import static org.sagebionetworks.repo.ServiceConstants.ACCEPTS_TERMS_OF_USE_PARAM;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -14,7 +15,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import javax.servlet.http.Cookie;
@@ -29,13 +29,13 @@ import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.authutil.Session;
 import org.sagebionetworks.authutil.User;
+import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -121,17 +121,20 @@ public class AuthenticationController extends BaseController {
 	 * @throws IOException
 	 * @throws ForbiddenException thrown if user doesn't accept terms in this request or previously
 	 */
-	public static void checkTermsOfUse(String userId, Boolean acceptsTermsOfUse) throws NotFoundException, IOException, ForbiddenException {
-		if (CrowdAuthUtil.isAdmin(userId)) return; // administrator need not sign terms of use
+	public static boolean acceptsTermsOfUse(String userId, Boolean acceptsTermsOfUse) throws NotFoundException, IOException {
+		if (CrowdAuthUtil.isAdmin(userId)) return true; // administrator need not sign terms of use
 		if (!getAcceptsTermsOfUse(userId)) {
 			if (acceptsTermsOfUse!=null && acceptsTermsOfUse==true) {
 				setAcceptsTermsOfUse(userId, true);
+				return true;
 			} else {
-				throw new ForbiddenException("You must sign the Synapse terms of use.");
+				return false;
 			}
-		}		
+		}	
+		return true;
 	}
 	
+	private static final String TERMS_OF_USE_ERROR_MESSAGE = "You need to sign the Synapse Terms of Use.   This may be done by logging in to Synapse on the Web.";
 	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/session", method = RequestMethod.POST)
@@ -146,7 +149,8 @@ public class AuthenticationController extends BaseController {
 			}
 			if (session==null) { // not using cache or not found in cache
 				session = CrowdAuthUtil.authenticate(credentials, true);
-				checkTermsOfUse(credentials.getEmail(), credentials.isAcceptsTermsOfUse());
+				if (!acceptsTermsOfUse(credentials.getEmail(), credentials.isAcceptsTermsOfUse()))
+					throw new ForbiddenException(TERMS_OF_USE_ERROR_MESSAGE);
 				if (cacheTimeout>0) {
 					sessionCache.put(credentials, session);
 				}
@@ -162,8 +166,6 @@ public class AuthenticationController extends BaseController {
 	private static final String OPEN_ID_URI = "/openid";
 	
 	private static final String OPENID_CALLBACK_URI = "/openidcallback";
-	
-	private static final String ACCEPTS_TERMS_OF_USE_PARAM = "acceptsTermsOfUse";
 	
 	private static final String OPEN_ID_PROVIDER = "OPEN_ID_PROVIDER";
 	// 		e.g. https://www.google.com/accounts/o8/id
@@ -276,10 +278,14 @@ public class AuthenticationController extends BaseController {
 					acceptsTermsOfUse = Boolean.parseBoolean(c.getValue());
 				}
 			}
-			checkTermsOfUse(email, acceptsTermsOfUse);
 			if (returnToURL==null) throw new RuntimeException("Missing required return-to URL.");
-			String redirectUrl = returnToURL+":"+
-				crowdSession.getSessionToken()/*+":"+crowdSession.getDisplayName() Per PLFM-319*/;
+			
+			String redirectUrl = returnToURL+":";
+			if (acceptsTermsOfUse(email, acceptsTermsOfUse)) {
+				redirectUrl += crowdSession.getSessionToken();
+			} else {
+				redirectUrl += ServiceConstants.ACCEPTS_TERMS_OF_USE_REQUIRED_TOKEN;
+			}
 			String location = response.encodeRedirectURL(redirectUrl);
 			response.sendRedirect(location);
 			
@@ -305,7 +311,9 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = "/session", method = RequestMethod.PUT)
 	public void revalidate(@RequestBody Session session) throws Exception {
 		String userId = CrowdAuthUtil.revalidate(session.getSessionToken());
-		checkTermsOfUse(userId, false /*i.e. may have accepted TOU previously, but acceptance is not given in this request*/);
+		if (!acceptsTermsOfUse(userId, false /*i.e. may have accepted TOU previously, but acceptance is not given in this request*/)) {
+			throw new ForbiddenException(TERMS_OF_USE_ERROR_MESSAGE);
+		}
 	}
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -353,8 +361,6 @@ public class AuthenticationController extends BaseController {
 		User user = CrowdAuthUtil.getUser(userId);
 		return user;
 	}
-	
-
 	
 	// for integration testing
 	@ResponseStatus(HttpStatus.NO_CONTENT)

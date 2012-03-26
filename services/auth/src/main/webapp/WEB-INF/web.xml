@@ -78,7 +78,7 @@
 
 	<servlet-mapping>
 	  <servlet-name>tomcatDefaultServlet</servlet-name>
-	  <url-pattern>/auth/v1/termsOfUse</url-pattern>
+	  <url-pattern>/auth/v1/termsOfUse.html</url-pattern>
 	</servlet-mapping> 
 
 

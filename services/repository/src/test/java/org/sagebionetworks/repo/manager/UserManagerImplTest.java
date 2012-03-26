@@ -88,7 +88,8 @@ public class UserManagerImplTest {
 		assertNotNull(ui.getUser().getId());
 		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, ui.getIndividualGroup().getName());
 		assertEquals(2, ui.getGroups().size());
-		assertEquals(ui.getIndividualGroup(), ui.getGroups().iterator().next());
+		assertTrue(ui.getGroups().contains(ui.getIndividualGroup()));
+		//assertEquals(ui.getIndividualGroup(), ui.getGroups().iterator().next());
 		// They belong to the public group but not the authenticated user's group
 		assertTrue(ui.getGroups().contains(userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.PUBLIC.name(), false)));
 		// Anonymous does not belong to the authenticated user's group.
