@@ -29,34 +29,42 @@ cs-configure-access-policies --domain-name $DOMAIN --update --force --allow 140.
 #-----------[ Configure the search index fields ]--------------------
 
 # Literal fields to be returned in Search Results
-cs-configure-indexing --domain-name $DOMAIN --option result --option search --type literal --name id
-cs-configure-indexing --domain-name $DOMAIN --option result --type literal --name etag 
+cs-configure-fields --domain-name $DOMAIN --option result --option search --type literal --name id
+cs-configure-fields --domain-name $DOMAIN --option result --type literal --name etag 
+cs-configure-fields --domain-name $DOMAIN --option result --type literal --name version_label
 
 # Free text fields to be returned in Search Results
-cs-configure-indexing --domain-name $DOMAIN --option result --name name --type text 
-cs-configure-indexing --domain-name $DOMAIN --option result --type text --name description
+cs-configure-fields --domain-name $DOMAIN --option result --name name --type text 
+cs-configure-fields --domain-name $DOMAIN --option result --type text --name description
 
 # Free text fields
-cs-configure-indexing --domain-name $DOMAIN --option noresult --type text --name annotations 
-cs-configure-indexing --domain-name $DOMAIN --option noresult --type text --name boost
+cs-configure-fields --domain-name $DOMAIN --option noresult --type text --name annotations 
+cs-configure-fields --domain-name $DOMAIN --option noresult --type text --name boost
 
-# Literal text fields
-cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name parent_id
-cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name acl
-cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name update_acl
-cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name created_by
-cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name modified_by
-cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name disease 
-cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name node_type
-cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name platform 
-cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name reference
-cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name species
-cs-configure-indexing --domain-name $DOMAIN --option facet --option search --type literal --name tissue
+# Numeric fields (by default these are both faceted and available to be returned in search results)
+cs-configure-fields --domain-name $DOMAIN --type uint --name modified_on
+cs-configure-fields --domain-name $DOMAIN --type uint --name created_on
+cs-configure-fields --domain-name $DOMAIN --type uint --name num_samples
 
-# Numeric fields
-cs-configure-indexing --domain-name $DOMAIN --type uint --name modified_on
-cs-configure-indexing --domain-name $DOMAIN --type uint --name created_on
-cs-configure-indexing --domain-name $DOMAIN --type uint --name num_samples
+# Literal text field facets
+cs-configure-fields --domain-name $DOMAIN --option facet --option search --type literal --name parent_id
+cs-configure-fields --domain-name $DOMAIN --option facet --option search --type literal --name acl
+cs-configure-fields --domain-name $DOMAIN --option facet --option search --type literal --name update_acl
+cs-configure-fields --domain-name $DOMAIN --option facet --option search --type literal --name created_by
+cs-configure-fields --domain-name $DOMAIN --option facet --option search --type literal --name modified_by
+cs-configure-fields --domain-name $DOMAIN --option facet --option search --type literal --name disease 
+cs-configure-fields --domain-name $DOMAIN --option facet --option search --type literal --name node_type
+cs-configure-fields --domain-name $DOMAIN --option facet --option search --type literal --name platform 
+cs-configure-fields --domain-name $DOMAIN --option facet --option search --type literal --name reference
+cs-configure-fields --domain-name $DOMAIN --option facet --option search --type literal --name species
+cs-configure-fields --domain-name $DOMAIN --option facet --option search --type literal --name tissue
+
+# Literal text fields to be returned in Search Results whose source is a facet
+cs-configure-fields --domain-name $DOMAIN --option result --type literal --source created_by --name created_by_r
+cs-configure-fields --domain-name $DOMAIN --option result --type literal --source modified_by --name modified_by_r
+cs-configure-fields --domain-name $DOMAIN --option result --type literal --source node_type --name node_type_r
+cs-configure-fields --domain-name $DOMAIN --option result --type literal --source disease --name disease_r
+cs-configure-fields --domain-name $DOMAIN --option result --type literal --source tissue --name tissue_r
 
 # Now run indexing
 cs-index-documents --domain-name $DOMAIN

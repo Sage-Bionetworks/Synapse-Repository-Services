@@ -16,6 +16,57 @@
         "description":{
             "description":"The description of this entity.",
             "type":"string"
+        },
+        "node_type":{
+            "type":"string",
+            "description":"The type of this entity.",
+            "title":"Entity Type",
+        },
+        "version_label":{
+            "type":"string",
+            "description":"The version label for this entity",
+            "title":"Version",
+        },
+        "created_on":{
+            "type":"integer",
+            "description":"The seconds since epoch date this entity was created.",
+            "title":"Created On",
+        },
+        "modified_on":{
+            "type":"integer",
+            "description":"The seconds since epoch date this entity was last modified.",
+            "title":"Modified On",
+        },
+        "created_by":{
+            "type":"string",
+            "description":"The user that created this entity.",
+            "title":"Created By",
+        },
+        "modified_by":{
+            "type":"string",
+            "description":"The user that last modified this entity.",
+            "title":"Modified By",
+        },
+        "disease":{
+            "type":"string",
+            "description":"The disease associated with this entity",
+            "title":"Disease"
+        },
+        "tissue":{
+            "type":"string",
+            "description":"Type of tissue for the samples in this entity. Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
+            "links":[
+                {
+                    "rel":"describedby",
+                    "href":"http://synapse.sagebase.org/ontology#6501",
+                },
+            ],
+            "title":"Tissue Type",
+        },
+        "num_samples":{
+            "type":"integer",
+            "description":"Approximate number of samples in this entity",
+            "title":"Number of Samples"
         }
     }
 }

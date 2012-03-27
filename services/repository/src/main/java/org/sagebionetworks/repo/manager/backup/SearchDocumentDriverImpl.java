@@ -310,6 +310,9 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		if (null != node.getDescription()) {
 			fields.setDescription(node.getDescription());
 		}
+		if (null != node.getVersionLabel()) {
+			fields.setVersion_label(node.getVersionLabel());
+		}
 		fields.setCreated_by(node.getCreatedBy());
 		fields.setCreated_on(node.getCreatedOn().getTime() / 1000);
 		fields.setModified_by(node.getModifiedBy());

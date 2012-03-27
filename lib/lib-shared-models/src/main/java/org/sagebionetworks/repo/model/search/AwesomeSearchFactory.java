@@ -19,6 +19,13 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 public class AwesomeSearchFactory {
 
 	/**
+	 * Literal fields that are facets cannot also be returned in search results,
+	 * therefore we add a copy to the search index and add this suffix to that
+	 * field
+	 */
+	public static final String RESULT_FIELD_SUFFIX = "_r";
+
+	/**
 	 * The types of all facets one might ask for in search results from the
 	 * repository service.
 	 */
@@ -61,7 +68,7 @@ public class AwesomeSearchFactory {
 	 * 
 	 * @param awesomeSearchResponse
 	 * @return the SearchResults JSONEntity
-	 * @throws JSONObjectAdapterException 
+	 * @throws JSONObjectAdapterException
 	 */
 	public SearchResults fromAwesomeSearchResults(String awesomeSearchResponse) throws JSONObjectAdapterException {
 
@@ -107,6 +114,9 @@ public class AwesomeSearchFactory {
 						// Our result fields are currently only arrays of length
 						// one
 						dataValue = dataValueArray.getString(0);
+					}
+					if(dataName.endsWith(RESULT_FIELD_SUFFIX)) {
+						dataName = dataName.substring(0, dataName.length() - RESULT_FIELD_SUFFIX.length());
 					}
 					hit.put(dataName, dataValue);
 				}

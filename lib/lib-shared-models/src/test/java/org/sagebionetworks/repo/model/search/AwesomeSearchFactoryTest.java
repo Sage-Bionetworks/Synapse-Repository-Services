@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.search;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.List;
 
@@ -35,6 +36,31 @@ public class AwesomeSearchFactoryTest {
 		assertEquals(10, results.getHits().size());
 		assertEquals(0, results.getFacets().size());
 		assertEquals(new Long(260), results.getFound());
+	}
+
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testParseAllResultFields() throws Exception {
+
+		String response = "{\"rank\":\"-text_relevance\",\"match-expr\":\"(label 'syn4494')\",\"hits\":{\"found\":1,\"start\":0,\"hit\":[{\"id\":\"syn4494\",\"data\":{\"created_by_r\":[\"Charles Sawyers\"],\"created_on\":[\"1312679743\"],\"description\":[\"Genetic and epigenetic alterations have been identified that lead to transcriptional Annotation of prostate cancer genomes provides a foundation for discoveries that can impact disease understanding and treatment. Concordant assessment of DNA copy number, mRNA expression, and focused exon resequencing in the 218 prostate cancer tumors represented in this dataset haveidentified the nuclear receptor coactivator NCOA2 as an oncogene in approximately 11% of tumors. Additionally, the androgen-driven TMPRSS2-ERG fusion was associated with a previously unrecognized, prostate-specific deletion at chromosome 3p14 that implicates FOXP1, RYBP, and SHQ1 as potential cooperative tumor suppressors. DNA copy-number data from primary tumors revealed that copy-number alterations robustly define clusters of low- and high-risk disease beyond that achieved by Gleason score.\"],\"disease_r\":[\"Cancer\"],\"etag\":[\"6\"],\"id\":[\"syn4494\"],\"modified_by_r\":[\"platform@sagebase.org\"],\"modified_on\":[\"1327395121\"],\"name\":[\"MSKCC Prostate Cancer\"],\"node_type_r\":[\"dataset\"],\"num_samples\":[\"261\"],\"tissue_r\":[\"Prostate\"],\"version_label\":[\"0.0.0\"]}}]},\"info\":{\"rid\":\"3d0b49c233c06da5e8576eb86b17339cd0f07fb44135dde6d6aa4d616f2113e5d2a7c04f557dee86\",\"time-ms\":2,\"cpu-time-ms\":0}}";
+		SearchResults results = factory.fromAwesomeSearchResults(response);
+		assertEquals(1, results.getHits().size());
+		Hit hit = results.getHits().get(0);
+		assertEquals("syn4494", hit.getId());
+		assertEquals("MSKCC Prostate Cancer", hit.getName());
+		assertTrue(hit.getDescription().startsWith("Genetic and epigenetic alterations"));
+		assertEquals("6", hit.getEtag());
+		assertEquals("0.0.0", hit.getVersion_label());
+		assertEquals(new Long(1327395121), hit.getModified_on());
+		assertEquals(new Long(1312679743), hit.getCreated_on());
+		assertEquals(new Long(261), hit.getNum_samples());
+		assertEquals("Charles Sawyers", hit.getCreated_by());
+		assertEquals("platform@sagebase.org", hit.getModified_by());
+		assertEquals("dataset", hit.getNode_type());
+		assertEquals("Cancer", hit.getDisease());
+		assertEquals("Prostate", hit.getTissue());
 	}
 
 	/**
