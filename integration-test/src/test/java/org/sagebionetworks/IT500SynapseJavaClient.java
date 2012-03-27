@@ -314,5 +314,19 @@ public class IT500SynapseJavaClient {
 		assertTrue(0 < results.getInt("totalNumberOfResults"));
 	}
 	
+	@Test
+	public void testSignTermsOfUse() throws Exception {
+		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
+				StackConfiguration.getIntegrationTestUserOnePassword(), /*acceptTermsOfUse*/true);
+
+	}
+	
+	@Test
+	public void testRetrieveSynapseTOU() throws Exception {
+		String termsOfUse = synapse.getSynapseTermsOfUse();
+		assertNotNull(termsOfUse);
+		assertTrue(termsOfUse.length()>100);
+	}
+	
 
 }

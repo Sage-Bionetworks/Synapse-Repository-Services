@@ -2,6 +2,7 @@ package org.sagebionetworks.client;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URI;
@@ -223,11 +224,24 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	public void login(String username, String password) throws SynapseException {
-		JSONObject loginRequest = new JSONObject();
+		/**
+		 * Log into Synapse
+		 * 
+		 * @param username
+		 * @param password
+		 * @throws SynapseException
+		 */
+		login(username, password, false);
+	}
+		
+	public void login(String username, String password, boolean explicitlyAcceptsTermsOfUse) throws SynapseException {
+		
+			JSONObject loginRequest = new JSONObject();
 		try {
 			loginRequest.put("email", username);
 			loginRequest.put("password", password);
-
+			if (explicitlyAcceptsTermsOfUse) loginRequest.put("acceptsTermsOfUse", true);
+			
 			boolean reqPr = requestProfile;
 			requestProfile = false;
 
@@ -1237,5 +1251,26 @@ public class Synapse {
 		}
 
 		return searchResults;
+	}
+	
+	
+	public String getSynapseTermsOfUse() throws SynapseException {
+		try {
+			HttpResponse response = clientProvider.performRequest(authEndpoint+"/termsOfUse.html",
+					"GET", null, null);
+			InputStream is = response.getEntity().getContent();
+			StringBuilder sb = new StringBuilder();
+			int i = is.read();
+			while (i>0) {
+				sb.append((char)i);
+				i = is.read();
+			}
+			is.close();
+			return sb.toString();
+		} catch (IOException e) {
+			throw new SynapseException(e);
+		} catch (HttpClientHelperException e) {
+			throw new SynapseException(e);
+		}
 	}
 }
