@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
@@ -60,6 +61,7 @@ public class SearchControllerAutowiredTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // TODO PLFM-1119 move search integration tests from SearchControllerAutowiredTest.java to integration-test
 	@Test
 	public void testAllReturnFields() throws Exception {
 		SearchResults result = testSearchHelper(
