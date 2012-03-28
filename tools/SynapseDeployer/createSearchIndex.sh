@@ -34,7 +34,7 @@ cs-configure-fields --domain-name $DOMAIN --option result --type literal --name 
 cs-configure-fields --domain-name $DOMAIN --option result --type literal --name version_label
 
 # Free text fields to be returned in Search Results
-cs-configure-fields --domain-name $DOMAIN --option result --name name --type text 
+cs-configure-fields --domain-name $DOMAIN --option result --type text --name name 
 cs-configure-fields --domain-name $DOMAIN --option result --type text --name description
 
 # Free text fields
