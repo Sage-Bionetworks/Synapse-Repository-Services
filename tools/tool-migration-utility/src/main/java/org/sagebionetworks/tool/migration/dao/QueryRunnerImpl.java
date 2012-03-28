@@ -141,6 +141,26 @@ public class QueryRunnerImpl implements QueryRunner {
 	}
 	
 	/**
+	 * Check the id and parent ID for the prefix.
+	 * @param data
+	 * @return
+	 */
+	public static EntityData preProcessEntityData(EntityData data){
+		// Convert the id and the parent ID.
+		data.setEntityId(convertToPrefixID(data.getEntityId()));
+		data.setParentId(convertToPrefixID(data.getParentId()));
+		return data;
+	}
+	
+	private static String convertToPrefixID(String in){
+		if(!in.startsWith(QueryRunner.ENTITY_ID_PREFIX)){
+			return QueryRunner.ENTITY_ID_PREFIX+in;
+		}else{
+			return in;
+		}
+	}
+	
+	/**
 	 * Returns null if the value is null, else the string.
 	 * @param object
 	 * @param key

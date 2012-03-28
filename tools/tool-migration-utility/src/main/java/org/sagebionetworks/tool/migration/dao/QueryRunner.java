@@ -19,6 +19,8 @@ import org.sagebionetworks.tool.migration.Progress.BasicProgress;
  */
 public interface QueryRunner {
 	
+	
+	public static String ENTITY_ID_PREFIX = "syn";
 	/**
 	 * Get the root entity.
 	 * @return

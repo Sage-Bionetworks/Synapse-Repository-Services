@@ -12,5 +12,13 @@ public class EntityDataTest {
 		EntityData clone = new EntityData(source);
 		assertEquals(source, clone);
 	}
+	
+	@Test
+	public void testPreProcessEntityData(){
+		EntityData toPrepare = new EntityData("123", "456", "789");
+		EntityData expected = new EntityData(QueryRunner.ENTITY_ID_PREFIX+"123", "456", QueryRunner.ENTITY_ID_PREFIX+"789");
+		EntityData results = QueryRunnerImpl.preProcessEntityData(toPrepare);
+		assertEquals(expected, results);
+	}
 
 }
