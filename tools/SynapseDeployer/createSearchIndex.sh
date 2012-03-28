@@ -31,7 +31,6 @@ cs-configure-access-policies --domain-name $DOMAIN --update --force --allow 140.
 # Literal fields to be returned in Search Results
 cs-configure-fields --domain-name $DOMAIN --option result --option search --type literal --name id
 cs-configure-fields --domain-name $DOMAIN --option result --type literal --name etag 
-cs-configure-fields --domain-name $DOMAIN --option result --type literal --name version_label
 
 # Free text fields to be returned in Search Results
 cs-configure-fields --domain-name $DOMAIN --option result --type text --name name 

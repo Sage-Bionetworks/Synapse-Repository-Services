@@ -65,7 +65,7 @@ public class SearchControllerAutowiredTest {
 	@Test
 	public void testAllReturnFields() throws Exception {
 		SearchResults result = testSearchHelper(
-				"q=syn4494&return-fields=id,name,description,etag,version_label,modified_on,created_on,num_samples,created_by_r,modified_by_r,node_type_r,disease_r,tissue_r",
+				"q=syn4494&return-fields=id,name,description,etag,modified_on,created_on,num_samples,created_by_r,modified_by_r,node_type_r,disease_r,tissue_r",
 				1);
 		if (null != result) {
 			Hit hit = result.getHits().get(0);
@@ -73,7 +73,6 @@ public class SearchControllerAutowiredTest {
 			assertNotNull(hit.getName());
 			assertNotNull(hit.getDescription());
 			assertNotNull(hit.getEtag());
-			assertNotNull(hit.getVersion_label());
 			assertNotNull(hit.getModified_on());
 			assertNotNull(hit.getCreated_on());
 			assertNotNull(hit.getNum_samples());

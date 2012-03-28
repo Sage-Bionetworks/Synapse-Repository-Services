@@ -130,7 +130,6 @@ public class SearchDocumentDriverImplTest {
 		assertEquals(node.getName(), fields.getName());
 		assertEquals(node.getNodeType(), fields.getNode_type());
 		assertEquals(node.getDescription(), fields.getDescription());
-		assertEquals(node.getVersionLabel(), fields.getVersion_label());
 		assertEquals(node.getCreatedBy(), fields.getCreated_by());
 		assertEquals(new Long(node.getCreatedOn().getTime() / 1000), fields.getCreated_on());
 		assertEquals(node.getModifiedBy(), fields.getModified_by());

@@ -22,11 +22,6 @@
             "description":"The type of this entity.",
             "title":"Entity Type",
         },
-        "version_label":{
-            "type":"string",
-            "description":"The version label for this entity",
-            "title":"Version",
-        },
         "created_on":{
             "type":"integer",
             "description":"The seconds since epoch date this entity was created.",
