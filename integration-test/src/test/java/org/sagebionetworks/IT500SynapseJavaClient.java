@@ -6,6 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,6 +21,7 @@ import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.Annotations;
@@ -31,7 +34,9 @@ import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 
@@ -326,6 +331,63 @@ public class IT500SynapseJavaClient {
 		String termsOfUse = synapse.getSynapseTermsOfUse();
 		assertNotNull(termsOfUse);
 		assertTrue(termsOfUse.length()>100);
+	}
+	
+	/**
+	 * Test that we can add an attachment to a project and then get it back.
+	 * 
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	@Test
+	public void testAttachemtnsRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
+		// First create a temp file
+		File temp = File.createTempFile("AttachmentTest", ".txt");
+		File tempDownload = File.createTempFile("AttachmentTestDownload", ".txt");
+		FileOutputStream writer = null;
+		FileInputStream reader = null;
+		try{
+			String fileContents = "I am some text in a file";
+			byte[] fileBytes = fileContents.getBytes("UTF-8");
+			writer = new FileOutputStream(temp);
+			writer.write(fileBytes);
+			writer.close();
+			// Get the md5
+//			String md5 = org.apache.commons.codec.digest.DigestUtils.md5Hex(fileBytes);
+			
+			// We are now ready to add this file as an attachment on the project
+			AttachmentData data = synapse.uploadAttachmentToSynapse(project.getId(), temp);
+			// Save this this attachment on the entity.
+			project.setAttachments(new ArrayList<AttachmentData>());
+			project.getAttachments().add(data);
+			// Save this attachment to the project
+			project = synapse.putEntity(project);
+			assertNotNull(project.getAttachments());
+			assertEquals(1, project.getAttachments().size());
+			AttachmentData clone = project.getAttachments().get(0);
+			assertEquals(data, clone);
+			
+			// Now make sure we can downlaod our
+			synapse.downlaodEntityAttachment(project.getId(), clone, tempDownload);
+			assertTrue(tempDownload.exists());
+			assertTrue(tempDownload.length() == fileBytes.length);
+			// Now make sure the contents are what we expect
+			reader = new FileInputStream(tempDownload);
+			byte[] bytes = new byte[fileBytes.length];
+			reader.read(bytes);
+			String downloadedText = new String(bytes, "UTF-8");
+			assertEquals(fileContents, downloadedText);
+		}finally{
+			if(writer != null){
+				writer.close();
+			}
+			if(reader != null){
+				reader.close();
+			}
+			temp.delete();
+			tempDownload.delete();
+		}
 	}
 	
 

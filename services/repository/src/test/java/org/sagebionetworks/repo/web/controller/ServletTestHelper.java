@@ -35,6 +35,8 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.attachment.PresignedUrl;
+import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
@@ -49,6 +51,7 @@ import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -1633,6 +1636,71 @@ public class ServletTestHelper {
 		}
 		return (UserEntityPermissions) objectMapper.readValue(
 				response.getContentAsString(), UserEntityPermissions.class);
+	}
+	
+	/**
+	 * Create an attachment token.
+	 * @param token
+	 * @return
+	 * @throws JSONObjectAdapterException 
+	 * @throws IOException 
+	 * @throws ServletException 
+	 */
+	public static S3AttachmentToken createS3AttachmentToken(String userId, String entityId, S3AttachmentToken token) throws JSONObjectAdapterException, ServletException, IOException{
+		if (dispatchServlet == null)
+			throw new IllegalArgumentException("Servlet cannot be null");
+		if(entityId == null) throw new IllegalArgumentException("Entity ID cannot be null");
+		if(token == null) throw new IllegalArgumentException("Token cannot be null");
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.ATTACHMENT_S3_TOKEN);
+		System.out.println(request.getRequestURL());
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		StringWriter out = new StringWriter();
+		objectMapper.writeValue(out, token);
+		String body = out.toString();
+		request.setContent(body.getBytes("UTF-8"));
+//		log.debug("About to send: " + body);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		// Done!
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), S3AttachmentToken.class);
+	}
+	
+	/**
+	 * Get a pre-signed URL for a an attachment.
+	 * @param userId
+	 * @param entityId
+	 * @param tokenId
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public PresignedUrl getAttachmentUrl(String userId, String entityId, String tokenId) throws JSONObjectAdapterException, ServletException, IOException{
+		if(entityId == null) throw new IllegalArgumentException("Entity ID cannot be null");
+		if(tokenId == null) throw new IllegalArgumentException("TokenId cannot be null");
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.ATTACHMENT_URL+"/"+tokenId);
+		System.out.println(request.getRequestURL());
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		// Done!
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), PresignedUrl.class);
 	}
 	
 	

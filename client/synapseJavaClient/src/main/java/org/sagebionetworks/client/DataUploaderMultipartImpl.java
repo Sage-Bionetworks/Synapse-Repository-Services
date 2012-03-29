@@ -23,8 +23,12 @@ import com.amazonaws.services.s3.transfer.Upload;
  * @author deflaux
  * 
  */
-public class DataUploaderMultipartImpl implements DataUploader {
+public class DataUploaderMultipartImpl extends  DataUploaderImpl {
 	private ProgressListener progressListener = null;
+	
+	public DataUploaderMultipartImpl(){
+		super();
+	}
 
 	@Override
 	public void setProgressListener(ProgressListener progressListener) {
@@ -32,7 +36,7 @@ public class DataUploaderMultipartImpl implements DataUploader {
 	}
 
 	@Override
-	public void uploadData(S3Token s3Token, File dataFile)
+	public void uploadDataMultiPart(S3Token s3Token, File dataFile)
 			throws SynapseException {
 
 		// Formulate the request, note that S3 does not verify that the entire
@@ -84,4 +88,5 @@ public class DataUploaderMultipartImpl implements DataUploader {
 		}
 		tx.shutdownNow();
 	}
+
 }

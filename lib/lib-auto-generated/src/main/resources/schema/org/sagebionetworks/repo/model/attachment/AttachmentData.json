@@ -1,0 +1,23 @@
+{
+    "description":"JSON Data about a single attachment.",
+    "properties":{
+        "name":{
+            "type":"string",
+             "description":"The name of this attachment."
+        },
+        "tokenId":{
+            "type":"string",
+            "description":"This token is used to get a pre-signed URL that can be used to download this attachment."
+        },
+        "url":{
+            "type":"string",
+            "description":"When provided, the URL can be used to directly download this attachment."
+        },
+        "contentType":{
+            "type":"string"
+        },
+        "md5":{
+            "type":"string"
+        },
+    }
+}

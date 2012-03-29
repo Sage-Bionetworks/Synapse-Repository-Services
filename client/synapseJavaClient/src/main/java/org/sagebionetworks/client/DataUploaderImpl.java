@@ -7,7 +7,7 @@ import java.util.Map;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.S3TokenBase;
 
 /**
  * Single part upload implementation of synapse data
@@ -15,7 +15,7 @@ import org.sagebionetworks.repo.model.S3Token;
  * @author deflaux
  *
  */
-public class DataUploaderImpl implements DataUploader {
+public abstract class DataUploaderImpl implements DataUploader {
 
 	private HttpClientProvider clientProvider;
 	
@@ -43,7 +43,7 @@ public class DataUploaderImpl implements DataUploader {
 	}
 
 	@Override
-	public void uploadData(S3Token s3Token, File dataFile)
+	public void uploadDataSingle(S3TokenBase s3Token, File dataFile)
 			throws SynapseException {
 		try {
 			byte[] encoded = Base64.encodeBase64(Hex.decodeHex(s3Token.getMd5()

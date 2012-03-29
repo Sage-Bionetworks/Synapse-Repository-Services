@@ -59,6 +59,8 @@
 	<bean id="conceptCache" class="org.sagebionetworks.repo.manager.ontology.ConceptCacheLocalImpl" scope="singleton"/>
 	
 	<bean id="conceptManager" class="org.sagebionetworks.repo.manager.ontology.ConceptManagerImpl" scope="singleton"/>
+	
+	<bean id="s3TokenManager" class="org.sagebionetworks.repo.manager.S3TokenManagerImpl" scope="singleton"/>
 
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool" class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">

@@ -1,0 +1,15 @@
+{
+    "description":"JSON The base interface for S3 Tokens",
+     "type":"interface",
+    "properties":{
+        "md5":{
+            "type":"string",  
+        },
+        "contentType":{
+            "type":"string",  
+        },
+        "presignedUrl":{
+            "type":"string",  
+        },
+    }
+}

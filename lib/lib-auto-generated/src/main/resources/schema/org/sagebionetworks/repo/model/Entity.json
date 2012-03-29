@@ -1,6 +1,11 @@
 {
     "description":"This is the base interface that all Entities should implement",
     "type":"interface",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.HasAttachments"
+        }
+    ],
     "properties":{
         "name":{
             "type":"string",
@@ -74,6 +79,14 @@
             "description":"The full class name of this entiy.",
             "transient":true,
         },
-        
+        "attachments":{
+            "type":"array",
+            "description":"The list of attachment data.",
+            "uniqueItems":false,
+            "contentEncoding":"binary",
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.attachment.AttachmentData"
+            }
+        },
     }
 }

@@ -5,7 +5,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.IOException;
+import java.net.URL;
+import java.util.Date;
 import java.util.HashSet;
+
+import javax.servlet.ServletException;
 
 import org.junit.After;
 import org.junit.Before;
@@ -23,8 +28,11 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.attachment.PresignedUrl;
+import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
@@ -167,6 +175,41 @@ public class S3TokenControllerTest {
 							"update access is required to obtain an S3Token for entity"));
 			assertEquals(HttpStatus.FORBIDDEN.value(), ex.getHttpStatus());
 		}
+	}
+	
+	@Test
+	public void testcreateS3AttachmentToken() throws JSONObjectAdapterException, ServletException, IOException{
+		S3AttachmentToken startToken = new S3AttachmentToken();
+		startToken.setFileName("someImage.jpg");
+		startToken.setMd5(TEST_MD5);
+		// Create the token
+		S3AttachmentToken resultToken = testHelper.createS3AttachmentToken(TestUserDAO.TEST_USER_NAME, project.getId(), startToken);
+		System.out.println(resultToken);
+		assertNotNull(resultToken);
+		assertNotNull(resultToken.getTokenId());
+		assertNotNull(resultToken.getPresignedUrl());
+		// Make sure we can get a signed download URL for this attachment.
+		long now = System.currentTimeMillis();
+		long oneMinuteFromNow = now + (60*1000);
+		PresignedUrl url = testHelper.getAttachmentUrl(TestUserDAO.TEST_USER_NAME, project.getId(), resultToken.getTokenId());
+		System.out.println(url);
+		assertNotNull(url);
+		assertNotNull(url.getPresignedUrl());
+		URL urlReal = new URL(url.getPresignedUrl());
+		// Check that it expires quickly.
+		String[] split = urlReal.getQuery().split("&");
+		assertTrue(split.length > 1);
+		String[] expiresSplit = split[0].split("=");
+		assertEquals("Expires", expiresSplit[0]);
+		//It should expire within a minute max
+		Long expirsInt = Long.parseLong(expiresSplit[1]);
+		long expiresMil = expirsInt.longValue() * 1000l;
+		System.out.println("Now: "+new Date(now));
+		System.out.println("Expires: "+new Date(expiresMil));
+		assertTrue("This URL should expire in under a minute!", expiresMil < oneMinuteFromNow);
+		assertTrue("This URL should expire after now!", now <= expiresMil);
+		
+		
 	}
 
 }

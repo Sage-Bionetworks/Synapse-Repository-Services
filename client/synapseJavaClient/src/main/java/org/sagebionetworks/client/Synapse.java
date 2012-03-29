@@ -48,6 +48,9 @@ import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
+import org.sagebionetworks.repo.model.attachment.PresignedUrl;
+import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -82,6 +85,9 @@ public class Synapse {
 	protected static final String ANNOTATION_URI_SUFFIX = "annotations";
 	protected static final String ADMIN = "/admin";
 	protected static final String STACK_STATUS = ADMIN + "/synapse/status";
+	protected static final String ENTITY = "/entity";
+	protected static final String ATTACHMENT_S3_TOKEN = "/s3AttachmentToken";
+	protected static final String ATTACHMENT_URL = "/attachmentUrl";
 
 	protected String repoEndpoint;
 	protected String authEndpoint;
@@ -815,7 +821,7 @@ public class Synapse {
 		s3Token = createEntity(locationable.getS3Token(), s3Token);
 
 		// Step 2: perform the upload
-		dataUploader.uploadData(s3Token, dataFile);
+		dataUploader.uploadDataMultiPart(s3Token, dataFile);
 
 		// Step 3: set the upload location in the locationable so that Synapse
 		// is aware of the new data
@@ -831,6 +837,90 @@ public class Synapse {
 		locationable.setLocations(locations);
 		
 		return putEntity(locationable);
+	}
+	
+	/**
+	 * Upload an attachment to Synapse.
+	 * @param entityId
+	 * @param dataFile
+	 * @param md5
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException 
+	 */
+	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile) throws JSONObjectAdapterException, SynapseException, IOException{
+		// First we need to get an S3 token
+		S3AttachmentToken token = new S3AttachmentToken();
+		token.setFileName(dataFile.getName());
+		String md5 = MD5ChecksumHelper.getMD5Checksum(dataFile
+				.getAbsolutePath());
+		token.setMd5(md5);
+		// Create the token
+		token = createAtachmentS3Token(entityId, token);
+		// Upload the file
+		dataUploader.uploadDataSingle(token, dataFile);
+		// We are now done
+		AttachmentData newData = new AttachmentData();
+		newData.setContentType(token.getContentType());
+		newData.setName(dataFile.getName());
+		newData.setTokenId(token.getTokenId());
+		newData.setMd5(token.getMd5());
+		return newData;
+	}
+	
+	/**
+	 * Get the presigned URL for an entity attachment.
+	 * @param entityId
+	 * @param newData
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public PresignedUrl getAttachmentPresignedUrl(String entityId, AttachmentData newData) throws SynapseException, JSONObjectAdapterException{
+		String url = ENTITY+"/"+entityId+ATTACHMENT_URL+"/"+newData.getTokenId();
+		JSONObject json = getEntity(url);
+		return EntityFactory.createEntityFromJSONObject(json, PresignedUrl.class);
+	}
+	
+	/**
+	 * Download an entity attachment to a local file
+	 * @param entityId
+	 * @param attachmentData
+	 * @param destFile
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public void downlaodEntityAttachment(String entityId, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
+		// First get the URL
+		String url = null;
+		if(attachmentData.getTokenId() != null){
+			// Use the token to get the file
+			PresignedUrl preUrl = getAttachmentPresignedUrl(entityId, attachmentData);
+			url = preUrl.getPresignedUrl();
+		}else{
+			// Just download the file.
+			url = attachmentData.getUrl();
+		}
+		//Now download the file
+		downloadFromSynapse(url, null, destFile);
+	}
+	
+	/**
+	 * Create an Attachment s3 token.
+	 * @param entityId
+	 * @param token
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException 
+	 */
+	public S3AttachmentToken createAtachmentS3Token(String entityId, S3AttachmentToken token) throws JSONObjectAdapterException, SynapseException{
+		if(entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
+		if(token == null) throw new IllegalArgumentException("S3AttachmentToken cannot be null");
+		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(token);
+		String uri = ENTITY+"/"+entityId+ATTACHMENT_S3_TOKEN;
+		jsonObject = createEntity(uri, jsonObject);
+		return EntityFactory.createEntityFromJSONObject(jsonObject, S3AttachmentToken.class);
 	}
 
 	/******************** Mid Level Authorization Service APIs ********************/

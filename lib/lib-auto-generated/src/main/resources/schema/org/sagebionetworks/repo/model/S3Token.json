@@ -1,13 +1,12 @@
 {
     "description":"JSON schema for S3Token POJO, TODO add regular expressions to all of these to check validity",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.S3TokenBase"
+        }        
+    ],
     "properties":{
         "path":{
-            "type":"string",  
-        },
-        "md5":{
-            "type":"string",  
-        },
-        "contentType":{
             "type":"string",  
         },
         "accessKeyId":{
@@ -20,9 +19,6 @@
             "type":"string",  
         },
         "bucket":{
-            "type":"string",  
-        },
-        "presignedUrl":{
             "type":"string",  
         },
     }

@@ -1,0 +1,9 @@
+{
+    "description":"JSON Data about a single attachment.",
+    "properties":{
+        "presignedUrl":{
+            "type":"string",
+             "description":"A presigned url for downloading."
+        }
+    }
+}

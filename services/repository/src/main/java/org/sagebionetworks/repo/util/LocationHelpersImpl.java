@@ -40,6 +40,10 @@ public class LocationHelpersImpl implements LocationHelper {
 
 	private static final int READ_ACCESS_EXPIRY_HOURS = StackConfiguration
 			.getS3ReadAccessExpiryHours();
+	// For access URLs that expire in hours (the method expects an time in seconds)
+	private static final int READ_ACCESS_EXPIRY_HOURS_IN_SECONDS = READ_ACCESS_EXPIRY_HOURS*60*60;
+	private static final int READ_ACCESS_EXPIRY_SECONDS = StackConfiguration
+	.getS3ReadAccessExpirySeconds();
 	private static final int WRITE_ACCESS_EXPIRY_HOURS = StackConfiguration
 			.getS3WriteAccessExpiryHours();
 	private static final String S3_DOMAIN = "s3.amazonaws.com";
@@ -91,16 +95,22 @@ public class LocationHelpersImpl implements LocationHelper {
 	@Override
 	public String presignS3GETUrl(String userId, String s3Key)
 			throws DatastoreException {
-		return getS3Url(userId, s3Key, HttpMethod.GET);
+		return getS3Url(userId, s3Key, HttpMethod.GET, READ_ACCESS_EXPIRY_HOURS_IN_SECONDS);
 	}
 
 	@Override
 	public String presignS3HEADUrl(String userId, String s3Key)
 			throws DatastoreException {
-		return getS3Url(userId, s3Key, HttpMethod.HEAD);
+		return getS3Url(userId, s3Key, HttpMethod.HEAD, READ_ACCESS_EXPIRY_HOURS_IN_SECONDS);
+	}
+	
+	@Override
+	public String presignS3GETUrlShortLived(String userId, String s3Key)
+			throws DatastoreException {
+		return getS3Url(userId, s3Key, HttpMethod.GET, READ_ACCESS_EXPIRY_SECONDS);
 	}
 
-	private String getS3Url(String userId, String s3Key, HttpMethod method)
+	private String getS3Url(String userId, String s3Key, HttpMethod method, int expiresSeconds)
 			throws DatastoreException {
 
 		// Get the credentials with which to sign the request
@@ -109,7 +119,7 @@ public class LocationHelpersImpl implements LocationHelper {
 				token.getSecretAccessKey());
 
 		DateTime now = new DateTime();
-		DateTime expires = now.plusHours(READ_ACCESS_EXPIRY_HOURS);
+		DateTime expires = now.plusSeconds(expiresSeconds);
 		String expirationInSeconds = Long.toString(expires.getMillis() / 1000L);
 
 		// Formulate the canonical string to sign
@@ -285,5 +295,7 @@ public class LocationHelpersImpl implements LocationHelper {
 		String base64Md5 = new String(encoded, "ASCII");
 		System.out.println(args[0] + " base64 encoded= " + base64Md5);
 	}
+
+
 
 }

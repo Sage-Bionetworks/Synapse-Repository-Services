@@ -135,6 +135,15 @@ public class StackConfiguration {
 		return Integer.valueOf(configuration
 				.getProperty("org.sagebionetworks.s3.readAccessExpiryHours"));
 	}
+	
+	/**
+	 * This is for Attachment URLs that expire in seconds.
+	 * @return
+	 */
+	public static Integer getS3ReadAccessExpirySeconds() {
+		return Integer.valueOf(configuration
+				.getProperty("org.sagebionetworks.s3.readAccessExpirySeconds"));
+	}
 
 	public static Integer getS3WriteAccessExpiryHours() {
 		return Integer.valueOf(configuration

@@ -58,6 +58,8 @@ public class UrlHelpers {
 	public static final String OBJECT_TYPE		= "/{objectType}";
 	public static final String OBJECT_TYPE_ID	= OBJECT_TYPE+ID;
 	
+	public static final String TOKEN_ID = "/{tokenId}";
+	
 	public static final String TYPE = "/type";
 	/**
 	 * The URL prefix for all object's Access Control List (ACL).
@@ -93,6 +95,11 @@ public class UrlHelpers {
 	public static final String VERSION = "/version";
 	
 	public static final String REFERENCED_BY	= "/referencedby";
+	
+	public static final String ATTACHMENT_S3_TOKEN = "/s3AttachmentToken";
+	
+	public static final String ATTACHMENT_URL = "/attachmentUrl";
+	public static final String ATTACHMENT_URL_TOKEN_ID = ATTACHMENT_URL+TOKEN_ID;
 
 	/**
 	 * All of the base URLs for Synapse objects
@@ -112,6 +119,8 @@ public class UrlHelpers {
 	 * All of the base URLs for Synapse object batch requests
 	 */
 	public static final String ENTITY_TYPE = ENTITY+TYPE;
+	
+
 
 	/**
 	 * All of the base URLs for Synapse objects with ID.
@@ -126,6 +135,16 @@ public class UrlHelpers {
 	public static final String STEP_ID		= STEP+ID;
 	public static final String CODE_ID		= CODE+ID;
 	public static final String USER_PROFILE_ID		= USER_PROFILE+ID;
+	
+	
+	/**
+	 * Used to get an entity attachment token
+	 */
+	public static final String ENTITY_S3_ATTACHMENT_TOKEN = ENTITY_ID+ATTACHMENT_S3_TOKEN;
+	/**
+	 * The url used to get an attachment URL.
+	 */
+	public static final String ENTITY_ATTACHMENT_URL = ENTITY_ID+ATTACHMENT_URL_TOKEN_ID;
 	
 	/**
 	 * The base URL for Synapse objects's type (a.k.a. EntityHeader)
@@ -164,6 +183,7 @@ public class UrlHelpers {
 	public static final String STEP_PATH		= STEP_ID+PATH;
 	public static final String CODE_PATH		= CODE_ID+PATH;
 	public static final String ENTITY_PATH		= ENTITY_ID+PATH;
+	
 	
 	/**
 	 * All of the base URLs for Synapse object's versions.

@@ -31,6 +31,22 @@ public interface LocationHelper {
 	 * @throws DatastoreException
 	 */
 	String presignS3GETUrl(String userId, String path) throws DatastoreException;
+	
+	/**
+	 * Return a pre-signed URL for use in downloading files from S3. The
+	 * returned URL will be valid for a GET request of a single object in S3.
+	 * Note that authentication and authorization should have been checked
+	 * *prior* to calling this method.
+	 * 
+	 * This version will return a URL that is only good for 10 seconds.
+	 * 
+	 * @param userId
+	 * @param path
+	 *            the s3key for the item
+	 * @return a pre-signed S3 URL valid for GET requests
+	 * @throws DatastoreException
+	 */
+	String presignS3GETUrlShortLived(String userId, String path) throws DatastoreException;
 
 	/**
 	 * Return a pre-signed URL for use checking the status of files in S3, such
