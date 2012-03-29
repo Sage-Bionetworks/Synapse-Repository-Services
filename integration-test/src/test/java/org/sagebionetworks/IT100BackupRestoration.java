@@ -223,6 +223,8 @@ public class IT100BackupRestoration {
 		JSONObject searchDocument = searchDocuments.getJSONObject(0);
 		Document document = EntityFactory.createEntityFromJSONObject(searchDocument, Document.class);
 		assertEquals(projectDescription, document.getFields().getDescription());
+		assertEquals("dev admin", document.getFields().getCreated_by());
+		assertEquals("dev admin", document.getFields().getModified_by());
 	}
 	
 	@Test

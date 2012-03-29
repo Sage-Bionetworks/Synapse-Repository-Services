@@ -11,4 +11,9 @@ public interface NodeAliasCache {
 	
 	public List<Short> getAllNodeTypesForAlias(String alias);
 
+	/*
+	 * Some node types have more than one alias.  This method returns the preferred alias.
+	 */
+	public String getPreferredAlias(String alias);
+	
 }

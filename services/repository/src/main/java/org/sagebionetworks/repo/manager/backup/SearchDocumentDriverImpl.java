@@ -17,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -28,6 +29,8 @@ import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.query.jdo.NodeAliasCache;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
@@ -52,9 +55,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * The index field holding the access control list info
 	 */
 	public static final String ACL_INDEX_FIELD = "acl";
-	public static final int FIELD_VALUE_SIZE_LIMIT = 100; // no more than 100
-	// values in a field
-	// value array
+	/**
+	 * No more than 100 values in a field value array
+	 */
+	public static final int FIELD_VALUE_SIZE_LIMIT = 100;
 
 	private static Log log = LogFactory.getLog(SearchDocumentDriverImpl.class);
 
@@ -69,6 +73,12 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	@Autowired
 	NodeBackupManager backupManager;
+
+	@Autowired
+	NodeAliasCache aliasCache;
+
+	@Autowired
+	UserManager userManager;
 
 	// For now we can just create one of these. We might need to make beans in
 	// the future.
@@ -286,8 +296,9 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		return cleanedDocument.getBytes("UTF-8");
 	}
 
-	static Document formulateSearchDocument(Node node, NodeRevisionBackup rev,
-			AccessControlList acl) {
+	@Override
+	public Document formulateSearchDocument(Node node, NodeRevisionBackup rev,
+			AccessControlList acl) throws DatastoreException, NotFoundException {
 		DateTime now = DateTime.now();
 		Document document = new Document();
 		DocumentFields fields = new DocumentFields();
@@ -299,20 +310,20 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 		// Node fields
 		document.setId(node.getId());
-		document.setVersion(now.getMillis()/1000);
+		document.setVersion(now.getMillis() / 1000);
 		fields.setId(node.getId()); // this is redundant because document id
 		// is returned in search results, but its cleaner to have this also show
 		// up in the "data" section of AwesomeSearch results
-		fields.setEtag(node.getETag()); 
+		fields.setEtag(node.getETag());
 		fields.setParent_id(node.getParentId());
 		fields.setName(node.getName());
-		fields.setNode_type(node.getNodeType());
+		fields.setNode_type(aliasCache.getPreferredAlias(node.getNodeType()));
 		if (null != node.getDescription()) {
 			fields.setDescription(node.getDescription());
 		}
-		fields.setCreated_by(node.getCreatedBy());
+		fields.setCreated_by(getDisplayNameForUserId(node.getCreatedBy()));
 		fields.setCreated_on(node.getCreatedOn().getTime() / 1000);
-		fields.setModified_by(node.getModifiedBy());
+		fields.setModified_by(getDisplayNameForUserId(node.getModifiedBy()));
 		fields.setModified_on(node.getModifiedOn().getTime() / 1000);
 
 		// Stuff in this field any extra copies of data that you would like to
@@ -387,13 +398,30 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				if (FIELD_VALUE_SIZE_LIMIT > updateAclValues.size()) {
 					updateAclValues.add(access.getGroupName());
 				} else {
-					log.error("Had to leave UPDATE acl " + access.getGroupName()
+					log.error("Had to leave UPDATE acl "
+							+ access.getGroupName()
 							+ " out of search document " + node.getId()
 							+ " due to AwesomeSearch limits");
 				}
 			}
 		}
 		return document;
+	}
+
+	private String getDisplayNameForUserId(String userId) {
+		String displayName = userId;
+		try {
+			displayName = userManager.getUserInfo(userId).getUser()
+					.getDisplayName();
+		} catch (NotFoundException ex) {
+			// this is a best-effort attempt to fill in the display name and
+			// this will happen for the 'bootstrap' user and users we may delete
+			// from our system but are still the creators/modifiers of entities
+			log.debug("Unable to get display name for user id: " + userId + ",", ex);
+		} catch (Exception ex) {
+			log.warn("Unable to get display name for user id: " + userId + ",", ex);
+		}
+		return displayName;
 	}
 
 	@SuppressWarnings("unchecked")
