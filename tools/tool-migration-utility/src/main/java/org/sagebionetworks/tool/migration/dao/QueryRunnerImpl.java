@@ -135,6 +135,7 @@ public class QueryRunnerImpl implements QueryRunner {
 		for(int i=0; i<rows.length(); i++){
 			JSONObject row = rows.getJSONObject(i);
 			EntityData data = new EntityData(getStringWithNull(row, idKey), getStringWithNull(row, etagKey),getStringWithNull(row,parentKey));
+			preProcessEntityData(data);
 			results.add(data);
 		}
 		return new EntityQueryResults(results, total);
@@ -153,6 +154,8 @@ public class QueryRunnerImpl implements QueryRunner {
 	}
 	
 	private static String convertToPrefixID(String in){
+		if (null == in)
+			return null;
 		if(!in.startsWith(QueryRunner.ENTITY_ID_PREFIX)){
 			return QueryRunner.ENTITY_ID_PREFIX+in;
 		}else{
