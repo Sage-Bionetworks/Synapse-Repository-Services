@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
@@ -54,6 +55,7 @@ public class SearchControllerAutowiredTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // TODO PLFM-1119
 	@Test
 	public void testSearch() throws Exception {
 		testSearchHelper("q=prostate&return-fields=name", 1);
@@ -62,6 +64,7 @@ public class SearchControllerAutowiredTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // TODO PLFM-1119
 	@Test
 	public void testAllReturnFields() throws Exception {
 		SearchResults result = testSearchHelper(
@@ -87,6 +90,7 @@ public class SearchControllerAutowiredTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // TODO PLFM-1119
 	@Test
 	public void testFacetedSearch() throws Exception {
 		SearchResults result = testSearchHelper(
@@ -102,6 +106,7 @@ public class SearchControllerAutowiredTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // TODO PLFM-1119
 	@Test
 	public void testNoResultsFacetedSearch() throws Exception {
 		SearchResults result = testSearchHelper(
@@ -117,6 +122,7 @@ public class SearchControllerAutowiredTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // TODO PLFM-1119
 	@Test
 	public void testMultiWordFreeTextSearch() throws Exception {
 		testSearchHelper(
@@ -130,6 +136,7 @@ public class SearchControllerAutowiredTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // TODO PLFM-1119
 	@Test
 	public void testBooleanQuerySearch() throws Exception {
 		testSearchHelper(
@@ -139,6 +146,7 @@ public class SearchControllerAutowiredTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // TODO PLFM-1119
 	@Test
 	public void testSearchAuthorizationFilter() throws Exception {
 		SearchResults result = testSearchHelper(
@@ -158,6 +166,7 @@ public class SearchControllerAutowiredTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // TODO PLFM-1119
 	@Test
 	public void testAnonymousSearchAuthorizationFilter() throws Exception {
 		testHelper.setTestUser(AuthorizationConstants.ANONYMOUS_USER_ID);
@@ -175,6 +184,7 @@ public class SearchControllerAutowiredTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // TODO PLFM-1119
 	@Test
 	public void testAdminSearchAuthorizationFilter() throws Exception {
 		testHelper.setTestUser(TestUserDAO.ADMIN_USER_NAME);
@@ -190,6 +200,7 @@ public class SearchControllerAutowiredTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // TODO PLFM-1119
 	@Test
 	public void testDescription() throws Exception {
 		testHelper.setTestUser(TestUserDAO.ADMIN_USER_NAME);
