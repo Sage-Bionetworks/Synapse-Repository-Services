@@ -503,4 +503,15 @@ public class StackConfiguration {
 				.getProperty("org.sagebionetworks.shared.s3.backup.bucket");
 	}
 
+	/**
+	 * 
+	 * Returns the email address to which requests for BCC participation are sent.
+	 * 
+	 * @return
+	 */
+	public static String getBCCApprovalEmail() {
+		return configuration
+				.getProperty("org.sagebionetworks.bcc.approvalEmail");
+	}
+
 }
