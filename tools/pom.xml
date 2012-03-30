@@ -19,7 +19,6 @@
       <module>SynapseDeployer</module>
       <module>tool-migration-utility</module>
       <module>sageCommonsWorkflow</module>
-      <module>bccSetup</module>
   </modules>
 
 </project>
