@@ -153,7 +153,7 @@ public class QueryRunnerImpl implements QueryRunner {
 		return data;
 	}
 	
-	private static String stripPrefixID(String in){
+	public static String stripPrefixID(String in){
 		if (null == in)
 			return null;
 		if(in.startsWith(QueryRunner.ENTITY_ID_PREFIX)){

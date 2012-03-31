@@ -70,15 +70,18 @@ public class ITMigrationQueryRunner {
 		parent = synapse.createEntity(parent);
 		toDelete.add(parent);
 		int children = 11;
+		QueryRunnerImpl queryRunner = new QueryRunnerImpl(synapse);
 		List<EntityData> expectedList = new ArrayList<EntityData>();
 		for(int i=0; i<children; i++){
 			Project child = new Project();
 			child.setParentId(parent.getId());
 			child = synapse.createEntity(child);
-			expectedList.add(new EntityData(child.getId(), child.getEtag(), child.getParentId()));
+			// PLFM-1122: synapse prefix will be stripped by QueryRunner, preporcess expected result
+			EntityData e = new EntityData(child.getId(), child.getEtag(), child.getParentId());
+			queryRunner.preProcessEntityData(e);
+			expectedList.add(e);
 		}
 		// Now make sure we can find all of the children
-		QueryRunnerImpl queryRunner = new QueryRunnerImpl(synapse);
 		String query = QueryRunnerImpl.QUERY_CHILDREN_OF_ENTITY1 + "\"" + parent.getId() + "\"";
 		List<EntityData> results = 	queryRunner.queryForAllPages(query, Constants.ENTITY, 1L, null);
 		assertEquals(expectedList, results);
@@ -107,19 +110,26 @@ public class ITMigrationQueryRunner {
 		Project testRoot = new Project();
 		testRoot.setParentId(root.getEntityId());
 		testRoot = synapse.createEntity(testRoot);
-		expectedOrder.add(new EntityData(testRoot.getId(), testRoot.getEtag(), testRoot.getParentId()));
+		// PLFM-1122
+		EntityData e = new EntityData(testRoot.getId(), testRoot.getEtag(), testRoot.getParentId());
+		queryRunner.preProcessEntityData(e);
+		expectedOrder.add(e);
 		// We want to delete this node
 		toDelete.add(testRoot);
 		// Now add some grand children
 		Project child = new Project();
 		child.setParentId(testRoot.getId());
 		child = synapse.createEntity(child);
-		expectedOrder.add(new EntityData(child.getId(), child.getEtag(), child.getParentId()));
+		e = new EntityData(child.getId(), child.getEtag(), child.getParentId());
+		queryRunner.preProcessEntityData(e);
+		expectedOrder.add(e);
 		// add one more level
 		Project grandChild = new Project();
 		grandChild.setParentId(child.getId());
 		grandChild = synapse.createEntity(grandChild);
-		expectedOrder.add(new EntityData(grandChild.getId(), grandChild.getEtag(), grandChild.getParentId()));
+		e = new EntityData(grandChild.getId(), grandChild.getEtag(), grandChild.getParentId());
+		queryRunner.preProcessEntityData(e);
+		expectedOrder.add(e);
 		// Now query for all nodes should put them in order.
 		List<EntityData> results = queryRunner.getAllEntityData(null);
 		assertNotNull(results);
@@ -135,16 +145,16 @@ public class ITMigrationQueryRunner {
 		int grandChildIndex = -1;
 		for(int i=0; i<results.size(); i++){
 			EntityData entity = results.get(i);
-			if(entity.getEntityId().equals(root.getEntityId())){
+			if(entity.getEntityId().equals(queryRunner.stripPrefixID(root.getEntityId()))){
 				rootIndex = i;
 				continue;
-			}else if(entity.getEntityId().equals(testRoot.getId())){
+			}else if(entity.getEntityId().equals(queryRunner.stripPrefixID(testRoot.getId()))){
 				testRooIndex = i;
 				continue;
-			}else if(entity.getEntityId().equals(child.getId())){
+			}else if(entity.getEntityId().equals(queryRunner.stripPrefixID(child.getId()))){
 				childIndex = i;
 				continue;
-			}else if(entity.getEntityId().equals(grandChild.getId())){
+			}else if(entity.getEntityId().equals(queryRunner.stripPrefixID(grandChild.getId()))){
 				grandChildIndex = i;
 				continue;
 			}
