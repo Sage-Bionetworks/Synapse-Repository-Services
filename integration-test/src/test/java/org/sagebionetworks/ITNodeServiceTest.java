@@ -91,7 +91,7 @@ public class ITNodeServiceTest {
 		assertEquals(project.getString("id"), projectAcl.getString("id"));
 		// Now try to get the ACL for the dataset that inherits from the project.
 		// The node service should automatically resolve the 404.
-		result = nodeService.getNodeAclJSON(NodeType.DATASET, dataset.getString("id"));
+		result = nodeService.getNodeAclJSON(NodeType.STUDY, dataset.getString("id"));
 		assertNotNull("Failed to get the ACL for a dataset that inherits its permissions from its parent project",result);
 		projectAcl = new JSONObject(result);
 		assertEquals(project.getString("id"), projectAcl.getString("id"));
