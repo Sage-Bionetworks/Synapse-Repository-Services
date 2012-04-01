@@ -22,7 +22,6 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.LocationStatusNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;

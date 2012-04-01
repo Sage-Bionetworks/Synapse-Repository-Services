@@ -49,10 +49,6 @@ public class DatasetTest {
 		ldl.add(ld);
 		ds1.setLocations(ldl);
 
-
-		ds1.setStatus("status");
-
-		
 		adapter1 = ds1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
 		adapter2 = new JSONObjectAdapterImpl(s);

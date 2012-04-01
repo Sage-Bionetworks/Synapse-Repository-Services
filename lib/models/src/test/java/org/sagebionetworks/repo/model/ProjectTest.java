@@ -31,8 +31,6 @@ public class ProjectTest {
 		p1.setName("name");
 		p1.setParentId("0");
 		p1.setUri("uri");
-		
-		p1.setStatus("status");
 
 		adapter1 = p1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();

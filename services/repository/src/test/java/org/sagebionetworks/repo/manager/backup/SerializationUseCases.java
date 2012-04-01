@@ -220,8 +220,6 @@ public class SerializationUseCases {
 		ds.setEtag("2");
 		ds.setLayers("layer/456");
 		ds.setParentId("90");
-		ds.setReleaseDate(new Date(45669l));
-		ds.setStatus("cool");
 // TODO: Add location data back
 		ds.setUri("dataset/456");
 		ds.setVersionLabel("1.0.0");

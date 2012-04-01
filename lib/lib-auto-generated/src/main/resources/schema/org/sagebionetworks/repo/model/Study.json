@@ -24,15 +24,24 @@
             "description":"The disease associated with this Study",
             "title":"Disease"
 		},
-        "status":{
+		"numSamples": {
+			"type":"integer",
+			"description":"Approximate number of samples in this Study",
+			"title":"Number of samples"
+		},
+        "platform":{
             "type":"string",
-            "description":"the status of this Study",
-            "title":"Status",
+            "description":"Chip platform for the samples in this Data",
+            "links":[
+                {
+                    "rel":"describedby",
+                    "href":"http://synapse.sagebase.org/ontology#6501",
+                    
+                },
+                
+            ],
+            "title":"Platform",
+            
         },
-        "releaseDate":{
-            "type":"string",
-            "format":"date-time",
-            "title":"Release Date",
-        },        
     }
 }

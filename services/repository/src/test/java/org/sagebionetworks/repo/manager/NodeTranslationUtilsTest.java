@@ -148,8 +148,6 @@ public class NodeTranslationUtilsTest {
 		ds.setEtag("110");
 		ds.setId("12");
 		ds.setLayers("someLayerUrl");
-		ds.setReleaseDate(new Date(System.currentTimeMillis()));
-		ds.setStatus("someStatus");
 		ds.setUri("someUri");
 		ds.setContentType("text/xml");
 		ds.setMd5("8b12c8b413504cf19889efca5605a6c9");
@@ -277,9 +275,7 @@ public class NodeTranslationUtilsTest {
 		layer.setPlatform("somePlate");
 		layer.setPreviews("somePreview");
 //		layer.setProcessingFacility("processing");
-		layer.setPublicationDate(new Date(System.currentTimeMillis()));
 		layer.setReleaseNotes("resleaseNote");
-		layer.setStatus("someStatus");
 		layer.setTissueType("type");
 		layer.setType(LayerTypeNames.C);
 		layer.setUri("someUri");

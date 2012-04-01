@@ -102,7 +102,6 @@ public class TcgaCuration {
 		// Transfer primary field values, if this is an update and users
 		// modified any of these by hand, they will be overwritten
 		layer.setName(metadata.get("name"));
-		layer.setStatus(metadata.get("status"));
 		layer.setType(LayerTypeNames.valueOf(metadata.get("type")));
 		if (metadata.containsKey("platform"))
 			layer.setPlatform(metadata.get("platform"));

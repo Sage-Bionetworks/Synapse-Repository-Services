@@ -10,12 +10,4 @@
         },
         
     ],
-    "properties":{
-        "status":{
-            "type":"string",
-            "description":"the status of this Project",
-            "title":"Status"
-            
-        },
-    }
 }

@@ -34,6 +34,7 @@ public class MigrationDriverImpl implements MigrationDriver{
 		// Apply an Migration data
 		revisionSteps.add(new ApplyMigrationData(new  MigrationDataLoaderImpl().loadMigrationData()));
 		revisionSteps.add(new GenericMigrator(msd));
+
 	}
 
 	/**

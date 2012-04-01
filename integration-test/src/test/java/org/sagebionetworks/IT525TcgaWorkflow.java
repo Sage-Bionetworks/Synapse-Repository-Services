@@ -112,7 +112,6 @@ public class IT525TcgaWorkflow {
 
 		assertEquals(LayerTypeNames.C, layer.getType());
 		assertEquals("clinical_public_coad", layer.getName());
-		assertEquals("raw", layer.getStatus());
 		assertEquals("tsv", annotations.getJSONArray("format").get(0));
 	}
 
@@ -143,7 +142,6 @@ public class IT525TcgaWorkflow {
 		assertEquals(LayerTypeNames.E, layer.getType());
 		assertEquals("unc.edu_COAD.AgilentG4502A_07_3.Level_1.1.4.0", layer
 				.getName());
-		assertEquals("raw", layer.getStatus());
 		assertEquals("unc.edu", annotations.getJSONArray("tcgaDomain").get(0));
 		assertEquals("COAD", annotations.getJSONArray("tcgaDiseaseStudy")
 				.get(0));
@@ -183,7 +181,6 @@ public class IT525TcgaWorkflow {
 		assertEquals(LayerTypeNames.E, layer.getType());
 		assertEquals("unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0", layer
 				.getName());
-		assertEquals("raw", layer.getStatus());
 		assertEquals("unc.edu", annotations.getJSONArray("tcgaDomain").get(0));
 		assertEquals("COAD", annotations.getJSONArray("tcgaDiseaseStudy")
 				.get(0));
@@ -223,7 +220,6 @@ public class IT525TcgaWorkflow {
 		assertEquals(LayerTypeNames.G, layer.getType());
 		assertEquals("broad.mit.edu_COAD.Genome_Wide_SNP_6.mage-tab.1.1007.0",
 				layer.getName());
-		assertEquals("raw", layer.getStatus());
 		assertEquals("tsv", annotations.getJSONArray("format").get(0));
 		assertEquals("broad.mit.edu", annotations.getJSONArray("tcgaDomain")
 				.get(0));

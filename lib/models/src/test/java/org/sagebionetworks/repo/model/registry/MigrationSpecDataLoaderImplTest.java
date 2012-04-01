@@ -20,17 +20,17 @@ public class MigrationSpecDataLoaderImplTest {
 		MigrationSpecData msd = loader.loadMigrationSpecData();
 		assertNotNull(msd);
 		List<FieldMigrationSpecData> migrationSpecData = msd.getData(EntityType.project);
-		assertEquals(1, migrationSpecData.size());
+		assertEquals(2, migrationSpecData.size());
 		migrationSpecData = msd.getData(EntityType.dataset);
-		assertEquals(13, migrationSpecData.size());
+		assertEquals(19, migrationSpecData.size());
 		migrationSpecData = msd.getData(EntityType.layer);
-		assertEquals(5, migrationSpecData.size());
+		assertEquals(14, migrationSpecData.size());
 		migrationSpecData = msd.getData(EntityType.preview);
 		assertEquals(1, migrationSpecData.size());
 		migrationSpecData = msd.getData(EntityType.analysis);
 		assertEquals(1, migrationSpecData.size());
 		migrationSpecData = msd.getData(EntityType.code);
-		assertEquals(1, migrationSpecData.size());
+		assertEquals(2, migrationSpecData.size());
 		migrationSpecData = msd.getData(EntityType.step);
 		assertEquals(1, migrationSpecData.size());
 		return;
@@ -42,10 +42,10 @@ public class MigrationSpecDataLoaderImplTest {
 		MigrationSpecData msd = loader.loadMigrationSpecData();
 		assertNotNull(msd);
 		List<FieldMigrationSpecData> migrationSpecData = msd.getData(EntityType.project);
-		assertEquals(1, migrationSpecData.size());
+		assertEquals(2, migrationSpecData.size());
 		migrationSpecData = msd.getData(EntityType.project);
 		List<String> ld = msd.getPrimaryFieldsToDelete(EntityType.project);
-		assertEquals(1, ld.size());
+		assertEquals(2, ld.size());
 		return;
 	}
 }

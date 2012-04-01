@@ -7,6 +7,7 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.registry.MigrationSpecData.FieldMigrationSpecData;
 
+// TODO: Add type transformation
 public class MigrationHelper {
 	public static void migrateBucket(Annotations srcAnnots, Annotations dstAnnots, FieldMigrationSpecData fmsd) {
 		if (null != srcAnnots.getAllValues(fmsd.getSrcFieldName())) {

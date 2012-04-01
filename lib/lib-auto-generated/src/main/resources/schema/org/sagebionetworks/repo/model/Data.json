@@ -14,13 +14,6 @@
         
     ],
     "properties":{
-        "publicationDate":{
-            "type":"string",
-            "format":"date-time",
-            "description":"Date this Data was published",
-            "title":"Publication Date",
-            
-        },
         "releaseNotes":{
             "type":"string",
             "description":"Free text about Data",
@@ -68,22 +61,20 @@
             "title":"Platform",
             
         },
-        "processingFacility":{
-            "type":"string",
-            "description":"Location where the samples for this Data were processed",
-            "title":"Processing Facility",
-            
-        },
-        "status":{
-            "type":"string",
-            "description":"Status of this Data",
-            "title":"Status",
-            
-        },
         "numSamples":{
             "type":"integer",
             "description":"Approximate number of samples in this Data",
             "title":"Number of Samples"
-        }
+        },
+		"disease":{
+            "type":"string",
+            "description":"The disease associated with this Study",
+            "title":"Disease"
+		},
+        "species":{
+            "type":"string",
+            "description":"The species associated with this Study",
+            "title":"Species"
+        },
     }
 }

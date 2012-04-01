@@ -17,17 +17,6 @@
                 "$ref":"org.sagebionetworks.repo.model.LocationData"
             }
         },
-       "locationStatus":{
-            "type":"string",
-            "description":"Status of location data, a system-controlled field",
-            "name":"LocationStatusNames",
-            "id":"org.sagebionetworks.repo.model.LocationStatusNames",
-            "enum":[
-                "available",
-                "pendingEula"
-            ],
-            
-        },
         "md5":{
             "description":"The checksum of this location",
             "type":"string",

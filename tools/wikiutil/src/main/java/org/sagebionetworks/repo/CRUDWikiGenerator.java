@@ -77,20 +77,20 @@ public class CRUDWikiGenerator {
 					.doPost(
 							"/dataset",
 							new JSONObject(
-									"{\"status\": \"Pending\", \"description\": \"Genetic and epigenetic alterations have been identified that ...\", "
-											+ "\"createdBy\": \"Charles Sawyers\", \"releaseDate\": \"2008-09-14T00:00:00.000-07:00\", \"versionLabel\": \"1.0.0\", \"name\": \"MSKCC Prostate Cancer\", \"parentId\":\""
+									"{\"species\": \"Homo sapiens\", \"description\": \"Genetic and epigenetic alterations have been identified that ...\", "
+											+ "\"createdBy\": \"Charles Sawyers\", \"versionLabel\": \"1.0.0\", \"name\": \"MSKCC Prostate Cancer\", \"parentId\":\""
 											+ project.getString("id")
 											+ "\"}"),
 							"h3. Create a Dataset",
 							"");
 
-			dataset.put("status", "Current");
+			dataset.put("species", "Mus musculus");
 			wiki
 					.doPut(
 							dataset.getString("uri"),
 							dataset,
 							"h3. Update a Dataset",
-							"In this example status field was changed but all others remain the same. Note that the request is a PUT."
+							"In this example species field was changed but all others remain the same. Note that the request is a PUT."
 									+ "  Also note that the change in the URI to include the id of the dataset we wish to update and the ETag header using the "
 									+ "value previously returned.");
 
@@ -140,7 +140,7 @@ public class CRUDWikiGenerator {
 							new JSONObject(
 									"{\"parentId\":\""
 											+ dataset.getString("id")
-											+ "\", \"status\": \"curated\", \"name\": \"phenotypes\", \"numSamples\": \"261\", \"platform\": \"\", \"versionLabel\": \"1.0.0\", \"type\": \"C\"}"),
+											+ "\", \"name\": \"phenotypes\", \"numSamples\": \"261\", \"platform\": \"\", \"versionLabel\": \"1.0.0\", \"type\": \"C\"}"),
 							"h3. Add a Layer to a Dataset",
 							"Create a new layer object and set its parentId to be that of the dataset");
 			

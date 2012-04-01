@@ -27,8 +27,6 @@ public class EntityToMapUtilTest {
 		ds.setEtag("110");
 		ds.setId("12");
 		ds.setLayers("someLayerUrl");
-		ds.setReleaseDate(new Date(System.currentTimeMillis()));
-		ds.setStatus("someStatus");
 		ds.setUri("someUri");
 		
 		// Create the annotations from this object

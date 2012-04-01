@@ -122,14 +122,10 @@ public class IT500SynapseJavaClient {
 	@Test
 	public void testJavaClientCRUD() throws Exception {
 		Study aNewDataset = new Study();
-		aNewDataset.setStatus("created");
 		aNewDataset.setParentId(project.getId());
 
 		aNewDataset = synapse.createEntity(aNewDataset);
-		assertEquals("created", aNewDataset.getStatus());
-		aNewDataset.setStatus("updated");
 		Study updatedDataset = synapse.putEntity(aNewDataset);
-		assertEquals("updated", updatedDataset.getStatus());
 		
 		
 		// Get the project using just using its ID. This is useful for cases where you

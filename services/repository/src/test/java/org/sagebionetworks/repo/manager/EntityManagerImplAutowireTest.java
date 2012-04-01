@@ -97,7 +97,6 @@ public class EntityManagerImplAutowireTest {
 		System.out.println("Original: "+ds.toString());
 		System.out.println("Fetched: "+fetched.toString());
 		assertEquals(ds.getName(), fetched.getName());
-		assertEquals(ds.getStatus(), fetched.getStatus());
 		// Now get the Annotations
 		Annotations annos = entityManager.getAnnotations(userInfo, id);
 		assertNotNull(annos);
@@ -225,8 +224,6 @@ public class EntityManagerImplAutowireTest {
 		ds.setEtag("110");
 		ds.setId("12");
 		ds.setLayers("someLayerUrl");
-		ds.setReleaseDate(new Date(15689));
-		ds.setStatus("someStatus");
 		ds.setUri("someUri");
 		return ds;
 	}

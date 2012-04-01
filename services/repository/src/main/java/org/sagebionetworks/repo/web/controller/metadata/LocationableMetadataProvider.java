@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LocationData;
-import org.sagebionetworks.repo.model.LocationStatusNames;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -159,11 +158,9 @@ public class LocationableMetadataProvider implements
 			// We used to throw an exception, now we just change a field in
 			// the Locationable and null out the locations
 			locationable.setLocations(null);
-			locationable.setLocationStatus(LocationStatusNames.pendingEula);
 			return;
 		}
 
-		locationable.setLocationStatus(LocationStatusNames.available);
 		// If any of the locations are awss3 locations, provide presigned urls
 		String method = request.getParameter(ServiceConstants.METHOD_PARAM);
 

@@ -111,8 +111,6 @@ public class GenericEntityControllerImpleAutowiredTest {
 		ds.setCreatedOn(new Date(1001));
 		ds.setAnnotations("someAnnoUrl"+1);
 		ds.setLayers("someLayerUrl"+i);
-		ds.setReleaseDate(new Date(15689));
-		ds.setStatus("someStatus"+i);
 		ds.setUri("someUri"+i);
 		return ds;
 	}

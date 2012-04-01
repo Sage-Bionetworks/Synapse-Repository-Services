@@ -163,7 +163,6 @@ public class GEPWorkflowInitiator {
 					
 					System.out.println("Dataset: "+sourceDatasetName);
 					String description = ds.getDescription();
-					String status = ds.getStatus();
 					String createdBy = ds.getCreatedBy();
 					// get the genomic and genetic layers
 					JSONObject layerIds = synapse.query("select id from layer where parentId==\""+id+"\"");
@@ -243,7 +242,6 @@ public class GEPWorkflowInitiator {
 							layerAttributes.put(NUMBER_OF_SAMPLES_PROPERTY_NAME, layer.getNumSamples());
 						}
 						layerAttributes.put("description", description);
-						if (status!=null) layerAttributes.put("status", status);
 						if (createdBy!=null) layerAttributes.put("createdBy", createdBy);
 						layerTasks.add(layerAttributes);
 					}

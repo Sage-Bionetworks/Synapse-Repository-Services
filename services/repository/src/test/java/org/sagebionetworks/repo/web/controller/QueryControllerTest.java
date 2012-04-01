@@ -51,7 +51,7 @@ public class QueryControllerTest {
 					.getServletPrefix()
 					+ "/dataset", "{\"name\":\""
 					+ DatasetsControllerTest.SAMPLE_DATASET_NAMES[i]
-					+ "\", \"parentId\":\""+project.getString("id")+"\",\"status\":\"" + status + "\"}");
+					+ "\", \"parentId\":\""+project.getString("id")+"\" }");
 
 			// Add some canned annotations to our dataset
 			helper.testEntityAnnotations(newDataset.getString("annotations"));
