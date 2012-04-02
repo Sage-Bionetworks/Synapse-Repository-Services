@@ -40,7 +40,7 @@ public class StringEncrypter {
 		this(DESEDE_ENCRYPTION_SCHEME, encryptionKey);
 	}
 
-		public StringEncrypter( String encryptionScheme, String encryptionKey ) {
+	public StringEncrypter( String encryptionScheme, String encryptionKey ) {
 
 		if ( encryptionKey == null )
 				throw new IllegalArgumentException( "encryption key was null" );

@@ -64,11 +64,6 @@
 			<url>https://repository.apache.org/content/repositories/releases/
 			</url>
 		</repository>
-		<!-- for GData -->
-		<repository>
-  			<id>mandubian-mvn</id>
-  			<url>http://mandubian-mvn.googlecode.com/svn/trunk/mandubian-mvn/repository</url>
-		</repository>
 	</repositories>
 
 	<pluginRepositories>
