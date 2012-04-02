@@ -274,7 +274,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	private static String createAttachmentPath(String entityId, String tokenId) throws DatastoreException{
+	static String createAttachmentPath(String entityId, String tokenId) throws DatastoreException{
 		return "/"+KeyFactory.stringToKey(entityId) + "/" + tokenId;
 	}
 

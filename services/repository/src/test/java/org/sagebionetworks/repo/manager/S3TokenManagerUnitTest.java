@@ -136,7 +136,7 @@ public class S3TokenManagerUnitTest {
 		Long tokenId = new Long(456);
 		String entityId = "132";
 		String userId = "007";
-		String expectedPath = "/" + entityId+"/"+tokenId.toString();
+		String expectedPath = S3TokenManagerImpl.createAttachmentPath(entityId, tokenId.toString());
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mocIdGenerator.generateNewId()).thenReturn(tokenId);
 		Credentials mockCreds = Mockito.mock(Credentials.class);
@@ -201,7 +201,7 @@ public class S3TokenManagerUnitTest {
 		Long tokenId = new Long(456);
 		String entityId = "132";
 		String userId = "007";
-		String expectedPath = "/" + entityId + "/"+ tokenId.toString();
+		String expectedPath = S3TokenManagerImpl.createAttachmentPath(entityId, tokenId.toString());
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(true);
@@ -218,12 +218,12 @@ public class S3TokenManagerUnitTest {
 		Long tokenId = new Long(456);
 		String entityId = "132";
 		String userId = "007";
-		String expectedPath = entityId+"/"+tokenId.toString();
+		String expectedPath = S3TokenManagerImpl.createAttachmentPath(entityId, tokenId.toString());
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
 		// Simulate a 
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(false);
-		when(mocKLocationHelper.presignS3GETUrl(userId, expectedPath)).thenReturn(expectePreSigneUrl);
+		when(mocKLocationHelper.presignS3GETUrlShortLived(userId, expectedPath)).thenReturn(expectePreSigneUrl);
 		// Make the actual call
 		PresignedUrl url = manager.getAttachmentUrl(userId, entityId, tokenId.toString());
 		assertNotNull(url);
