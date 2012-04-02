@@ -13,6 +13,9 @@ import com.google.gdata.client.spreadsheet.SpreadsheetService;
 import com.google.gdata.data.spreadsheet.Cell;
 import com.google.gdata.data.spreadsheet.CellEntry;
 import com.google.gdata.data.spreadsheet.CellFeed;
+import com.google.gdata.data.spreadsheet.CustomElementCollection;
+import com.google.gdata.data.spreadsheet.ListEntry;
+import com.google.gdata.data.spreadsheet.ListFeed;
 import com.google.gdata.data.spreadsheet.SpreadsheetEntry;
 import com.google.gdata.data.spreadsheet.SpreadsheetFeed;
 import com.google.gdata.data.spreadsheet.WorksheetEntry;
@@ -23,11 +26,6 @@ public class SpreadsheetUtils {
 	  public static final String SPREADSHEET_FEED_URL = "https://spreadsheets.google.com/feeds/spreadsheets/private/full";
 	  public static final String APPLICATION_NAME = "synapse";
 	  
-	  private static final int HEADER_ROW = 0;
-	  private static final int REGISTRANT_COL = 0;
-	  private static final int APPROVAL_COL = 1;
-	  private static final int ALLOCATED_COL = 2;
-	  
 	  private static final String BCC_REGISTRANT_SPREADSHEET_TITLE = "BCC Registrants"  ;
 	  private static final String REGISTRANT_COLUMN_TITLE = "Registrant Email Address";
 	  private static final String APPROVAL_COLUMN_TITLE = "Date approved for participation";
@@ -36,60 +34,66 @@ public class SpreadsheetUtils {
 	  
 	  public static void main(String[] args) throws Exception {
 		  SpreadsheetService spreadsheetService = createSpreadsheetService();
-		  CellFeed cellFeed = getCellFeedForBCCRegistrationSpreadsheet(spreadsheetService);
-		  WorksheetModel model = getWorksheetModel(cellFeed);
-		  List<String> participantsToAllocate = participantsToAllocate(model);
-		  System.out.println("Need to allocate resources for "+participantsToAllocate);
-  }
-  
-	  private static CellFeed getCellFeedForBCCRegistrationSpreadsheet(SpreadsheetService service) throws Exception {
-			    // Make a request to the API and get all spreadsheets.
-			    SpreadsheetFeed feed = service.getFeed(new URL(SPREADSHEET_FEED_URL), SpreadsheetFeed.class);
-			    List<SpreadsheetEntry> spreadsheets = feed.getEntries();
-
-			    for (SpreadsheetEntry spreadsheet : spreadsheets) {
-			    	if (!spreadsheet.getTitle().getPlainText().equals(BCC_REGISTRANT_SPREADSHEET_TITLE)) continue;
-	
-				    List<WorksheetEntry> worksheets = spreadsheet.getWorksheets();
-				    if (worksheets.size()!=1) throw new RuntimeException("Expected just one worksheet in "+BCC_REGISTRANT_SPREADSHEET_TITLE);
-	
-				    WorksheetEntry worksheet = worksheets.iterator().next();
-				    return service.getFeed(worksheet.getCellFeedUrl(), CellFeed.class);
-			    }
-			    throw new RuntimeException("Unable to find "+BCC_REGISTRANT_SPREADSHEET_TITLE);
-	  }
+		  List<String> participantsToAllocate = participantsToAllocate(spreadsheetService);
+		  System.out.println("Will allocate resources for "+participantsToAllocate);
+		  for (String participant : participantsToAllocate) {
+			  recordAllocation(spreadsheetService, participant, "<timestamp>"); // TODO:  would use an actual time stamp here
+		  }
+		  System.out.println("Done.");
+     }
 	  
-	  public static List<String> participantsToAllocate(WorksheetModel model) {
+	  public static String columnHeaderToTag(String s) {return s.toLowerCase().replaceAll(" ", "");}
+	  
+	  public static List<String> participantsToAllocate(SpreadsheetService service) throws Exception {
 		  List<String> ans = new ArrayList<String>();
-		    if (!model.get(HEADER_ROW, REGISTRANT_COL).getValue().equals(REGISTRANT_COLUMN_TITLE)) throw new RuntimeException(REGISTRANT_COLUMN_TITLE+" expected.");
-		    if (!model.get(HEADER_ROW, APPROVAL_COL).getValue().equals(APPROVAL_COLUMN_TITLE)) throw new RuntimeException(APPROVAL_COLUMN_TITLE+" expected.");
-		    if (!model.get(HEADER_ROW, ALLOCATED_COL).getValue().equals(ALLOCATED_COLUMN_TITLE)) throw new RuntimeException(ALLOCATED_COLUMN_TITLE+" expected.");
-		    for (int i=1; i<model.getRows(); i++) {
-		    	Cell participantCell = model.get(i, REGISTRANT_COL);
-		    	if (participantCell==null) continue;
-		    	String participantName = participantCell.getValue();
-		    	boolean isApproved = null!=model.get(i, APPROVAL_COL);
-		    	boolean isAllocated = null!=model.get(i, ALLOCATED_COL);
-		    	if (isApproved && !isAllocated) ans.add(participantName);
+		  WorksheetEntry worksheetEntry = getBCCWorksheet(service);
+		  URL listFeedUrl = worksheetEntry.getListFeedUrl();
+		  ListFeed feed = service.getFeed(listFeedUrl, ListFeed.class);
+		  for (ListEntry entry : feed.getEntries()) {
+		    CustomElementCollection cec = entry.getCustomElements();
+		   
+		    if (cec.getValue(columnHeaderToTag(APPROVAL_COLUMN_TITLE))!=null &&
+		    		cec.getValue(columnHeaderToTag(ALLOCATED_COLUMN_TITLE))==null ){
+		    	ans.add(cec.getValue(columnHeaderToTag(REGISTRANT_COLUMN_TITLE)));
 		    }
-		    return ans;
+		  }	
+		  return ans;
 	  }
 	  
-	  /**
-	   * 
-	   * read in the worksheet feed and populate the model
-	   * @param worksheet
-	   * @return
-	   */
-	  public static WorksheetModel getWorksheetModel(CellFeed cellFeed) {
-		  WorksheetModel ans = new WorksheetModel();
-	      List<CellEntry> cellEntries = cellFeed.getEntries();
-	      for (CellEntry cellEntry : cellEntries) {
-	    	  Cell cell = cellEntry.getCell();
-	    	  ans.add(cell.getRow()-1, cell.getCol()-1, cell);
-	      }
-	      return ans;
+	  public static void recordAllocation(SpreadsheetService service, String participant, String allocationTimestamp) throws Exception {
+		  WorksheetEntry worksheetEntry = getBCCWorksheet(service);
+		  URL listFeedUrl = worksheetEntry.getListFeedUrl();
+		  ListFeed feed = service.getFeed(listFeedUrl, ListFeed.class);
+		  for (ListEntry entry : feed.getEntries()) {
+		    CustomElementCollection cec = entry.getCustomElements();
+		    
+		    if (cec.getValue(columnHeaderToTag(REGISTRANT_COLUMN_TITLE)).equals(participant)) {
+		    	// TODO:  check that the column is initially null and that the 'approval' column is not null
+		    	cec.setValueLocal(columnHeaderToTag(ALLOCATED_COLUMN_TITLE), allocationTimestamp);
+		    	ListEntry updatedRow = entry.update();
+		    	return;
+		    }
+		  }			  
+		  throw new IllegalStateException("No entry found for "+participant);
 	  }
+	  
+	  public static WorksheetEntry getBCCWorksheet(SpreadsheetService service) throws Exception {
+		    // Make a request to the API and get all spreadsheets.
+		    SpreadsheetFeed feed = service.getFeed(new URL(SPREADSHEET_FEED_URL), SpreadsheetFeed.class);
+		    List<SpreadsheetEntry> spreadsheets = feed.getEntries();
+
+		    for (SpreadsheetEntry spreadsheet : spreadsheets) {
+		    	if (!spreadsheet.getTitle().getPlainText().equals(BCC_REGISTRANT_SPREADSHEET_TITLE)) continue;
+
+			    List<WorksheetEntry> worksheets = spreadsheet.getWorksheets();
+			    if (worksheets.size()!=1) throw new RuntimeException("Expected just one worksheet in "+BCC_REGISTRANT_SPREADSHEET_TITLE);
+
+			    return worksheets.iterator().next();
+		    }
+		    throw new RuntimeException("Unable to find "+BCC_REGISTRANT_SPREADSHEET_TITLE);
+		  
+	  }
+  
 	  
 	  public static SpreadsheetService createSpreadsheetService() throws Exception {
 		    GoogleOAuthParameters oauthParameters = new GoogleOAuthParameters();
