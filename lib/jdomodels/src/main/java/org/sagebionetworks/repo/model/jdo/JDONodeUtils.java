@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -27,7 +28,16 @@ public class JDONodeUtils {
 	 */
 	public static void updateFromDto(Node dto, DBONode jdo, DBORevision rev) throws DatastoreException {
 		jdo.setName(dto.getName());
-		jdo.setDescription(dto.getDescription());
+		if(dto.getDescription() !=  null){
+			try {
+				jdo.setDescription(dto.getDescription().getBytes("UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				throw new DatastoreException(e);
+			}
+		}else{
+			jdo.setDescription(null);
+		}
+
 		if(dto.getId() != null){
 			jdo.setId(KeyFactory.stringToKey(dto.getId()));
 		}
@@ -58,7 +68,15 @@ public class JDONodeUtils {
 	 */
 	public static void replaceFromDto(Node dto, DBONode jdo) throws DatastoreException {
 		jdo.setName(dto.getName());
-		jdo.setDescription(dto.getDescription());
+		if(dto.getDescription() != null){
+			try {
+				jdo.setDescription(dto.getDescription().getBytes("UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				throw new DatastoreException(e);
+			}
+		}else{
+			jdo.setDescription(null);
+		}
 		if(dto.getId() != null){
 			jdo.setId(KeyFactory.stringToKey(dto.getId()));
 		}
@@ -86,7 +104,15 @@ public class JDONodeUtils {
 	public static Node copyFromJDO(DBONode jdo, DBORevision rev) throws DatastoreException{
 		Node dto = new Node();
 		dto.setName(jdo.getName());
-		dto.setDescription(jdo.getDescription());
+		if(jdo.getDescription() != null){
+			try {
+				dto.setDescription(new String(jdo.getDescription(), "UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				throw new DatastoreException(e);
+			}
+		}else{
+			dto.setDescription(null);
+		}
 		if(jdo.getId() != null){
 			dto.setId(KeyFactory.keyToString(jdo.getId()));
 		}

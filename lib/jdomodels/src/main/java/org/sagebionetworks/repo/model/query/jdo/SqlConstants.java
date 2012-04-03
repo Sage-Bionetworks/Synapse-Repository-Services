@@ -52,7 +52,7 @@ public class SqlConstants {
 	public static final String COL_REFERENCE_TARGET_NODE			= "REF_TARGET_NODE_ID";
 	public static final String COL_REFERENCE_TARGET_REVISION_NUMBER	= "REF_TARGET_REV_NUM";
 	public static final String COL_REFERENCE_GROUP_NAME				= "REF_GROUP_NAME";
-	public static final String DDL_FILE_REFERENCE					="schema/Reference-ddl.sql";
+	public static final String DDL_FILE_REFERENCE					= "schema/Reference-ddl.sql";
 	
 	// Annotations tables
 	public static final String TABLE_STRING_ANNOTATIONS	= "JDOSTRINGANNOTATION";
@@ -66,11 +66,12 @@ public class SqlConstants {
 	public static final String COL_USER_PROFILE_ID				= "OWNER_ID";
 	public static final String COL_USER_PROFILE_ETAG			= "ETAG";
 	public static final String COL_USER_PROFILE_PROPS_BLOB		= "PROPERTIES";
-	public static final String DDL_FILE_USER_PROFILE			="schema/UserProfile-ddl.sql";
+	public static final String DDL_FILE_USER_PROFILE			= "schema/UserProfile-ddl.sql";
 	// 
 	public static final String COL_STACK_STATUS_STATUS				= "STATUS";
 	public static final String COL_STACK_STATUS_CURRENT_MESSAGE		= "CURRENT_MESSAGE";
 	public static final String COL_STACK_STATUS_PENDING_MESSAGE		= "PENDING_MESSAGE";
+	public static final String DDL_FILE_STACK_STATUS				= "schema/StackStatus-ddl.sql";
 	
 	// The width of the string annotations value column
 	public static final int STRING_ANNOTATIONS_VALUE_LENGTH = 500;
@@ -138,12 +139,14 @@ public class SqlConstants {
 	public static final String COL_BACKUP_ERROR_DETAILS			= "ERROR_DETAILS";
 	public static final String COL_BACKUP_URL					= "BACKUP_URL";
 	public static final String COL_BACKUP_RUNTIME				= "RUN_TIME_MS";
+	public static final String DDL_DAEMON_STATUS				= "schema/DaemonStatus-ddl.sql";
 	// the max size of the error message.
 	public static final int ERROR_MESSAGE_MAX_LENGTH			= 3000;
 	
 	public static final String TABLE_BACKUP_TERMINATE 			= "DAEMON_TERMINATE";
 	public static final String COL_BACKUP_TERM_OWNER			= "BACKUP_OWNER";
 	public static final String COL_BACKUP_FORCE_TERMINATION		= "FORCE_TERMINATION";
+	public static final String DDL_DAEMON_TERMINATE				= "schema/DaemonTerminate-ddl.sql";
 		
 	// The resource access join table
 	// datanucleus doesn't seem to be respecting the join table name when creating the schema

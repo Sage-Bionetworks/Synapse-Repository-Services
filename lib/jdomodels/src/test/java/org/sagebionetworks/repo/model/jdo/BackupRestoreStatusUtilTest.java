@@ -9,7 +9,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
-import org.sagebionetworks.repo.model.jdo.persistence.JDODaemonStatus;
+import org.sagebionetworks.repo.model.dbo.persistence.DBODaemonStatus;
 
 public class BackupRestoreStatusUtilTest {
 	
@@ -31,7 +31,7 @@ public class BackupRestoreStatusUtilTest {
 		dto.setBackupUrl("https://somehost:port/buck/file.zip");
 
 		// Now upate a new JDO from the DTO
-		JDODaemonStatus jdo = new JDODaemonStatus();
+		DBODaemonStatus jdo = new DBODaemonStatus();
 		jdo.setId(new Long(12));
 		BackupRestoreStatusUtil.updateJdoFromDto(dto, jdo);
 		// Create a clone from the JDO
@@ -57,7 +57,7 @@ public class BackupRestoreStatusUtilTest {
 		dto.setBackupUrl(null);
 
 		// Now upate a new JDO from the DTO
-		JDODaemonStatus jdo = new JDODaemonStatus();
+		DBODaemonStatus jdo = new DBODaemonStatus();
 		jdo.setId(new Long(12));
 		BackupRestoreStatusUtil.updateJdoFromDto(dto, jdo);
 		// Create a clone from the JDO

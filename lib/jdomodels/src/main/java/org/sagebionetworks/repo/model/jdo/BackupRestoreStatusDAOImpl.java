@@ -3,13 +3,14 @@ package org.sagebionetworks.repo.model.jdo;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.jdo.persistence.JDODaemonStatus;
-import org.sagebionetworks.repo.model.jdo.persistence.JDODaemonTerminate;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBODaemonStatus;
+import org.sagebionetworks.repo.model.dbo.persistence.DBODaemonTerminate;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
-import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
-import org.springframework.orm.jdo.JdoTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,7 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 
 	@Autowired
-	private JdoTemplate jdoTemplate;
+	private SimpleJdbcTemplate simpleJdbcTempalte;
+
+	@Autowired
+	DBOBasicDao dboBasicDao;
 
 	/**
 	 * Create a new status object.
@@ -44,15 +48,15 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	public String create(BackupRestoreStatus dto) throws DatastoreException {
 		// First assign the id
 		// Create a new jdo
-		JDODaemonStatus jdo = new JDODaemonStatus();
+		DBODaemonStatus jdo = new DBODaemonStatus();
 		BackupRestoreStatusUtil.updateJdoFromDto(dto, jdo);
 		// Since we will use the ID in the backup file URL we want it to be
 		// unique within the domain.
-		jdo = jdoTemplate.makePersistent(jdo);
-		JDODaemonTerminate terminateJdo = new JDODaemonTerminate();
-		terminateJdo.setOwner(jdo);
+		jdo = dboBasicDao.createNew(jdo);
+		DBODaemonTerminate terminateJdo = new DBODaemonTerminate();
+		terminateJdo.setOwner(jdo.getId());
 		terminateJdo.setForceTerminate(false);
-		jdoTemplate.makePersistent(terminateJdo);
+		dboBasicDao.createNew(terminateJdo);
 		return jdo.getId().toString();
 	}
 
@@ -67,7 +71,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	@Override
 	public BackupRestoreStatus get(String id) throws DatastoreException,
 			NotFoundException {
-		JDODaemonStatus jdo = getJdo(id);
+		DBODaemonStatus jdo = getJdo(id);
 		return BackupRestoreStatusUtil.createDtoFromJdo(jdo);
 	}
 
@@ -79,12 +83,13 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	private JDODaemonStatus getJdo(String id) throws DatastoreException,
+	private DBODaemonStatus getJdo(String id) throws DatastoreException,
 			NotFoundException {
 		try {
-			return jdoTemplate.getObjectById(JDODaemonStatus.class,
-					Long.parseLong(id));
-		} catch (JdoObjectRetrievalFailureException e) {
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue("id", id);
+			return dboBasicDao.getObjectById(DBODaemonStatus.class, params);
+		} catch (NotFoundException e) {
 			throw new NotFoundException(
 					"Cannot find a BackupRestoreStatus with ID: " + id);
 		}
@@ -111,23 +116,26 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 			throw new IllegalArgumentException("Status cannot be null");
 		if (dto.getId() == null)
 			throw new IllegalArgumentException("Status.id cannot be null");
-		JDODaemonStatus jdo = getJdo(dto.getId());
+		DBODaemonStatus jdo = getJdo(dto.getId());
 		BackupRestoreStatusUtil.updateJdoFromDto(dto, jdo);
+		dboBasicDao.update(jdo);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
-		JDODaemonStatus jdo = getJdo(id);
-		jdoTemplate.deletePersistent(jdo);
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue("id", id);
+		dboBasicDao.deleteObjectById(DBODaemonStatus.class, params);
 	}
 
-	private JDODaemonTerminate getJobTerminate(String id)
+	private DBODaemonTerminate getJobTerminate(String id)
 			throws DataAccessException, DatastoreException, NotFoundException {
 		try {
-			JDODaemonStatus status = getJdo(id);
-			return jdoTemplate.getObjectById(JDODaemonTerminate.class,status);
-		} catch (JdoObjectRetrievalFailureException e) {
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue("owner", id);
+			return dboBasicDao.getObjectById(DBODaemonTerminate.class, params);
+		} catch (NotFoundException e) {
 			throw new NotFoundException(
 					"Cannot find a BackupRestoreStatus with ID: " + id);
 		}
@@ -136,7 +144,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 
 	@Override
 	public boolean shouldJobTerminate(String id) throws DatastoreException, NotFoundException {
-		JDODaemonTerminate terminateJdo = getJobTerminate(id);
+		DBODaemonTerminate terminateJdo = getJobTerminate(id);
 		return terminateJdo.getForceTerminate();
 	}
 
@@ -148,7 +156,8 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	@Override
 	public void setForceTermination(String id, boolean terminate)
 			throws DatastoreException, NotFoundException {
-		JDODaemonTerminate terminateJdo = getJobTerminate(id);
+		DBODaemonTerminate terminateJdo = getJobTerminate(id);
 		terminateJdo.setForceTerminate(terminate);
+		dboBasicDao.update(terminateJdo);
 	}
 }

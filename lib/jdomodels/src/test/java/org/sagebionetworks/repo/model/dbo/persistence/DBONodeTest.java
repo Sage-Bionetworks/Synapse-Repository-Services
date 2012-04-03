@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -50,7 +51,7 @@ public class DBONodeTest {
 	}
 	
 	@Test
-	public void testRoundTrip() throws DatastoreException, NotFoundException{
+	public void testRoundTrip() throws DatastoreException, NotFoundException, UnsupportedEncodingException{
 		DBONode node = new DBONode();
 		node.setId(idGenerator.generateNewId());
 		node.setName("SomeName");
@@ -83,7 +84,7 @@ public class DBONodeTest {
 		child.seteTag(new Long(1));
 		child.setNodeType(EntityType.folder.getId());
 		child.setParentId(node.getId());
-		child.setDescription("I have a description");
+		child.setDescription("I have a description".getBytes("UTF-8"));
 		// Get it back
 		clone = dboBasicDao.createNew(child);
 		assertNotNull(clone);
@@ -92,7 +93,7 @@ public class DBONodeTest {
 		
 		
 		// Make sure we can update it.
-		clone.setDescription("This is a new description");
+		clone.setDescription("This is a new description".getBytes("UTF-8"));
 		clone.seteTag(new Long(2));
 		boolean result = dboBasicDao.update(clone);
 		assertTrue(result);

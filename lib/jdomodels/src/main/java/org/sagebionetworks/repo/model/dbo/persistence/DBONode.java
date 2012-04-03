@@ -7,6 +7,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -50,7 +51,10 @@ public class DBONode implements DatabaseObject<DBONode> {
 				if(rs.wasNull()){
 					node.setCurrentRevNumber(null);
 				}
-				node.setDescription(rs.getString(COL_NODE_DESCRIPTION));
+				java.sql.Blob blob = rs.getBlob(COL_NODE_DESCRIPTION);
+				if(blob != null){
+					node.setDescription(blob.getBytes(1, (int) blob.length()));
+				}
 				node.seteTag(rs.getLong(COL_NODE_ETAG));
 				node.setCreatedBy(rs.getString(COL_NODE_CREATED_BY));
 				node.setCreatedOn(rs.getLong(COL_NODE_CREATED_ON));
@@ -89,7 +93,7 @@ public class DBONode implements DatabaseObject<DBONode> {
 	private Long parentId;
 	private String name;
 	private Long currentRevNumber;
-	private String description;
+	private byte[] description;
 	private Long eTag = null;
 	private String createdBy;
 	private Long createdOn;
@@ -120,10 +124,10 @@ public class DBONode implements DatabaseObject<DBONode> {
 	public void setCurrentRevNumber(Long currentRevNumber) {
 		this.currentRevNumber = currentRevNumber;
 	}
-	public String getDescription() {
+	public byte[] getDescription() {
 		return description;
 	}
-	public void setDescription(String description) {
+	public void setDescription(byte[] description) {
 		this.description = description;
 	}
 	public Long geteTag() {
@@ -169,8 +173,7 @@ public class DBONode implements DatabaseObject<DBONode> {
 		result = prime
 				* result
 				+ ((currentRevNumber == null) ? 0 : currentRevNumber.hashCode());
-		result = prime * result
-				+ ((description == null) ? 0 : description.hashCode());
+		result = prime * result + Arrays.hashCode(description);
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
@@ -209,10 +212,7 @@ public class DBONode implements DatabaseObject<DBONode> {
 				return false;
 		} else if (!currentRevNumber.equals(other.currentRevNumber))
 			return false;
-		if (description == null) {
-			if (other.description != null)
-				return false;
-		} else if (!description.equals(other.description))
+		if (!Arrays.equals(description, other.description))
 			return false;
 		if (eTag == null) {
 			if (other.eTag != null)
@@ -241,6 +241,7 @@ public class DBONode implements DatabaseObject<DBONode> {
 			return false;
 		return true;
 	}
+	
 	@Override
 	public String toString() {
 		return "DBONode [id=" + id + ", parentId=" + parentId + ", name="

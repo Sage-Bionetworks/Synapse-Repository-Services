@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.jdo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Set;
@@ -76,7 +77,7 @@ public class JDONodeUtilsTest {
 	}
 	
 	@Test
-	public void testreplaceFromDto() throws DatastoreException{
+	public void testreplaceFromDto() throws DatastoreException, UnsupportedEncodingException{
 		Node node = new Node();
 		node.setName("myName");
 		node.setDescription("someDescription");
@@ -92,7 +93,8 @@ public class JDONodeUtilsTest {
 		dboNode.setId(101L);
 		JDONodeUtils.replaceFromDto(node, dboNode);
 		assertEquals("myName", dboNode.getName());
-		assertEquals("someDescription", dboNode.getDescription());
+		assertNotNull(dboNode.getDescription());
+		assertEquals("someDescription", new String(dboNode.getDescription(),"UTF-8"));
 		assertEquals("createdByMe", dboNode.getCreatedBy());
 		assertEquals(10000l, (long)dboNode.getCreatedOn());
 		assertEquals(2l, (long)dboNode.getCurrentRevNumber());

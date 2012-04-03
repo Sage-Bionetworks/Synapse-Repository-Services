@@ -7,7 +7,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
-import org.sagebionetworks.repo.model.jdo.persistence.JDODaemonStatus;
+import org.sagebionetworks.repo.model.dbo.persistence.DBODaemonStatus;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 
 /**
@@ -24,7 +24,7 @@ public class BackupRestoreStatusUtil {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public static BackupRestoreStatus createDtoFromJdo(JDODaemonStatus jdo) throws DatastoreException{
+	public static BackupRestoreStatus createDtoFromJdo(DBODaemonStatus jdo) throws DatastoreException{
 		BackupRestoreStatus dto = new BackupRestoreStatus();
 		if(jdo.getId() != null){
 			dto.setId(jdo.getId().toString());
@@ -57,7 +57,7 @@ public class BackupRestoreStatusUtil {
 	 * @param jdo
 	 * @throws DatastoreException
 	 */
-	public static void updateJdoFromDto(BackupRestoreStatus dto, JDODaemonStatus jdo) throws DatastoreException{
+	public static void updateJdoFromDto(BackupRestoreStatus dto, DBODaemonStatus jdo) throws DatastoreException{
 		if(jdo.getId() != null){
 			jdo.setId(Long.parseLong(dto.getId()));
 		}
@@ -97,7 +97,7 @@ public class BackupRestoreStatusUtil {
 	 * @throws DatastoreException 
 	 */
 	public static BackupRestoreStatus cloneStatus(BackupRestoreStatus dto) throws DatastoreException{
-		JDODaemonStatus jdo = new JDODaemonStatus();
+		DBODaemonStatus jdo = new DBODaemonStatus();
 		updateJdoFromDto(dto, jdo);
 		if(dto.getId() != null){
 			jdo.setId(Long.parseLong(dto.getId()));

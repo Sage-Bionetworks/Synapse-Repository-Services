@@ -9,27 +9,29 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STACK_
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.StackStatusDao;
-import org.sagebionetworks.repo.model.jdo.persistence.JDOStackStatus;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOStackStatus;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
-import org.springframework.orm.jdo.JdoTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 	
-	public static final String SQL_GET_STATUS = "SELECT "+COL_STACK_STATUS_STATUS+" FROM "+TABLE_STACK_STATUS+" WHERE "+COL_NODE_ID+" = "+JDOStackStatus.STATUS_ID;
+	public static final String SQL_GET_STATUS = "SELECT "+COL_STACK_STATUS_STATUS+" FROM "+TABLE_STACK_STATUS+" WHERE "+COL_NODE_ID+" = "+DBOStackStatus.STATUS_ID;
 	
-	public static final String SQL_GET_ALL_STATUS = "SELECT "+COL_STACK_STATUS_STATUS+", "+COL_STACK_STATUS_CURRENT_MESSAGE+", "+COL_STACK_STATUS_PENDING_MESSAGE+" FROM "+TABLE_STACK_STATUS+" WHERE "+COL_NODE_ID+" = "+JDOStackStatus.STATUS_ID;
+	public static final String SQL_GET_ALL_STATUS = "SELECT "+COL_STACK_STATUS_STATUS+", "+COL_STACK_STATUS_CURRENT_MESSAGE+", "+COL_STACK_STATUS_PENDING_MESSAGE+" FROM "+TABLE_STACK_STATUS+" WHERE "+COL_NODE_ID+" = "+DBOStackStatus.STATUS_ID;
 	
 	@Autowired
-	private JdoTemplate jdoTemplate;
+	DBOBasicDao dboBasicDao;
 	
 	// This is better suited for simple JDBC query.
 	@Autowired
@@ -44,10 +46,20 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 	public void updateStatus(StackStatus dto) {
 		if(dto == null) throw new IllegalArgumentException("Status cannot be null");
 		if(dto.getStatus() == null) throw new IllegalArgumentException("Cannot set the statu to null");
-		JDOStackStatus jdo = jdoTemplate.getObjectById(JDOStackStatus.class, JDOStackStatus.STATUS_ID);
-		jdo.setStatus(getStatusCode(dto.getStatus()));
-		jdo.setCurrentMessage(dto.getCurrentMessage());
-		jdo.setPendingMessage(dto.getPendingMaintenanceMessage());
+		try{
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue("id", DBOStackStatus.STATUS_ID);
+			DBOStackStatus jdo = dboBasicDao.getObjectById(DBOStackStatus.class, params);
+			jdo.setStatus(getStatusCode(dto.getStatus()));
+			jdo.setCurrentMessage(dto.getCurrentMessage());
+			jdo.setPendingMessage(dto.getPendingMaintenanceMessage());
+			dboBasicDao.update(jdo);
+		}catch(NotFoundException e){
+			throw new RuntimeException("Failed to get the current status!!!!",e);
+		} catch (DatastoreException e) {
+			throw new RuntimeException("Failed to get the current status!!!!",e);
+		}
+
 	}
 
 	@Override
@@ -55,14 +67,16 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 		// This is the boot strap.
 		try{
 			// Try to get the single status row.  If it does not exist yet we will need to create it.
-			jdoTemplate.getObjectById(JDOStackStatus.class, JDOStackStatus.STATUS_ID);
-		}catch (JdoObjectRetrievalFailureException e){
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue("id", DBOStackStatus.STATUS_ID);
+			DBOStackStatus jdo = dboBasicDao.getObjectById(DBOStackStatus.class, params);
+		}catch (NotFoundException e){
 			// If here then the the single status row does not exist.
-			JDOStackStatus status = new JDOStackStatus();
-			status.setId(JDOStackStatus.STATUS_ID);
+			DBOStackStatus status = new DBOStackStatus();
+			status.setId(DBOStackStatus.STATUS_ID);
 			status.setStatus(getStatusCode(StatusEnum.READ_WRITE));
-			status.setCurrentMessage(JDOStackStatus.DEFAULT_MESSAGE);
-			jdoTemplate.makePersistent(status);
+			status.setCurrentMessage(DBOStackStatus.DEFAULT_MESSAGE);
+			dboBasicDao.createNew(status);
 		}
 	}
 	

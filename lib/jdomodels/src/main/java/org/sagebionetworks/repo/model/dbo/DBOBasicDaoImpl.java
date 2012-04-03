@@ -110,6 +110,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		}
 	}
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends DatabaseObject<T>> List<T> createBatch(List<T> batch)	throws DatastoreException {
 		if(batch == null) throw new IllegalArgumentException("The batch cannot be null");

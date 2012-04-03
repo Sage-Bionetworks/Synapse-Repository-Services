@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.*;
 
+import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -51,7 +52,7 @@ public class DBOAnnotationsDaoImplTest {
 	}
 	
 	@Before
-	public void before() throws DatastoreException{
+	public void before() throws DatastoreException, UnsupportedEncodingException{
 		toDelete = new LinkedList<Long>();
 		// Create a node to create revisions of.
 		node = new DBONode();
@@ -61,7 +62,7 @@ public class DBOAnnotationsDaoImplTest {
 		node.setCreatedBy("DBOAnnotationsDaoImplTest");
 		node.setCreatedOn(System.currentTimeMillis());
 		node.setCurrentRevNumber(null);
-		node.setDescription("A basic description");
+		node.setDescription("A basic description".getBytes("UTF-8"));
 		node.seteTag(new Long(0));
 		node.setName("DBOAnnotationsDaoImplTest.baseNode");
 		node.setParentId(null);
