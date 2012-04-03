@@ -38,6 +38,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.UserProfileDAO#delete(java.lang.String)
 	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -45,7 +46,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		basicDao.deleteObjectById(DBOUserProfile.class, param);
 	}
 
-
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String create(UserProfile dto, ObjectSchema schema) throws DatastoreException,
 			InvalidModelException {

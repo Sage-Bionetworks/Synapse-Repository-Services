@@ -86,8 +86,9 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public <T extends DatabaseObject<T>> T createNew(T toCreate) throws DatastoreException {
 		if(toCreate == null) throw new IllegalArgumentException("The object to create cannot be null");
 		// Lookup the insert SQL

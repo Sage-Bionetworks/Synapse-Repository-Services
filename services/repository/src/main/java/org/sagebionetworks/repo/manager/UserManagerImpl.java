@@ -260,6 +260,7 @@ public class UserManagerImpl implements UserManager {
 		return userGroupDAO.findGroup(name, b);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String createPrincipal(String name, boolean isIndividual) throws DatastoreException {
 		UserGroup principal = new UserGroup();
@@ -281,6 +282,7 @@ public class UserManagerImpl implements UserManager {
 		return userGroupDAO.doesPrincipalExist(name);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public boolean deletePrincipal(String name) {
 		clearCache();

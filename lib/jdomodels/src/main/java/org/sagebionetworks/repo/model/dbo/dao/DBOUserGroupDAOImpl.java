@@ -237,6 +237,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void update(UserGroup dto) throws DatastoreException,
 			InvalidModelException, NotFoundException,
@@ -247,6 +248,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		basicDao.update(dbo);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		userGroupCache.delete(Long.parseLong(id));
