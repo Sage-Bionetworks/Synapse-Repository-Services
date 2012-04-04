@@ -159,14 +159,6 @@ public class NodeTranslationUtilsTest {
 		ldata.setType(LocationTypeNames.sage);
 		locations.add(ldata);
 		
-		//Shortcuts
-		Set<Reference> references = new HashSet<Reference>();
-		Reference ref1 = new Reference();
-		ref1.setTargetId("99");
-		ref1.setTargetVersionNumber((long)1);
-		references.add(ref1);
-		ds.setShortcuts(references);
-
 //		List<String> diseases = new ArrayList<String>();
 //		diseases.add("disease1");
 //		diseases.add("disease2");
@@ -279,12 +271,6 @@ public class NodeTranslationUtilsTest {
 		layer.setTissueType("type");
 		layer.setType(LayerTypeNames.C);
 		layer.setUri("someUri");
-		Set<Reference> references = new HashSet<Reference>();
-		Reference ref1 = new Reference();
-		ref1.setTargetId("99");
-		ref1.setTargetVersionNumber((long)1);
-		references.add(ref1);
-		layer.setShortcuts(references);
 		
 		// Create a clone using node translation
 		Data clone = cloneUsingNodeTranslation(layer);
@@ -357,8 +343,6 @@ public class NodeTranslationUtilsTest {
 		code.setVersionNumber(new Long(134));
 		code.setVersionLabel("1.133.0");
 		code.setName("mame");
-		Set<Reference> shortcuts = new HashSet<Reference>();
-		code.setShortcuts(shortcuts);
 		Code clone = cloneUsingNodeTranslation(code);
 		assertEquals(code, clone);
 	}
