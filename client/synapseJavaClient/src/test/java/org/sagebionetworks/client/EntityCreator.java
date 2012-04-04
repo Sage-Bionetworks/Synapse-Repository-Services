@@ -31,6 +31,7 @@ public class EntityCreator {
 		toCreate.setEtag("334");
 		toCreate.setParentId("1");
 		toCreate.setUri("/dataset/"+id);
+		toCreate.setEntityType(Study.class.getName());
 		return toCreate;
 	}
 

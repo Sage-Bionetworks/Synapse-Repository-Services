@@ -94,17 +94,18 @@ public class IT960TermsOfUse {
 	@Test
 	public void testRepoSvcWithTermsOfUse() throws Exception {
 		// should not be able to see locations
-		Study ds = synapse.getEntity(dataset);
+		Study ds = synapse.getEntity(dataset.getId(), Study.class);
 		List<LocationData> locations = ds.getLocations();
 		assertTrue(locations!=null && locations.size()==1);
 	}
 
+	@Test
 	public void testRepoSvcNoTermsOfUse() throws Exception {
 		Synapse anonymous = new Synapse();
 		anonymous.setAuthEndpoint(authEndpoint);
 		anonymous.setRepositoryEndpoint(repoEndpoint);
 		
-		Study ds = synapse.getEntity(dataset);
+		Study ds = synapse.getEntity(dataset.getId(), Study.class);
 		List<LocationData> locations = ds.getLocations();
 		assertTrue(locations==null || locations.size()==0);
 		
@@ -115,7 +116,7 @@ public class IT960TermsOfUse {
 		Study idHolder = new Study();
 		idHolder.setId(ds.getId());
 		// an admin should be able to retreive the entity, including the locations
-		ds = adminSynapse.getEntity(idHolder);
+		ds = adminSynapse.getEntity(idHolder.getId(), Study.class);
 		
 		assertEquals("bas", ds.getName());
 		locations = ds.getLocations();

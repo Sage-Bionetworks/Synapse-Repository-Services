@@ -89,6 +89,8 @@ public class Synapse {
 	protected static final String ATTACHMENT_S3_TOKEN = "/s3AttachmentToken";
 	protected static final String ATTACHMENT_URL = "/attachmentUrl";
 
+	protected static final String ENTITY_URI_PATH = "/entity";
+
 	protected String repoEndpoint;
 	protected String authEndpoint;
 
@@ -306,13 +308,13 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	@SuppressWarnings("unchecked")
-	public <T extends JSONEntity> T createEntity(T entity)
+	public <T extends Entity> T createEntity(T entity)
 			throws SynapseException {
 		if (entity == null)
 			throw new IllegalArgumentException("Entity cannot be null");
-		// Look up the EntityType for this entity.
-		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
-		return createEntity(type.getUrlPrefix(), entity);
+		entity.setEntityType(entity.getClass().getName());
+		// Look up the EntityType for this entity.		
+		return createEntity(ENTITY_URI_PATH, entity);
 	}
 
 	/**
@@ -327,7 +329,7 @@ public class Synapse {
 	public <T extends JSONEntity> T createEntity(String uri, T entity)
 			throws SynapseException {
 		if (entity == null)
-			throw new IllegalArgumentException("Entity cannot be null");
+			throw new IllegalArgumentException("Entity cannot be null");		
 		// Get the json for this entity
 		JSONObject jsonObject;
 		try {
@@ -354,27 +356,6 @@ public class Synapse {
 	}
 
 	/**
-	 * Given an entity get the that entity (get the current version).
-	 * 
-	 * @param entity
-	 * @param <T>
-	 * @return the entity
-	 * @throws SynapseException
-	 */
-	@SuppressWarnings("unchecked")
-	public <T extends JSONEntity> T getEntity(T entity) throws SynapseException {
-		if (entity == null)
-			throw new IllegalArgumentException("entity cannot be null");
-
-		if (entity instanceof Entity) {
-			return (T) getEntity(((Entity) entity).getId(), entity.getClass());
-		}
-		// TODO : Nicole--add non Entity Types here
-		throw new SynapseException("NYI");
-
-	}
-
-	/**
 	 * Get an entity using its ID.
 	 * @param entityId
 	 * @return the entity
@@ -383,7 +364,7 @@ public class Synapse {
 	public Entity getEntityById(String entityId) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
-		String url = "/entity/" + entityId;
+		String url = ENTITY_URI_PATH + "/" + entityId;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		// Get the type from the object
@@ -405,7 +386,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	public UserEntityPermissions getUsersEntityPermissions(String entityId) throws SynapseException{
-		String url = "/entity/" + entityId+"/permissions";
+		String url = ENTITY_URI_PATH + "/" + entityId+"/permissions";
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		UserEntityPermissions uep = new UserEntityPermissions();
@@ -424,7 +405,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	public Annotations getAnnotations(String entityId) throws SynapseException{
-		String url = "/entity/" + entityId+"/annotations";
+		String url = ENTITY_URI_PATH + "/" + entityId+"/annotations";
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		Annotations annos = new Annotations();
@@ -444,7 +425,7 @@ public class Synapse {
 	 */
 	public Annotations updateAnnotations(String entityId, Annotations updated) throws SynapseException{
 		try {
-			String url = "/entity/" + entityId+"/annotations";
+			String url = ENTITY_URI_PATH + "/" + entityId+"/annotations";
 			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(updated);
 			// Update
 			jsonObject = putEntity(url, jsonObject);
@@ -474,9 +455,8 @@ public class Synapse {
 			throw new IllegalArgumentException("EntityId cannot be null");
 		if (clazz == null)
 			throw new IllegalArgumentException("Entity class cannot be null");
-		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		// Build the URI
-		String uri = createEntityUri(type.getUrlPrefix(), entityId);
+		String uri = createEntityUri(ENTITY_URI_PATH, entityId);
 		JSONObject jsonObj = getEntity(uri);
 		// Now convert to Object to an entity
 		try {
@@ -539,8 +519,7 @@ public class Synapse {
 		if (entity == null)
 			throw new IllegalArgumentException("Entity cannot be null");
 		try {
-			EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
-			String uri = createEntityUri(type.getUrlPrefix(), entity.getId());
+			String uri = createEntityUri(ENTITY_URI_PATH, entity.getId());
 			JSONObject jsonObject;
 			jsonObject = EntityFactory.createJSONObjectForEntity(entity);
 			jsonObject = putEntity(uri, jsonObject);
@@ -586,8 +565,22 @@ public class Synapse {
 			throws SynapseException {
 		if (entity == null)
 			throw new IllegalArgumentException("Entity cannot be null");
-		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
-		String uri = createEntityUri(type.getUrlPrefix(), entity.getId());
+		String uri = createEntityUri(ENTITY_URI_PATH, entity.getId());
+		deleteEntity(uri);
+	}
+
+	/**
+	 * Delete a dataset, layer, etc..
+	 * 
+	 * @param <T>
+	 * @param entity
+	 * @throws SynapseException
+	 */
+	public void deleteEntityById(String entityId)
+			throws SynapseException {
+		if (entityId == null)
+			throw new IllegalArgumentException("entityId cannot be null");
+		String uri = createEntityUri(ENTITY_URI_PATH, entityId);
 		deleteEntity(uri);
 	}
 
@@ -609,7 +602,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	public EntityPath getEntityPath(String entityId) throws SynapseException {
-		String url = "/entity/" + entityId+"/path";
+		String url = ENTITY_URI_PATH + "/" + entityId+"/path";
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		EntityPath path = new EntityPath();
@@ -622,7 +615,7 @@ public class Synapse {
 	}	
 
 	public BatchResults<EntityHeader> getEntityTypeBatch(List<String> entityIds) throws SynapseException {
-		String url = "/entity/type"; // TODO move UrlHelpers someplace shared so that we can UrlHelpers.ENTITY_TYPE
+		String url = ENTITY_URI_PATH + "/type"; // TODO move UrlHelpers someplace shared so that we can UrlHelpers.ENTITY_TYPE
 		url += "?" + ServiceConstants.BATCH_PARAM + "=" + StringUtils.join(entityIds, ServiceConstants.BATCH_PARAM_VALUE_SEPARATOR);
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
@@ -657,7 +650,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	public PaginatedResults<EntityHeader> getEntityReferencedBy(String entityId, String targetVersion) throws SynapseException {
-		String url = "/entity/" + entityId;
+		String url = ENTITY_URI_PATH + "/" + entityId;
 		if(targetVersion != null) {
 			url += "/version/" + targetVersion;
 		}

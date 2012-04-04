@@ -301,8 +301,10 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Now validate for a specific type.
 		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviderFactory.getMetadataProvider(type);
 		// Validate the entity
-		for(TypeSpecificMetadataProvider<Entity> provider : providers) {
-			provider.validateEntity(entity, event);
+		if(providers != null) {
+			for(TypeSpecificMetadataProvider<Entity> provider : providers) {
+				provider.validateEntity(entity, event);
+			}
 		}
 	}
 	

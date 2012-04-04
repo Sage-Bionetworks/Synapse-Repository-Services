@@ -115,7 +115,7 @@ public class IT575WebClient {
 	public void testLicensedDownloader() throws Exception {		
 		// upload file to S3
 		synapse.uploadLocationableToSynapse(layer, testUploadfile);		
-		layer = synapse.getEntity(layer);		
+		layer = synapse.getEntity(layer.getId(), Data.class);		
 
 		String portalEndpoint = StackConfiguration.getPortalEndpoint() + "/";
 		final String sessionToken = synapse.getCurrentSessionToken();	
