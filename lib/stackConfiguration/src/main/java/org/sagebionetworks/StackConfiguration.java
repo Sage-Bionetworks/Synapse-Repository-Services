@@ -508,6 +508,12 @@ public class StackConfiguration {
 				.getProperty("org.sagebionetworks.bcc.signup.enabled");
 	}
 	
+	public static String getBCCSpreadsheetTitle() {
+		return configuration
+				.getProperty("org.sagebionetworks.bcc.spreadsheet.title");
+		
+	}
+	
 	/**
 	 * 
 	 * Returns the email address to which requests for BCC participation are sent.

@@ -19,7 +19,7 @@ public class OAuthUtils {
 		  String consumerKey = StackConfiguration.getGoogleAppsOAuthConsumerKey();
 		  String consumerSecret = StackConfiguration.getGoogleAppsOAuthConsumerSecret();
 		  
-		  generateAccessToken(consumerKey, consumerSecret, SpreadsheetUtils.SPREADSHEET_SCOPE);
+		  generateAccessToken(consumerKey, consumerSecret, SpreadsheetHelper.SPREADSHEET_SCOPE);
 	  }
 
 	  public static void generateAccessToken(

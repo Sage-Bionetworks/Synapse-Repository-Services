@@ -299,6 +299,12 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>bccSetup</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>synapsePythonClient</artifactId>
 			<classifier>synapse-python-client-assembly</classifier>
 			<type>zip</type>
