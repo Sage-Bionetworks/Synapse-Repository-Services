@@ -492,6 +492,18 @@ public class StackConfiguration {
 						.getProperty("org.sagebionetworks.maximum.number.entities.returned.per.call"));
 	}
 
+	
+	/**
+	 * The maximum number of pixels used for a preview image height and width
+	 * 
+	 * @return
+	 */
+	public static int getMaximumPreivewPixels() {
+		return Integer
+				.valueOf(configuration
+						.getProperty("org.sagebionetworks.preview.image.max.pixels"));
+	}
+	
 	/**
 	 * The S3 Bucket for backup file. This is shared across stacks to enable
 	 * data migration across a stack.

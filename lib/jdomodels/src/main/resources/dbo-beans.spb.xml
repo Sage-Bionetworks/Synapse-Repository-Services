@@ -37,6 +37,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODaemonStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODaemonTerminate" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStackStatus" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOPreviewBlob" />
 			</list>
 		</property>
 	</bean>

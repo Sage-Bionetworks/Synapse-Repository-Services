@@ -72,6 +72,9 @@
 		
 	<bean id="stackStatusDao"
 		class="org.sagebionetworks.repo.model.jdo.StackStatusDaoImpl" scope="singleton"/>
+		
+	<bean id="previewBlobDao"
+		class="org.sagebionetworks.repo.model.dbo.dao.DBOPreviewBlobDboImpl" scope="singleton"/>
 
 
 </beans>

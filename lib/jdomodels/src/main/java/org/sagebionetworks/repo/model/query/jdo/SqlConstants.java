@@ -156,6 +156,13 @@ public class SqlConstants {
 	public static final String COL_RESOURCE_ACCESS_TYPE_ELEMENT	= "STRING_ELE";
 	public static final String DDL_FILE_RES_ACCESS_TYPE			= "schema/ResourceAccessType-ddl.sql";
 	
+	// Preview blobs.
+	public static final String TABLE_PREVIEW_BLOB				= "PREVIEW_BLOB";
+	public static final String COL_PREVIEW_OWNER_ID				= "OWNER_NODE_ID";
+	public static final String COL_PREVIEW_TOKEN_ID				= "TOKEN_ID";
+	public static final String COL_PREVIEW_BLOB					= "PREVIEW_BLOB";
+	public static final String DDL_FILE_PREVIEW_BLOB			= "schema/PreviewBlob-ddl.sql";
+	
 	// This constraint ensure that children names are unique within their parent.
 	public static final String CONSTRAINT_UNIQUE_CHILD_NAME = "NODE_UNIQUE_CHILD_NAME";
 	
