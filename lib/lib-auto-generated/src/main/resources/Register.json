@@ -85,6 +85,22 @@
             "urlPrefix":"/code",
             "className":"org.sagebionetworks.repo.model.Code",
             "defaultParentPath":"/root"
+        },
+        {
+            "validParentTypes":[
+                "/project",
+                "/folder",
+                "/study",
+                "/dataset",
+                "/data",
+                "/step",
+                "/analysis",
+                "DEFAULT"
+            ],
+            "name":"link",
+            "urlPrefix":"/link",
+            "className":"org.sagebionetworks.repo.model.Link",
+            "defaultParentPath":"/root"
         }
     ]
 }

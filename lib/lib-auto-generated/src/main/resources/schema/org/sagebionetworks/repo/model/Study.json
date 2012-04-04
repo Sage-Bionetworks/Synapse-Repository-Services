@@ -7,11 +7,7 @@
         },
         {
             "$ref":"org.sagebionetworks.repo.model.HasLayers"
-        },
-        {
-            "$ref":"org.sagebionetworks.repo.model.HasShortcuts"
-        }
-        
+        }        
     ],
     "properties":{
         "species":{

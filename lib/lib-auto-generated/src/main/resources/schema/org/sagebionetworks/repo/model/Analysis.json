@@ -7,10 +7,7 @@
         },
         {
             "$ref":"org.sagebionetworks.repo.model.HasSteps"
-        },
-        {
-            "$ref":"org.sagebionetworks.repo.model.HasShortcuts"
-        },
+        }
     ],
     "properties":{
         "status":{

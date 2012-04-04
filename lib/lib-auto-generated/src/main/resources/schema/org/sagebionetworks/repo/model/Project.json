@@ -4,10 +4,6 @@
     "implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.Entity"
-        },
-        {
-            "$ref":"org.sagebionetworks.repo.model.HasShortcuts"
-        },
-        
+        }
     ],
 }

@@ -43,6 +43,8 @@ public class EntityType {
 	@Deprecated // Only added for backwards compatibility.
 	public static final EntityType analysis = new EntityType();
 	@Deprecated // Only added for backwards compatibility.
+	public static final EntityType link = new EntityType();
+	@Deprecated // Only added for backwards compatibility.
 	public static final EntityType unknown = new EntityType();
 
 	/**
@@ -87,6 +89,8 @@ public class EntityType {
 					type = code;
 				}else if(PrefixConst.ANALYSIS.equals(meta.getUrlPrefix())){
 					type = analysis;
+				}else if(PrefixConst.LINK.equals(meta.getUrlPrefix())){
+					type = link;
 				}else{
 					type = new EntityType();
 				}				

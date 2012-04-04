@@ -1,0 +1,16 @@
+{
+    "title":"Link",
+    "description":"JSON schema for a Link",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Entity"
+        }
+    ],
+    "properties":{
+        "linksTo":{
+            "type":"string",
+            "description":"The synapse id that this link points to.",
+            "title":"Links To"
+        }
+    }
+}
