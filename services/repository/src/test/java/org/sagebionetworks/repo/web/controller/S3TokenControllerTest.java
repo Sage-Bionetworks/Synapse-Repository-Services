@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Date;
@@ -17,10 +18,13 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.AmazonS3Utility;
+import org.sagebionetworks.repo.manager.S3TokenManagerImpl;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Code;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.LayerTypeNames;
@@ -47,6 +51,8 @@ public class S3TokenControllerTest {
 
 	@Autowired
 	private ServletTestHelper testHelper;
+	@Autowired
+	AmazonS3Utility s3Utility;
 
 	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
 	private static final String TEST_USER2 = "testuser2@test.org";
@@ -178,16 +184,26 @@ public class S3TokenControllerTest {
 	}
 	
 	@Test
-	public void testcreateS3AttachmentToken() throws JSONObjectAdapterException, ServletException, IOException{
+	public void testcreateS3AttachmentToken() throws JSONObjectAdapterException, ServletException, IOException, DatastoreException{
 		S3AttachmentToken startToken = new S3AttachmentToken();
 		startToken.setFileName("someImage.jpg");
 		startToken.setMd5(TEST_MD5);
+		
+		String fileName = "images/notAnImage.txt";
+		URL toUpUrl = S3TokenControllerTest.class.getClassLoader().getResource(fileName);
+		assertNotNull("Failed to find: "+fileName+" on the classpath", toUpUrl);
+		File toUpload = new File(toUpUrl.getFile());
 		// Create the token
 		S3AttachmentToken resultToken = testHelper.createS3AttachmentToken(TestUserDAO.TEST_USER_NAME, project.getId(), startToken);
 		System.out.println(resultToken);
 		assertNotNull(resultToken);
 		assertNotNull(resultToken.getTokenId());
 		assertNotNull(resultToken.getPresignedUrl());
+		
+		// Upload it
+		String path = S3TokenManagerImpl.createAttachmentPathNoSlash(project.getId(), resultToken.getTokenId());
+		s3Utility.uploadToS3(toUpload, path);
+
 		// Make sure we can get a signed download URL for this attachment.
 		long now = System.currentTimeMillis();
 		long oneMinuteFromNow = now + (60*1000);
@@ -209,7 +225,8 @@ public class S3TokenControllerTest {
 		assertTrue("This URL should expire in under a minute!", expiresMil < oneMinuteFromNow);
 		assertTrue("This URL should expire after now!", now <= expiresMil);
 		
-		
+		// Delete the file
+		s3Utility.deleteFromS3(path);
 	}
 
 }

@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpMethod;
@@ -35,6 +36,7 @@ public class S3TokenManagerUnitTest {
 	private IdGenerator mocIdGenerator;
 	private LocationHelper mocKLocationHelper;
 	private S3TokenManagerImpl manager;
+	private AmazonS3Utility mockS3Utilitiy;
 	private UserInfo mockUser;
 	String userId = "007";
 	
@@ -45,10 +47,11 @@ public class S3TokenManagerUnitTest {
 		mockUuserManager = Mockito.mock(UserManager.class);
 		mocIdGenerator = Mockito.mock(IdGenerator.class);
 		mocKLocationHelper = Mockito.mock(LocationHelper.class);
+		mockS3Utilitiy = Mockito.mock(AmazonS3Utility.class);
 		mockUser = new UserInfo(false);
 		mockUser.setUser(new User());
 		mockUser.getUser().setId(userId);
-		manager = new S3TokenManagerImpl(mockPermissionsManager, mockUuserManager, mocIdGenerator, mocKLocationHelper);
+		manager = new S3TokenManagerImpl(mockPermissionsManager, mockUuserManager, mocIdGenerator, mocKLocationHelper, mockS3Utilitiy);
 	}
 
 	@Test (expected=InvalidModelException.class)
@@ -140,14 +143,15 @@ public class S3TokenManagerUnitTest {
 		Long tokenId = new Long(456);
 		String entityId = "132";
 		String userId = "007";
-		String expectedPath = S3TokenManagerImpl.createAttachmentPath(entityId, tokenId.toString());
+		String expectedPath = S3TokenManagerImpl.createAttachmentPathSlash(entityId, tokenId.toString());
+
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mocIdGenerator.generateNewId()).thenReturn(tokenId);
 		Credentials mockCreds = Mockito.mock(Credentials.class);
-		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
+		when(mockUuserManager.getUserInfo(any(String.class))).thenReturn(mockUser);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(true);
 		when(mocKLocationHelper.createFederationTokenForS3(userId,HttpMethod.PUT,expectedPath)).thenReturn(mockCreds);
-		when(mocKLocationHelper.presignS3PUTUrl(mockCreds, expectedPath, md5, "image/jpeg")).thenReturn(expectePreSigneUrl);
+		when(mocKLocationHelper.presignS3PUTUrl(any(Credentials.class), any(String.class), any(String.class), any(String.class))).thenReturn(expectePreSigneUrl);
 		// Make the actual call
 		S3AttachmentToken endToken = manager.createS3AttachmentToken(userId, entityId, startToken);
 		assertNotNull(endToken);
@@ -204,17 +208,37 @@ public class S3TokenManagerUnitTest {
 	public void testGetAttachmentUrl() throws Exception{
 		Long tokenId = new Long(456);
 		String entityId = "132";
-
-		String expectedPath = S3TokenManagerImpl.createAttachmentPath(entityId, tokenId.toString());
+		String expectedPath = S3TokenManagerImpl.createAttachmentPathSlash(entityId, tokenId.toString());
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(true);
 		when(mocKLocationHelper.presignS3GETUrlShortLived(userId, expectedPath)).thenReturn(expectePreSigneUrl);
+		when(mockS3Utilitiy.doesExist(any(String.class))).thenReturn(true);
 		// Make the actual call
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
 		PresignedUrl url = manager.getAttachmentUrl(userId, entityId, tokenId.toString());
 		assertNotNull(url);
 		assertEquals(expectePreSigneUrl, url.getPresignedUrl());
+		assertEquals(URLStatus.READ_FOR_DOWNLOAD, url.getStatus());
+	}
+	
+	@Test
+	public void testGetAttachmentUrlDoesNotExist() throws Exception{
+		Long tokenId = new Long(456);
+		String entityId = "132";
+		String expectedPath = S3TokenManagerImpl.createAttachmentPathSlash(entityId, tokenId.toString());
+		String expectePreSigneUrl = "I am a presigned url! whooot!";
+		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(true);
+		when(mocKLocationHelper.presignS3GETUrlShortLived(userId, expectedPath)).thenReturn(expectePreSigneUrl);
+		// This time test that the url does not exist
+		when(mockS3Utilitiy.doesExist(any(String.class))).thenReturn(false);
+		// Make the actual call
+		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
+		PresignedUrl url = manager.getAttachmentUrl(userId, entityId, tokenId.toString());
+		assertNotNull(url);
+		assertEquals(null, url.getPresignedUrl());
+		assertEquals(URLStatus.DOES_NOT_EXIST, url.getStatus());
 	}
 	
 
@@ -223,7 +247,7 @@ public class S3TokenManagerUnitTest {
 		Long tokenId = new Long(456);
 		String entityId = "132";
 		String userId = "007";
-		String expectedPath = S3TokenManagerImpl.createAttachmentPath(entityId, tokenId.toString());
+		String expectedPath = S3TokenManagerImpl.createAttachmentPathSlash(entityId, tokenId.toString());
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
 		// Simulate a 
@@ -233,5 +257,35 @@ public class S3TokenManagerUnitTest {
 		PresignedUrl url = manager.getAttachmentUrl(userId, entityId, tokenId.toString());
 		assertNotNull(url);
 		assertEquals(expectePreSigneUrl, url.getPresignedUrl());
+	}
+	
+	@Test
+	public void testCreateTokenId(){
+		Long id = new Long(456);
+		String fileName = "image.jpg";
+		String tokenId = S3TokenManagerImpl.createTokenId(id, fileName);
+		assertEquals("456.jpg", tokenId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateTokenIdNullId(){
+		String fileName = "image.jpg";
+		String tokenId = S3TokenManagerImpl.createTokenId(null, fileName);
+		assertEquals("456.jpg", tokenId);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateTokenIdNullName(){
+		Long id = new Long(456);
+		String tokenId = S3TokenManagerImpl.createTokenId(id, null);
+		assertEquals("456.jpg", tokenId);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testCreateTokenIdNoSuffix(){
+		Long id = new Long(456);
+		String fileName = "image";
+		String tokenId = S3TokenManagerImpl.createTokenId(id, fileName);
+		assertEquals("456.jpg", tokenId);
 	}
 }

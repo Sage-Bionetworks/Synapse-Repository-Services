@@ -12,6 +12,7 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.GetObjectRequest;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectResult;
 
 /**
@@ -43,7 +44,7 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 	@Override
 	public File downloadFromS3(String key) throws DatastoreException {
 		AmazonS3Client client = createNewAWSClient();
-		log.info("Atempting to download: "+key);
+		log.info("Attempting to download: "+key+" from "+S3_BUCKET);
 		GetObjectRequest getObjectRequest = new GetObjectRequest(S3_BUCKET, key);
 		File temp;
 		try {
@@ -57,10 +58,34 @@ public class AmazonS3UtilityImpl implements AmazonS3Utility{
 
 	@Override
 	public boolean uploadToS3(File toUpload, String key) {
-		log.info("Atempting to upload: "+key);
+		log.info("Attempting to upload: "+key+" to "+S3_BUCKET);
 		AmazonS3Client client = createNewAWSClient();
 		PutObjectResult results = client.putObject(S3_BUCKET, key, toUpload);
 		log.info(results);
 		return results.getETag() != null;
+	}
+
+	@Override
+	public boolean doesExist(String key) {
+		AmazonS3Client client = createNewAWSClient();
+		try{
+			ObjectMetadata metadata = client.getObjectMetadata(S3_BUCKET, key);
+			if(metadata == null) return false;
+			return metadata.getETag() != null;
+		}catch (Exception e){
+			return false;
+		}
+	}
+
+	@Override
+	public boolean deleteFromS3(String key) {
+		AmazonS3Client client = createNewAWSClient();
+		try{
+			log.info("Deleting: "+key+" from "+S3_BUCKET);
+			client.deleteObject(S3_BUCKET, key);
+			return true;
+		}catch(Exception e){
+			return false;
+		}
 	}
 }

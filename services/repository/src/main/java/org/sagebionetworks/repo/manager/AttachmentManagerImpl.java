@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -11,15 +10,14 @@ import java.net.URL;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.manager.image.ImagePreviewUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PreviewState;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -32,15 +30,13 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class AttachmentManagerImpl implements AttachmentManager{
 	
-	/**
-	 * The max dimentions of a preview image.
-	 */
-	private static int MAX_PREVIEW_PIXELS = StackConfiguration.getMaximumPreivewPixels();
 		
 	@Autowired
 	AmazonS3Utility s3Utility;
 	@Autowired
 	private IdGenerator idGenerator;
+	@Autowired
+	ExecutorService backupDaemonThreadPool2;
 		
 	/**
 	 * This is the default used by spring.
@@ -52,9 +48,10 @@ public class AttachmentManagerImpl implements AttachmentManager{
 	 * 
 	 * @param tokenManager
 	 */
-	public AttachmentManagerImpl(AmazonS3Utility utlitity, IdGenerator idGen){
+	public AttachmentManagerImpl(AmazonS3Utility utlitity, IdGenerator idGen, ExecutorService threadPool){
 		this.s3Utility = utlitity;
 		this.idGenerator = idGen;
+		this.backupDaemonThreadPool2 = threadPool;
 	}
 	
 	private static Set<String> IMAGE_TYPES = new HashSet<String>();
@@ -97,45 +94,20 @@ public class AttachmentManagerImpl implements AttachmentManager{
 		// We can skip any attachment with a preview state already set
 		if(data.getPreviewState() != null)	return;
 		// Is this a type we can make a preview for?
-		File tempDownload = null;
-		File tempUpload = null;
 		try{
 			if(isPreviewType(data.getName())){
-				// This is an image format
-				tempDownload = downloadImage(entityId, data);
-				// Now write the preview to a temp image
-				tempUpload = File.createTempFile("AttachmentManagerPreviewUpload", ".tmp");
-				// create the preview
-				FileInputStream in = new FileInputStream(tempDownload);
-				FileOutputStream out = new FileOutputStream(tempUpload);
-				try{
-					// This will create the preview
-					ImagePreviewUtils.createPreviewImage(in, MAX_PREVIEW_PIXELS, out);
-					// Create a previewID
-					data.setPreviewId(idGenerator.generateNewId().toString());
-					// The last step is to upload the file to s3
-					String previewPath = S3TokenManagerImpl.createAttachmentPath(entityId, data.getPreviewId());
-					s3Utility.uploadToS3(tempUpload, previewPath);
-					data.setPreviewState(PreviewState.PREVIEW_EXISTS);
-				}finally{
-					in.close();
-					out.close();
-				}
+				// Create a previewID
+				String previewId = S3TokenManagerImpl.createTokenId(idGenerator.generateNewId(), data.getName());
+				data.setPreviewId(previewId);
+				data.setPreviewState(PreviewState.PREVIEW_EXISTS);
+				// Start the worker on a separate thread.
+				PreviewWorker worker = new PreviewWorker(s3Utility, entityId, data);
+				backupDaemonThreadPool2.execute(worker);
 			}else{
 				// This is not an image format
 				data.setPreviewState(PreviewState.NOT_COMPATIBLE);
 			}
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}finally{
-			// Cleanup the temp files
-			if(tempDownload != null){
-				tempDownload.delete();
-			}
-			// cleanup the temp files
-			if(tempUpload != null){
-				tempUpload.delete();
-			}
+		} finally{
 			// If we did not set the preview state then this is a failure
 			if(data.getPreviewState() == null){
 				data.setPreviewState(PreviewState.FAILED);
@@ -159,7 +131,7 @@ public class AttachmentManagerImpl implements AttachmentManager{
 			UnauthorizedException, InvalidModelException {
 		if(data.getTokenId() != null){
 			// Get a url for this token
-			String key = S3TokenManagerImpl.createAttachmentPath(entityId, data.getTokenId());
+			String key = S3TokenManagerImpl.createAttachmentPathNoSlash(entityId, data.getTokenId());
 			return s3Utility.downloadFromS3(key);
 		}else{
 			// When the give us a URL we just download it.
@@ -214,14 +186,6 @@ public class AttachmentManagerImpl implements AttachmentManager{
 			}catch (MalformedURLException e){
 				throw new IllegalArgumentException("The attachment URL was malformed: "+data.getUrl(), e);
 			}
-		}
-		if(data.getTokenId() != null){
-			try{
-				Long value = Long.parseLong(data.getTokenId());
-			}catch(NumberFormatException e){
-				throw new IllegalArgumentException("The attachment tokenId was not valid: "+data.getTokenId());
-			}
-
 		}
 	}
 	

@@ -115,10 +115,11 @@ public class S3TokenController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, 
 			@PathVariable String tokenId,
+			@PathVariable String mimeType,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		// Pass it along.
-		return s3TokenManager.getAttachmentUrl(userId, id, tokenId);
+		return s3TokenManager.getAttachmentUrl(userId, id, tokenId+"."+mimeType);
 	}
 
 }

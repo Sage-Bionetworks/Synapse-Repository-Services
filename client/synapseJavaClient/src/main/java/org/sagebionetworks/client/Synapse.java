@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
@@ -870,10 +871,35 @@ public class Synapse {
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	public PresignedUrl getAttachmentPresignedUrl(String entityId, AttachmentData newData) throws SynapseException, JSONObjectAdapterException{
-		String url = ENTITY+"/"+entityId+ATTACHMENT_URL+"/"+newData.getTokenId();
+	public PresignedUrl getAttachmentPresignedUrl(String entityId, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
+		String url = ENTITY+"/"+entityId+ATTACHMENT_URL+"/"+tokenOrPreviewId;
 		JSONObject json = getEntity(url);
 		return EntityFactory.createEntityFromJSONObject(json, PresignedUrl.class);
+	}
+	
+	/**
+	 * Wait for the given preview to be created.
+	 * @param entityId
+	 * @param tokenOrPreviewId
+	 * @param timeout
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public void waitForPreviewToBeCreated(String entityId, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
+		long start = System.currentTimeMillis();
+		PresignedUrl url = getAttachmentPresignedUrl(entityId, tokenOrPreviewId);
+		while(URLStatus.DOES_NOT_EXIST == url.getStatus()){
+			// Wait for it.
+			try {
+				Thread.sleep(1000);
+				long now = System.currentTimeMillis();
+				long eplase = now-start;
+				if(eplase > timeout) throw new SynapseException("Timed-out wiating for a preview to be created.");
+				url = getAttachmentPresignedUrl(entityId, tokenOrPreviewId);
+			} catch (InterruptedException e) {
+				throw new SynapseException(e);
+			}
+		}
 	}
 	
 	/**
@@ -889,12 +915,29 @@ public class Synapse {
 		String url = null;
 		if(attachmentData.getTokenId() != null){
 			// Use the token to get the file
-			PresignedUrl preUrl = getAttachmentPresignedUrl(entityId, attachmentData);
+			PresignedUrl preUrl = getAttachmentPresignedUrl(entityId, attachmentData.getTokenId());
 			url = preUrl.getPresignedUrl();
 		}else{
 			// Just download the file.
 			url = attachmentData.getUrl();
 		}
+		//Now download the file
+		downloadFromSynapse(url, null, destFile);
+	}
+	
+	/**
+	 * Downlaod a preview to the passed file.
+	 * @param entityId
+	 * @param previewId
+	 * @param destFile
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public void downloadEntityAttachmentPreview(String entityId, String previewId, File destFile) throws SynapseException, JSONObjectAdapterException{
+		// First get the URL
+		String url = null;
+		PresignedUrl preUrl = getAttachmentPresignedUrl(entityId, previewId);
+		url = preUrl.getPresignedUrl();
 		//Now download the file
 		downloadFromSynapse(url, null, destFile);
 	}

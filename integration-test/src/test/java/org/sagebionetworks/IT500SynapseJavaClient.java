@@ -10,6 +10,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,6 +48,8 @@ import org.sagebionetworks.utils.HttpClientHelper;
  * @author deflaux
  */
 public class IT500SynapseJavaClient {
+	
+	public static final int PREVIEW_TIMOUT = 10*1000;
 
 	private static Synapse synapse = null;
 	private static Project project = null;
@@ -337,23 +340,19 @@ public class IT500SynapseJavaClient {
 	 * @throws SynapseException
 	 */
 	@Test
-	public void testAttachemtnsRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
-		// First create a temp file
-		File temp = File.createTempFile("AttachmentTest", ".txt");
-		File tempDownload = File.createTempFile("AttachmentTestDownload", ".txt");
+	public void testAttachemtnsImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
+		// First load an image from the classpath
+		String fileName = "images/IMAG0019.jpg";
+		URL url = IT500SynapseJavaClient.class.getClassLoader().getResource(fileName);
+		assertNotNull("Failed to find: "+fileName+" on the classpath", url);
+		File originalFile = new File(url.getFile());
+		File attachmentDownload = File.createTempFile("AttachmentTestDownload", ".tmp");
+		File previewDownload = File.createTempFile("AttachmentPreviewDownload", ".png");
 		FileOutputStream writer = null;
 		FileInputStream reader = null;
 		try{
-			String fileContents = "I am some text in a file";
-			byte[] fileBytes = fileContents.getBytes("UTF-8");
-			writer = new FileOutputStream(temp);
-			writer.write(fileBytes);
-			writer.close();
-			// Get the md5
-//			String md5 = org.apache.commons.codec.digest.DigestUtils.md5Hex(fileBytes);
-			
 			// We are now ready to add this file as an attachment on the project
-			AttachmentData data = synapse.uploadAttachmentToSynapse(project.getId(), temp);
+			AttachmentData data = synapse.uploadAttachmentToSynapse(project.getId(), originalFile);
 			// Save this this attachment on the entity.
 			project.setAttachments(new ArrayList<AttachmentData>());
 			project.getAttachments().add(data);
@@ -362,18 +361,25 @@ public class IT500SynapseJavaClient {
 			assertNotNull(project.getAttachments());
 			assertEquals(1, project.getAttachments().size());
 			AttachmentData clone = project.getAttachments().get(0);
-			assertEquals(data, clone);
-			
+			assertEquals(data.getName(), clone.getName());
+			assertEquals(data.getMd5(), clone.getMd5());
+			assertEquals(data.getContentType(), clone.getContentType());
+			assertEquals(data.getTokenId(), clone.getTokenId());
+			// the attachment should have preview
+			assertNotNull(clone.getPreviewId());
 			// Now make sure we can downlaod our
-			synapse.downlaodEntityAttachment(project.getId(), clone, tempDownload);
-			assertTrue(tempDownload.exists());
-			assertTrue(tempDownload.length() == fileBytes.length);
-			// Now make sure the contents are what we expect
-			reader = new FileInputStream(tempDownload);
-			byte[] bytes = new byte[fileBytes.length];
-			reader.read(bytes);
-			String downloadedText = new String(bytes, "UTF-8");
-			assertEquals(fileContents, downloadedText);
+			synapse.downlaodEntityAttachment(project.getId(), clone, attachmentDownload);
+			assertTrue(attachmentDownload.exists());
+			System.out.println(attachmentDownload.getAbsolutePath());
+			assertEquals(originalFile.length(), attachmentDownload.length());
+			// Now make sure we can get the preview image
+			// Before we download the preview make sure it exists
+			synapse.waitForPreviewToBeCreated(project.getId(), clone.getPreviewId(), PREVIEW_TIMOUT);
+			synapse.downloadEntityAttachmentPreview(project.getId(), clone.getPreviewId(), previewDownload);
+			assertTrue(previewDownload.exists());
+			System.out.println(previewDownload.getAbsolutePath());
+			assertTrue(previewDownload.length() > 0);
+			assertTrue("A preview size should not exceed 100KB", previewDownload.length() < 100*1000);
 		}finally{
 			if(writer != null){
 				writer.close();
@@ -381,8 +387,8 @@ public class IT500SynapseJavaClient {
 			if(reader != null){
 				reader.close();
 			}
-			temp.delete();
-			tempDownload.delete();
+			attachmentDownload.delete();
+			previewDownload.delete();
 		}
 	}
 	

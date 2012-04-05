@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.File;
 import java.net.URL;
+import java.util.concurrent.ExecutorService;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -29,13 +30,15 @@ public class AttachmentManagerUnitTest {
 	AmazonS3Utility mockUtil;
 	IdGenerator mockIdGenerator;
 	AttachmentManagerImpl manager;
+	ExecutorService mockThreadPool;
 	String userId = "007";
 	
 	@Before
 	public void before(){
 		mockUtil = Mockito.mock(AmazonS3Utility.class);
 		mockIdGenerator = Mockito.mock(IdGenerator.class);
-		manager = new AttachmentManagerImpl(mockUtil, mockIdGenerator);
+		mockThreadPool = Mockito.mock(ExecutorService.class);
+		manager = new AttachmentManagerImpl(mockUtil, mockIdGenerator, mockThreadPool);
 	}
 
 	@Test
@@ -96,15 +99,7 @@ public class AttachmentManagerUnitTest {
 		data.setUrl("this is not a url");
 		AttachmentManagerImpl.validateAttachmentData(data);
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testValidateAttachmentBadToken(){
-		AttachmentData data = new AttachmentData();
-		data.setName("test.jpg");
-		data.setTokenId("this is a bad token");
-		AttachmentManagerImpl.validateAttachmentData(data);
-	}
-	
+		
 	@Test
 	public void testValidateAttachmentValidToken(){
 		AttachmentData data = new AttachmentData();
@@ -169,7 +164,7 @@ public class AttachmentManagerUnitTest {
 		when(mockUtil.uploadToS3(any(File.class), any(String.class))).thenReturn(Boolean.TRUE);
 		manager.validateAndCheckForPreview(entityId, data);
 		assertEquals(PreviewState.PREVIEW_EXISTS, data.getPreviewState());
-		assertEquals(previewId.toString(), data.getPreviewId());
+		assertEquals(previewId.toString()+".gif", data.getPreviewId());
 
 	}
 }

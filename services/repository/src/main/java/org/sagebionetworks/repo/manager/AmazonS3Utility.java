@@ -20,10 +20,23 @@ public interface AmazonS3Utility {
 	public File downloadFromS3(String key) throws DatastoreException;
 	
 	/**
+	 * Does the given key exist?
+	 * @param key
+	 * @return
+	 */
+	public boolean doesExist(String key);
+	
+	/**
 	 * Uploads the passed file to S3 using the passed key
 	 * @param toUpload
 	 * @param key
 	 */
 	public boolean uploadToS3(File toUpload, String key);
+	
+	/**
+	 * Cleanup a file from S3
+	 * @return
+	 */
+	public boolean deleteFromS3(String key);
 
 }

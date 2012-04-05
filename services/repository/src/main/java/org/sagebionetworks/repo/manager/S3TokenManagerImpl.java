@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -47,7 +48,8 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	private IdGenerator idGenerator;
 	@Autowired
 	private LocationHelper locationHelper;
-
+	@Autowired
+	AmazonS3Utility s3Utility;
 	/**
 	 * This constructor is used by Spring and integration tests.
 	 */
@@ -61,12 +63,13 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	 */
 	public S3TokenManagerImpl(PermissionsManager permissionsManager,
 			UserManager userManager, IdGenerator idGenerator,
-			LocationHelper locationHelper) {
+			LocationHelper locationHelper, AmazonS3Utility s3Utility) {
 		super();
 		this.permissionsManager = permissionsManager;
 		this.userManager = userManager;
 		this.idGenerator = idGenerator;
 		this.locationHelper = locationHelper;
+		this.s3Utility = s3Utility;
 	}
 
 	/**
@@ -253,9 +256,9 @@ public class S3TokenManagerImpl implements S3TokenManager {
 		String contentType = validateContentType(token.getFileName());
 		token.setContentType(contentType);
 		// Issue a new id for this entity.
-		String tokenId = idGenerator.generateNewId().toString();
+		String tokenId = createTokenId(idGenerator.generateNewId(), token.getFileName());
 		// The path of any attachment is is simply the entity-id/token-id
-		String path = createAttachmentPath(entityId, tokenId);
+		String path = createAttachmentPathSlash(entityId, tokenId);
 		// Generate session credentials (needed for multipart upload)
 		Credentials sessionCredentials = locationHelper
 				.createFederationTokenForS3(userId, HttpMethod.PUT, path);
@@ -269,14 +272,39 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	}
 	
 	/**
+	 * Create a token using a uniqueId and a filename.
+	 * @param id
+	 * @param fileName
+	 * @return
+	 */
+	public static String createTokenId(Long id, String fileName){
+		if(id == null) throw new IllegalArgumentException("Id cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("Name cannot be null");
+		String[] split = fileName.split("\\.");
+		if(split.length != 2) throw new IllegalArgumentException("Illegal filename: "+fileName+",  file must have a '.' suffix");
+		return id.toString()+"."+split[1];
+	}
+	
+	/**
 	 * Create an attachment path.
 	 * @param entityId
 	 * @param tokenId
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public static String createAttachmentPath(String entityId, String tokenId) throws DatastoreException{
-		return "/"+KeyFactory.stringToKey(entityId) + "/" + tokenId;
+	public static String createAttachmentPathSlash(String entityId, String tokenId) throws DatastoreException{
+		return "/"+createAttachmentPathNoSlash(entityId, tokenId);
+	}
+	
+	/**
+	 * This version does not have a slash
+	 * @param entityId
+	 * @param tokenId
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public static String createAttachmentPathNoSlash(String entityId, String tokenId) throws DatastoreException{
+		return KeyFactory.stringToKey(entityId) + "/" + tokenId;
 	}
 
 	@Override
@@ -305,12 +333,21 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	 */
 	private PresignedUrl presignedUrl(UserInfo user, String entityId, String tokenId, boolean isPreview) throws DatastoreException, NotFoundException, UnauthorizedException{
 		validateReadAccess(user, entityId);
+		// First determine if this exists
+		String pathNoSlash = createAttachmentPathNoSlash(entityId, tokenId);
+		if(!s3Utility.doesExist(pathNoSlash)){
+			PresignedUrl url = new PresignedUrl();
+			url.setPresignedUrl(null);
+			url.setStatus(URLStatus.DOES_NOT_EXIST);
+			return url;
+		}
 		// The path of any attachment is is simply the entity-id/token-id
-		String path = createAttachmentPath(entityId, tokenId);
+		String path = createAttachmentPathSlash(entityId, tokenId);
 		// Generate the presigned url for download
 		String presignedUrl = locationHelper.presignS3GETUrlShortLived(user.getUser().getId(), path);
 		PresignedUrl url = new PresignedUrl();
 		url.setPresignedUrl(presignedUrl);
+		url.setStatus(URLStatus.READ_FOR_DOWNLOAD);
 		return url;
 	}
 

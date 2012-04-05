@@ -58,7 +58,7 @@ public class UrlHelpers {
 	public static final String OBJECT_TYPE		= "/{objectType}";
 	public static final String OBJECT_TYPE_ID	= OBJECT_TYPE+ID;
 	
-	public static final String TOKEN_ID = "/{tokenId}";
+	public static final String TOKEN_ID = "/{tokenId}.{mimeType}";
 	
 	public static final String TYPE = "/type";
 	/**
