@@ -224,8 +224,10 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		// Add the type specific metadata that is common to all objects.
 		addServiceSpecificMetadata(entity, request);
 		// Add the type specific metadata
-		for(TypeSpecificMetadataProvider<Entity> provider : providers) {
-			provider.addTypeSpecificMetadata(entity, request, info, eventType);
+		if(providers != null) {
+			for(TypeSpecificMetadataProvider<Entity> provider : providers) {
+				provider.addTypeSpecificMetadata(entity, request, info, eventType);
+			}
 		}
 	}
 	
@@ -356,8 +358,10 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		T entity = entityManager.getEntity(userInfo, entityId, clazz);
 		entityManager.deleteEntity(userInfo, entityId);
 		// Do extra cleanup as needed.
-		for(TypeSpecificMetadataProvider<Entity> provider : providers) {
-			provider.entityDeleted(entity);
+		if(providers != null) {
+			for(TypeSpecificMetadataProvider<Entity> provider : providers) {
+				provider.entityDeleted(entity);
+			}
 		}
 		return;
 	}
@@ -373,9 +377,11 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		T entity = (T) entityManager.getEntity(userInfo, id, classForType);
 		entityManager.deleteEntityVersion(userInfo, id, versionNumber);
 		// Do extra cleanup as needed.
-		for(TypeSpecificMetadataProvider<Entity> provider : providers) {
-			provider.entityDeleted(entity);
-		}		
+		if(providers != null) {
+			for(TypeSpecificMetadataProvider<Entity> provider : providers) {
+				provider.entityDeleted(entity);
+			}
+		}
 	}
 
 	@Override
