@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.image;
+package org.sagebionetworks.repo.manager.image;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;

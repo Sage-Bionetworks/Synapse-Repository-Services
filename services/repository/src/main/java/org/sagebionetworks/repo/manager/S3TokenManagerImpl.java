@@ -34,6 +34,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	// http://docs.amazonwebservices.com/AmazonS3/latest/dev/UsingMetadata.html
 	private static final int MAX_S3_KEY_LENGTH = 2048;
 	private static final Pattern MD5_REGEX = Pattern.compile("[0-9a-fA-F]{32}");
+	private static final String PREVIEW_SUFFIX = "preview.png";
 	private static final String DEFAULT_MIME_TYPE = "application/binary";
 	private static final FileNameMap FILE_EXTENSION2MIME_TYPE_MAP = URLConnection
 			.getFileNameMap();
@@ -168,9 +169,8 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	void validateUpdateAccess(String userId, String entityId)
+	void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!permissionsManager.hasAccess(entityId,
 				AuthorizationConstants.ACCESS_TYPE.UPDATE, userInfo)) {
 			throw new UnauthorizedException(
@@ -188,9 +188,8 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	void validateReadAccess(String userId, String entityId)
+	void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!permissionsManager.hasAccess(entityId,
 				AuthorizationConstants.ACCESS_TYPE.READ, userInfo)) {
 			throw new UnauthorizedException(
@@ -216,7 +215,8 @@ public class S3TokenManagerImpl implements S3TokenManager {
 		}
 
 		// Manipulate the pass-in S3 token to be correct
-		validateUpdateAccess(userId, id);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		validateUpdateAccess(userInfo, id);
 		validateMd5(s3Token);
 		validateContentType(s3Token);
 		validatePath(id, s3Token);
@@ -247,7 +247,8 @@ public class S3TokenManagerImpl implements S3TokenManager {
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		// Wrap it up and pass it along
 		// Manipulate the pass-in S3 token to be correct
-		validateUpdateAccess(userId, entityId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		validateUpdateAccess(userInfo, entityId);
 		validateMd5(token.getMd5());
 		String contentType = validateContentType(token.getFileName());
 		token.setContentType(contentType);
@@ -274,20 +275,44 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	static String createAttachmentPath(String entityId, String tokenId) throws DatastoreException{
+	public static String createAttachmentPath(String entityId, String tokenId) throws DatastoreException{
 		return "/"+KeyFactory.stringToKey(entityId) + "/" + tokenId;
 	}
 
 	@Override
 	public PresignedUrl getAttachmentUrl(String userId, String entityId, String tokenId) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		// Make sure the user has read access to the entity.
-		validateReadAccess(userId, entityId);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return getAttachmentUrl(userInfo, entityId, tokenId);
+	}
+	
+	@Override
+	public PresignedUrl getAttachmentUrl(UserInfo user, String entityId,
+			String tokenId) throws NotFoundException, DatastoreException,
+			UnauthorizedException, InvalidModelException {
+		return presignedUrl(user, entityId, tokenId, false);
+	}
+	
+	/**
+	 * Generates the actual presigned URL.
+	 * @param userId
+	 * @param entityId
+	 * @param tokenId
+	 * @param isPreview
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	private PresignedUrl presignedUrl(UserInfo user, String entityId, String tokenId, boolean isPreview) throws DatastoreException, NotFoundException, UnauthorizedException{
+		validateReadAccess(user, entityId);
 		// The path of any attachment is is simply the entity-id/token-id
 		String path = createAttachmentPath(entityId, tokenId);
 		// Generate the presigned url for download
-		String presignedUrl = locationHelper.presignS3GETUrlShortLived(userId, path);
+		String presignedUrl = locationHelper.presignS3GETUrlShortLived(user.getUser().getId(), path);
 		PresignedUrl url = new PresignedUrl();
 		url.setPresignedUrl(presignedUrl);
 		return url;
 	}
+
+	
 }

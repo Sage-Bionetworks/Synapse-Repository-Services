@@ -119,7 +119,6 @@ public class S3TokenController extends BaseController {
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		// Pass it along.
 		return s3TokenManager.getAttachmentUrl(userId, id, tokenId);
-
 	}
 
 }

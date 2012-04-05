@@ -146,6 +146,7 @@ public class UrlHelpers {
 	 */
 	public static final String ENTITY_ATTACHMENT_URL = ENTITY_ID+ATTACHMENT_URL_TOKEN_ID;
 	
+	
 	/**
 	 * The base URL for Synapse objects's type (a.k.a. EntityHeader)
 	 */

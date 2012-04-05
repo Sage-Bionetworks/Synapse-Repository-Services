@@ -2,10 +2,15 @@ package org.sagebionetworks.repo.web.controller.metadata;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.AttachmentManager;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * This class provides basic validation that applies to all object types.
@@ -14,6 +19,9 @@ import org.sagebionetworks.repo.model.EntityType;
  *
  */
 public class AllTypesValidatorImpl implements AllTypesValidator{
+	
+	@Autowired
+	AttachmentManager attachmentManager;
 
 	@Override
 	public void validateEntity(Entity entity, EntityEvent event)throws InvalidModelException {
@@ -33,6 +41,21 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 		// Note: Null parent type is valid for some object types.
 		if(!objectType.isValidParentType(parentType)){
 			throw new IllegalArgumentException("Entity type: "+objectType+" cannot have a parent of type: "+parentType);
+		}
+		// Is this a create or update?
+		if(EventType.CREATE == event.getType() || EventType.UPDATE == event.getType()){
+			if(entity.getAttachments() != null){
+				// This step will create any previews as needed.
+				try {
+					attachmentManager.checkAttachmentsForPreviews(entity);
+				} catch (NotFoundException e) {
+					throw new InvalidModelException(e);
+				} catch (DatastoreException e) {
+					throw new InvalidModelException(e);
+				} catch (UnauthorizedException e) {
+					throw new InvalidModelException(e);
+				}
+			}
 		}
 	}
 }

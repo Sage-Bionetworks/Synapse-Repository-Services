@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -35,6 +36,7 @@ public class S3TokenManagerUnitTest {
 	private LocationHelper mocKLocationHelper;
 	private S3TokenManagerImpl manager;
 	private UserInfo mockUser;
+	String userId = "007";
 	
 	@Before
 	public void before(){
@@ -43,7 +45,9 @@ public class S3TokenManagerUnitTest {
 		mockUuserManager = Mockito.mock(UserManager.class);
 		mocIdGenerator = Mockito.mock(IdGenerator.class);
 		mocKLocationHelper = Mockito.mock(LocationHelper.class);
-		mockUser = Mockito.mock(UserInfo.class);
+		mockUser = new UserInfo(false);
+		mockUser.setUser(new User());
+		mockUser.getUser().setId(userId);
 		manager = new S3TokenManagerImpl(mockPermissionsManager, mockUuserManager, mocIdGenerator, mocKLocationHelper);
 	}
 
@@ -86,7 +90,7 @@ public class S3TokenManagerUnitTest {
 		// Say now to this
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(false);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenThrow(new IllegalArgumentException("Update and not read should have been checked"));
-		manager.validateUpdateAccess(userId, entityId);
+		manager.validateUpdateAccess(mockUser, entityId);
 		
 	}
 	
@@ -99,7 +103,7 @@ public class S3TokenManagerUnitTest {
 		// Say now to this
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(true);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenThrow(new IllegalArgumentException("Update and not read should have been checked"));
-		manager.validateUpdateAccess(userId, entityId);
+		manager.validateUpdateAccess(mockUser, entityId);
 	}
 
 	@Test (expected=UnauthorizedException.class)
@@ -111,7 +115,7 @@ public class S3TokenManagerUnitTest {
 		// Say now to this
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(false);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenThrow(new IllegalArgumentException("Read and not update should have been checked"));
-		manager.validateReadAccess(userId, entityId);
+		manager.validateReadAccess(mockUser, entityId);
 		
 	}
 	
@@ -124,7 +128,7 @@ public class S3TokenManagerUnitTest {
 		// Say now to this
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(true);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenThrow(new IllegalArgumentException("Read and not update should have been checked"));
-		manager.validateReadAccess(userId, entityId);
+		manager.validateReadAccess(mockUser, entityId);
 	}
 	
 	@Test
@@ -200,13 +204,14 @@ public class S3TokenManagerUnitTest {
 	public void testGetAttachmentUrl() throws Exception{
 		Long tokenId = new Long(456);
 		String entityId = "132";
-		String userId = "007";
+
 		String expectedPath = S3TokenManagerImpl.createAttachmentPath(entityId, tokenId.toString());
 		String expectePreSigneUrl = "I am a presigned url! whooot!";
 		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(true);
 		when(mocKLocationHelper.presignS3GETUrlShortLived(userId, expectedPath)).thenReturn(expectePreSigneUrl);
 		// Make the actual call
+		when(mockUuserManager.getUserInfo(userId)).thenReturn(mockUser);
 		PresignedUrl url = manager.getAttachmentUrl(userId, entityId, tokenId.toString());
 		assertNotNull(url);
 		assertEquals(expectePreSigneUrl, url.getPresignedUrl());
