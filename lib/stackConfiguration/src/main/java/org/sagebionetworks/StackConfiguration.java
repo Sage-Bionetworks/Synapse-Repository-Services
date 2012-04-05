@@ -520,12 +520,6 @@ public class StackConfiguration {
 				.getProperty("org.sagebionetworks.bcc.signup.enabled");
 	}
 	
-	public static String getBCCSpreadsheetTitle() {
-		return configuration
-				.getProperty("org.sagebionetworks.bcc.spreadsheet.title");
-		
-	}
-	
 	/**
 	 * 
 	 * Returns the email address to which requests for BCC participation are sent.
@@ -536,26 +530,4 @@ public class StackConfiguration {
 		return configuration
 				.getProperty("org.sagebionetworks.bcc.approvalEmail");
 	}
-
-	public static String getGoogleAppsOAuthConsumerKey() {
-		return configuration
-				.getProperty("org.sagebionetworks.bcc.googleapps.oauth.consumer.key");
-	}
-
-	public static String getGoogleAppsOAuthConsumerSecret() {
-		return configuration
-				.getDecryptedProperty("org.sagebionetworks.bcc.googleapps.oauth.consumer.secret");
-	}
-
-	public static String getGoogleAppsOAuthAccessToken() {
-		return configuration
-				.getDecryptedProperty("org.sagebionetworks.bcc.googleapps.oauth.access.token");
-	}
-
-	public static String getGoogleAppsOAuthAccessTokenSecret() {
-		return configuration
-				.getDecryptedProperty("org.sagebionetworks.bcc.googleapps.oauth.access.token.secret");
-	}
-
-
 }

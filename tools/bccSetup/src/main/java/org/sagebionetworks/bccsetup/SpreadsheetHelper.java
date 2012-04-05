@@ -33,7 +33,7 @@ public class SpreadsheetHelper {
 	  public static final String APPROVAL_COLUMN_TITLE = "Date approved for participation";
 	  public static final String ALLOCATED_COLUMN_TITLE = "Date resources allocated";
 	  
-	  private static final String spreadSheetTitle = StackConfiguration.getBCCSpreadsheetTitle();
+	  private static final String spreadSheetTitle = BccConfigHelper.getBCCSpreadsheetTitle();
 	  
 	  private SpreadsheetService spreadsheetService = null;
 	  
@@ -133,10 +133,10 @@ public class SpreadsheetHelper {
 	  public static SpreadsheetService createSpreadsheetService() throws ServiceException, IOException, OAuthException {
 		    GoogleOAuthParameters oauthParameters = new GoogleOAuthParameters();
 
-			String consumerKey = StackConfiguration.getGoogleAppsOAuthConsumerKey();
-			String consumerSecret = StackConfiguration.getGoogleAppsOAuthConsumerSecret();
-			String accessToken = StackConfiguration.getGoogleAppsOAuthAccessToken();
-			String accessTokenSecret = StackConfiguration.getGoogleAppsOAuthAccessTokenSecret();
+			String consumerKey = BccConfigHelper.getGoogleAppsOAuthConsumerKey();
+			String consumerSecret = BccConfigHelper.getGoogleAppsOAuthConsumerSecret();
+			String accessToken = BccConfigHelper.getGoogleAppsOAuthAccessToken();
+			String accessTokenSecret = BccConfigHelper.getGoogleAppsOAuthAccessTokenSecret();
 			  
 		    oauthParameters.setOAuthConsumerKey(consumerKey);
 	        oauthParameters.setOAuthConsumerSecret(consumerSecret);
