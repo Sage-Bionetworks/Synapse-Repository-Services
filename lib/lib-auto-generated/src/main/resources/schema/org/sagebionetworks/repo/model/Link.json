@@ -11,6 +11,11 @@
             "type":"string",
             "description":"The synapse id that this link points to.",
             "title":"Links To"
+        },
+        "linksToClassName": {
+            "type":"string",
+            "description":"The synapse Entity's class name that this link points to.",
+            "title":"Links To Class Name"        
         }
     }
 }
