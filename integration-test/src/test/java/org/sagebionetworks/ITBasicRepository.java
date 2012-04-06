@@ -41,7 +41,7 @@ public class ITBasicRepository {
 				"Failed to find the system property for repository service base url",
 				repoBaseUrl);
 		log.info("Loaded system property: " + repoBaseUrl);
-		urlsToTest.add("/dataset?sort=name&limit=3");
+		urlsToTest.add("/query?query='select+id+from+dataset'");
 		template = new RestTemplate();
 	}
 

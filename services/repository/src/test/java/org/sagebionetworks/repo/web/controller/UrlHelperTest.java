@@ -86,7 +86,7 @@ public class UrlHelperTest {
 		String uriPrefix = "/repo/v1";
 		String id = "123";
 		for(EntityType type: array){
-			String expectedUri = uriPrefix+type.getUrlPrefix()+"/"+id;
+			String expectedUri = uriPrefix+UrlHelpers.ENTITY+"/"+id;
 			String uri = UrlHelpers.createEntityUri(id, type.getClassForType(), uriPrefix);
 			assertEquals(expectedUri, uri);
 		}
@@ -115,7 +115,7 @@ public class UrlHelperTest {
 		Study ds = new Study();
 		ds.setId("456");
 		UrlHelpers.setBaseUriForEntity(ds, mockRequest);
-		String expectedUri = "http://localhost:8080/repo/v1/dataset/456";
+		String expectedUri = "http://localhost:8080/repo/v1/entity/456";
 		assertEquals(expectedUri, ds.getUri());
 	}
 	
@@ -135,7 +135,7 @@ public class UrlHelperTest {
 	public void testSetAllEntityUrls(){
 		Preview preview = new Preview();
 		// Make sure the preview has a uri
-		String baseUri = "/repo/v1"+EntityType.preview.getUrlPrefix()+"/42";
+		String baseUri = "/repo/v1/entity/42";
 		preview.setUri(baseUri);
 		UrlHelpers.setAllEntityUrls(preview);
 		assertEquals(baseUri+UrlHelpers.ACL, preview.getAccessControlList());
@@ -158,7 +158,7 @@ public class UrlHelperTest {
 	public void testHasLayersUrlUrls(){
 		Study ds = new Study();
 		// Make sure the preview has a uri
-		String baseUri = "/repo/v1"+EntityType.dataset.getUrlPrefix()+"/42";
+		String baseUri = "/repo/v1/entity/42";
 		ds.setUri(baseUri);
 		UrlHelpers.setHasLayersUrl(ds);
 		assertEquals(baseUri+UrlHelpers.LAYER, ds.getLayers());
@@ -234,12 +234,13 @@ public class UrlHelperTest {
 				able.setVersionNumber(43l);
 			}
 			UrlHelpers.setAllUrlsForEntity(entity, mockRequest);
-			String expectedBase = base+type.getUrlPrefix()+"/"+id;
+			String expectedBase = base+UrlHelpers.ENTITY+"/"+id;
 			assertEquals(expectedBase, entity.getUri());
 			String expected = expectedBase+UrlHelpers.ANNOTATIONS;
 			assertEquals(expected, entity.getAnnotations());
 			expected =  expectedBase+UrlHelpers.ACL;
 			assertEquals(expected, entity.getAccessControlList());
+			// TODO: How to fix these?
 			// Has layers
 			if(entity instanceof HasLayers){
 				HasLayers hasLayers = (HasLayers) entity;

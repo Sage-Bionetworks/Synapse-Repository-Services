@@ -152,18 +152,18 @@ public class ReadOnlyWikiGenerator {
 			log.info("h2. Read-Only Examples");
 			wiki
 					.doGet(
-							"/dataset?sort=name&limit=3",
-							"h3. Get All Datasets",
+							"/query?query='select+*+from+dataset+order+by+name'",
+							"h3. Get All Studies",
 							"Optional Parameters\n"
 									+ "* offset - _integer_ - 1-based pagination offset\n"
 									+ "* limit - _integer_ - maximum number of results to return\n"
-									+ "* sort - _string_ - the name of the field upon which to sort\n"
+									+ "* order by - _string_ - the name of the field upon which to sort\n"
 									+ "* ascending - _boolean_ - whether or not to sort ascending");
 			dataset = wiki
 					.doGet(
-							"/dataset/" + dataset.getString("dataset.id"),
-							"h3. Get a Dataset",
-							"This returns the primary fields of a dataset and links to get additional info.");
+							"/entity/" + dataset.getString("dataset.id"),
+							"h3. Get a Study",
+							"This returns the primary fields of a study and links to get additional info.");
 			wiki.doGet(dataset.getString("annotations"),
 					"h3. Get Annotations for a Dataset",
 					"This returns the annotations for a dataset.");

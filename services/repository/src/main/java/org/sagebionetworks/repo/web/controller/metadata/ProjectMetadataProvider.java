@@ -14,8 +14,8 @@ public class ProjectMetadataProvider implements TypeSpecificMetadataProvider<Pro
 
 	@Override
 	public void addTypeSpecificMetadata(Project entity,	HttpServletRequest request, UserInfo user, EventType eventType) {
-		// Add the annotations urls.
-		entity.setAnnotations(UrlHelpers.makeEntityPropertyUri(entity, Annotations.class, request));
+		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
+		if(entity.getId() == null) throw new IllegalArgumentException("Entity.id cannot be null");
 	}
 
 	@Override

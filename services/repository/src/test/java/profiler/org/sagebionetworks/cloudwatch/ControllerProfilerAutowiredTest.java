@@ -9,7 +9,7 @@ import java.util.Queue;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.web.controller.DefaultController;
+import org.sagebionetworks.repo.web.controller.BasicEntityController;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -24,7 +24,7 @@ public class ControllerProfilerAutowiredTest {
 	//will need a defaultController to make calls so MetricDatum objects get
 	//created
 	@Autowired
-	DefaultController defaultController;
+	BasicEntityController defaultController;
 	
 	//need a consumer to add watchers to, so we can track if "put" to cloudWatch
 	//was successful or not

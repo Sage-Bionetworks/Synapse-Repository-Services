@@ -1,16 +1,14 @@
 package org.sagebionetworks.repo.web.controller;
 
 import javax.servlet.http.HttpServletRequest;
+import org.sagebionetworks.repo.manager.EntityManager;
 
 import org.sagebionetworks.repo.manager.S3TokenManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.S3Token;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +36,10 @@ public class S3TokenController extends BaseController {
 
 	@Autowired
 	private S3TokenManager s3TokenManager;
+	@Autowired
+	private EntityManager entityManager;
+	@Autowired
+	private UserManager userManager;
 
 	/**
 	 * Create a security token for use for a particular with a particular
@@ -56,8 +58,8 @@ public class S3TokenController extends BaseController {
 	 */
 	@Transactional(readOnly = false)
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.DATASET_S3TOKEN,
-			UrlHelpers.LAYER_S3TOKEN, UrlHelpers.CODE_S3TOKEN }, method = RequestMethod.POST)
+	@RequestMapping(value = { UrlHelpers.ENTITY_S3TOKEN},
+			method = RequestMethod.POST)
 	public @ResponseBody
 	S3Token createS3Token(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
@@ -66,8 +68,10 @@ public class S3TokenController extends BaseController {
 			NotFoundException, UnauthorizedException, InvalidModelException {
 
 		// Infer one more parameter
-		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
-		return s3TokenManager.createS3Token(userId, id, s3Token, type);
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		EntityType entityType = entityManager.getEntityType(userInfo, id);
+				
+		return s3TokenManager.createS3Token(userId, id, s3Token, entityType);
 	}
 
 	/**

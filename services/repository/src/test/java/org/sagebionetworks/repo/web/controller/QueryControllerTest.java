@@ -18,6 +18,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
@@ -41,15 +42,14 @@ public class QueryControllerTest {
 	public void setUp() throws Exception {
 		helper.setUp();
 		
-		JSONObject project = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
+		JSONObject project = helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
+				DatasetControllerTest.SAMPLE_PROJECT);
 
 		// Load up a few datasets with annotations
 		for (int i = 0; i < DatasetsControllerTest.SAMPLE_DATASET_NAMES.length; i++) {
 			String status = (0 == (i % 2)) ? "pending" : "complete";
-			JSONObject newDataset = helper.testCreateJsonEntity(helper
-					.getServletPrefix()
-					+ "/dataset", "{\"name\":\""
+			JSONObject newDataset = helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
+					"{\"entityType\":\"org.sagebionetworks.repo.model.Study\", \"name\":\""
 					+ DatasetsControllerTest.SAMPLE_DATASET_NAMES[i]
 					+ "\", \"parentId\":\""+project.getString("id")+"\" }");
 
@@ -57,9 +57,7 @@ public class QueryControllerTest {
 			helper.testEntityAnnotations(newDataset.getString("annotations"));
 
 			// Add a layer
-			helper.testCreateJsonEntity(helper
-					.getServletPrefix()
-					+ "/layer",
+			helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
 					LayerControllerTest.getSampleLayer(newDataset.getString("id")));
 		}
 	}

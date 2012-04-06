@@ -12,6 +12,8 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.Ignore;
+
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -93,7 +95,7 @@ public class AttachmentManagerImplTest {
 		assertTrue("The preview image should be smaller than 100K bytes", temp.length() < 100*1000);
 		temp.delete();
 	}
-	
+	@Ignore
 	@Test
 	public void testCreatePreviewImageS3() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException, InterruptedException{
 		String entityId = idGenerator.generateNewId().toString();

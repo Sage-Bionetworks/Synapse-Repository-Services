@@ -171,6 +171,7 @@ public class UrlHelpers {
 	public static final String DATASET_S3TOKEN 	= DATASET_ID+S3TOKEN;
 	public static final String LAYER_S3TOKEN 	= LAYER_ID+S3TOKEN;
 	public static final String CODE_S3TOKEN 	= CODE_ID+S3TOKEN;
+	public static final String ENTITY_S3TOKEN	= ENTITY_ID+S3TOKEN;
 	
 	/**
 	 * All of the base URLs for Synapse objects's paths.
@@ -231,6 +232,7 @@ public class UrlHelpers {
 	public static final String DATASET_VERSION_ANNOTATIONS = 	DATASET_VERSION_NUMBER+ANNOTATIONS;
 	public static final String LAYER_VERSION_ANNOTATIONS = 		LAYER_VERSION_NUMBER+ANNOTATIONS;
 	public static final String CODE_VERSION_ANNOTATIONS = 		CODE_VERSION_NUMBER+ANNOTATIONS;
+	public static final String ENTITY_VERSION_ANNOTATIONS =		ENTITY_VERSION_NUMBER+ANNOTATIONS;
 
 	public static final String OBJECT_TYPE_SCHEMA = OBJECT_TYPE+SCHEMA;
 
@@ -429,8 +431,7 @@ public class UrlHelpers {
 		if(urlPrefix == null) throw new IllegalArgumentException("Url prefix cannot be null");
 		StringBuilder builder = new StringBuilder();
 		builder.append(urlPrefix);
-		EntityType type = EntityType.getNodeTypeForClass(entityClass);
-		builder.append(type.getUrlPrefix());
+		builder.append(UrlHelpers.ENTITY);
 		builder.append("/");
 		builder.append(entityId);
 		return builder.toString();
@@ -539,7 +540,7 @@ public class UrlHelpers {
 		if(object == null) throw new IllegalArgumentException("Entity cannot be null");
 		if(object.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null");
 		EntityType type = EntityType.getNodeTypeForClass(object.getClass());
-		String expectedBaseSuffix = type.getUrlPrefix()+"/"+object.getId();
+		String expectedBaseSuffix = UrlHelpers.ENTITY +"/"+object.getId();
 		if(!object.getUri().endsWith(expectedBaseSuffix)){
 			throw new IllegalArgumentException("Expected base uri suffix: "+expectedBaseSuffix+" but was: "+object.getUri());
 		}

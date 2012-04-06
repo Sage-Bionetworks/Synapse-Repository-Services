@@ -73,6 +73,25 @@ public interface GenericEntityController {
 			UnauthorizedException, NotFoundException;
 
 	/**
+	 * Get all versions of an entity.  This list will be sorted on version number descending.
+	 * @param <T>
+	 * @param userId
+	 * @param offest
+	 * @param limmit
+	 * @param entityId
+	 * @param request
+	 * @param clazz
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
+			HttpServletRequest request) throws DatastoreException,
+			UnauthorizedException, NotFoundException;
+
+
+	/**
 	 * Get a specific entity
 	 * <p>
 	 * 
@@ -403,7 +422,7 @@ public interface GenericEntityController {
 	 * @throws UnauthorizedException
 	 * @throws ACLInheritanceException
 	 */
-	public  <T extends Entity>  EntityHeader getEntityBenefactor(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz) 
+	public  <T extends Entity>  EntityHeader getEntityBenefactor(String entityId, String userId, HttpServletRequest request) 
 	throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException;
 	
 	/**
@@ -464,9 +483,24 @@ public interface GenericEntityController {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException 
 	 */
-	public <T extends Entity> boolean hasAccess(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz, String accessType) 
+	public <T extends Entity> boolean hasAccess(String entityId, String userId, HttpServletRequest request, String accessType) 
 		throws NotFoundException, DatastoreException, UnauthorizedException;
 	
+	/**
+	 * Delete a specific version of an entity
+	 * <p>
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param versionNumber 
+	 *            the unique identifier for the entity to be deleted
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public <T extends Entity> void deleteEntityVersion(String userId, String id, Long versionNumber)
+			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
+
 	/**
 	 * Delete a specific version of an entity.
 	 * @param userId

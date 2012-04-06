@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -46,11 +47,11 @@ public class PreviewControllerTest {
 		
 		helper.setUp();
 		// Datasets must have a project as a parent
-		project = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
+		project = helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
+				DatasetControllerTest.SAMPLE_PROJECT);
 
-		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/dataset", DatasetControllerTest.getSampleDataset(project.getString("id")));
+		dataset = helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
+				DatasetControllerTest.getSampleDataset(project.getString("id")));
 	}
 
 	/**
@@ -82,14 +83,14 @@ public class PreviewControllerTest {
 				+ "2220035	7	Female	W		24.94758035\n"
 				+ "2220071	57	Female	W	Cauc	64.86370891\n";
 
-		JSONObject newLayer = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
+		JSONObject newLayer = helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
+				LayerControllerTest.getSampleLayer(dataset.getString("id")));
 		
 		// Create an empty preview for this layer.
-		String prviewString = "{\"parentId\":\""+newLayer.getString("id")+"\"}";
-		JSONObject layerPreview = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/preview", prviewString);
-
+		String prviewString = "{\"entityType\":\"org.sagebionetworks.repo.model.Preview\", \"parentId\":\""+newLayer.getString("id")+"\"}";
+		JSONObject layerPreview = helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
+				prviewString);
+		
 		assertEquals(newLayer.getString("id"), layerPreview.getString(NodeConstants.COL_PARENT_ID));
 		assertTrue(layerPreview.isNull("previewString"));
 
@@ -120,13 +121,13 @@ public class PreviewControllerTest {
 	@Test
 	public void testUpdateLayerPreview() throws Exception {
 
-		JSONObject newLayer = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
+		JSONObject newLayer = helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
+				LayerControllerTest.getSampleLayer(dataset.getString("id")));
 
 		// Create an empty preview for this layer.
-		String prviewString = "{\"parentId\":\""+newLayer.getString("id")+"\"}";
-		JSONObject layerPreview = helper.testCreateJsonEntity(helper
-				.getServletPrefix()+ "/preview", prviewString);
+		String prviewString = "{\"entityType\":\"org.sagebionetworks.repo.model.Preview\", \"parentId\":\""+newLayer.getString("id")+"\"}";
+		JSONObject layerPreview = helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
+				prviewString);
 
 		assertEquals(newLayer.getString("id"), layerPreview.getString(NodeConstants.COL_PARENT_ID));
 		assertTrue(layerPreview.isNull("previewString"));

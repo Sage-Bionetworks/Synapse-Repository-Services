@@ -318,11 +318,12 @@ public class ServletTestHelper {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
 		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
+		entity.setEntityType(entity.getClass().getName());
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix());
+		request.setRequestURI(UrlHelpers.ENTITY);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		if (null != extraParams) {
 			for (Map.Entry<String, String> param : extraParams.entrySet()) {
@@ -391,7 +392,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + id);
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		if (null != extraParams) {
 			for (Map.Entry<String, String> param : extraParams.entrySet()) {
@@ -429,7 +430,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + id
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id
 				+ UrlHelpers.VERSION + "/" + versionNumber);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
@@ -462,7 +463,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + id
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id
 				+ UrlHelpers.ANNOTATIONS);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
@@ -497,7 +498,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + id + UrlHelpers.PATH);
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.PATH);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -532,7 +533,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + id
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id
 				+ UrlHelpers.VERSION + "/" + versionNumber
 				+ UrlHelpers.ANNOTATIONS);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
@@ -568,7 +569,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + updatedAnnos.getId()
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + updatedAnnos.getId()
 				+ UrlHelpers.ANNOTATIONS);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader(ServiceConstants.ETAG_HEADER, updatedAnnos.getEtag());
@@ -628,7 +629,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + entity.getId());
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + entity.getId());
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		if (null != extraParams) {
 			for (Map.Entry<String, String> param : extraParams.entrySet()) {
@@ -668,11 +669,12 @@ public class ServletTestHelper {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
 		EntityType type = EntityType.getNodeTypeForClass(entity.getClass());
+		entity.setEntityType(entity.getClass().getName());
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + entity.getId()
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + entity.getId()
 				+ UrlHelpers.VERSION);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader(ServiceConstants.ETAG_HEADER, entity.getEtag());
@@ -702,6 +704,7 @@ public class ServletTestHelper {
 	 * @throws JSONException
 	 * @throws Exception
 	 */
+	@Deprecated
 	@SuppressWarnings("unchecked")
 	public static <T extends Entity> PaginatedResults<T> getAllEntites(
 			HttpServlet dispatchServlet, Class<? extends T> clazz,
@@ -729,7 +732,7 @@ public class ServletTestHelper {
 			request.setParameter(ServiceConstants.ASCENDING_PARAM,
 					ascending.toString());
 		}
-		request.setRequestURI(type.getUrlPrefix());
+		request.setRequestURI(UrlHelpers.ENTITY);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -772,7 +775,7 @@ public class ServletTestHelper {
 			request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM,
 					limit.toString());
 		}
-		request.setRequestURI(type.getUrlPrefix() + "/" + entityId
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + entityId
 				+ UrlHelpers.VERSION);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
@@ -821,6 +824,7 @@ public class ServletTestHelper {
 	 * @throws JSONException
 	 * @throws Exception
 	 */
+	@Deprecated
 	@SuppressWarnings("unchecked")
 	public static <T extends Entity> PaginatedResults<T> getAllChildrenEntites(
 			HttpServlet dispatchServlet, EntityType parentType,
@@ -849,6 +853,7 @@ public class ServletTestHelper {
 			request.setParameter(ServiceConstants.ASCENDING_PARAM,
 					ascending.toString());
 		}
+		// TODO: Fix by handling as query
 		String url = parentType.getUrlPrefix() + "/" + parentId
 				+ type.getUrlPrefix();
 		request.setRequestURI(url);
@@ -901,7 +906,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + id);
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		if (null != extraParams) {
 			for (Map.Entry<String, String> param : extraParams.entrySet()) {
@@ -936,7 +941,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + id
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id
 				+ UrlHelpers.VERSION + "/" + versionNumber);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
@@ -987,6 +992,7 @@ public class ServletTestHelper {
 	 * @return the schema
 	 * @throws Exception
 	 */
+		@Deprecated
 	public static <T extends Entity> String getSchema(
 			HttpServlet dispatchServlet, Class<? extends T> clazz, String userId)
 			throws Exception {
@@ -995,6 +1001,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
+		// TODO: Fix
 		request.setRequestURI(type.getUrlPrefix() + UrlHelpers.SCHEMA);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
@@ -1028,7 +1035,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + id + UrlHelpers.ACL);
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
@@ -1067,7 +1074,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + id + UrlHelpers.ACL);
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -1106,7 +1113,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + id + UrlHelpers.ACL);
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader(ServiceConstants.ETAG_HEADER, entityACL.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
@@ -1146,7 +1153,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + resourceId
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + resourceId
 				+ UrlHelpers.ACL);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
@@ -1235,7 +1242,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + id
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id
 				+ UrlHelpers.ACCESS);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.setParameter(UrlHelpers.ACCESS_TYPE_PARAM, accessType);
@@ -1489,7 +1496,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(type.getUrlPrefix() + "/" + id
+		request.setRequestURI(UrlHelpers.ENTITY + "/" + id
 				+ UrlHelpers.BENEFACTOR);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);

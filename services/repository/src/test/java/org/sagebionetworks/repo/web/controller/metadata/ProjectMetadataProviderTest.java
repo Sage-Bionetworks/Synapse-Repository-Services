@@ -6,6 +6,7 @@ import static org.mockito.Mockito.when;
 import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Project;
@@ -33,7 +34,8 @@ public class ProjectMetadataProviderTest {
 		// Add more here.
 		provider.validateEntity(mockProject,  new EntityEvent(EventType.GET, null, null));
 	}
-	
+	// No projec specific metadata anymore
+	@Ignore
 	@Test
 	public void testAddTypeSpecificMetadata(){
 		ProjectMetadataProvider provider = new ProjectMetadataProvider();

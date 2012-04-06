@@ -132,6 +132,8 @@ public class DefaultControllerAutowiredTest {
 		entityController.getEntity(userName,	clone.getId(), mockRequest, Project.class);
 	}
 
+	// Not supported anymore
+	@Ignore
 	@Test
 	public void testGetSchema() throws Exception{
 		// Create a project
@@ -274,6 +276,8 @@ public class DefaultControllerAutowiredTest {
 	 * @throws IOException
 	 * @throws ServletException
 	 */
+	// Not needed if everything is /entity/
+	@Ignore
 	@Test (expected=ServletTestHelperException.class)
 	public void testTypeDoesNotMatchId() throws ServletException, IOException{
 		// First create a project as a non-admin

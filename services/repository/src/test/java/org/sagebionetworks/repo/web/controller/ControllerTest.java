@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
@@ -37,7 +38,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author deflaux
  * 
  */
-@Ignore
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class ControllerTest {
@@ -71,6 +72,8 @@ public class ControllerTest {
 	 * 
 	 * @throws Exception
 	 */
+	// Not supported
+	@Ignore
 	@Test
 	public void testSchemas() throws Exception {
 
@@ -104,14 +107,14 @@ public class ControllerTest {
 	@Test
 	public void testInvalidJsonCreateEntity() throws Exception {
 
-		EntityType[] types = EntityType.values();
-		for (EntityType type: types) {
+//		EntityType[] types = EntityType.values();
+//		for (EntityType type: types) {
 
-			String url = helper.getServletPrefix()+type.getUrlPrefix();
+			String url = helper.getServletPrefix() + UrlHelpers.ENTITY;
 
 			// Notice the missing quotes around the key
 			JSONObject results = helper.testCreateJsonEntityShouldFail(url,
-					"{name:\"bad json from \"a unit test\"}",
+					"{entityType: \"org.sagebionetworks.repo.model.Project\", name:\"bad json from \"a unit test\"}",
 					HttpStatus.BAD_REQUEST);
 
 			// The response should be something like: {"reason":"Could not read
@@ -126,9 +129,9 @@ public class ControllerTest {
 			// name\n at [Source:
 			// org.springframework.mock.web.DelegatingServletInputStream@11e3c2c6;
 			// line: 1, column: 3]"}
-			int index = results.getString("reason").indexOf("org.json.JSONException: Expected a ',' or '}' at character 23");
+			int index = results.getString("reason").indexOf("org.json.JSONException: Expected a ',' or '}' at character 77");
 			assertTrue("Testing " + url +" "+ results.getString("reason"), index >= 0);
-		}
+//		}
 	}
 
 	/**
@@ -140,10 +143,10 @@ public class ControllerTest {
 	@Test
 	public void testMissingBodyCreateEntity() throws Exception {
 
-		EntityType[] types = EntityType.values();
-		for (EntityType type: types) {
+//		EntityType[] types = EntityType.values();
+//		for (EntityType type: types) {
 
-			String url = helper.getServletPrefix()+type.getUrlPrefix();
+			String url = helper.getServletPrefix()+ UrlHelpers.ENTITY;
 			
 			MockHttpServletRequest request = new MockHttpServletRequest();
 			MockHttpServletResponse response = new MockHttpServletResponse();
@@ -161,9 +164,9 @@ public class ControllerTest {
 			JSONObject results = new JSONObject(response.getContentAsString());
 			// The response should be something like:
 			// {"reason":"No content to map to Object due to end of input"}
-			int index = results.getString("reason").indexOf("No content to map to Object due to end of input");
+			int index = results.getString("reason").indexOf("Reader cannot be null");
 			assertTrue("Testing " + url, index >= 0);
-		}
+//		}
 	}
 
 	/**
@@ -175,10 +178,10 @@ public class ControllerTest {
 	@Test
 	public void testMissingBodyUpdateEntity() throws Exception {
 
-		EntityType[] types = EntityType.values();
-		for (EntityType type: types) {
+//		EntityType[] types = EntityType.values();
+//		for (EntityType type: types) {
 
-			String url = helper.getServletPrefix()+type.getUrlPrefix();
+			String url = helper.getServletPrefix()+ UrlHelpers.ENTITY;
 
 			MockHttpServletRequest request = new MockHttpServletRequest();
 			MockHttpServletResponse response = new MockHttpServletResponse();
@@ -197,9 +200,9 @@ public class ControllerTest {
 			JSONObject results = new JSONObject(response.getContentAsString());
 			// The response should be something like:
 			// {"reason":"No content to map to Object due to end of input"}
-			int index = results.getString("reason").indexOf("No content to map to Object due to end of input");
+			int index = results.getString("reason").indexOf("Reader cannot be null");
 			assertTrue("Testing " + url, index >= 0);
-		}
+//		}
 	}
 
 	/**
@@ -211,9 +214,9 @@ public class ControllerTest {
 	@Test
 	public void testUpdateEntityMissingEtag() throws Exception {
 		EntityType[] types = EntityType.values();
-		for (EntityType type: types) {
+//		for (EntityType type: types) {
 
-			String url = helper.getServletPrefix()+type.getUrlPrefix();
+			String url = helper.getServletPrefix()+ UrlHelpers.ENTITY;
 
 			MockHttpServletRequest request = new MockHttpServletRequest();
 			MockHttpServletResponse response = new MockHttpServletResponse();
@@ -240,6 +243,6 @@ public class ControllerTest {
 			// Missing header 'Etag' of type [java.lang.String]"}
 			assertTrue("Testing " + url, results.getString("reason").matches(
 					"(?s).*Missing header 'ETag'.*"));
-		}
+//		}
 	}
 }

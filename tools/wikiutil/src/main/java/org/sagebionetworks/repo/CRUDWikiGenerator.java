@@ -67,21 +67,21 @@ public class CRUDWikiGenerator {
 
 			JSONObject project = wiki
 					.doPost(
-							"/project",
+							"/entity",
 							new JSONObject(
-									"{\"name\": \"SageBioCuration " + timestamp + "\"}"),
+									"{\"entityType\":\"org.sagebionetworks.repo.model.Project\", \"name\": \"SageBioCuration " + timestamp + "\"}"),
 							"h3. Create a Project",
 							"Note that the request is a POST and the content type of the data we are sending to the service is json");
 
 			JSONObject dataset = wiki
 					.doPost(
-							"/dataset",
+							"/entity",
 							new JSONObject(
-									"{\"species\": \"Homo sapiens\", \"description\": \"Genetic and epigenetic alterations have been identified that ...\", "
+									"{\"entityType\":\"org.sagebionetworks.repo.model.Study\", \"species\": \"Homo sapiens\", \"description\": \"Genetic and epigenetic alterations have been identified that ...\", "
 											+ "\"createdBy\": \"Charles Sawyers\", \"versionLabel\": \"1.0.0\", \"name\": \"MSKCC Prostate Cancer\", \"parentId\":\""
 											+ project.getString("id")
 											+ "\"}"),
-							"h3. Create a Dataset",
+							"h3. Create a Study",
 							"");
 
 			dataset.put("species", "Mus musculus");
@@ -89,16 +89,16 @@ public class CRUDWikiGenerator {
 					.doPut(
 							dataset.getString("uri"),
 							dataset,
-							"h3. Update a Dataset",
+							"h3. Update a Study",
 							"In this example species field was changed but all others remain the same. Note that the request is a PUT."
-									+ "  Also note that the change in the URI to include the id of the dataset we wish to update and the ETag header using the "
+									+ "  Also note that the change in the URI to include the id of the study we wish to update and the ETag header using the "
 									+ "value previously returned.");
 
-			log.info("h3. Add Annotations to a Dataset");
+			log.info("h3. Add Annotations to a Study");
 			JSONObject storedAnnotations = wiki
 					.doGet(dataset.getString("annotations"),
 							"h4. Get the annotations",
-							"First get the current annotations for your newly created dataset.");
+							"First get the current annotations for your newly created study.");
 
 			JSONObject cannedAnnotations = new JSONObject(
 					"{\"doubleAnnotations\": {}, \"dateAnnotations\": {\"last_modified_date\": [\"1325468727\"]}, \"longAnnotations\": {\"number_of_downloads\": "
@@ -136,13 +136,14 @@ public class CRUDWikiGenerator {
 
 			JSONObject layer = wiki
 					.doPost(
-							"/layer",
+							"/entity",
 							new JSONObject(
-									"{\"parentId\":\""
+									"{\"entityType\":\"org.sagebionetworks.repo.model.Data\","
+											+ "\"parentId\":\""
 											+ dataset.getString("id")
 											+ "\", \"name\": \"phenotypes\", \"numSamples\": \"261\", \"platform\": \"\", \"versionLabel\": \"1.0.0\", \"type\": \"C\"}"),
-							"h3. Add a Layer to a Dataset",
-							"Create a new layer object and set its parentId to be that of the dataset");
+							"h3. Add data to a Study",
+							"Create a new data object and set its parentId to be that of the study");
 			
 // TODO PLFM-1083 Documentation: refurbish the wiki generator			
 /*

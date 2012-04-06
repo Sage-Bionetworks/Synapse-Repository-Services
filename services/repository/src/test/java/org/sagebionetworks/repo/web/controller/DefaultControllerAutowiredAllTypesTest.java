@@ -66,7 +66,7 @@ import org.springframework.web.servlet.DispatcherServlet;
  * @author jmhill
  * 
  */
-@Ignore
+
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DefaultControllerAutowiredAllTypesTest {
@@ -265,6 +265,8 @@ public class DefaultControllerAutowiredAllTypesTest {
 		}
 	}
 	
+	@Ignore
+	@Deprecated
 	@Test
 	public void testGetList() throws Exception {
 		// This time we want 3 of each type.
@@ -302,6 +304,8 @@ public class DefaultControllerAutowiredAllTypesTest {
 		}
 	}
 	
+	// Should be handled by query vs. /<type>/<id>/<type>
+	@Ignore
 	@Test
 	public void testEntityChildren() throws Exception {
 		// Create a project
@@ -372,6 +376,8 @@ public class DefaultControllerAutowiredAllTypesTest {
 		}
 	}
 	
+	// Not supported anymore	
+	@Ignore
 	@Test
 	public void testGetSchema() throws Exception{
 		// Create a project

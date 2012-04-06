@@ -134,6 +134,39 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	}
 	
 
+	@Override
+	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(
+			String userId, Integer offset, Integer limit, String entityId,
+			HttpServletRequest request)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		if(offset == null){
+			offset = 1;
+		}
+		if(limit == null){
+			limit = Integer.MAX_VALUE;
+		}
+		// First get the full list of all revisions numbers
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		EntityType type =  entityManager.getEntityType(userInfo, entityId);
+		
+		// TODO: Figure out with John how to use the function above instead of dup'ing code
+		
+		List<Long> versionNumbers = entityManager.getAllVersionNumbersForEntity(userInfo, entityId);
+		// Now fetch the versions requested
+		int start = offset-1;
+		int end = Math.min(start+limit, versionNumbers.size());
+		List<T> entityList = new ArrayList<T>();
+		for(int i=start; i<end; i++){
+			long versionNumber = versionNumbers.get(i);
+			T entity = (T) getEntityForVersion(userInfo, entityId, versionNumber, request, type.getClassForType());
+			entityList.add(entity);
+		}
+		// Return the paginated results
+		return new PaginatedResults<T>(request.getServletPath()
+				+ UrlHelpers.getUrlForModel(type.getClassForType()), entityList,
+				versionNumbers.size(), offset, limit, "versionNumber", false);
+	}
+	
 	/**
 	 * First, execute the given query to determine the nodes that match the criteria.
 	 * Then, for each node id, fetch the entity and build up the paginated results.
@@ -255,8 +288,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	public Entity getEntityForVersion(String userId, String id,	Long versionNumber, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		EntityHeader header = entityManager.getEntityHeader(userInfo, id);
-		EntityType type = EntityType.valueOf(header.getType());
+		EntityType type = entityManager.getEntityType(userInfo, id);
 		return getEntityForVersion(userId, id, versionNumber, request, type.getClassForType());
 	}
 
@@ -345,6 +377,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		deleteEntity(userId, entityId, type.getClassForType());
 	}
 
+	
 	@Override
 	public <T extends Entity> void deleteEntity(String userId, String id, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -364,6 +397,17 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 			}
 		}
 		return;
+	}
+	
+	@Override
+	public void deleteEntityVersion(String userId, String id, Long versionNumber)
+			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
+
+		String entityId = UrlHelpers.getEntityIdFromUriId(id);
+
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		EntityType type = entityManager.getEntityType(userInfo, id);
+		deleteEntityVersion(userId, entityId, versionNumber, type.getClassForType());
 	}
 	
 	@Override
@@ -471,7 +515,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		return executeQueryAndConvertToEntites(paging, request, clazz, userInfo, query);
 	}
 	
-
+	
 	@Override
 	public <T extends Entity> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,	HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
@@ -579,14 +623,13 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	 * determine whether a user has the given access type for a given entity
 	 * @param nodeId
 	 * @param userId
-	 * @param clazz the class of the entity
 	 * @param accessType
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException 
 	 */
-	public <T extends Entity> boolean hasAccess(String entityId, String userId, HttpServletRequest request, Class<? extends T> clazz, String accessType) 
+	public <T extends Entity> boolean hasAccess(String entityId, String userId, HttpServletRequest request, String accessType) 
 		throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return permissionsManager.hasAccess(entityId, AuthorizationConstants.ACCESS_TYPE.valueOf(accessType), userInfo);
@@ -608,13 +651,10 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 
 
 	@Override
-	public <T extends Entity> EntityHeader getEntityBenefactor(String entityId, String userId, HttpServletRequest request,
-			Class<? extends T> clazz) throws NotFoundException,
+	public <T extends Entity> EntityHeader getEntityBenefactor(String entityId, String userId, HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException {
 		if(entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
-		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
-		EntityType type = EntityType.getNodeTypeForClass(clazz);
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// First get the permissions benefactor
 		String benefactor = permissionsManager.getPermissionBenefactor(entityId, userInfo);

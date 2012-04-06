@@ -105,7 +105,7 @@ public class IT500SynapseJavaClient {
 		if (0 < datasets.length()) {
 			String datasetId = datasets.getJSONObject(0).getString("dataset.id");
 
-			JSONObject aStoredDataset = synapse.getEntity("/dataset/"
+			JSONObject aStoredDataset = synapse.getEntity("/entity/"
 					+ datasetId);
 			assertTrue(aStoredDataset.has("annotations"));
 

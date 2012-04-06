@@ -9,6 +9,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
@@ -46,11 +47,11 @@ public class LayerAnnotationsControllerTest {
 	public void setUp() throws Exception {
 		helper.setUp();
 
-		project = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/project", DatasetControllerTest.SAMPLE_PROJECT);
+		project = helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
+				DatasetControllerTest.SAMPLE_PROJECT);
 
-		dataset = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/dataset", DatasetControllerTest.getSampleDataset(project.getString("id")));
+		dataset = helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
+				DatasetControllerTest.getSampleDataset(project.getString("id")));
 	}
 
 	/**
@@ -74,8 +75,8 @@ public class LayerAnnotationsControllerTest {
 	 */
 	@Test
 	public void testUpdateLayerAnnotations() throws Exception {
-		JSONObject newLayer = helper.testCreateJsonEntity(helper.getServletPrefix()
-				+ "/layer", LayerControllerTest.getSampleLayer(dataset.getString("id")));
+		JSONObject newLayer = helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
+				LayerControllerTest.getSampleLayer(dataset.getString("id")));
 
 		helper.testEntityAnnotations(newLayer.getString("annotations"));
 	}
@@ -96,8 +97,8 @@ public class LayerAnnotationsControllerTest {
 
 		// Load up a layer
 		JSONObject newLayer = helper
-				.testCreateJsonEntity(helper.getServletPrefix() + "/layer",
-						"{\"name\":\"MouseCross\", \"type\":\"C\",  \"description\": \"foo\", \"releaseNotes\":\"bar\"," +
+				.testCreateJsonEntity(helper.getServletPrefix()  + UrlHelpers.ENTITY,
+						"{\"entityType\":\"org.sagebionetworks.repo.model.Data\", \"name\":\"MouseCross\", \"type\":\"C\",  \"description\": \"foo\", \"releaseNotes\":\"bar\"," +
 						" \"parentId\":\"" +dataset.getString("id")+"\"}");
 		
 		// Get our empty annotations container

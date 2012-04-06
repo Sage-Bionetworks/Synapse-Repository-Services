@@ -62,12 +62,13 @@ public class ITNodeServiceTest {
 	public void before() throws Exception{
 		this.toDelete = new ArrayList<String>();
 		// Create a project
-		project = synapse.createEntity("/project", new JSONObject());
+		JSONObject projSpec = new JSONObject("{\"entityType\":\"org.sagebionetworks.repo.model.Project\", \"name\":\"TestProj\"}");
+		project = synapse.createEntity("/entity", projSpec);
 		toDelete.add(project.getString("uri"));
 		// Create a datasets
-		dataset = new JSONObject();
-		dataset.put("parentId", project.getString("id"));
-		dataset = synapse.createEntity("/dataset", dataset);
+		JSONObject datasetSpec = new JSONObject("{\"entityType\":\"org.sagebionetworks.repo.model.Study\"}");
+		datasetSpec.put("parentId", project.getString("id"));
+		dataset = synapse.createEntity("/entity", dataset);
 	}
 	
 	@After

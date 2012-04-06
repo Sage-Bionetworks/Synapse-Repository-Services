@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
+import org.codehaus.jackson.schema.JsonSchema;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -24,6 +25,8 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.ServiceConstants;
+import org.sagebionetworks.repo.model.*;
+import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -163,6 +166,67 @@ public class BasicEntityController extends BaseController{
 		// Finally, add the type specific metadata.
 		return createdEntity;
 	}
+	/**
+	 * @param userId
+	 * @param header
+	 * @param etag
+	 * @param request
+	 * @return the newly created versionable entity
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws ConflictingUpdateException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.ENTITY_VERSION
+			}, method = RequestMethod.PUT)
+	public @ResponseBody
+	Versionable createNewVersion(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestHeader HttpHeaders header,
+			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
+			HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException, JSONObjectAdapterException {
+
+		// This is simply an update with a new version created.
+		return (Versionable) updateEntityImpl(userId, header, etag, true, request);
+	}
+	
+
+	/**
+	 * Does the actually entity update.
+	 * @param userId
+	 * @param header
+	 * @param etag
+	 * @param newVersion - Should a new version be created to do this update?
+	 * @param request
+	 * @return
+	 * @throws IOException
+	 * @throws NotFoundException
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 */
+	private Entity updateEntityImpl(String userId, HttpHeaders header,
+			String etag, boolean newVersion, HttpServletRequest request) throws IOException,
+			NotFoundException, ConflictingUpdateException, DatastoreException,
+			InvalidModelException, UnauthorizedException, JSONObjectAdapterException {
+		@SuppressWarnings("unchecked")
+//		Entity entity = (Entity) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
+		Entity entity =  JSONEntityHttpMessageConverter.readEntity(request.getReader());
+		if(etag != null){
+			entity.setEtag(etag.toString());
+		}
+		// validate the entity
+		entity = entityController.updateEntity(userId, entity, newVersion, request);
+		// Return the result
+		return entity;
+	}
 	
 	/**
 	 * Update an entity.
@@ -228,6 +292,31 @@ public class BasicEntityController extends BaseController{
 		entityController.deleteEntity(userId, id);
 	}
 	
+		/**
+	 * Called to delete an entity. 
+	 * @param userId - The user that is deleting the entity.
+	 * @param id - The id of the user that is deleting the entity.
+	 * @param versionNumber 
+	 * @param request 
+	 * @throws NotFoundException - Thrown when the entity to delete does not exist.
+	 * @throws DatastoreException - Thrown when there is a server side problem.
+	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException 
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = { 	
+			UrlHelpers.ENTITY_VERSION_NUMBER
+			}, method = RequestMethod.DELETE)
+	public void deleteEntityVersion(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			@PathVariable Long versionNumber,
+			HttpServletRequest request) throws NotFoundException,
+			DatastoreException, UnauthorizedException, ConflictingUpdateException {
+		// Determine the object type from the url.
+		entityController.deleteEntityVersion(userId, id, versionNumber);
+	}
+
 	/**
 	 * Get an existing entity with a GET.
 	 * @param userId -The user that is doing the get.
@@ -250,11 +339,9 @@ public class BasicEntityController extends BaseController{
 			@PathVariable Long versionNumber,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		// Validate the object type
-		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
 		// Get the entity.
 		@SuppressWarnings("unchecked")
-		Entity updatedEntity = entityController.getEntityForVersion(userId, id, versionNumber, request, type.getClassForType());
+		Entity updatedEntity = entityController.getEntityForVersion(userId, id, versionNumber, request);
 		// Return the results
 		return updatedEntity;
 	}
@@ -408,5 +495,308 @@ public class BasicEntityController extends BaseController{
 		return entityPath;
 	}
 
+	/**
+	 * Create a new ACL, overriding inheritance.
+	 * @param objectType 
+	 * @param id 
+	 * @param userId - The user that is doing the create.
+	 * @param newAcl 
+	 * @param request - The body is extracted from the request.
+	 * @return The new ACL, which includes the id of the affected entity
+	 * @throws DatastoreException - Thrown when an there is a server failure.
+	 * @throws InvalidModelException - Thrown if the passed object does not match the expected entity schema.
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException - Thrown only for the case where the entity is assigned a parent that does not exist.
+	 * @throws IOException - Thrown if there is a failure to read the header.
+	 * @throws ConflictingUpdateException 
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = { UrlHelpers.OBJECT_TYPE_ID_ACL }, method = RequestMethod.POST)	
+	public @ResponseBody
+	AccessControlList createEntityAcl(
+			@PathVariable String objectType,
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestBody AccessControlList newAcl,
+			HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
+		if(newAcl == null) throw new IllegalArgumentException("New ACL cannot be null");
+		if(id == null) throw new IllegalArgumentException("ACL ID in the path cannot be null");
+		// pass it along.
+		// This is a fix for PLFM-410
+		newAcl.setId(id);
+		AccessControlList acl = entityController.createEntityACL(userId, newAcl, request);
+		return acl;
+	}
+	
+	/**
+	 * Get the Access Control List (ACL) for a given entity.
+	 * @param objectType 
+	 * @param id - The ID of the entity to get the ACL for.
+	 * @param userId - The user that is making the request.
+	 * @param request
+	 * @return The entity ACL.
+	 * @throws DatastoreException - Thrown when there is a server-side problem.
+	 * @throws NotFoundException - Thrown if the entity does not exist.
+	 * @throws UnauthorizedException 
+	 * @throws ACLInheritanceException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.OBJECT_TYPE_ID_ACL	}, method = RequestMethod.GET)
+	public @ResponseBody
+	AccessControlList getEntityAcl(
+			@PathVariable String objectType,
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, ACLInheritanceException {
+		// pass it along.
+		return entityController.getEntityACL(id, userId, request);
+	}
+	
+	/**
+	 * Update an entity's ACL.
+	 * @param objectType 
+	 * @param id
+	 * @param userId
+	 * @param updatedACL
+	 * @param request
+	 * @return the accessControlList
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.OBJECT_TYPE_ID_ACL	}, method = RequestMethod.PUT)
+	public @ResponseBody
+	AccessControlList updateEntityAcl(
+			@PathVariable String objectType,
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestBody AccessControlList updatedACL,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
+		if(updatedACL == null) throw new IllegalArgumentException("ACL cannot be null");
+		if(id == null) throw new IllegalArgumentException("ID cannot be null");
+		// This is a fix for 
+		if(!id.equals(updatedACL.getId())) throw new IllegalArgumentException("The path ID: "+id+" does not match the ACL's ID: "+updatedACL.getId());
+		// This is a fix for PLFM-621
+		updatedACL.setId(id);
+		// pass it along.
+		return entityController.updateEntityACL(userId, updatedACL, request);
+	}
+	
+	/**
+	 * Called to restore inheritance (vs. defining ones own ACL)
+	 * @param objectType 
+	 * @param userId - The user that is deleting the entity.
+	 * @param id - The entity whose inheritance is to be restored
+	 * @throws NotFoundException - Thrown when the entity to delete does not exist.
+	 * @throws DatastoreException - Thrown when there is a server side problem.
+	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException 
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = { 
+			UrlHelpers.OBJECT_TYPE_ID_ACL
+			}, method = RequestMethod.DELETE)
+	public void deleteEntityACL(
+			@PathVariable String objectType,
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws NotFoundException,
+			DatastoreException, UnauthorizedException, ConflictingUpdateException {
+		// Determine the object type from the url.
+		entityController.deleteEntityACL(userId, id);
+	}
+	
+	/**
+	 * @param objectType 
+	 * @param id 
+	 * @param userId 
+	 * @param accessType 
+	 * @param request 
+	 * @return the access types that the given user has to the given resource
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value={UrlHelpers.OBJECT_TYPE+UrlHelpers.ID+UrlHelpers.ACCESS}, method=RequestMethod.GET)
+	public @ResponseBody BooleanResult hasAccess(
+			@PathVariable String objectType,
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false) String accessType,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
+		// pass it along.
+		return new BooleanResult(entityController.hasAccess(id, userId, request, accessType));
+	}
 
+	/**
+	 * Get the Access Control List (ACL) for a given entity.
+	 * @param objectType 
+	 * @param id - The ID of the entity to get the ACL for.
+	 * @param userId - The user that is making the request.
+	 * @param request
+	 * @return The entity ACL.
+	 * @throws DatastoreException - Thrown when there is a server-side problem.
+	 * @throws NotFoundException - Thrown if the entity does not exist.
+	 * @throws UnauthorizedException 
+	 * @throws ACLInheritanceException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.OBJECT_TYPE_ID_BENEFACTOR	}, method = RequestMethod.GET)
+	public @ResponseBody
+	EntityHeader getEntityBenefactor(
+			@PathVariable String objectType,
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, ACLInheritanceException {
+		if(objectType == null) throw new IllegalArgumentException("PathVariable ObjectType cannot be null");
+		if(id == null) throw new IllegalArgumentException("PathVariable ID cannot be null");
+		// pass it along.
+		return entityController.getEntityBenefactor(id, userId, request);
+	}
+	
+	/**
+	 * Fetch all of the entities of a given type in a paginated form.
+	 * @param id 
+	 * @param userId - The id of the user doing the fetch.
+	 * @param offset - The offset index determines where this page will start from.  An index of 1 is the first entity. When null it will default to 1.
+	 * @param limit - Limits the number of entities that will be fetched for this page. When null it will default to 10.
+	 * @param request
+	 * @return A paginated list of results.
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.ENTITY_VERSION
+		}, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<Versionable> getAllVersionsOfEntity(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			HttpServletRequest request) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		
+		if(limit == null){
+			limit = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM_INT;
+		}
+
+		// Determine the object type from the url.
+		@SuppressWarnings("unchecked")
+		PaginatedResults<Versionable> results = entityController.getAllVerionsOfEntity(userId, offset, limit, id, request);
+		// Return the result
+		return results;
+	}
+	
+	/**
+	 * @param parentType
+	 * @param parentId
+	 * @param userId
+	 * @param offset
+	 * @param limit
+	 * @param sort
+	 * @param ascending
+	 * @param request
+	 * @return paginated results
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.DATASET_CHILDREN,
+			UrlHelpers.LAYER_CHILDREN,
+			UrlHelpers.PREVIEW_CHILDREN,
+			UrlHelpers.PROJECT_CHILDREN,
+			UrlHelpers.FOLDER_CHILDREN,
+			UrlHelpers.ANALYSIS_CHILDREN,
+			UrlHelpers.STEP_CHILDREN,
+			UrlHelpers.CODE_CHILDREN
+		}, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<Entity> getEntityChildren(
+			@PathVariable String parentType,
+			@PathVariable String parentId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending,
+			HttpServletRequest request) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+
+		// Null is used for the default.
+		if(ServiceConstants.DEFAULT_SORT_BY_PARAM.equals(sort)){
+			sort = null;
+		}
+		if(limit == null){
+			limit = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM_INT;
+		}
+		PaginatedParameters paging = new PaginatedParameters(offset, limit, sort, ascending);
+		// Determine the object type from the url.
+		EntityType type = EntityType.getLastTypeInUrl(request.getRequestURI());
+		Class<? extends Entity> clazz = (Class<? extends Entity>) type.getClassForType();
+		PaginatedResults<Entity> results = entityController.getEntityChildrenOfTypePaginated(userId, parentId, clazz, paging, request);
+		// Return the results
+		return results;
+	}	
+
+	/**
+	 * Get the annotations for a given version of an entity.
+	 * @param userId - The user that is doing the update.
+	 * @param id - The id of the entity to update.
+	 * @param versionNumber 
+	 * @param request - Used to read the contents.
+	 * @return The annotations for the given entity.
+	 * @throws NotFoundException - Thrown if the given entity does not exist.
+	 * @throws DatastoreException - Thrown when there is a server side problem.
+	 * @throws UnauthorizedException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.ENTITY_VERSION_ANNOTATIONS
+			}, method = RequestMethod.GET)
+	public @ResponseBody
+	Annotations getEntityAnnotationsForVersion(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			@PathVariable Long versionNumber,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		// Pass it along
+		return entityController.getEntityAnnotationsForVersion(userId, id, versionNumber, request);
+	}
+	/**
+	 * Get the schema for an ACL
+	 * @return the ACL schema
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value ={UrlHelpers.ACL + UrlHelpers.SCHEMA}, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getAclSchema() throws DatastoreException {
+		return entityController.getAclSchema();
+	}
+	
+	/**
+	 * Get the schema for Annotations
+	 * 
+	 * @return the schema
+	 * @throws DatastoreException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value ={UrlHelpers.ANNOTATIONS + UrlHelpers.SCHEMA}, method = RequestMethod.GET)
+	public @ResponseBody
+	JsonSchema getAnnotationsSchema() throws DatastoreException {
+		return entityController.getEntityAnnotationsSchema();
+	}
+
+	
 }

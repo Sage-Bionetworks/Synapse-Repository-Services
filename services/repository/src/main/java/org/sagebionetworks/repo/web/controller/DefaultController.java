@@ -48,7 +48,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  * 
  * @author jhill
  */
-@Controller
+//@Controller
 public class DefaultController extends BaseController {
 
 	@Autowired
@@ -725,7 +725,7 @@ public class DefaultController extends BaseController {
 		if(id == null) throw new IllegalArgumentException("PathVariable ID cannot be null");
 		// pass it along.
 		EntityType type = EntityType.valueOf(objectType);
-		return entityController.getEntityBenefactor(id, userId, request, type.getClassForType());
+		return entityController.getEntityBenefactor(id, userId, request);
 	}
 	
 	/**
@@ -817,8 +817,7 @@ public class DefaultController extends BaseController {
 			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false) String accessType,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
 		// pass it along.
-		EntityType type = EntityType.getFirstTypeInUrl(request.getRequestURI());
-		return new BooleanResult(entityController.hasAccess(id, userId, request, type.getClassForType(), accessType));
+		return new BooleanResult(entityController.hasAccess(id, userId, request, accessType));
 	}
 	
 }

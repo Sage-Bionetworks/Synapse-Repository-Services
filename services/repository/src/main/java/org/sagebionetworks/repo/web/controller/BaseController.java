@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -261,10 +262,10 @@ public abstract class BaseController {
 	 * @return an ErrorResponse object containing the exception reason or some
 	 *         other human-readable response
 	 */
-	@ExceptionHandler(JsonMappingException.class)
+	@ExceptionHandler(JSONObjectAdapterException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public @ResponseBody
-	ErrorResponse handleJsonMappingException(JsonMappingException ex,
+	ErrorResponse handleJSONObjectAdapterException(JSONObjectAdapterException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request);
 	}
