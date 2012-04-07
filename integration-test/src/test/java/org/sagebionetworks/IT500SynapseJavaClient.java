@@ -352,7 +352,9 @@ public class IT500SynapseJavaClient {
 		FileInputStream reader = null;
 		try{
 			// We are now ready to add this file as an attachment on the project
-			AttachmentData data = synapse.uploadAttachmentToSynapse(project.getId(), originalFile);
+			String finalName = "iamgeFile.jpg";
+			AttachmentData data = synapse.uploadAttachmentToSynapse(project.getId(), originalFile, finalName);
+			assertEquals(finalName, data.getName());
 			// Save this this attachment on the entity.
 			project.setAttachments(new ArrayList<AttachmentData>());
 			project.getAttachments().add(data);

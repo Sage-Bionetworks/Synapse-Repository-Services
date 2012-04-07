@@ -834,6 +834,20 @@ public class Synapse {
 	}
 	
 	/**
+	 * This version will use the file name for the file name.
+	 * @param entityId
+	 * @param dataFile
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException
+	 */
+	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile) throws JSONObjectAdapterException, SynapseException, IOException{
+		return uploadAttachmentToSynapse(entityId, dataFile, dataFile.getName());
+	}
+
+	
+	/**
 	 * Upload an attachment to Synapse.
 	 * @param entityId
 	 * @param dataFile
@@ -843,10 +857,10 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws IOException 
 	 */
-	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile) throws JSONObjectAdapterException, SynapseException, IOException{
+	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
 		// First we need to get an S3 token
 		S3AttachmentToken token = new S3AttachmentToken();
-		token.setFileName(dataFile.getName());
+		token.setFileName(fileName);
 		String md5 = MD5ChecksumHelper.getMD5Checksum(dataFile
 				.getAbsolutePath());
 		token.setMd5(md5);
@@ -857,7 +871,7 @@ public class Synapse {
 		// We are now done
 		AttachmentData newData = new AttachmentData();
 		newData.setContentType(token.getContentType());
-		newData.setName(dataFile.getName());
+		newData.setName(fileName);
 		newData.setTokenId(token.getTokenId());
 		newData.setMd5(token.getMd5());
 		return newData;
