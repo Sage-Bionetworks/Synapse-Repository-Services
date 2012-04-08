@@ -1,0 +1,20 @@
+{
+    "description":"JSON Data about a single attachment.",
+    "properties":{
+        "message":{
+            "type":"string",
+             "description":"The uplaod message"
+        },
+        "uploadStatus":{
+            "type":"string",
+            "description":"The status of the upload.",
+            "name":"UploadStatus",
+            "id":"org.sagebionetworks.repo.model.attachment.UploadStatus",
+            "enum":[
+                "FAILED",
+                "SUCCESS",
+            ],
+            
+        },
+    }
+}
