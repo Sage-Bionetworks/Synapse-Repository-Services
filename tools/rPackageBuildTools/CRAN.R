@@ -11,7 +11,7 @@ pkgInstall <- function (package, stack='prod', ...) {
   }
 
   rVersion <- paste(R.Version()$major, as.integer(R.Version()$minor), sep=".")
-  sageRepos <- paste("http://depot.fhcrc.org/CRAN",
+  sageRepos <- paste("http://depot.sagebase.org/CRAN",
                      stack, rVersion, sep="/")
   allRepos <- c(biocinstallRepos(), sageRepos)
 
