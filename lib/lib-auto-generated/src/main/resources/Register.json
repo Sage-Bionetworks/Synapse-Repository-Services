@@ -132,5 +132,15 @@
             "className":"org.sagebionetworks.repo.model.ExpressionData",
             "defaultParentPath":"/root"
         },
+        {
+            "validParentTypes":[
+                "/project",
+                "/dataset",
+            ],
+            "name":"robject",
+            "urlPrefix":"/robject",
+            "className":"org.sagebionetworks.repo.model.RObject",
+            "defaultParentPath":"/root"
+        },
     ]
 }
