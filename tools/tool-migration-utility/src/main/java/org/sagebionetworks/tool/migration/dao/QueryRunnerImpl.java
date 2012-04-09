@@ -264,10 +264,20 @@ public class QueryRunnerImpl implements QueryRunner {
 	@Override
 	public long getCountForType(EntityType type)
 			throws SynapseException, JSONException {
+		long res = 0;
 		String query = String.format(QUERY_TOTAL_ENTITY_TYPE_COUNT, type.name());
-		JSONObject json = client.query(query);
-		EntityQueryResults results = translateFromJSONObjectToEntityQueryResult(json, type.name());
-		return results.getTotalCount();
+		
+		try {
+			JSONObject json = client.query(query);
+			EntityQueryResults results = translateFromJSONObjectToEntityQueryResult(json, type.name());
+			res = results.getTotalCount();
+		}
+		catch (SynapseException e) {
+			res = 0;
+		}
+		finally {
+			return res;
+		}
 	}
 
 }
