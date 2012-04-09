@@ -51,7 +51,7 @@ public class LayerControllerTest {
 	 * Some properties for a layer to use for unit tests
 	 */
 	private final static String SAMPLE_LAYER_1 = "{\"entityType\":\"org.sagebionetworks.repo.model.Data\", \"name\":\"DeLiver expression data\", \"type\":\"E\", "
-			+ "\"description\": \"foo\", \"releaseNotes\":\"bar\", \"parentId\":\"";
+			+ "\"description\": \"foo\", \"parentId\":\"";
 	
 	/**
 	 * Build a sample layer.
@@ -229,11 +229,11 @@ public class LayerControllerTest {
 		helper
 				.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
 						"{\"entityType\":\"org.sagebionetworks.repo.model.Data\", \"name\":\"DeLiver genetic data\", \"type\":\"G\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\", \"parentId\":\""+dataset.getString(NodeConstants.COL_ID)+"\"}");
+								+ " \"description\": \"foo\", \"parentId\":\""+dataset.getString(NodeConstants.COL_ID)+"\"}");
 		helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY, LayerControllerTest.getSampleLayer(dataset.getString(NodeConstants.COL_ID)));
 		helper.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
 						"{\"entityType\":\"org.sagebionetworks.repo.model.Data\", \"name\":\"DeLiver clinical data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\", \"parentId\":\""+dataset.getString(NodeConstants.COL_ID)+"\"}");
+								+ " \"description\": \"foo\", \"parentId\":\""+dataset.getString(NodeConstants.COL_ID)+"\"}");
 
 		JSONObject results = helper.testGetJsonEntities(helper.getServletPrefix() + UrlHelpers.ENTITY
 				+ dataset.getString(NodeConstants.COL_ID) + "/layer", null, null,
@@ -295,7 +295,7 @@ public class LayerControllerTest {
 
 		JSONObject error = helper
 				.testCreateJsonEntityShouldFail(helper.getServletPrefix() + UrlHelpers.ENTITY,
-						"{\"entityType\":\"org.sagebionetworks.repo.model.Data\", \"version\": \"1.0.0\", \"description\": \"foo\", \"releaseNotes\":\"bar\", \"type\":\"C\", \"parentId\":\""+dataset.getString("id")+"\"}",
+						"{\"entityType\":\"org.sagebionetworks.repo.model.Data\", \"version\": \"1.0.0\", \"description\": \"foo\", \"type\":\"C\", \"parentId\":\""+dataset.getString("id")+"\"}",
 						HttpStatus.BAD_REQUEST);
 
 		assertEquals("Node.name cannot be null", error
@@ -317,7 +317,7 @@ public class LayerControllerTest {
 		JSONObject newLayer = helper
 				.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
 						"{\"entityType\":\"org.sagebionetworks.repo.model.Data\", \"name\":\"MouseCross clinical data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\"}");
+								+ " \"description\": \"foo\"}");
 
 		// Get that layer
 		JSONObject layer = helper.testGetJsonEntity(newLayer.getString("uri"));
@@ -347,7 +347,7 @@ public class LayerControllerTest {
 		JSONObject newLayer = helper
 				.testCreateJsonEntity(helper.getServletPrefix() + UrlHelpers.ENTITY,
 						"{\"entityType\":\"org.sagebionetworks.repo.model.Data\", \"name\":\"MouseCross genetic data\", \"type\":\"C\", "
-								+ " \"description\": \"foo\", \"releaseNotes\":\"bar\", \"parentId\":\"" +dataset.getString(NodeConstants.COL_ID)+
+								+ " \"description\": \"foo\", \"parentId\":\"" +dataset.getString(NodeConstants.COL_ID)+
 										"\"}");
 
 		// Get that layer

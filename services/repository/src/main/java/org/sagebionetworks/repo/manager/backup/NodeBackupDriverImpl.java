@@ -282,7 +282,9 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 					NodeRevisionBackup revision = NodeSerializerUtil.readNodeRevision(zin);
 					// Add this to the list
 					// Migrate the revision to the current version
-					revision = migrationDriver.migrateToCurrentVersion(revision, nodeType);
+					nodeType = migrationDriver.migrateToCurrentVersion(revision, nodeType);
+					// nodeType is changed as needed
+					backup.getNode().setNodeType(nodeType.name());
 					// Add this to the list of revisions to be processed
 					revisions.add(revision);
 				}else{

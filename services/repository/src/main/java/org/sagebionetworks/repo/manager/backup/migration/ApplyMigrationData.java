@@ -32,13 +32,13 @@ public class ApplyMigrationData implements RevisionMigrationStep {
 	}
 
 	@Override
-	public NodeRevisionBackup migrateOneStep(NodeRevisionBackup toMigrate,	EntityType type) {
+	public EntityType migrateOneStep(NodeRevisionBackup toMigrate,	EntityType type) {
 		// If we have any fields to rename then now is the time to do it.
 		List<RenameFieldData> renameList = migrationData.getRenameDataForEntity(type);
 		if(renameList != null){
 			renameFields(renameList, toMigrate, type);
 		}
-		return toMigrate;
+		return type;
 	}
 
 	/**

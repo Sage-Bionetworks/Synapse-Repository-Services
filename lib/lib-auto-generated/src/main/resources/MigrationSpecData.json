@@ -139,20 +139,20 @@
 					"destination": {"name": "disease", "type": "string", "bucket": "primary"}
 				},
 				{
-					"source": {"name": "normalization", "type": "string", "bucket": "additional"},
-					"destination": {"name": "Normalization", "type": "string", "bucket": "additional"}
-				},
-				{
-					"source": {"name": "repository", "type": "string", "bucket": "additional"},
-					"destination": {"name": "Repository", "type": "string", "bucket": "additional"}
-				},
-				{
 					"source": {"name": "species", "type": "string", "bucket": "additional"},
 					"destination": {"name": "species", "type": "string", "bucket": "primary"}
 				},
 				{
 					"source": {"name": "Species", "type": "string", "bucket": "additional"},
 					"destination": {"name": "species", "type": "string", "bucket": "primary"}
+				},
+				{
+					"source": {"name": "sampleSource", "type": "string", "bucket": "additional"},
+					"destination": {"name": "tissueType", "type": "string", "bucket": "primary"}
+				},
+				{
+					"source": {"name": "releaseNotes", "type": "string", "bucket": "additional"},
+					"destination": {"name": "", "type": "", "bucket": "delete"}
 				},
 			]
 		},

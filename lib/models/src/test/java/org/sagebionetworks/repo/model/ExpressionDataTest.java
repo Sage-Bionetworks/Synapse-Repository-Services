@@ -12,11 +12,11 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
-public class LayerTest {
+public class ExpressionDataTest {
 	
 	@Test
 	public void testRoundTripLayer() throws JSONObjectAdapterException {
-		Data l1 = new Data();
+		ExpressionData l1 = new ExpressionData();
 		JSONObjectAdapter adapter1 = new JSONObjectAdapterImpl();
 		JSONObjectAdapter adapter2 = new JSONObjectAdapterImpl();
 		Date d = new Date();
@@ -50,18 +50,21 @@ public class LayerTest {
 		l1.setLocations(ll);
 
 		l1.setNumSamples(1000L);
-		l1.setPlatform("platform");
 		l1.setPreviews("/previews");
-		l1.setTissueType("tissueType");
-		l1.setType(LayerTypeNames.E);
+		
+		l1.setNumSamples(100L);
+		l1.setDisease("disease");
+		l1.setSpecies("species");
+		l1.setS3Token("S3token");
+		l1.setPlatform("platform");
+		l1.setTissueType("tissue");
 
 		adapter1 = l1.writeToJSONObject(adapter1);
 		String s = adapter1.toJSONString();
 		adapter2 = new JSONObjectAdapterImpl(s);
-		Data l2 = new Data(adapter2);
+		ExpressionData l2 = new ExpressionData(adapter2);
 		
 		assertEquals(l1, l2);
-		return;
 	}
 
 }

@@ -98,7 +98,7 @@ public class LayerAnnotationsControllerTest {
 		// Load up a layer
 		JSONObject newLayer = helper
 				.testCreateJsonEntity(helper.getServletPrefix()  + UrlHelpers.ENTITY,
-						"{\"entityType\":\"org.sagebionetworks.repo.model.Data\", \"name\":\"MouseCross\", \"type\":\"C\",  \"description\": \"foo\", \"releaseNotes\":\"bar\"," +
+						"{\"entityType\":\"org.sagebionetworks.repo.model.Data\", \"name\":\"MouseCross\", \"type\":\"C\",  \"description\": \"foo\"," +
 						" \"parentId\":\"" +dataset.getString("id")+"\"}");
 		
 		// Get our empty annotations container

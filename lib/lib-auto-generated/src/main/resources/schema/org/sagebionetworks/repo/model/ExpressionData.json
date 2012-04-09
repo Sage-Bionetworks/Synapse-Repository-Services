@@ -1,28 +1,25 @@
 {
-    "title":"Study",
-    "description":"JSON schema for Study POJO",
+    "title":"ExpressionData",
+    "description":"JSON schema for ExpressionData POJO",
     "implements":[
         {
-            "$ref":"org.sagebionetworks.repo.model.Locationable"
+            "$ref":"org.sagebionetworks.repo.model.GenericData"
         },
-        {
-            "$ref":"org.sagebionetworks.repo.model.HasLayers"
-        }        
     ],
     "properties":{
-		"numSamples": {
-			"type":"integer",
-			"description":"Approximate number of samples in this Study",
-			"title":"Number of samples"
-		},
+        "numSamples":{
+            "type":"integer",
+            "description":"Approximate number of samples in this Data",
+            "title":"Number of Samples"
+        },
         "species":{
             "type":"string",
-            "description":"The species associated with this Study",
+            "description":"The species associated with this Data",
             "title":"Species"
         },
 		"disease":{
             "type":"string",
-            "description":"The disease associated with this Study",
+            "description":"The disease associated with this Data",
             "title":"Disease"
 		},
         "tissueType":{
@@ -41,7 +38,7 @@
         },
         "platform":{
             "type":"string",
-            "description":"Chip platform for the samples in this Study",
+            "description":"Chip platform for the samples in this Data",
             "links":[
                 {
                     "rel":"describedby",

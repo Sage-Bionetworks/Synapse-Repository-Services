@@ -27,7 +27,7 @@ public class GenericMigrator implements RevisionMigrationStep {
 	}
 
 	@Override
-	public NodeRevisionBackup migrateOneStep(NodeRevisionBackup toMigrate, EntityType type) {
+	public EntityType migrateOneStep(NodeRevisionBackup toMigrate, EntityType type) {
 		Annotations primaryAnnotations = null;
 		Annotations additionalAnnotations = null;
 		Annotations annots = null;
@@ -60,7 +60,7 @@ public class GenericMigrator implements RevisionMigrationStep {
 					}
 			}
 		}
-		return toMigrate;
+		return type;
 	}
 	
 }

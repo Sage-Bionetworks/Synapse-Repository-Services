@@ -1,0 +1,16 @@
+{
+    "title":"RObject",
+    "description":"JSON schema for RObject POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.GenericData"
+        },
+    ],
+    "properties":{
+        "RObjectType":{
+            "type":"string",
+            "description":"Type of RObject",
+            "title":"Type"
+        },
+    }
+}

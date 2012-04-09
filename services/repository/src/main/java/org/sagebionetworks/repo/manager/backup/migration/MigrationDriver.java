@@ -17,6 +17,6 @@ public interface MigrationDriver {
 	 * @param type
 	 * @return
 	 */
-	public NodeRevisionBackup migrateToCurrentVersion(NodeRevisionBackup toMigrate, EntityType type);
+	public EntityType migrateToCurrentVersion(NodeRevisionBackup toMigrate, EntityType type);
 
 }

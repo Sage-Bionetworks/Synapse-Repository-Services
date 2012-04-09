@@ -101,6 +101,36 @@
             "urlPrefix":"/link",
             "className":"org.sagebionetworks.repo.model.Link",
             "defaultParentPath":"/root"
-        }
+        },
+        {
+            "validParentTypes":[
+                "/project",
+                "/dataset",
+            ],
+            "name":"phenotypedata",
+            "urlPrefix":"/phenotypedata",
+            "className":"org.sagebionetworks.repo.model.PhenotypeData",
+            "defaultParentPath":"/root"
+        },
+        {
+            "validParentTypes":[
+                "/project",
+                "/dataset",
+            ],
+            "name":"genotypedata",
+            "urlPrefix":"/genotypedata",
+            "className":"org.sagebionetworks.repo.model.GenotypeData",
+            "defaultParentPath":"/root"
+        },
+        {
+            "validParentTypes":[
+                "/project",
+                "/dataset",
+            ],
+            "name":"expressiondata",
+            "urlPrefix":"/expressiondata",
+            "className":"org.sagebionetworks.repo.model.ExpressionData",
+            "defaultParentPath":"/root"
+        },
     ]
 }

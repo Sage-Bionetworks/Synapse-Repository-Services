@@ -266,8 +266,6 @@ public class NodeTranslationUtilsTest {
 		layer.setNumSamples(new Long(12));
 		layer.setPlatform("somePlate");
 		layer.setPreviews("somePreview");
-//		layer.setProcessingFacility("processing");
-		layer.setReleaseNotes("resleaseNote");
 		layer.setTissueType("type");
 		layer.setType(LayerTypeNames.C);
 		layer.setUri("someUri");

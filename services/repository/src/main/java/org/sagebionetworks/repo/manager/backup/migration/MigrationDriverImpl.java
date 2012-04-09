@@ -34,6 +34,7 @@ public class MigrationDriverImpl implements MigrationDriver{
 		// Apply an Migration data
 		revisionSteps.add(new ApplyMigrationData(new  MigrationDataLoaderImpl().loadMigrationData()));
 		revisionSteps.add(new GenericMigrator(msd));
+		revisionSteps.add(new DataTypeMigrator());
 
 	}
 
@@ -41,17 +42,18 @@ public class MigrationDriverImpl implements MigrationDriver{
 	 * Walk over each step until we get to the current version.
 	 */
 	@Override
-	public NodeRevisionBackup migrateToCurrentVersion(NodeRevisionBackup toMigrate,	EntityType type) {
+	public EntityType migrateToCurrentVersion(NodeRevisionBackup toMigrate,	EntityType type) {
 		if(toMigrate == null) throw new IllegalArgumentException("NodeRevsion toMigrate cannot be null");
 		if(type == null) throw new IllegalArgumentException("ObjectType cannot be null");
 		String startingVersion = toMigrate.getXmlVersion();
+		EntityType newType = EntityType.unknown;
 		// Take each step to get to the current version
 		for(RevisionMigrationStep step: revisionSteps){
-			toMigrate = step.migrateOneStep(toMigrate, type);
+			newType = step.migrateOneStep(toMigrate, type);
 		}
 		// Validate we are on the current version
 		if(!NodeRevisionBackup.CURRENT_XML_VERSION.equals(toMigrate.getXmlVersion())) throw new IllegalStateException("Failed to migrate a NodeRevisionBackup from version: "+startingVersion+" to the current version: "+NodeRevisionBackup.CURRENT_XML_VERSION);
-		return toMigrate;
+		return newType;
 	}
 
 }

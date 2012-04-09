@@ -1,0 +1,16 @@
+{
+    "title":"Media",
+    "description":"JSON schema for Media POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.GenericData"
+        },
+    ],
+    "properties":{
+        "mediaType":{
+            "type":"string",
+            "description":"Type of Media",
+            "title":"Type"
+        },
+    }
+}

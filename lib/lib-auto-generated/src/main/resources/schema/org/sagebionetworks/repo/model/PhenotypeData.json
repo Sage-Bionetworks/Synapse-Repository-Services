@@ -1,0 +1,26 @@
+{
+    "title":"PhenotypeData",
+    "description":"JSON schema for PhenotypeData POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.GenericData"
+        },
+    ],
+    "properties":{
+        "numSamples":{
+            "type":"integer",
+            "description":"Approximate number of samples in this Data",
+            "title":"Number of Samples"
+        },
+        "species":{
+            "type":"string",
+            "description":"The species associated with this Data",
+            "title":"Species"
+        },
+		"disease":{
+            "type":"string",
+            "description":"The disease associated with this Data",
+            "title":"Disease"
+		},
+    }
+}

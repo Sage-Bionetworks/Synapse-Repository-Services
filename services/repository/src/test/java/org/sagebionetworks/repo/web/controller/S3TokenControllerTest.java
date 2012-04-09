@@ -186,7 +186,7 @@ public class S3TokenControllerTest {
 			assertEquals(HttpStatus.FORBIDDEN.value(), ex.getHttpStatus());
 		}
 	}
-	@Ignore
+	
 	@Test
 	public void testcreateS3AttachmentToken() throws JSONObjectAdapterException, ServletException, IOException, DatastoreException{
 		S3AttachmentToken startToken = new S3AttachmentToken();

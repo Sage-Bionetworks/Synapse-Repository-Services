@@ -1,6 +1,6 @@
 {
-    "title":"Data",
-    "description":"JSON schema for Data POJO",
+    "title":"GenotypeData",
+    "description":"JSON schema for GenotypeData POJO",
     "implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.GenericData"
@@ -22,20 +22,6 @@
             "description":"The disease associated with this Data",
             "title":"Disease"
 		},
-        "tissueType":{
-            "type":"string",
-            "description":"Type of tissue for the samples in this Data. Tissue is described by the Synapse ontology concept: http://synapse.sagebase.org/ontology#6501",
-            "links":[
-                {
-                    "rel":"describedby",
-                    "href":"http://synapse.sagebase.org/ontology#6501",
-                    
-                },
-                
-            ],
-            "title":"Tissue Type",
-            
-        },
         "platform":{
             "type":"string",
             "description":"Chip platform for the samples in this Data",
@@ -48,19 +34,6 @@
                 
             ],
             "title":"Platform",
-            
-        },
-        "type":{
-            "type":"string",
-            "description":"Type of Data",
-            "name":"LayerTypeNames",
-            "id":"org.sagebionetworks.repo.model.LayerTypeNames",
-            "enum":[
-                "E",
-                "G",
-                "C",
-                "M"
-            ],
             
         },
     }

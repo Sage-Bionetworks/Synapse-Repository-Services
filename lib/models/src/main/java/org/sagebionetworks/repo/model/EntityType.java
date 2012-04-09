@@ -45,6 +45,12 @@ public class EntityType {
 	@Deprecated // Only added for backwards compatibility.
 	public static final EntityType link = new EntityType();
 	@Deprecated // Only added for backwards compatibility.
+	public static final EntityType phenotypedata = new EntityType();
+	@Deprecated // Only added for backwards compatibility.
+	public static final EntityType genotypedata = new EntityType();
+	@Deprecated // Only added for backwards compatibility.
+	public static final EntityType expressiondata = new EntityType();
+	@Deprecated // Only added for backwards compatibility.
 	public static final EntityType unknown = new EntityType();
 
 	/**
@@ -91,6 +97,12 @@ public class EntityType {
 					type = analysis;
 				}else if(PrefixConst.LINK.equals(meta.getUrlPrefix())){
 					type = link;
+				}else if(PrefixConst.PHENOTYPEDATA.equals(meta.getUrlPrefix())){
+					type = phenotypedata;
+				}else if(PrefixConst.GENOTYPEDATA.equals(meta.getUrlPrefix())){
+					type = genotypedata;
+				}else if(PrefixConst.EXPRESSIONDATA.equals(meta.getUrlPrefix())){
+					type = expressiondata;
 				}else{
 					type = new EntityType();
 				}				

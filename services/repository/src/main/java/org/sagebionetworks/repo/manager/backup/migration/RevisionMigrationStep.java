@@ -16,5 +16,5 @@ public interface RevisionMigrationStep {
 	 * @param type
 	 * @return
 	 */
-	public NodeRevisionBackup migrateOneStep(NodeRevisionBackup toMigrate,	EntityType type);
+	public EntityType migrateOneStep(NodeRevisionBackup toMigrate,	EntityType type);
 }
