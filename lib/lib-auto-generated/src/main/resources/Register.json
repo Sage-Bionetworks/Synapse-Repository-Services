@@ -105,7 +105,7 @@
         {
             "validParentTypes":[
                 "/project",
-                "/dataset",
+                "/dataset"
             ],
             "name":"phenotypedata",
             "urlPrefix":"/phenotypedata",
@@ -115,7 +115,7 @@
         {
             "validParentTypes":[
                 "/project",
-                "/dataset",
+                "/dataset"
             ],
             "name":"genotypedata",
             "urlPrefix":"/genotypedata",
@@ -125,7 +125,7 @@
         {
             "validParentTypes":[
                 "/project",
-                "/dataset",
+                "/dataset"
             ],
             "name":"expressiondata",
             "urlPrefix":"/expressiondata",
@@ -135,12 +135,12 @@
         {
             "validParentTypes":[
                 "/project",
-                "/dataset",
+                "/dataset"
             ],
             "name":"robject",
             "urlPrefix":"/robject",
             "className":"org.sagebionetworks.repo.model.RObject",
             "defaultParentPath":"/root"
-        },
+        }
     ]
 }
