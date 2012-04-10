@@ -264,7 +264,15 @@ public class S3TokenManagerUnitTest {
 		Long id = new Long(456);
 		String fileName = "image.jpg";
 		String tokenId = S3TokenManagerImpl.createTokenId(id, fileName);
-		assertEquals("456.jpg", tokenId);
+		assertEquals("456/image.jpg", tokenId);
+	}
+	
+	@Test
+	public void testCreateTokenIdMultiDot(){
+		Long id = new Long(456);
+		String fileName = "catalina.2011-05-16.log";
+		String tokenId = S3TokenManagerImpl.createTokenId(id, fileName);
+		assertEquals("456/catalina.2011-05-16.log", tokenId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -281,11 +289,10 @@ public class S3TokenManagerUnitTest {
 		assertEquals("456.jpg", tokenId);
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
 	public void testCreateTokenIdNoSuffix(){
 		Long id = new Long(456);
 		String fileName = "image";
 		String tokenId = S3TokenManagerImpl.createTokenId(id, fileName);
-		assertEquals("456.jpg", tokenId);
+		assertEquals("456/image", tokenId);
 	}
 }

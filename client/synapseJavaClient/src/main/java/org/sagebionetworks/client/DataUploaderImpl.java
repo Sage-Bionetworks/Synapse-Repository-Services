@@ -54,9 +54,8 @@ public abstract class DataUploaderImpl implements DataUploader {
 			headerMap.put("x-amz-acl", "bucket-owner-full-control");
 			headerMap.put("Content-MD5", base64Md5);
 			headerMap.put("Content-Type", s3Token.getContentType());
-
-			clientProvider.uploadFile(s3Token.getPresignedUrl(), dataFile
-					.getAbsolutePath(), s3Token.getContentType(), headerMap);
+			// Put the file.
+			clientProvider.putFile(s3Token.getPresignedUrl(), dataFile, headerMap);
 		} catch (Exception e) {
 			throw new SynapseException("AWS S3 upload of " + dataFile + " failed", e);
 		}

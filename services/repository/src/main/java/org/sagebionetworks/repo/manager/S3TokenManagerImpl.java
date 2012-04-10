@@ -280,9 +280,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	public static String createTokenId(Long id, String fileName){
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("Name cannot be null");
-		String[] split = fileName.split("\\.");
-		if(split.length != 2) throw new IllegalArgumentException("Illegal filename: "+fileName+",  file must have a '.' suffix");
-		return id.toString()+"."+split[1];
+		return id.toString()+"/"+fileName;
 	}
 	
 	/**
@@ -332,6 +330,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	 * @throws UnauthorizedException
 	 */
 	private PresignedUrl presignedUrl(UserInfo user, String entityId, String tokenId, boolean isPreview) throws DatastoreException, NotFoundException, UnauthorizedException{
+		if(tokenId == null) throw new IllegalArgumentException("TokenId cannot be null");
 		validateReadAccess(user, entityId);
 		// First determine if this exists
 		String pathNoSlash = createAttachmentPathNoSlash(entityId, tokenId);
@@ -347,6 +346,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 		String presignedUrl = locationHelper.presignS3GETUrlShortLived(user.getUser().getId(), path);
 		PresignedUrl url = new PresignedUrl();
 		url.setPresignedUrl(presignedUrl);
+		url.setTokenID(tokenId);
 		url.setStatus(URLStatus.READ_FOR_DOWNLOAD);
 		return url;
 	}

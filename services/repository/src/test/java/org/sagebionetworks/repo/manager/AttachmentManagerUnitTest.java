@@ -164,7 +164,7 @@ public class AttachmentManagerUnitTest {
 		when(mockUtil.uploadToS3(any(File.class), any(String.class))).thenReturn(Boolean.TRUE);
 		manager.validateAndCheckForPreview(entityId, data);
 		assertEquals(PreviewState.PREVIEW_EXISTS, data.getPreviewState());
-		assertEquals(previewId.toString()+".gif", data.getPreviewId());
+		assertEquals(previewId.toString()+"/shortWide.gif", data.getPreviewId());
 
 	}
 }

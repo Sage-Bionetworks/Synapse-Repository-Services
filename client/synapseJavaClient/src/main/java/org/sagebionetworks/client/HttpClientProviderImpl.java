@@ -1,10 +1,13 @@
 package org.sagebionetworks.client;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.util.Map;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.HttpClient;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -41,6 +44,16 @@ public class HttpClientProviderImpl implements HttpClientProvider {
 	@Override
 	public void downloadFile(String requestUrl, String filepath)throws ClientProtocolException, IOException, HttpClientHelperException {
 		HttpClientHelper.downloadFile(DefaultHttpClientSingleton.getInstance(), requestUrl, filepath);
+	}
+
+
+	@Override
+	public void putFile(String requestUrl, File toPut,
+			Map<String, String> requestHeaders) throws ClientProtocolException,
+			IOException, HttpClientHelperException {
+		HttpClient client = DefaultHttpClientSingleton.getInstance();
+		FileInputStream in = new FileInputStream(toPut);
+		HttpClientHelper.putStream(client, requestUrl, in, toPut.length(), requestHeaders);
 	}
 
 }

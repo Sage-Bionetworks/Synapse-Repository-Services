@@ -885,9 +885,12 @@ public class Synapse {
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	public PresignedUrl getAttachmentPresignedUrl(String entityId, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
-		String url = ENTITY+"/"+entityId+ATTACHMENT_URL+"/"+tokenOrPreviewId;
-		JSONObject json = getEntity(url);
+	public PresignedUrl createAttachmentPresignedUrl(String entityId, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
+		String url = ENTITY+"/"+entityId+ATTACHMENT_URL;
+		PresignedUrl preIn = new PresignedUrl();
+		preIn.setTokenID(tokenOrPreviewId);
+		JSONObject jsonBody = EntityFactory.createJSONObjectForEntity(preIn);
+		JSONObject json = createEntity(url, jsonBody);
 		return EntityFactory.createEntityFromJSONObject(json, PresignedUrl.class);
 	}
 	
@@ -899,9 +902,10 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
-	public void waitForPreviewToBeCreated(String entityId, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
+	public PresignedUrl waitForPreviewToBeCreated(String entityId, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
 		long start = System.currentTimeMillis();
-		PresignedUrl url = getAttachmentPresignedUrl(entityId, tokenOrPreviewId);
+		PresignedUrl url = createAttachmentPresignedUrl(entityId, tokenOrPreviewId);
+		if(URLStatus.READ_FOR_DOWNLOAD == url.getStatus()) return url;
 		while(URLStatus.DOES_NOT_EXIST == url.getStatus()){
 			// Wait for it.
 			try {
@@ -909,11 +913,13 @@ public class Synapse {
 				long now = System.currentTimeMillis();
 				long eplase = now-start;
 				if(eplase > timeout) throw new SynapseException("Timed-out wiating for a preview to be created.");
-				url = getAttachmentPresignedUrl(entityId, tokenOrPreviewId);
+				url = createAttachmentPresignedUrl(entityId, tokenOrPreviewId);
+				if(URLStatus.READ_FOR_DOWNLOAD == url.getStatus()) return url;
 			} catch (InterruptedException e) {
 				throw new SynapseException(e);
 			}
 		}
+		return url;
 	}
 	
 	/**
@@ -929,7 +935,7 @@ public class Synapse {
 		String url = null;
 		if(attachmentData.getTokenId() != null){
 			// Use the token to get the file
-			PresignedUrl preUrl = getAttachmentPresignedUrl(entityId, attachmentData.getTokenId());
+			PresignedUrl preUrl = createAttachmentPresignedUrl(entityId, attachmentData.getTokenId());
 			url = preUrl.getPresignedUrl();
 		}else{
 			// Just download the file.
@@ -950,7 +956,7 @@ public class Synapse {
 	public void downloadEntityAttachmentPreview(String entityId, String previewId, File destFile) throws SynapseException, JSONObjectAdapterException{
 		// First get the URL
 		String url = null;
-		PresignedUrl preUrl = getAttachmentPresignedUrl(entityId, previewId);
+		PresignedUrl preUrl = createAttachmentPresignedUrl(entityId, previewId);
 		url = preUrl.getPresignedUrl();
 		//Now download the file
 		downloadFromSynapse(url, null, destFile);

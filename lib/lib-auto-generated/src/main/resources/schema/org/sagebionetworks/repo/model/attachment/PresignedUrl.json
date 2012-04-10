@@ -1,6 +1,10 @@
 {
     "description":"JSON Data about a single attachment.",
     "properties":{
+        "tokenID":{
+             "type":"string",
+             "description":"The token ID for this url"
+        },
         "presignedUrl":{
             "type":"string",
              "description":"A presigned url for downloading."

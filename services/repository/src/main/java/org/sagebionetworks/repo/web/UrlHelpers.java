@@ -58,7 +58,7 @@ public class UrlHelpers {
 	public static final String OBJECT_TYPE		= "/{objectType}";
 	public static final String OBJECT_TYPE_ID	= OBJECT_TYPE+ID;
 	
-	public static final String TOKEN_ID = "/{tokenId}.{mimeType}";
+//	public static final String TOKEN_ID = "{tokenId}/{filename}.{mimeType}";
 	
 	public static final String TYPE = "/type";
 	/**
@@ -99,7 +99,6 @@ public class UrlHelpers {
 	public static final String ATTACHMENT_S3_TOKEN = "/s3AttachmentToken";
 	
 	public static final String ATTACHMENT_URL = "/attachmentUrl";
-	public static final String ATTACHMENT_URL_TOKEN_ID = ATTACHMENT_URL+TOKEN_ID;
 
 	/**
 	 * All of the base URLs for Synapse objects
@@ -144,7 +143,7 @@ public class UrlHelpers {
 	/**
 	 * The url used to get an attachment URL.
 	 */
-	public static final String ENTITY_ATTACHMENT_URL = ENTITY_ID+ATTACHMENT_URL_TOKEN_ID;
+	public static final String ENTITY_ATTACHMENT_URL = ENTITY_ID+ATTACHMENT_URL;
 	
 	
 	/**

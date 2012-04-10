@@ -1,5 +1,6 @@
 package org.sagebionetworks.client;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
@@ -41,6 +42,20 @@ public interface HttpClientProvider {
 	 */
 	public void uploadFile(String requestUrl, String filepath, String contentType,	Map<String, String> requestHeaders) throws ClientProtocolException, IOException, HttpClientHelperException;
 	
+	
+	/**
+	 * Upload a file.
+	 * 
+	 * @param requestUrl
+	 * @param filepath
+	 * @param contentType
+	 * @param requestHeaders
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws HttpClientHelperException
+	 */
+	public void putFile(String requestUrl, File toPut, Map<String, String> requestHeaders) throws ClientProtocolException, IOException, HttpClientHelperException;
+
 	/**
 	 * Download a file.
 	 * @param requestUrl
@@ -49,7 +64,7 @@ public interface HttpClientProvider {
 	 * @throws IOException
 	 * @throws HttpClientHelperException 
 	 */
-	public void downloadFile(final String requestUrl,	final String filepath) throws ClientProtocolException, IOException, HttpClientHelperException;
+	public void downloadFile(final String requestUrl, final String filepath) throws ClientProtocolException, IOException, HttpClientHelperException;
 
 	/**
 	 * Perform an HTTP request.

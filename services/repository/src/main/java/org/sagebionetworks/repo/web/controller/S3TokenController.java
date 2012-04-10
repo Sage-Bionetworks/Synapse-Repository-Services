@@ -112,18 +112,18 @@ public class S3TokenController extends BaseController {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.ENTITY_ATTACHMENT_URL }, method = RequestMethod.GET)
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ATTACHMENT_URL }, method = RequestMethod.POST)
 	public @ResponseBody
 	PresignedUrl getAttachmentUrl(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, 
-			@PathVariable String tokenId,
-			@PathVariable String mimeType,
+			@RequestBody PresignedUrl url,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
+		if(url == null) throw new IllegalArgumentException("A PresignedUrl must be provided");
 		// Pass it along.
-		return s3TokenManager.getAttachmentUrl(userId, id, tokenId+"."+mimeType);
+		return s3TokenManager.getAttachmentUrl(userId, id, url.getTokenID());
 	}
 
 }

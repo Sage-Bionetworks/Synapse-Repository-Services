@@ -1695,15 +1695,21 @@ public class ServletTestHelper {
 		if(tokenId == null) throw new IllegalArgumentException("TokenId cannot be null");
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
+		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.ATTACHMENT_URL+"/"+tokenId);
+		request.setRequestURI(UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.ATTACHMENT_URL);
 		System.out.println(request.getRequestURL());
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		PresignedUrl url = new PresignedUrl();
+		url.setTokenID(tokenId);
+		StringWriter out = new StringWriter();
+		objectMapper.writeValue(out, url);
+		String body = out.toString();
+		request.setContent(body.getBytes("UTF-8"));
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.OK.value()) {
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
 			throw new ServletTestHelperException(response);
 		}
 		// Done!
