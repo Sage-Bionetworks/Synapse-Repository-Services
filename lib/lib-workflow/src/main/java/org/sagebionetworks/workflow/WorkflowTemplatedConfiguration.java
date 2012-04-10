@@ -133,4 +133,14 @@ public interface WorkflowTemplatedConfiguration extends TemplatedConfiguration {
 	 * @return true if debugMode enabled, false otherwise
 	 */
 	public boolean debugMode();
+	
+	/**
+	 * 
+	 * return the thread pool size to be used by activity workers
+	 * 
+	 * @return
+	 */
+	public Integer getTaskExecutorThreadPoolSize();
+	
+	
 }

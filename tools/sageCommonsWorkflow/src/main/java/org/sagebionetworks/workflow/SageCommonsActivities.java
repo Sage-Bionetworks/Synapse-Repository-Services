@@ -54,7 +54,7 @@ public interface SageCommonsActivities {
 	/**
 	 * Retries for script processing
 	 */
-	static final int NUM_RETRIES = 3;
+	static final int NUM_RETRIES = 0;
 	/**
 	 * First amount of time to wait before retrying
 	 */

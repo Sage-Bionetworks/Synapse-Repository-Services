@@ -23,6 +23,12 @@ public class SageCommonsActivityService {
 
         final ActivityWorker worker = new ActivityWorker(swfService, domain, SageCommonsActivities.ACTIVITIES_TASK_LIST);
 
+        // optionally set the number of threads an activity worker can run
+        Integer taskExecutorThreadPoolSize = SageCommonsConfigHelper.getTaskExecutorThreadPoolSize();
+        if (taskExecutorThreadPoolSize!=null) {
+        	worker.setTaskExecutorThreadPoolSize(taskExecutorThreadPoolSize);
+        }
+
         // Create activity implementations
         SageCommonsActivities tcgaActivitiesImpl = new SageCommonsActivitiesImpl(new SageCommonsChildWorkflowDispatcherImpl());
         worker.addActivitiesImplementation(tcgaActivitiesImpl);

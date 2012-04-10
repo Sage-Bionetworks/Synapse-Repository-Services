@@ -124,4 +124,9 @@ public class SageCommonsConfigHelper {
 	public static String getSynapsePassword() {
 		return configuration.getSynapsePassword();
 	}
+	
+	public static Integer getTaskExecutorThreadPoolSize() {
+		return configuration.getTaskExecutorThreadPoolSize();
+	}
+	
 }
