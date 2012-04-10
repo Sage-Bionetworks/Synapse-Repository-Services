@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.attachment.PreviewState;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
- * This worker will downlaod a file, create a preview, then updload the preview to S3.
+ * This worker will download a file, create a preview, then updload the preview to S3.
  * 
  * @author John
  *

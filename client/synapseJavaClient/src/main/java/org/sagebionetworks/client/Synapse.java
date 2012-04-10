@@ -865,7 +865,7 @@ public class Synapse {
 				.getAbsolutePath());
 		token.setMd5(md5);
 		// Create the token
-		token = createAtachmentS3Token(entityId, token);
+		token = createAttachmentS3Token(entityId, token);
 		// Upload the file
 		dataUploader.uploadDataSingle(token, dataFile);
 		// We are now done
@@ -930,7 +930,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
-	public void downlaodEntityAttachment(String entityId, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
+	public void downloadEntityAttachment(String entityId, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
 		// First get the URL
 		String url = null;
 		if(attachmentData.getTokenId() != null){
@@ -970,7 +970,7 @@ public class Synapse {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException 
 	 */
-	public S3AttachmentToken createAtachmentS3Token(String entityId, S3AttachmentToken token) throws JSONObjectAdapterException, SynapseException{
+	public S3AttachmentToken createAttachmentS3Token(String entityId, S3AttachmentToken token) throws JSONObjectAdapterException, SynapseException{
 		if(entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
 		if(token == null) throw new IllegalArgumentException("S3AttachmentToken cannot be null");
 		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(token);

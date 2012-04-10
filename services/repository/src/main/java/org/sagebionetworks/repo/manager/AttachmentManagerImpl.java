@@ -12,7 +12,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
@@ -135,19 +134,19 @@ public class AttachmentManagerImpl implements AttachmentManager{
 			return s3Utility.downloadFromS3(key);
 		}else{
 			// When the give us a URL we just download it.
-			return downlaodFileFromUrl(data.getUrl());
+			return downloadFileFromUrl(data.getUrl());
 		}
 	}
 	
 	/**
-	 * Downlaod a file from the given url
-	 * @param todownlaod
+	 * Download a file from the given url
+	 * @param todownload
 	 * @return
 	 * @throws DatastoreException
 	 */
-	private File downlaodFileFromUrl(String todownlaod) throws DatastoreException{
+	private File downloadFileFromUrl(String todownload) throws DatastoreException{
 		try {
-			URL url = new URL(todownlaod);
+			URL url = new URL(todownload);
 			File temp = File.createTempFile("AttachmentManager", ".tmp");
 			// Read the file
 			BufferedOutputStream out = new BufferedOutputStream(new FileOutputStream(temp));

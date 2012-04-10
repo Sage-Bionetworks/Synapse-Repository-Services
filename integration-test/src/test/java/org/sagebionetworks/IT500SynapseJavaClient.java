@@ -369,8 +369,8 @@ public class IT500SynapseJavaClient {
 			assertEquals(data.getTokenId(), clone.getTokenId());
 			// the attachment should have preview
 			assertNotNull(clone.getPreviewId());
-			// Now make sure we can downlaod our
-			synapse.downlaodEntityAttachment(project.getId(), clone, attachmentDownload);
+			// Now make sure we can download our
+			synapse.downloadEntityAttachment(project.getId(), clone, attachmentDownload);
 			assertTrue(attachmentDownload.exists());
 			System.out.println(attachmentDownload.getAbsolutePath());
 			assertEquals(originalFile.length(), attachmentDownload.length());
