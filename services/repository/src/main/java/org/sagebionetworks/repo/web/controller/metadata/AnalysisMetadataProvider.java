@@ -50,12 +50,6 @@ public class AnalysisMetadataProvider implements
 	public void validateEntity(Analysis entity, EntityEvent event)
 			throws InvalidModelException, NotFoundException,
 			DatastoreException, UnauthorizedException {
-		if (null == entity.getName()) {
-			throw new InvalidModelException("name cannot be null");
-		}
-		if (null == entity.getDescription()) {
-			throw new InvalidModelException("description cannot be null");
-		}
 	}
 
 	@Override
