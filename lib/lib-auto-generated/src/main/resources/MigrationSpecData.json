@@ -87,11 +87,11 @@
 				},
 				{
 					"source": {"name": "curator", "type": "string", "bucket": "additional"},
-					"destination": {"name": "", "type": "", "bucket": "delete"}
+					"destination": {"name": "", "type": "", "bucket": "deleted"}
 				},
 				{
 					"source": {"name": "Curator", "type": "string", "bucket": "additional"},
-					"destination": {"name": "", "type": "", "bucket": "delete"}
+					"destination": {"name": "", "type": "", "bucket": "deleted"}
 				},
 				{
 					"source": {"name": "hasExpressionData", "type": "string", "bucket": "primary"},
@@ -106,8 +106,12 @@
 					"destination": {"name": "", "type": "", "bucket": "deleted"}
 				},
 				{
-					"source": {"name": "numSamples", "type": "int", "bucket": "additional"},
-					"destination": {"name": "numSamples", "type": "int", "bucket": "primary"}
+					"source": {"name": "numSamples", "type": "string", "bucket": "additional"},
+					"destination": {"name": "numSamples", "type": "integer", "bucket": "primary"}
+				},
+				{
+					"source": {"name": "Number_of_Samples", "type": "integer", "bucket": "additional"},
+					"destination": {"name": "numSamples", "type": "integer", "bucket": "primary"}
 				}
 			]
 		},
@@ -179,8 +183,8 @@
 					"destination": {"name": "platform", "type": "string", "bucket": "primary"}
 				},
 				{
-					"source": {"name": "numSamples", "type": "int", "bucket": "additional"},
-					"destination": {"name": "numSamples", "type": "int", "bucket": "primary"}
+					"source": {"name": "numSamples", "type": "string", "bucket": "additional"},
+					"destination": {"name": "numSamples", "type": "integer", "bucket": "primary"}
 				}
 			]
 		},
