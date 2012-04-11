@@ -315,4 +315,57 @@ public class GenericMigratorTest {
 		assertEquals(valuesToMigrate.iterator().next(), primaryLongAnnos.get(newKey).iterator().next());
 		return;
 	}
+	
+	@Test
+	public void testMigrateType() {
+		for (EntityType type: EntityType.values()) {
+			// Setup migration spec
+//			MigrationSpec ms = MigratorTestHelper.setupMigrationSpec(type.name(), "primary", "primary");
+			MigrationSpec ms = new MigrationSpec();
+			List<EntityTypeMigrationSpec> listEms = new ArrayList<EntityTypeMigrationSpec>();
+			EntityTypeMigrationSpec ems = new EntityTypeMigrationSpec();
+			ems.setEntityType(type.name());
+			List<FieldMigrationSpec> listFms = new ArrayList<FieldMigrationSpec>();
+			FieldMigrationSpec fms = new FieldMigrationSpec();
+			FieldDescription source = new FieldDescription();
+			FieldDescription dest = new FieldDescription();
+			source.setName("old_name");
+			source.setType("string");
+			source.setBucket("additional");
+			dest.setName("new_name");
+			dest.setType("integer");
+			dest.setBucket("additional");
+			fms.setSource(source);
+			fms.setDestination(dest);
+			listFms.add(fms);
+			listEms.add(ems);
+			ems.setFields(listFms);
+			ms.setMigrationMetadata(listEms);			
+			MigrationSpecData msd = new MigrationSpecData();
+			msd.setData(ms);
+			genericMigrator.setMigrationSpecData(msd);
+			
+			// Setup node to migrate
+			
+//			toMigrate = MigratorTestHelper.setupNodeRevisionToMigrate();
+			
+			String oldKey = "old_name";
+			String newKey = "new_name";
+			String valueToMigrate = "1000";
+			toMigrate.setNamedAnnotations(new NamedAnnotations());
+//			Annotations primaryAnnotations = toMigrate.getNamedAnnotations().getPrimaryAnnotations();
+			Annotations additionalAnnotations = toMigrate.getNamedAnnotations().getAdditionalAnnotations();
+			additionalAnnotations.addAnnotation(oldKey, valueToMigrate);
+			
+			Map<String, List<String>> stringAnnos = additionalAnnotations.getStringAnnotations();
+			assertNotNull(stringAnnos.get(oldKey));
+			genericMigrator.migrateOneStep(toMigrate, type);
+			assertNull(stringAnnos.get(oldKey));
+			Map<String, List<Long>> longAnnos = additionalAnnotations.getLongAnnotations();
+			assertNotNull(longAnnos.get(newKey));
+			assertEquals(1, longAnnos.get(newKey).size());
+			assertEquals(Long.valueOf(valueToMigrate), longAnnos.get(newKey).iterator().next());
+		}
+		return;
+	}
 }

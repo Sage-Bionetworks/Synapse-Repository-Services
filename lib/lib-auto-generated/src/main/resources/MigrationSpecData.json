@@ -26,6 +26,10 @@
 					"destination": {"name": "", "type": "", "bucket": "deleted"}
 				},
 				{
+					"source": {"name": "sampleSource", "type": "string", "bucket": "additional"},
+					"destination": {"name": "tissueType", "type": "string", "bucket": "primary"}
+				},
+				{
 					"source": {"name": "species", "type": "string", "bucket": "additional"},
 					"destination": {"name": "species", "type": "string", "bucket": "primary"}
 				},
@@ -59,14 +63,22 @@
 				},
 				{
 					"source": {"name": "status", "type": "string", "bucket": "primary"},
-					"destination": {"name": "", "type": "", "bucket": "deleted"}
+					"destination": {"name": "status", "type": "string", "bucket": "additional"}
 				},
 				{
 					"source": {"name": "locationStatus", "type": "string", "bucket": "primary"},
-					"destination": {"name": "", "type": "", "bucket": "deleted"}
+					"destination": {"name": "locationStatus", "type": "string", "bucket": "additional"}
 				},
 				{
 					"source": {"name": "Platform", "type": "string", "bucket": "additional"},
+					"destination": {"name": "platform", "type": "string", "bucket": "primary"}
+				},
+				{
+					"source": {"name": "platform", "type": "string", "bucket": "additional"},
+					"destination": {"name": "platform", "type": "string", "bucket": "primary"}
+				},
+				{
+					"source": {"name": "platformName", "type": "string", "bucket": "additional"},
 					"destination": {"name": "platform", "type": "string", "bucket": "primary"}
 				},
 				{
@@ -93,6 +105,10 @@
 					"source": {"name": "hasClinicalData", "type": "string", "bucket": "primary"},
 					"destination": {"name": "", "type": "", "bucket": "deleted"}
 				},
+				{
+					"source": {"name": "numSamples", "type": "int", "bucket": "additional"},
+					"destination": {"name": "numSamples", "type": "int", "bucket": "primary"}
+				}
 			]
 		},
 		{
@@ -127,8 +143,12 @@
 					"destination": {"name": "", "type": "", "bucket": "deleted"}
 				},
 				{
-					"source": {"name": "locationStatus", "type": "string", "bucket": "additional"},
-					"destination": {"name": "", "type": "", "bucket": "deleted"}
+					"source": {"name": "status", "type": "string", "bucket": "primary"},
+					"destination": {"name": "status", "type": "string", "bucket": "additional"}
+				},
+				{
+					"source": {"name": "locationStatus", "type": "string", "bucket": "primary"},
+					"destination": {"name": "locationStatus", "type": "string", "bucket": "additional"}
 				},
 				{
 					"source": {"name": "curator", "type": "string", "bucket": "additional"},
@@ -154,6 +174,14 @@
 					"source": {"name": "releaseNotes", "type": "string", "bucket": "additional"},
 					"destination": {"name": "", "type": "", "bucket": "delete"}
 				},
+				{
+					"source": {"name": "platformName", "type": "string", "bucket": "additional"},
+					"destination": {"name": "platform", "type": "string", "bucket": "primary"}
+				},
+				{
+					"source": {"name": "numSamples", "type": "int", "bucket": "additional"},
+					"destination": {"name": "numSamples", "type": "int", "bucket": "primary"}
+				}
 			]
 		},
 		{

@@ -38,7 +38,9 @@ public class MigrationSpecData {
 					FieldDescription src = fms.getSource();
 					FieldDescription dst = fms.getDestination();
 					if ((! dst.getType().equals("")) && (! src.getType().equals(dst.getType()))) {
-						throw new IllegalArgumentException("Type transformation between source and destination not supported.");
+						// Only allow from String to Int
+						if (! ((dst.getType().equals("integer")) && (src.getType().equals("string"))))
+							throw new IllegalArgumentException("Type transformation supported only from string to integer.");
 					}
 					// Get field schemas
 //					ObjectSchema srcSchema = null;
