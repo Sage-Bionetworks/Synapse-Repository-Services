@@ -280,8 +280,12 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	public static String createTokenId(Long id, String fileName){
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("Name cannot be null");
+		// Replace all non-url chars
+		fileName = SpecialUrlEncoding.replaceUrlChars(fileName);
 		return id.toString()+"/"+fileName;
 	}
+	
+
 	
 	/**
 	 * Create an attachment path.

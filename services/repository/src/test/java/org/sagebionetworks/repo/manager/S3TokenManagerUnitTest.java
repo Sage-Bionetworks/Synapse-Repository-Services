@@ -275,6 +275,22 @@ public class S3TokenManagerUnitTest {
 		assertEquals("456/catalina.2011-05-16.log", tokenId);
 	}
 	
+	@Test
+	public void testCreateTokenIdSpaces(){
+		Long id = new Long(456);
+		String fileName = "i have spaces.log";
+		String tokenId = S3TokenManagerImpl.createTokenId(id, fileName);
+		assertEquals("456/i_have_spaces.log", tokenId);
+	}
+	
+	@Test
+	public void testCreateTokenIdInvalidChars(){
+		Long id = new Long(456);
+		String fileName = "i have~!@#$%^&*()_+{}|/\\spaces.log";
+		String tokenId = S3TokenManagerImpl.createTokenId(id, fileName);
+		assertEquals("456/i_have________*_________spaces.log", tokenId);
+	}
+	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateTokenIdNullId(){
 		String fileName = "image.jpg";
