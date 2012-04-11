@@ -35,20 +35,20 @@ public class MigrationHelper {
 	private static void migrateType(Annotations srcAnnots, Annotations dstAnnots, FieldMigrationSpecData fmsd) {
 		// Only support string to int for now
 		if (fmsd.getSrcType().equals("string") && fmsd.getDestType().equals("integer")) {
-			try {
 				List<String> ls = srcAnnots.getStringAnnotations().remove(fmsd.getSrcFieldName());
 				List<Long> ll = new ArrayList<Long>();
 				Long l;
 				for (String s: ls) {
-					l = Long.valueOf(s);
+					try {
+						l = Long.valueOf(s);
+					} catch (NumberFormatException e) {
+						l = -1L;
+					}
 					ll.add(l);
+					// TODO: Should also log something
 				}
+				// Put back in src annotations to be migrated to other bucket as needed
 				srcAnnots.getLongAnnotations().put(fmsd.getSrcFieldName(), ll);
-			} catch (NumberFormatException e) {
-				// Should log something here
-			} finally {
-				return;
-			}
 		}
 	}
 }
