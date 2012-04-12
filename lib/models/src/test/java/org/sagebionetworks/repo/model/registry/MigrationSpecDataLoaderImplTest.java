@@ -22,15 +22,15 @@ public class MigrationSpecDataLoaderImplTest {
 		List<FieldMigrationSpecData> migrationSpecData = msd.getData(EntityType.project);
 		assertEquals(2, migrationSpecData.size());
 		migrationSpecData = msd.getData(EntityType.dataset);
-		assertEquals(23, migrationSpecData.size());
+		assertEquals(25, migrationSpecData.size());
 		migrationSpecData = msd.getData(EntityType.layer);
-		assertEquals(16, migrationSpecData.size());
+		assertEquals(18, migrationSpecData.size());
 		migrationSpecData = msd.getData(EntityType.preview);
 		assertEquals(1, migrationSpecData.size());
 		migrationSpecData = msd.getData(EntityType.analysis);
 		assertEquals(1, migrationSpecData.size());
 		migrationSpecData = msd.getData(EntityType.code);
-		assertEquals(2, migrationSpecData.size());
+		assertEquals(1, migrationSpecData.size());
 		migrationSpecData = msd.getData(EntityType.step);
 		assertEquals(1, migrationSpecData.size());
 		return;

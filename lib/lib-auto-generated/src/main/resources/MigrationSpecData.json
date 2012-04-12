@@ -108,6 +108,14 @@
 				{
 					"source": {"name": "number_of_samples", "type": "integer", "bucket": "additional"},
 					"destination": {"name": "numSamples", "type": "integer", "bucket": "primary"}
+				},
+				{
+					"source": {"name": "Number_of_Samples", "type": "string", "bucket": "additional"},
+					"destination": {"name": "numSamples", "type": "integer", "bucket": "primary"}
+				},
+				{
+					"source": {"name": "Number_of_samples", "type": "string", "bucket": "additional"},
+					"destination": {"name": "numSamples", "type": "integer", "bucket": "primary"}
 				}
 			]
 		},
@@ -175,9 +183,17 @@
 					"destination": {"name": "platform", "type": "string", "bucket": "primary"}
 				},
 				{
+					"source": {"name": "Platform", "type": "string", "bucket": "additional"},
+					"destination": {"name": "platform", "type": "string", "bucket": "primary"}
+				},
+				{
 					"source": {"name": "numSamples", "type": "string", "bucket": "additional"},
 					"destination": {"name": "numSamples", "type": "integer", "bucket": "primary"}
-				}
+				},
+				{
+					"source": {"name": "Number_of_samples", "type": "string", "bucket": "additional"},
+					"destination": {"name": "numSamples", "type": "integer", "bucket": "primary"}
+				}	
 			]
 		},
 		{
@@ -195,11 +211,7 @@
 				{
 					"source": {"name": "version", "type": "string", "bucket": "primary"},
 					"destination": {"name": "", "type": "", "bucket": "deleted"}
-				},
-				{
-					"source": {"name": "locationStatus", "type": "string", "bucket": "primary"},
-					"destination": {"name": "", "type": "", "bucket": "deleted"}
-				},
+				}
 			]
 		},
 		{
