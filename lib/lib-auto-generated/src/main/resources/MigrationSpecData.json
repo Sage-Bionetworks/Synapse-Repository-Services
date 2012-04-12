@@ -163,7 +163,7 @@
 					"destination": {"name": "species", "type": "string", "bucket": "primary"}
 				},
 				{
-					"source": {"name": "SampleSource", "type": "string", "bucket": "additional"},
+					"source": {"name": "sampleSource", "type": "string", "bucket": "additional"},
 					"destination": {"name": "tissueType", "type": "string", "bucket": "primary"}
 				},
 				{
