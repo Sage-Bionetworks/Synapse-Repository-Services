@@ -41,7 +41,6 @@ import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
@@ -91,7 +90,13 @@ public class Synapse {
 	protected static final String ATTACHMENT_URL = "/attachmentUrl";
 
 	protected static final String ENTITY_URI_PATH = "/entity";
+	
+	protected static final String TOTAL_NUM_RESULTS = "totalNumberOfResults";
 
+	protected static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
+	protected static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = "select id from entity where parentId == '";
+
+	
 	protected String repoEndpoint;
 	protected String authEndpoint;
 
@@ -1416,6 +1421,26 @@ public class Synapse {
 		} catch (IOException e) {
 			throw new SynapseException(e);
 		} catch (HttpClientHelperException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	/**
+	 * Get the child count for this entity
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONException 
+	 */
+	public Long getChildCount(String entityId) throws SynapseException {
+		String queryString = SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID+entityId+LIMIT_1_OFFSET_1;
+		JSONObject query = query(queryString);
+		if(!query.has(TOTAL_NUM_RESULTS)){
+			throw new SynapseException("Query results did not have "+TOTAL_NUM_RESULTS);
+		}
+		try {
+			return query.getLong(TOTAL_NUM_RESULTS);
+		} catch (JSONException e) {
 			throw new SynapseException(e);
 		}
 	}

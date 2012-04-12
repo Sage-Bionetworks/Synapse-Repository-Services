@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
@@ -394,5 +395,33 @@ public class IT500SynapseJavaClient {
 		}
 	}
 	
+	@Test	
+	public void testGetChildCount() throws SynapseException{
+		// Start with no children.
+
+		// Add a child.
+		Project child = new Project();
+		child.setName("childFolder");
+		child.setParentId(project.getId());
+		child = synapse.createEntity(child);
+		assertNotNull(child);
+		assertNotNull(child.getId());
+		assertEquals(project.getId(), child.getParentId());
+		
+		// This folder should have no children
+		Long count = synapse.getChildCount(child.getId());
+		assertEquals(new Long(0), count);
+		// Now add a child
+		Project grandChild = new Project();
+		grandChild.setName("childFolder");
+		grandChild.setParentId(child.getId());
+		grandChild = synapse.createEntity(grandChild);
+		assertNotNull(grandChild);
+		assertNotNull(grandChild.getId());
+		assertEquals(child.getId(), grandChild.getParentId());
+		// The count should now be one.
+		count = synapse.getChildCount(child.getId());
+		assertEquals(new Long(1), count);
+	}
 
 }
