@@ -193,6 +193,7 @@ public class JDONodeQueryDAOSelectTest {
 		assertEquals(1, results.getAllSelectedData().size());
 		// Make sure the map contains all of the expected values
 		Map<String, Object> row = results.getAllSelectedData().get(0);
+		System.out.println(row);
 		assertEquals(2, row.size());
 		// Get the value
 		Object annoValue = row.get(STRING_KEY_PRIMARY);

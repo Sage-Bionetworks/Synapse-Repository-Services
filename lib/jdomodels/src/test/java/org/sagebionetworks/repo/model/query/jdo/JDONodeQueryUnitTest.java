@@ -6,6 +6,8 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -113,5 +115,23 @@ public class JDONodeQueryUnitTest {
 	@Test
 	public void testDetermineTypeFromValueDoubleAsString(){
 		assertEquals(FieldType.DOUBLE_ATTRIBUTE, JDONodeQueryDaoImpl.determineTypeFromValue("435.99"));
+	}
+	
+	@Test
+	public void testAddNewOnly(){
+		Map<String, Object> map = new HashMap<String, Object>();
+		// Start with a non null vlaue
+		map.put("id", "123");
+		String annoKey = "annoKey";
+		map.put(annoKey, null);
+		Map<String, String> toAdd = new HashMap<String, String>();
+		toAdd.put(annoKey, "one");
+		toAdd.put("id", "should not get added");
+		List<String> select = new ArrayList<String>();
+		select.add("id");
+		select.add(annoKey);
+		JDONodeQueryDaoImpl.addNewOnly(map, toAdd, select);
+		assertEquals("one", map.get(annoKey));
+		assertEquals("123", map.get("id"));
 	}
 }

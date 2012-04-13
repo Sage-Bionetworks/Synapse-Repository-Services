@@ -715,7 +715,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	 * @param map
 	 * @param toAdd
 	 */
-	private static <K> void addNewOnly(Map<String, Object> map, Map<String, ? extends K> toAdd, List<String> select){
+	public static <K> void addNewOnly(Map<String, Object> map, Map<String, ? extends K> toAdd, List<String> select){
 		if(toAdd != null){
 			// If the select list is null then add all keys
 			Iterator<String> keyIt = null;
@@ -728,7 +728,8 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 			}
 			while(keyIt.hasNext()){
 				String key = keyIt.next();
-				if(!map.containsKey(key)){
+				Object value = map.get(key);
+				if(value == null){
 					map.put(key, toAdd.get(key));
 				}
 			}

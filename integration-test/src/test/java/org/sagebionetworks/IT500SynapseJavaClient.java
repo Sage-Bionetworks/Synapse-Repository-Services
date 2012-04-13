@@ -423,5 +423,37 @@ public class IT500SynapseJavaClient {
 		count = synapse.getChildCount(child.getId());
 		assertEquals(new Long(1), count);
 	}
+	
+	/**
+	 * PLFM-1166 annotations are not being returned from queries.
+	 * @throws SynapseException 
+	 * @throws JSONException 
+	 */
+	@Test 
+	public void testPLMF_1166() throws SynapseException, JSONException{
+		// Get the project annotations
+		Annotations annos = synapse.getAnnotations(project.getId());
+		String key = "PLFM_1166";
+		annos.addAnnotation(key, "one");
+		synapse.updateAnnotations(project.getId(), annos);
+		// Make sure we can query for 
+		String query = "select id, "+key+" from project where id == '"+project.getId()+"'";
+		JSONObject total = synapse.query(query);
+		System.out.println(total);
+		assertEquals(1l, total.getLong("totalNumberOfResults"));
+		assertNotNull(total);
+		assertTrue(total.has("results"));
+		JSONArray array = total.getJSONArray("results");
+		JSONObject row = array.getJSONObject(0);
+		assertNotNull(row);
+		String fullKey = "project."+key;
+		assertFalse("Failed to get an annotation back with 'select annotaionName'", row.isNull(fullKey));
+		JSONArray valueArray = row.getJSONArray(fullKey);
+		assertNotNull(valueArray);
+		assertEquals(1, valueArray.length());
+		assertEquals("one", valueArray.get(0));
+		System.out.println(array);
+		
+	}
 
 }

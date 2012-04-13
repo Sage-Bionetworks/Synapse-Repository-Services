@@ -166,5 +166,47 @@ public class QueryManagerAutowireTest {
 		
 		assertFalse("Test for bug PLFM-834", row.containsKey("jsonschema"));
 	}
+	
+	/**
+	 * This is a test for PLFM-1166
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	@Test
+	public void testSelectAnnotation() throws DatastoreException, NotFoundException, UnauthorizedException {
+		// Build up the query.
+		BasicQuery query = new BasicQuery();
+		query.setSelect(new ArrayList<String>());
+		query.getSelect().add("id");
+		query.getSelect().add("stringListKey");
+		query.setFrom(EntityType.dataset.name());
+		query.setOffset(0);
+		query.setLimit(totalEntities-2);
+		query.setSort("longKey");
+		query.setAscending(false);
+		query.addExpression(new Expression(new CompoundId("dataset", "doubleKey"), Comparator.GREATER_THAN, "0.0"));
+		// Execute it.
+		long start = System.currentTimeMillis();
+		QueryResults results = entityController.executeQueryWithAnnotations(userId, query, mockRequest);
+		long end = System.currentTimeMillis();
+		System.out.println("Executed the query in: "+(end-start)+" ms");
+		assertNotNull(results);
+		assertEquals(totalEntities-1, results.getTotalNumberOfResults());
+		// Spot check the results
+		assertNotNull(results);
+		System.out.println(results);
+		assertNotNull(results.getResults());
+		List<Map<String, Object>> list = results.getResults();
+		assertEquals(8, list.size());
+		Map<String, Object> row = list.get(0);
+		assertNotNull(row);
+		System.out.println(row);
+		Object ob = row.get("stringListKey");
+		assertNotNull(ob);
+		assertTrue(ob instanceof Collection);
+		Collection<String> collect = (Collection<String>) ob;
+		assertTrue(collect.contains("three"));
+	}
 
 }
