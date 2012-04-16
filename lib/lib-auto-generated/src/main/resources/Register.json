@@ -107,6 +107,10 @@
                 "/project",
                 "/dataset"
             ],
+            "aliases":[
+                "phenotypedata",
+                "layer"
+            ],
             "name":"phenotypedata",
             "urlPrefix":"/phenotypedata",
             "className":"org.sagebionetworks.repo.model.PhenotypeData",
@@ -117,6 +121,10 @@
                 "/project",
                 "/dataset"
             ],
+            "aliases":[
+                "genotypedata",
+                "layer"
+            ],
             "name":"genotypedata",
             "urlPrefix":"/genotypedata",
             "className":"org.sagebionetworks.repo.model.GenotypeData",
@@ -126,6 +134,10 @@
             "validParentTypes":[
                 "/project",
                 "/dataset"
+            ],
+            "aliases":[
+                "expressiondata",
+                "layer"
             ],
             "name":"expressiondata",
             "urlPrefix":"/expressiondata",

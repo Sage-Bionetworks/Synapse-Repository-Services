@@ -1445,7 +1445,7 @@ public class NodeDAOImplTest {
 		
 		ids = nodeDao.getAllNodeTypesForAlias("layer");
 		assertNotNull(ids);
-		assertEquals(1, ids.size());
+		assertEquals(4, ids.size());
 		assertEquals(new Short(EntityType.layer.getId()), ids.get(0));
 		
 		ids = nodeDao.getAllNodeTypesForAlias("data");
