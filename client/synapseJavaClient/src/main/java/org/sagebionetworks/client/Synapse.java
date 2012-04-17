@@ -641,10 +641,8 @@ public class Synapse {
 	 * @throws SynapseException 
 	 */
 	public PaginatedResults<EntityHeader> getEntityReferencedBy(Entity entity) throws SynapseException {
+		// By default we want to find anything that references any version of this entity.
 		String version = null;
-		if(entity instanceof Versionable) {
-			version = ((Versionable)entity).getVersionNumber().toString();
-		}
 		return getEntityReferencedBy(entity.getId(), version);
 	}
 	

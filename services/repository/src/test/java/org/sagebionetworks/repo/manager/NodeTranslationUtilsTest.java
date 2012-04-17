@@ -16,6 +16,8 @@ import org.junit.Test;
 import org.sagebionetworks.repo.manager.backup.SerializationUseCases;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Code;
+import org.sagebionetworks.repo.model.Link;
+import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
@@ -382,6 +384,34 @@ public class NodeTranslationUtilsTest {
 		// Apply the node
 		NodeTranslationUtils.updateObjectFromNode(clone, dsNode);
 		return clone;
+	}
+	
+	@Test
+	public void testLinkTrip() throws InstantiationException, IllegalAccessException{
+		Link link = new Link();
+		Reference ref = new Reference();
+		ref.setTargetId("123");
+		link.setLinksTo(ref);
+		link.setLinksToClassName(Study.class.getName());
+		Node node = NodeTranslationUtils.createFromEntity(link);
+		// Set the type for this object
+		node.setNodeType(EntityType.getNodeTypeForClass(link.getClass()).name());
+		NamedAnnotations annos = new NamedAnnotations();
+		// Now add all of the annotations and references from the entity
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(link, annos.getPrimaryAnnotations(), node.getReferences());
+		assertNotNull(node.getReferences());
+		assertEquals(1, node.getReferences().size());
+		Set<Reference> set = (Set<Reference>) node.getReferences().get("linksTo");
+		assertNotNull(set);
+		assertEquals(1, set.size());
+		Reference r = set.iterator().next();
+		assertEquals("123", r.getTargetId());
+		// Make sure we can make the round trip
+		Link newLink = new Link();
+		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newLink, annos.getPrimaryAnnotations(), node.getReferences());
+		assertNotNull(newLink.getLinksTo());
+		assertEquals("123", newLink.getLinksTo().getTargetId());
+
 	}
 	
 	

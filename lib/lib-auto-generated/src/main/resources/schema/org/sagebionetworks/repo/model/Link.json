@@ -8,7 +8,8 @@
     ],
     "properties":{
         "linksTo":{
-            "type":"string",
+            "type":"object",
+            "$ref":"org.sagebionetworks.repo.model.Reference",
             "description":"The synapse id that this link points to.",
             "title":"Links To"
         },

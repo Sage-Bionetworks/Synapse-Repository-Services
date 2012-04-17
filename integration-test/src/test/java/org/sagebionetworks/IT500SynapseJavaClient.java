@@ -32,9 +32,12 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.LayerTypeNames;
+import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -456,4 +459,33 @@ public class IT500SynapseJavaClient {
 		
 	}
 
+	/**
+	 * PLFM-1212 Links need to return what they reference.
+	 * @throws SynapseException 
+	 * @throws JSONException 
+	 */
+	@Test 
+	public void testPLFM_1212() throws SynapseException, JSONException{
+		// The dataset should start with no references
+		PaginatedResults<EntityHeader> refs = synapse.getEntityReferencedBy(dataset);
+		assertNotNull(refs);
+		assertEquals(0l, refs.getTotalNumberOfResults());
+		// Add a link to the dataset in the project
+		Link link = new Link();
+		Reference ref = new Reference();
+		ref.setTargetId(dataset.getId());
+		link.setLinksTo(ref);
+		link.setLinksToClassName(Study.class.getName());
+		link.setParentId(project.getId());
+		// Create the link
+		link = synapse.createEntity(link);
+		// Get 
+		refs = synapse.getEntityReferencedBy(dataset);
+		assertNotNull(refs);
+		assertEquals(1l, refs.getTotalNumberOfResults());
+		assertNotNull(refs.getResults());
+		assertEquals(1, refs.getResults().size());
+		assertEquals(project.getId(), refs.getResults().get(0).getId());
+		
+	}
 }

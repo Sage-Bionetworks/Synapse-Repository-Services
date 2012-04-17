@@ -191,6 +191,15 @@ public class NodeTranslationUtils {
 							}
 							
 						}
+						// Is this a single references?
+						if(propSchema.getId() != null){
+							if(Reference.class.getName().equals(propSchema.getId())){
+								HashSet<Reference> set = new HashSet<Reference>();
+								set.add((Reference) value);
+								references.put(name, set);
+								continue;
+							}
+						}
 						// The schema type will tell us how to store this
 						if(propSchema.getContentEncoding() != null || value instanceof JSONEntity){
 							// This will be stored a a blob
@@ -441,6 +450,19 @@ public class NodeTranslationUtils {
 								field.set(base, new HashSet<Reference>());
 							} else {
 								field.set(base, referenceGroup);
+							}
+							// done
+							continue;
+						}
+					}
+					// Is this a single references?
+					if(propSchema.getId() != null){
+						if(Reference.class.getName().equals(propSchema.getId())){
+							Set<Reference> referenceGroup = references.get(name);
+							if (null == referenceGroup) {
+								field.set(base, null);
+							} else {
+								field.set(base, referenceGroup.iterator().next());
 							}
 							// done
 							continue;

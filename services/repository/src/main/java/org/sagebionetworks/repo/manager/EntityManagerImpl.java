@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -336,7 +338,30 @@ public class EntityManagerImpl implements EntityManager {
 	public EntityHeaderQueryResults getEntityReferences(UserInfo userInfo, String entityId, Integer versionNumber, Integer offset, Integer limit) 
 				throws NotFoundException, DatastoreException {
 		// pass through
-		return nodeManager.getEntityReferences(userInfo, entityId, versionNumber, offset, limit);
+		EntityHeaderQueryResults results = nodeManager.getEntityReferences(userInfo, entityId, versionNumber, offset, limit);
+		// Replace any link with its parent
+		if(results != null && results.getEntityHeaders() != null){
+			List<EntityHeader> list = results.getEntityHeaders();
+			for(int i=0; i<list.size(); i++){
+				EntityHeader header = list.get(i);
+				EntityType type = EntityType.valueOf(header.getType());
+				if(EntityType.link == type){
+					try {
+						List<EntityHeader> path = nodeManager.getNodePath(userInfo, header.getId());
+						if(path != null && path.size() > 1){
+							// Get the parent path
+							EntityHeader parent =path.get(path.size()-2);
+							list.set(i, parent);
+						}
+					} catch (UnauthorizedException e) {
+						// This should not occur
+						throw new DatastoreException(e);
+					}
+				}
+			}
+		}
+
+		return results;
 	}
 
 }
