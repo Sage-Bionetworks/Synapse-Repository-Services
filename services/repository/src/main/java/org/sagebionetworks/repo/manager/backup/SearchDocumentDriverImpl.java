@@ -69,8 +69,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	private static final String SPECIES_FIELD = "species";
 	private static final String PLATFORM_FIELD = "platform";
 	private static final String NUM_SAMPLES_FIELD = "num_samples";
-	private static final String INVESTIGATOR = "investigator";
-	private static final String INSTITUTION = "institution";
+//	private static final String INVESTIGATOR = "investigator";
+//	private static final String INSTITUTION = "institution";
 	private static final Map<String, String> SEARCHABLE_NODE_ANNOTATIONS;
 
 	@Autowired
@@ -105,8 +105,8 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		searchableNodeAnnotations.put("Number_of_Samples", NUM_SAMPLES_FIELD);
 		searchableNodeAnnotations.put("Number_of_samples", NUM_SAMPLES_FIELD);
 		searchableNodeAnnotations.put("numSamples", NUM_SAMPLES_FIELD);
-		searchableNodeAnnotations.put("Investigator", INVESTIGATOR);
-		searchableNodeAnnotations.put("Institution", INSTITUTION);
+//		searchableNodeAnnotations.put("Investigator", INVESTIGATOR);
+//		searchableNodeAnnotations.put("Institution", INSTITUTION);
 		SEARCHABLE_NODE_ANNOTATIONS = Collections
 				.unmodifiableMap(searchableNodeAnnotations);
 	}
