@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LocationData;
@@ -487,5 +486,20 @@ public class IT500SynapseJavaClient {
 		assertEquals(1, refs.getResults().size());
 		assertEquals(project.getId(), refs.getResults().get(0).getId());
 		
+	}
+	
+	/**
+	 * Test for PLFM-1214
+	 */
+	@Test 
+	public void testPLFM_1214() throws SynapseException, JSONException{
+		// The dataset should start with no references
+		dataset.setNumSamples(123l);
+		dataset = synapse.putEntity(dataset);
+		assertEquals(new Long(123), dataset.getNumSamples());
+		// Now clear out the value
+		dataset.setNumSamples(null);
+		dataset = synapse.putEntity(dataset);
+		assertEquals(null, dataset.getNumSamples());
 	}
 }

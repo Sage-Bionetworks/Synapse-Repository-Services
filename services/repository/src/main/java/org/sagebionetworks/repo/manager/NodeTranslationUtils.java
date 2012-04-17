@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.manager;
 
-
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
@@ -33,48 +32,51 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 /**
  * Converts to/from datasets and nodes.
+ * 
  * @author jmhill
- *
+ * 
  */
 
 @SuppressWarnings("rawtypes")
 public class NodeTranslationUtils {
-	
-	private static final Logger log = Logger.getLogger(NodeTranslationUtils.class.getName());
-	
-	
+
+	private static final Logger log = Logger
+			.getLogger(NodeTranslationUtils.class.getName());
+
 	/**
 	 * Keep track of the know fields of a node.
 	 */
 	private static Map<String, Field> nodeFieldNames = new HashMap<String, Field>();
 	private static Map<String, String> nameConvertion = new HashMap<String, String>();
 	private static Map<EntityType, Set<String>> primaryFieldsCache = new HashMap<EntityType, Set<String>>();
-	
+
 	/**
 	 * Build up the cache of primary fields for each object type.
+	 * 
 	 * @return
 	 */
-	private static void buildPrimaryFieldCache(){
-		for(EntityType type: EntityType.values()){
+	private static void buildPrimaryFieldCache() {
+		for (EntityType type : EntityType.values()) {
 			HashSet<String> set = new HashSet<String>();
 			// Add each field
 			Field[] fields = type.getClassForType().getDeclaredFields();
-			for(Field field: fields){
+			for (Field field : fields) {
 				String name = field.getName();
 				// Add this name and the node name
 				set.add(name);
 				String nodeName = nameConvertion.get(name);
-				if(nodeName != null){
+				if (nodeName != null) {
 					set.add(nodeName);
 				}
 			}
 			primaryFieldsCache.put(type, set);
 		}
 	}
-	static{
+
+	static {
 		// Populate the nodeFieldNames
 		Field[] fields = Node.class.getDeclaredFields();
-		for(Field field: fields){
+		for (Field field : fields) {
 			// make sure all are
 			nodeFieldNames.put(field.getName(), field);
 		}
@@ -85,15 +87,16 @@ public class NodeTranslationUtils {
 		// build the primary field cache
 		buildPrimaryFieldCache();
 	}
-	
-	
+
 	/**
 	 * Create a new node from the passed base object.
+	 * 
 	 * @param dataset
 	 * @return
 	 */
-	public static <T extends Entity> Node createFromEntity(T base){
-		if(base == null) throw new IllegalArgumentException("Base Object cannot be null");
+	public static <T extends Entity> Node createFromEntity(T base) {
+		if (base == null)
+			throw new IllegalArgumentException("Base Object cannot be null");
 		Node node = new Node();
 		// Create the Reference Map for this object
 		Map<String, Set<Reference>> references = new HashMap<String, Set<Reference>>();
@@ -104,6 +107,7 @@ public class NodeTranslationUtils {
 
 	/**
 	 * Use the passed object to update a node.
+	 * 
 	 * @param <T>
 	 * @param base
 	 * @param node
@@ -111,15 +115,15 @@ public class NodeTranslationUtils {
 	public static <T extends Entity> void updateNodeFromObject(T base, Node node) {
 		// First get the schema for this Entity
 		Field[] fields = base.getClass().getDeclaredFields();
-		for(Field field: fields){
+		for (Field field : fields) {
 			String name = field.getName();
 			String nodeName = nameConvertion.get(name);
-			if(nodeName == null){
+			if (nodeName == null) {
 				nodeName = name;
 			}
 			// Only include fields that are in node.
 			Field nodeField = nodeFieldNames.get(nodeName);
-			if(nodeField != null){
+			if (nodeField != null) {
 				// Make sure we can call it.
 				field.setAccessible(true);
 				nodeField.setAccessible(true);
@@ -134,34 +138,37 @@ public class NodeTranslationUtils {
 			}
 		}
 	}
-	
+
 	/**
 	 * Add any fields from the object that are not on a node.
 	 * 
-	 * @param <T> 
+	 * @param <T>
 	 * @param base
 	 * @param annos
-	 * @param references 
-	 * @throws IllegalArgumentException 
+	 * @param references
+	 * @throws IllegalArgumentException
 	 */
-	public static <T extends Entity> void updateNodeSecondaryFieldsFromObject(T base, Annotations annos, Map<String, Set<Reference>> references) {
-		if(base == null) throw new IllegalArgumentException("Base cannot be null");
-		if(annos == null) throw new IllegalArgumentException("Annotations cannot be null");
+	public static <T extends Entity> void updateNodeSecondaryFieldsFromObject(
+			T base, Annotations annos, Map<String, Set<Reference>> references) {
+		if (base == null)
+			throw new IllegalArgumentException("Base cannot be null");
+		if (annos == null)
+			throw new IllegalArgumentException("Annotations cannot be null");
 		// Find the fields that are not on nodes.
 		ObjectSchema schema = SchemaCache.getSchema(base);
 		Map<String, ObjectSchema> schemaProperties = schema.getProperties();
-		if(schemaProperties == null){
+		if (schemaProperties == null) {
 			schemaProperties = new HashMap<String, ObjectSchema>();
 		}
 		Field[] fields = base.getClass().getDeclaredFields();
-		for(Field field: fields){
+		for (Field field : fields) {
 			String name = field.getName();
 			String nodeName = nameConvertion.get(name);
-			if(nodeName == null){
+			if (nodeName == null) {
 				nodeName = name;
 			}
 			// Is this a field already on Node?
-			if(!nodeFieldNames.containsKey(nodeName)){
+			if (!nodeFieldNames.containsKey(nodeName)) {
 				// Make sure we can call it.
 				field.setAccessible(true);
 				Object value;
@@ -170,42 +177,53 @@ public class NodeTranslationUtils {
 
 					// Skip any property not defined in the schema
 					ObjectSchema propSchema = schemaProperties.get(name);
-					if(propSchema == null){
+					if (propSchema == null) {
 						continue;
 					}
 					// If this is an enum then store the string
-					if(propSchema.getEnum() != null){
+					if (propSchema.getEnum() != null) {
 						value = NodeTranslationUtils.getNameFromEnum(value);
 					}
-					
+
 					// skip any transient property as they are not stored.
-					if(propSchema.isTransient()) continue;
+					if (propSchema.isTransient())
+						continue;
 					// We do not store fields that are marked as @TransientField
-					if(value != null ) {
-						// First off is this a collection?
-						if(propSchema.getItems() != null){
-							// Is this a reference
-							if(Reference.class.getName().equals(propSchema.getItems().getId())){
+					// First off is this a collection?
+					if (propSchema.getItems() != null) {
+						// Is this a reference
+						if (Reference.class.getName().equals(
+								propSchema.getItems().getId())) {
+							if (value == null) {
+								references.remove(name);
+							} else {
 								references.put(name, (Set<Reference>) value);
-								continue;
 							}
-							
+							continue;
 						}
-						// Is this a single references?
-						if(propSchema.getId() != null){
-							if(Reference.class.getName().equals(propSchema.getId())){
-								HashSet<Reference> set = new HashSet<Reference>();
+					}
+					// Is this a single references?
+					if (propSchema.getId() != null) {
+						if (Reference.class.getName().equals(propSchema.getId())) {
+							HashSet<Reference> set = new HashSet<Reference>();
+							if (value == null) {
+								references.remove(name);
+							} else {
 								set.add((Reference) value);
 								references.put(name, set);
 								continue;
 							}
 						}
-						// The schema type will tell us how to store this
-						if(propSchema.getContentEncoding() != null || value instanceof JSONEntity){
+					}
+					// The schema type will tell us how to store this
+					if (value == null) {
+						annos.deleteAnnotation(name);
+					} else {
+						if (propSchema.getContentEncoding() != null	|| value instanceof JSONEntity) {
 							// This will be stored a a blob
 							byte[] blob = objectToBytes(value, propSchema);
 							annos.replaceAnnotation(name, blob);
-						}else{
+						} else {
 							annos.replaceAnnotation(name, value);
 						}
 					}
@@ -216,15 +234,17 @@ public class NodeTranslationUtils {
 			}
 		}
 	}
-	
+
 	/**
 	 * Get the name() from the passed enumeration.
+	 * 
 	 * @param value
 	 * @param schema
 	 * @return
 	 */
-	public static String getNameFromEnum(Object value){
-		if(value == null) return null;
+	public static String getNameFromEnum(Object value) {
+		if (value == null)
+			return null;
 		try {
 			Method method = value.getClass().getMethod("name");
 			return (String) method.invoke(value);
@@ -232,16 +252,21 @@ public class NodeTranslationUtils {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	/**
 	 * Calls the enum.valueOf(String) to get an instance of an enumeration.
-	 * @param value The string value of the enumeration.  See enum.name();
-	 * @param enumClass  The class of the enumeration.
+	 * 
+	 * @param value
+	 *            The string value of the enumeration. See enum.name();
+	 * @param enumClass
+	 *            The class of the enumeration.
 	 * @return
 	 */
-	public static Object getValueOfFromEnum(String value, Class<?> enumClass){
-		if(value == null) throw new IllegalArgumentException("Value cannot be null");
-		if(enumClass == null) throw new IllegalArgumentException("Class cannot be null");
+	public static Object getValueOfFromEnum(String value, Class<?> enumClass) {
+		if (value == null)
+			throw new IllegalArgumentException("Value cannot be null");
+		if (enumClass == null)
+			throw new IllegalArgumentException("Class cannot be null");
 		try {
 			Method method = enumClass.getMethod("valueOf", String.class);
 			return method.invoke(null, value);
@@ -249,22 +274,25 @@ public class NodeTranslationUtils {
 			throw new RuntimeException(e);
 		}
 	}
-	
+
 	/**
 	 * Convert an object to bytes.
+	 * 
 	 * @param encoding
 	 * @param annos
 	 * @param value
 	 */
 	public static byte[] objectToBytes(Object value, ObjectSchema schema) {
-		if (value == null) throw new IllegalArgumentException("Value cannot be null");
-		if( schema == null) throw new IllegalArgumentException("Schema cannot be null");
+		if (value == null)
+			throw new IllegalArgumentException("Value cannot be null");
+		if (schema == null)
+			throw new IllegalArgumentException("Schema cannot be null");
 		// Is this a string
 		if (TYPE.STRING == schema.getType()) {
 			// String are stored as UTF-8 bytes
 			try {
 				// String are stored as UTF-8 bytes
-				return((String) value).getBytes("UTF-8");
+				return ((String) value).getBytes("UTF-8");
 			} catch (UnsupportedEncodingException e) {
 				throw new RuntimeException(e);
 			}
@@ -273,7 +301,8 @@ public class NodeTranslationUtils {
 			JSONEntity valueEntity = (JSONEntity) value;
 			// Get the JSONString
 			try {
-				String jsonString = EntityFactory.createJSONStringForEntity(valueEntity);
+				String jsonString = EntityFactory
+						.createJSONStringForEntity(valueEntity);
 				// Save the UTF-8 bytes of this string
 				return jsonString.getBytes("UTF-8");
 			} catch (JSONObjectAdapterException e) {
@@ -281,16 +310,17 @@ public class NodeTranslationUtils {
 			} catch (UnsupportedEncodingException e) {
 				throw new RuntimeException(e);
 			}
-		}else if (TYPE.ARRAY == schema.getType()) {
+		} else if (TYPE.ARRAY == schema.getType()) {
 			// Extract the JSON string from this entity
-			Collection<JSONEntity> valueList =  (Collection<JSONEntity>) value;
+			Collection<JSONEntity> valueList = (Collection<JSONEntity>) value;
 			// Get the JSONString
 			try {
 				// Build up an array using the object.
 				JSONArrayAdapterImpl adapterArray = new JSONArrayAdapterImpl();
 				int index = 0;
-				for(JSONEntity entity: valueList){
-					adapterArray.put(index, entity.writeToJSONObject(new JSONObjectAdapterImpl()));
+				for (JSONEntity entity : valueList) {
+					adapterArray.put(index, entity
+							.writeToJSONObject(new JSONObjectAdapterImpl()));
 					index++;
 				}
 				String jsonString = adapterArray.toJSONString();
@@ -301,34 +331,44 @@ public class NodeTranslationUtils {
 			} catch (UnsupportedEncodingException e) {
 				throw new RuntimeException(e);
 			}
-		}else{
+		} else {
 			// Unknown binary type
-			throw new IllegalArgumentException("Unknown schema type: "+schema.getType()+". Can only convert Strings, JSONEntity objects to byte[]");
+			throw new IllegalArgumentException(
+					"Unknown schema type: "
+							+ schema.getType()
+							+ ". Can only convert Strings, JSONEntity objects to byte[]");
 		}
 	}
-	
+
 	/**
 	 * Convert bytes to an object.
+	 * 
 	 * @param bytes
 	 * @param clazz
 	 * @return
 	 */
-	public static Object bytesToObject(byte[] bytes, ObjectSchema schema){
-		if(bytes == null) throw new IllegalArgumentException("Bytes cannot be null");
-		if(schema == null) throw new IllegalArgumentException("Schema cannot be null");
+	public static Object bytesToObject(byte[] bytes, ObjectSchema schema) {
+		if (bytes == null)
+			throw new IllegalArgumentException("Bytes cannot be null");
+		if (schema == null)
+			throw new IllegalArgumentException("Schema cannot be null");
 		// Is this a string
-		if(TYPE.STRING == schema.getType()){
+		if (TYPE.STRING == schema.getType()) {
 			try {
 				return new String(bytes, "UTF-8");
 			} catch (UnsupportedEncodingException e) {
 				throw new RuntimeException(e);
 			}
-		}else if(TYPE.OBJECT == schema.getType()){
-			if(schema.getId() == null) throw new IllegalArgumentException("The schema does not have an ID so we cannot lookup the class");
+		} else if (TYPE.OBJECT == schema.getType()) {
+			if (schema.getId() == null)
+				throw new IllegalArgumentException(
+						"The schema does not have an ID so we cannot lookup the class");
 			String json;
 			try {
 				json = new String(bytes, "UTF-8");
-				return EntityFactory.createEntityFromJSONString(json, (Class<? extends JSONEntity>) Class.forName(schema.getId()));
+				return EntityFactory.createEntityFromJSONString(json,
+						(Class<? extends JSONEntity>) Class.forName(schema
+								.getId()));
 			} catch (UnsupportedEncodingException e) {
 				throw new RuntimeException(e);
 			} catch (JSONObjectAdapterException e) {
@@ -336,68 +376,81 @@ public class NodeTranslationUtils {
 			} catch (ClassNotFoundException e) {
 				throw new RuntimeException(e);
 			}
-		}else if(TYPE.ARRAY == schema.getType()){
-			if(schema.getItems() == null) throw new IllegalArgumentException("The schema items cannot be null for type array");
-			if(schema.getItems().getId() == null) throw new IllegalArgumentException("The schema items.getId() cannot be null for type array");
+		} else if (TYPE.ARRAY == schema.getType()) {
+			if (schema.getItems() == null)
+				throw new IllegalArgumentException(
+						"The schema items cannot be null for type array");
+			if (schema.getItems().getId() == null)
+				throw new IllegalArgumentException(
+						"The schema items.getId() cannot be null for type array");
 			String json;
 			try {
 				json = new String(bytes, "UTF-8");
-				JSONArrayAdapterImpl adapterArray = new JSONArrayAdapterImpl(json);
+				JSONArrayAdapterImpl adapterArray = new JSONArrayAdapterImpl(
+						json);
 				Collection<JSONEntity> collection = null;
-				if(schema.getUniqueItems()){
+				if (schema.getUniqueItems()) {
 					collection = new HashSet<JSONEntity>();
-				}else{
+				} else {
 					collection = new ArrayList<JSONEntity>();
 				}
-				Class<? extends JSONEntity> clazz = (Class<? extends JSONEntity>) Class.forName(schema.getItems().getId());
-				for(int index=0; index <adapterArray.length(); index++){
-					JSONObjectAdapter adapter = adapterArray.getJSONObject(index);
+				Class<? extends JSONEntity> clazz = (Class<? extends JSONEntity>) Class
+						.forName(schema.getItems().getId());
+				for (int index = 0; index < adapterArray.length(); index++) {
+					JSONObjectAdapter adapter = adapterArray
+							.getJSONObject(index);
 					JSONEntity newInstance = clazz.newInstance();
 					newInstance.initializeFromJSONObject(adapter);
 					collection.add(newInstance);
-				}				
+				}
 				return collection;
 			} catch (Exception e) {
 				throw new RuntimeException(e);
-			} 
-		}else{
+			}
+		} else {
 			// Unknown binary type
-			throw new IllegalArgumentException("Unknown schema type: "+schema.getType()+". Can only convert Strings, JSONEntity objects to byte[]");
+			throw new IllegalArgumentException(
+					"Unknown schema type: "
+							+ schema.getType()
+							+ ". Can only convert Strings, JSONEntity objects to byte[]");
 		}
 	}
-	
+
 	/**
 	 * Update an object using the a node
+	 * 
 	 * @param <T>
 	 * @param base
 	 * @param node
 	 */
-	public static <T extends Entity> void updateObjectFromNode(T base, Node node){
-		if(base == null) throw new IllegalArgumentException("Base cannot be null");
-		if(node == null) throw new IllegalArgumentException("Node cannot be null");
+	public static <T extends Entity> void updateObjectFromNode(T base, Node node) {
+		if (base == null)
+			throw new IllegalArgumentException("Base cannot be null");
+		if (node == null)
+			throw new IllegalArgumentException("Node cannot be null");
 		// Find the fields that are not on nodes.
 		ObjectSchema schema = SchemaCache.getSchema(base);
 		Map<String, ObjectSchema> schemaProperties = schema.getProperties();
-		if(schemaProperties == null){
+		if (schemaProperties == null) {
 			schemaProperties = new HashMap<String, ObjectSchema>();
 		}
 		Field[] fields = base.getClass().getDeclaredFields();
-		for(Field field: fields){
+		for (Field field : fields) {
 			String name = field.getName();
 			String nodeName = nameConvertion.get(name);
-			if(nodeName == null){
+			if (nodeName == null) {
 				nodeName = name;
 			}
 			// Only include fields that are in node.
 			Field nodeField = nodeFieldNames.get(nodeName);
-			if(nodeField != null){
+			if (nodeField != null) {
 				// Make sure we can call it.
 				field.setAccessible(true);
 				nodeField.setAccessible(true);
 				Object value;
 				try {
 					value = nodeField.get(node);
-					if(value != null){
+					if (value != null) {
 						field.set(base, value);
 					}
 				} catch (IllegalAccessException e) {
@@ -407,36 +460,40 @@ public class NodeTranslationUtils {
 			}
 		}
 	}
-	
+
 	/**
 	 * Update an object using annotations and references.
+	 * 
 	 * @param <T>
 	 * @param base
 	 * @param annos
 	 */
-	public static <T extends Entity> void updateObjectFromNodeSecondaryFields(T base, Annotations annos, Map<String, Set<Reference>> references) {
-		if(base == null) throw new IllegalArgumentException("Base cannot be null");
-		if(annos == null) throw new IllegalArgumentException("Annotations cannot be null");
+	public static <T extends Entity> void updateObjectFromNodeSecondaryFields(
+			T base, Annotations annos, Map<String, Set<Reference>> references) {
+		if (base == null)
+			throw new IllegalArgumentException("Base cannot be null");
+		if (annos == null)
+			throw new IllegalArgumentException("Annotations cannot be null");
 		// Look up the schema for this Entity.
 		ObjectSchema schema = SchemaCache.getSchema(base);
 		Map<String, ObjectSchema> schemaProperties = schema.getProperties();
-		if(schemaProperties == null){
+		if (schemaProperties == null) {
 			schemaProperties = new HashMap<String, ObjectSchema>();
 		}
 		// Find the fields that are not on nodes.
 		Field[] fields = base.getClass().getDeclaredFields();
-		for(Field field: fields){
+		for (Field field : fields) {
 			String name = field.getName();
 			String nodeName = nameConvertion.get(name);
-			if(nodeName == null){
+			if (nodeName == null) {
 				nodeName = name;
 			}
 			// Is this a field already on Node?
-			if(!nodeFieldNames.containsKey(nodeName)){
+			if (!nodeFieldNames.containsKey(nodeName)) {
 				// Make sure we can call it.
 				field.setAccessible(true);
 				ObjectSchema propSchema = schemaProperties.get(name);
-				if(propSchema == null){
+				if (propSchema == null) {
 					continue;
 				}
 				try {
@@ -444,8 +501,10 @@ public class NodeTranslationUtils {
 					// First handle references
 					if (TYPE.ARRAY == propSchema.getType()) {
 						// Is this a reference
-						if (Reference.class.getName().equals(propSchema.getItems().getId())) {
-							Set<Reference> referenceGroup = references.get(name);
+						if (Reference.class.getName().equals(
+								propSchema.getItems().getId())) {
+							Set<Reference> referenceGroup = references
+									.get(name);
 							if (null == referenceGroup) {
 								field.set(base, new HashSet<Reference>());
 							} else {
@@ -456,52 +515,64 @@ public class NodeTranslationUtils {
 						}
 					}
 					// Is this a single references?
-					if(propSchema.getId() != null){
-						if(Reference.class.getName().equals(propSchema.getId())){
-							Set<Reference> referenceGroup = references.get(name);
+					if (propSchema.getId() != null) {
+						if (Reference.class.getName()
+								.equals(propSchema.getId())) {
+							Set<Reference> referenceGroup = references
+									.get(name);
 							if (null == referenceGroup) {
 								field.set(base, null);
 							} else {
-								field.set(base, referenceGroup.iterator().next());
+								field.set(base, referenceGroup.iterator()
+										.next());
 							}
 							// done
 							continue;
 						}
 					}
-					if(value != null){
-						if(field.getType() == Boolean.class){
+					if (value != null) {
+						if (field.getType() == Boolean.class) {
 							// We need to convert the string to a boolean
-							value = Boolean.parseBoolean((String)value);
+							value = Boolean.parseBoolean((String) value);
 						}
-						// If this is an enum then we stored the string value, so we 
+						// If this is an enum then we stored the string value,
+						// so we
 						// must convert back to an enumeration.
 						if (propSchema.getEnum() != null) {
 							// Get the class for this enumeration.
 							try {
-								if(propSchema.getId() == null) throw new IllegalArgumentException("Cannot determine the class of an enumeration because the schema ID is null");
-								Class<?> clazz = Class.forName(propSchema.getId());
-								value = NodeTranslationUtils.getValueOfFromEnum((String) value,	clazz);
+								if (propSchema.getId() == null)
+									throw new IllegalArgumentException(
+											"Cannot determine the class of an enumeration because the schema ID is null");
+								Class<?> clazz = Class.forName(propSchema
+										.getId());
+								value = NodeTranslationUtils
+										.getValueOfFromEnum((String) value,
+												clazz);
 							} catch (ClassNotFoundException e) {
 								throw new RuntimeException(e);
 							}
 						}
-						
-						if(propSchema.isTransient()) continue;
+
+						if (propSchema.isTransient())
+							continue;
 						// Is this an array?
 
 						// JSONEntity and Binary are stored as blobs.
-						if(propSchema.getContentEncoding() != null || value instanceof JSONEntity){
+						if (propSchema.getContentEncoding() != null
+								|| value instanceof JSONEntity) {
 							// Convert from a
-							value = NodeTranslationUtils.bytesToObject((byte[]) value, propSchema);
+							value = NodeTranslationUtils.bytesToObject(
+									(byte[]) value, propSchema);
 							field.set(base, value);
 							continue;
 						}
-						
-						if(field.getType().isAssignableFrom(Collection.class)){
+
+						if (field.getType().isAssignableFrom(Collection.class)) {
 							List<Object> list = new ArrayList<Object>();
 							list.add(value);
 							field.set(base, list);
-						}else{
+						} else {
 							field.set(base, value);
 						}
 					}
@@ -513,16 +584,16 @@ public class NodeTranslationUtils {
 			}
 		}
 	}
-	
+
 	/**
 	 * Is the given name a primary field for the given object type.
+	 * 
 	 * @param type
 	 * @param toTest
 	 * @return
 	 */
-	public static boolean isPrimaryFieldName(EntityType type, String toTest){
+	public static boolean isPrimaryFieldName(EntityType type, String toTest) {
 		return primaryFieldsCache.get(type).contains(toTest);
 	}
-	
 
 }

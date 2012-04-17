@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.manager.backup.SerializationUseCases;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Code;
+import org.sagebionetworks.repo.model.ExampleEntity;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Study;
@@ -411,6 +412,31 @@ public class NodeTranslationUtilsTest {
 		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newLink, annos.getPrimaryAnnotations(), node.getReferences());
 		assertNotNull(newLink.getLinksTo());
 		assertEquals("123", newLink.getLinksTo().getTargetId());
+
+	}
+	/**
+	 * We must be able to clear values by passing null
+	 */
+	@Test
+	public void testPLFM_1214(){
+		// Start with a study with a
+		ExampleEntity example = new ExampleEntity();
+		example.setSingleInteger(123l);
+		Node node = NodeTranslationUtils.createFromEntity(example);
+		NamedAnnotations annos = new NamedAnnotations();
+		// Now add all of the annotations and references from the entity
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, annos.getPrimaryAnnotations(), node.getReferences());
+		Annotations primaryAnnos = annos.getPrimaryAnnotations();
+		// First make sure it is set correctly.
+		assertNotNull(primaryAnnos.getSingleValue("singleInteger"));
+		Long value = (Long) primaryAnnos.getSingleValue("singleInteger");
+		assertEquals(new Long(123),value);
+		
+		// Now the second update we want to clear it out.
+		example.setSingleInteger(null);
+		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(example, annos.getPrimaryAnnotations(), node.getReferences());
+		// The value should now be cleared out.
+		assertEquals(null, primaryAnnos.getSingleValue("singleInteger"));
 
 	}
 	
