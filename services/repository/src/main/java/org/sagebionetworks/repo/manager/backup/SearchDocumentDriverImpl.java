@@ -95,6 +95,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		searchableNodeAnnotations.put("Tissue_Tumor", TISSUE_FIELD);
 		searchableNodeAnnotations.put("sampleSource", TISSUE_FIELD);
 		searchableNodeAnnotations.put("SampleSource", TISSUE_FIELD);
+		searchableNodeAnnotations.put("tissueType", TISSUE_FIELD);
 		searchableNodeAnnotations.put("species", SPECIES_FIELD);
 		searchableNodeAnnotations.put("Species", SPECIES_FIELD);
 		searchableNodeAnnotations.put("platform", PLATFORM_FIELD);
