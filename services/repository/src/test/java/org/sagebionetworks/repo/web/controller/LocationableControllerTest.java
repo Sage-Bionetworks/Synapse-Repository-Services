@@ -14,6 +14,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.ExpressionData;
+import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.LocationData;
@@ -145,7 +147,86 @@ public class LocationableControllerTest {
 		assertS3UrlsArePresigned(dataset, externalLocation, 1);
 	}
 
-	private void assertS3UrlsArePresigned(Study dataset,
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testTypeWithNoTypeSpecificMetadataProviderCRUD() throws Exception {
+
+		ExpressionData expressionData = new ExpressionData();
+		expressionData.setParentId(project.getId());
+		expressionData = helper.createEntity(expressionData, null);
+
+		// construct a fake prefix, S3Token creation would have added this
+		// prefix to the path, see the integration tests for the real deal
+		String s3KeyPrefix = "/" + KeyFactory.stringToKey(expressionData.getId()) + "/123/";
+
+		LocationData s3Location = new LocationData();
+		s3Location.setType(LocationTypeNames.awss3);
+		s3Location.setPath(s3KeyPrefix
+				+ "unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
+
+		LocationData externalLocation = new LocationData();
+		externalLocation.setType(LocationTypeNames.external);
+		externalLocation
+				.setPath("http://tcga-data.nci.nih.gov/tcgafiles/ftp_auth/distro_ftpusers/anonymous/tumor/coad/cgcc/unc.edu/agilentg4502a_07_3/transcriptome/unc.edu_COAD.AgilentG4502A_07_3.Level_2.2.0.0.tar.gz");
+		List<LocationData> locations = new LinkedList<LocationData>();
+		locations.add(s3Location);
+		locations.add(externalLocation);
+
+		/*
+		 * Create some new locations
+		 */
+		expressionData.setMd5("33183779e53ce0cfc35f59cc2a762cbd");
+		expressionData.setLocations(locations);
+		expressionData = helper.updateEntity(expressionData, null);
+		assertS3UrlsArePresigned(expressionData, externalLocation, 2);
+
+		/*
+		 * Get the expressionData, and check locations
+		 */
+		expressionData = helper.getEntity(expressionData, null);
+		assertS3UrlsArePresigned(expressionData, externalLocation, 2);
+
+		/*
+		 * Get the expressionData explicitly asking for GET method presigned urls, and
+		 * check locations
+		 */
+		Map<String, String> extraParams = new HashMap<String, String>();
+		extraParams
+				.put(ServiceConstants.METHOD_PARAM, RequestMethod.GET.name());
+		expressionData = helper.getEntity(expressionData, extraParams);
+		assertS3UrlsArePresigned(expressionData, externalLocation, 2);
+
+		/*
+		 * Get the expressionData explicity asking for HEAD method presigned urls, and
+		 * check locations
+		 */
+		extraParams.put(ServiceConstants.METHOD_PARAM, RequestMethod.HEAD
+				.name());
+		expressionData = helper.getEntity(expressionData, extraParams);
+		assertS3UrlsArePresigned(expressionData, externalLocation, 2);
+
+		/*
+		 * Just change the md5sum to simulate an updated file, check that we
+		 * make a new version
+		 */
+		expressionData.setMd5("fff83779e53ce0cfc35f59cc2a762fff");
+		ExpressionData expressionDataV1 = expressionData;
+		expressionData = helper.updateEntity(expressionData, null);
+		assertS3UrlsArePresigned(expressionData, externalLocation, 2);
+		assertTrue(!expressionDataV1.getVersionNumber().equals(expressionData.getVersionNumber()));
+		assertTrue(!expressionDataV1.getVersionLabel().equals(expressionData.getVersionLabel()));
+		
+		// Delete a location
+		locations = expressionData.getLocations();
+		locations.remove(0);
+		expressionData = helper.updateEntity(expressionData, null);
+		assertS3UrlsArePresigned(expressionData, externalLocation, 1);
+	}
+	
+	private void assertS3UrlsArePresigned(Locationable dataset,
 			LocationData externalLocation, int numLocationsExpected) throws DatastoreException {
 		// Ensure we have the correct number of locations under this dataset
 		assertEquals(numLocationsExpected, dataset.getLocations().size());

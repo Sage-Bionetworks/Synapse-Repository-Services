@@ -17,6 +17,7 @@ public class MetadataProviderFactoryImpl implements MetadataProviderFactory,
 
 	private Map<String, TypeSpecificMetadataProvider<Entity>> metadataProviderMap;
 	private Map<String, List<TypeSpecificMetadataProvider<Entity>>> metadataProviders;
+	private TypeSpecificMetadataProvider<Entity> locationableProvider;
 
 	/**
 	 * @param metadataProviderMap
@@ -30,15 +31,25 @@ public class MetadataProviderFactoryImpl implements MetadataProviderFactory,
 	@Override
 	public List<TypeSpecificMetadataProvider<Entity>> getMetadataProvider(
 			EntityType type) {
-		return metadataProviders.get(type.name());
+
+		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviders
+				.get(type.name());
+		if (null == providers) {
+			if (Locationable.class.isAssignableFrom(type.getClassForType())) {
+				providers = new LinkedList<TypeSpecificMetadataProvider<Entity>>();
+				providers.add(locationableProvider);
+				metadataProviders.put(type.name(), providers);
+			}
+
+		}
+		return providers;
 	}
 
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		metadataProviders = new HashMap<String, List<TypeSpecificMetadataProvider<Entity>>>();
 
-		TypeSpecificMetadataProvider<Entity> locationableProvider = this.metadataProviderMap
-				.get("locationable");
+		locationableProvider = this.metadataProviderMap.get("locationable");
 
 		for (Entry<String, TypeSpecificMetadataProvider<Entity>> providerEntry : metadataProviderMap
 				.entrySet()) {

@@ -61,7 +61,7 @@ public class LocationableMetadataProvider implements
 	public void validateEntity(Entity entity, EntityEvent event)
 			throws InvalidModelException, NotFoundException,
 			DatastoreException, UnauthorizedException {
-
+		
 		if (!(entity instanceof Locationable)) {
 			return;
 		}
