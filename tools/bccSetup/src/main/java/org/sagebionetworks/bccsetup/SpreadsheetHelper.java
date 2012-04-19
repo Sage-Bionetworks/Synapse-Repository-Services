@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.StackConfiguration;
 
@@ -72,13 +73,90 @@ public class SpreadsheetHelper {
 	  }
 	  
 	  /**
+	   * 
+	   * For the given spreadsheet look up the given participant and return
+	   * the cell value in the column given by 'column'
+	   * 
+	   * @param sheetTitle
+	   * @param participant
+	   * @param column
+	   * @return
+	   */
+	  public String getCellValue(String sheetTitle, String participant, String column) {
+		  try {
+			  WorksheetEntry worksheetEntry = getBCCWorksheet(sheetTitle);
+			  URL listFeedUrl = worksheetEntry.getListFeedUrl();
+			  ListFeed feed = spreadsheetService.getFeed(listFeedUrl, ListFeed.class);
+			  for (ListEntry entry : feed.getEntries()) {
+			    CustomElementCollection cec = entry.getCustomElements();
+			    
+			    if (cec.getValue(columnHeaderToTag(REGISTRANT_COLUMN_TITLE)).equals(participant)) {
+			    	return cec.getValue(columnHeaderToTag(column));
+			    }
+			  }			  
+		  } catch (Exception e) {
+			  throw new RuntimeException(e);
+		  }
+		  throw new IllegalStateException("No entry found for "+participant);
+		  
+	  }
+	  
+	  /**
 	   * Records in the shared spreadsheet that the given participant has been allocated resources
 	   * 
 	   * @param participant the email address of the participant
 	   * @param allocationTimestamp the date/time when the resources were allocated
 	   */
 	  public void recordAllocation(String participant, String allocationTimestamp) {
-		  setCellValue(participant, ALLOCATED_COLUMN_TITLE, allocationTimestamp);
+		  setCellValue(spreadSheetTitle, participant, ALLOCATED_COLUMN_TITLE, allocationTimestamp);
+	  }
+	  
+	  /**
+	   * 
+	   * Generic method to add a rows toa spreadsheet
+	   * @param sheetTitle
+	   * @param rowValues -- keys are head
+	   */
+	  public void addSpreadsheetRow(String sheetTitle, Map<String,String> rowValues) {
+		  try {
+			  WorksheetEntry worksheetEntry = getBCCWorksheet(sheetTitle);
+			  URL listFeedUrl = worksheetEntry.getListFeedUrl();
+	
+			  ListEntry newEntry = new ListEntry();
+			  for (String tag : rowValues.keySet()) {
+				  String value = rowValues.get(tag);
+				  if (value!=null) newEntry.getCustomElements().setValueLocal(columnHeaderToTag(tag), value);
+			  }
+			  spreadsheetService.insert(listFeedUrl, newEntry);
+		  } catch (Exception e) {
+			  throw new RuntimeException(e);
+		  }		  
+	  }
+	  
+	  /**
+	   * 
+	   * Deletes the first row having the given value in the given column
+	   * @param sheetTitle
+	   * @param columnHeader
+	   * @param value
+	   * @exception if the value is not found
+	   */
+	  public void deleteSpreadshetRow(String sheetTitle, String columnHeader, String value) {
+		  try {
+			  WorksheetEntry worksheetEntry = getBCCWorksheet(sheetTitle);
+			  URL listFeedUrl = worksheetEntry.getListFeedUrl();
+			  ListFeed feed = spreadsheetService.getFeed(listFeedUrl, ListFeed.class);
+			  for (ListEntry entry : feed.getEntries()) {
+			    CustomElementCollection cec = entry.getCustomElements();
+			    if (cec.getValue(columnHeaderToTag(columnHeader)).equals(value)) {
+			    	entry.delete();
+			    	return;
+			    }
+			  }			  
+		  } catch (Exception e) {
+			  throw new RuntimeException(e);
+		  }
+		  throw new IllegalStateException("No row found having value "+value+" in column "+columnHeader);
 	  }
 		  
 	  /**
@@ -89,9 +167,9 @@ public class SpreadsheetHelper {
 	   * @param value the desired value. value=null 'clears' the existing value.
 	   * @exception if the participant or the column are not found in the spreadsheet
 	   */
-	  public void setCellValue(String participant, String column, String value) {
+	  public void setCellValue(String sheetTitle, String participant, String column, String value) {
 		  try {
-			  WorksheetEntry worksheetEntry = getBCCWorksheet(spreadSheetTitle);
+			  WorksheetEntry worksheetEntry = getBCCWorksheet(sheetTitle);
 			  URL listFeedUrl = worksheetEntry.getListFeedUrl();
 			  ListFeed feed = spreadsheetService.getFeed(listFeedUrl, ListFeed.class);
 			  for (ListEntry entry : feed.getEntries()) {
@@ -133,10 +211,10 @@ public class SpreadsheetHelper {
 	  public static SpreadsheetService createSpreadsheetService() throws ServiceException, IOException, OAuthException {
 		    GoogleOAuthParameters oauthParameters = new GoogleOAuthParameters();
 
-			String consumerKey = BccConfigHelper.getGoogleAppsOAuthConsumerKey();
-			String consumerSecret = BccConfigHelper.getGoogleAppsOAuthConsumerSecret();
-			String accessToken = BccConfigHelper.getGoogleAppsOAuthAccessToken();
-			String accessTokenSecret = BccConfigHelper.getGoogleAppsOAuthAccessTokenSecret();
+			String consumerKey = StackConfiguration.getGoogleAppsOAuthConsumerKey();
+			String consumerSecret = StackConfiguration.getGoogleAppsOAuthConsumerSecret();
+			String accessToken = StackConfiguration.getGoogleAppsOAuthAccessToken();
+			String accessTokenSecret = StackConfiguration.getGoogleAppsOAuthAccessTokenSecret();
 			  
 		    oauthParameters.setOAuthConsumerKey(consumerKey);
 	        oauthParameters.setOAuthConsumerSecret(consumerSecret);

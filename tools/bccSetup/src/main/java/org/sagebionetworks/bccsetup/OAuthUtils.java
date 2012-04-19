@@ -16,8 +16,8 @@ import com.google.gdata.client.authn.oauth.OAuthSigner;
  */
 public class OAuthUtils {
 	  public static void main(String[] args) throws Exception {
-		  String consumerKey = BccConfigHelper.getGoogleAppsOAuthConsumerKey();
-		  String consumerSecret = BccConfigHelper.getGoogleAppsOAuthConsumerSecret();
+		  String consumerKey = StackConfiguration.getGoogleAppsOAuthConsumerKey();
+		  String consumerSecret = StackConfiguration.getGoogleAppsOAuthConsumerSecret();
 		  
 		  generateAccessToken(consumerKey, consumerSecret, SpreadsheetHelper.SPREADSHEET_SCOPE);
 	  }
