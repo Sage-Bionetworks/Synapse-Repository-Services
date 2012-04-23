@@ -165,17 +165,6 @@ public class ITMigrationQueryRunner {
 		assertTrue(testRooIndex < childIndex);
 		assertTrue(childIndex < grandChildIndex);
 		
-		// the parent of all entities should proceed each entity.
-		Set<String> existingSet = new HashSet<String>();
-		for(int i=0; i<results.size(); i++){
-			EntityData entity = results.get(i);
-			existingSet.add(entity.getEntityId());
-
-			if(entity.getParentId() != null){
-				// the parent ID of every entity should be on the set (except root).
-				assertTrue(existingSet.contains(entity.getParentId()));
-			}
-		}
 	}
 
 }
