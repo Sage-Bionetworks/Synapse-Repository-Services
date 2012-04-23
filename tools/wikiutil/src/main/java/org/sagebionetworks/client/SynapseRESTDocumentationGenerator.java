@@ -18,27 +18,45 @@ import org.sagebionetworks.client.exceptions.SynapseException;
  * @author deflaux
  * 
  */
-public class SynapseWikiGenerator extends SynapseAdministration {
+public class SynapseRESTDocumentationGenerator extends SynapseAdministration {
+
+	/**
+	 * The markup types supported by this generator
+	 * 
+	 */
+	public static enum MARKUP {
+		/**
+		 * Output should be wiki markup
+		 */
+		WIKI,
+		/**
+		 * Output should be HTML
+		 */
+		HTML
+	}
 
 	private static final Logger log = Logger
-			.getLogger(SynapseWikiGenerator.class.getName());
+			.getLogger(SynapseRESTDocumentationGenerator.class.getName());
 
 	private static final String FAKE_SESSION_TOKEN = "XXXXXX";
 
-	private static final String SESSION_TOKEN_RESPONSE_REGEX = SESSION_TOKEN_HEADER + "\": \"[^\"]+\"";
+	private static final String SESSION_TOKEN_RESPONSE_REGEX = "\""
+			+ SESSION_TOKEN_HEADER + "\": \"[^\"]+\"";
 
-	private static final String FAKE_SESSION_RESPONSE = "\"" + SESSION_TOKEN_HEADER + "\" : \"" + FAKE_SESSION_TOKEN + "\"";
+	private static final String FAKE_SESSION_RESPONSE = "\""
+			+ SESSION_TOKEN_HEADER + "\" : \"" + FAKE_SESSION_TOKEN + "\"";
 
 	private String username;
 	private String password;
+	private MARKUP markup = MARKUP.HTML;
 
 	/**
 	 * @param args
-	 * @return SynapseWikiGenerator
-	 * @throws Exception
+	 * @return SynapseRESTDocumentationGenerator
+	 * @throws SynapseException 
 	 */
-	public static SynapseWikiGenerator createFromArgs(String args[])
-			throws Exception {
+	public static SynapseRESTDocumentationGenerator createFromArgs(
+			String args[]) throws SynapseException {
 
 		Options options = new Options();
 		options
@@ -97,27 +115,27 @@ public class SynapseWikiGenerator extends SynapseAdministration {
 			System.exit(1);
 		}
 
-		return new SynapseWikiGenerator(repoEndpoint, authEndpoint, username,
-				password);
+		return new SynapseRESTDocumentationGenerator(repoEndpoint,
+				authEndpoint, username, password, null);
 	}
 
 	/**
 	 * Default constructor, connects to prod
+	 * 
+	 * @throws SynapseException 
 	 */
-	public SynapseWikiGenerator() {
-		this.username = null;
-		this.password = null;
+	public SynapseRESTDocumentationGenerator() throws SynapseException {
+		this(null, null, null, null, null);
 	}
 
 	/**
 	 * @param username
 	 * @param password
-	 * @throws Exception
+	 * @throws SynapseException 
 	 */
-	public SynapseWikiGenerator(String username, String password)
-			throws Exception {
-		this.username = username;
-		this.password = password;
+	public SynapseRESTDocumentationGenerator(String username, String password)
+			throws SynapseException {
+		this(null, null, username, password, null);
 	}
 
 	/**
@@ -125,10 +143,12 @@ public class SynapseWikiGenerator extends SynapseAdministration {
 	 * @param authEndpoint
 	 * @param username
 	 * @param password
-	 * @throws Exception
+	 * @param markup
+	 * @throws SynapseException 
 	 */
-	public SynapseWikiGenerator(String repoEndpoint, String authEndpoint,
-			String username, String password) throws Exception {
+	public SynapseRESTDocumentationGenerator(String repoEndpoint,
+			String authEndpoint, String username, String password, MARKUP markup)
+			throws SynapseException {
 
 		this.username = username;
 		this.password = password;
@@ -139,6 +159,11 @@ public class SynapseWikiGenerator extends SynapseAdministration {
 		if (null != authEndpoint) {
 			super.setAuthEndpoint(this.authEndpoint);
 		}
+		if (null != markup) {
+			this.markup = markup;
+		}
+		
+		this.setDataUploader(new DataUploaderRESTDocumentationGenerator(this.markup));
 	}
 
 	/**
@@ -150,6 +175,7 @@ public class SynapseWikiGenerator extends SynapseAdministration {
 		this.login(username, password);
 	}
 
+	@Override
 	protected JSONObject dispatchSynapseRequest(String endpoint, String uri,
 			String requestMethod, String requestContent,
 			Map<String, String> requestHeaders) throws SynapseException {
@@ -178,18 +204,41 @@ public class SynapseWikiGenerator extends SynapseAdministration {
 					curl += " -H " + header.getKey() + ":" + header.getValue();
 				}
 			}
-			curl += " '" + uri + "'{code}";
-			log.info("*Request* {code}" + curl);
-			log.info("*Response* {code}");
+			curl += " '" + endpoint + uri + "'";
+
+			if (markup.equals(MARKUP.WIKI)) {
+				log.info("*Request* {code}" + curl + "{code}");
+				log.info("*Response* {code}");
+			} else if (markup.equals(MARKUP.HTML)) {
+				log.info("<span class=\"request\">Request</span> <pre>" + curl
+						+ "</pre><br>");
+				log.info("<span class=\"response\">Response</span> <pre>");
+			} else {
+				log.info("REQUEST " + curl + "");
+				log.info("RESPONSE");
+			}
 
 			JSONObject responseObject = super.dispatchSynapseRequest(endpoint,
 					uri, requestMethod, requestContent, requestHeaders);
 
-			String response = responseObject.toString(JSON_INDENT);
-			response = response.replaceAll(SESSION_TOKEN_RESPONSE_REGEX, FAKE_SESSION_RESPONSE);
-			log.info(response + "{code}");
+			String response = "";
 
+			if (null != responseObject) {
+				response = responseObject.toString(JSON_INDENT);
+				response = response.replaceAll(SESSION_TOKEN_RESPONSE_REGEX,
+						FAKE_SESSION_RESPONSE);
+			}
+			
+			if (markup.equals(MARKUP.WIKI)) {
+				log.info(response + "{code}");
+			} else if (markup.equals(MARKUP.HTML)) {
+				log.info(response + "</pre><br>");
+			} else {
+				log.info(response);
+				log.info("");
+			}
 			return responseObject;
+
 		} catch (JSONException e) {
 			throw new SynapseException(e);
 		}
