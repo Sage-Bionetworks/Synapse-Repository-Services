@@ -14,7 +14,6 @@
     <modules>
       <module>tcgaWorkflow</module>
       <module>wikiutil</module>
-      <module>DatasetMetadataLoader</module>
       <module>gePipeline</module>
       <module>bccSetup</module>
       <module>SynapseDeployer</module>

@@ -72,7 +72,6 @@
 						<configuration>
 							<outputDirectory>${project.build.directory}/non-java-dependencies</outputDirectory>
 							<includeArtifacIds>synapse-python-client-assembly</includeArtifacIds>
-							<includeArtifacIds>dataset-metadata-loader-assembly</includeArtifacIds>
 							<includeTypes>zip</includeTypes>
 							<includeGroupIds>${project.groupId}</includeGroupIds>
 						</configuration>
@@ -316,15 +315,6 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>synapseRClient</artifactId>
 			<classifier>synapse-r-client-assembly</classifier>
-			<type>zip</type>
-			<!-- Make sure this isn't included on any classpath -->
-			<scope>provided</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>DatasetMetadataLoader</artifactId>
-			<classifier>dataset-metadata-loader-assembly</classifier>
 			<type>zip</type>
 			<!-- Make sure this isn't included on any classpath -->
 			<scope>provided</scope>

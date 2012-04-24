@@ -56,7 +56,7 @@ public class EntityDocumentation {
 				.createFromArgs(args);
 
 		
-		log.info("<h1>Examples</h1>");
+		log.info("<h1>CRUD Examples</h1>");
 		
 		
 		log.info("<h2>Get a publicy readable entity</h2>");
@@ -77,7 +77,7 @@ public class EntityDocumentation {
 				.setDescription("A project created to help illustrate the use of the Synapse Repository Service API");
 		project = synapse.createEntity(project);
 
-		
+	
 		log.info("<h2>Create a Data entity</h2>");
 		Data data = new Data();
 		data.setParentId(project.getId());
@@ -104,6 +104,7 @@ public class EntityDocumentation {
 		log.info("<h2>Delete an entity</h2>");
 		synapse.deleteEntity(project);
 
+		log.info("<h1>Search and Query Examples</h1>");
 		
 		log.info("<h2>Query for entities</h2>");
 		log.info("Query Syntax: <pre>" + escapeHtml(QUERY_SYNTAX) + "</pre><p>");

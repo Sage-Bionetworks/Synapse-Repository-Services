@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.utils.ExternalProcessHelper.ExternalProcessResult;
 import org.sagebionetworks.utils.ExternalProcessHelper;
@@ -25,6 +26,7 @@ public class IT080SynapsePythonClient {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testPythonClient() throws Exception {
 		String cmd[] = { Helpers.getPython27Path(),

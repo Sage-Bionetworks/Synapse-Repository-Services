@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.utils.ExternalProcessHelper.ExternalProcessResult;
 import org.sagebionetworks.utils.ExternalProcessHelper;
@@ -19,6 +20,7 @@ public class IT700SynapseRClient {
 	 * 
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testCheckRClient() throws Exception {
 		String cmd[] = { Helpers.getRPath(), "CMD", "check", "--no-manual",
@@ -32,6 +34,7 @@ public class IT700SynapseRClient {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testInstallRClient() throws Exception {
 		String cmd[] = { Helpers.getRPath(), "CMD", "INSTALL", "-l", "target",
@@ -49,6 +52,7 @@ public class IT700SynapseRClient {
 	 * 
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testRunRUnitTests() throws Exception {
 		String cmd[] = {
@@ -75,6 +79,7 @@ public class IT700SynapseRClient {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testRunRIntegrationTests() throws Exception {
 		String cmd[] = {
@@ -108,6 +113,7 @@ public class IT700SynapseRClient {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testRunRHmacAuthenticationTest() throws Exception {
 		String cmd[] = {
