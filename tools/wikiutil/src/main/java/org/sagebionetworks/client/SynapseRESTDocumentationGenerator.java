@@ -38,13 +38,19 @@ public class SynapseRESTDocumentationGenerator extends SynapseAdministration {
 	private static final Logger log = Logger
 			.getLogger(SynapseRESTDocumentationGenerator.class.getName());
 
-	private static final String FAKE_SESSION_TOKEN = "XXXXXX";
+	private static final String FAKE_CREDENTIAL = "XXXXXX";
 
-	private static final String SESSION_TOKEN_RESPONSE_REGEX = "\""
+	private static final String SESSION_TOKEN_REGEX = "\""
 			+ SESSION_TOKEN_HEADER + "\": \"[^\"]+\"";
 
-	private static final String FAKE_SESSION_RESPONSE = "\""
-			+ SESSION_TOKEN_HEADER + "\" : \"" + FAKE_SESSION_TOKEN + "\"";
+	private static final String SESSION_TOKEN_REPLACEMENT = "\""
+			+ SESSION_TOKEN_HEADER + "\" : \"" + FAKE_CREDENTIAL + "\"";
+
+	private static final String PASSWORD_REGEX = "\"" + PASSWORD_FIELD
+			+ "\": \"[^\"]+\"";
+
+	private static final String PASSWORD_REPLACEMENT = "\""
+			+ PASSWORD_FIELD + "\" : \"" + FAKE_CREDENTIAL + "\"";
 
 	private String username;
 	private String password;
@@ -53,7 +59,7 @@ public class SynapseRESTDocumentationGenerator extends SynapseAdministration {
 	/**
 	 * @param args
 	 * @return SynapseRESTDocumentationGenerator
-	 * @throws SynapseException 
+	 * @throws SynapseException
 	 */
 	public static SynapseRESTDocumentationGenerator createFromArgs(
 			String args[]) throws SynapseException {
@@ -122,7 +128,7 @@ public class SynapseRESTDocumentationGenerator extends SynapseAdministration {
 	/**
 	 * Default constructor, connects to prod
 	 * 
-	 * @throws SynapseException 
+	 * @throws SynapseException
 	 */
 	public SynapseRESTDocumentationGenerator() throws SynapseException {
 		this(null, null, null, null, null);
@@ -131,7 +137,7 @@ public class SynapseRESTDocumentationGenerator extends SynapseAdministration {
 	/**
 	 * @param username
 	 * @param password
-	 * @throws SynapseException 
+	 * @throws SynapseException
 	 */
 	public SynapseRESTDocumentationGenerator(String username, String password)
 			throws SynapseException {
@@ -144,7 +150,7 @@ public class SynapseRESTDocumentationGenerator extends SynapseAdministration {
 	 * @param username
 	 * @param password
 	 * @param markup
-	 * @throws SynapseException 
+	 * @throws SynapseException
 	 */
 	public SynapseRESTDocumentationGenerator(String repoEndpoint,
 			String authEndpoint, String username, String password, MARKUP markup)
@@ -162,8 +168,9 @@ public class SynapseRESTDocumentationGenerator extends SynapseAdministration {
 		if (null != markup) {
 			this.markup = markup;
 		}
-		
-		this.setDataUploader(new DataUploaderRESTDocumentationGenerator(this.markup));
+
+		this.setDataUploader(new DataUploaderRESTDocumentationGenerator(
+				this.markup));
 	}
 
 	/**
@@ -187,11 +194,18 @@ public class SynapseRESTDocumentationGenerator extends SynapseAdministration {
 			if (null != requestContent) {
 				requestObject = new JSONObject(requestContent);
 			}
+			
+			String request = "";
+			if (null != requestObject) {
+				request = requestObject.toString(JSON_INDENT);
+				request = request.replaceAll(PASSWORD_REGEX,
+						PASSWORD_REPLACEMENT);
+			}
 
 			if ("POST".equals(requestMethod)) {
-				curl += " -d '" + requestObject.toString(JSON_INDENT) + "' ";
+				curl += " -d '" + request + "' ";
 			} else if ("PUT".equals(requestMethod)) {
-				curl += " -X PUT -d '" + requestObject.toString(JSON_INDENT)
+				curl += " -X PUT -d '" + request
 						+ "' ";
 			} else if ("DELETE".equals(requestMethod)) {
 				curl += " -X DELETE ";
@@ -199,7 +213,7 @@ public class SynapseRESTDocumentationGenerator extends SynapseAdministration {
 
 			for (Entry<String, String> header : requestHeaders.entrySet()) {
 				if (SESSION_TOKEN_HEADER.equals(header.getKey())) {
-					curl += " -H " + header.getKey() + ":" + FAKE_SESSION_TOKEN;
+					curl += " -H " + header.getKey() + ":" + FAKE_CREDENTIAL;
 				} else {
 					curl += " -H " + header.getKey() + ":" + header.getValue();
 				}
@@ -225,10 +239,10 @@ public class SynapseRESTDocumentationGenerator extends SynapseAdministration {
 
 			if (null != responseObject) {
 				response = responseObject.toString(JSON_INDENT);
-				response = response.replaceAll(SESSION_TOKEN_RESPONSE_REGEX,
-						FAKE_SESSION_RESPONSE);
+				response = response.replaceAll(SESSION_TOKEN_REGEX,
+						SESSION_TOKEN_REPLACEMENT);
 			}
-			
+
 			if (markup.equals(MARKUP.WIKI)) {
 				log.info(response + "{code}");
 			} else if (markup.equals(MARKUP.HTML)) {

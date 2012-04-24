@@ -8,8 +8,6 @@ import java.util.Map.Entry;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.codec.binary.Hex;
 import org.apache.log4j.Logger;
-import org.sagebionetworks.client.DataUploaderImpl;
-import org.sagebionetworks.client.SynapseRESTDocumentationGenerator.MARKUP;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.S3Token;
 
