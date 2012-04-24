@@ -9,13 +9,11 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
-import org.json.JSONArray;
-import org.json.JSONObject;
 import org.sagebionetworks.client.SynapseRESTDocumentationGenerator;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import static org.apache.commons.lang.StringEscapeUtils.escapeHtml;
 
 /**
  * 
@@ -108,7 +106,7 @@ public class EntityDocumentation {
 
 		
 		log.info("<h2>Query for entities</h2>");
-		log.info("Query Syntax: <pre>" + QUERY_SYNTAX + "</pre><p>");
+		log.info("Query Syntax: <pre>" + escapeHtml(QUERY_SYNTAX) + "</pre><p>");
 		// TODO change this to the JSONEntity version of QueryResults when its available, but for now we 
 		// know what the synapse id is, so just hard code it instead of looking in the query results returned
 		synapse.query("select id, name from study where name == \"MSKCC Prostate Cancer\"");
