@@ -80,6 +80,8 @@ public class Synapse {
 	protected static final String REQUEST_PROFILE_DATA = "profile_request";
 	protected static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
 
+	protected static final String PASSWORD_FIELD = "password";
+	
 	protected static final String QUERY_URI = "/query?query=";
 	protected static final String REPO_SUFFIX_PATH = "/path";
 	protected static final String ANNOTATION_URI_SUFFIX = "annotations";
@@ -253,7 +255,7 @@ public class Synapse {
 			JSONObject loginRequest = new JSONObject();
 		try {
 			loginRequest.put("email", username);
-			loginRequest.put("password", password);
+			loginRequest.put(PASSWORD_FIELD, password);
 			if (explicitlyAcceptsTermsOfUse) loginRequest.put("acceptsTermsOfUse", true);
 			
 			boolean reqPr = requestProfile;
