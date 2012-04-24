@@ -74,8 +74,8 @@ public class Synapse {
 	protected static final int DEFAULT_TIMEOUT_MSEC = 5000;
 
 	protected static final int JSON_INDENT = 2;
-	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-alpha.sagebase.org/repo/v1";
-	protected static final String DEFAULT_AUTH_ENDPOINT = "https://auth-alpha.sagebase.org/auth/v1";
+	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.sagebase.org/repo/v1";
+	protected static final String DEFAULT_AUTH_ENDPOINT = "https://auth-prod.sagebase.org/auth/v1";
 	protected static final String SESSION_TOKEN_HEADER = "sessionToken";
 	protected static final String REQUEST_PROFILE_DATA = "profile_request";
 	protected static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
