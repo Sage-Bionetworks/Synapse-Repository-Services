@@ -160,10 +160,10 @@ public class SynapseRESTDocumentationGenerator extends SynapseAdministration {
 		this.password = password;
 
 		if (null != repoEndpoint) {
-			super.setRepositoryEndpoint(this.repoEndpoint);
+			setRepositoryEndpoint(repoEndpoint);
 		}
 		if (null != authEndpoint) {
-			super.setAuthEndpoint(this.authEndpoint);
+			setAuthEndpoint(authEndpoint);
 		}
 		if (null != markup) {
 			this.markup = markup;
