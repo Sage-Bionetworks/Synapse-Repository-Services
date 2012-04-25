@@ -251,7 +251,7 @@ public class IT510SynapseJavaClientSearchTest {
 		String cloudSearchMatchExpr = results.getMatchExpression();
 		assertTrue(-1 < cloudSearchMatchExpr.indexOf("(or acl:"));
 		assertTrue(-1 < cloudSearchMatchExpr
-				.indexOf("acl:'devUser1@sagebase.org'"));
+				.indexOf("acl:'" + StackConfiguration.getIntegrationTestUserOneName() + "'"));
 		assertTrue(-1 < cloudSearchMatchExpr
 				.indexOf("acl:'AUTHENTICATED_USERS'"));
 		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'PUBLIC'"));
