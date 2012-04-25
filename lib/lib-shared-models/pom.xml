@@ -4,18 +4,18 @@
 	<parent>
 		<artifactId>lib</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>0.12-SNAPSHOT</version>
+		<version>0.13-SNAPSHOT</version>
 	</parent>
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-shared-models</artifactId>
-	<version>0.12-SNAPSHOT</version>
+	<version>0.13-SNAPSHOT</version>
 	<name>lib-shared-models</name>
 	<description>These model objects are shared between the client and server.  Only GWT compatible models should exist in this project</description>
 
 	<build>
 		<resources>
 			<resource>
-				<!-- This will add the source files to the jar, which is needed for GWT 
+				<!-- This will add the source files to the jar, which is needed for GWT
 					compile. -->
 				<directory>src/main/java</directory>
 			</resource>
@@ -24,7 +24,7 @@
 				<directory>src/main/resources</directory>
 			</resource>
 			<resource>
-				<!-- This will add all of the auto-generated sources files, which is 
+				<!-- This will add all of the auto-generated sources files, which is
 					needed for GWT compile. -->
 				<directory>target/auto-generated</directory>
 			</resource>
@@ -44,7 +44,7 @@
 						</goals>
 					</execution>
 				</executions>
-				<!-- Plugin configuration. There are many available options, see gwt-maven-plugin 
+				<!-- Plugin configuration. There are many available options, see gwt-maven-plugin
 					documentation at codehaus.org -->
 				<configuration>
 					<!-- There are the GWT tests -->
@@ -63,7 +63,7 @@
 						<id>exec-one</id>
 						<phase>generate-resources</phase>
 						<configuration>
-							<!-- This will auto-generate a RegisterConstants.properties file containing 
+							<!-- This will auto-generate a RegisterConstants.properties file containing
 								the current Register.json -->
 							<mainClass>org.sagebionetworks.ResourceEncoder</mainClass>
 							<arguments>
@@ -87,7 +87,7 @@
 		</dependency>
 
 
-		<!-- This must remain at the test scope! It uses GWT non-compatible dependencies 
+		<!-- This must remain at the test scope! It uses GWT non-compatible dependencies
 			and cannot be used in a GWT client! -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>

@@ -4,10 +4,10 @@ Walk the complete PLFM hierarchy and bring all the pom.xml files up to new minor
 '''
 
 #Old and new minor versions
-oldVersion = '0.11'
-newVersion = '0.12'
+oldVersion = '0.12'
+newVersion = '0.13'
 #Path to PLFM on your system
-startPath = 'u:\\jira\\plfm\\trunk'
+startPath = 'C:\\sage\\workspace\\trunk'
 for root, subFolders, files in os.walk(startPath):    
     for file in files:
         if file == 'pom.xml': 

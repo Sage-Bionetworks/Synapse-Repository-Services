@@ -6,7 +6,7 @@
    <parent>
     <artifactId>tools</artifactId>
     <groupId>org.sagebionetworks</groupId>
-    <version>0.12-SNAPSHOT</version>
+    <version>0.13-SNAPSHOT</version>
   </parent>
 
   <groupId>org.sagebionetworks</groupId>
@@ -17,7 +17,7 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
   </properties>
- 
+
 	<repositories>
 	<!-- for GData -->
 		<repository>
@@ -25,7 +25,7 @@
   			<url>http://mandubian-mvn.googlecode.com/svn/trunk/mandubian-mvn/repository</url>
 		</repository>
 	</repositories>
-	
+
   <dependencies>
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
@@ -57,7 +57,7 @@
 			<version>1.4</version>
 		</dependency>
 
- 
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
