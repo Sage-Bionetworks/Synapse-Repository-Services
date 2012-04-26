@@ -134,6 +134,24 @@
 					<argLine>-Xmx512m -Xms128m</argLine>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>1.2.1</version>
+				<executions>
+					<execution>
+						<id>exec-one</id>
+						<phase>generate-test-sources</phase>
+						<configuration>
+							<!-- This will drop/create the database schema before running tests. -->
+							<mainClass>org.sagebionetworks.repo.model.bootstrap.DatabasePreparation</mainClass>
+						</configuration>
+						<goals>
+							<goal>java</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
