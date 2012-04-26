@@ -7,11 +7,13 @@ import java.io.IOException;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Ignore;
 
 /**
  * @author deflaux
  * 
  */
+@Ignore
 public class ScriptProcessorTest {
 
 	static WorkflowTemplatedConfiguration config;
