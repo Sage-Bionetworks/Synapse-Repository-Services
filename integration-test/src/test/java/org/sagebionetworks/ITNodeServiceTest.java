@@ -10,6 +10,7 @@ import org.json.JSONObject;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.web.server.RestTemplateProviderImpl;
@@ -84,6 +85,7 @@ public class ITNodeServiceTest {
 	}
 	
 	@Test
+	@Ignore  // PLFM-1271
 	public void getNodeAclJSON() throws Exception{
 		// We should be able to get the project ACL
 		String result = nodeService.getNodeAclJSON(NodeType.PROJECT, project.getString("id"));
