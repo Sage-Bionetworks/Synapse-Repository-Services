@@ -61,6 +61,8 @@ public class IT960TermsOfUse {
 		resourceAccess.put("accessType", accessTypes); // add PUBLIC, READ access
 		resourceAccessSet.put(resourceAccess); // add it to the list
 		adminSynapse.updateEntity(aclUri, acl); // push back to Synapse
+		
+		// a dataset added to the project will inherit its parent's permissions, i.e. will be public-readable
 		dataset = new Study();
 		dataset.setName("bar");
 		dataset.setParentId(project.getId());
@@ -93,7 +95,7 @@ public class IT960TermsOfUse {
 	
 	@Test
 	public void testRepoSvcWithTermsOfUse() throws Exception {
-		// should not be able to see locations
+		// should be able to see locations (i.e. the location is 'tier 1' data
 		Study ds = synapse.getEntity(dataset.getId(), Study.class);
 		List<LocationData> locations = ds.getLocations();
 		assertTrue(locations!=null && locations.size()==1);
@@ -107,18 +109,14 @@ public class IT960TermsOfUse {
 		
 		Study ds = synapse.getEntity(dataset.getId(), Study.class);
 		List<LocationData> locations = ds.getLocations();
-		assertTrue(locations==null || locations.size()==0);
-		
-		// now updating the object should not 'nuke' the locations!
-		ds.setName("bas");
-		synapse.putEntity(ds);
+		assertTrue(locations!=null && locations.size()==1);
 		
 		Study idHolder = new Study();
 		idHolder.setId(ds.getId());
 		// an admin should be able to retreive the entity, including the locations
 		ds = adminSynapse.getEntity(idHolder.getId(), Study.class);
 		
-		assertEquals("bas", ds.getName());
+		assertEquals("bar", ds.getName());
 		locations = ds.getLocations();
 		assertTrue(locations!=null && locations.size()==1);
 
