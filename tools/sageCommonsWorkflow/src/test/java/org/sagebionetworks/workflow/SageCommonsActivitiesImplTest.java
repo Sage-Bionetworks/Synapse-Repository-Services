@@ -77,6 +77,7 @@ public class SageCommonsActivitiesImplTest {
 	 * 
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testRunRScript() throws Exception {
 		String spreadsheetData = "foo, bar, baz, bat\n123, friday, http://fun.com/data.tar.gz, 42\n";

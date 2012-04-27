@@ -13,7 +13,6 @@ import org.junit.Ignore;
  * @author deflaux
  * 
  */
-@Ignore
 public class ScriptProcessorTest {
 
 	static WorkflowTemplatedConfiguration config;
@@ -53,6 +52,7 @@ public class ScriptProcessorTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testRScriptThatSucceeds() throws Exception {
 		ScriptResult scriptResult = ScriptProcessor.runScript(config,

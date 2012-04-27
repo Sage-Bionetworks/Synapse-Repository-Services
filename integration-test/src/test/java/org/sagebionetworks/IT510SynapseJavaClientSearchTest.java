@@ -238,6 +238,40 @@ public class IT510SynapseJavaClientSearchTest {
 	 * @throws Exception
 	 */
 	@Test
+	public void testParentIdBooleanQuerySearch() throws Exception {
+		SearchQuery searchQuery = new SearchQuery();
+		KeyValue booleanQueryClause = new KeyValue();
+		booleanQueryClause.setKey("parent_id");
+		booleanQueryClause.setValue("syn4492");
+		List<KeyValue> booleanQuery = new ArrayList<KeyValue>();
+		booleanQuery.add(booleanQueryClause);
+		searchQuery.setBooleanQuery(booleanQuery);
+		SearchResults results = synapse.search(searchQuery);
+
+		assertTrue(5 <= results.getFound());
+	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testUpdateACLBooleanQuerySearch() throws Exception {
+		SearchQuery searchQuery = new SearchQuery();
+		KeyValue booleanQueryClause = new KeyValue();
+		booleanQueryClause.setKey("update_acl");
+		booleanQueryClause.setValue("Sage Curators");
+		List<KeyValue> booleanQuery = new ArrayList<KeyValue>();
+		booleanQuery.add(booleanQueryClause);
+		searchQuery.setBooleanQuery(booleanQuery);
+		SearchResults results = synapse.search(searchQuery);
+
+		assertTrue(1 <= results.getFound());
+	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
 	public void testSearchAuthorizationFilter() throws Exception {
 		SearchQuery searchQuery = new SearchQuery();
 		List<String> queryTerms = new ArrayList<String>();

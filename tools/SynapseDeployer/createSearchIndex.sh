@@ -25,6 +25,13 @@ cs-configure-access-policies --domain-name $DOMAIN --update --force --allow 184.
 # Folks at the hutch can access all of it
 cs-configure-access-policies --domain-name $DOMAIN --update --force --allow 140.107.0.0/16 --service all
 
+STACK=`echo  $DOMAIN | cut -d "-" -f "1"`
+echo The stack is $STACK
+
+if [ $STACK = 'dev' ] || [ $STACK = 'bamboo' ] ; then
+    echo 'Anyone can access the document service for dev or bamboo'
+    cs-configure-access-policies --domain-name $DOMAIN --update --force --allow 0.0.0.0/0 --service doc
+fi
 
 #-----------[ Configure the search index fields ]--------------------
 
