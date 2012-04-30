@@ -148,19 +148,9 @@ public class QueryRunnerImpl implements QueryRunner {
 	 */
 	public static EntityData preProcessEntityData(EntityData data){
 		// Convert the id and the parent ID.
-		data.setEntityId(stripPrefixID(data.getEntityId()));
-		data.setParentId(stripPrefixID(data.getParentId()));
+		data.setEntityId(data.getEntityId());
+		data.setParentId(data.getParentId());
 		return data;
-	}
-	
-	public static String stripPrefixID(String in){
-		if (null == in)
-			return null;
-		if(in.startsWith(QueryRunner.ENTITY_ID_PREFIX)){
-			return in.substring(QueryRunner.ENTITY_ID_PREFIX.length());
-		}else{
-			return in;
-		}
 	}
 	
 	/**

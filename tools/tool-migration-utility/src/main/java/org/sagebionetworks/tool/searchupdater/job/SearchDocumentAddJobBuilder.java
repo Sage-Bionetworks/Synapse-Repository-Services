@@ -50,10 +50,6 @@ public class SearchDocumentAddJobBuilder implements Callable<BuilderResponse> {
 		// Walk over the source list
 		for (EntityData source : sourceList) {
 			String sourceEntityId = source.getEntityId();
-			if(!sourceEntityId.startsWith("syn")) {
-				// Work around bug PLFM-1270
-				sourceEntityId = "syn" + sourceEntityId;
-			}
 			if (!destMap.containsKey(sourceEntityId)) {
 				// Search index doesn't have this entity, add it
 				batchToAdd.add(sourceEntityId);

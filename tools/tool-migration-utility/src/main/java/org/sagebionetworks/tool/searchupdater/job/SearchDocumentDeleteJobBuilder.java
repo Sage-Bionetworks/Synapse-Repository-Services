@@ -49,10 +49,7 @@ public class SearchDocumentDeleteJobBuilder implements
 		for (EntityData dest : destList) {
 			// Find any entity in the destination that does not exist in the
 			// source.
-			if (!sourceMap.containsKey(dest.getEntityId())
-					// Work around bug PLFM-1270
-					&& !sourceMap.containsKey(dest.getEntityId().replaceFirst("syn", ""))
-					) {
+			if (!sourceMap.containsKey(dest.getEntityId())) {
 				// The entity exists in the destination but not the source.
 				batchToDelete.add(dest.getEntityId());
 				deleteSubmitted++;
