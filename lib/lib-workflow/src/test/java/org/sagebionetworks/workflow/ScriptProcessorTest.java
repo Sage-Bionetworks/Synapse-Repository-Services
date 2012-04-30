@@ -67,6 +67,7 @@ public class ScriptProcessorTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test(expected = UnrecoverableException.class)
 	public void testRScriptThatFails() throws Exception {
 		ScriptProcessor.runScript(config,
