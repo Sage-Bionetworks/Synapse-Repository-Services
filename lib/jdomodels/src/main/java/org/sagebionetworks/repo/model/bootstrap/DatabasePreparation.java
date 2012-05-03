@@ -66,6 +66,7 @@ public class DatabasePreparation {
 	public static boolean isNonProductionStack(String stack){
 		if("bamboo".equals(stack)) return true;
 		if("dev".equals(stack)) return true;
+		if("hudson".equals(stack)) return true;
 		return false;
 	}
 
