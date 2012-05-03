@@ -145,16 +145,16 @@ public class ITMigrationQueryRunner {
 		int grandChildIndex = -1;
 		for(int i=0; i<results.size(); i++){
 			EntityData entity = results.get(i);
-			if(entity.getEntityId().equals(queryRunner.stripPrefixID(root.getEntityId()))){
+			if(entity.getEntityId().equals(root.getEntityId())){
 				rootIndex = i;
 				continue;
-			}else if(entity.getEntityId().equals(queryRunner.stripPrefixID(testRoot.getId()))){
+			}else if(entity.getEntityId().equals(testRoot.getId())){
 				testRooIndex = i;
 				continue;
-			}else if(entity.getEntityId().equals(queryRunner.stripPrefixID(child.getId()))){
+			}else if(entity.getEntityId().equals(child.getId())){
 				childIndex = i;
 				continue;
-			}else if(entity.getEntityId().equals(queryRunner.stripPrefixID(grandChild.getId()))){
+			}else if(entity.getEntityId().equals(grandChild.getId())){
 				grandChildIndex = i;
 				continue;
 			}

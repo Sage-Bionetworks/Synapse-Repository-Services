@@ -49,16 +49,20 @@ public class SearchDocumentAddJobBuilder implements Callable<BuilderResponse> {
 
 		// Walk over the source list
 		for (EntityData source : sourceList) {
-			if (!destMap.containsKey(source.getEntityId())) {
+			String sourceEntityId = source.getEntityId();
+			if (!destMap.containsKey(sourceEntityId)) {
 				// Search index doesn't have this entity, add it
-				batchToAdd.add(source.getEntityId());
+				batchToAdd.add(sourceEntityId);
 				addsSubmitted++;
 			} else {
-				EntityData destEnttiy = destMap.get(source.getEntityId());
-				if (!source.geteTag().equals(destEnttiy.geteTag())) {
+				EntityData destEntity = destMap.get(sourceEntityId);
+				if(null == destEntity) {
+					destEntity = destMap.get(sourceEntityId);
+				}
+				if (!source.geteTag().equals(destEntity.geteTag())) {
 					// Search index has an out of date version of this entity,
 					// add it
-					batchToAdd.add(source.getEntityId());
+					batchToAdd.add(sourceEntityId);
 					addsSubmitted++;
 				}
 			}

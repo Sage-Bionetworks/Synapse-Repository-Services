@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.util;
 
 import java.net.URLEncoder;
+import java.util.Collections;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -37,6 +39,15 @@ public class LocationHelpersImpl implements LocationHelper {
 	private static final int MAX_FEDERATED_NAME_LENGTH = 32;
 	// http://docs.amazonwebservices.com/STS/latest/APIReference/API_GetFederationToken.html
 	private static final int MAX_POLICY_LENGTH = 2048;
+	private static final int CACHE_SIZE = 4096;
+
+	// Cache for presigned Urls so that (1) we do not beat up STS & get throttled and (2) to help with caching proxies downstream.
+	// Note that the cache key must be userId+s3Key+method because its not okay to give out urls signed for one user to another user.
+	// This cache is far from perfect, it can get spoiled by folks doing a select * on a large number of locationable 
+	// entities since we are still presigning urls when returned as part of a query.
+	private static final Map<PresignedUrlCacheKey, PresignedUrlCacheValue> URL_CACHE = Collections
+			.synchronizedMap(new LruCache<PresignedUrlCacheKey, PresignedUrlCacheValue>(
+					CACHE_SIZE));
 
 	private static final int READ_ACCESS_EXPIRY_HOURS = StackConfiguration
 			.getS3ReadAccessExpiryHours();
@@ -99,9 +110,21 @@ public class LocationHelpersImpl implements LocationHelper {
 	}
 
 	@Override
+	public String presignS3GETUrl(String userId, String s3Key, int expiresSeconds)
+			throws DatastoreException {
+		return getS3Url(userId, s3Key, HttpMethod.GET, expiresSeconds);
+	}
+	
+	@Override
 	public String presignS3HEADUrl(String userId, String s3Key)
 			throws DatastoreException {
 		return getS3Url(userId, s3Key, HttpMethod.HEAD, READ_ACCESS_EXPIRY_HOURS_IN_SECONDS);
+	}
+	
+	@Override
+	public String presignS3HEADUrl(String userId, String s3Key, int expiresSeconds)
+			throws DatastoreException {
+		return getS3Url(userId, s3Key, HttpMethod.HEAD,	expiresSeconds);
 	}
 	
 	@Override
@@ -110,15 +133,28 @@ public class LocationHelpersImpl implements LocationHelper {
 		return getS3Url(userId, s3Key, HttpMethod.GET, READ_ACCESS_EXPIRY_SECONDS);
 	}
 
-	private String getS3Url(String userId, String s3Key, HttpMethod method, int expiresSeconds)
-			throws DatastoreException {
+	private String getS3Url(String userId, String s3Key, HttpMethod method,
+			int expiresSeconds) throws DatastoreException {
+
+		DateTime now = new DateTime();
+
+		// Check the cache first
+		PresignedUrlCacheKey key = new PresignedUrlCacheKey(userId, s3Key,
+				method.name());
+		PresignedUrlCacheValue value = URL_CACHE.get(key);
+		if (null != value) {
+			// if url is not too stale, reuse it
+			DateTime minimumTimeLeft = now.plusSeconds(expiresSeconds / 2);
+			if (value.getExpires().isAfter(minimumTimeLeft)) {
+				return value.getUrl();
+			}
+		}
 
 		// Get the credentials with which to sign the request
 		Credentials token = createFederationTokenForS3(userId, method, s3Key);
 		AWSCredentials creds = new BasicAWSCredentials(token.getAccessKeyId(),
 				token.getSecretAccessKey());
 
-		DateTime now = new DateTime();
 		DateTime expires = now.plusSeconds(expiresSeconds);
 		String expirationInSeconds = Long.toString(expires.getMillis() / 1000L);
 
@@ -132,8 +168,14 @@ public class LocationHelpersImpl implements LocationHelper {
 				token.getSessionToken()).append("\n");
 		buf.append("/").append(S3_BUCKET).append(s3Key);
 
-		return sign(buf.toString(), creds, s3Key, expirationInSeconds, token
-				.getSessionToken());
+		String presignedUrl = sign(buf.toString(), creds, s3Key,
+				expirationInSeconds, token.getSessionToken());
+
+		// Add this to the cache
+		value = new PresignedUrlCacheValue(presignedUrl, expires);
+		URL_CACHE.put(key, value);
+
+		return presignedUrl;
 	}
 
 	@Override

@@ -7,6 +7,7 @@ import java.io.IOException;
 
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.junit.Ignore;
 
 /**
  * @author deflaux
@@ -51,6 +52,7 @@ public class ScriptProcessorTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testRScriptThatSucceeds() throws Exception {
 		ScriptResult scriptResult = ScriptProcessor.runScript(config,
@@ -65,6 +67,7 @@ public class ScriptProcessorTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test(expected = UnrecoverableException.class)
 	public void testRScriptThatFails() throws Exception {
 		ScriptProcessor.runScript(config,
