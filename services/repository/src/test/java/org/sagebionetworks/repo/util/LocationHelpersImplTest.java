@@ -4,7 +4,9 @@
 package org.sagebionetworks.repo.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
 import org.junit.Before;
@@ -13,6 +15,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpMethod;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -109,6 +112,36 @@ public class LocationHelpersImplTest {
 		assertEquals(KeyFactory.keyToString(123L), helper.getEntityIdFromS3Url("/123/blahblah"));
 		assertEquals(KeyFactory.keyToString(123L), helper.getEntityIdFromS3Url("123/blahblah"));
 		assertEquals(KeyFactory.keyToString(123L), helper.getEntityIdFromS3Url("https://s3.amazonaws.com/" + StackConfiguration.getS3Bucket() + "/123/blahblah"));
+	}
+	
+	@Test
+	public void testCache() throws Exception {
+		
+		String getUrl = helper.presignS3GETUrl("user1@foo.com", "/123/foo.zip", 6);
+		String headUrl = helper.presignS3HEADUrl("user1@foo.com", "/123/foo.zip", 6);
+		assertFalse(getUrl.equals(headUrl));
+
+		// If 2 of the 6 seconds have elapsed, the urls are still "fresh enough" to reuse
+		Thread.sleep(2000);  
+		
+		// Test Cache Hits
+		assertTrue(getUrl.equals(helper.presignS3GETUrl("user1@foo.com", "/123/foo.zip", 6)));
+		assertTrue(headUrl.equals(helper.presignS3HEADUrl("user1@foo.com", "/123/foo.zip", 6)));
+		
+		// Test Cache Misses due to different users
+		assertFalse(getUrl.equals(helper.presignS3GETUrl("user2@foo.com", "/123/foo.zip", 6)));
+		assertFalse(headUrl.equals(helper.presignS3HEADUrl("user2@foo.com", "/123/foo.zip", 6)));
+
+		// Test Cache Misses due to different s3Keys
+		assertFalse(getUrl.equals(helper.presignS3GETUrl("user1@foo.com", "/123/foo.tgz", 6)));
+		assertFalse(headUrl.equals(helper.presignS3HEADUrl("user1@foo.com", "/123/foo.tgz", 6)));
+
+		// Now that 4+ of the 6 seconds have elapsed, the urls are NOT "fresh enough" to reuse
+		Thread.sleep(2000);  
+		
+		// Test Cache Misses due to timing
+		assertFalse(getUrl.equals(helper.presignS3GETUrl("user1@foo.com", "/123/foo.zip", 6)));
+		assertFalse(headUrl.equals(helper.presignS3HEADUrl("user1@foo.com", "/123/foo.zip", 6)));
 	}
 	
 }
