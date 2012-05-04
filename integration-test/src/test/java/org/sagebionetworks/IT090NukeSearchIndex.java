@@ -27,7 +27,7 @@ public class IT090NukeSearchIndex {
 
 		// Only run these tests on bamboo for now, later each developer might
 		// configure his own search stack
-		if (!StackConfiguration.getStack().equals("bamboo")) {
+		if (! ((StackConfiguration.getStack().equals("bamboo")) || (StackConfiguration.getStack().equals("hudson")))) {
 			return;
 		}
 
