@@ -40,6 +40,11 @@ public interface SageCommonsActivities {
 	/**
 	 * Script arg for Synapse password
 	 */
+	public static final String SECRET_KEY_ARG = "--secretkey";
+	
+	/**
+	 * Script arg for Synapse password
+	 */
 	public static final String PASSWORD_ARG = "--password";
 	
 	/**

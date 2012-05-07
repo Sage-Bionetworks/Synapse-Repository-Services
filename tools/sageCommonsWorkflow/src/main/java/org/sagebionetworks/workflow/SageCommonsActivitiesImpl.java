@@ -139,9 +139,15 @@ public class SageCommonsActivitiesImpl implements SageCommonsActivities {
 			scriptArgs.add(tempFile.getAbsolutePath());
 			scriptArgs.add(USERNAME_ARG);
 			scriptArgs.add(SageCommonsConfigHelper.getSynapseUsername());
-			scriptArgs.add(PASSWORD_ARG);
-			scriptArgs.add(SageCommonsConfigHelper.getSynapsePassword());
-
+			try {
+				scriptArgs.add(SECRET_KEY_ARG);
+				scriptArgs.add(SageCommonsConfigHelper.getSynapseSecretKey());
+			}
+			catch (Exception e) {
+				// Try password if there was no secret key in the configuration
+				scriptArgs.add(PASSWORD_ARG);
+				scriptArgs.add(SageCommonsConfigHelper.getSynapsePassword());
+			}
 			scriptResult = ScriptProcessor.runScript(SageCommonsConfigHelper
 					.getConfig(), script, scriptArgs);
 

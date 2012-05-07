@@ -119,12 +119,25 @@ public class SageCommonsConfigHelper {
 	}
 	
 	/**
+	 * Deprecated: use getSynapseSecretKey instead
+	 * 
 	 * @return the Synapse password for this workflow
 	 */
+	@Deprecated
 	public static String getSynapsePassword() {
 		return configuration.getSynapsePassword();
 	}
+
+	/**
+	 * @return the Synapse secret key for this workflow
+	 */
+	public static String getSynapseSecretKey() {
+		return configuration.getSynapseSecretKey();
+	}
 	
+	/**
+	 * @return the size of the thread pool the SWF executor should run
+	 */
 	public static Integer getTaskExecutorThreadPoolSize() {
 		return configuration.getTaskExecutorThreadPoolSize();
 	}
