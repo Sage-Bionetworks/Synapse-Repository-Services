@@ -4,8 +4,8 @@ Walk the complete PLFM hierarchy and bring all the pom.xml files up to new minor
 '''
 
 #Old and new minor versions
-oldVersion = '0.13-SNAPSHOT'
-newVersion = '0.13.1'
+oldVersion = '0.13.1-SNAPSHOT'
+newVersion = '0.13.2-SNAPSHOT'
 #Path to PLFM on your system
 startPath = 'C:\\sage\\workspace\\trunk'
 for root, subFolders, files in os.walk(startPath):    
