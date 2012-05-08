@@ -20,7 +20,7 @@ cs-create-domain --domain-name $DOMAIN --wait
 cs-configure-access-policies --domain-name $DOMAIN --update --force --allow 0.0.0.0/0 --service search
 
 # hudson.sagebase.org can access the document service
-cs-configure-access-policies --domain-name $DOMAIN --update --force --allow 184.72.137.151/32 --service doc
+cs-configure-access-policies --domain-name $DOMAIN --update --force --allow 50.17.192.58/32 --service doc
 
 # Folks at the hutch can access all of it
 cs-configure-access-policies --domain-name $DOMAIN --update --force --allow 140.107.0.0/16 --service all
