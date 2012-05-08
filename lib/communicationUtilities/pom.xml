@@ -1,21 +1,22 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
-    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <modelVersion>4.0.0</modelVersion>
+<project
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd"
+	xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+	<modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <artifactId>lib</artifactId>
-    <groupId>org.sagebionetworks</groupId>
-    <version>0.13-SNAPSHOT</version>
-  </parent>
+	<parent>
+		<artifactId>lib</artifactId>
+		<groupId>org.sagebionetworks</groupId>
+		<version>0.13.1</version>
+	</parent>
 
-  <groupId>org.sagebionetworks</groupId>
-  <artifactId>lib-communicationUtilities</artifactId>
-  <name>lib-communicationUtilities</name>
-  <version>0.13-SNAPSHOT</version>
-  <url>http://maven.apache.org</url>
+	<groupId>org.sagebionetworks</groupId>
+	<artifactId>lib-communicationUtilities</artifactId>
+	<name>lib-communicationUtilities</name>
+	<version>0.13.1</version>
+	<url>http://maven.apache.org</url>
 
-  <dependencies>
+	<dependencies>
 
 		<dependency>
 			<groupId>javax.mail</groupId>
@@ -28,58 +29,53 @@
 			<artifactId>lib-stackConfiguration</artifactId>
 		</dependency>
 
-	  <dependency>
-	    <groupId>commons-net</groupId>
-	    <artifactId>commons-net</artifactId>
-	    <version>3.0.1</version>
-	  </dependency>
+		<dependency>
+			<groupId>commons-net</groupId>
+			<artifactId>commons-net</artifactId>
+			<version>3.0.1</version>
+		</dependency>
 
 
-    <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-    </dependency>
+		<dependency>
+			<groupId>org.apache.httpcomponents</groupId>
+			<artifactId>httpclient</artifactId>
+		</dependency>
 
-    <!-- jsoup HTML parser library @ http://jsoup.org/ -->
-    <!-- JQuery-like HTML parser -->
-    <dependency>
-      <groupId>org.jsoup</groupId>
-      <artifactId>jsoup</artifactId>
-      <version>1.5.2</version>
-    </dependency>
+		<!-- jsoup HTML parser library @ http://jsoup.org/ -->
+		<!-- JQuery-like HTML parser -->
+		<dependency>
+			<groupId>org.jsoup</groupId>
+			<artifactId>jsoup</artifactId>
+			<version>1.5.2</version>
+		</dependency>
 
-    <!-- String utils -->
-    <dependency>
-      <groupId>commons-lang</groupId>
-      <artifactId>commons-lang</artifactId>
-    </dependency>
+		<!-- String utils -->
+		<dependency>
+			<groupId>commons-lang</groupId>
+			<artifactId>commons-lang</artifactId>
+		</dependency>
 
-    <!-- Logging dependencies -->
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-    </dependency>
+		<!-- Logging dependencies -->
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+		</dependency>
 
-    <dependency>
-      <groupId>commons-logging</groupId>
-      <artifactId>commons-logging</artifactId>
-    </dependency>
+		<dependency>
+			<groupId>commons-logging</groupId>
+			<artifactId>commons-logging</artifactId>
+		</dependency>
 
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-    </dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+		</dependency>
 
-  </dependencies>
+	</dependencies>
 
-  <build>
-    <plugins>
-      <!-- Build number generator -->
-      <plugin>
-	<groupId>org.codehaus.mojo</groupId>
-	<artifactId>buildnumber-maven-plugin</artifactId>
-      </plugin>
-    </plugins>
-  </build>
+	<build>
+		<plugins>
+		</plugins>
+	</build>
 
 </project>

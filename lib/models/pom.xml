@@ -9,12 +9,12 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>lib</artifactId>
-		<version>0.13-SNAPSHOT</version>
+		<version>0.13.1</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-models</artifactId>
-	<version>0.13-SNAPSHOT</version>
+	<version>0.13.1</version>
 	<packaging>jar</packaging>
 	<name>Platform Repository Model Objects</name>
 
@@ -49,12 +49,6 @@
 
 	<build>
 		<plugins>
-			<!-- Build number generator -->
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>buildnumber-maven-plugin</artifactId>
-			</plugin>
-
 		</plugins>
 	</build>
 

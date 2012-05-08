@@ -4,11 +4,11 @@
 	<parent>
 		<artifactId>lib</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>0.13-SNAPSHOT</version>
+		<version>0.13.1</version>
 	</parent>
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-shared-models</artifactId>
-	<version>0.13-SNAPSHOT</version>
+	<version>0.13.1</version>
 	<name>lib-shared-models</name>
 	<description>These model objects are shared between the client and server.  Only GWT compatible models should exist in this project</description>
 

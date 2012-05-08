@@ -9,7 +9,7 @@
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>platform</artifactId>
 	<!-- This is not the same as the application version. This is a constant. -->
-	<version>0.13-SNAPSHOT</version>
+	<version>0.13.1</version>
 	<packaging>pom</packaging>
 	<url>http://www.sagebase.org/</url>
 	<scm>
@@ -487,27 +487,6 @@
 							</goals>
 						</execution>
 					</executions>
-				</plugin>
-
-				<!-- Build number generator -->
-				<plugin>
-					<groupId>org.codehaus.mojo</groupId>
-					<artifactId>buildnumber-maven-plugin</artifactId>
-					<version>1.0</version>
-					<executions>
-						<execution>
-							<phase>validate</phase>
-							<goals>
-								<goal>create</goal>
-							</goals>
-						</execution>
-					</executions>
-					<configuration>
-						<!-- Check to see if you have locally modified files and if so, fail? -->
-						<doCheck>false</doCheck>
-						<!-- The buildNumber plugin will then update your local repository? -->
-						<doUpdate>false</doUpdate>
-					</configuration>
 				</plugin>
 
 				<!-- Make a WAR file -->

@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>platform</artifactId>
-		<version>0.13-SNAPSHOT</version>
+		<version>0.13.1</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
@@ -41,11 +41,6 @@
 
 	<build>
 		<plugins>
-			<!-- Build number generator -->
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>buildnumber-maven-plugin</artifactId>
-			</plugin>
 			<!-- *** Compiler plugin: we must force test compile because we're using
 				a pom packaging that doesn't have this lifecycle mapping. -->
 			<plugin>

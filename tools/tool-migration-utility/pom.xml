@@ -4,11 +4,11 @@
 	<parent>
 		<artifactId>tools</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>0.13-SNAPSHOT</version>
+		<version>0.13.1</version>
 	</parent>
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>tool-migration-utility</artifactId>
-	<version>0.13-SNAPSHOT</version>
+	<version>0.13.1</version>
 	<packaging>jar</packaging>
 	<name>tool-migration-utility</name>
 	<description>A Utility for migrating Synapse data from one stack to another</description>

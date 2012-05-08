@@ -4,8 +4,8 @@ Walk the complete PLFM hierarchy and bring all the pom.xml files up to new minor
 '''
 
 #Old and new minor versions
-oldVersion = '0.12'
-newVersion = '0.13'
+oldVersion = '0.13-SNAPSHOT'
+newVersion = '0.13.1'
 #Path to PLFM on your system
 startPath = 'C:\\sage\\workspace\\trunk'
 for root, subFolders, files in os.walk(startPath):    
@@ -15,7 +15,7 @@ for root, subFolders, files in os.walk(startPath):
             print 'updating '+f
             for line in fileinput.FileInput(f, inplace=1):
                 found = False
-                if line.find('<version>'+oldVersion+'-SNAPSHOT</version>') >= 0 and not found:
+                if line.find('<version>'+oldVersion+'</version>') >= 0 and not found:
                     line = line.replace(oldVersion,newVersion)
                     found = True
                 print line.rstrip()

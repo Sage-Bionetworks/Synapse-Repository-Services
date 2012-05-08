@@ -4,13 +4,13 @@
 	<parent>
 		<artifactId>lib</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>0.13-SNAPSHOT</version>
+		<version>0.13.1</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-auto-generated</artifactId>
 	<name>lib-schema</name>
-	<version>0.13-SNAPSHOT</version>
+	<version>0.13.1</version>
 	<packaging>jar</packaging>
 	<description>This project contains JSON schemas and the POJOs auto-generated from the schemas</description>
 	<build>

@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>services</artifactId>
-		<version>0.13-SNAPSHOT</version>
+		<version>0.13.1</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
@@ -104,12 +104,6 @@
 
 	<build>
 		<plugins>
-			<!-- Generate a build number -->
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>buildnumber-maven-plugin</artifactId>
-			</plugin>
-
 			<!-- Make a WAR file -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

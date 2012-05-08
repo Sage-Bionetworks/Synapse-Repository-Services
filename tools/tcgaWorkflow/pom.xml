@@ -7,7 +7,7 @@
   <parent>
     <artifactId>tools</artifactId>
     <groupId>org.sagebionetworks</groupId>
-    <version>0.13-SNAPSHOT</version>
+    <version>0.13.1</version>
   </parent>
 
   <groupId>org.sagebionetworks</groupId>
@@ -60,12 +60,6 @@
 	  </resource>
 	</resources>
     <plugins>
-      <!-- Build number generator -->
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>buildnumber-maven-plugin</artifactId>
-      </plugin>
-
       <!-- The shade plugin is building a jar with all the other jar dependencies
            bundled inside. We can use this to run all three of our main classes in this
            package (not just the one we have listed as the main class). -->
