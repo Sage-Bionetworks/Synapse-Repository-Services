@@ -11,7 +11,6 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import org.apache.commons.httpclient.HttpException;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;

@@ -2,7 +2,6 @@ package org.sagebionetworks;
 
 import java.io.IOException;
 
-import org.apache.commons.httpclient.HttpException;
 import org.json.JSONException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;

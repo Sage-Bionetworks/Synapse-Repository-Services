@@ -19,7 +19,6 @@
     <module>synapseJavaClient</module>
     <module>synapsePythonClient</module>
     <module>commandLineInterface</module>
-    <module>web</module>
   </modules>
 
 </project>
