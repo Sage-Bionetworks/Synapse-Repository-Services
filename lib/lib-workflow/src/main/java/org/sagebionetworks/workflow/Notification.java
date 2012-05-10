@@ -88,7 +88,7 @@ public class Notification {
 	 */
 	public static void doEmailNotifyFollower(String recipient, String subject,
 			String message) {
-
+		// TODO: use AWS Simple Email Service (SES)
 		throw new Error("not yet implemented");
 	}
 

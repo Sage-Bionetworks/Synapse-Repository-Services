@@ -12,6 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.client.EntityDocumentation;
+import org.sagebionetworks.client.ManualProvenanceDocumentation;
 
 /**
  * This integration test confirms that our wiki generator still works
@@ -64,6 +65,30 @@ public class IT550DocumentationGenerator {
 
 		// Make sure we are capturing log output
 		assertTrue(-1 < output.indexOf("Search for entities"));
+
+		// Check for exceptions
+		assertEquals(-1, output.indexOf("Exception"));
+	}
+	
+	/**
+	 * @throws Exception
+	 */
+	@Test
+	public void testManualProvenanceDocumentationGenerator() throws Exception {
+		String args[] = { "--repoEndpoint",
+				StackConfiguration.getRepositoryServiceEndpoint(),
+				"--authEndpoint",
+				StackConfiguration.getAuthenticationServicePrivateEndpoint(),
+				"--username",
+				StackConfiguration.getIntegrationTestUserOneName(),
+				"--password",
+				StackConfiguration.getIntegrationTestUserOnePassword() };
+		ManualProvenanceDocumentation.main(args);
+
+		String output = writer.toString();
+
+		// Make sure we are capturing log output
+		assertTrue(-1 < output.indexOf("Provenance"));
 
 		// Check for exceptions
 		assertEquals(-1, output.indexOf("Exception"));

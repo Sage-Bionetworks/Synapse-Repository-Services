@@ -1,8 +1,8 @@
 
 /** Constants **/
-var SEARCH = "http://localhost:8080/services-repository-0.11-SNAPSHOT/repo/v1/searchRaw?q=";
+var SEARCH = "http://localhost:8080/services-repository-0.13-SNAPSHOT/repo/v1/searchRaw?q=";
 
-var SYNAPSE = "http://localhost:8080/portal-0.11-SNAPSHOT/#Synapse:";
+var SYNAPSE = "http://localhost:8080/portal-0.13-SNAPSHOT/#Synapse:";
 // Uncomment this if your repo svc is pointing to a prod search index
 // var SYNAPSE = "https://synapse.sagebase.org/#Synapse:";
 

@@ -1,5 +1,8 @@
 package org.sagebionetworks.client;
 
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -258,4 +261,12 @@ public class SynapseRESTDocumentationGenerator extends SynapseAdministration {
 		}
 	}
 
+	public static File createTempFile(String fileContents) throws IOException {
+		File data = File.createTempFile("documentationGenerator", ".txt");
+		data.deleteOnExit();
+		FileWriter writer = new FileWriter(data);
+		writer.write(fileContents);
+		writer.close();
+		return data;
+	}
 }
