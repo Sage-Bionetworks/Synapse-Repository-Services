@@ -17,6 +17,7 @@ import org.apache.commons.lang.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.joda.time.DateTime;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl;
@@ -24,20 +25,24 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.query.jdo.NodeAliasCache;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
+
 
 /**
  * This class writes out search documents in batch.
@@ -81,7 +86,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	@Autowired
 	UserManager userManager;
-
+	
+	@Autowired
+	NodeManager nodeManager;
+		
 	// For now we can just create one of these. We might need to make beans in
 	// the future.
 	MigrationDriver migrationDriver = new MigrationDriverImpl();
@@ -277,8 +285,12 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		NodeRevisionBackup rev = backupManager.getNodeRevision(node.getId(),
 				revId);
 
+		List<EntityHeader> pathHeaders = nodeManager.getNodePathAsAdmin(node.getId());
+		EntityPath entityPath = new EntityPath();
+		entityPath.setPath(pathHeaders);
+		
 		Document document = formulateSearchDocument(node, rev, benefactorBackup
-				.getAcl());
+				.getAcl(), entityPath);
 		outputStream.write(cleanSearchDocument(document));
 		outputStream.flush();
 	}
@@ -303,7 +315,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	@Override
 	public Document formulateSearchDocument(Node node, NodeRevisionBackup rev,
-			AccessControlList acl) throws DatastoreException, NotFoundException {
+			AccessControlList acl, EntityPath entityPath) throws DatastoreException, NotFoundException {
 		DateTime now = DateTime.now();
 		Document document = new Document();
 		DocumentFields fields = new DocumentFields();
@@ -322,6 +334,20 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		fields.setEtag(node.getETag());
 		fields.setParent_id(node.getParentId());
 		fields.setName(node.getName());
+		
+		// set path as EntityPath JSON object
+		AdapterFactoryImpl factory = new AdapterFactoryImpl();
+		JSONObjectAdapter adapter = factory.createNew();
+		String path = "";
+		try {
+			entityPath.writeToJSONObject(adapter);
+			path = adapter.toJSONString();
+		} catch (JSONObjectAdapterException e) {
+			// fails define path as empty
+			log.warn("Serialization of EntityPath failed", e);
+		}
+		fields.setPath(path);
+		
 		fields.setNode_type(aliasCache.getPreferredAlias(node.getNodeType()));
 		if (null != node.getDescription()) {
 			fields.setDescription(node.getDescription());

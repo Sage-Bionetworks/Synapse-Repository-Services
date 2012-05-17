@@ -72,6 +72,7 @@ public class IT510SynapseJavaClientSearchTest {
 		List<String> returnFields = new ArrayList<String>();
 		returnFields.add("id");
 		returnFields.add("name");
+		returnFields.add("path");
 		returnFields.add("description");
 		returnFields.add("etag");
 		returnFields.add("modified_on");
@@ -86,11 +87,12 @@ public class IT510SynapseJavaClientSearchTest {
 
 		SearchResults results = synapse.search(searchQuery);
 
-		assertEquals(new Long(1), results.getFound());
+		assertTrue(new Long(0) < results.getFound());
 
 		Hit hit = results.getHits().get(0);
 		assertNotNull(hit.getId());
 		assertNotNull(hit.getName());
+		assertNotNull(hit.getPath());
 		assertNotNull(hit.getDescription());
 		assertNotNull(hit.getEtag());
 		assertNotNull(hit.getModified_on());

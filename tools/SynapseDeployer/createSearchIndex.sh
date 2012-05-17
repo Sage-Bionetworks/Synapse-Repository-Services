@@ -42,6 +42,7 @@ cs-configure-fields --domain-name $DOMAIN --option result --type literal --name 
 # Free text fields to be returned in Search Results
 cs-configure-fields --domain-name $DOMAIN --option result --type text --name name 
 cs-configure-fields --domain-name $DOMAIN --option result --type text --name description
+cs-configure-fields --domain-name $DOMAIN --option result --type text --name path
 
 # Free text fields
 cs-configure-fields --domain-name $DOMAIN --option noresult --type text --name annotations 

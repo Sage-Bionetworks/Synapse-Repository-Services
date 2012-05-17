@@ -6,6 +6,11 @@
             "description":"The name of this entity",
             "title":"Name",
         },
+        "path":{
+            "type":"string",
+            "description":"The JSON string holding the EntityHeader array representing the path to this entity. Storing the cached result of entity/id/path to avoid lookup for all search results in a set.",
+            "title":"Path",
+        },        
         "description":{
             "type":"string",
             "description":"The description of this entity.",

@@ -8,12 +8,8 @@ import static org.junit.Assert.assertTrue;
 import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.search.Facet;
-import org.sagebionetworks.repo.model.search.FacetConstraint;
-import org.sagebionetworks.repo.model.search.FacetTypeNames;
-import org.sagebionetworks.repo.model.search.Hit;
-import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.repo.model.search.AwesomeSearchFactory;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 
 /**
@@ -62,6 +58,22 @@ public class AwesomeSearchFactoryTest {
 		assertEquals("Prostate", hit.getTissue());
 	}
 
+	/*
+	 *  curl "http://search-xxxxx.us-east-1.cloudsearch.amazonaws.com/2011-02-01/search?q=cancer&return-fields=path"
+	 */
+	@Test
+	public void testParsePathResultField() throws Exception {
+		String response = "{\"rank\":\"-text_relevance\",\"match-expr\":\"(label 'cancer')\",\"hits\":{\"found\":61,\"start\":0,\"hit\":[{\"id\":\"syn4503\",\"data\":{\"path\":[\"{\\\"path\\\":[{\\\"id\\\":\\\"syn4489\\\",\\\"name\\\":\\\"root\\\",\\\"type\\\":\\\"/folder\\\"},{\\\"id\\\":\\\"syn4492\\\",\\\"name\\\":\\\"SageBioCuration\\\",\\\"type\\\":\\\"/project\\\"},{\\\"id\\\":\\\"syn4503\\\",\\\"name\\\":\\\"Cancer Cell line Panel\\\",\\\"type\\\":\\\"/dataset\\\"}]}\"]}},{\"id\":\"syn4517\",\"data\":{\"path\":[\"{\\\"path\\\":[{\\\"id\\\":\\\"syn4489\\\",\\\"name\\\":\\\"root\\\",\\\"type\\\":\\\"/folder\\\"},{\\\"id\\\":\\\"syn4492\\\",\\\"name\\\":\\\"SageBioCuration\\\",\\\"type\\\":\\\"/project\\\"},{\\\"id\\\":\\\"syn4517\\\",\\\"name\\\":\\\"Breast Cancer NKI\\\",\\\"type\\\":\\\"/dataset\\\"}]}\"]}},{\"id\":\"syn4494\",\"data\":{\"path\":[\"{\\\"path\\\":[{\\\"id\\\":\\\"syn4489\\\",\\\"name\\\":\\\"root\\\",\\\"type\\\":\\\"/folder\\\"},{\\\"id\\\":\\\"syn4492\\\",\\\"name\\\":\\\"SageBioCuration\\\",\\\"type\\\":\\\"/project\\\"},{\\\"id\\\":\\\"syn4494\\\",\\\"name\\\":\\\"MSKCC Prostate Cancer\\\",\\\"type\\\":\\\"/dataset\\\"}]}\"]}},{\"id\":\"syn4590\",\"data\":{\"path\":[\"{\\\"path\\\":[{\\\"id\\\":\\\"syn4489\\\",\\\"name\\\":\\\"root\\\",\\\"type\\\":\\\"/folder\\\"},{\\\"id\\\":\\\"syn4492\\\",\\\"name\\\":\\\"SageBioCuration\\\",\\\"type\\\":\\\"/project\\\"},{\\\"id\\\":\\\"syn4590\\\",\\\"name\\\":\\\"Breast Cancer Stanford Norway\\\",\\\"type\\\":\\\"/dataset\\\"}]}\"]}},{\"id\":\"syn4593\",\"data\":{\"path\":[\"{\\\"path\\\":[{\\\"id\\\":\\\"syn4489\\\",\\\"name\\\":\\\"root\\\",\\\"type\\\":\\\"/folder\\\"},{\\\"id\\\":\\\"syn4492\\\",\\\"name\\\":\\\"SageBioCuration\\\",\\\"type\\\":\\\"/project\\\"},{\\\"id\\\":\\\"syn4593\\\",\\\"name\\\":\\\"Bladder Cancer Cohort\\\",\\\"type\\\":\\\"/dataset\\\"}]}\"]}},{\"id\":\"syn16243\",\"data\":{\"path\":[\"{\\\"path\\\":[{\\\"id\\\":\\\"syn4489\\\",\\\"name\\\":\\\"root\\\",\\\"type\\\":\\\"/folder\\\"},{\\\"id\\\":\\\"syn4492\\\",\\\"name\\\":\\\"SageBioCuration\\\",\\\"type\\\":\\\"/project\\\"},{\\\"id\\\":\\\"syn16243\\\",\\\"name\\\":\\\"Breast Cancer ICR\\\",\\\"type\\\":\\\"/dataset\\\"}]}\"]}},{\"id\":\"syn47252\",\"data\":{\"path\":[\"{\\\"path\\\":[{\\\"id\\\":\\\"syn4489\\\",\\\"name\\\":\\\"root\\\",\\\"type\\\":\\\"/folder\\\"},{\\\"id\\\":\\\"syn4492\\\",\\\"name\\\":\\\"SageBioCuration\\\",\\\"type\\\":\\\"/project\\\"},{\\\"id\\\":\\\"syn47252\\\",\\\"name\\\":\\\"MD Anderson Breast Cancer\\\",\\\"type\\\":\\\"/dataset\\\"}]}\"]}},{\"id\":\"syn47229\",\"data\":{\"path\":[\"{\\\"path\\\":[{\\\"id\\\":\\\"syn4489\\\",\\\"name\\\":\\\"root\\\",\\\"type\\\":\\\"/folder\\\"},{\\\"id\\\":\\\"syn4492\\\",\\\"name\\\":\\\"SageBioCuration\\\",\\\"type\\\":\\\"/project\\\"},{\\\"id\\\":\\\"syn47229\\\",\\\"name\\\":\\\"Colorectal Cancer Vumc, Amsterdam\\\",\\\"type\\\":\\\"/dataset\\\"}]}\"]}},{\"id\":\"syn4510\",\"data\":{\"path\":[\"{\\\"path\\\":[{\\\"id\\\":\\\"syn4489\\\",\\\"name\\\":\\\"root\\\",\\\"type\\\":\\\"/folder\\\"},{\\\"id\\\":\\\"syn4492\\\",\\\"name\\\":\\\"SageBioCuration\\\",\\\"type\\\":\\\"/project\\\"},{\\\"id\\\":\\\"syn4510\\\",\\\"name\\\":\\\"Mouse Model of Diet-Induced BreastCancer\\\",\\\"type\\\":\\\"/dataset\\\"}]}\"]}},{\"id\":\"syn4511\",\"data\":{\"path\":[\"{\\\"path\\\":[{\\\"id\\\":\\\"syn4489\\\",\\\"name\\\":\\\"root\\\",\\\"type\\\":\\\"/folder\\\"},{\\\"id\\\":\\\"syn4492\\\",\\\"name\\\":\\\"SageBioCuration\\\",\\\"type\\\":\\\"/project\\\"},{\\\"id\\\":\\\"syn4511\\\",\\\"name\\\":\\\"Sanger Cell Line Project\\\",\\\"type\\\":\\\"/dataset\\\"}]}\"]}}]},\"info\":{\"rid\":\"8a0620f6c72ff3e78d2e695fed20a30d6865aa5cbba83ca427f653cc73bcb7d1330ad8fa9db5e079\",\"time-ms\":8,\"cpu-time-ms\":0}}";
+		SearchResults results = factory.fromAwesomeSearchResults(response);
+		Hit hit = results.getHits().get(0);
+		EntityPath entityPath = hit.getPath();
+		List<EntityHeader> path = entityPath.getPath();
+		// test that first hit has valid EntityPath 
+		assertTrue(path.size() > 0);
+		// test first entity header		
+		assertNotNull(path.get(0).getId());
+	}
+	
 	/**
 	 * @throws Exception
 	 */

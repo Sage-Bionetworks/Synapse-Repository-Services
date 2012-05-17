@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -27,6 +28,9 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -34,14 +38,15 @@ import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 
 /**
  * @author deflaux
@@ -144,8 +149,13 @@ public class SearchDocumentDriverImplAutowireTest {
 		AccessControlList acl = new AccessControlList();
 		acl.setResourceAccess(resourceAccesses);
 
+		EntityPath fakeEntityPath = createFakeEntityPath();
+		AdapterFactoryImpl adapterFactoryImpl = new AdapterFactoryImpl();
+		JSONObjectAdapter adapter = adapterFactoryImpl.createNew();
+		fakeEntityPath.writeToJSONObject(adapter);		
+		String fakeEntityPathJSONString = adapter.toJSONString();
 		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				rev, acl);
+				rev, acl, fakeEntityPath);
 		assertEquals(DocumentTypeNames.add, document.getType());
 		assertEquals("en", document.getLang());
 		assertEquals(node.getId(), document.getId());
@@ -158,6 +168,8 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertEquals(node.getETag(), fields.getEtag());
 		assertEquals(node.getParentId(), fields.getParent_id());
 		assertEquals(node.getName(), fields.getName());
+		
+		assertEquals(fakeEntityPathJSONString, fields.getPath());
 		assertEquals("study", fields.getNode_type());
 		assertEquals(node.getDescription(), fields.getDescription());
 		assertEquals(userInfo.getUser().getDisplayName(), fields.getCreated_by());
@@ -209,6 +221,23 @@ public class SearchDocumentDriverImplAutowireTest {
 				+ dateValue.toString().replaceAll("\\s", "_")));
 	}
 
+	private EntityPath createFakeEntityPath() {
+		List<EntityHeader> fakePath = new ArrayList<EntityHeader>();
+		EntityHeader eh1 = new EntityHeader();
+		eh1.setId("1");
+		eh1.setName("One");
+		eh1.setType("type");
+		fakePath.add(eh1);
+		eh1 = new EntityHeader();
+		eh1.setId("2");
+		eh1.setName("Two");
+		eh1.setType("type");
+		fakePath.add(eh1);
+		EntityPath fakeEntityPath = new EntityPath();
+		fakeEntityPath.setPath(fakePath);
+		return fakeEntityPath;
+	}
+
 	/**
 	 * @throws Exception
 	 */
@@ -240,7 +269,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(resourceAccess);
 		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				rev, acl);
+				rev, acl, new EntityPath());
 		byte[] cloudSearchDocument = SearchDocumentDriverImpl
 				.cleanSearchDocument(document);
 		assertEquals(-1, new String(cloudSearchDocument).indexOf("\\u0019"));

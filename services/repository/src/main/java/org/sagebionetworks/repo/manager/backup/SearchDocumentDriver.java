@@ -6,6 +6,7 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.search.Document;
@@ -44,7 +45,7 @@ public interface SearchDocumentDriver {
 	 * @throws NotFoundException
 	 */
 	public Document formulateSearchDocument(Node node, NodeRevisionBackup rev,
-			AccessControlList acl) throws DatastoreException, NotFoundException;
+			AccessControlList acl, EntityPath entityPath) throws DatastoreException, NotFoundException;
 	
 
 }

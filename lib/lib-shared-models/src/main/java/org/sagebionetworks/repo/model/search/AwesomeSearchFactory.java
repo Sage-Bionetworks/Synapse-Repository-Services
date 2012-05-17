@@ -31,6 +31,8 @@ public class AwesomeSearchFactory {
 	 */
 	public static final Map<String, FacetTypeNames> FACET_TYPES;
 
+	private static final String PATH_FIELD = "path";
+
 	AdapterFactory factory = null;
 
 	static {
@@ -118,7 +120,11 @@ public class AwesomeSearchFactory {
 					if(dataName.endsWith(RESULT_FIELD_SUFFIX)) {
 						dataName = dataName.substring(0, dataName.length() - RESULT_FIELD_SUFFIX.length());
 					}
-					hit.put(dataName, dataValue);
+					if(dataName.equals(PATH_FIELD)) {					
+						hit.put(dataName, factory.createNew(dataValue));
+					} else {
+						hit.put(dataName, dataValue);
+					}
 				}
 			}
 			hits.put(hits.length(), hit);

@@ -13,6 +13,11 @@
             "type":"string",
             "description":"The name of this entity",
         },
+        "path":{
+ 			"type":"object",
+    		"$ref":"org.sagebionetworks.repo.model.EntityPath",            
+    		"description":"The path of this entity",
+        },
         "description":{
             "description":"The description of this entity.",
             "type":"string"
