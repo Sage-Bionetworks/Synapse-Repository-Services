@@ -11,6 +11,10 @@ public class MigrationSpecDataLoaderImpl implements MigrationSpecDataLoader {
 
 	public static final String JSON_FILE_NAME = "MigrationSpecData.json";
 	
+	public static 	MigrationSpecData getMigrationSpecData() {
+		return new MigrationSpecDataLoaderImpl().loadMigrationSpecData();
+	}
+	
 	@Override
 	public MigrationSpecData loadMigrationSpecData() {
 		try{

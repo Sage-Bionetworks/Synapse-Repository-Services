@@ -190,7 +190,7 @@ public class NodeBackupManagerImplAutowireTest {
 			assertNotNull(rev.getNamedAnnotations());
 			assertNotNull(rev.getLabel());
 			assertNotNull(rev.getComment());
-			assertNotNull(rev.getModifiedBy());
+			assertNotNull(rev.getModifiedByPrincipalId());
 			assertNotNull(rev.getModifiedOn());
 			assertEquals(NodeRevisionBackup.CURRENT_XML_VERSION, rev.getXmlVersion());
 		}
@@ -220,7 +220,7 @@ public class NodeBackupManagerImplAutowireTest {
 		// Now delete the node.
 		nodeManager.delete(adminUser, newNodeId);
 		// Now delete the user
-		userManager.deletePrincipal(nonAdminPrincipalName);
+
 		// Now restore the node
 		backupManager.createOrUpdateNodeWithRevisions(backup, revisions);
 		

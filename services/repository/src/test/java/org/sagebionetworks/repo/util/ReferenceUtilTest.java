@@ -15,11 +15,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -35,13 +38,19 @@ public class ReferenceUtilTest {
 	@Autowired
 	NodeDAO nodeDao;
 	
+	@Autowired 
+	private UserGroupDAO userGroupDAO;
+	
 	List<String> toDelete;
 	
 	Node one = null;
 	Node two = null;
 	
+	private Long userGroupId;
+	
 	@Before
-	public void before() throws NotFoundException, DatastoreException{
+	public void before() throws NotFoundException, DatastoreException, InvalidModelException {
+		userGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 		toDelete = new ArrayList<String>();
 		// Create two nodes to reference
 		one = createNew("one");
@@ -77,11 +86,12 @@ public class ReferenceUtilTest {
 	 * @param name
 	 * @return
 	 */
-	public static Node createNew(String name){
+	public  Node createNew(String name){
 		Node node = new Node();
 		node.setName(name);
-		node.setCreatedBy("anonymous");
-		node.setModifiedBy("anonymous");
+		assertNotNull(userGroupId);
+		node.setCreatedByPrincipalId(userGroupId);
+		node.setModifiedByPrincipalId(userGroupId);
 		node.setCreatedOn(new Date(System.currentTimeMillis()));
 		node.setModifiedOn(node.getCreatedOn());
 		node.setNodeType(EntityType.project.name());

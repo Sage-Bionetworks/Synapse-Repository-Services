@@ -35,8 +35,6 @@ public class NodeConstants {
 	 */
 	public static final String PATH_PREFIX = "/";
 	
-	public static final String BOOTSTRAP_USERNAME = "bootstrap";
-	
 	/**
 	 * The path of the root folder
 	 */

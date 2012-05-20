@@ -1,13 +1,22 @@
 package org.sagebionetworks.repo.manager.backup.migration;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.registry.MigrationDataLoaderImpl;
 import org.sagebionetworks.repo.model.registry.MigrationSpecDataLoaderImpl;
 import org.sagebionetworks.repo.model.registry.MigrationSpecData;
+import org.springframework.beans.factory.annotation.Autowired;
+
 
 /**
  * This is a simple step-wise migration driver implementation. 
@@ -17,6 +26,9 @@ import org.sagebionetworks.repo.model.registry.MigrationSpecData;
  */
 public class MigrationDriverImpl implements MigrationDriver{
 	
+	@Autowired
+	private NodeOwnerMigrator nodeOwnerMigrator;
+		
 	/**
 	 * Each revision step is responsible for migrating the object a single revision.
 	 * For example, a single step is used to go from version "0.0" to "0.1"
@@ -24,18 +36,24 @@ public class MigrationDriverImpl implements MigrationDriver{
 	private List<RevisionMigrationStep> revisionSteps = null;
 	
 	/**
-	 * For now each step does not need any spring beans so we create the steps in the constructor.
+	 * 
+	 * For use by unit tests
 	 */
-	public MigrationDriverImpl(){
-		revisionSteps = new LinkedList<RevisionMigrationStep>();
-		MigrationSpecData msd = new MigrationSpecDataLoaderImpl().loadMigrationSpecData();
-		// The first step goes from v0 to v1
-		//revisionSteps.add(new RevisionStepV0toV1(msd));
-		// Apply an Migration data
-		revisionSteps.add(new ApplyMigrationData(new  MigrationDataLoaderImpl().loadMigrationData()));
-		revisionSteps.add(new GenericMigrator(msd));
-		revisionSteps.add(new DataTypeMigrator());
-
+	public static MigrationDriver instanceForTesting() {
+		MigrationDriverImpl instance = new MigrationDriverImpl();
+		instance.revisionSteps = new ArrayList();
+		return instance;
+	}
+	
+	
+	/**
+	 * 
+	 * This is injected by Spring
+	 * 
+	 * @param steps
+	 */
+	public void setRevisionSteps(List<RevisionMigrationStep> steps) {
+		revisionSteps = steps;
 	}
 
 	/**
@@ -55,5 +73,33 @@ public class MigrationDriverImpl implements MigrationDriver{
 		if(!NodeRevisionBackup.CURRENT_XML_VERSION.equals(toMigrate.getXmlVersion())) throw new IllegalStateException("Failed to migrate a NodeRevisionBackup from version: "+startingVersion+" to the current version: "+NodeRevisionBackup.CURRENT_XML_VERSION);
 		return newType;
 	}
+	
+	// migrate user names to principal IDs in node and ACL
+	// Note, do NOT need to update the 'modifiedBy', which 
+	// is only used during serialization, not deserialization
+	@Override
+	public void migrateNodePrincipals(NodeBackup nodeBackup) {
+		if (nodeBackup==null) throw new IllegalArgumentException("NodeBackup cannot be null");
+		Node node = nodeBackup.getNode();
+		if (node==null) throw new IllegalArgumentException("Node cannot be null");
+		if (node.getCreatedByPrincipalId() == null) {
+			// then we have to set it based on the createdBy user name
+			String creatorUserName = node.getCreatedBy();
+			node.setCreatedByPrincipalId(nodeOwnerMigrator.getUserPrincipal(creatorUserName));
+		}
+		if (node.getModifiedByPrincipalId() == null) {
+			// then we have to set it based on the modifiedBy user name
+			String modifiedByUserName = node.getModifiedBy();
+			node.setModifiedByPrincipalId(nodeOwnerMigrator.getUserPrincipal(modifiedByUserName));
+		}
+		AccessControlList acl = nodeBackup.getAcl();
+		if (acl!=null) {
+			for (ResourceAccess ra : acl.getResourceAccess()) {
+				String groupName = ra.getGroupName();
+				ra.setPrincipalId(nodeOwnerMigrator.getUserPrincipal(groupName));
+			}
+		}
+	}
+
 
 }

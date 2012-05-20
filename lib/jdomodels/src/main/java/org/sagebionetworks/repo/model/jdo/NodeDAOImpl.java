@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackupDAO;
@@ -104,7 +105,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String createNew(Node dto) throws NotFoundException, DatastoreException {
+	public String createNew(Node dto) throws NotFoundException, DatastoreException, InvalidModelException {
 		// By default we do not want to use any etag the user might provide
 		boolean forceUseEtag = false;
 		return createNodePrivate(dto, forceUseEtag);
@@ -119,7 +120,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @throws NotFoundException
 	 */
 	private String createNodePrivate(Node dto, boolean forceEtag) throws DatastoreException,
-			NotFoundException {
+			NotFoundException, InvalidModelException {
 		if(dto == null) throw new IllegalArgumentException("Node cannot be null");
 		DBORevision rev = new DBORevision();
 		// Set the default label
@@ -191,7 +192,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void createNewNodeFromBackup(Node node) throws NotFoundException, DatastoreException {
+	public void createNewNodeFromBackup(Node node) throws NotFoundException, DatastoreException, InvalidModelException {
 		if(node == null) throw new IllegalArgumentException("Node cannot be null");
 		if(node.getETag() == null) throw new IllegalArgumentException("The backup node must have an etag");
 		if(node.getId() == null) throw new IllegalArgumentException("The backup node must have an id");
@@ -218,7 +219,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException {
+	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException, InvalidModelException {
 		if(newVersion == null) throw new IllegalArgumentException("New version node cannot be null");
 		if(newVersion.getId() == null) throw new IllegalArgumentException("New version node ID cannot be null");
 //		if(newVersion.getVersionLabel() == null) throw new IllegalArgumentException("Cannot create a new version with a null version label");
@@ -475,7 +476,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException {
+	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException {
 		// A regular update will get a new Etag so we do not want to force the use of the passed eTag
 		boolean forceUseEtag = false;
 		updateNodePrivate(updatedNode, forceUseEtag);
@@ -489,7 +490,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @throws DatastoreException
 	 */
 	private void updateNodePrivate(Node updatedNode, boolean forceUseEtag) throws NotFoundException,
-			DatastoreException {
+			DatastoreException, InvalidModelException {
 		if(updatedNode == null) throw new IllegalArgumentException("Node to update cannot be null");
 		if(updatedNode.getId() == null) throw new IllegalArgumentException("Node to update cannot have a null ID");
 		Long nodeId = KeyFactory.stringToKey(updatedNode.getId());

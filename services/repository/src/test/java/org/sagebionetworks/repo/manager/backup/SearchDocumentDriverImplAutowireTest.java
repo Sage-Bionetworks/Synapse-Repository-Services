@@ -96,9 +96,10 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setETag("0");
 		node.setNodeType(EntityType.dataset.name());
 		node.setDescription("Test annotations");
-		node.setCreatedBy("test");
+		Long nonexistantPrincipalId = 42L;
+		node.setCreatedByPrincipalId(nonexistantPrincipalId);
 		node.setCreatedOn(new Date());
-		node.setModifiedBy("test");
+		node.setModifiedByPrincipalId(nonexistantPrincipalId);
 		node.setModifiedOn(new Date());
 		node.setVersionLabel("versionLabel");
 		NodeRevisionBackup rev = new NodeRevisionBackup();
@@ -172,10 +173,12 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertEquals(fakeEntityPathJSONString, fields.getPath());
 		assertEquals("study", fields.getNode_type());
 		assertEquals(node.getDescription(), fields.getDescription());
-		assertEquals(userInfo.getUser().getDisplayName(), fields.getCreated_by());
+		// since the Principal doesn't exist, the 'created by' display name defaults to the principal ID
+		assertEquals(""+nonexistantPrincipalId, fields.getCreated_by());
 		assertEquals(new Long(node.getCreatedOn().getTime() / 1000), fields
 				.getCreated_on());
-		assertEquals(userInfo.getUser().getDisplayName(), fields.getModified_by());
+		// since the Principal doesn't exist, the 'modified by' display name defaults to the principal ID
+		assertEquals(""+nonexistantPrincipalId, fields.getModified_by());
 		assertEquals(new Long(node.getModifiedOn().getTime() / 1000), fields
 				.getModified_on());
 
@@ -252,9 +255,10 @@ public class SearchDocumentDriverImplAutowireTest {
 		node.setNodeType(EntityType.step.name());
 		node
 				.setDescription("For the microarray experiments, MV4-11 and MOLM-14 ... Midi Kit, according to the manufacturer\u0019s instruction (Qiagen, Valencia, USA).");
-		node.setCreatedBy("test");
+		Long nonexistantPrincipalId = 42L;
+		node.setCreatedByPrincipalId(nonexistantPrincipalId);
 		node.setCreatedOn(new Date());
-		node.setModifiedBy("test");
+		node.setModifiedByPrincipalId(nonexistantPrincipalId);
 		node.setModifiedOn(new Date());
 		NodeRevisionBackup rev = new NodeRevisionBackup();
 		NamedAnnotations named = new NamedAnnotations();

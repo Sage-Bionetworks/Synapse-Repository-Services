@@ -6,6 +6,7 @@ import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.SchemaCache;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -21,9 +22,12 @@ import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -51,7 +55,13 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	UserGroupDAO userGroupDAO;
 	
 	@Autowired
+	UserProfileDAO userProfileDAO;
+	
+	@Autowired
 	private NodeInheritanceDAO inheritanceDAO;
+	
+	private static final ObjectSchema userProfileSchema = SchemaCache.getSchema(UserProfile.class);
+
 
 	@Transactional(readOnly = true)
 	@Override
@@ -156,7 +166,20 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 				if(groupName != null){
 					if(!userGroupDAO.doesPrincipalExist(groupName)){
 						UserGroup principal = createUserGroupForName(groupName);
-						userGroupDAO.create(principal);
+						String principalId = userGroupDAO.create(principal);
+						if (principal.isIndividual()) {
+							UserProfile userProfile = new UserProfile();
+							userProfile.setOwnerId(principalId);
+							userProfile.setFirstName("");
+							userProfile.setLastName(groupName);
+							userProfile.setDisplayName(groupName);
+							try {
+								userProfileDAO.create(userProfile, userProfileSchema);
+							} catch (InvalidModelException e) {
+								throw new RuntimeException(e);
+							}
+							
+						}
 					}
 				}
 			}

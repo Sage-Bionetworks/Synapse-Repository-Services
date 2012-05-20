@@ -15,9 +15,9 @@ public class Node {
 	String name;
 	String description;
 	String parentId;
-	String createdBy;
+	Long createdByPrincipalId;
 	Date createdOn;
-	String modifiedBy;
+	Long modifiedByPrincipalId;
 	Date modifiedOn;
 	String nodeType;
 	String eTag;
@@ -25,13 +25,54 @@ public class Node {
 	String versionComment;
 	String versionLabel;
 	Map<String, Set<Reference>> references;
+	
+	// these are the string names of the users 
+	// we will transition to using 'createdByPrincipalId, modifiedByPrincipalId,
+	// but these are maintained for now, for compatibility with exported XML files
+	String createdBy;
+	String modifiedBy;
 			
+	/**
+	 * @return the createdBy
+	 */
 	public String getCreatedBy() {
 		return createdBy;
 	}
+	/**
+	 * @param createdBy the createdBy to set
+	 */
 	public void setCreatedBy(String createdBy) {
-		if(createdBy == null) throw new IllegalArgumentException("Cannot set a Node CreatedBy to null");
 		this.createdBy = createdBy;
+	}
+	/**
+	 * @return the modifiedBy
+	 */
+	public String getModifiedBy() {
+		return modifiedBy;
+	}
+	/**
+	 * @param modifiedBy the modifiedBy to set
+	 */
+	public void setModifiedBy(String modifiedBy) {
+		this.modifiedBy = modifiedBy;
+	}
+	
+	public Long getCreatedByPrincipalId() {
+		return createdByPrincipalId;
+	}
+	/*
+	 * This is used for the sole purpose of telling NodeDAO not to 
+	 * used the values form this object to overwrite the existing 
+	 * values, e.g. during Update
+	 */
+	public void clearNodeCreationData() {
+		this.createdByPrincipalId = null;
+		this.createdOn = null;
+	}
+	
+	public void setCreatedByPrincipalId(Long createdBy) {
+		if(createdBy == null) throw new IllegalArgumentException("Cannot set a Node CreatedByPrincipalId to null");
+		this.createdByPrincipalId = createdBy;
 	}
 	public Date getCreatedOn() {
 		return createdOn;
@@ -40,12 +81,12 @@ public class Node {
 		if(createdOn == null) throw new IllegalArgumentException("Cannot set a Node CreatedOn to null");
 		this.createdOn = createdOn;
 	}
-	public String getModifiedBy() {
-		return modifiedBy;
+	public Long getModifiedByPrincipalId() {
+		return modifiedByPrincipalId;
 	}
-	public void setModifiedBy(String modifiedBy) {
-		if(modifiedBy == null) throw new IllegalArgumentException("Cannot set a Node ModifiedBy to null");
-		this.modifiedBy = modifiedBy;
+	public void setModifiedByPrincipalId(Long modifiedBy) {
+		if(modifiedBy == null) throw new IllegalArgumentException("Cannot set a Node ModifiedByPrincipalId to null");
+		this.modifiedByPrincipalId = modifiedBy;
 	}
 	public Date getModifiedOn() {
 		return modifiedOn;
@@ -140,6 +181,10 @@ public class Node {
 		int result = 1;
 		result = prime * result
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime
+				* result
+				+ ((createdByPrincipalId == null) ? 0 : createdByPrincipalId
+						.hashCode());
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result
@@ -148,6 +193,10 @@ public class Node {
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
+		result = prime
+				* result
+				+ ((modifiedByPrincipalId == null) ? 0 : modifiedByPrincipalId
+						.hashCode());
 		result = prime * result
 				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
@@ -183,6 +232,11 @@ public class Node {
 				return false;
 		} else if (!createdBy.equals(other.createdBy))
 			return false;
+		if (createdByPrincipalId == null) {
+			if (other.createdByPrincipalId != null)
+				return false;
+		} else if (!createdByPrincipalId.equals(other.createdByPrincipalId))
+			return false;
 		if (createdOn == null) {
 			if (other.createdOn != null)
 				return false;
@@ -207,6 +261,11 @@ public class Node {
 			if (other.modifiedBy != null)
 				return false;
 		} else if (!modifiedBy.equals(other.modifiedBy))
+			return false;
+		if (modifiedByPrincipalId == null) {
+			if (other.modifiedByPrincipalId != null)
+				return false;
+		} else if (!modifiedByPrincipalId.equals(other.modifiedByPrincipalId))
 			return false;
 		if (modifiedOn == null) {
 			if (other.modifiedOn != null)
@@ -256,9 +315,9 @@ public class Node {
 	 */
 	@Override
 	public String toString() {
-		return "Node [createdBy=" + createdBy + ", createdOn=" + createdOn
+		return "Node [createdBy=" + createdByPrincipalId + ", createdOn=" + createdOn
 				+ ", description=" + description + ", eTag=" + eTag + ", id="
-				+ id + ", modifiedBy=" + modifiedBy + ", modifiedOn="
+				+ id + ", modifiedBy=" + modifiedByPrincipalId + ", modifiedOn="
 				+ modifiedOn + ", name=" + name + ", nodeType=" + nodeType
 				+ ", parentId=" + parentId + ", references=" + references
 				+ ", versionComment=" + versionComment + ", versionLabel="

@@ -13,6 +13,7 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.util.RandomAccessControlListUtil;
@@ -31,6 +32,7 @@ public class NodeBackupDriverImplTest {
 	NodeBackupStub stubDestination = null;;
 	NodeBackupDriverImpl sourceDriver = null;
 	NodeBackupDriverImpl destinationDriver = null;
+	MigrationDriver mockMigrationDriver;
 	
 	@Before
 	public void before(){
@@ -60,8 +62,9 @@ public class NodeBackupDriverImplTest {
 //		root.getChildren().add(child);
 		stubSource = new NodeBackupStub(root);
 		stubDestination = new NodeBackupStub();
-		sourceDriver = new NodeBackupDriverImpl(stubSource);
-		destinationDriver = new NodeBackupDriverImpl(stubDestination);
+		mockMigrationDriver = new MockMigrationDriver();
+		sourceDriver = new NodeBackupDriverImpl(stubSource, mockMigrationDriver);
+		destinationDriver = new NodeBackupDriverImpl(stubDestination, mockMigrationDriver) ;
 	}
 	
 	@Test
@@ -194,7 +197,7 @@ public class NodeBackupDriverImplTest {
 			newRoot.getNode().setParentId(null);
 			// This new root should get deleted
 			stubDestination = new NodeBackupStub(newRoot, 10);
-			destinationDriver = new NodeBackupDriverImpl(stubDestination);
+			destinationDriver = new NodeBackupDriverImpl(stubDestination, mockMigrationDriver);
 			String newRootId = stubDestination.getRootId();
 			// Now read push the backup
 			progress = new Progress();
@@ -230,7 +233,7 @@ public class NodeBackupDriverImplTest {
 			// Start the destination with the exact same id as the current
 			stubDestination = new NodeBackupStub(newRoot, 0);
 			
-			destinationDriver = new NodeBackupDriverImpl(stubDestination);
+			destinationDriver = new NodeBackupDriverImpl(stubDestination, mockMigrationDriver);
 			String newRootId = stubDestination.getRootId();
 			// Now read push the backup
 			progress = new Progress();
@@ -291,8 +294,8 @@ public class NodeBackupDriverImplTest {
 		root.getChildren().add(child);
 		stubSource = new NodeBackupStub(root);
 		stubDestination = new NodeBackupStub();
-		sourceDriver = new NodeBackupDriverImpl(stubSource);
-		destinationDriver = new NodeBackupDriverImpl(stubDestination);
+		sourceDriver = new NodeBackupDriverImpl(stubSource, mockMigrationDriver);
+		destinationDriver = new NodeBackupDriverImpl(stubDestination, mockMigrationDriver);
 
 		// Now test a round trip
 		// Create a temp file

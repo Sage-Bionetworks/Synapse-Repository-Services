@@ -7,6 +7,8 @@ import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormat;
 import org.sagebionetworks.repo.model.Analysis;
+import org.sagebionetworks.repo.model.Data;
+import org.sagebionetworks.repo.model.GenericData;
 import org.sagebionetworks.repo.model.PhenotypeData;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
@@ -62,7 +64,8 @@ public class ManualProvenanceDocumentation {
 		log
 				.info("<h2>Pull down the curated clinical data as input to this step in the analysis where we QC the clinical data</h2>");
 		String entityId = "syn4635";
-		PhenotypeData input = (PhenotypeData) synapse.getEntityById(entityId);
+		//PhenotypeData input = (PhenotypeData) synapse.getEntityById(entityId);
+		Data input = (Data)synapse.getEntityById(entityId);
 
 		// TODO actually download the data from S3 and QC it?
 

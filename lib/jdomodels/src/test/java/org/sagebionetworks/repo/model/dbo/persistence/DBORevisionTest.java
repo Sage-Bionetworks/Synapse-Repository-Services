@@ -11,8 +11,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -28,6 +30,9 @@ public class DBORevisionTest {
 	
 	@Autowired
 	private IdGenerator idGenerator;
+	
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 	
 	List<Long> toDelete = null;
 	
@@ -52,7 +57,8 @@ public class DBORevisionTest {
 		node.setId(idGenerator.generateNewId());
 		toDelete.add(node.getId());
 		node.setBenefactorId(node.getId());
-		node.setCreatedBy("DBORevisionTest");
+		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		node.setCreatedBy(createdById);
 		node.setCreatedOn(System.currentTimeMillis());
 		node.setCurrentRevNumber(null);
 		node.setDescription("A basic description".getBytes("UTF-8"));
@@ -72,7 +78,8 @@ public class DBORevisionTest {
 		rev.setReferences(null);
 		rev.setComment(null);
 		rev.setLabel(""+rev.getRevisionNumber());
-		rev.setModifiedBy("DBORevisionTest");
+		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		rev.setModifiedBy(createdById);
 		rev.setModifiedOn(System.currentTimeMillis());
 		// Now create it
 		rev = dboBasicDao.createNew(rev);

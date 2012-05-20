@@ -14,10 +14,7 @@ public class DBOAccessControlList implements DatabaseObject<DBOAccessControlList
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ID, true),
 		new FieldColumn("resource", ACL_OWNER_ID_COLUMN),
-		new FieldColumn("createdBy", COL_NODE_CREATED_BY),
-		new FieldColumn("creationDate", COL_NODE_CREATED_ON),
-		new FieldColumn("modifiedBy", COL_REVISION_MODIFIED_BY),
-		new FieldColumn("modifiedOn", COL_REVISION_MODIFIED_ON),
+		new FieldColumn("creationDate", COL_NODE_CREATED_ON)
 		};
 
 	@Override
@@ -29,10 +26,7 @@ public class DBOAccessControlList implements DatabaseObject<DBOAccessControlList
 				DBOAccessControlList acl = new DBOAccessControlList();
 				acl.setId(rs.getLong(COL_ID));
 				acl.setResource(rs.getLong(ACL_OWNER_ID_COLUMN));
-				acl.setCreatedBy(rs.getString(COL_NODE_CREATED_BY));
 				acl.setCreationDate(rs.getLong(COL_NODE_CREATED_ON));
-				acl.setModifiedBy(rs.getString(COL_REVISION_MODIFIED_BY));
-				acl.setModifiedOn(rs.getLong(COL_REVISION_MODIFIED_ON));
 				return acl;
 			}
 
@@ -59,10 +53,7 @@ public class DBOAccessControlList implements DatabaseObject<DBOAccessControlList
 	
 	private Long id;
 	private Long resource;
-	private String createdBy;
 	private Long creationDate;
-	private String modifiedBy;
-	private Long modifiedOn;
 
 	public Long getId() {
 		return id;
@@ -76,43 +67,19 @@ public class DBOAccessControlList implements DatabaseObject<DBOAccessControlList
 	public void setResource(Long resource) {
 		this.resource = resource;
 	}
-	public String getCreatedBy() {
-		return createdBy;
-	}
-	public void setCreatedBy(String createdBy) {
-		this.createdBy = createdBy;
-	}
 	public Long getCreationDate() {
 		return creationDate;
 	}
 	public void setCreationDate(Long creationDate) {
 		this.creationDate = creationDate;
 	}
-	public String getModifiedBy() {
-		return modifiedBy;
-	}
-	public void setModifiedBy(String modifiedBy) {
-		this.modifiedBy = modifiedBy;
-	}
-	public Long getModifiedOn() {
-		return modifiedOn;
-	}
-	public void setModifiedOn(Long modifiedOn) {
-		this.modifiedOn = modifiedOn;
-	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
-				+ ((createdBy == null) ? 0 : createdBy.hashCode());
-		result = prime * result
 				+ ((creationDate == null) ? 0 : creationDate.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
-		result = prime * result
-				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
-		result = prime * result
-				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result
 				+ ((resource == null) ? 0 : resource.hashCode());
 		return result;
@@ -126,11 +93,6 @@ public class DBOAccessControlList implements DatabaseObject<DBOAccessControlList
 		if (getClass() != obj.getClass())
 			return false;
 		DBOAccessControlList other = (DBOAccessControlList) obj;
-		if (createdBy == null) {
-			if (other.createdBy != null)
-				return false;
-		} else if (!createdBy.equals(other.createdBy))
-			return false;
 		if (creationDate == null) {
 			if (other.creationDate != null)
 				return false;
@@ -140,16 +102,6 @@ public class DBOAccessControlList implements DatabaseObject<DBOAccessControlList
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
-			return false;
-		if (modifiedBy == null) {
-			if (other.modifiedBy != null)
-				return false;
-		} else if (!modifiedBy.equals(other.modifiedBy))
-			return false;
-		if (modifiedOn == null) {
-			if (other.modifiedOn != null)
-				return false;
-		} else if (!modifiedOn.equals(other.modifiedOn))
 			return false;
 		if (resource == null) {
 			if (other.resource != null)
@@ -161,9 +113,7 @@ public class DBOAccessControlList implements DatabaseObject<DBOAccessControlList
 	@Override
 	public String toString() {
 		return "DBOAccessControlList [id=" + id + ", resource=" + resource
-				+ ", createdBy=" + createdBy + ", creationDate=" + creationDate
-				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ "]";
+				 + ", creationDate=" + creationDate+ "]";
 	}
 
 }

@@ -11,10 +11,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -42,6 +44,8 @@ public class NodeLockTest {
 	JDONodeLockChecker nodeLockerB;
 	@Autowired
 	NodeDAO nodeDao;
+	@Autowired
+	UserGroupDAO userGroupDAO;
 	
 	private String nodeId;
 	
@@ -52,7 +56,8 @@ public class NodeLockTest {
 		assertNotNull(nodeLockerB);
 		assertNotNull(nodeDao);
 		// Create a node
-		Node theNode = NodeTestUtils.createNew("NodeLockTest");
+		Long creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		Node theNode = NodeTestUtils.createNew("NodeLockTest", creatorUserGroupId);
 		nodeId = nodeDao.createNew(theNode);
 		assertNotNull(nodeId);
 	}

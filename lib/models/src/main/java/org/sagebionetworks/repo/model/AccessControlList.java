@@ -8,12 +8,17 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 
 public class AccessControlList implements Base {
 	private String id;
-	private String createdBy;
 	private Date creationDate;
-	private String modifiedBy;
-	private Date modifiedOn;
 	private String etag;
 	private String uri;
+	
+	// the following three fields are no longer used
+	// but must be included to allow deserialization of
+	// legacy archives by Xstream (http://xstream.codehaus.org/)
+
+	private String createdBy;
+	private String modifiedBy;
+	private Date modifiedOn;
 	
 	private Set<ResourceAccess> resourceAccess;
 
@@ -60,47 +65,6 @@ public class AccessControlList implements Base {
 		this.id = id;
 	}
 
-	/**
-	 * @return the createdBy
-	 */
-	public String getCreatedBy() {
-		return createdBy;
-	}
-
-	/**
-	 * @param createdBy the createdBy to set
-	 */
-	public void setCreatedBy(String createdBy) {
-		this.createdBy = createdBy;
-	}
-
-	/**
-	 * @return the modifiedBy
-	 */
-	public String getModifiedBy() {
-		return modifiedBy;
-	}
-
-	/**
-	 * @param modifiedBy the modifiedBy to set
-	 */
-	public void setModifiedBy(String modifiedBy) {
-		this.modifiedBy = modifiedBy;
-	}
-
-	/**
-	 * @return the modifiedOn
-	 */
-	public Date getModifiedOn() {
-		return modifiedOn;
-	}
-
-	/**
-	 * @param modifiedOn the modifiedOn to set
-	 */
-	public void setModifiedOn(Date modifiedOn) {
-		this.modifiedOn = modifiedOn;
-	}
 
 	/**
 	 * @return the etag
@@ -139,11 +103,8 @@ public class AccessControlList implements Base {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		UserInfo.validateUserInfo(info);
 		AccessControlList acl = new AccessControlList();
-		acl.setCreatedBy(info.getUser().getUserId());
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		acl.setId(nodeId);
-		acl.setModifiedBy(acl.getCreatedBy());
-		acl.setModifiedOn(acl.getCreationDate());
 		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(set);
 		ResourceAccess access = new ResourceAccess();
@@ -193,9 +154,8 @@ public class AccessControlList implements Base {
 
 	@Override
 	public String toString() {
-		return "AccessControlList [id=" + id + ", createdBy=" + createdBy
-				+ ", creationDate=" + creationDate + ", modifiedBy="
-				+ modifiedBy + ", modifiedOn=" + modifiedOn + ", etag=" + etag
+		return "AccessControlList [id=" + id 
+				+ ", creationDate=" + creationDate  +  ", etag=" + etag
 				+ ", uri=" + uri + ", resourceAccess=" + resourceAccess + "]";
 	}
 

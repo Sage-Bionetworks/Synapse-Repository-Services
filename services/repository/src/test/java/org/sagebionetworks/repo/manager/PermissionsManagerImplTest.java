@@ -58,19 +58,19 @@ public class PermissionsManagerImplTest {
 	
 	private List<String> usersToDelete;
 	
-	private Node createDTO(String name, String createdBy, String modifiedBy, String parentId) {
+	private Node createDTO(String name, Long createdBy, Long modifiedBy, String parentId) {
 		Node node = new Node();
 		node.setName(name);
 		node.setCreatedOn(new Date());
-		node.setCreatedBy(createdBy);
+		node.setCreatedByPrincipalId(createdBy);
 		node.setModifiedOn(new Date());
-		node.setModifiedBy(modifiedBy);
+		node.setModifiedByPrincipalId(modifiedBy);
 		node.setNodeType(EntityType.project.name());
 		if (parentId!=null) node.setParentId(parentId);
 		return node;
 	}
 	
-	private Node createNode(String name, String createdBy, String modifiedBy, String parentId) throws Exception {
+	private Node createNode(String name, Long createdBy, Long modifiedBy, String parentId) throws Exception {
 		UserInfo adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		Node node = createDTO(name, createdBy, modifiedBy, parentId);
 		String nodeId = nodeManager.createNewNode(node, adminUser);
@@ -82,10 +82,10 @@ public class PermissionsManagerImplTest {
 	@Before
 	public void setUp() throws Exception {
 		// create a resource
-		node = createNode("foo", "me", "metoo", null);
+		node = createNode("foo", 1L, 2L, null);
 		nodeList.add(node);
 				
-		childNode = createNode("foo2", "me2", "metoo2", node.getId());
+		childNode = createNode("foo2", 3L, 4L, node.getId());
 		
 		// userInfo
 		userManager.setUserDAO(new TestUserDAO()); // could use Mockito here
@@ -179,14 +179,8 @@ public class PermissionsManagerImplTest {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
 		assertEquals(1, acl.getResourceAccess().size());
-		try {
-			acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
-			acl.setCreatedBy(null);
-			acl = permissionsManager.updateACL(acl, adminInfo);
-			fail("exception expected");
-		} catch (InvalidModelException e) {
-			//as expected
-		}
+		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = permissionsManager.updateACL(acl, adminInfo);
 		acl.setId(node.getId());
 		// ...group id is null...
 		ResourceAccess ra = new ResourceAccess();
@@ -195,7 +189,6 @@ public class PermissionsManagerImplTest {
 		ra.setAccessType(ats);
 		ra.getAccessType().add(ACCESS_TYPE.READ);
 		acl.getResourceAccess().add(ra);
-		acl.setCreatedBy(null);
 		try {
 			permissionsManager.updateACL(acl, adminInfo);
 			fail("exception expected");

@@ -15,8 +15,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
@@ -33,6 +35,9 @@ public class BackupRestoreStatusDAOImplTest {
 	@Autowired
 	private BackupRestoreStatusDAO backupRestoreStatusDao;
 	
+	@Autowired
+	private UserGroupDAO userGroupDAO;
+
 	private List<String> toDelete;
 	
 	
@@ -77,10 +82,16 @@ public class BackupRestoreStatusDAOImplTest {
 	 * @return
 	 */
 	public BackupRestoreStatus createStatusObject(DaemonStatus status, DaemonType type) {
+		String userGroupId = null;
+		try {
+			userGroupId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 		BackupRestoreStatus dto = new BackupRestoreStatus();
 		dto.setStatus(status);
 		dto.setType(type);
-		dto.setStartedBy("someAdmin@sagebase.org");
+		dto.setStartedBy(userGroupId);
 		dto.setStartedOn(new Date());
 		dto.setProgresssMessage("Finally finished!");
 		dto.setProgresssCurrent(0l);

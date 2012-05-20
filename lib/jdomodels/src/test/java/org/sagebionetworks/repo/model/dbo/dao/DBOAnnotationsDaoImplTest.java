@@ -13,8 +13,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -32,6 +34,9 @@ public class DBOAnnotationsDaoImplTest {
 	
 	@Autowired
 	DBOBasicDao dboBasicDao;
+	
+	@Autowired
+	UserGroupDAO userGroupDAO;
 	
 	@Autowired
 	private IdGenerator idGenerator;
@@ -53,13 +58,14 @@ public class DBOAnnotationsDaoImplTest {
 	
 	@Before
 	public void before() throws DatastoreException, UnsupportedEncodingException{
+		String createdBy = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
 		toDelete = new LinkedList<Long>();
 		// Create a node to create revisions of.
 		node = new DBONode();
 		node.setId(idGenerator.generateNewId());
 		toDelete.add(node.getId());
 		node.setBenefactorId(node.getId());
-		node.setCreatedBy("DBOAnnotationsDaoImplTest");
+		node.setCreatedBy(Long.parseLong(createdBy));
 		node.setCreatedOn(System.currentTimeMillis());
 		node.setCurrentRevNumber(null);
 		node.setDescription("A basic description".getBytes("UTF-8"));

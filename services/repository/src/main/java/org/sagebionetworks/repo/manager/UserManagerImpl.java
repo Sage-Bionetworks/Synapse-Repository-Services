@@ -116,7 +116,7 @@ public class UserManagerImpl implements UserManager {
 			// shouldn't happen!
 			throw new DatastoreException(ime);
 		}
-		// we also make an user profile for this individual
+		// we also make a user profile for this individual
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		UserProfile userProfile = null;
 		try {
@@ -287,6 +287,22 @@ public class UserManagerImpl implements UserManager {
 	public boolean deletePrincipal(String name) {
 		clearCache();
 		return userGroupDAO.deletePrincipal(name);
+	}
+	
+	/**
+	 * @param principalId
+	 * @return for a group, returns the group name, for a user returns the display name in the user's profile
+	 */
+	@Override
+	public String getDisplayName(Long principalId) throws NotFoundException, DatastoreException {
+		UserGroup userGroup = userGroupDAO.get(principalId.toString());
+		if (userGroup.isIndividual()) {
+			ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
+			UserProfile userProfile = userProfileDAO.get(principalId.toString(), schema);
+			return userProfile.getDisplayName();
+		} else {
+			return userGroup.getName();
+		}
 	}
 
 }

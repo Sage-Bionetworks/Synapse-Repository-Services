@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,9 @@ public class EntityManagerImpl implements EntityManager {
 	
 	@Autowired
 	NodeManager nodeManager;
+	
+	@Autowired
+	UserManager userManager;
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -109,13 +113,15 @@ public class EntityManagerImpl implements EntityManager {
 	 * @return
 	 */
 	private <T extends Entity> EntityWithAnnotations<T> populateEntityWithNodeAndAnnotations(
-			Class<? extends T> entityClass, NamedAnnotations annos, Node node) {
+			Class<? extends T> entityClass, NamedAnnotations annos, Node node) throws DatastoreException, NotFoundException {
 		// Return the new object from the dataEntity
 		T newEntity = createNewEntity(entityClass);
 		// Populate the entity using the annotations and references
 		NodeTranslationUtils.updateObjectFromNodeSecondaryFields(newEntity, annos.getPrimaryAnnotations(), node.getReferences());
 		// Populate the entity using the node
 		NodeTranslationUtils.updateObjectFromNode(newEntity, node);
+	    newEntity.setCreatedBy(userManager.getDisplayName(node.getCreatedByPrincipalId()));
+	    newEntity.setModifiedBy(userManager.getDisplayName(node.getModifiedByPrincipalId()));
 		EntityWithAnnotations<T> ewa = new EntityWithAnnotations<T>();
 		ewa.setEntity(newEntity);
 		ewa.setAnnotations(annos.getAdditionalAnnotations());

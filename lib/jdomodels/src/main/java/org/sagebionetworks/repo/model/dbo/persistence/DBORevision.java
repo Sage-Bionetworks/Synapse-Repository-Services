@@ -40,7 +40,7 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 				rev.setRevisionNumber(rs.getLong(COL_REVISION_NUMBER));
 				rev.setLabel(rs.getString(COL_REVISION_LABEL));
 				rev.setComment(rs.getString(COL_REVISION_COMMENT));
-				rev.setModifiedBy(rs.getString(COL_REVISION_MODIFIED_BY));
+				rev.setModifiedBy(rs.getLong(COL_REVISION_MODIFIED_BY));
 				rev.setModifiedOn(rs.getLong(COL_REVISION_MODIFIED_ON));
 				java.sql.Blob blob = rs.getBlob(COL_REVISION_ANNOS_BLOB);
 				if(blob != null){
@@ -78,7 +78,7 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 	private Long revisionNumber;
 	private String label;
 	private String comment;
-	private String modifiedBy;
+	private Long modifiedBy;
 	private Long modifiedOn;
 	private byte[] annotations;
 	private byte[] references;
@@ -107,10 +107,10 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 	public void setComment(String comment) {
 		this.comment = comment;
 	}
-	public String getModifiedBy() {
+	public Long getModifiedBy() {
 		return modifiedBy;
 	}
-	public void setModifiedBy(String modifiedBy) {
+	public void setModifiedBy(Long modifiedBy) {
 		this.modifiedBy = modifiedBy;
 	}
 	public Long getModifiedOn() {

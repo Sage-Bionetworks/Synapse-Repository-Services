@@ -20,6 +20,10 @@ public class MigrationDataLoaderImpl implements MigrationDataLoader {
 	 */
 	public static final String JSON_FILE_NAME = "EntityMigrationData.json";
 	
+	public static EntityMigrationData getMigrationData() {
+		return new  MigrationDataLoaderImpl().loadMigrationData();
+	}
+	
 	/**
 	 * Load the migration data from the classpth.
 	 * @return

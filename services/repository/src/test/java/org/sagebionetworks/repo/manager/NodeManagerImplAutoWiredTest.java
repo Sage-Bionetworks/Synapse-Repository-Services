@@ -178,8 +178,8 @@ public class NodeManagerImplAutoWiredTest {
 		//Make sure we can get the node
 		Node fetched = nodeManager.get(testUser, id);
 		assertNotNull(fetched);
-		assertEquals(testUser.getUser().getUserId(), fetched.getCreatedBy());
-		assertEquals(testUser.getUser().getUserId(), fetched.getModifiedBy());
+		assertEquals(testUser.getIndividualGroup().getId(), fetched.getCreatedByPrincipalId().toString());
+		assertEquals(testUser.getIndividualGroup().getId(), fetched.getModifiedByPrincipalId().toString());
 		assertNotNull(fetched.getCreatedOn());
 		assertNotNull(fetched.getModifiedOn());
 		assertEquals(id, fetched.getId());
@@ -366,7 +366,7 @@ public class NodeManagerImplAutoWiredTest {
 		Node nodeZero = nodeManager.getNodeForVersionNumber(userInfo, id, new Long(1));
 		assertNotNull(nodeZero);
 		assertEquals(new Long(1), nodeZero.getVersionNumber());
-		assertNotNull(nodeZero.getModifiedBy());
+		assertNotNull(nodeZero.getModifiedByPrincipalId());
 		assertNotNull(nodeZero.getModifiedOn());
 		assertEquals("This is the comment on the first version.", nodeZero.getVersionComment());
 		// Now get the annotations for the first version.

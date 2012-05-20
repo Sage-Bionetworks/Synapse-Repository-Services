@@ -16,6 +16,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -67,14 +68,16 @@ public class JDOAccessControlListDAOScaleTest {
 		userId = userGroupDAO.create(userGroup);
 		// update the object from the database so it has its ID
 		userGroup = userGroupDAO.get(userId);
+		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+
 		// Create 100 projects root project
 		for (int i = 0; i < 200; i++) {
 			Node node = new Node();
 			node.setName("foo");
 			node.setCreatedOn(new Date());
-			node.setCreatedBy("me");
+			node.setCreatedByPrincipalId(createdById);
 			node.setModifiedOn(new Date());
-			node.setModifiedBy("metoo");
+			node.setModifiedByPrincipalId(createdById);
 			node.setNodeType(EntityType.project.name());
 			String nodeId = nodeDAO.createNew(node);
 			assertNotNull(nodeId);
@@ -84,10 +87,7 @@ public class JDOAccessControlListDAOScaleTest {
 			// Create an ACL for this node
 			AccessControlList acl = new AccessControlList();
 			acl.setId(nodeId);
-			acl.setCreatedBy("someDude");
 			acl.setCreationDate(new Date(System.currentTimeMillis()));
-			acl.setModifiedBy(acl.getCreatedBy());
-			acl.setModifiedOn(acl.getCreationDate());
 			acl.setResourceAccess(new HashSet<ResourceAccess>());
 			ResourceAccess ra = new ResourceAccess();
 			ra.setGroupName(userGroup.getName());

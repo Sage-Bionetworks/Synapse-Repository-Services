@@ -6,7 +6,10 @@ import java.util.Date;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeBackup;
+import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 
@@ -17,6 +20,13 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
  *
  */
 public class JDONodeUtils {
+	
+	// take backupnode and backuprevision, map to dbonode and dborevision
+
+	public static void updateFromDto(NodeBackup nbDto, NodeRevisionBackup revDto, DBONode jdo, DBORevision rev) throws DatastoreException, InvalidModelException {
+		throw new RuntimeException("Not yet implemented");
+	}
+	
 		
 	/**
 	 * Used to update an existing object
@@ -26,7 +36,7 @@ public class JDONodeUtils {
 	 * @return
 	 * @throws DatastoreException 
 	 */
-	public static void updateFromDto(Node dto, DBONode jdo, DBORevision rev) throws DatastoreException {
+	public static void updateFromDto(Node dto, DBONode jdo, DBORevision rev) throws DatastoreException, InvalidModelException {
 		jdo.setName(dto.getName());
 		if(dto.getDescription() !=  null){
 			try {
@@ -44,11 +54,13 @@ public class JDONodeUtils {
 		if(dto.getCreatedOn() != null){
 			jdo.setCreatedOn(dto.getCreatedOn().getTime());
 		}
-		jdo.setCreatedBy(dto.getCreatedBy());
-		rev.setModifiedBy(dto.getModifiedBy());
-		if(dto.getModifiedOn() != null){
-			rev.setModifiedOn(dto.getModifiedOn().getTime());
+		if (dto.getCreatedByPrincipalId() != null){
+			jdo.setCreatedBy(dto.getCreatedByPrincipalId());
 		}
+		if (dto.getModifiedByPrincipalId()==null) throw new InvalidModelException("modifiedByPrincipalId may not be null");
+		rev.setModifiedBy(dto.getModifiedByPrincipalId());
+		if (dto.getModifiedOn()==null) throw new InvalidModelException("modifiedOn may not be null");
+		rev.setModifiedOn(dto.getModifiedOn().getTime());
 		rev.setComment(dto.getVersionComment());
 		if(dto.getVersionLabel() != null){
 			rev.setLabel(dto.getVersionLabel());
@@ -83,7 +95,7 @@ public class JDONodeUtils {
 		if(dto.getCreatedOn() != null){
 			jdo.setCreatedOn(dto.getCreatedOn().getTime());
 		}
-		jdo.setCreatedBy(dto.getCreatedBy());
+		jdo.setCreatedBy(dto.getCreatedByPrincipalId());
 		jdo.seteTag(KeyFactory.stringToKey(dto.getETag()));
 		jdo.setCurrentRevNumber(dto.getVersionNumber());
 		jdo.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
@@ -126,8 +138,8 @@ public class JDONodeUtils {
 			dto.setNodeType(EntityType.getTypeForId(jdo.getNodeType()).name());
 		}
 		dto.setCreatedOn(new Date(jdo.getCreatedOn()));
-		dto.setCreatedBy(jdo.getCreatedBy());
-		dto.setModifiedBy(rev.getModifiedBy());
+		dto.setCreatedByPrincipalId(jdo.getCreatedBy());
+		dto.setModifiedByPrincipalId(rev.getModifiedBy());
 		dto.setModifiedOn(new Date(rev.getModifiedOn()));
 		dto.setVersionComment(rev.getComment());
 		dto.setVersionLabel(rev.getLabel());

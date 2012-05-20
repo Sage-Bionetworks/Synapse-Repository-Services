@@ -49,25 +49,27 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 	NodeBackupManager backupManager;
 	@Autowired
 	NodeSerializer nodeSerializer;
-	// For now we can just create one of these.  We might need to make beans in the future.
-	MigrationDriver migrationDriver = new MigrationDriverImpl();
+	@Autowired
+	MigrationDriver migrationDriver;
 
 
 	/**
 	 * Used by Spring
 	 */
 	public NodeBackupDriverImpl() {
+		
 	}
-
+	
 	/**
 	 * Used by unit tests.
 	 * 
 	 * @param nodeSource
 	 */
-	public NodeBackupDriverImpl(NodeBackupManager backupManager) {
+	public NodeBackupDriverImpl(NodeBackupManager backupManager,MigrationDriver migrationDriver ) {
 		super();
 		this.backupManager = backupManager;
 		this.nodeSerializer = new NodeSerializerImpl();
+		this.migrationDriver = migrationDriver;
 	}
 
 	@Override
@@ -260,6 +262,8 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 						// for now skip unknown types
 						continue;
 					}
+					
+					migrationDriver.migrateNodePrincipals(backup);
 					
 					// Are we restoring the root node?
 					if(backup.getNode().getParentId() == null){

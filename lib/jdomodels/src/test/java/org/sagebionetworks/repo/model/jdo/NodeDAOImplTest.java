@@ -23,9 +23,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackupDAO;
@@ -34,6 +36,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
@@ -56,11 +59,18 @@ public class NodeDAOImplTest {
 	@Autowired
 	private IdGenerator idGenerator;
 	
+	@Autowired
+	private UserGroupDAO userGroupDAO;
+	
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
 	
+	
+	private Long creatorUserGroupId = null;
+	
 	@Before
-	public void before(){
+	public void before() throws Exception {
+		creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 		assertNotNull(nodeDao);
 		assertNotNull(nodeInheritanceDAO);
 		toDelete = new ArrayList<String>();
@@ -80,6 +90,10 @@ public class NodeDAOImplTest {
 		}
 	}
 	
+	private Node privateCreateNew(String name) {
+		return NodeTestUtils.createNew(name, creatorUserGroupId);
+	}
+	
 	/**
 	 * Helper method to create a node with multiple versions.
 	 * @param numberOfVersions
@@ -88,7 +102,7 @@ public class NodeDAOImplTest {
 	 * @throws DatastoreException 
 	 */
 	public String createNodeWithMultipleVersions(int numberOfVersions) throws Exception {
-		Node node = NodeTestUtils.createNew("createNodeWithMultipleVersions");
+		Node node = privateCreateNew("createNodeWithMultipleVersions");
 		// Start this node with version and comment information
 		node.setVersionComment("This is the very first version of this node.");
 		node.setVersionLabel("0.0.0");
@@ -108,7 +122,7 @@ public class NodeDAOImplTest {
 	
 	@Test 
 	public void testCreateNode() throws Exception{
-		Node toCreate = NodeTestUtils.createNew("firstNodeEver");
+		Node toCreate = privateCreateNew("firstNodeEver");
 		toCreate.setVersionComment("This is the first version of the first node ever!");
 		toCreate.setVersionLabel("0.0.1");
 		String id = nodeDao.createNew(toCreate);
@@ -135,14 +149,14 @@ public class NodeDAOImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateWithExistingId() throws Exception{
-		Node toCreate = NodeTestUtils.createNew("secondNodeEver");
+		Node toCreate = privateCreateNew("secondNodeEver");
 		toCreate.setVersionComment("This is the first version of the first node ever!");
 		toCreate.setVersionLabel("0.0.1");
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
 		assertNotNull(id);
 		// Now create another node using this id.
-		Node duplicate = NodeTestUtils.createNew("should never exist");
+		Node duplicate = privateCreateNew("should never exist");
 		duplicate.setId(id);
 		// This should throw an exception.
 		String id2 = nodeDao.createNew(duplicate);
@@ -153,17 +167,17 @@ public class NodeDAOImplTest {
 	@Test
 	public void testCreateWithDuplicateName() throws Exception{
 		String commonName = "name";
-		Node parent = NodeTestUtils.createNew("parent");
+		Node parent = privateCreateNew("parent");
 		String parentId = nodeDao.createNew(parent);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
-		Node one = NodeTestUtils.createNew(commonName);
+		Node one = privateCreateNew(commonName);
 		one.setParentId(parentId);
 		String id = nodeDao.createNew(one);
 		toDelete.add(id);
 		assertNotNull(id);
 		// Now create another node using this id.
-		Node oneDuplicate = NodeTestUtils.createNew(commonName);
+		Node oneDuplicate = privateCreateNew(commonName);
 		oneDuplicate.setParentId(parentId);
 		// This should throw an exception.
 		try{
@@ -181,7 +195,7 @@ public class NodeDAOImplTest {
 		// ID generator.
 		long idLong = idGenerator.generateNewId() + 10;
 		String idString = KeyFactory.keyToString(new Long(idLong));
-		Node toCreate = NodeTestUtils.createNew("secondNodeEver");
+		Node toCreate = privateCreateNew("secondNodeEver");
 		toCreate.setId(idString);
 		String fetchedId = nodeDao.createNew(toCreate);
 		toDelete.add(fetchedId);
@@ -196,7 +210,7 @@ public class NodeDAOImplTest {
 	public void testCreateWithIdGreaterThanIdGenerator() throws Exception{
 		// Create a node with a specific id
 		String id = KeyFactory.keyToString(new Long(idGenerator.generateNewId()+10));
-		Node toCreate = NodeTestUtils.createNew("secondNodeEver");
+		Node toCreate = privateCreateNew("secondNodeEver");
 		toCreate.setId(id);
 		String fetchedId = nodeDao.createNew(toCreate);
 		toDelete.add(fetchedId);
@@ -206,14 +220,14 @@ public class NodeDAOImplTest {
 	
 	@Test 
 	public void testAddChild() throws Exception {
-		Node parent = NodeTestUtils.createNew("parent");
+		Node parent = privateCreateNew("parent");
 		String parentId = nodeDao.createNew(parent);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
 
 		
 		//Now add an child
-		Node child = NodeTestUtils.createNew("child");
+		Node child = privateCreateNew("child");
 		child.setParentId(parentId);
 		String childId = nodeDao.createNew(child);
 		assertNotNull(childId);
@@ -247,20 +261,20 @@ public class NodeDAOImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateUniqueChildNames() throws Exception {
-		Node parent = NodeTestUtils.createNew("parent");
+		Node parent = privateCreateNew("parent");
 		String parentId = nodeDao.createNew(parent);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
 		
 		//Now add an child
-		Node child = NodeTestUtils.createNew("child");
+		Node child = privateCreateNew("child");
 		child.setParentId(parentId);
 		String childId = nodeDao.createNew(child);
 		assertNotNull(childId);
 		toDelete.add(childId);
 		
 		// We should not be able to create a child with the same name
-		child = NodeTestUtils.createNew("child");
+		child = privateCreateNew("child");
 		child.setParentId(parentId);
 		String child2Id = nodeDao.createNew(child);
 		assertNotNull(child2Id);
@@ -270,20 +284,20 @@ public class NodeDAOImplTest {
 	@Ignore  // This is not working because the exception is thrown when the transaction is committed, not when we change it.
 	@Test (expected=IllegalArgumentException.class)
 	public void testUpdateUniqueChildNames() throws Exception {
-		Node parent = NodeTestUtils.createNew("parent");
+		Node parent = privateCreateNew("parent");
 		String parentId = nodeDao.createNew(parent);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
 		
 		//Now add an child
-		Node child = NodeTestUtils.createNew("child");
+		Node child = privateCreateNew("child");
 		child.setParentId(parentId);
 		String childId = nodeDao.createNew(child);
 		assertNotNull(childId);
 		toDelete.add(childId);
 		
 		// We should not be able to create a child with the same name
-		child = NodeTestUtils.createNew("child2");
+		child = privateCreateNew("child2");
 		child.setParentId(parentId);
 		String child2Id = nodeDao.createNew(child);
 		assertNotNull(child2Id);
@@ -297,20 +311,20 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testGetPath() throws Exception {
-		Node parent = NodeTestUtils.createNew("parent");
+		Node parent = privateCreateNew("parent");
 		String parentId = nodeDao.createNew(parent);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
 		
 		//Now add an child
-		Node child = NodeTestUtils.createNew("child");
+		Node child = privateCreateNew("child");
 		child.setParentId(parentId);
 		String childId = nodeDao.createNew(child);
 		assertNotNull(childId);
 		toDelete.add(parentId);
 		
 		//Now add an child
-		Node grandChild = NodeTestUtils.createNew("grandChild");
+		Node grandChild = privateCreateNew("grandChild");
 		grandChild.setParentId(childId);
 		String grandChildId = nodeDao.createNew(grandChild);
 		assertNotNull(grandChildId);
@@ -342,7 +356,7 @@ public class NodeDAOImplTest {
  	// Calling getETagForUpdate() outside of a transaction in not allowed, and will throw an exception.
 	@Test(expected=IllegalTransactionStateException.class)
 	public void testGetETagForUpdate() throws Exception {
-		Node toCreate = NodeTestUtils.createNew("testGetETagForUpdate");
+		Node toCreate = privateCreateNew("testGetETagForUpdate");
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -353,7 +367,7 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testUpdateNode() throws Exception{
-		Node node = NodeTestUtils.createNew("testUpdateNode");
+		Node node = privateCreateNew("testUpdateNode");
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -373,17 +387,17 @@ public class NodeDAOImplTest {
 	@Test
 	public void testUpdateNodeDuplicateName() throws Exception{
 		String commonName = "name";
-		Node parent = NodeTestUtils.createNew("parent");
+		Node parent = privateCreateNew("parent");
 		String parentId = nodeDao.createNew(parent);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
-		Node one = NodeTestUtils.createNew(commonName);
+		Node one = privateCreateNew(commonName);
 		one.setParentId(parentId);
 		String id = nodeDao.createNew(one);
 		toDelete.add(id);
 		assertNotNull(id);
 		// Now create another node using this id.
-		Node oneDuplicate = NodeTestUtils.createNew("unique");
+		Node oneDuplicate = privateCreateNew("unique");
 		oneDuplicate.setParentId(parentId);
 		String id2 = nodeDao.createNew(oneDuplicate);
 		oneDuplicate = nodeDao.getNode(id2);
@@ -402,7 +416,7 @@ public class NodeDAOImplTest {
 	
 	@Test(expected=Exception.class)
 	public void testNullName() throws Exception{
-		Node node = NodeTestUtils.createNew("setNameNull");
+		Node node = privateCreateNew("setNameNull");
 		node.setName(null);
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
@@ -410,7 +424,7 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testCreateAllAnnotationsTypes() throws Exception{
-		Node node = NodeTestUtils.createNew("testCreateAnnotations");
+		Node node = privateCreateNew("testCreateAnnotations");
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -453,7 +467,7 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testCreateAnnotations() throws Exception{
-		Node node = NodeTestUtils.createNew("testCreateAnnotations");
+		Node node = privateCreateNew("testCreateAnnotations");
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -492,7 +506,7 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testCreateNewVersion() throws Exception {
-		Node node = NodeTestUtils.createNew("testCreateNewVersion");
+		Node node = privateCreateNew("testCreateNewVersion");
 		// Start this node with version and comment information
 		node.setVersionComment("This is the very first version of this node.");
 		node.setVersionLabel("0.0.1");
@@ -523,7 +537,7 @@ public class NodeDAOImplTest {
 		// Now try to create a new revision with new data
 		Node newRev = nodeDao.getNode(id);
 		newRev.setVersionLabel("0.0.2");
-		newRev.setModifiedBy("someChap");
+		newRev.setModifiedByPrincipalId(creatorUserGroupId);
 		newRev.setModifiedOn(new Date(System.currentTimeMillis()));
 		Long newNumber = nodeDao.createNewVersion(newRev);
 		assertNotNull(newNumber);
@@ -533,12 +547,12 @@ public class NodeDAOImplTest {
 		assertNotNull(loaded);
 		assertEquals(newRev.getVersionComment(), loaded.getVersionComment());
 		assertEquals(newRev.getVersionLabel(), loaded.getVersionLabel());
-		assertEquals(newRev.getModifiedBy(), newRev.getModifiedBy());
+		assertEquals(newRev.getModifiedByPrincipalId(), newRev.getModifiedByPrincipalId());
 	}
 	
 	@Test
 	public void testCreateNewVersionNullLabel() throws Exception {
-		Node node = NodeTestUtils.createNew("testCreateNewVersion");
+		Node node = privateCreateNew("testCreateNewVersion");
 		// Start this node with version and comment information
 		node.setVersionComment("This is the very first version of this node.");
 		node.setVersionLabel("0.0.1");
@@ -564,7 +578,7 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testNewVersionAnnotations() throws Exception {
-		Node node = NodeTestUtils.createNew("testCreateAnnotations");
+		Node node = privateCreateNew("testCreateAnnotations");
 		// Start this node with version and comment information
 		node.setVersionComment("This is the very first version of this node.");
 		node.setVersionLabel("0.0.1");
@@ -723,7 +737,7 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testPeekCurrentEtag() throws  Exception {
-		Node node = NodeTestUtils.createNew("testPeekCurrentEtag");
+		Node node = privateCreateNew("testPeekCurrentEtag");
 		// Start this node with version and comment information
 		node.setVersionComment("This is the very first version of this node.");
 		node.setVersionLabel("0.0.0");
@@ -739,7 +753,7 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testGetEntityHeader() throws Exception {
-		Node parent = NodeTestUtils.createNew("parent");
+		Node parent = privateCreateNew("parent");
 		parent.setNodeType(EntityType.project.name());
 		String parentId = nodeDao.createNew(parent);
 		toDelete.add(parentId);
@@ -751,7 +765,7 @@ public class NodeDAOImplTest {
 		assertEquals("parent", parentHeader.getName());
 		assertEquals(parentId, parentHeader.getId());
 		
-		Node child = NodeTestUtils.createNew("child");
+		Node child = privateCreateNew("child");
 		child.setNodeType(EntityType.dataset.name());
 		child.setParentId(parentId);
 		String childId = nodeDao.createNew(child);
@@ -774,20 +788,20 @@ public class NodeDAOImplTest {
 	
 	@Test
 	public void testGetEntityPath() throws Exception {
-		Node node = NodeTestUtils.createNew("parent");
+		Node node = privateCreateNew("parent");
 		node.setNodeType(EntityType.project.name());
 		String parentId = nodeDao.createNew(node);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
 		// Add a child		
-		node = NodeTestUtils.createNew("child");
+		node = privateCreateNew("child");
 		node.setNodeType(EntityType.dataset.name());
 		node.setParentId(parentId);
 		String childId = nodeDao.createNew(node);
 		toDelete.add(childId);
 		assertNotNull(childId);
 		// Add a GrandChild		
-		node = NodeTestUtils.createNew("grandChild");
+		node = privateCreateNew("grandChild");
 		node.setNodeType(EntityType.layer.name());
 		node.setParentId(childId);
 		String grandId = nodeDao.createNew(node);
@@ -824,8 +838,8 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testGetChildrenList() throws NotFoundException, DatastoreException{
-		Node node = NodeTestUtils.createNew("parent");
+	public void testGetChildrenList() throws NotFoundException, DatastoreException, InvalidModelException {
+		Node node = privateCreateNew("parent");
 		node.setNodeType(EntityType.project.name());
 		String parentId = nodeDao.createNew(node);
 		toDelete.add(parentId);
@@ -834,7 +848,7 @@ public class NodeDAOImplTest {
 		// Create a few children
 		List<String> childIds = new ArrayList<String>();
 		for(int i=0; i<4; i++){
-			node = NodeTestUtils.createNew("child"+i);
+			node = privateCreateNew("child"+i);
 			node.setNodeType(EntityType.dataset.name());
 			node.setParentId(parentId);
 			String id = nodeDao.createNew(node);
@@ -847,8 +861,8 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testUpdateRevision() throws NotFoundException, DatastoreException{
-		Node node = NodeTestUtils.createNew("parent");
+	public void testUpdateRevision() throws NotFoundException, DatastoreException, InvalidModelException {
+		Node node = privateCreateNew("parent");
 		node.setNodeType(EntityType.project.name());
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
@@ -895,9 +909,9 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testCreateRevision() throws NotFoundException, DatastoreException{
+	public void testCreateRevision() throws NotFoundException, DatastoreException, InvalidModelException {
 		Long currentVersionNumver = new Long(8);
-		Node node = NodeTestUtils.createNew("parent");
+		Node node = privateCreateNew("parent");
 		// Start with a node already on an advanced version
 		node.setVersionNumber(currentVersionNumver);
 		node.setVersionComment("Current comment");
@@ -926,7 +940,7 @@ public class NodeDAOImplTest {
 		newRev.setRevisionNumber(newVersionNumber);
 		newRev.setNodeId(id);
 		newRev.setLabel("1.0");
-		newRev.setModifiedBy("me");
+		newRev.setModifiedByPrincipalId(creatorUserGroupId);
 		newRev.setModifiedOn(new Date());
 		newRev.setReferences(new HashMap<String, Set<Reference>>());
 
@@ -953,7 +967,7 @@ public class NodeDAOImplTest {
 		Set<Reference> referees = new HashSet<Reference>();
 		Set<Reference> copyReferees = new HashSet<Reference>();
 		for(int i=0; i<10; i++){
-			Node node = NodeTestUtils.createNew("referee"+i);
+			Node node = privateCreateNew("referee"+i);
 			String id = nodeDao.createNew(node);
 			toDelete.add(id);
 
@@ -973,7 +987,7 @@ public class NodeDAOImplTest {
 		refs.put("referees", referees);
 		
 		// Create the node that holds the references
-		Node referer = NodeTestUtils.createNew("referer");
+		Node referer = privateCreateNew("referer");
 		referer.setReferences(refs);
 		String refererId = nodeDao.createNew(referer);
 		assertNotNull(refererId);
@@ -1007,7 +1021,7 @@ public class NodeDAOImplTest {
 		Set<Reference> even = new HashSet<Reference>();
 		Set<Reference> odd = new HashSet<Reference>();
 		for(int i=1; i<=5; i++){
-			Node node = NodeTestUtils.createNew("referee"+i);
+			Node node = privateCreateNew("referee"+i);
 			node.setVersionNumber(999L);
 			String id = nodeDao.createNew(node);
 			toDelete.add(id);
@@ -1030,7 +1044,7 @@ public class NodeDAOImplTest {
 		refs.put("odd", odd);
 		
 		// Create the node that holds the references
-		Node referer = NodeTestUtils.createNew("referer");
+		Node referer = privateCreateNew("referer");
 		referer.setReferences(refs);
 		String refererId = nodeDao.createNew(referer);
 		assertNotNull(refererId);
@@ -1052,7 +1066,7 @@ public class NodeDAOImplTest {
 		storedNode.getReferences().get("even").clear();
 		// And add a few new ones
 		for(int i=1; i<=4; i++){
-			Node node = NodeTestUtils.createNew("referee"+i);
+			Node node = privateCreateNew("referee"+i);
 			node.setVersionNumber(999L);
 			String id = nodeDao.createNew(node);
 			toDelete.add(id);
@@ -1107,14 +1121,14 @@ public class NodeDAOImplTest {
 	@Test
 	public void testGetParentId() throws Exception {
 		//make parent project
-		Node node = NodeTestUtils.createNew("parent");
+		Node node = privateCreateNew("parent");
 		node.setNodeType(EntityType.project.name());
 		String parentId = nodeDao.createNew(node);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
 		
 		//add a child to the parent	
-		node = NodeTestUtils.createNew("child1");
+		node = privateCreateNew("child1");
 		node.setNodeType(EntityType.dataset.name());
 		node.setParentId(parentId);
 		String child1Id = nodeDao.createNew(node);
@@ -1133,14 +1147,14 @@ public class NodeDAOImplTest {
 	@Test
 	public void testChangeNodeParent() throws Exception {
 		//make a parent project
-		Node node = NodeTestUtils.createNew("parentProject");
+		Node node = privateCreateNew("parentProject");
 		node.setNodeType(EntityType.project.name());
 		String parentProjectId = nodeDao.createNew(node);
 		toDelete.add(parentProjectId);
 		assertNotNull(parentProjectId);
 		
 		//add a child to the parent
-		node = NodeTestUtils.createNew("child");
+		node = privateCreateNew("child");
 		node.setNodeType(EntityType.dataset.name());
 		node.setParentId(parentProjectId);
 		String childId = nodeDao.createNew(node);
@@ -1148,7 +1162,7 @@ public class NodeDAOImplTest {
 		assertNotNull(childId);
 		
 		//make a second project
-		node = NodeTestUtils.createNew("newParent");
+		node = privateCreateNew("newParent");
 		node.setNodeType(EntityType.project.name());
 		String newParentId = nodeDao.createNew(node);
 		toDelete.add(newParentId);
@@ -1176,14 +1190,14 @@ public class NodeDAOImplTest {
 	@Test(expected = IllegalArgumentException.class)
 	public void testChangeNodeParentWhenParentIsNull() throws Exception {
 		//make a project
-		Node node = NodeTestUtils.createNew("root");
+		Node node = privateCreateNew("root");
 		node.setNodeType(EntityType.project.name());
 		String rootId = nodeDao.createNew(node);
 		toDelete.add(rootId);
 		assertNotNull(rootId);
 		
 		//make a second project
-		node = NodeTestUtils.createNew("newParent");
+		node = privateCreateNew("newParent");
 		node.setNodeType(EntityType.project.name());
 		String newParentId = nodeDao.createNew(node);
 		toDelete.add(newParentId);
@@ -1202,14 +1216,14 @@ public class NodeDAOImplTest {
 	@Test
 	public void testChangeNodeParentWhenParamParentIsCurrentParent() throws Exception {
 		//make a parent project
-		Node node = NodeTestUtils.createNew("parentProject");
+		Node node = privateCreateNew("parentProject");
 		node.setNodeType(EntityType.project.name());
 		String parentProjectId = nodeDao.createNew(node);
 		toDelete.add(parentProjectId);
 		assertNotNull(parentProjectId);
 		
 		//add a child to the parent
-		node = NodeTestUtils.createNew("child");
+		node = privateCreateNew("child");
 		node.setNodeType(EntityType.dataset.name());
 		node.setParentId(parentProjectId);
 		String childId = nodeDao.createNew(node);
@@ -1234,14 +1248,14 @@ public class NodeDAOImplTest {
 	}
 
 	@Test
-	public void testReferencesDeleteCurrentVersion() throws NotFoundException, DatastoreException{
+	public void testReferencesDeleteCurrentVersion() throws NotFoundException, DatastoreException, InvalidModelException {
 		Reference inEven = null, inOdd = null;
 		
 		// Create a few nodes we will refer to
 		Set<Reference> even = new HashSet<Reference>();
 		Set<Reference> odd = new HashSet<Reference>();
 		for(int i=1; i<=5; i++){
-			Node node = NodeTestUtils.createNew("referee"+i);
+			Node node = privateCreateNew("referee"+i);
 			node.setVersionNumber(999L);
 			String id = nodeDao.createNew(node);
 			toDelete.add(id);
@@ -1264,7 +1278,7 @@ public class NodeDAOImplTest {
 		refs.put("odd", odd);
 		
 		// Create the node that holds the references
-		Node node = NodeTestUtils.createNew("parent");
+		Node node = privateCreateNew("parent");
 		node.setNodeType(EntityType.project.name());
 		node.setReferences(refs);
 		node.setVersionLabel("references 1.0");
@@ -1310,7 +1324,7 @@ public class NodeDAOImplTest {
 		// string annotations table since it does not make sense to query for large strings.
 		// This test ensures that we can have giant string annotations without any problems.
 		//make a parent project
-		Node node = NodeTestUtils.createNew("testForPLFM_791");
+		Node node = privateCreateNew("testForPLFM_791");
 		node.setNodeType(EntityType.project.name());
 		String projectId = nodeDao.createNew(node);
 		toDelete.add(projectId);
@@ -1337,9 +1351,9 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testCreateNodeFromBackup() throws NotFoundException, DatastoreException{
+	public void testCreateNodeFromBackup() throws NotFoundException, DatastoreException, InvalidModelException {
 		// This will be our backup node.
-		Node backup = NodeTestUtils.createNew("backMeUp");
+		Node backup = privateCreateNew("backMeUp");
 		backup.setNodeType(EntityType.project.name());
 		String id = nodeDao.createNew(backup);
 		toDelete.add(id);
@@ -1361,9 +1375,9 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testUpdateNodeFromBackup() throws NotFoundException, DatastoreException{
+	public void testUpdateNodeFromBackup() throws NotFoundException, DatastoreException, InvalidModelException {
 		// This will be our backup node.
-		Node backup = NodeTestUtils.createNew("backMeUp2");
+		Node backup = privateCreateNew("backMeUp2");
 		backup.setNodeType(EntityType.project.name());
 		String id = nodeDao.createNew(backup);
 		toDelete.add(id);
@@ -1389,7 +1403,7 @@ public class NodeDAOImplTest {
 		// Now create a new revision from backup
 		NodeRevisionBackup revBackup  = new NodeRevisionBackup();
 		revBackup.setNodeId(id);
-		revBackup.setModifiedBy("somebody");
+		revBackup.setModifiedByPrincipalId(creatorUserGroupId);
 		revBackup.setModifiedOn(new Date(System.currentTimeMillis()));
 		revBackup.setRevisionNumber(1l);
 		revBackup.setLabel("v1");
@@ -1404,8 +1418,8 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testGetCurrentRevNumber() throws NotFoundException, DatastoreException{
-		Node backup = NodeTestUtils.createNew("withReveNumber");
+	public void testGetCurrentRevNumber() throws NotFoundException, DatastoreException, InvalidModelException {
+		Node backup = privateCreateNew("withReveNumber");
 		backup.setNodeType(EntityType.project.name());
 		String id = nodeDao.createNew(backup);
 		toDelete.add(id);

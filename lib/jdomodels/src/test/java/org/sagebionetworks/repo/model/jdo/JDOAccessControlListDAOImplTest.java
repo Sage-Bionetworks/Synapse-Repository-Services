@@ -68,13 +68,15 @@ public class JDOAccessControlListDAOImplTest {
 	 */
 	@Before
 	public void setUp() throws Exception {
+		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+
 		// create a resource on which to apply permissions
 		node = new Node();
 		node.setName("foo");
 		node.setCreatedOn(new Date());
-		node.setCreatedBy("me");
+		node.setCreatedByPrincipalId(createdById);
 		node.setModifiedOn(new Date());
-		node.setModifiedBy("metoo");
+		node.setModifiedByPrincipalId(createdById);
 		node.setNodeType(EntityType.project.name());
 		String nodeId = nodeDAO.createNew(node);
 		assertNotNull(nodeId);
@@ -98,10 +100,7 @@ public class JDOAccessControlListDAOImplTest {
 		// Create an ACL for this node
 		AccessControlList acl = new AccessControlList();
 		acl.setId(nodeId);
-		acl.setCreatedBy("someDude");
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
-		acl.setModifiedBy(acl.getCreatedBy());
-		acl.setModifiedOn(acl.getCreationDate());
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		accessControlListDAO.create(acl);
 		

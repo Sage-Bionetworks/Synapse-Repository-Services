@@ -12,10 +12,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -30,6 +32,9 @@ public class NodeInheritanceDAOImplTest {
 	NodeDAO nodeDao;
 	@Autowired
 	NodeInheritanceDAO nodenheritanceDao;
+	
+	@Autowired
+	UserGroupDAO userGroupDAO;
 	
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
@@ -57,8 +62,9 @@ public class NodeInheritanceDAOImplTest {
 	
 	@Test
 	public void testCrud() throws Exception{
+		Long creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 		// First create a node
-		Node toCreate = NodeTestUtils.createNew("nodeInheritanceDaoTest");
+		Node toCreate = NodeTestUtils.createNew("nodeInheritanceDaoTest", creatorUserGroupId);
 		String parentId = nodeDao.createNew(toCreate);
 		toDelete.add(parentId);
 		assertNotNull(parentId);
@@ -70,7 +76,7 @@ public class NodeInheritanceDAOImplTest {
 		assertNotNull(beneficiaries);
 		assertEquals(1, beneficiaries.size());
 		// Create a new child node
-		Node child = NodeTestUtils.createNew("nodeInheritanceDaoTestChild");
+		Node child = NodeTestUtils.createNew("nodeInheritanceDaoTestChild", creatorUserGroupId);
 		child.setParentId(parentId);
 		String childId = nodeDao.createNew(child);
 		toDelete.add(childId);

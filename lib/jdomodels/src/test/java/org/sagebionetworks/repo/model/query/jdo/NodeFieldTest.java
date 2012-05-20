@@ -45,7 +45,7 @@ public class NodeFieldTest {
 	
 	@Test
 	public void testCreatedBy(){
-		assertEquals("createdBy", NodeField.CREATED_BY.getFieldName());
+		assertEquals("createdByPrincipalId", NodeField.CREATED_BY.getFieldName());
 		assertEquals(SqlConstants.COL_NODE_CREATED_BY, NodeField.CREATED_BY.getColumnName());
 		assertEquals(SqlConstants.TABLE_NODE, NodeField.CREATED_BY.getTableName());
 		assertEquals(SqlConstants.NODE_ALIAS, NodeField.CREATED_BY.getTableAlias());
@@ -61,7 +61,7 @@ public class NodeFieldTest {
 	
 	@Test
 	public void testModifedBy(){
-		assertEquals("modifiedBy", NodeField.MODIFIED_BY.getFieldName());
+		assertEquals("modifiedByPrincipalId", NodeField.MODIFIED_BY.getFieldName());
 		assertEquals(SqlConstants.COL_REVISION_MODIFIED_BY, NodeField.MODIFIED_BY.getColumnName());
 		assertEquals(SqlConstants.TABLE_REVISION, NodeField.MODIFIED_BY.getTableName());
 		assertEquals(SqlConstants.REVISION_ALIAS, NodeField.MODIFIED_BY.getTableAlias());

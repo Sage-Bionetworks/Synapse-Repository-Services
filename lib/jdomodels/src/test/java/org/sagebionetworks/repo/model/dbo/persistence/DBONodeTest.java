@@ -13,8 +13,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,9 @@ public class DBONodeTest {
 	
 	@Autowired
 	DBOBasicDao dboBasicDao;
+	
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
 	private IdGenerator idGenerator;
@@ -56,7 +61,8 @@ public class DBONodeTest {
 		node.setId(idGenerator.generateNewId());
 		node.setName("SomeName");
 		node.setBenefactorId(node.getId());
-		node.setCreatedBy("you");
+		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		node.setCreatedBy(createdById);
 		node.setCreatedOn(System.currentTimeMillis());
 		node.setCurrentRevNumber(null);
 		node.seteTag(new Long(1));
@@ -78,7 +84,7 @@ public class DBONodeTest {
 		child.setId(idGenerator.generateNewId());
 		child.setName("SomeChild");
 		child.setBenefactorId(node.getBenefactorId());
-		child.setCreatedBy("somebody else");
+		child.setCreatedBy(createdById);
 		child.setCreatedOn(System.currentTimeMillis());
 		child.setCurrentRevNumber(new Long(0));
 		child.seteTag(new Long(1));

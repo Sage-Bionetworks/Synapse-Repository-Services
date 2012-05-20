@@ -53,19 +53,19 @@ public class AuthorizationManagerImplTest {
 	
 	private List<String> usersToDelete;
 	
-	private Node createDTO(String name, String createdBy, String modifiedBy, String parentId) {
+	private Node createDTO(String name, Long createdBy, Long modifiedBy, String parentId) {
 		Node node = new Node();
 		node.setName(name);
 		node.setCreatedOn(new Date());
-		node.setCreatedBy(createdBy);
+		node.setCreatedByPrincipalId(createdBy);
 		node.setModifiedOn(new Date());
-		node.setModifiedBy(modifiedBy);
+		node.setModifiedByPrincipalId(modifiedBy);
 		node.setNodeType(EntityType.project.name());
 		if (parentId!=null) node.setParentId(parentId);
 		return node;
 	}
 	
-	private Node createNode(String name, String createdBy, String modifiedBy, String parentId) throws Exception {
+	private Node createNode(String name, Long createdBy, Long modifiedBy, String parentId) throws Exception {
 		Node node = createDTO(name, createdBy, modifiedBy, parentId);
 		String nodeId = nodeManager.createNewNode(node, adminUser);
 		assertNotNull(nodeId);
@@ -87,10 +87,10 @@ public class AuthorizationManagerImplTest {
 		usersToDelete.add(adminUser.getUser().getId());
 		
 		// create a resource
-		node = createNode("foo", "me", "metoo", null);
+		node = createNode("foo", 1L, 2L, null);
 		nodeList.add(node);
 				
-		childNode = createNode("foo2", "me2", "metoo2", node.getId());
+		childNode = createNode("foo2", 3L, 4L, node.getId());
 		
 
 	}
@@ -259,7 +259,7 @@ public class AuthorizationManagerImplTest {
 		// now they should be able to access
 		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));				
 		// but can't add a child 
-		Node child = createDTO("child", "me4", "you4", node.getId());
+		Node child = createDTO("child", 10L, 11L, node.getId());
 		assertFalse(authorizationManager.canCreate(userInfo, child));
 		
 		// but give them create access to the parent
@@ -275,7 +275,7 @@ public class AuthorizationManagerImplTest {
 	public void testCreateSpecialUsers() throws Exception {
 		// admin always has access 
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		Node child = createDTO("child", "me4", "you4", node.getId());
+		Node child = createDTO("child", 10L, 11L, node.getId());
 		assertTrue(authorizationManager.canCreate(adminInfo, child));
 
 		// allow some access
@@ -295,7 +295,7 @@ public class AuthorizationManagerImplTest {
 	public void testCreateNoParent() throws Exception {
 	
 		// try to create node with no parent.  should fail
-		Node orphan = createDTO("orphan", "me4", "you4", null);
+		Node orphan = createDTO("orphan", 10L, 11L, null);
 		assertFalse(authorizationManager.canCreate(userInfo, orphan));
 		
 		// admin creates a node with no parent.  should work

@@ -23,7 +23,8 @@ public class AuthorizationConstants {
 	 */
 	public enum DEFAULT_GROUPS {
 		AUTHENTICATED_USERS,
-		PUBLIC;
+		PUBLIC,
+		BOOTSTRAP_USER_GROUP;
 		
 		/**
 		 * Does the name match a default group?
@@ -37,6 +38,12 @@ public class AuthorizationConstants {
 			return false;
 		}
 	}
+	
+	/**
+	 * User Group to have ownership of bootstrapped entities
+	 * 
+	 */
+	public static final String BOOTSTRAP_USER_GROUP_NAME = DEFAULT_GROUPS.BOOTSTRAP_USER_GROUP.name();
 	
 	/**
 	 * A scheme that describes how an ACL should be applied to an entity.

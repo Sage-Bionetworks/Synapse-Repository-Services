@@ -19,6 +19,8 @@
 	<bean id="dboBasicDao" class="org.sagebionetworks.repo.model.dbo.DBOBasicDaoImpl">
 		<property name="databaseObjectRegister">
 			<list>
+				<!-- DBOUserGroup must be declared before tables that have a foreign key to it -->
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
@@ -31,8 +33,6 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessControlList" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccess" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType" />
-				<!-- DBOUserGroup must be declared before DBOUserProfile since the latter has a foreign key to the former -->
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODaemonStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODaemonTerminate" />

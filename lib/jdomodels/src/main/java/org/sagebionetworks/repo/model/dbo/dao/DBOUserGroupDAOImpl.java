@@ -42,7 +42,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	
 	@Autowired
 	private UserGroupCache userGroupCache;
-
+	
 	private static final String ID_PARAM_NAME = "id";
 	private static final String NAME_PARAM_NAME = "name";
 	private static final String IS_INDIVIDUAL_PARAM_NAME = "isIndividual";
@@ -86,7 +86,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		param.addValue(NAME_PARAM_NAME, name);
 		param.addValue(IS_INDIVIDUAL_PARAM_NAME, isIndividual);		
 		List<DBOUserGroup> ugs = simpleJdbcTempalte.query(SELECT_BY_NAME_AND_IS_INDIVID_SQL, userGroupRowMapper, param);
-		if (ugs.size()>2) throw new DatastoreException("Expected 0-1 UserGroups but found "+ugs.size());
+		if (ugs.size()>1) throw new DatastoreException("Expected 0-1 UserGroups but found "+ugs.size());
 		if (ugs.size()==0) return null;
 		UserGroup dto = new UserGroup();
 		UserGroupUtils.copyDboToDto(ugs.iterator().next(), dto);
@@ -151,7 +151,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(NAME_PARAM_NAME, name);	
 		List<DBOUserGroup> ugs = simpleJdbcTempalte.query(SELECT_BY_NAME_SQL, userGroupRowMapper, param);
-		if (ugs.size()>2) throw new DatastoreException("Expected 0-1 UserGroups but found "+ugs.size());
+		if (ugs.size()>1) throw new DatastoreException("Expected 0-1 UserGroups but found "+ugs.size());
 		if (ugs.size()==0) return null;
 		return ugs.iterator().next();
 	}

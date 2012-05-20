@@ -34,8 +34,8 @@ public class RandomNodeUtil {
 		node.setDescription("description"+rand.nextLong());
 		node.setETag(""+rand.nextLong());
 		node.setId(""+rand.nextLong());
-		node.setModifiedBy("modifiedBy: "+rand.nextLong());
-		node.setCreatedBy("createdBy: "+rand.nextLong());
+		node.setModifiedByPrincipalId(rand.nextLong());
+		node.setCreatedByPrincipalId(rand.nextLong());
 		node.setCreatedOn(RandomUtils.createRandomStableDate(rand));
 		node.setModifiedOn(RandomUtils.createRandomStableDate(rand));
 		node.setVersionComment("comment: "+rand.nextLong());

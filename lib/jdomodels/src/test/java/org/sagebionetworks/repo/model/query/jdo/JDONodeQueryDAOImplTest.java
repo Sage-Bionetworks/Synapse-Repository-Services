@@ -21,6 +21,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -84,10 +86,13 @@ public class JDONodeQueryDAOImplTest {
 	@Autowired
 	private NodeDAO nodeDao;
 	
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 	
 	private UserInfo mockUserInfo = null;
 	
-
+	private Long createdBy = null;
+	
 	@Before
 	public void before() throws Exception {
 		// Make sure the Autowire is working
@@ -109,6 +114,8 @@ public class JDONodeQueryDAOImplTest {
 		Logger.getLogger("DataNucleus.Query").setLevel(Level.INFO);
 		Logger.getLogger("DataNucleus.JDO").setLevel(Level.ALL);
 
+		createdBy = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		
 		populateNodesForTest();
 		
 
@@ -125,10 +132,10 @@ public class JDONodeQueryDAOImplTest {
 		// Create a few datasets
 		nodeIds = new ArrayList<String>();
 		for (int i = 0; i < totalNumberOfDatasets; i++) {
-			Node parent = NodeTestUtils.createNew("dsName" + i);
+			Node parent = NodeTestUtils.createNew("dsName" + i, createdBy);
 			Date now = new Date(System.currentTimeMillis());
 			parent.setDescription("description" + i);
-			parent.setCreatedBy("magic");
+			parent.setCreatedByPrincipalId(createdBy);
 			parent.setNodeType(EntityType.dataset.name());
 
 			// Create this dataset
@@ -159,7 +166,7 @@ public class JDONodeQueryDAOImplTest {
 			nodeDao.updateAnnotations(parentId, named);
 			
 			// Add a child to the parent
-			Node child = createChild(now, i);
+			Node child = createChild(now, i, createdBy);
 			child.setParentId(parentId);
 			// Add a layer attribute
 			String childId = nodeDao.createNew(child);
@@ -186,9 +193,9 @@ public class JDONodeQueryDAOImplTest {
 	// this was formerly defined in the (now defunct) Layer class
     public enum LayerTypeNames {                E, G, C;        }
 
-	private static Node createChild(Date date, int i)
+	private static Node createChild(Date date, int i, Long createdByPrincipalId)
 			throws InvalidModelException {
-		Node ans = NodeTestUtils.createNew("layerName"+i);
+		Node ans = NodeTestUtils.createNew("layerName"+i, createdByPrincipalId);
 		ans.setDescription("description"+i);
 		ans.setCreatedOn(date);
 		ans.setNodeType(EntityType.layer.name());
@@ -477,7 +484,7 @@ public class JDONodeQueryDAOImplTest {
 		// query.setSort(attString);
 		// query.setAscending(false);
 		Expression expression = new Expression(new CompoundId("dataset",
-				"createdBy"), Comparator.EQUALS, "magic");
+				"createdByPrincipalId"), Comparator.EQUALS, createdBy);
 		List<Expression> filters = new ArrayList<Expression>();
 		filters.add(expression);
 		query.setFilters(filters);
@@ -517,10 +524,10 @@ public class JDONodeQueryDAOImplTest {
 		BasicQuery query = new BasicQuery();
 		query.setFrom(EntityType.dataset.name());
 		List<Expression> filters = new ArrayList<Expression>();
-		String filterCreator = "magic";
+		Long filterCreator = createdBy;
 		String filterName = "dsName0";
 		Expression expression = new Expression(new CompoundId("dataset",
-				"createdBy"), Comparator.EQUALS, filterCreator);
+				"createdByPrincipalId"), Comparator.EQUALS, filterCreator);
 		Expression expression2 = new Expression(new CompoundId("dataset",
 				"name"), Comparator.EQUALS, filterName);
 		filters.add(expression);
@@ -536,7 +543,7 @@ public class JDONodeQueryDAOImplTest {
 		String id = list.get(0);
 		Node node = nodeDao.getNode(id);
 		assertEquals(filterName, node.getName());
-		assertEquals(filterCreator, node.getCreatedBy());
+		assertEquals(filterCreator, node.getCreatedByPrincipalId());
 	}
 
 	@Test
@@ -573,11 +580,11 @@ public class JDONodeQueryDAOImplTest {
 		// Filter on an annotation using does not equal with a bogus value to
 		// get all datasets.
 		String onAllValue = "someNumber2";
-		String creator = "magic";
+		Long creator = createdBy;
 		Expression expression = new Expression(new CompoundId("dataset",
 				attOnall), Comparator.EQUALS, onAllValue);
 		Expression expression2 = new Expression(new CompoundId("dataset",
-				"createdBy"), Comparator.EQUALS, creator);
+				"createdByPrincipalId"), Comparator.EQUALS, creator);
 		filters.add(expression);
 		filters.add(expression2);
 		query.setFilters(filters);
@@ -598,7 +605,7 @@ public class JDONodeQueryDAOImplTest {
 		assertEquals(onAllValue, values.iterator().next());
 		Node node = nodeDao.getNode(id);
 		assertNotNull(node);
-		assertEquals(creator, node.getCreatedBy());
+		assertEquals(creator, node.getCreatedByPrincipalId());
 	}
 
 	@Test
@@ -613,12 +620,12 @@ public class JDONodeQueryDAOImplTest {
 		// Filter on an annotation using does not equal with a bogus value to
 		// get all datasets.
 		String onAllValue = "someNumber2";
-		String creator = "magic";
+		Long creator = createdBy;
 		Long longValue = new Long(2);
 		Expression expression = new Expression(new CompoundId("dataset",
 				attOnall), Comparator.EQUALS, onAllValue);
 		Expression expression2 = new Expression(new CompoundId("dataset",
-				"createdBy"), Comparator.EQUALS, creator);
+				"createdByPrincipalId"), Comparator.EQUALS, creator);
 		Expression expression3 = new Expression(new CompoundId("dataset",
 				attOnEven), Comparator.EQUALS, longValue);
 		Expression expression4 = new Expression(new CompoundId("dataset",
@@ -645,7 +652,7 @@ public class JDONodeQueryDAOImplTest {
 		assertEquals(longValue, values.iterator().next());
 		Node node = nodeDao.getNode(id);
 		assertNotNull(node);
-		assertEquals(creator, node.getCreatedBy());
+		assertEquals(creator, node.getCreatedByPrincipalId());
 	}
 	
 	@Test

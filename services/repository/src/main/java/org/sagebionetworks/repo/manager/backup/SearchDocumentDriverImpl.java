@@ -92,7 +92,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		
 	// For now we can just create one of these. We might need to make beans in
 	// the future.
-	MigrationDriver migrationDriver = new MigrationDriverImpl();
+	MigrationDriver migrationDriver = MigrationDriverImpl.instanceForTesting();
 
 	static {
 		// These are both node primary annotations and additional annotation
@@ -352,9 +352,9 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		if (null != node.getDescription()) {
 			fields.setDescription(node.getDescription());
 		}
-		fields.setCreated_by(getDisplayNameForUserId(node.getCreatedBy()));
+		fields.setCreated_by(getDisplayNameForPrincipalId(node.getCreatedByPrincipalId()));
 		fields.setCreated_on(node.getCreatedOn().getTime() / 1000);
-		fields.setModified_by(getDisplayNameForUserId(node.getModifiedBy()));
+		fields.setModified_by(getDisplayNameForPrincipalId(node.getModifiedByPrincipalId()));
 		fields.setModified_on(node.getModifiedOn().getTime() / 1000);
 
 		// Stuff in this field any extra copies of data that you would like to
@@ -439,18 +439,17 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		return document;
 	}
 
-	private String getDisplayNameForUserId(String userId) {
-		String displayName = userId;
+	private String getDisplayNameForPrincipalId(long principalId) {
+		String displayName = ""+principalId;
 		try {
-			displayName = userManager.getUserInfo(userId).getUser()
-					.getDisplayName();
+			displayName = userManager.getDisplayName(principalId);
 		} catch (NotFoundException ex) {
 			// this is a best-effort attempt to fill in the display name and
 			// this will happen for the 'bootstrap' user and users we may delete
 			// from our system but are still the creators/modifiers of entities
-			log.debug("Unable to get display name for user id: " + userId + ",", ex);
+			log.debug("Unable to get display name for principal id: " + principalId + ",", ex);
 		} catch (Exception ex) {
-			log.warn("Unable to get display name for user id: " + userId + ",", ex);
+			log.warn("Unable to get display name for principal id: " + principalId + ",", ex);
 		}
 		return displayName;
 	}

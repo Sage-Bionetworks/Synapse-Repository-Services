@@ -48,7 +48,7 @@ public class JDORevisionUtils {
 		rev.setRevisionNumber(jdo.getRevisionNumber());
 		rev.setComment(jdo.getComment());
 		rev.setLabel(jdo.getLabel());
-		rev.setModifiedBy(jdo.getModifiedBy());
+		rev.setModifiedByPrincipalId(jdo.getModifiedBy());
 		rev.setModifiedOn(new Date(jdo.getModifiedOn()));
 		try {
 			rev.setNamedAnnotations(JDOSecondaryPropertyUtils.decompressedAnnotations(jdo.getAnnotations()));
@@ -68,7 +68,7 @@ public class JDORevisionUtils {
 		jdo.setOwner(KeyFactory.stringToKey(dto.getNodeId()));
 		jdo.setComment(dto.getComment());
 		jdo.setLabel(dto.getLabel());
-		jdo.setModifiedBy(dto.getModifiedBy());
+		jdo.setModifiedBy(dto.getModifiedByPrincipalId());
 		if(dto.getModifiedOn() != null){
 			jdo.setModifiedOn(dto.getModifiedOn().getTime());
 		}

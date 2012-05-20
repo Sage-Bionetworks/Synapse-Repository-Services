@@ -23,16 +23,16 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 * @throws NumberFormatException 
 	 */
-	public String createNew(Node node) throws NotFoundException, DatastoreException;
+	public String createNew(Node node) throws NotFoundException, DatastoreException, InvalidModelException;
 	
 	/**
 	 * Create a new version of an existing node.
-	 * @param newVersion
+	 * @param newVersion fields that are left null are unmodified
 	 * @return The new current revision number for this node.
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException;
+	public Long createNewVersion(Node newVersion) throws NotFoundException, DatastoreException, InvalidModelException;
 	
 	/**
 	 * Fetch a node using its id.
@@ -142,11 +142,11 @@ public interface NodeDAO {
 	
 	/**
 	 * Make changes to an existing node.
-	 * @param updatedNode
+	 * @param updatedNode fields that are left null are not modified
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException;
+	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException;
 	
 	/**
 	 * Update a nodes annotations.
@@ -253,7 +253,7 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public void updateNodeFromBackup(Node node) throws NotFoundException, DatastoreException;
+	public void updateNodeFromBackup(Node node) throws NotFoundException, DatastoreException, InvalidModelException;
 
 	/**
 	 * Create a new node from a backup.
@@ -261,7 +261,7 @@ public interface NodeDAO {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public void createNewNodeFromBackup(Node node) throws NotFoundException, DatastoreException;
+	public void createNewNodeFromBackup(Node node) throws NotFoundException, DatastoreException, InvalidModelException;
 	
 	/**
 	 * Get the current revision number for a node.

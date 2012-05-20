@@ -57,6 +57,7 @@ public class NodeSerializerUtilTest {
 		assertEquals(backup, clone);
 		
 	}
+
 	
 	@Test
 	public void testRoundTripNodeBackupRandom(){
@@ -214,11 +215,11 @@ public class NodeSerializerUtilTest {
 		Node node = new Node();
 		node.setName("NodeSerializerImplTest.roundTrip");
 		node.setDescription("This is a description");
-		node.setCreatedBy("me");
+		node.setCreatedByPrincipalId(1L);
 		node.setCreatedOn(new Date());
 		node.setETag("213");
 		node.setId("569");
-		node.setModifiedBy("you");
+		node.setModifiedByPrincipalId(2L);
 		node.setModifiedOn(new Date());
 		node.setNodeType(EntityType.folder.name());
 		node.setParentId("13");
@@ -235,12 +236,9 @@ public class NodeSerializerUtilTest {
 		revisions.add(node.getVersionNumber());
 		
 		AccessControlList acl = new AccessControlList();
-		acl.setCreatedBy(node.getCreatedBy());
 		acl.setCreationDate(node.getCreatedOn());
 		acl.setEtag(node.getETag());
 		acl.setId(node.getId());
-		acl.setModifiedBy(node.getModifiedBy());
-		acl.setModifiedOn(node.getModifiedOn());
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		ResourceAccess ra = new ResourceAccess();
 		ra.setAccessType(new HashSet<ACCESS_TYPE>());

@@ -1,13 +1,12 @@
 package org.sagebionetworks.repo.model.util;
 
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Random;
 
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 
 /**
  * A utility for generating a random ACL.
@@ -34,11 +33,8 @@ public class RandomAccessControlListUtil {
 	public static AccessControlList generateRandom(Random rand) {
 		AccessControlList acl = new AccessControlList();
 		acl.setId(""+rand.nextLong());
-		acl.setCreatedBy("created by:"+rand.nextLong());
-		acl.setModifiedBy("modifiedBy: "+rand.nextLong());
-		acl.setCreatedBy("createdBy: "+rand.nextLong());
+		//acl.setCreatedBy("createdBy: "+rand.nextLong()); <<< this is a repeat of the line two places above ... don't know whhy
 		acl.setCreationDate(RandomUtils.createRandomStableDate(rand));
-		acl.setModifiedOn(RandomUtils.createRandomStableDate(rand));
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		int countToAdd = rand.nextInt(5);
 		for(int i=0; i<countToAdd; i++){

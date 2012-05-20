@@ -5,18 +5,29 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
+@RunWith(SpringJUnit4ClassRunner.class)
+@ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class EntityBootstrapperUnitTest {
+	
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 	
 	@Test
 	public void testSplitParentPathAndName(){
@@ -40,7 +51,7 @@ public class EntityBootstrapperUnitTest {
 	}
 	
 	@Test
-	public void testCreateAcl(){
+	public void testCreateAcl() throws DatastoreException {
 		// Build up a list of entires
 		List<AccessBootstrapData> list = new ArrayList<AccessBootstrapData>();
 		
@@ -62,7 +73,9 @@ public class EntityBootstrapperUnitTest {
 		String nodeId = "101";
 		
 		// Now create the ACL
-		AccessControlList acl = EntityBootstrapperImpl.createAcl(nodeId, list);
+		assertNotNull(userGroupDAO);
+		String createdById = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
+		AccessControlList acl = EntityBootstrapperImpl.createAcl(nodeId, createdById, list); 
 		assertNotNull(acl);
 		assertEquals(nodeId, acl.getId());
 		assertNotNull(acl.getResourceAccess());

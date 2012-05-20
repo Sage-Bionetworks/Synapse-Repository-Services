@@ -50,7 +50,7 @@ public class DBODaemonStatus implements AutoIncrementDatabaseObject<DBODaemonSta
 				status.setId(rs.getLong(COL_BACKUP_ID));
 				status.setStatus(rs.getString(COL_BACKUP_STATUS));
 				status.setType(rs.getString(COL_BACKUP_TYPE));
-				status.setStartedBy(rs.getString(COL_BACKUP_STARTED_BY));
+				status.setStartedBy(rs.getLong(COL_BACKUP_STARTED_BY));
 				status.setStartedOn(rs.getLong(COL_BACKUP_STARTED_ON));
 				status.setProgresssMessage(rs.getString(COL_BACKUP_PROGRESS_MESSAGE));
 				status.setProgresssCurrent(rs.getLong(COL_BAKUP_PROGRESS_CURRENT));
@@ -96,7 +96,7 @@ public class DBODaemonStatus implements AutoIncrementDatabaseObject<DBODaemonSta
 	private Long id;
 	private String status;
 	private String type;
-	private String startedBy;
+	private Long startedBy;
 	private Long startedOn;
 	private String progresssMessage;
 	private Long progresssCurrent;
@@ -130,11 +130,11 @@ public class DBODaemonStatus implements AutoIncrementDatabaseObject<DBODaemonSta
 		this.type = type;
 	}
 
-	public String getStartedBy() {
+	public Long getStartedBy() {
 		return startedBy;
 	}
 
-	public void setStartedBy(String startedBy) {
+	public void setStartedBy(Long startedBy) {
 		this.startedBy = startedBy;
 	}
 

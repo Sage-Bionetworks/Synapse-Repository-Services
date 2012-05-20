@@ -9,30 +9,42 @@ import java.util.HashMap;
 import java.util.Set;
 
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.ContextConfiguration;
+import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * Test to convert from JDO to DTO
  * @author jmhill
  *
- */
+ */@RunWith(SpringJUnit4ClassRunner.class)
+ @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class JDONodeUtilsTest {
 	
+	@Autowired
+	private UserGroupDAO userGroupDAO;
+
 	
 	@Test
-	public void testRoundTrip() throws DatastoreException{
+	public void testRoundTrip() throws DatastoreException, InvalidModelException {
+		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 		Node node = new Node();
 		node.setName("myName");
 		node.setDescription("someDescription");
 		node.setId(KeyFactory.keyToString(101L));
 //		node.setNodeType(ObjectType.project.name());
-		node.setCreatedBy("createdByMe");
-		node.setModifiedBy("modifiedByMe");
+		node.setCreatedByPrincipalId(createdById);
+		node.setModifiedByPrincipalId(createdById);
 		node.setETag("1013");
 		node.setCreatedOn(new Date(System.currentTimeMillis()+99));
 		node.setModifiedOn(new Date(System.currentTimeMillis()+2993));
@@ -58,16 +70,17 @@ public class JDONodeUtilsTest {
 	
 	@Test
 	public void testJDOParentId() throws DatastoreException{
+		String createdById = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
 		DBONode parent = new DBONode();
 		parent.setId(new Long(123));
 		DBONode child = new DBONode();
 		child.setName("name");
 		child.setParentId(parent.getId());
 		child.setCreatedOn(System.currentTimeMillis());
-		child.setCreatedBy("createdBy");
+		child.setCreatedBy(Long.parseLong(createdById));
 		// Make sure the parent id goes to the child
 		DBORevision rev = new DBORevision();
-		rev.setModifiedBy("modifiedBy");
+		rev.setModifiedBy(Long.parseLong(createdById));
 		rev.setModifiedOn(System.currentTimeMillis());
 		rev.setRevisionNumber(new Long(21));
 		Node dto = JDONodeUtils.copyFromJDO(child, rev);
@@ -78,12 +91,13 @@ public class JDONodeUtilsTest {
 	
 	@Test
 	public void testreplaceFromDto() throws DatastoreException, UnsupportedEncodingException{
+		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 		Node node = new Node();
 		node.setName("myName");
 		node.setDescription("someDescription");
 		node.setId("101");
 		node.setNodeType(EntityType.project.name());
-		node.setCreatedBy("createdByMe");
+		node.setCreatedByPrincipalId(createdById);
 		node.setETag("1013");
 		node.setCreatedOn(new Date(10000));
 		node.setVersionNumber(2L);
@@ -95,7 +109,7 @@ public class JDONodeUtilsTest {
 		assertEquals("myName", dboNode.getName());
 		assertNotNull(dboNode.getDescription());
 		assertEquals("someDescription", new String(dboNode.getDescription(),"UTF-8"));
-		assertEquals("createdByMe", dboNode.getCreatedBy());
+		assertEquals(createdById, dboNode.getCreatedBy());
 		assertEquals(10000l, (long)dboNode.getCreatedOn());
 		assertEquals(2l, (long)dboNode.getCurrentRevNumber());
 		assertEquals(1013l, (long)dboNode.geteTag());

@@ -21,6 +21,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
@@ -106,7 +107,8 @@ public class DBOReferenceDaoImplTest {
 			node.setId(idGenerator.generateNewId());
 			toDelete.add(node);
 			node.setBenefactorId(node.getId());
-			node.setCreatedBy("DBOAnnotationsDaoImplTest");
+			long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+			node.setCreatedBy(createdById);
 			node.setCreatedOn(System.currentTimeMillis());
 			node.setCurrentRevNumber(null);
 			node.setDescription("A basic description".getBytes("UTF-8"));
@@ -413,14 +415,13 @@ public class DBOReferenceDaoImplTest {
 		String groupId = userGroupDAO.create(group);
 		group.setId(groupId);
 		groupsToDelete.add(groupId);
-		
+
+		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+
 		// create an ACL for node0
 		AccessControlList acl = new AccessControlList();
 		acl.setId(""+node0.getId());
-		acl.setCreatedBy("foo");
-		acl.setModifiedBy("foo");
 		acl.setCreationDate(new Date());
-		acl.setModifiedOn(new Date());
 		// add the group to the ACL
 		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
 		ResourceAccess ra = new ResourceAccess();

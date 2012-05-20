@@ -68,6 +68,10 @@ public interface UserManager {
 	 */
 	public boolean deletePrincipal(String name);
 
-	
+	/**
+	 * @param principalId
+	 * @return for a group, returns the group name, for a user returns the display name in the user's profile
+	 */
+	public String getDisplayName(Long principalId) throws NotFoundException, DatastoreException;
 
 }

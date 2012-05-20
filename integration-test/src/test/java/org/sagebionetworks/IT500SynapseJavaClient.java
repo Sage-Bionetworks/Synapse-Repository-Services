@@ -13,8 +13,9 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
-
+import org.apache.http.HttpException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -25,7 +26,9 @@ import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -37,6 +40,7 @@ import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -161,6 +165,20 @@ public class IT500SynapseJavaClient {
 		assertNotNull(uep);
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
+		
+		// ACL should reflect this information
+		AccessControlList acl = synapse.getACL(project.getId());
+		Set<ResourceAccess> ras = acl.getResourceAccess();
+		boolean foundit = false;
+		for (ResourceAccess ra : ras) {
+			if (ra.getGroupName().equals(StackConfiguration.getIntegrationTestUserOneName())) {
+				foundit=true;
+				Set<ACCESS_TYPE> ats = ra.getAccessType();
+				assertTrue(ats.contains(ACCESS_TYPE.READ));
+				assertTrue(ats.contains(ACCESS_TYPE.UPDATE));
+			}
+		}
+		assertTrue(foundit);
 		
 		// Get the path
 		EntityPath path = synapse.getEntityPath(aNewDataset.getId());

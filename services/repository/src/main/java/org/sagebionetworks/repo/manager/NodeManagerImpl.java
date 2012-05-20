@@ -100,11 +100,11 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		NodeManagerImpl.validateNode(newNode);
 		UserInfo.validateUserInfo(userInfo);
 		// Also validate the username
-		String userName = userInfo.getUser().getUserId();
+		Long userIndividualGroupId = Long.parseLong(userInfo.getIndividualGroup().getId());
 		// Validate the creations data
-		NodeManagerImpl.validateNodeCreationData(userName, newNode);
+		NodeManagerImpl.validateNodeCreationData(userIndividualGroupId, newNode);
 		// Validate the modified data.
-		NodeManagerImpl.validateNodeModifiedData(userName, newNode);
+		NodeManagerImpl.validateNodeModifiedData(userIndividualGroupId, newNode);
 		
 		// What is the object type of this node
 		EntityType type = EntityType.valueOf(newNode.getNodeType());
@@ -125,7 +125,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		
 		// check whether the user is allowed to create this type of node
 		if (!authorizationManager.canCreate(userInfo, newNode)) {
-			throw new UnauthorizedException(userName+" is not allowed to create items of type "+newNode.getNodeType());
+			throw new UnauthorizedException(userInfo.getUser().getUserId()+" is not allowed to create items of type "+newNode.getNodeType());
 		}
 
 		// If they are allowed then let them create the node
@@ -149,7 +149,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// adding access is done at a higher level, not here
 		//authorizationManager.addUserAccess(newNode, userInfo);
 		if(log.isDebugEnabled()){
-			log.debug("username: "+userName+" created node: "+id);
+			log.debug("username: "+userInfo.getUser().getUserId()+" created node: "+id);
 		}
 		return id;
 	}
@@ -177,17 +177,22 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 * @param newNode
 	 * @return
 	 */
-	public static void validateNodeCreationData(String userName, Node newNode){
-		if(userName == null) throw new IllegalArgumentException("Username cannot be null");
+	public static void validateNodeCreationData(Long userIndividualGroupId, Node newNode){
+		if(userIndividualGroupId == null) throw new IllegalArgumentException("userIndividualGroupId cannot be null");
 		if(newNode == null) throw new IllegalArgumentException("New node cannot be null");
-		// If createdBy is not set then set it
-		if(newNode.getCreatedBy() == null ){
-			newNode.setCreatedBy(userName);
-		}
-		// If createdOn is not set then set it with the current time.
-		if(newNode.getCreatedOn() == null){
+			newNode.setCreatedByPrincipalId(userIndividualGroupId);
 			newNode.setCreatedOn(new Date(System.currentTimeMillis()));
-		}
+	}
+	
+	/**
+	 * When updating a node we clear the 'createdOn' and 'createdBy' fields to tell NodeDAO not to update them.
+	 * 
+	 * 
+	 * @param existingNode
+	 */
+	public static void clearNodeCreationDataForUpdate(Node existingNode) {
+		if(existingNode == null) throw new IllegalArgumentException("Node cannot be null");
+		existingNode.clearNodeCreationData();
 	}
 	
 	/**
@@ -196,11 +201,10 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 * @param newNode
 	 * @return
 	 */
-	public static void validateNodeModifiedData(String userName, Node newNode){
-		if(userName == null) throw new IllegalArgumentException("Username cannot be null");
+	public static void validateNodeModifiedData(Long userIndividualGroupId, Node newNode){
+		if(userIndividualGroupId == null) throw new IllegalArgumentException("Username cannot be null");
 		if(newNode == null) throw new IllegalArgumentException("New node cannot be null");
-		// If createdBy is not set then set it
-		newNode.setModifiedBy(userName);
+		newNode.setModifiedByPrincipalId(userIndividualGroupId);
 		newNode.setModifiedOn(new Date(System.currentTimeMillis()));
 	}
 
@@ -278,10 +282,10 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public Node update(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getUser().getUserId();
+		Long userIndividualGroupId = Long.parseLong(userInfo.getIndividualGroup().getId());
 		NodeManagerImpl.validateNode(updatedNode);
 		if (!authorizationManager.canAccess(userInfo, updatedNode.getId(), AuthorizationConstants.ACCESS_TYPE.UPDATE)) {
-			throw new UnauthorizedException(userName+" lacks change access to the requested object.");
+			throw new UnauthorizedException(userInfo.getUser().getUserId()+" lacks change access to the requested object.");
 		}
 		// make sure the eTags match
 		if(updatedAnnos != null){
@@ -290,8 +294,10 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Now lock this node
 		String nextETag = nodeDao.lockNodeAndIncrementEtag(updatedNode.getId(), updatedNode.getETag());
 		
+		// clear node creation data.  this tells NodeDAO not to change the fields
+		NodeManagerImpl.clearNodeCreationDataForUpdate(updatedNode);
 		// Clear the modified data and fill it in with the new data
-		NodeManagerImpl.validateNodeModifiedData(userName, updatedNode);
+		NodeManagerImpl.validateNodeModifiedData(userIndividualGroupId, updatedNode);
 		// If this is a new version then we need to create a new version before the update
 		if(newVersion){
 			// This will create a new version and set the new version to 
@@ -318,7 +324,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			nodeDao.updateAnnotations(updatedNode.getId(), updatedAnnos);
 		}
 		if(log.isDebugEnabled()){
-			log.debug("username "+userName+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
+			log.debug("username "+userInfo.getUser().getUserId()+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
 		}
 		// Return the new node
 		return get(userInfo, updatedNode.getId());

@@ -22,6 +22,7 @@ public class NodeRevisionBackup {
 	private String label;
 	private String comment;
 	private String modifiedBy;
+	private Long modifiedByPrincipalId;
 	private Date modifiedOn;
 	private String xmlVersion;
 	/**
@@ -115,6 +116,20 @@ public class NodeRevisionBackup {
 	}
 	
 	/**
+	 * @return the modifiedByPrincipalId
+	 */
+	public Long getModifiedByPrincipalId() {
+		return modifiedByPrincipalId;
+	}
+
+	/**
+	 * @param modifiedByPrincipalId the modifiedByPrincipalId to set
+	 */
+	public void setModifiedByPrincipalId(Long modifiedByPrincipalId) {
+		this.modifiedByPrincipalId = modifiedByPrincipalId;
+	}
+
+	/**
 	 * @return the references
 	 */
 	public Map<String, Set<Reference>> getReferences() {
@@ -140,6 +155,10 @@ public class NodeRevisionBackup {
 		result = prime * result + ((label == null) ? 0 : label.hashCode());
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
+		result = prime
+				* result
+				+ ((modifiedByPrincipalId == null) ? 0 : modifiedByPrincipalId
+						.hashCode());
 		result = prime * result
 				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime
@@ -186,6 +205,11 @@ public class NodeRevisionBackup {
 			if (other.modifiedBy != null)
 				return false;
 		} else if (!modifiedBy.equals(other.modifiedBy))
+			return false;
+		if (modifiedByPrincipalId == null) {
+			if (other.modifiedByPrincipalId != null)
+				return false;
+		} else if (!modifiedByPrincipalId.equals(other.modifiedByPrincipalId))
 			return false;
 		if (modifiedOn == null) {
 			if (other.modifiedOn != null)

@@ -87,6 +87,7 @@ public class JDONodeQueryUnitTest {
 		assertNotNull(groupBindValue1);
 		assertTrue(123L == groupBindValue0.longValue() || 123L == groupBindValue1.longValue());
 		assertTrue(124L == groupBindValue0.longValue() || 124L == groupBindValue1.longValue());
+		System.out.print(sql);
 	}
 	
 	@Test

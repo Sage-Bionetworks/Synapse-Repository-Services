@@ -110,49 +110,49 @@ public class NodeManagerImpleUnitTest {
 	@Test
 	public void testValidateNodeCreatedDataWithPreset(){
 		Node node = new Node();
-		String presetCreatedBy = "createdByMe";
+		Long presetCreatedBy = 1L;
 		Date presetCreatedOn = new Date(100L);
-		node.setCreatedBy(presetCreatedBy);
+		node.setCreatedByPrincipalId(presetCreatedBy);
 		node.setCreatedOn(presetCreatedOn);
 		// Now validate the node
-		NodeManagerImpl.validateNodeCreationData(AuthorizationConstants.ANONYMOUS_USER_ID, node);
-		// the values should not have changed
-		assertEquals(presetCreatedOn, node.getCreatedOn());
-		assertEquals(presetCreatedBy, node.getCreatedBy());
+		NodeManagerImpl.validateNodeCreationData(Long.parseLong(anonUserInfo.getIndividualGroup().getId()), node);
+		// the values SHOULD  have changed
+		assertTrue(Math.abs(System.currentTimeMillis()-node.getCreatedOn().getTime())<100L);
+		assertEquals(anonUserInfo.getIndividualGroup().getId(), node.getCreatedByPrincipalId().toString());
 	}
 	
 	@Test
 	public void testValidateNodeCreatedDataWithNulls(){
 		Node node = new Node();
 		// Now validate the node
-		NodeManagerImpl.validateNodeCreationData(AuthorizationConstants.ANONYMOUS_USER_ID, node);
+		NodeManagerImpl.validateNodeCreationData(Long.parseLong(anonUserInfo.getIndividualGroup().getId()), node);
 		// the values should not have changed
 		assertNotNull(node.getCreatedOn());
-		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, node.getCreatedBy());
+		assertEquals(anonUserInfo.getIndividualGroup().getId(), node.getCreatedByPrincipalId().toString());
 	}
 	
 	@Test
 	public void testValidateNodeModifiedDataWithPreset(){
 		Node node = new Node();
-		String presetModifiedBy = "modifiedByMe";
+		Long presetModifiedBy = 2L;
 		Date presetModifiedOn = new Date(100L);
-		node.setModifiedBy(presetModifiedBy);
+		node.setModifiedByPrincipalId(presetModifiedBy);
 		node.setModifiedOn(presetModifiedOn);
 		// Now validate the node
-		NodeManagerImpl.validateNodeModifiedData(AuthorizationConstants.ANONYMOUS_USER_ID, node);
+		NodeManagerImpl.validateNodeModifiedData(Long.parseLong(anonUserInfo.getIndividualGroup().getId()), node);
 		// the values should have changed
 		assertTrue(!presetModifiedOn.equals( node.getModifiedOn()));
-		assertTrue(!presetModifiedBy.equals( node.getModifiedBy()));
+		assertTrue(!presetModifiedBy.equals( node.getModifiedByPrincipalId().toString()));
 	}
 	
 	@Test
 	public void testValidateNodeModifiedDataWithNulls(){
 		Node node = new Node();
 		// Now validate the node
-		NodeManagerImpl.validateNodeModifiedData(AuthorizationConstants.ANONYMOUS_USER_ID, node);
+		NodeManagerImpl.validateNodeModifiedData(Long.parseLong(anonUserInfo.getIndividualGroup().getId()), node);
 		// the values should not have changed
 		assertNotNull(node.getModifiedOn());
-		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, node.getModifiedBy());
+		assertEquals(anonUserInfo.getIndividualGroup().getId(), node.getModifiedByPrincipalId().toString());
 	}
 	
 	@Test
@@ -174,10 +174,10 @@ public class NodeManagerImpleUnitTest {
 		assertEquals("101", id);
 		Node processedNode = argument.getValue();
 		assertNotNull(processedNode);
-		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, processedNode.getCreatedBy());
-		assertEquals(AuthorizationConstants.ANONYMOUS_USER_ID, processedNode.getModifiedBy());
+		assertEquals(anonUserInfo.getIndividualGroup().getId(), processedNode.getCreatedByPrincipalId().toString());
+		assertEquals(anonUserInfo.getIndividualGroup().getId(), processedNode.getModifiedByPrincipalId().toString());
 		assertNotNull(processedNode.getModifiedOn());
-		assertNotNull(processedNode.getModifiedBy());
+		assertNotNull(processedNode.getModifiedByPrincipalId());
 	}
 
 	

@@ -284,7 +284,15 @@ public class MigrationControlPresenter {
 						// Give interrupt a chance.
 						Thread.sleep(100);
 						log.debug("Finished phase one.  Source entity count: "+sourceData.size()+". Destination entity Count: "+destData.size());
-						// Start phase 2
+
+						// Phase 2:  Get the UserGroup data (Principal ID and User Profile ETag)
+						//	NOTE:  IF the UserGroup is a group rather than an individual then there will be no Profile and hence no ETag
+						
+						// Phase 3: Build User create-update (no delete) jobs
+						// Start running
+						// wait for completion
+						
+						// Start phase 4
 						log.debug("Starting phase two: Calculating creates, updates, and deletes...");
 						ResponseBundle response = RepositoryMigrationDriver.populateQueue(threadPool, jobQueue, sourceData, destData);
 						// Build the prefix
@@ -292,7 +300,7 @@ public class MigrationControlPresenter {
 						BuilderResponse update = response.getUpdateResponse();
 						BuilderResponse delete = response.getDeleteResponse();
 						String prefix = "Creating: "+create.getSubmitedToQueue()+", Updating: "+update.getSubmitedToQueue()+", Deleting: "+delete.getSubmitedToQueue()+", Pending: "+create.getPendingDependancies()+".  ";
-						// 3. Process all jobs on the queue.
+						// Phase 5. Process all jobs on the queue.
 						log.debug("Starting phase three: Processing the job queue...");
 						AggregateProgress consumingProgress = new AggregateProgress();
 						

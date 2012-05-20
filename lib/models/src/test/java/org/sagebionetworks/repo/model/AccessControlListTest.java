@@ -27,10 +27,7 @@ public class AccessControlListTest {
 		AccessControlList acl = AccessControlList.createACLToGrantAll(nodeId, info);
 		assertNotNull(acl);
 		assertEquals(acl.getId(), nodeId);
-		assertEquals(user.getUserId(), acl.getCreatedBy());
-		assertEquals(user.getUserId(), acl.getModifiedBy());
 		assertNotNull(acl.getCreationDate());
-		assertNotNull(acl.getModifiedOn());
 		assertNotNull(acl.getResourceAccess());
 		assertEquals(1, acl.getResourceAccess().size());
 		ResourceAccess ra = acl.getResourceAccess().iterator().next();

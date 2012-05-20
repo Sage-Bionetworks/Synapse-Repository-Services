@@ -19,7 +19,7 @@ public class NodeTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testSetCreatedByNull(){
 		Node node = new Node();
-		node.setCreatedBy(null);
+		node.setCreatedByPrincipalId(null);
 	}
 	@Test(expected=IllegalArgumentException.class)
 	public void testSetCreatedOnNull(){
@@ -29,7 +29,7 @@ public class NodeTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testSetModifiedByNull(){
 		Node node = new Node();
-		node.setModifiedBy(null);
+		node.setModifiedByPrincipalId(null);
 	}
 	@Test(expected=IllegalArgumentException.class)
 	public void testSetModifiedOnNull(){

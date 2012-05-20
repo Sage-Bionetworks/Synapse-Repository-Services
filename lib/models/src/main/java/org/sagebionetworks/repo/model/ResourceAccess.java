@@ -8,7 +8,13 @@ import java.util.Set;
  * which has only one object for each group.
  */
 public class ResourceAccess {
-	private String groupName;
+	
+	private String groupName; // TODO deprecate this!!!
+	
+	private Long principalId;
+	
+	private String displayName;
+	
 	private Set<AuthorizationConstants.ACCESS_TYPE> accessType;
 
 	/**
@@ -34,6 +40,9 @@ public class ResourceAccess {
 		this.groupName = groupName;
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -41,10 +50,17 @@ public class ResourceAccess {
 		result = prime * result
 				+ ((accessType == null) ? 0 : accessType.hashCode());
 		result = prime * result
+				+ ((displayName == null) ? 0 : displayName.hashCode());
+		result = prime * result
 				+ ((groupName == null) ? 0 : groupName.hashCode());
+		result = prime * result
+				+ ((principalId == null) ? 0 : principalId.hashCode());
 		return result;
 	}
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -59,10 +75,20 @@ public class ResourceAccess {
 				return false;
 		} else if (!accessType.equals(other.accessType))
 			return false;
+		if (displayName == null) {
+			if (other.displayName != null)
+				return false;
+		} else if (!displayName.equals(other.displayName))
+			return false;
 		if (groupName == null) {
 			if (other.groupName != null)
 				return false;
 		} else if (!groupName.equals(other.groupName))
+			return false;
+		if (principalId == null) {
+			if (other.principalId != null)
+				return false;
+		} else if (!principalId.equals(other.principalId))
 			return false;
 		return true;
 	}
@@ -71,6 +97,34 @@ public class ResourceAccess {
 	public String toString() {
 		return "ResourceAccess [groupName=" + groupName + ", accessType="
 				+ accessType + "]";
+	}
+
+	/**
+	 * @return the principalId
+	 */
+	public Long getPrincipalId() {
+		return principalId;
+	}
+
+	/**
+	 * @param principalId the principalId to set
+	 */
+	public void setPrincipalId(Long principalId) {
+		this.principalId = principalId;
+	}
+
+	/**
+	 * @return the displayName
+	 */
+	public String getDisplayName() {
+		return displayName;
+	}
+
+	/**
+	 * @param displayName the displayName to set
+	 */
+	public void setDisplayName(String displayName) {
+		this.displayName = displayName;
 	}
 
 }

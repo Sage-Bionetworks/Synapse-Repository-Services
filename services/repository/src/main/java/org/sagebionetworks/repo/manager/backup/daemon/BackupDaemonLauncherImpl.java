@@ -50,7 +50,7 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		// Create a new daemon and start it
 		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, entitiesToBackup);
 		// Start that bad boy up!
-		return daemon.startBackup(username.getUser().getUserId());
+		return daemon.startBackup(username.getIndividualGroup().getId());
 	}
 
 	@Override
@@ -63,7 +63,7 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		// Create a new daemon and start it
 		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, workflowBucket, backupDaemonThreadPool, backupDaemonThreadPool2, entityIds);
 		// Start that bad boy up!
-		return daemon.startSearchDocument(username.getUser().getUserId());
+		return daemon.startSearchDocument(username.getIndividualGroup().getId());
 	}
 	
 	@Override
@@ -75,7 +75,7 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		AmazonS3Client client = createNewAWSClient();
 		// Create a new daemon and start it
 		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2);
-		return daemon.startRestore(username.getUser().getUserId(), fileName);
+		return daemon.startRestore(username.getIndividualGroup().getId(), fileName);
 	}
 
 	/**

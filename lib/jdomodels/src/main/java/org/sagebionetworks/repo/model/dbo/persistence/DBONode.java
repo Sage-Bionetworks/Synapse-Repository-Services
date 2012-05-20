@@ -56,7 +56,7 @@ public class DBONode implements DatabaseObject<DBONode> {
 					node.setDescription(blob.getBytes(1, (int) blob.length()));
 				}
 				node.seteTag(rs.getLong(COL_NODE_ETAG));
-				node.setCreatedBy(rs.getString(COL_NODE_CREATED_BY));
+				node.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 				node.setCreatedOn(rs.getLong(COL_NODE_CREATED_ON));
 				node.setNodeType(rs.getShort(COL_NODE_TYPE));
 				node.setBenefactorId(rs.getLong(COL_NODE_BENEFACTOR_ID));
@@ -95,7 +95,7 @@ public class DBONode implements DatabaseObject<DBONode> {
 	private Long currentRevNumber;
 	private byte[] description;
 	private Long eTag = null;
-	private String createdBy;
+	private Long createdBy;
 	private Long createdOn;
 	private Short nodeType;	
 	private Long benefactorId;
@@ -136,10 +136,10 @@ public class DBONode implements DatabaseObject<DBONode> {
 	public void seteTag(Long eTag) {
 		this.eTag = eTag;
 	}
-	public String getCreatedBy() {
+	public Long getCreatedBy() {
 		return createdBy;
 	}
-	public void setCreatedBy(String createdBy) {
+	public void setCreatedBy(Long createdBy) {
 		this.createdBy = createdBy;
 	}
 	public Long getCreatedOn() {

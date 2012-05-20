@@ -68,15 +68,19 @@ public class BackupDaemonTest {
 		daemon = new BackupDaemon(stubDao, mockDriver, mockSearchDocumentDriver, mockAwsClient, "someFakeBucket", threadPool, threadPool2);
 	}
 	
+	private String getStarterPrincipalId() {
+		return "0"; // in real life this is a foreign key to the UserGroup table
+	}
+	
 	@Test
 	public void testSuccessfulBackupRun() throws UnauthorizedException, DatastoreException, NotFoundException, InterruptedException, IOException{
 		// Start the daemon
-		BackupRestoreStatus status = daemon.startBackup("someUser@sagebase.org");
+		BackupRestoreStatus status = daemon.startBackup(getStarterPrincipalId());
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		assertNotNull(status.getStatus());
 		assertEquals(DaemonType.BACKUP, status.getType());
-		assertEquals("someUser@sagebase.org", status.getStartedBy());
+		assertEquals(getStarterPrincipalId(), status.getStartedBy());
 		assertNotNull(status.getStartedOn());
 		
 		String id = status.getId();
@@ -106,12 +110,12 @@ public class BackupDaemonTest {
 	@Test
 	public void testSuccessfulRestoreRun() throws UnauthorizedException, DatastoreException, NotFoundException, InterruptedException, IOException{
 		// Start the daemon
-		BackupRestoreStatus status = daemon.startRestore("someUser@sagebase.org", "someBackupFileName");
+		BackupRestoreStatus status = daemon.startRestore(getStarterPrincipalId(), "someBackupFileName");
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		assertNotNull(status.getStatus());
 		assertEquals(DaemonType.RESTORE, status.getType());
-		assertEquals("someUser@sagebase.org", status.getStartedBy());
+		assertEquals(getStarterPrincipalId(), status.getStartedBy());
 		assertNotNull(status.getStartedOn());
 		
 		String id = status.getId();
@@ -140,7 +144,7 @@ public class BackupDaemonTest {
 	public void testTerminationBackup() throws Exception, DatastoreException{
 		// Test that we can force a termination.
 		// Start the daemon
-		BackupRestoreStatus status = daemon.startBackup("someUser@sagebase.org");
+		BackupRestoreStatus status = daemon.startBackup(getStarterPrincipalId());
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		String id = status.getId();
@@ -159,7 +163,7 @@ public class BackupDaemonTest {
 	public void testTerminationRestore() throws Exception, DatastoreException{
 		// Test that we can force a termination.
 		// Start the daemon
-		BackupRestoreStatus status = daemon.startRestore("someUser@sagebase.org", "String filename");
+		BackupRestoreStatus status = daemon.startRestore(getStarterPrincipalId(), "String filename");
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		String id = status.getId();
@@ -177,7 +181,7 @@ public class BackupDaemonTest {
 	public void testDriverFailureBackup() throws Exception, DatastoreException{
 		// Simulate a driver failure
 		when(mockDriver.writeBackup((File)any(), (Progress)any(), (Set<String>)any())).thenThrow(new InterruptedException());
-		BackupRestoreStatus status = daemon.startBackup("someUser@sagebase.org");
+		BackupRestoreStatus status = daemon.startBackup(getStarterPrincipalId());
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		String id = status.getId();
@@ -194,7 +198,7 @@ public class BackupDaemonTest {
 	public void testDriverFailureRestore() throws Exception, DatastoreException{
 		// Simulate a driver failure
 		when(mockDriver.restoreFromBackup((File)any(), (Progress)any())).thenThrow(new InterruptedException());
-		BackupRestoreStatus status = daemon.startRestore("someUser@sagebase.org", "SomeFileName");
+		BackupRestoreStatus status = daemon.startRestore(getStarterPrincipalId(), "SomeFileName");
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		String id = status.getId();
@@ -211,7 +215,7 @@ public class BackupDaemonTest {
 	public void testAwsClientFailureBackup() throws Exception, DatastoreException{
 		// This time simulate an AWS failure
 		when(mockAwsClient.putObject( (String)any(), (String)any(), (File)any() )).thenThrow(new AmazonClientException("Some error"));
-		BackupRestoreStatus status = daemon.startBackup("someUser@sagebase.org");
+		BackupRestoreStatus status = daemon.startBackup(getStarterPrincipalId());
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		String id = status.getId();
@@ -228,7 +232,7 @@ public class BackupDaemonTest {
 	public void testAwsClientFailureRestore() throws Exception, DatastoreException{
 		// This time simulate an AWS failure
 		when(mockAwsClient.getObject((GetObjectRequest) any(),(File)any() )).thenThrow(new AmazonClientException("Some error"));
-		BackupRestoreStatus status = daemon.startRestore("someUser@sagebase.org", "some file neam");
+		BackupRestoreStatus status = daemon.startRestore(getStarterPrincipalId(), "some file neam");
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		String id = status.getId();

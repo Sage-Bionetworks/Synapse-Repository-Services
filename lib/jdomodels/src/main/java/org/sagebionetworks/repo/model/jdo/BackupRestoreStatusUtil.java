@@ -31,7 +31,7 @@ public class BackupRestoreStatusUtil {
 		}
 		dto.setStatus(DaemonStatus.valueOf(jdo.getStatus()));
 		dto.setType(DaemonType.valueOf(jdo.getType()));
-		dto.setStartedBy(jdo.getStartedBy());
+		dto.setStartedBy(jdo.getStartedBy().toString());
 		if(jdo.getStartedOn() != null){
 			dto.setStartedOn(new Date(jdo.getStartedOn()));
 		}
@@ -63,7 +63,7 @@ public class BackupRestoreStatusUtil {
 		}
 		jdo.setStatus(dto.getStatus().name());
 		jdo.setType(dto.getType().name());
-		jdo.setStartedBy(dto.getStartedBy());
+		jdo.setStartedBy(Long.parseLong(dto.getStartedBy()));
 		if(dto.getStartedOn() != null){
 			jdo.setStartedOn(dto.getStartedOn().getTime());
 		}

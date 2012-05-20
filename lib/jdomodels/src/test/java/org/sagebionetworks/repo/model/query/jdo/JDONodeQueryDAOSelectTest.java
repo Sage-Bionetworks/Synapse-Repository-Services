@@ -14,14 +14,17 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
@@ -54,6 +57,9 @@ public class JDONodeQueryDAOSelectTest {
 	@Autowired
 	private NodeDAO nodeDao;
 	
+	@Autowired
+	UserGroupDAO userGroupDAO;
+
 	private UserInfo mockUserInfo = null;
 	
 	private static List<String> nodeIds = new ArrayList<String>();
@@ -99,8 +105,9 @@ public class JDONodeQueryDAOSelectTest {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	private String createSingleNode(String name) throws NotFoundException,	DatastoreException {
-		Node root = NodeTestUtils.createNew(name);
+	private String createSingleNode(String name) throws NotFoundException,	DatastoreException, InvalidModelException  {
+		Long createdBy = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		Node root = NodeTestUtils.createNew(name, createdBy);
 		String id = nodeDao.createNew(root);
 		nodeIds.add(id);
 		root = nodeDao.getNode(id);

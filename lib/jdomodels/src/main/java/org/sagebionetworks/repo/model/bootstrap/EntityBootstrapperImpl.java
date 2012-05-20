@@ -10,13 +10,16 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,6 +52,8 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 		// First make sure the nodeDao has been boostraped
 		nodeDao.boostrapAllNodeTypes();
 		pathMap = Collections.synchronizedMap(new HashMap<String, EntityBootstrapData>());
+		
+		UserGroup bootstrapPrincipal = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false);
 		// Map the default users to their ids
 		// Now create a node for each type in the list
 		for(EntityBootstrapData entityBoot: bootstrapEntities){
@@ -77,14 +82,14 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			toCreate.setDescription(entityBoot.getEntityDescription());
 			if(entityBoot.getEntityType() == null) throw new IllegalArgumentException("Bootstrap 'entityType' cannot be null");
 			toCreate.setNodeType(entityBoot.getEntityType().name());
-			toCreate.setCreatedBy(NodeConstants.BOOTSTRAP_USERNAME);
+			toCreate.setCreatedByPrincipalId(Long.parseLong(bootstrapPrincipal.getId()));
 			toCreate.setCreatedOn(new Date(System.currentTimeMillis()));
-			toCreate.setModifiedBy(NodeConstants.BOOTSTRAP_USERNAME);
+			toCreate.setModifiedByPrincipalId(Long.parseLong(bootstrapPrincipal.getId()));
 			toCreate.setModifiedOn(toCreate.getCreatedOn());
 			toCreate.setVersionComment(NodeConstants.DEFAULT_VERSION_LABEL);
 			String nodeId = nodeDao.createNew(toCreate);
 			// Now create the ACL on the node
-			AccessControlList acl = createAcl(nodeId, entityBoot.getAccessList());
+			AccessControlList acl = createAcl(nodeId, bootstrapPrincipal.getId(), entityBoot.getAccessList());
 			// Now set the ACL for this node.
 			accessControlListDAO.create(acl);
 			nodeInheritanceDao.addBeneficiary(nodeId, nodeId);
@@ -125,14 +130,11 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	 * @param groupIdMap
 	 * @return
 	 */
-	public static AccessControlList createAcl(String nodeId, List<AccessBootstrapData> list){
+	public static AccessControlList createAcl(String nodeId, String creatorPrincipalId, List<AccessBootstrapData> list) throws DatastoreException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
 		AccessControlList acl = new AccessControlList();
-		acl.setCreatedBy(NodeConstants.BOOTSTRAP_USERNAME);
 		acl.setCreationDate(new Date(System.currentTimeMillis()));
 		acl.setId(nodeId);
-		acl.setModifiedBy(acl.getCreatedBy());
-		acl.setModifiedOn(acl.getCreationDate());
 		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(set);
 		for(AccessBootstrapData data: list){

@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -310,10 +311,17 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		User user = new User();
 		user.setUserId(name);
 		// Create a group for this user
-		UserGroup group = new UserGroup();
-		group.setName(name+"group");
-		group.setIndividual(true);
-		String id = userGroupDAO.create(group);
+		String userGroupName = name+"group";
+		UserGroup group = userGroupDAO.findGroup(userGroupName, true); //new UserGroup();
+		String id = null;
+		if (group==null) {
+			group = new UserGroup();
+			group.setName(userGroupName);
+			group.setIndividual(true);
+			id = userGroupDAO.create(group);
+		} else {
+			id = group.getId();
+		}
 		groupsToDelete.add(id);
 		group = userGroupDAO.get(id);
 		UserInfo info = new UserInfo(isAdmin);
@@ -334,10 +342,16 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	 * @throws NotFoundException
 	 */
 	private UserGroup createGroup(String name) throws DatastoreException, InvalidModelException, NotFoundException{
-		UserGroup group = new UserGroup();
-		group.setName(name);
-		group.setIndividual(false);
-		String id = userGroupDAO.create(group);
+		UserGroup group = userGroupDAO.findGroup(name, false);
+		String id = null;
+		if (group==null) { 
+			group = new UserGroup();
+			group.setName(name);
+			group.setIndividual(false);
+			id = userGroupDAO.create(group);
+		} else {
+			id = group.getId();
+		}
 		groupsToDelete.add(id);
 		return userGroupDAO.get(id);
 	}
@@ -373,6 +387,8 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	 */
 	@Override
 	public void afterPropertiesSet() throws Exception {
+		Long creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+
 		if(instance != null){
 			return;
 		}
@@ -417,7 +433,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		
 		// Now create the two projects
 		//Project A
-		projectA = NodeTestUtils.createNew("projectA");
+		projectA = NodeTestUtils.createNew("projectA", creatorUserGroupId);
 		projectA.setNodeType(EntityType.project.name());
 		String id = nodeDao.createNew(projectA);
 		nodesToDelete.add(id);
@@ -432,7 +448,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		acl.getResourceAccess().add(access);
 		accessControlListDAO.create(acl);
 		// Project B
-		projectB = NodeTestUtils.createNew("projectB");
+		projectB = NodeTestUtils.createNew("projectB", creatorUserGroupId);
 		projectB.setNodeType(EntityType.project.name());
 		id = nodeDao.createNew(projectB);
 		nodesToDelete.add(id);
@@ -450,7 +466,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		// Now add some nodes to each project.
 		nodesInProjectA = new HashMap<String, Node>();
 		for(int i=0; i<25; i++){
-			Node node = NodeTestUtils.createNew("nodeInProjectA"+i);
+			Node node = NodeTestUtils.createNew("nodeInProjectA"+i, creatorUserGroupId);
 			node.setNodeType(EntityType.dataset.name());
 			node.setParentId(projectA.getId());
 			id = nodeDao.createNew(node);
@@ -462,7 +478,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		// Now add some nodes to each project.
 		nodesInProjectB = new HashMap<String, Node>();
 		for(int i=0; i<25; i++){
-			Node node = NodeTestUtils.createNew("nodeInProjectB"+i);
+			Node node = NodeTestUtils.createNew("nodeInProjectB"+i, creatorUserGroupId);
 			node.setNodeType(EntityType.dataset.name());
 			node.setParentId(projectB.getId());
 			id = nodeDao.createNew(node);

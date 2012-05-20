@@ -4,9 +4,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.User;
@@ -27,9 +25,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	
 	@Autowired
 	NodeQueryDao nodeQueryDao;
-	
-	@Autowired
-	NodeDAO nodeDao;
+
 
 	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
 		User user = userInfo.getUser();

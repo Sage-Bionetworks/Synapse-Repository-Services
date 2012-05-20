@@ -30,10 +30,7 @@ public class AccessControlListUtils {
 		DBOAccessControlList dbo = new DBOAccessControlList();
 		dbo.setId(KeyFactory.stringToKey(acl.getId()));
 		dbo.setResource(dbo.getId());
-		dbo.setCreatedBy(acl.getCreatedBy());
 		dbo.setCreationDate(acl.getCreationDate().getTime());
-		dbo.setModifiedBy(acl.getModifiedBy());
-		dbo.setModifiedOn(acl.getModifiedOn().getTime());
 		return dbo;
 	}
 	
@@ -46,10 +43,7 @@ public class AccessControlListUtils {
 	public static AccessControlList createAcl(DBOAccessControlList dbo) throws DatastoreException {
 		AccessControlList acl = new AccessControlList();
 		acl.setId(KeyFactory.keyToString(dbo.getId()));
-		acl.setCreatedBy(dbo.getCreatedBy());
 		acl.setCreationDate(new Date(dbo.getCreationDate()));
-		acl.setModifiedBy(dbo.getModifiedBy());
-		acl.setModifiedOn(new Date(dbo.getModifiedOn()));
 		return acl;
 	}
 	
@@ -77,10 +71,7 @@ public class AccessControlListUtils {
 	public static void validateACL(AccessControlList acl) {
 		if(acl == null) throw new IllegalArgumentException("ACL cannot be null");
 		if(acl.getId() == null) throw new IllegalArgumentException("ACL.getID cannot be null");
-		if(acl.getCreatedBy() == null) throw new IllegalArgumentException("ACL.getCreatedBy() cannot be null");
 		if(acl.getCreationDate() == null) throw new IllegalArgumentException("ACL.getCreationDate() cannot be null");
-		if(acl.getModifiedBy() == null) throw new IllegalArgumentException("ACL.getModifiedBy() cannot be null");
-		if(acl.getModifiedOn() == null) throw new IllegalArgumentException("ACL.getModifiedOn() cannot be null");
 		if(acl.getResourceAccess() == null) throw new IllegalArgumentException("ACL.getResourceAccess() cannot be null");
 	}
 }

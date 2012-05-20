@@ -12,11 +12,11 @@ public class NodeTestUtils {
 	 * @param name
 	 * @return
 	 */
-	public static Node createNew(String name){
+	public static Node createNew(String name, Long creatorUserGroupId){
 		Node node = new Node();
 		node.setName(name);
-		node.setCreatedBy("anonymous");
-		node.setModifiedBy("anonymous");
+		node.setCreatedByPrincipalId(creatorUserGroupId); // was "anonymous"
+		node.setModifiedByPrincipalId(creatorUserGroupId); // was "anonymous"
 		node.setCreatedOn(new Date(System.currentTimeMillis()));
 		node.setModifiedOn(node.getCreatedOn());
 		node.setNodeType(EntityType.project.name());

@@ -301,10 +301,10 @@ public class BackupDaemon implements Runnable{
 	 * @throws UnauthorizedException
 	 * @throws DatastoreException
 	 */
-	public BackupRestoreStatus startBackup(String userName) throws DatastoreException {
-		if(userName == null) throw new IllegalArgumentException("Username cannot be null");
+	public BackupRestoreStatus startBackup(String userPrincipalId) throws DatastoreException {
+		if(userPrincipalId == null) throw new IllegalArgumentException("userPrincipalId cannot be null");
 		this.type = DaemonType.BACKUP;
-		return start(userName);
+		return start(userPrincipalId);
 	}
 	
 	/**
@@ -314,12 +314,12 @@ public class BackupDaemon implements Runnable{
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public BackupRestoreStatus startRestore(String userName, String fileName) throws DatastoreException {
-		if(userName == null) throw new IllegalArgumentException("Username cannot be null");
+	public BackupRestoreStatus startRestore(String userPrincipalId, String fileName) throws DatastoreException {
+		if(userPrincipalId == null) throw new IllegalArgumentException("userPrincipalId cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("Backup file name cannot be null");
 		this.type = DaemonType.RESTORE;
 		this.backupFileName = fileName;
-		return start(userName);
+		return start(userPrincipalId);
 	}
 
 	/**
@@ -330,16 +330,16 @@ public class BackupDaemon implements Runnable{
 	 * @throws UnauthorizedException
 	 * @throws DatastoreException
 	 */
-	public BackupRestoreStatus startSearchDocument(String userName) throws DatastoreException {
-		if(userName == null) throw new IllegalArgumentException("Username cannot be null");
+	public BackupRestoreStatus startSearchDocument(String userPrincipalId) throws DatastoreException {
+		if(userPrincipalId == null) throw new IllegalArgumentException("userPrincipalId cannot be null");
 		this.type = DaemonType.SEARCH_DOCUMENT;
-		return start(userName);
+		return start(userPrincipalId);
 	}
 
-	private BackupRestoreStatus start(String userName) throws DatastoreException {
+	private BackupRestoreStatus start(String userPrincipalId) throws DatastoreException {
 		// Now create the backup status
 		status = new BackupRestoreStatus();
-		status.setStartedBy(userName);
+		status.setStartedBy(userPrincipalId);
 		status.setStartedOn(new Date());
 		status.setStatus(DaemonStatus.IN_QUEUE);
 		status.setType(this.type);

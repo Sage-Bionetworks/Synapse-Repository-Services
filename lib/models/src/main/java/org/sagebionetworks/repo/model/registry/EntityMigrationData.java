@@ -21,6 +21,14 @@ public class EntityMigrationData {
 	private Map<EntityType, List<RenameFieldData>> renameMap;
 	
 	/**
+	 * 
+	 * this is a test, to support autowiring
+	 */
+	public EntityMigrationData() {
+		
+	}
+	
+	/**
 	 * Build up this object using data
 	 * @param data
 	 */
