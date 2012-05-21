@@ -9,6 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.repo.model.search.Hit;
@@ -256,6 +257,7 @@ public class IT510SynapseJavaClientSearchTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore
 	@Test
 	public void testUpdateACLBooleanQuerySearch() throws Exception {
 		SearchQuery searchQuery = new SearchQuery();
