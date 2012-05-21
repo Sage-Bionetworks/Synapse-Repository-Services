@@ -108,7 +108,6 @@ public class AccessControlList implements Base {
 		Set<ResourceAccess> set = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(set);
 		ResourceAccess access = new ResourceAccess();
-		set.add(access);
 		// This user should be able to do everything.
 		Set<ACCESS_TYPE> typeSet = new HashSet<AuthorizationConstants.ACCESS_TYPE>();
 		ACCESS_TYPE array[] = ACCESS_TYPE.values();
@@ -117,6 +116,9 @@ public class AccessControlList implements Base {
 		}
 		access.setAccessType(typeSet);
 		access.setGroupName(info.getIndividualGroup().getName());
+		access.setDisplayName(info.getUser().getDisplayName());
+		access.setPrincipalId(Long.parseLong(info.getIndividualGroup().getId()));
+		set.add(access);
 		return acl;
 	}
 

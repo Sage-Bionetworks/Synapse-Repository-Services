@@ -79,7 +79,12 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 		for(ResourceAccess ra: set){
 			DBOResourceAccess dboRa = new DBOResourceAccess();
 			dboRa.setOwner(owner);
-			dboRa.setUserGroupId(userGroupCache.getIdForUserGroupName(ra.getGroupName()));
+			if (ra.getPrincipalId()!=null) {
+				dboRa.setUserGroupId(ra.getPrincipalId());
+			} else {
+				// TODO deprecate this
+				dboRa.setUserGroupId(userGroupCache.getIdForUserGroupName(ra.getGroupName()));
+			}
 			dboRa = dboBasicDao.createNew(dboRa);
 			// Now add all of the access
 			Set<ACCESS_TYPE> access = ra.getAccessType();
@@ -111,6 +116,8 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 			// build up this type
 			ResourceAccess ra = new ResourceAccess();
 			ra.setGroupName(groupName);
+			ra.setPrincipalId(raDbo.getUserGroupId());
+			// TODO set display name
 			ra.setAccessType(new HashSet<ACCESS_TYPE>());
 			for(String typeString: typeList){
 				ra.getAccessType().add(ACCESS_TYPE.valueOf(typeString));

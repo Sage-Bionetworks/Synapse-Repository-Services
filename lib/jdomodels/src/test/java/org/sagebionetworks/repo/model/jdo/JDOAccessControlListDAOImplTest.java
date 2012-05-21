@@ -111,6 +111,8 @@ public class JDOAccessControlListDAOImplTest {
 		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
 		ResourceAccess ra = new ResourceAccess();
 		ra.setGroupName(group.getName()); 
+		ra.setPrincipalId(Long.parseLong(group.getId()));
+		ra.setDisplayName(group.getName());
 		ra.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
 				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
 						AuthorizationConstants.ACCESS_TYPE.READ
@@ -120,6 +122,13 @@ public class JDOAccessControlListDAOImplTest {
 		accessControlListDAO.update(acl);
 		acl = accessControlListDAO.getForResource(node.getId());
 		assertNotNull(acl);
+		ras = acl.getResourceAccess();
+		assertEquals(1, ras.size());
+		ResourceAccess raClone = ras.iterator().next();
+		assertEquals(ra.getGroupName(), raClone.getGroupName());
+		assertEquals(ra.getPrincipalId(), raClone.getPrincipalId());
+		// TODO assertEquals(ra.getDisplayName(), raClone.getDisplayName());
+		assertEquals(ra.getAccessType(), raClone.getAccessType());
 		aclList.add(acl);
 	}
 
@@ -259,6 +268,8 @@ public class JDOAccessControlListDAOImplTest {
 		// Now add a new resource access for group 2
 		ResourceAccess ra2 = new ResourceAccess();
 		ra2.setGroupName(group2.getName());
+		ra2.setPrincipalId(Long.parseLong(group2.getId()));
+		ra2.setDisplayName(group2.getName());
 		ra2.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
 				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
 						AuthorizationConstants.ACCESS_TYPE.READ,

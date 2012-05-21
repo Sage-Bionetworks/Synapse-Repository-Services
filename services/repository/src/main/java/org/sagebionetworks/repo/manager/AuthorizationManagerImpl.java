@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.User;
@@ -25,6 +26,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	
 	@Autowired
 	NodeQueryDao nodeQueryDao;
+	
+	@Autowired
+	NodeDAO nodeDAO;
 
 
 	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
@@ -73,6 +77,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (userInfo.isAdmin()) return true;
 		if (accessType.equals(AuthorizationConstants.ACCESS_TYPE.DOWNLOAD)) {
 			return canDownload(userInfo, nodeId);
+		}
+		{
+			// if the user is the owner of the object, then she has full access to the object
+			// (note, this does not include 'download' access, handled above
+			Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
+			Node node = nodeDAO.getNode(nodeId);
+			if (node.getCreatedByPrincipalId().equals(principalId)) return true;
 		}
 		// must look-up access
 		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(nodeId);

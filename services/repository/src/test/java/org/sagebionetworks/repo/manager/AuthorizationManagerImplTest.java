@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
+import java.util.Set;
 
 import org.junit.After;
 import org.junit.Before;
@@ -22,6 +24,7 @@ import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -46,6 +49,7 @@ public class AuthorizationManagerImplTest {
 		
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Node node = null;
+	private Node nodeCreatedByTestUser = null;
 	private Node childNode = null;
 	private UserInfo userInfo = null;
 	private UserInfo adminUser;
@@ -65,9 +69,9 @@ public class AuthorizationManagerImplTest {
 		return node;
 	}
 	
-	private Node createNode(String name, Long createdBy, Long modifiedBy, String parentId) throws Exception {
-		Node node = createDTO(name, createdBy, modifiedBy, parentId);
-		String nodeId = nodeManager.createNewNode(node, adminUser);
+	private Node createNode(String name, UserInfo creator, Long modifiedBy, String parentId) throws Exception {
+		Node node = createDTO(name, Long.parseLong(creator.getIndividualGroup().getId()), modifiedBy, parentId);
+		String nodeId = nodeManager.createNewNode(node, creator);
 		assertNotNull(nodeId);
 		node.setId(nodeId);
 		return node;
@@ -77,7 +81,7 @@ public class AuthorizationManagerImplTest {
 	public void setUp() throws Exception {
 		// userInfo
 		userManager.setUserDAO(new TestUserDAO()); // could use Mockito here
-		userInfo = userManager.getUserInfo("AuthorizationManagerImplTest.testuser");
+		userInfo = userManager.getUserInfo("AuthorizationManagerImplTest.testuser@foo.bar");
 		usersToDelete = new ArrayList<String>();
 		usersToDelete.add(userInfo.getIndividualGroup().getId());
 		usersToDelete.add(userInfo.getUser().getId());
@@ -85,14 +89,17 @@ public class AuthorizationManagerImplTest {
 		adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		usersToDelete.add(adminUser.getIndividualGroup().getId());
 		usersToDelete.add(adminUser.getUser().getId());
-		
+		Random rand = new Random();
 		// create a resource
-		node = createNode("foo", 1L, 2L, null);
+		node = createNode("foo_"+rand.nextLong(), adminUser, 2L, null);
 		nodeList.add(node);
 				
-		childNode = createNode("foo2", 3L, 4L, node.getId());
-		
+		childNode = createNode("foo2_"+rand.nextLong(), adminUser, 4L, node.getId());
 
+		Long testUserPrincipalId = Long.parseLong(userInfo.getIndividualGroup().getId());
+		nodeCreatedByTestUser = createNode("bar_"+rand.nextLong(), userInfo, testUserPrincipalId, null);
+		
+		nodeList.add(nodeCreatedByTestUser);
 	}
 
 	@After
@@ -108,6 +115,34 @@ public class AuthorizationManagerImplTest {
 		}
 		
 	}
+	
+	// test that removing a user from the ACL for their own node doesn't remove their access
+	@Test
+	public void testOwnership() throws Exception {
+		String pIdString = userInfo.getIndividualGroup().getId();
+		Long pId = Long.parseLong(pIdString);
+		assertTrue(authorizationManager.canAccess(userInfo, nodeCreatedByTestUser.getId(), ACCESS_TYPE.READ));
+		// remove user from ACL
+		AccessControlList acl = permissionsManager.getACL(nodeCreatedByTestUser.getId(), userInfo);
+		assertNotNull(acl);
+		//acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		Set<ResourceAccess> ras = acl.getResourceAccess();
+		boolean foundit = false;
+		for (ResourceAccess ra : ras) {
+			Long raPId = ra.getPrincipalId();
+			assertNotNull(raPId);
+			if (raPId.equals(pId)) {
+				foundit=true;
+				ras.remove(ra);
+				break;
+			}
+		}
+		assertTrue(foundit);
+		acl = permissionsManager.updateACL(acl, adminUser);
+
+		assertTrue(authorizationManager.canAccess(userInfo, nodeCreatedByTestUser.getId(), ACCESS_TYPE.READ));
+	}
+	
 	
 	@Test
 	public void testCanAccessAsIndividual() throws Exception {
