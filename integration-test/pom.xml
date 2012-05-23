@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>platform</artifactId>
-		<version>0.13.2-SNAPSHOT</version>
+		<version>0.13.3</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
@@ -33,15 +33,15 @@
 		<org.sagebionetworks.repository.service.base.url>${tomcat.endpoint}/${org.sagebionetworks.repository.context}${org.sagebionetworks.repository.servlet.prefix}/</org.sagebionetworks.repository.service.base.url>
 		<org.sagebionetworks.portal.base.url>${tomcat.endpoint}/${org.sagebionetworks.portal.context}${org.sagebionetworks.portal.servlet.prefix}/</org.sagebionetworks.portal.base.url>
 		<org.sagebionetworks.stackEncryptionKey>${settings.org.sagebionetworks.stackEncryptionKey}</org.sagebionetworks.stackEncryptionKey>
-		<!-- Setting this to true will cause Cargo to setup and start both web 
-			applications and then wait for shutdown (ctrl-c) This is useful for debugging 
+		<!-- Setting this to true will cause Cargo to setup and start both web
+			applications and then wait for shutdown (ctrl-c) This is useful for debugging
 			the deployed applications. -->
 		<org.sagebionetworks.integration.debug>false</org.sagebionetworks.integration.debug>
 	</properties>
 
 	<build>
 		<plugins>
-			<!-- *** Compiler plugin: we must force test compile because we're using 
+			<!-- *** Compiler plugin: we must force test compile because we're using
 				a pom packaging that doesn't have this lifecycle mapping. -->
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -54,7 +54,7 @@
 				</executions>
 			</plugin>
 
-			<!-- This allows use to run the servlet container from maven via mvn tomcat:run 
+			<!-- This allows use to run the servlet container from maven via mvn tomcat:run
 				or deploy to a local tomcat via tomcat:deploy -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -106,7 +106,7 @@
 				</executions>
 			</plugin>
 
-			<!-- *** Cargo plugin: start/stop application server and deploy the ear 
+			<!-- *** Cargo plugin: start/stop application server and deploy the ear
 				file before/after integration tests *** -->
 			<plugin>
 				<groupId>org.codehaus.cargo</groupId>
@@ -251,24 +251,6 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>bccSetup</artifactId>
 			<version>${project.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>synapsePythonClient</artifactId>
-			<classifier>synapse-python-client-assembly</classifier>
-			<type>zip</type>
-			<!-- Make sure this isn't included on any classpath -->
-			<scope>provided</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>synapseRClient</artifactId>
-			<classifier>synapse-r-client-assembly</classifier>
-			<type>zip</type>
-			<!-- Make sure this isn't included on any classpath -->
-			<scope>provided</scope>
 		</dependency>
 
 		<dependency>

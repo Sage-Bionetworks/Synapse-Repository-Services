@@ -9,7 +9,7 @@
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>platform</artifactId>
 	<!-- This is not the same as the application version. This is a constant. -->
-	<version>0.13.2-SNAPSHOT</version>
+	<version>0.13.3</version>
 	<packaging>pom</packaging>
 	<url>http://www.sagebase.org/</url>
 	<scm>
@@ -455,7 +455,7 @@
 	<build>
 		<pluginManagement>
 			<plugins>
-				<!-- Tell the eclipse m2e plugin to execute these lifecycle mappings 
+				<!-- Tell the eclipse m2e plugin to execute these lifecycle mappings
 					See: http://wiki.eclipse.org/M2E_plugin_execution_not_covered -->
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
@@ -602,11 +602,11 @@
 	</build>
 
 	<!-- Specify hard-coded project properties that should be shared here -->
-	<!-- Note, do not put in custom developer configuration that should not 
+	<!-- Note, do not put in custom developer configuration that should not
 		be shared, esp passwords. Those go in settings.xml -->
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading 
+		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading
 			sources -->
 		<downloadSources>true</downloadSources>
 		<gwtVersion>2.4.0</gwtVersion>
