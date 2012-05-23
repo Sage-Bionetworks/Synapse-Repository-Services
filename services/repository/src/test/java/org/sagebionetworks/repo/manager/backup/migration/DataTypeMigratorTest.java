@@ -1,27 +1,19 @@
 package org.sagebionetworks.repo.manager.backup.migration;
 
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Date;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+
 import java.util.List;
 import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.Ignore;
-import static org.junit.Assert.*;
-import org.junit.Ignore;
-
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.registry.MigrationSpec;
-import org.sagebionetworks.repo.model.registry.EntityTypeMigrationSpec;
-import org.sagebionetworks.repo.model.registry.FieldMigrationSpec;
-import org.sagebionetworks.repo.model.registry.FieldDescription;
-import org.sagebionetworks.repo.model.registry.MigrationSpecData;
 
 public class DataTypeMigratorTest {
 	

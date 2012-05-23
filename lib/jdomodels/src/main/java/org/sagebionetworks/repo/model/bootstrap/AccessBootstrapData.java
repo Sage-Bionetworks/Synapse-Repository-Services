@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model.bootstrap;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 
 /**

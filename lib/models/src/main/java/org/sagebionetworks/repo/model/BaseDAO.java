@@ -4,7 +4,7 @@ import java.util.Collection;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface BaseDAO<T extends Base> {
+public interface BaseDAO<T> {
 
 	/**
 	 * @param dto

@@ -4,7 +4,6 @@ import static org.junit.Assert.assertNotNull;
 
 import java.io.IOException;
 import java.io.StringWriter;
-import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -19,6 +18,7 @@ import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
@@ -47,7 +48,6 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -1172,7 +1172,7 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static Collection<Map<String, Object>> getUsers(
+	public static PaginatedResults<UserGroup> getUsers(
 			HttpServlet dispatchServlet, String userId)
 			throws ServletException, IOException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -1186,11 +1186,22 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		@SuppressWarnings("unchecked")
-		Collection<Map<String, Object>> us = objectMapper.readValue(
-				response.getContentAsString(), Collection.class);
+		PaginatedResults<UserGroup> us = deserializePaginatedResults(
+				response.getContentAsString(), UserGroup.class);
 		return us;
 	}
+	
+	
+	public static <T extends JSONEntity> PaginatedResults<T> deserializePaginatedResults(String json, Class<T> clazz) {
+		try {
+			PaginatedResults<T> prs = new PaginatedResults<T>(clazz);
+				prs.initializeFromJSONObject(new JSONObjectAdapterImpl(json));
+				return prs;
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
 
 	/**
 	 * Get the principals
@@ -1201,7 +1212,7 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static Collection<Map<String, Object>> getGroups(
+	public static PaginatedResults<UserGroup> getGroups(
 			HttpServlet dispatchServlet, String userId)
 			throws ServletException, IOException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -1215,9 +1226,8 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		@SuppressWarnings("unchecked")
-		Collection<Map<String, Object>> us = objectMapper.readValue(
-				response.getContentAsString(), Collection.class);
+		PaginatedResults<UserGroup> us = deserializePaginatedResults(
+				response.getContentAsString(), UserGroup.class);
 		return us;
 	}
 

@@ -27,9 +27,9 @@ import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -312,6 +313,18 @@ public class IT500SynapseJavaClient {
 
 	}
 	
+	@Test
+	public void testGetUsers() throws Exception {
+		PaginatedResults<UserGroup> users = synapse.getUsers();
+		assertTrue(users.getResults().size()>0);
+	}
+	
+	@Test
+	public void testGetGroups() throws Exception {
+		PaginatedResults<UserGroup> groups = synapse.getGroups();
+		assertTrue(groups.getResults().size()>0);
+	}
+	
 	
 	/**
 	 * tests signing requests using an API key, as an alternative to logging in
@@ -404,7 +417,7 @@ public class IT500SynapseJavaClient {
 			assertTrue(previewDownload.exists());
 			System.out.println(previewDownload.getAbsolutePath());
 			assertTrue(previewDownload.length() > 0);
-			assertTrue("A preview size should not exceed 100KB", previewDownload.length() < 100*1000);
+			assertTrue("A preview size should not exceed 100KB.  This one is "+previewDownload.length(), previewDownload.length() < 100*1000);
 		}finally{
 			if(writer != null){
 				writer.close();

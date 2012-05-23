@@ -3,9 +3,9 @@ package org.sagebionetworks.repo.manager;
 import java.util.Collection;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -113,7 +113,7 @@ public interface PermissionsManager {
 	 * @param accessType
 	 * @return
 	 */
-	public boolean hasAccess(String resourceId, AuthorizationConstants.ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException;
+	public boolean hasAccess(String resourceId, ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Get the user permission for an entity.

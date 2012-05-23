@@ -4,15 +4,12 @@ import java.lang.reflect.Field;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeConstants;
-import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.jdo.BasicIdentifierFactory;
 import org.sagebionetworks.repo.model.query.Comparator;
-import org.sagebionetworks.repo.model.query.FieldType;
-import org.sagebionetworks.repo.model.query.jdo.JDONodeQueryDaoImpl.AttributeDoesNotExist;
  
 @SuppressWarnings("rawtypes")
 public class SqlConstants {

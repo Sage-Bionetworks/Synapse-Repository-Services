@@ -14,10 +14,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -67,7 +67,8 @@ public class NodeManagerImpleUnitTest {
 
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("2");
-		userGroup.setName("two");
+		userGroup.setName("two@foo.bar");
+		userGroup.setIsIndividual(true);
 		User mockUser = new User();
 		mockUser.setId("101");
 		mockUser.setUserId("test-user");

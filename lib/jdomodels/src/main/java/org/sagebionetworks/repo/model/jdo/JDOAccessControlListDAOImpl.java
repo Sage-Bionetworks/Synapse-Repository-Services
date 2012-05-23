@@ -4,9 +4,9 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -46,7 +46,7 @@ public class JDOAccessControlListDAOImpl implements AccessControlListDAO {
 	@Transactional(readOnly = true)
 	public boolean canAccess(Collection<UserGroup> groups, 
 			String resourceId, 
-			AuthorizationConstants.ACCESS_TYPE accessType) throws DatastoreException {
+			ACCESS_TYPE accessType) throws DatastoreException {
 
 		// Build up the parameters
 		Map<String,Object> parameters = new HashMap<String,Object>();

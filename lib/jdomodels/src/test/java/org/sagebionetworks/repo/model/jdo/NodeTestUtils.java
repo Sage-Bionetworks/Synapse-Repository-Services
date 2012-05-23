@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.model.jdo;
 
 import java.util.Date;
 
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
 
 public class NodeTestUtils {
 

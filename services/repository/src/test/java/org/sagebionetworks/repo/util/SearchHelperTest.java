@@ -1,20 +1,12 @@
 package org.sagebionetworks.repo.util;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.URLEncoder;
-import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.search.Facet;
-import org.sagebionetworks.repo.model.search.FacetConstraint;
-import org.sagebionetworks.repo.model.search.FacetTypeNames;
-import org.sagebionetworks.repo.model.search.Hit;
-import org.sagebionetworks.repo.model.search.SearchResults;
 
 /**
  * @author deflaux

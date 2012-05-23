@@ -24,7 +24,9 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -103,12 +105,12 @@ public class PrincipalsControllerAutowiredTest {
 
 	@Test
 	public void testGetUsers() throws ServletException, IOException{
-		Collection<Map<String,Object>> ugs = ServletTestHelper.getUsers(dispatchServlet, userName);
+		PaginatedResults<UserGroup> ugs = ServletTestHelper.getUsers(dispatchServlet, userName);
 		assertNotNull(ugs);
 		boolean foundAnon = false;
-		for (Map<String,Object> ug : ugs) {
-			if (ug.get("name").equals(AuthorizationConstants.ANONYMOUS_USER_ID)) foundAnon=true;
-			assertTrue(ug.toString(), "true".equalsIgnoreCase(ug.get("individual").toString()));
+		for (UserGroup ug : ugs.getResults()) {
+			if (ug.getName().equals(AuthorizationConstants.ANONYMOUS_USER_ID)) foundAnon=true;
+			assertTrue(ug.toString(), ug.getIsIndividual());
 		}
 		assertTrue(foundAnon);
 	}
@@ -126,14 +128,14 @@ public class PrincipalsControllerAutowiredTest {
 	
 	@Test
 	public void testGetGroups() throws ServletException, IOException{
-		Collection<Map<String,Object>> ugs = ServletTestHelper.getGroups(dispatchServlet, userName);
+		PaginatedResults<UserGroup> ugs = ServletTestHelper.getGroups(dispatchServlet, userName);
 		assertNotNull(ugs);
 		boolean foundPublic = false;
 		boolean foundAdmin = false;
-		for (Map<String,Object> ug : ugs) {
-			if (ug.get("name").equals(AuthorizationConstants.PUBLIC_GROUP_NAME)) foundPublic=true;
-			if (ug.get("name").equals(AuthorizationConstants.ADMIN_GROUP_NAME)) foundAdmin=true;
-			assertTrue(ug.toString(), "false".equalsIgnoreCase(ug.get("individual").toString()));
+		for (UserGroup ug : ugs.getResults()) {
+			if (ug.getName().equals(AuthorizationConstants.PUBLIC_GROUP_NAME)) foundPublic=true;
+			if (ug.getName().equals(AuthorizationConstants.ADMIN_GROUP_NAME)) foundAdmin=true;
+			assertTrue(ug.toString(), !ug.getIsIndividual());
 		}
 		assertTrue(foundPublic);
 	}

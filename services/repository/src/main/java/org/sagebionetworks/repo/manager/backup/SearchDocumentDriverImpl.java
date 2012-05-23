@@ -21,9 +21,9 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
@@ -39,9 +39,9 @@ import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 
 
 /**
@@ -415,7 +415,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		fields.setUpdate_acl(updateAclValues);
 		for (ResourceAccess access : acl.getResourceAccess()) {
 			if (access.getAccessType().contains(
-					AuthorizationConstants.ACCESS_TYPE.READ)) {
+					ACCESS_TYPE.READ)) {
 				if (FIELD_VALUE_SIZE_LIMIT > readAclValues.size()) {
 					readAclValues.add(access.getGroupName());
 				} else {
@@ -425,7 +425,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				}
 			}
 			if (access.getAccessType().contains(
-					AuthorizationConstants.ACCESS_TYPE.UPDATE)) {
+					ACCESS_TYPE.UPDATE)) {
 				if (FIELD_VALUE_SIZE_LIMIT > updateAclValues.size()) {
 					updateAclValues.add(access.getGroupName());
 				} else {

@@ -4,11 +4,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.mockito.internal.verification.Times;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -29,7 +28,7 @@ public class NodeBackupManagerImplTest {
 		UserGroup ug = NodeBackupManagerImpl.createUserGroupForName(userName);
 		assertNotNull(ug);
 		assertEquals(userName, ug.getName());
-		assertTrue(ug.isIndividual());
+		assertTrue(ug.getIsIndividual());
 	}
 	
 	@Test
@@ -39,7 +38,7 @@ public class NodeBackupManagerImplTest {
 		UserGroup ug = NodeBackupManagerImpl.createUserGroupForName(groupName);
 		assertNotNull(ug);
 		assertEquals(groupName, ug.getName());
-		assertFalse(ug.isIndividual());
+		assertFalse(ug.getIsIndividual());
 	}
 	
 	@Test

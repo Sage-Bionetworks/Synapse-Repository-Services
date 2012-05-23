@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.util.UserGroupUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -167,7 +168,7 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 					if(!userGroupDAO.doesPrincipalExist(groupName)){
 						UserGroup principal = createUserGroupForName(groupName);
 						String principalId = userGroupDAO.create(principal);
-						if (principal.isIndividual()) {
+						if (principal.getIsIndividual()) {
 							UserProfile userProfile = new UserProfile();
 							userProfile.setOwnerId(principalId);
 							userProfile.setFirstName("");
@@ -196,7 +197,7 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 		principal.setName(groupName);
 		// Users must have an email address as a name
 		// and groups are not allowed to have an email address as name
-		principal.setIndividual(UserGroup.isEmailAddress(groupName));
+		principal.setIsIndividual(UserGroupUtil.isEmailAddress(groupName));
 		principal.setCreationDate(new Date());
 		return principal;
 	}

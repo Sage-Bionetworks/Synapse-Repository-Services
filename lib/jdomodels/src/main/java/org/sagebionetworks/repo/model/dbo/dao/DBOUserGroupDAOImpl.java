@@ -11,11 +11,11 @@ import java.util.Map;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.jdo.UserGroupCache;
@@ -269,7 +269,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			if (pg == null) {
 				pg = new UserGroup();
 				pg.setName(group.name());
-				pg.setIndividual(false);
+				pg.setIsIndividual(false);
 				create(pg);
 			}
 		}
@@ -279,7 +279,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		if (anon == null) {
 			anon = new UserGroup();
 			anon.setName(AuthorizationConstants.ANONYMOUS_USER_ID);
-			anon.setIndividual(true);
+			anon.setIsIndividual(true);
 			create(anon);
 		}
 	}

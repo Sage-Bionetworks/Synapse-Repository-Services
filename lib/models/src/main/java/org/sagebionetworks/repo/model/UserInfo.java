@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model;
 import java.util.Collection;
 import java.util.Iterator;
 
+import org.sagebionetworks.repo.model.util.UserGroupUtil;
+
 /**
  *  A class meant to contain both a user and the groups to which she belongs
  */
@@ -73,13 +75,13 @@ public class UserInfo {
 	public static void validateUserInfo(UserInfo info){
 		if(info == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		User.validateUser(info.getUser());
-		UserGroup.validate(info.getIndividualGroup());
+		UserGroupUtil.validate(info.getIndividualGroup());
 		// Validate each group
 		Collection<UserGroup> groups = info.getGroups();
 		if(groups != null){
 			Iterator<UserGroup> it = groups.iterator();
 			while(it.hasNext()){
-				UserGroup.validate(it.next());
+				UserGroupUtil.validate(it.next());
 			}
 		}
 	}

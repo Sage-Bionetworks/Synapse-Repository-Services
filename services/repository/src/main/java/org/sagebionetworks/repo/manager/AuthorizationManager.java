@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -19,7 +19,7 @@ public interface AuthorizationManager {
 	 * @exception NotFoundException if the group or node is invalid
 	 * 
 	 */
-	public boolean canAccess(UserInfo userInfo, String nodeId, AuthorizationConstants.ACCESS_TYPE accessType) 
+	public boolean canAccess(UserInfo userInfo, String nodeId, ACCESS_TYPE accessType) 
 		throws NotFoundException, DatastoreException;
 		
 	/**

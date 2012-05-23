@@ -17,9 +17,9 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -317,7 +318,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		if (group==null) {
 			group = new UserGroup();
 			group.setName(userGroupName);
-			group.setIndividual(true);
+			group.setIsIndividual(true);
 			id = userGroupDAO.create(group);
 		} else {
 			id = group.getId();
@@ -347,7 +348,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		if (group==null) { 
 			group = new UserGroup();
 			group.setName(name);
-			group.setIndividual(false);
+			group.setIsIndividual(false);
 			id = userGroupDAO.create(group);
 		} else {
 			id = group.getId();
@@ -439,7 +440,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		nodesToDelete.add(id);
 		projectA = nodeDao.getNode(id);
 		// Create the ACL for this node.
-		AccessControlList acl = AccessControlList.createACLToGrantAll(id, adminUser);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(id, adminUser);
 		// Make sure group A can read from this node
 		ResourceAccess access = new ResourceAccess();
 		access.setGroupName(groupA.getName());
@@ -454,7 +455,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		nodesToDelete.add(id);
 		projectB = nodeDao.getNode(id);
 		// Create the ACL for this node.
-		acl = AccessControlList.createACLToGrantAll(id, adminUser);
+		acl = AccessControlListUtil.createACLToGrantAll(id, adminUser);
 		// Make sure group B can read from this node
 		access = new ResourceAccess();
 		access.setGroupName(groupB.getName());

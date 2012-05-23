@@ -38,10 +38,10 @@ import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.ServiceConstants;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -69,8 +70,6 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
-
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -396,76 +395,87 @@ public class Synapse {
 		}
 	}
 	
-	// this will go away when we generate ACLs from JSON schemas.  Afterwards the mapping to/from json will be automatic
 	public static AccessControlList initializeFromJSONObject(JSONObject o) throws SynapseException {
 		AccessControlList acl = new AccessControlList();
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(o);
 		try {
-			acl.setId(o.getString("id"));
-			acl.setUri(o.getString("uri"));
-			acl.setEtag(o.getString("etag"));
-			if (o.has("createdOn")) acl.setCreationDate(new Date(o.getLong("createdOn")));
-			Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-			acl.setResourceAccess(ras);
-			JSONArray jsonRas = o.getJSONArray("resourceAccess");
-			for (int i=0; i<jsonRas.length(); i++) {
-				JSONObject jsonRa = (JSONObject)jsonRas.get(i);
-				ResourceAccess ra = new ResourceAccess();
-				if (jsonRa.has("groupName")) ra.setGroupName(jsonRa.getString("groupName"));
-				if (jsonRa.has("displayName")) ra.setDisplayName(jsonRa.getString("displayName"));
-				if (jsonRa.has("principalId")) {
-					String pIdString = jsonRa.getString("principalId");
-					Long pId = null;
-					try {
-						pId = Long.parseLong(pIdString);
-					} catch (NumberFormatException e) {
-						pId = null;
-					}
-					ra.setPrincipalId(pId);
-				}
-				if (jsonRa.has("accessType")) {
-					Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
-					JSONArray jsonAts = jsonRa.getJSONArray("accessType");
-					for (int j=0; j<jsonAts.length(); j++) {
-						ats.add(ACCESS_TYPE.valueOf(jsonAts.getString(j)));
-					}
-					ra.setAccessType(ats);
-				}
-				ras.add(ra);
-			}
-		} catch (JSONException e) {
+			acl.initializeFromJSONObject(adapter);
+			return acl;
+		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
-		return acl;
 	}
 	
-	// this will go away when we generate ACLs from JSON schemas.  Afterwards the mapping to/from json will be automatic
-	public static JSONObject toJSON(AccessControlList acl) throws SynapseException {
-		JSONObject o = new JSONObject();
-		try {
-			o.put("id", acl.getId());
-			o.put("uri", acl.getUri());
-			o.put("etag", acl.getEtag());
-			o.put("createdOn", acl.getCreationDate().getTime());
-			JSONArray jsonRas = new JSONArray();
-			for (ResourceAccess ra : acl.getResourceAccess()) {
-				JSONObject jsonRa = new JSONObject();
-				jsonRa.put("groupName", ra.getGroupName());
-				jsonRa.put("displayName", ra.getDisplayName());
-				jsonRa.put("principalId", ra.getPrincipalId());
-				JSONArray jsonAt = new JSONArray();
-				for (ACCESS_TYPE at : ra.getAccessType()) {
-					jsonAt.put(at.name());
-				}
-				jsonRa.put("accessType", jsonAt);
-				jsonRas.put(jsonRa);
-			}
-			o.put("resourceAccess", jsonRas);
-		} catch (JSONException e) {
-			throw new SynapseException(e);
-		}
-		
-		return o;
-	}
+//	// this will go away when we generate ACLs from JSON schemas.  Afterwards the mapping to/from json will be automatic
+//	public static AccessControlList initializeFromJSONObject(JSONObject o) throws SynapseException {
+//		AccessControlList acl = new AccessControlList();
+//		try {
+//			acl.setId(o.getString("id"));
+//			acl.setUri(o.getString("uri"));
+//			acl.setEtag(o.getString("etag"));
+//			if (o.has("createdOn")) acl.setCreationDate(new Date(o.getLong("createdOn")));
+//			Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+//			acl.setResourceAccess(ras);
+//			JSONArray jsonRas = o.getJSONArray("resourceAccess");
+//			for (int i=0; i<jsonRas.length(); i++) {
+//				JSONObject jsonRa = (JSONObject)jsonRas.get(i);
+//				ResourceAccess ra = new ResourceAccess();
+//				if (jsonRa.has("groupName")) ra.setGroupName(jsonRa.getString("groupName"));
+//				if (jsonRa.has("displayName")) ra.setDisplayName(jsonRa.getString("displayName"));
+//				if (jsonRa.has("principalId")) {
+//					String pIdString = jsonRa.getString("principalId");
+//					Long pId = null;
+//					try {
+//						pId = Long.parseLong(pIdString);
+//					} catch (NumberFormatException e) {
+//						pId = null;
+//					}
+//					ra.setPrincipalId(pId);
+//				}
+//				if (jsonRa.has("accessType")) {
+//					Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
+//					JSONArray jsonAts = jsonRa.getJSONArray("accessType");
+//					for (int j=0; j<jsonAts.length(); j++) {
+//						ats.add(ACCESS_TYPE.valueOf(jsonAts.getString(j)));
+//					}
+//					ra.setAccessType(ats);
+//				}
+//				ras.add(ra);
+//			}
+//		} catch (JSONException e) {
+//			throw new SynapseException(e);
+//		}
+//		return acl;
+//	}
+//	
+//	// this will go away when we generate ACLs from JSON schemas.  Afterwards the mapping to/from json will be automatic
+//	public static JSONObject toJSON(AccessControlList acl) throws SynapseException {
+//		JSONObject o = new JSONObject();
+//		try {
+//			o.put("id", acl.getId());
+//			o.put("uri", acl.getUri());
+//			o.put("etag", acl.getEtag());
+//			o.put("createdOn", acl.getCreationDate().getTime());
+//			JSONArray jsonRas = new JSONArray();
+//			for (ResourceAccess ra : acl.getResourceAccess()) {
+//				JSONObject jsonRa = new JSONObject();
+//				jsonRa.put("groupName", ra.getGroupName());
+//				jsonRa.put("displayName", ra.getDisplayName());
+//				jsonRa.put("principalId", ra.getPrincipalId());
+//				JSONArray jsonAt = new JSONArray();
+//				for (ACCESS_TYPE at : ra.getAccessType()) {
+//					jsonAt.put(at.name());
+//				}
+//				jsonRa.put("accessType", jsonAt);
+//				jsonRas.put(jsonRa);
+//			}
+//			o.put("resourceAccess", jsonRas);
+//		} catch (JSONException e) {
+//			throw new SynapseException(e);
+//		}
+//		
+//		return o;
+//	}
 	
 	public AccessControlList getACL(String entityId) throws SynapseException {
 		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX;
@@ -476,9 +486,13 @@ public class Synapse {
 	public AccessControlList updateACL(AccessControlList acl) throws SynapseException {
 		String entityId = acl.getId();
 		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX;
-		JSONObject jsonAcl = toJSON(acl);
-		jsonAcl = putEntity(uri, jsonAcl);
-		return initializeFromJSONObject(jsonAcl);
+		try {
+			JSONObject jsonAcl = EntityFactory.createJSONObjectForEntity(acl);
+			jsonAcl = putEntity(uri, jsonAcl);
+			return initializeFromJSONObject(jsonAcl);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 		
 	}
 	
@@ -490,23 +504,40 @@ public class Synapse {
 	public AccessControlList createACL(AccessControlList acl) throws SynapseException {
 		String entityId = acl.getId();
 		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX;
-		JSONObject jsonAcl = toJSON(acl);
-		jsonAcl = createEntity(uri, jsonAcl);
-		return initializeFromJSONObject(jsonAcl);
+		try {
+			JSONObject jsonAcl = EntityFactory.createJSONObjectForEntity(acl);
+			jsonAcl = createEntity(uri, jsonAcl);
+			return initializeFromJSONObject(jsonAcl);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 	
-	// TODO this can be implemented once the service returns a JSONObject rather than a JSONArray
-	public List<String> getUsers() throws SynapseException {
+	public PaginatedResults<UserGroup> getUsers() throws SynapseException {
 		String uri = "/user";
 		JSONObject jsonUsers = getEntity(uri);
-		throw new RuntimeException("not yet implemented");
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonUsers);
+		PaginatedResults<UserGroup> results = new PaginatedResults<UserGroup>(UserGroup.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
-	
-	// TODO this can be implemented once the service returns a JSONObject rather than a JSONArray
-	public List<String> getGroups() throws SynapseException {
+
+
+	public PaginatedResults<UserGroup> getGroups() throws SynapseException {
 		String uri = "/userGroup";
 		JSONObject jsonUsers = getEntity(uri);
-		throw new RuntimeException("not yet implemented")	;	
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonUsers);
+		PaginatedResults<UserGroup> results = new PaginatedResults<UserGroup>(UserGroup.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 	
 	/**
@@ -524,7 +555,7 @@ public class Synapse {
 			uep.initializeFromJSONObject(adapter);
 			return uep;
 		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
+			throw new SynapseException(e);
 		}
 	}
 	

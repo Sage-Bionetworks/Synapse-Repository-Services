@@ -54,12 +54,14 @@ public class UserInfoTest {
 		UserGroup ind = new UserGroup();
 		ind.setId("9");
 		ind.setName("one");
+		ind.setIsIndividual(false);
 		info.setIndividualGroup(ind);
 		List<UserGroup> groups = new ArrayList<UserGroup>();
 		// This will have null values
 		UserGroup group = new UserGroup();
 		group.setId("0");
 		group.setName("groupies");
+		group.setIsIndividual(false);
 		groups.add(group);
 		info.setGroups(groups);
 		UserInfo.validateUserInfo(info);

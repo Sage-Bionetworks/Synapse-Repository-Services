@@ -6,8 +6,8 @@ import static org.junit.Assert.assertNotNull;
 import java.lang.reflect.Field;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Data;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.query.Comparator;
 
 public class SqlConstantsTest {
