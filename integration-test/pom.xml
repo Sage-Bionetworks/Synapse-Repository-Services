@@ -33,15 +33,15 @@
 		<org.sagebionetworks.repository.service.base.url>${tomcat.endpoint}/${org.sagebionetworks.repository.context}${org.sagebionetworks.repository.servlet.prefix}/</org.sagebionetworks.repository.service.base.url>
 		<org.sagebionetworks.portal.base.url>${tomcat.endpoint}/${org.sagebionetworks.portal.context}${org.sagebionetworks.portal.servlet.prefix}/</org.sagebionetworks.portal.base.url>
 		<org.sagebionetworks.stackEncryptionKey>${settings.org.sagebionetworks.stackEncryptionKey}</org.sagebionetworks.stackEncryptionKey>
-		<!-- Setting this to true will cause Cargo to setup and start both web
-			applications and then wait for shutdown (ctrl-c) This is useful for debugging
+		<!-- Setting this to true will cause Cargo to setup and start both web 
+			applications and then wait for shutdown (ctrl-c) This is useful for debugging 
 			the deployed applications. -->
 		<org.sagebionetworks.integration.debug>false</org.sagebionetworks.integration.debug>
 	</properties>
 
 	<build>
 		<plugins>
-			<!-- *** Compiler plugin: we must force test compile because we're using
+			<!-- *** Compiler plugin: we must force test compile because we're using 
 				a pom packaging that doesn't have this lifecycle mapping. -->
 			<plugin>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -54,27 +54,7 @@
 				</executions>
 			</plugin>
 
-			<!-- Unpack Python and R assemblies with this -->
-			<plugin>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>unpack-non-java-dependencies</id>
-						<goals>
-							<goal>unpack-dependencies</goal>
-						</goals>
-						<phase>compile</phase>
-						<configuration>
-							<outputDirectory>${project.build.directory}/non-java-dependencies</outputDirectory>
-							<includeArtifacIds>synapse-python-client-assembly</includeArtifacIds>
-							<includeTypes>zip</includeTypes>
-							<includeGroupIds>${project.groupId}</includeGroupIds>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
-			<!-- This allows use to run the servlet container from maven via mvn tomcat:run
+			<!-- This allows use to run the servlet container from maven via mvn tomcat:run 
 				or deploy to a local tomcat via tomcat:deploy -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -126,7 +106,7 @@
 				</executions>
 			</plugin>
 
-			<!-- *** Cargo plugin: start/stop application server and deploy the ear
+			<!-- *** Cargo plugin: start/stop application server and deploy the ear 
 				file before/after integration tests *** -->
 			<plugin>
 				<groupId>org.codehaus.cargo</groupId>
@@ -136,8 +116,8 @@
 					<wait>${org.sagebionetworks.integration.debug}</wait>
 					<!-- Container configuration -->
 					<container>
-                      <timeout>240000</timeout>
-                      <containerId>tomcat6x</containerId>
+						<timeout>240000</timeout>
+						<containerId>tomcat6x</containerId>
 						<!-- Download and install tomcat -->
 						<zipUrlInstaller>
 							<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local/apache/tomcat/${tomcat-version}/tomcat-${tomcat-version}.zip</url>
@@ -145,7 +125,7 @@
 						</zipUrlInstaller>
 						<systemProperties>
 							<org.sagebionetworks.stackEncryptionKey>${org.sagebionetworks.stackEncryptionKey}</org.sagebionetworks.stackEncryptionKey>
- 							<org.sagebionetworks.stack.configuration.url>${org.sagebionetworks.stack.configuration.url}</org.sagebionetworks.stack.configuration.url>
+							<org.sagebionetworks.stack.configuration.url>${org.sagebionetworks.stack.configuration.url}</org.sagebionetworks.stack.configuration.url>
 							<org.sagebionetworks.stack>${org.sagebionetworks.stack}</org.sagebionetworks.stack>
 							<org.sagebionetworks.stack.instance>${org.sagebionetworks.stack.instance}</org.sagebionetworks.stack.instance>
 							<org.sagebionetworks.stack.iam.id>${org.sagebionetworks.stack.iam.id}</org.sagebionetworks.stack.iam.id>
@@ -177,13 +157,13 @@
 							</deployable>
 						</deployables>
 						<properties>
-						<!-- Add the following to 'remote debug' the entire deployment stack -->
-<!-- 							<cargo.jvmargs> -->
-<!-- 								-Xdebug -->
-<!-- 								-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8989 -->
-<!-- 								-Xnoagent -->
-<!-- 								-Djava.compiler=NONE -->
-<!--       						 </cargo.jvmargs> -->
+							<!-- Add the following to 'remote debug' the entire deployment stack -->
+							<!-- <cargo.jvmargs> -->
+							<!-- -Xdebug -->
+							<!-- -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8989 -->
+							<!-- -Xnoagent -->
+							<!-- -Djava.compiler=NONE -->
+							<!-- </cargo.jvmargs> -->
 						</properties>
 					</configuration>
 
@@ -306,7 +286,7 @@
 			<artifactId>tool-migration-utility</artifactId>
 		</dependency>
 
-		    <dependency>
+		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>org.springframework.web</artifactId>
 		</dependency>
@@ -317,20 +297,20 @@
 			<artifactId>jackson-mapper-asl</artifactId>
 		</dependency>
 
-        <dependency>
-          <groupId>org.apache.commons</groupId>
-          <artifactId>commons-io</artifactId>
-        </dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-io</artifactId>
+		</dependency>
 
-        <dependency>
+		<dependency>
 			<groupId>commons-logging</groupId>
 			<artifactId>commons-logging</artifactId>
 		</dependency>
 
 		<dependency>
-		  <groupId>org.mockito</groupId>
-		  <artifactId>mockito-all</artifactId>
-		  <scope>test</scope>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
