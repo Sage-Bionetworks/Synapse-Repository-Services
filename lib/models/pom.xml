@@ -9,12 +9,12 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>lib</artifactId>
-		<version>0.13.3</version>
+		<version>0.13.4-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>lib-models</artifactId>
-	<version>0.13.3</version>
+	<version>0.13.4-SNAPSHOT</version>
 	<packaging>jar</packaging>
 	<name>Platform Repository Model Objects</name>
 
