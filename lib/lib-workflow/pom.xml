@@ -6,12 +6,12 @@
   <parent>
     <artifactId>lib</artifactId>
     <groupId>org.sagebionetworks</groupId>
-    <version>0.13.3</version>
+    <version>0.13.4-SNAPSHOT</version>
   </parent>
 
   <groupId>org.sagebionetworks</groupId>
   <artifactId>lib-workflow</artifactId>
-  <version>0.13.3</version>
+  <version>0.13.4-SNAPSHOT</version>
   <packaging>jar</packaging>
   <name>Workflow Library</name>
 
