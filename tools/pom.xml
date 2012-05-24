@@ -12,13 +12,10 @@
 	<name>Platform Tools</name>
 
     <modules>
-      <module>tcgaWorkflow</module>
       <module>wikiutil</module>
-      <module>gePipeline</module>
       <module>bccSetup</module>
       <module>SynapseDeployer</module>
       <module>tool-migration-utility</module>
-      <module>sageCommonsWorkflow</module>
   </modules>
 
 </project>

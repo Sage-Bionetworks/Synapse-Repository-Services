@@ -291,21 +291,6 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
-				<artifactId>portal</artifactId>
-				<version>${project.version}</version>
-				<type>war</type>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>portal</artifactId>
-				<version>${project.version}</version>
-				<classifier>gwt-rpc-assembly</classifier>
-				<type>jar</type>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-auto-generated</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -360,12 +345,6 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
-				<artifactId>lib-workflow</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
 				<artifactId>synapseJavaClient</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -375,14 +354,6 @@
 				<artifactId>synapsePythonClient</artifactId>
 				<version>${project.version}</version>
 				<classifier>synapse-python-client-assembly</classifier>
-				<type>zip</type>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>synapseRClient</artifactId>
-				<version>${project.version}</version>
-				<classifier>synapse-r-client-assembly</classifier>
 				<type>zip</type>
 			</dependency>
 
@@ -409,18 +380,6 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>tool-migration-utility</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>tcgaWorkflow</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>gePipeline</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
