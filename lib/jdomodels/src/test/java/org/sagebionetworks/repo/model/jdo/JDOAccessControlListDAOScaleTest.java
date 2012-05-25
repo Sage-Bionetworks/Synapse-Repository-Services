@@ -90,7 +90,7 @@ public class JDOAccessControlListDAOScaleTest {
 			acl.setCreationDate(new Date(System.currentTimeMillis()));
 			acl.setResourceAccess(new HashSet<ResourceAccess>());
 			ResourceAccess ra = new ResourceAccess();
-			ra.setGroupName(userGroup.getName());
+			ra.setPrincipalId(Long.parseLong(userGroup.getId()));
 
 			// Add each type
 			Set<ACCESS_TYPE> types = new HashSet<ACCESS_TYPE>();

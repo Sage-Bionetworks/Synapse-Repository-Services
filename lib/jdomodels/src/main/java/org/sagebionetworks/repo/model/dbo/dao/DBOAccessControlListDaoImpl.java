@@ -53,9 +53,6 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	@Autowired
-	private UserGroupCache userGroupCache;
-
-	@Autowired
 	DBOBasicDao dboBasicDao;
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -86,11 +83,10 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 		for(ResourceAccess ra: set){
 			DBOResourceAccess dboRa = new DBOResourceAccess();
 			dboRa.setOwner(owner);
-			if (ra.getPrincipalId()!=null) {
-				dboRa.setUserGroupId(ra.getPrincipalId());
+			if (ra.getPrincipalId()==null) {
+				throw new IllegalArgumentException("ResourceAccess cannot have null principalID");
 			} else {
-				// TODO deprecate this
-				dboRa.setUserGroupId(userGroupCache.getIdForUserGroupName(ra.getGroupName()));
+				dboRa.setUserGroupId(ra.getPrincipalId());
 			}
 			dboRa = dboBasicDao.createNew(dboRa);
 			// Now add all of the access
@@ -114,7 +110,6 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(raSet);
 		for(DBOResourceAccess raDbo: raList){
-			String groupName = userGroupCache.getUserGroupNameForId(raDbo.getUserGroupId());
 			List<String> typeList = simpleJdbcTemplate.query(SELECT_ACCESS_TYPES_FOR_RESOURCE, new RowMapper<String>(){
 				@Override
 				public String mapRow(ResultSet rs, int rowNum)throws SQLException {
@@ -122,9 +117,7 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 				}}, raDbo.getId());
 			// build up this type
 			ResourceAccess ra = new ResourceAccess();
-			ra.setGroupName(groupName);
 			ra.setPrincipalId(raDbo.getUserGroupId());
-			// TODO set display name
 			ra.setAccessType(new HashSet<ACCESS_TYPE>());
 			for(String typeString: typeList){
 				ra.getAccessType().add(ACCESS_TYPE.valueOf(typeString));

@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.servlet.ServletException;
@@ -467,7 +468,7 @@ public class DefaultControllerAutowiredTest {
 		assertNotNull(data);
 		toDelete.add(data.getId());
 		// Make sure we can find both
-		QueryResults qr = ServletTestHelper.query(dispatchServlet, "select * from study where parentId=='"+project.getId()+"'", userName);
+		QueryResults<Map<String,Object>> qr = ServletTestHelper.query(dispatchServlet, "select * from study where parentId=='"+project.getId()+"'", userName);
 		assertNotNull(qr);
 		assertEquals(1, qr.getTotalNumberOfResults());
 		assertEquals(ds.getId(), qr.getResults().get(0).get("study.id"));

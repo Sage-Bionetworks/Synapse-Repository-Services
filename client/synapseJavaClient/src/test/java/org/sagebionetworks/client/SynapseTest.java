@@ -191,34 +191,5 @@ public class SynapseTest {
 		assertEquals(1, realResults.getTotalNumberOfResults());
 		EntityHeader firstHeader = realResults.getResults().get(0);
 		assertEquals(proj1Header, firstHeader);
-	}
-
-// now that standard serialization is used, this is unnecessary
-//	@Test
-//	public void testACLRoundTrip() throws Exception {
-//		// make an ACL
-//		AccessControlList acl = new AccessControlList();
-//		acl.setId("101");
-//		acl.setEtag("0");
-//		acl.setUri("/entity/101/acl");
-//		acl.setCreationDate(new Date());
-//		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-//		acl.setResourceAccess(ras);
-//		ResourceAccess ra = new ResourceAccess();
-//		ra.setDisplayName("fname lname");
-//		ra.setGroupName("lname@sagebase.org");
-//		ra.setPrincipalId(100200L);
-//		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
-//		ats.add(ACCESS_TYPE.READ);
-//		ats.add(ACCESS_TYPE.UPDATE);
-//		ra.setAccessType(ats);
-//		ras.add(ra);
-//		// encode as JSON
-//		JSONObject json = Synapse.toJSON(acl);
-//		// decode
-//		AccessControlList acl2 = Synapse.initializeFromJSONObject(json);
-//		// is it the same?
-//		assertEquals("JSON was:\n"+json+"\n", acl, acl2);
-//	}
-		
+	}		
 }

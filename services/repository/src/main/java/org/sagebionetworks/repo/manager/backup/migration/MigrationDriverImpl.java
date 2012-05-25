@@ -96,7 +96,7 @@ public class MigrationDriverImpl implements MigrationDriver{
 		if (acl!=null) {
 			for (ResourceAccess ra : acl.getResourceAccess()) {
 				String groupName = ra.getGroupName();
-				ra.setPrincipalId(nodeOwnerMigrator.getUserPrincipal(groupName));
+				if (ra.getPrincipalId()==null) ra.setPrincipalId(nodeOwnerMigrator.getUserPrincipal(groupName));
 			}
 		}
 	}

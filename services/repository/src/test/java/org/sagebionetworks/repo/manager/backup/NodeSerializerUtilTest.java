@@ -244,7 +244,7 @@ public class NodeSerializerUtilTest {
 		ra.setAccessType(new HashSet<ACCESS_TYPE>());
 		ra.getAccessType().add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		ra.getAccessType().add(ACCESS_TYPE.READ);
-		ra.setGroupName("someGroupName");
+		ra.setPrincipalId(123L);
 		acl.getResourceAccess().add(ra);
 		ra = new ResourceAccess();
 		ra.setAccessType(new HashSet<ACCESS_TYPE>());
@@ -252,7 +252,7 @@ public class NodeSerializerUtilTest {
 		for(ACCESS_TYPE type: ACCESS_TYPE.values()){
 			ra.getAccessType().add(type);
 		}
-		ra.setGroupName("gomerPile");
+		ra.setPrincipalId(456L);
 		acl.getResourceAccess().add(ra);
 		
 		// Create the backup

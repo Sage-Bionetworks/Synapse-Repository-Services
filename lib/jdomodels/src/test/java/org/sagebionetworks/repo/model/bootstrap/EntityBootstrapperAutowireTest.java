@@ -48,8 +48,12 @@ public class EntityBootstrapperAutowireTest {
 			String benenefactorId = nodeInheritanceDao.getBenefactor(id);
 			// This node should inherit from itself
 			assertEquals("A bootstrapped node should be its own benefactor",id, benenefactorId);
-			AccessControlList acl = accessControlListDAO.getForResource(id);
-			assertNotNull(acl);
+			try {
+				AccessControlList acl = accessControlListDAO.getForResource(id);
+				assertNotNull(acl);
+			} catch (NotFoundException nfe) {
+				throw new NotFoundException("id="+id);
+			}
 		}
 	}
 	

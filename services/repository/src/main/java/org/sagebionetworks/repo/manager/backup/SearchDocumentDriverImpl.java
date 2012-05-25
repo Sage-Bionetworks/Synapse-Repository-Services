@@ -417,9 +417,9 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			if (access.getAccessType().contains(
 					ACCESS_TYPE.READ)) {
 				if (FIELD_VALUE_SIZE_LIMIT > readAclValues.size()) {
-					readAclValues.add(access.getGroupName());
+					readAclValues.add(access.getPrincipalId().toString()); // TODO could look up display name from UserProfile and substitute here
 				} else {
-					log.error("Had to leave READ acl " + access.getGroupName()
+					log.error("Had to leave READ acl " + access.getPrincipalId()
 							+ " out of search document " + node.getId()
 							+ " due to AwesomeSearch limits");
 				}
@@ -427,10 +427,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 			if (access.getAccessType().contains(
 					ACCESS_TYPE.UPDATE)) {
 				if (FIELD_VALUE_SIZE_LIMIT > updateAclValues.size()) {
-					updateAclValues.add(access.getGroupName());
+					updateAclValues.add(access.getPrincipalId().toString()); // TODO could look up display name from UserProfile and substitute here
 				} else {
 					log.error("Had to leave UPDATE acl "
-							+ access.getGroupName()
+							+ access.getPrincipalId()
 							+ " out of search document " + node.getId()
 							+ " due to AwesomeSearch limits");
 				}

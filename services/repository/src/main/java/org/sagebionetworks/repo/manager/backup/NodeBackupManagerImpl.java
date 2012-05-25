@@ -163,7 +163,7 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 	public void createUsersAsNeeded(AccessControlList acl)	throws DatastoreException, InvalidModelException {
 		if(acl != null && acl.getResourceAccess() != null){
 			for(ResourceAccess access: acl.getResourceAccess()){
-				String groupName = access.getGroupName();
+				String groupName = null; // access.getGroupName(); << this method is no longer used
 				if(groupName != null){
 					if(!userGroupDAO.doesPrincipalExist(groupName)){
 						UserGroup principal = createUserGroupForName(groupName);

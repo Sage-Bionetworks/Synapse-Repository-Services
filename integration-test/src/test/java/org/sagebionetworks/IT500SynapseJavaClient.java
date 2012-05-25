@@ -3,6 +3,7 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
@@ -44,6 +45,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -63,7 +65,7 @@ public class IT500SynapseJavaClient {
 	private static Synapse synapse = null;
 	private static Project project = null;
 	private static Study dataset = null;
-
+	
 	/**
 	 * @throws Exception
 	 * 
@@ -168,19 +170,26 @@ public class IT500SynapseJavaClient {
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
 		
+		UserProfile profile = synapse.getMyProfile();
+		assertNotNull(profile);
+		
 		// ACL should reflect this information
 		AccessControlList acl = synapse.getACL(project.getId());
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		boolean foundit = false;
+		List<Long> foundPrincipals = new ArrayList<Long>();
 		for (ResourceAccess ra : ras) {
-			if (ra.getGroupName().equals(StackConfiguration.getIntegrationTestUserOneName())) {
+			assertNotNull(ra.getPrincipalId());
+			assertNull(ra.getGroupName()); // deprecated, so should be null
+			foundPrincipals.add(ra.getPrincipalId());
+			if (ra.getPrincipalId().equals(Long.parseLong(profile.getOwnerId()))) {
 				foundit=true;
 				Set<ACCESS_TYPE> ats = ra.getAccessType();
 				assertTrue(ats.contains(ACCESS_TYPE.READ));
 				assertTrue(ats.contains(ACCESS_TYPE.UPDATE));
 			}
 		}
-		assertTrue(foundit);
+		assertTrue("didn't find "+profile.getDisplayName()+"("+profile.getOwnerId()+") but found "+foundPrincipals, foundit);
 		
 		// Get the path
 		EntityPath path = synapse.getEntityPath(aNewDataset.getId());
@@ -315,14 +324,22 @@ public class IT500SynapseJavaClient {
 	
 	@Test
 	public void testGetUsers() throws Exception {
-		PaginatedResults<UserGroup> users = synapse.getUsers();
+		PaginatedResults<UserProfile> users = synapse.getUsers();
 		assertTrue(users.getResults().size()>0);
+		for (UserProfile up : users.getResults()) {
+			assertNotNull(up.getOwnerId());
+			assertNotNull(up.getDisplayName());
+		}
 	}
 	
 	@Test
 	public void testGetGroups() throws Exception {
 		PaginatedResults<UserGroup> groups = synapse.getGroups();
 		assertTrue(groups.getResults().size()>0);
+		for (UserGroup ug : groups.getResults()) {
+			assertNotNull(ug.getId());
+			assertNotNull(ug.getName());
+		}
 	}
 	
 	

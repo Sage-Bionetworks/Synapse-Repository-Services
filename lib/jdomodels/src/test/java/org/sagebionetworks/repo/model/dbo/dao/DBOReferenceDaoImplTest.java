@@ -431,7 +431,7 @@ public class DBOReferenceDaoImplTest {
 		Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
 		accessTypes.add(ACCESS_TYPE.READ);
 		ra.setAccessType(accessTypes);
-		ra.setGroupName(GROUP_NAME);
+		ra.setPrincipalId(Long.parseLong(groupId));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
 		acl = dboAccessControlListDao.createACL(acl);
@@ -454,7 +454,7 @@ public class DBOReferenceDaoImplTest {
 		Set<ResourceAccess> ras2 = acl2.getResourceAccess();
 		assertEquals(1, ras2.size());
 		ResourceAccess ra2 = ras2.iterator().next();
-		assertEquals(GROUP_NAME, ra2.getGroupName());
+		assertEquals(groupId, ra2.getPrincipalId().toString());
 		assertTrue(accessControlListDao.canAccess(userInfo.getGroups(), permissionsBenefactor0, ACCESS_TYPE.READ));
 		String permissionsBenefactor1 = nodeInheritanceDao.getBenefactor(""+node1.getId());
 		// node1 is its own permissions supplier

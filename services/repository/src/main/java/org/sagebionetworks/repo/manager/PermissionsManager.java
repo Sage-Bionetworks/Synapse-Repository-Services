@@ -76,7 +76,7 @@ public interface PermissionsManager {
 	 */
 	public AccessControlList restoreInheritance(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
-	// the following methods provide the principals (individuals and groups) 
+	// the following methods provide the groups
 	// to which resource access permission may be granted
 	
 	/**
@@ -88,22 +88,10 @@ public interface PermissionsManager {
 	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException, UnauthorizedException;
 	
 	/**
-	 * get all individual user groups
-	 * 
-	 **/
-	public Collection<UserGroup> getIndividuals(UserInfo userInfo) throws DatastoreException, UnauthorizedException;
-	
-	/**
 	 * get non-individual user groups (including Public) in range
 	 * 
 	 **/
 	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException;
-	
-	/**
-	 * get individual user groups in range
-	 * 
-	 **/
-	public List<UserGroup> getIndividualsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Use case:  Need to find out if a user can download a resource.

@@ -443,7 +443,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(id, adminUser);
 		// Make sure group A can read from this node
 		ResourceAccess access = new ResourceAccess();
-		access.setGroupName(groupA.getName());
+		access.setPrincipalId(Long.parseLong(groupA.getId()));
 		access.setAccessType(new HashSet<ACCESS_TYPE>());
 		access.getAccessType().add(ACCESS_TYPE.READ);
 		acl.getResourceAccess().add(access);
@@ -458,7 +458,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		acl = AccessControlListUtil.createACLToGrantAll(id, adminUser);
 		// Make sure group B can read from this node
 		access = new ResourceAccess();
-		access.setGroupName(groupB.getName());
+		access.setPrincipalId(Long.parseLong(groupB.getId()));
 		access.setAccessType(new HashSet<ACCESS_TYPE>());
 		access.getAccessType().add(ACCESS_TYPE.READ);
 		acl.getResourceAccess().add(access);

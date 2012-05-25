@@ -32,6 +32,8 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -53,6 +55,8 @@ public class S3TokenControllerTest {
 	private ServletTestHelper testHelper;
 	@Autowired
 	AmazonS3Utility s3Utility;
+	@Autowired
+	UserGroupDAO userGroupDAO;
 
 	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
 	private static final String TEST_USER2 = "testuser2@test.org";
@@ -81,9 +85,10 @@ public class S3TokenControllerTest {
 		// Add a public read ACL to the project object
 		AccessControlList projectAcl = testHelper.getEntityACL(project);
 		ResourceAccess ac = new ResourceAccess();
-		ac
-				.setGroupName(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS
-						.name());
+		UserGroup authenticatedUsers = userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS
+				.name(), false);
+		assertNotNull(authenticatedUsers);
+		ac.setPrincipalId(Long.parseLong(authenticatedUsers.getId()));
 		ac.setAccessType(new HashSet<ACCESS_TYPE>());
 		ac.getAccessType().add(ACCESS_TYPE.READ);
 		projectAcl.getResourceAccess().add(ac);

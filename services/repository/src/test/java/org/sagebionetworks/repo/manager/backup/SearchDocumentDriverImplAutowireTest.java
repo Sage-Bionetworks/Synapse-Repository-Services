@@ -136,12 +136,12 @@ public class SearchDocumentDriverImplAutowireTest {
 		rwAccessType.add(ACCESS_TYPE.READ);
 		rwAccessType.add(ACCESS_TYPE.UPDATE);
 		ResourceAccess rwResourceAccess = new ResourceAccess();
-		rwResourceAccess.setGroupName("readWriteTest@sagebase.org");
+		rwResourceAccess.setPrincipalId(123L); //readWriteTest@sagebase.org
 		rwResourceAccess.setAccessType(rwAccessType);
 		Set<ACCESS_TYPE> roAccessType = new HashSet<ACCESS_TYPE>();
 		roAccessType.add(ACCESS_TYPE.READ);
 		ResourceAccess roResourceAccess = new ResourceAccess();
-		roResourceAccess.setGroupName("readOnlyTest@sagebase.org");
+		roResourceAccess.setPrincipalId(456L); // readOnlyTest@sagebase.org
 		roResourceAccess.setAccessType(roAccessType);
 
 		Set<ResourceAccess> resourceAccesses = new HashSet<ResourceAccess>();

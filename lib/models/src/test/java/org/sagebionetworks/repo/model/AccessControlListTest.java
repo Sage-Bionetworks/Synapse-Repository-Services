@@ -35,7 +35,7 @@ public class AccessControlListTest {
 		assertEquals(1, acl.getResourceAccess().size());
 		ResourceAccess ra = acl.getResourceAccess().iterator().next();
 		assertNotNull(ra);
-		assertEquals(userGroup.getName(), ra.getGroupName());
+		assertEquals(userGroup.getId(), ra.getPrincipalId().toString());
 		assertNotNull(ra.getAccessType());
 		// There should be one for each type
 		ACCESS_TYPE[] array = ACCESS_TYPE.values();

@@ -11,9 +11,6 @@
             "description":"The id of the principal who is granted access",
             
         },
-         "displayName":{
-            "type":"string"
-        },
      "accessType":{
             "type":"array",
             "uniqueItems":true,

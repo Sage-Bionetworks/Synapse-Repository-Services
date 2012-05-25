@@ -40,9 +40,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
 	
-	@Autowired
-	private UserGroupCache userGroupCache;
-	
 	private static final String ID_PARAM_NAME = "id";
 	private static final String NAME_PARAM_NAME = "name";
 	private static final String IS_INDIVIDUAL_PARAM_NAME = "isIndividual";
@@ -244,14 +241,12 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			ConflictingUpdateException {
 		DBOUserGroup dbo = new DBOUserGroup();
 		UserGroupUtils.copyDtoToDbo(dto, dbo);
-		userGroupCache.delete(dbo.getId());
 		basicDao.update(dbo);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
-		userGroupCache.delete(Long.parseLong(id));
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
 		basicDao.deleteObjectById(DBOUserGroup.class, param);

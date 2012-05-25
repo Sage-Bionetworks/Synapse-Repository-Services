@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Controller
 
-public class PrincipalsController extends BaseController {
+public class UserGroupController extends BaseController {
 
 	@Autowired
 	PermissionsManager permissionsManager;
@@ -36,38 +36,6 @@ public class PrincipalsController extends BaseController {
 	@Autowired
 	UserManager userManager;
 
-
-	/**
-	 * Get the Individuals in the system
-	 * @param userId - The user that is making the request.
-	 * @param request
-	 * @return The UserGroups for individuals
-	 * @throws DatastoreException - Thrown when there is a server-side problem.
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.USER, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<UserGroup> getIndividuals(HttpServletRequest request,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false)  String userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
-			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		
-		long endExcl = offset+limit;
-		List<UserGroup> results = permissionsManager.getIndividualsInRange(userInfo, offset, endExcl, sort, ascending);
-		int totalNumberOfResults = permissionsManager.getIndividuals(userInfo).size();
-		return new PaginatedResults<UserGroup>(
-				request.getServletPath()+UrlHelpers.USER, 
-				results,
-				totalNumberOfResults, 
-				offset, 
-				limit,
-				sort, 
-				ascending);
-	}
 
 	/**
 	 * Get the user-groups in the system

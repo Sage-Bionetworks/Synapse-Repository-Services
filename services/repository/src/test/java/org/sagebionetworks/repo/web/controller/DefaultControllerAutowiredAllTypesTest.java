@@ -48,6 +48,8 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -80,6 +82,9 @@ public class DefaultControllerAutowiredAllTypesTest {
 	
 	@Autowired
 	public UserManager userManager;
+	
+	@Autowired
+	UserGroupDAO userGroupDAO;
 
 	static private Log log = LogFactory
 			.getLog(DefaultControllerAutowiredAllTypesTest.class);
@@ -130,7 +135,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	}
 	
 	@Test
-	public void testAnonymousGet() throws ServletException, IOException, ACLInheritanceException{
+	public void testAnonymousGet() throws ServletException, IOException, ACLInheritanceException, DatastoreException {
 		Project project = new Project();
 		project.setName("testAnonymousGet");
 		project = ServletTestHelper.createEntity(dispatchServlet, project, userName);
@@ -142,7 +147,9 @@ public class DefaultControllerAutowiredAllTypesTest {
 		assertNotNull(acl);
 		assertEquals(id, acl.getId());
 		ResourceAccess ac = new ResourceAccess();
-		ac.setGroupName(AuthorizationConstants.DEFAULT_GROUPS.PUBLIC.name());
+		UserGroup publicUserGroup = userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.PUBLIC.name(), false);
+		assertNotNull(publicUserGroup);
+		ac.setPrincipalId(Long.parseLong(publicUserGroup.getId()));
 		ac.setAccessType(new HashSet<ACCESS_TYPE>());
 		ac.getAccessType().add(ACCESS_TYPE.READ);
 		acl.getResourceAccess().add(ac);

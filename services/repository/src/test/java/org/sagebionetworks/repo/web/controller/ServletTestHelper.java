@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -960,7 +961,7 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static <T extends Entity> QueryResults query(
+	public static <T extends Entity> QueryResults<Map<String,Object>> query(
 			HttpServlet dispatchServlet, String query,
 			 String userId) throws ServletException,
 			IOException {
@@ -1172,7 +1173,7 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public static PaginatedResults<UserGroup> getUsers(
+	public static PaginatedResults<UserProfile> getUsers(
 			HttpServlet dispatchServlet, String userId)
 			throws ServletException, IOException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -1186,8 +1187,8 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		PaginatedResults<UserGroup> us = deserializePaginatedResults(
-				response.getContentAsString(), UserGroup.class);
+		PaginatedResults<UserProfile> us = deserializePaginatedResults(
+				response.getContentAsString(), UserProfile.class);
 		return us;
 	}
 	

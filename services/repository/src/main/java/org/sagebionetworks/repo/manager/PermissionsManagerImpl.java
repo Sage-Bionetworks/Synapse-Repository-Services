@@ -46,6 +46,9 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+	
+	@Autowired
+	private UserManager userManager;
 
 	@Transactional(readOnly = true)
 	@Override
@@ -59,8 +62,23 @@ public class PermissionsManagerImpl implements PermissionsManager {
 			EntityType type = EntityType.getFirstTypeInUrl(header.getType());
 			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor,type, benefactor);
 		}
-		return aclDAO.getForResource(nodeId);
+		AccessControlList acl = aclDAO.getForResource(nodeId);
+		//populateDisplayNames(acl);
+		return acl;
 	}
+	
+//	/**
+//	 * 
+//	 * Populate the display names in the ResourceAccess objects of the ACL
+//	 * @param acl
+//	 */
+//	public void populateDisplayNames(AccessControlList acl) throws DatastoreException, NotFoundException {
+//		for (ResourceAccess ra : acl.getResourceAccess()) {
+//			// TODO cache the following look-up so you don't have to do it every time
+//			String displayName = userManager.getDisplayName(ra.getPrincipalId());
+//			ra.setDisplayName(displayName);
+//		}
+//	}
 	
 	public void validateContent(AccessControlList acl) throws InvalidModelException {
 		if (acl.getId()==null) throw new InvalidModelException("Resource ID is null");
@@ -69,7 +87,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		}
 		for (ResourceAccess ra : acl.getResourceAccess()) {
 			if (ra==null) throw new InvalidModelException("ACL row is null.");
-			if (ra.getGroupName()==null) throw new InvalidModelException("Group ID is null");
+			if (ra.getPrincipalId()==null) throw new InvalidModelException("Group ID is null");
 			if (ra.getAccessType().isEmpty()) throw new InvalidModelException("No access types specified.");
 		}
 		
@@ -162,23 +180,11 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	}
 
 	@Override
-	public Collection<UserGroup> getIndividuals(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
-		requireUser(userInfo);
-		return userGroupDAO.getAll(true);
-	}
-
-	@Override
 	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException {
 		requireUser(userInfo);
 		return userGroupDAO.getInRange(startIncl, endExcl, false);
 	}
 
-	@Override
-	public List<UserGroup> getIndividualsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException {
-		requireUser(userInfo);
-		return userGroupDAO.getInRange(startIncl, endExcl, true);
-	}
-	
 	/**
 	 * Use case:  Need to find out if a user can download a resource.
 	 * 

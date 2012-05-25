@@ -27,14 +27,14 @@ public class AuthorizationHelper {
 		acl.setResourceAccess(ras);
 		ResourceAccess ra = null;
 		for (ResourceAccess r : ras) {
-			if (r.getGroupName()==ug.getName()) {
+			if (r.getPrincipalId().toString().equals(ug.getId())) {
 				ra=r;
 				break;
 			}
 		}
 		if (ra==null) {
 			ra = new ResourceAccess();
-			ra.setGroupName(ug.getName());
+			ra.setPrincipalId(Long.parseLong(ug.getId()));
 			Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 			ra.setAccessType(ats);
 			ras.add(ra);

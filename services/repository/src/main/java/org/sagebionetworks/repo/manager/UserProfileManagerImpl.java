@@ -3,9 +3,12 @@
  */
 package org.sagebionetworks.repo.manager;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -40,6 +43,28 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		return userProfile;
 	}
 
+	/**
+	 * Get the public profiles of the users in the system, paginated
+	 * 
+	 * @param userInfo
+	 * @param startIncl
+	 * @param endExcl
+	 * @param sort
+	 * @param ascending
+	 * @return
+	 */
+	@Override
+	public QueryResults<UserProfile> getInRange(long startIncl, long endExcl) throws DatastoreException, NotFoundException{
+		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
+		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl, schema);
+		long totalNumberOfResults = userProfileDAO.getCount();
+		for (UserProfile userProfile : userProfiles) {
+			UserProfileManagerUtils.clearPrivateFields(userProfile);
+		}
+		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
+		return result;
+	}
+	
 
 	/**
 	 * 

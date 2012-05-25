@@ -13,6 +13,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ResourceAccess;
@@ -55,7 +56,11 @@ public class EntityBootstrapperUnitTest {
 		List<AccessBootstrapData> list = new ArrayList<AccessBootstrapData>();
 		
 		AccessBootstrapData data = new AccessBootstrapData();
-		data.setGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS);
+
+		UserGroup authenticatedUsers = userGroupDAO.findGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false);
+		assertNotNull(authenticatedUsers);
+
+		data.setGroupId(Long.parseLong(authenticatedUsers.getId()));
 		List<ACCESS_TYPE> types = new ArrayList<ACCESS_TYPE>();
 		types.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
 		types.add(ACCESS_TYPE.CREATE);
@@ -63,7 +68,10 @@ public class EntityBootstrapperUnitTest {
 		list.add(data);
 		
 		data = new AccessBootstrapData();
-		data.setGroup(DEFAULT_GROUPS.PUBLIC);
+		UserGroup publicUsers = userGroupDAO.findGroup(DEFAULT_GROUPS.PUBLIC.name(), false);
+		assertNotNull(publicUsers);
+
+		data.setGroupId(Long.parseLong(publicUsers.getId()));
 		types = new ArrayList<ACCESS_TYPE>();
 		types.add(ACCESS_TYPE.DELETE);
 		data.setAccessTypeList(types);
@@ -84,9 +92,9 @@ public class EntityBootstrapperUnitTest {
 		ResourceAccess publicRa = null;
 		while(it.hasNext()){
 			ResourceAccess ra = it.next();
-			if(DEFAULT_GROUPS.AUTHENTICATED_USERS.name().equals(ra.getGroupName())){
+			if(authenticatedUsers.getId().equals(ra.getPrincipalId().toString())){
 				authRa = ra;
-			}else if(DEFAULT_GROUPS.PUBLIC.name().equals(ra.getGroupName())){
+			}else if(publicUsers.getId().equals(ra.getPrincipalId().toString())){
 				publicRa = ra;
 			}
 		}

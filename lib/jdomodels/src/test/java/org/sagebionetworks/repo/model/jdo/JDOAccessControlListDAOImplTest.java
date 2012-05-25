@@ -53,9 +53,6 @@ public class JDOAccessControlListDAOImplTest {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
-	@Autowired
-	private UserGroupCache userGroupCache;
-
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Collection<UserGroup> groupList = new ArrayList<UserGroup>();
 	private Collection<AccessControlList> aclList = new ArrayList<AccessControlList>();
@@ -113,7 +110,7 @@ public class JDOAccessControlListDAOImplTest {
 		ResourceAccess ra = new ResourceAccess();
 		ra.setGroupName(group.getName()); 
 		ra.setPrincipalId(Long.parseLong(group.getId()));
-		ra.setDisplayName(group.getName());
+		//ra.setDisplayName(group.getName());
 		ra.setAccessType(new HashSet<ACCESS_TYPE>(
 				Arrays.asList(new ACCESS_TYPE[]{
 						ACCESS_TYPE.READ
@@ -126,7 +123,6 @@ public class JDOAccessControlListDAOImplTest {
 		ras = acl.getResourceAccess();
 		assertEquals(1, ras.size());
 		ResourceAccess raClone = ras.iterator().next();
-		assertEquals(ra.getGroupName(), raClone.getGroupName());
 		assertEquals(ra.getPrincipalId(), raClone.getPrincipalId());
 		// TODO assertEquals(ra.getDisplayName(), raClone.getDisplayName());
 		assertEquals(ra.getAccessType(), raClone.getAccessType());
@@ -268,9 +264,8 @@ public class JDOAccessControlListDAOImplTest {
 				})));
 		// Now add a new resource access for group 2
 		ResourceAccess ra2 = new ResourceAccess();
-		ra2.setGroupName(group2.getName());
 		ra2.setPrincipalId(Long.parseLong(group2.getId()));
-		ra2.setDisplayName(group2.getName());
+		//ra2.setDisplayName(group2.getName());
 		ra2.setAccessType(new HashSet<ACCESS_TYPE>(
 				Arrays.asList(new ACCESS_TYPE[]{
 						ACCESS_TYPE.READ,
