@@ -37,8 +37,12 @@ public class SearchUtil {
 			for (KeyValue pair : bq) {
 				// this regex is pretty lame to have. need to work continuous into KeyValue model
 				String value = pair.getValue().contains("..") ? pair.getValue()
-						: "'" + pair.getValue() + "'";									
-				params.add("bq=" + pair.getKey() + ":" + value);
+						: "'" + pair.getValue() + "'";
+				String term = pair.getKey() + ":" + value; 
+				if(pair.getNot() != null && pair.getNot()) {
+					term = "(not " + term + ")";
+				}
+				params.add("bq=" + term);
 			}
 		}
 
