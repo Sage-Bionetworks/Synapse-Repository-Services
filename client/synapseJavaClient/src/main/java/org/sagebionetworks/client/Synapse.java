@@ -188,6 +188,14 @@ public class Synapse {
 	}
 
 	/**
+	 * Get the configured Repository Service Endpoint
+	 * @return
+	 */
+	public String getRepoEndpoint() {
+		return repoEndpoint;
+	}
+
+	/**
 	 * @param authEndpoint
 	 *            the authEndpoint to set
 	 */
@@ -195,6 +203,14 @@ public class Synapse {
 		this.authEndpoint = authEndpoint;
 	}
 
+	/**
+	 * Get the configured Authorization Service Endpoint
+	 * @return
+	 */
+	public String getAuthEndpoint() {
+		return authEndpoint;
+	}
+	
 	/**
 	 * @param request
 	 */

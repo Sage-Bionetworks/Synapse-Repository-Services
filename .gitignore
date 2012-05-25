@@ -1,6 +1,13 @@
 /logs
+<<<<<<< HEAD
 /target/
 /.settings/
 /.project
 /.pydevproject
 .*
+=======
+/target
+/.settings
+/.project
+/.pydevproject
+>>>>>>> af0b4ec40079480e0c2ff0b852a2858fe02eee11
