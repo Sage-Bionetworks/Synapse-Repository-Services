@@ -8,6 +8,10 @@
         "value":{
         	"type":"string",
         	"description":"The facet value"
-        }
+        },
+        "not":{
+        	"type":"boolean",
+        	"description":"True when this key value should be negated"
+        }        
     }
 }

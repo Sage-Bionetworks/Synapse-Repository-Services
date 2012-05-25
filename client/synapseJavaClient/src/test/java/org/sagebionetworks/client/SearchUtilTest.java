@@ -48,6 +48,17 @@ public class SearchUtilTest {
 		kv.setValue("..2000");
 		bq2.add(kv);
 
+		List<KeyValue> bqNot = new ArrayList<KeyValue>();
+		kv = new KeyValue();
+		kv.setKey("Facet1");
+		kv.setValue("Value1");
+		kv.setNot(true);
+		bqNot.add(kv);
+		kv = new KeyValue();
+		kv.setKey("Facet2");
+		kv.setValue("Value2");
+		bqNot.add(kv);
+
 		
 		// null input
 		try {
@@ -83,6 +94,13 @@ public class SearchUtilTest {
 		query.setBooleanQuery(bq2);
 		queryStr = SearchUtil.generateQueryString(query);
 		assertEquals("bq=Facet1:..2000", queryStr);
+		
+		// negated boolean query
+		query = new SearchQuery();
+		query.setBooleanQuery(bqNot);
+		queryStr = SearchUtil.generateQueryString(query);
+		assertEquals("bq=(not Facet1:'Value1')&bq=Facet2:'Value2'", queryStr);
+		
 		
 		// Both q and bq
 		query = new SearchQuery();
