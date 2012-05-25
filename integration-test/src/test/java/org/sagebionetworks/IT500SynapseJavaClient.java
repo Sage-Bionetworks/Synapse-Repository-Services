@@ -328,7 +328,6 @@ public class IT500SynapseJavaClient {
 		assertTrue(users.getResults().size()>0);
 		for (UserProfile up : users.getResults()) {
 			assertNotNull(up.getOwnerId());
-			assertNotNull(up.getDisplayName());
 		}
 	}
 	
