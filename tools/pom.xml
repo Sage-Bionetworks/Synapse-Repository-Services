@@ -3,7 +3,7 @@
 	<parent>
 		<artifactId>platform</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>0.13.2-SNAPSHOT</version>
+		<version>0.13.5-SNAPSHOT</version>
 	</parent>
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>org.sagebionetworks</groupId>
@@ -12,13 +12,10 @@
 	<name>Platform Tools</name>
 
     <modules>
-      <module>tcgaWorkflow</module>
       <module>wikiutil</module>
-      <module>gePipeline</module>
       <module>bccSetup</module>
       <module>SynapseDeployer</module>
       <module>tool-migration-utility</module>
-      <module>sageCommonsWorkflow</module>
   </modules>
 
 </project>

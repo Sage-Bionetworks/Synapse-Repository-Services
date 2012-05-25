@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>platform</artifactId>
-		<version>0.13.2-SNAPSHOT</version>
+		<version>0.13.5-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
@@ -20,7 +20,6 @@
 		<module>lib-auto-generated</module>
 		<module>lib-shared-models</module>
 		<module>lib-concepts</module>
-		<module>lib-workflow</module>
 		<module>communicationUtilities</module>
 		<module>securityUtilities</module>
 		<module>models</module>

@@ -6,7 +6,7 @@
 	<parent>
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>platform</artifactId>
-		<version>0.13.2-SNAPSHOT</version>
+		<version>0.13.5-SNAPSHOT</version>
 	</parent>
 
 	<groupId>org.sagebionetworks</groupId>
@@ -50,26 +50,6 @@
 						<goals>
 							<goal>testCompile</goal>
 						</goals>
-					</execution>
-				</executions>
-			</plugin>
-
-			<!-- Unpack Python and R assemblies with this -->
-			<plugin>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>unpack-non-java-dependencies</id>
-						<goals>
-							<goal>unpack-dependencies</goal>
-						</goals>
-						<phase>compile</phase>
-						<configuration>
-							<outputDirectory>${project.build.directory}/non-java-dependencies</outputDirectory>
-							<includeArtifacIds>synapse-python-client-assembly</includeArtifacIds>
-							<includeTypes>zip</includeTypes>
-							<includeGroupIds>${project.groupId}</includeGroupIds>
-						</configuration>
 					</execution>
 				</executions>
 			</plugin>
@@ -136,8 +116,8 @@
 					<wait>${org.sagebionetworks.integration.debug}</wait>
 					<!-- Container configuration -->
 					<container>
-                      <timeout>240000</timeout>
-                      <containerId>tomcat6x</containerId>
+						<timeout>240000</timeout>
+						<containerId>tomcat6x</containerId>
 						<!-- Download and install tomcat -->
 						<zipUrlInstaller>
 							<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local/apache/tomcat/${tomcat-version}/tomcat-${tomcat-version}.zip</url>
@@ -145,7 +125,7 @@
 						</zipUrlInstaller>
 						<systemProperties>
 							<org.sagebionetworks.stackEncryptionKey>${org.sagebionetworks.stackEncryptionKey}</org.sagebionetworks.stackEncryptionKey>
- 							<org.sagebionetworks.stack.configuration.url>${org.sagebionetworks.stack.configuration.url}</org.sagebionetworks.stack.configuration.url>
+							<org.sagebionetworks.stack.configuration.url>${org.sagebionetworks.stack.configuration.url}</org.sagebionetworks.stack.configuration.url>
 							<org.sagebionetworks.stack>${org.sagebionetworks.stack}</org.sagebionetworks.stack>
 							<org.sagebionetworks.stack.instance>${org.sagebionetworks.stack.instance}</org.sagebionetworks.stack.instance>
 							<org.sagebionetworks.stack.iam.id>${org.sagebionetworks.stack.iam.id}</org.sagebionetworks.stack.iam.id>
@@ -177,13 +157,13 @@
 							</deployable>
 						</deployables>
 						<properties>
-						<!-- Add the following to 'remote debug' the entire deployment stack -->
-<!-- 							<cargo.jvmargs> -->
-<!-- 								-Xdebug -->
-<!-- 								-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8989 -->
-<!-- 								-Xnoagent -->
-<!-- 								-Djava.compiler=NONE -->
-<!--       						 </cargo.jvmargs> -->
+							<!-- Add the following to 'remote debug' the entire deployment stack -->
+							<!-- <cargo.jvmargs> -->
+							<!-- -Xdebug -->
+							<!-- -Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8989 -->
+							<!-- -Xnoagent -->
+							<!-- -Djava.compiler=NONE -->
+							<!-- </cargo.jvmargs> -->
 						</properties>
 					</configuration>
 
@@ -259,36 +239,8 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>tcgaWorkflow</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>gePipeline</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
 			<artifactId>bccSetup</artifactId>
 			<version>${project.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>synapsePythonClient</artifactId>
-			<classifier>synapse-python-client-assembly</classifier>
-			<type>zip</type>
-			<!-- Make sure this isn't included on any classpath -->
-			<scope>provided</scope>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>synapseRClient</artifactId>
-			<classifier>synapse-r-client-assembly</classifier>
-			<type>zip</type>
-			<!-- Make sure this isn't included on any classpath -->
-			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
@@ -306,7 +258,7 @@
 			<artifactId>tool-migration-utility</artifactId>
 		</dependency>
 
-		    <dependency>
+		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>org.springframework.web</artifactId>
 		</dependency>
@@ -317,20 +269,20 @@
 			<artifactId>jackson-mapper-asl</artifactId>
 		</dependency>
 
-        <dependency>
-          <groupId>org.apache.commons</groupId>
-          <artifactId>commons-io</artifactId>
-        </dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-io</artifactId>
+		</dependency>
 
-        <dependency>
+		<dependency>
 			<groupId>commons-logging</groupId>
 			<artifactId>commons-logging</artifactId>
 		</dependency>
 
 		<dependency>
-		  <groupId>org.mockito</groupId>
-		  <artifactId>mockito-all</artifactId>
-		  <scope>test</scope>
+			<groupId>org.mockito</groupId>
+			<artifactId>mockito-all</artifactId>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>

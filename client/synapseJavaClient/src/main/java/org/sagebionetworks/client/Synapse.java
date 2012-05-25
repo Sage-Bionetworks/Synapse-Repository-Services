@@ -207,8 +207,9 @@ public class Synapse {
 	 */
 	public JSONObject getProfileData() {
 		return this.profileData;
-	}
-	
+	}	
+
+
 	protected String userName;
 	protected String apiKey;
 	
@@ -1220,6 +1221,7 @@ public class Synapse {
 		}
 	}
 
+
 	/**
 	 * Update a dataset, layer, preview, annotations, etc...
 	 * 
@@ -1244,7 +1246,6 @@ public class Synapse {
 
 			Map<String, String> requestHeaders = new HashMap<String, String>();
 			requestHeaders.put("ETag", entity.getString("etag"));
-
 			return putSynapseEntity(endpoint, uri, entity, requestHeaders);
 		} catch (JSONException e) {
 			throw new SynapseException(e);
@@ -1480,7 +1481,6 @@ public class Synapse {
 		} catch (JSONException e) {
 			throw new SynapseServiceException(e);
 		}
-
 		return results;
 	}
 

@@ -1,0 +1,6 @@
+/logs
+/target/
+/.settings/
+/.project
+/.pydevproject
+.*

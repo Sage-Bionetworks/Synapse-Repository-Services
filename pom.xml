@@ -9,7 +9,7 @@
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>platform</artifactId>
 	<!-- This is not the same as the application version. This is a constant. -->
-	<version>0.13.2-SNAPSHOT</version>
+	<version>0.13.5-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<url>http://www.sagebase.org/</url>
 	<scm>
@@ -20,7 +20,7 @@
 	<name>Sage Bionetworks Platform</name>
 	<description>
 		Sage Bionetworks Platform
-  </description>
+	</description>
 
 	<modules>
 		<module>lib</module>
@@ -291,21 +291,6 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
-				<artifactId>portal</artifactId>
-				<version>${project.version}</version>
-				<type>war</type>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>portal</artifactId>
-				<version>${project.version}</version>
-				<classifier>gwt-rpc-assembly</classifier>
-				<type>jar</type>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-auto-generated</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -360,12 +345,6 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
-				<artifactId>lib-workflow</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
 				<artifactId>synapseJavaClient</artifactId>
 				<version>${project.version}</version>
 			</dependency>
@@ -375,14 +354,6 @@
 				<artifactId>synapsePythonClient</artifactId>
 				<version>${project.version}</version>
 				<classifier>synapse-python-client-assembly</classifier>
-				<type>zip</type>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>synapseRClient</artifactId>
-				<version>${project.version}</version>
-				<classifier>synapse-r-client-assembly</classifier>
 				<type>zip</type>
 			</dependency>
 
@@ -409,18 +380,6 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>tool-migration-utility</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>tcgaWorkflow</artifactId>
-				<version>${project.version}</version>
-			</dependency>
-
-			<dependency>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>gePipeline</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
@@ -455,7 +414,71 @@
 	<build>
 		<pluginManagement>
 			<plugins>
-
+				<!-- Tell the eclipse m2e plugin to execute these lifecycle mappings
+					See: http://wiki.eclipse.org/M2E_plugin_execution_not_covered -->
+				<plugin>
+					<groupId>org.eclipse.m2e</groupId>
+					<artifactId>lifecycle-mapping</artifactId>
+					<version>1.0.0</version>
+					<configuration>
+						<lifecycleMappingMetadata>
+							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.sagebionetworks</groupId>
+										<artifactId>schema-to-pojo-maven-plugin</artifactId>
+										<versionRange>[0,)</versionRange>
+										<goals>
+											<goal>generate</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute />
+									</action>
+								</pluginExecution>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.apache.maven.plugins</groupId>
+										<artifactId>maven-dependency-plugin</artifactId>
+										<versionRange>[0,)</versionRange>
+										<goals>
+											<goal>unpack-dependencies</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute />
+									</action>
+								</pluginExecution>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.bsc.maven</groupId>
+										<artifactId>maven-processor-plugin</artifactId>
+										<versionRange>[0,)</versionRange>
+										<goals>
+											<goal>process</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute />
+									</action>
+								</pluginExecution>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.codehaus.mojo</groupId>
+										<artifactId>exec-maven-plugin</artifactId>
+										<versionRange>[1,)</versionRange>
+										<goals>
+											<goal>java</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute />
+									</action>
+								</pluginExecution>
+							</pluginExecutions>
+						</lifecycleMappingMetadata>
+					</configuration>
+				</plugin>
 				<!-- Java compiler version -->
 				<plugin>
 					<groupId>org.apache.maven.plugins</groupId>
