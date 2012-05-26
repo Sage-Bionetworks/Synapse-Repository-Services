@@ -17,7 +17,7 @@ public class UserGroupUtils {
 			dbo.seteTag(Long.parseLong(dto.getEtag()));
 		}
 		dbo.setCreationDate(dto.getCreationDate());
-		dbo.setIsIndividual(dto.isIndividual());
+		dbo.setIsIndividual(dto.getIsIndividual());
 		dbo.setName(dto.getName());
 
 	}
@@ -34,7 +34,7 @@ public class UserGroupUtils {
 			dto.setEtag(""+dbo.geteTag());
 		}
 		dto.setCreationDate(dbo.getCreationDate());
-		dto.setIndividual(dbo.getIsIndividual());
+		dto.setIsIndividual(dbo.getIsIndividual());
 		dto.setName(dbo.getName());
 	}
 	

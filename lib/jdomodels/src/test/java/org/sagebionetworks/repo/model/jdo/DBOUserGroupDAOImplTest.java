@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.model.jdo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -17,8 +17,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -58,12 +58,14 @@ public class DBOUserGroupDAOImplTest {
 	public void testRoundTrip() throws Exception {
 		UserGroup group = new UserGroup();
 		group.setName(GROUP_NAME);
+		group.setIsIndividual(false);
 		String groupId = userGroupDAO.create(group);
 		assertNotNull(groupId);
+		groupsToDelete.add(groupId);
 		UserGroup clone = userGroupDAO.get(groupId);
 		assertEquals(groupId, clone.getId());
 		assertEquals(GROUP_NAME, clone.getName());
-		assertEquals(group.isIndividual(), clone.isIndividual());
+		assertEquals(group.getIsIndividual(), clone.getIsIndividual());
 	}
 	
 	
@@ -77,7 +79,8 @@ public class DBOUserGroupDAOImplTest {
 		group.setName(GROUP_NAME);
 		String groupId = userGroupDAO.create(group);
 		assertNotNull(groupId);
-
+		groupsToDelete.add(groupId);
+		
 		assertTrue(userGroupDAO.doesPrincipalExist(GROUP_NAME));
 		
 		assertFalse(userGroupDAO.doesPrincipalExist(""+(new Random()).nextLong()));
@@ -100,8 +103,9 @@ public class DBOUserGroupDAOImplTest {
 		groupNames.add(GROUP_NAME);
 		Map<String,UserGroup> map = null;
 		map = userGroupDAO.getGroupsByNames(groupNames);
-		assertFalse(map.containsKey(GROUP_NAME));
-		
+		assertFalse("initial groups: "+allGroups+"  getGroupsByNames("+GROUP_NAME+") returned "+map.keySet(), map.containsKey(GROUP_NAME));
+//		assertFalse(map.containsKey(GROUP_NAME));
+			
 		UserGroup group = new UserGroup();
 		group.setName(GROUP_NAME);
 		String groupId = userGroupDAO.create(group);

@@ -1,11 +1,6 @@
 package org.sagebionetworks.repo.model;
 
-import static org.junit.Assert.*;
-
-import java.util.HashSet;
-
 import org.junit.Test;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 
 /**
  * Make sure hash and equals are as expected.

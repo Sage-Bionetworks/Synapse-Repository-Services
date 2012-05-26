@@ -11,11 +11,11 @@ import java.util.Map;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.jdo.UserGroupCache;
@@ -39,9 +39,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
-	
-	@Autowired
-	private UserGroupCache userGroupCache;
 	
 	private static final String ID_PARAM_NAME = "id";
 	private static final String NAME_PARAM_NAME = "name";
@@ -244,14 +241,12 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			ConflictingUpdateException {
 		DBOUserGroup dbo = new DBOUserGroup();
 		UserGroupUtils.copyDtoToDbo(dto, dbo);
-		userGroupCache.delete(dbo.getId());
 		basicDao.update(dbo);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
-		userGroupCache.delete(Long.parseLong(id));
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID_PARAM_NAME, id);
 		basicDao.deleteObjectById(DBOUserGroup.class, param);
@@ -269,7 +264,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			if (pg == null) {
 				pg = new UserGroup();
 				pg.setName(group.name());
-				pg.setIndividual(false);
+				pg.setIsIndividual(false);
 				create(pg);
 			}
 		}
@@ -279,7 +274,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		if (anon == null) {
 			anon = new UserGroup();
 			anon.setName(AuthorizationConstants.ANONYMOUS_USER_ID);
-			anon.setIndividual(true);
+			anon.setIsIndividual(true);
 			create(anon);
 		}
 	}

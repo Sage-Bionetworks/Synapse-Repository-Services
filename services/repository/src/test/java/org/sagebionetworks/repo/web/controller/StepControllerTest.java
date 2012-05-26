@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
 import java.util.HashMap;
@@ -12,24 +13,24 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.Ignore;
-
+import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Analysis;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Code;
-import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.EnvironmentDescriptor;
 import org.sagebionetworks.repo.model.Data;
+import org.sagebionetworks.repo.model.EnvironmentDescriptor;
+import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Step;
-import org.sagebionetworks.repo.model.LayerTypeNames;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
-import org.sagebionetworks.repo.ServiceConstants;
+import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.context.ContextConfiguration;
@@ -46,7 +47,10 @@ public class StepControllerTest {
 
 	@Autowired
 	ServletTestHelper testHelper;
-	
+
+	@Autowired
+	UserGroupDAO userGroupDAO;
+
 	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
 	private static final String TEST_USER2 = "testuser2@test.org";
 	
@@ -213,7 +217,12 @@ public class StepControllerTest {
 		testHelper.setTestUser(TEST_USER1);
 		AccessControlList projectAcl = testHelper.getEntityACL(project);
 		ResourceAccess ac = new ResourceAccess();
-		ac.setGroupName(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name());
+
+		UserGroup authenticatedUsers = userGroupDAO.findGroup(
+				AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false);
+		assertNotNull(authenticatedUsers);
+		ac.setPrincipalId(Long.parseLong(authenticatedUsers.getId()));
+
 		ac.setAccessType(new HashSet<ACCESS_TYPE>());
 		ac.getAccessType().add(ACCESS_TYPE.READ);
 		projectAcl.getResourceAccess().add(ac);

@@ -21,14 +21,13 @@ import javax.xml.bind.annotation.XmlRootElement;
  * and-jaxb-cant-handle-interfaces for more detail.
  * 
  */
-@Deprecated // Use EntityQueryResults
 @XmlRootElement(name = "result")
-public class QueryResults implements Serializable {
+public class QueryResults<T> implements Serializable {
 
 	private static final long serialVersionUID = 1L;
 
 	private long totalNumberOfResults;
-	private List<Map<String, Object>> results;
+	private List<T> results;
 
 	/**
 	 * Default constructor
@@ -45,7 +44,7 @@ public class QueryResults implements Serializable {
 	 * @param totalNumberOfResults
 	 *            the total number of results regardless of limit or offset
 	 */
-	public QueryResults(List<Map<String, Object>> results,
+	public QueryResults(List<T> results,
 			long totalNumberOfResults) {
 		this.results = results;
 		this.totalNumberOfResults = totalNumberOfResults;
@@ -68,14 +67,14 @@ public class QueryResults implements Serializable {
 	/**
 	 * @return the list of results
 	 */
-	public List<Map<String, Object>> getResults() {
+	public List<T> getResults() {
 		return results;
 	}
 
 	/**
 	 * @param results
 	 */
-	public void setResults(List<Map<String, Object>> results) {
+	public void setResults(List<T> results) {
 		this.results = results;
 	}
 

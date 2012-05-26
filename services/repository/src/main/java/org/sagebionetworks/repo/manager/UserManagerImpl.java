@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.util.UserGroupUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,7 +91,7 @@ public class UserManagerImpl implements UserManager {
 				// the group needs to be created
 				group = new UserGroup();
 				group.setName(groupName);
-				group.setIndividual(false);
+				group.setIsIndividual(false);
 				group.setCreationDate(new Date());
 				try {
 					String id = userGroupDAO.create(group);
@@ -108,7 +109,7 @@ public class UserManagerImpl implements UserManager {
 	private UserGroup createIndividualGroup(String userName, User user) throws DatastoreException {
 		UserGroup individualGroup = new UserGroup();
 		individualGroup.setName(userName);
-		individualGroup.setIndividual(true);
+		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
 		try {
 			individualGroup.setId(userGroupDAO.create(individualGroup));
@@ -209,7 +210,7 @@ public class UserManagerImpl implements UserManager {
 		while(it.hasNext()){
 			String name = it.next();
 			// Filter out any name that is an email address.
-			if(!UserGroup.isEmailAddress(name)){
+			if(!UserGroupUtil.isEmailAddress(name)){
 				newList.add(name);
 			}
 		}
@@ -265,7 +266,7 @@ public class UserManagerImpl implements UserManager {
 	public String createPrincipal(String name, boolean isIndividual) throws DatastoreException {
 		UserGroup principal = new UserGroup();
 		principal.setName(name);
-		principal.setIndividual(isIndividual);
+		principal.setIsIndividual(isIndividual);
 		principal.setCreationDate(new Date());
 		try {
 			return userGroupDAO.create(principal);
@@ -296,7 +297,7 @@ public class UserManagerImpl implements UserManager {
 	@Override
 	public String getDisplayName(Long principalId) throws NotFoundException, DatastoreException {
 		UserGroup userGroup = userGroupDAO.get(principalId.toString());
-		if (userGroup.isIndividual()) {
+		if (userGroup.getIsIndividual()) {
 			ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 			UserProfile userProfile = userProfileDAO.get(principalId.toString(), schema);
 			return userProfile.getDisplayName();

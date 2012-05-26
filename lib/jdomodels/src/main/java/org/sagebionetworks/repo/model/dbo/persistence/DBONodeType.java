@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_TYPE;
 
 import java.sql.ResultSet;

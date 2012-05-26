@@ -26,9 +26,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
@@ -42,11 +42,11 @@ import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 
 /**
  * @author deflaux
@@ -136,12 +136,12 @@ public class SearchDocumentDriverImplAutowireTest {
 		rwAccessType.add(ACCESS_TYPE.READ);
 		rwAccessType.add(ACCESS_TYPE.UPDATE);
 		ResourceAccess rwResourceAccess = new ResourceAccess();
-		rwResourceAccess.setGroupName("readWriteTest@sagebase.org");
+		rwResourceAccess.setPrincipalId(123L); //readWriteTest@sagebase.org
 		rwResourceAccess.setAccessType(rwAccessType);
 		Set<ACCESS_TYPE> roAccessType = new HashSet<ACCESS_TYPE>();
 		roAccessType.add(ACCESS_TYPE.READ);
 		ResourceAccess roResourceAccess = new ResourceAccess();
-		roResourceAccess.setGroupName("readOnlyTest@sagebase.org");
+		roResourceAccess.setPrincipalId(456L); // readOnlyTest@sagebase.org
 		roResourceAccess.setAccessType(roAccessType);
 
 		Set<ResourceAccess> resourceAccesses = new HashSet<ResourceAccess>();

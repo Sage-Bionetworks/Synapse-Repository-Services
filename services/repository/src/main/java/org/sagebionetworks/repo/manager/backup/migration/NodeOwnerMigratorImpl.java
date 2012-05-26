@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.backup.migration;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,6 +30,8 @@ public class NodeOwnerMigratorImpl implements NodeOwnerMigrator {
 	private Long defaultPrincipalId;
 	
 	public NodeOwnerMigratorImpl() {}
+	
+	private Map<String,Long> principalCache = Collections.synchronizedMap(new HashMap<String,Long>());
 	
 	public NodeOwnerMigratorImpl(UserGroupDAO ugDAO, UserManager um) {
 		userGroupDAO = ugDAO;
@@ -83,19 +86,25 @@ public class NodeOwnerMigratorImpl implements NodeOwnerMigrator {
 		if (userName == null) {
 			// use the default principal ID, set above
 		} else {
-			Map<String, UserGroup> userGroupMap = new HashMap<String, UserGroup>();
-			try {
-				userGroupMap = userGroupDAO.getGroupsByNames(Arrays
-						.asList(new String[] { userName }));
-			} catch (DatastoreException e) {
-				// log the error and proceed using the default
-				log.warn(e);
-			}
-			UserGroup ug = userGroupMap.get(userName);
-			if (ug == null) {
-				// use the default principal ID, set above
+			Long cachedValue = principalCache.get(userName);
+			if (cachedValue!=null) {
+				principalId = cachedValue;
 			} else {
-				principalId = Long.parseLong(ug.getId());
+				Map<String, UserGroup> userGroupMap = new HashMap<String, UserGroup>();
+				try {
+					userGroupMap = userGroupDAO.getGroupsByNames(Arrays
+							.asList(new String[] { userName }));
+				} catch (DatastoreException e) {
+					// log the error and proceed using the default
+					log.warn(e);
+				}
+				UserGroup ug = userGroupMap.get(userName);
+				if (ug == null) {
+					// use the default principal ID, set above
+				} else {
+					principalId = Long.parseLong(ug.getId());
+				}
+				principalCache.put(userName, principalId);
 			}
 		}
 		return principalId;

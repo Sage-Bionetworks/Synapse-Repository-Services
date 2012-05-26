@@ -13,15 +13,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -64,7 +64,7 @@ public class JDOAccessControlListDAOScaleTest {
 		userGroup = new UserGroup();
 		userGroup.setName("aTestUser@sagebase.org");
 		userGroup.setCreationDate(new Date());
-		userGroup.setIndividual(true);
+		userGroup.setIsIndividual(true);
 		userId = userGroupDAO.create(userGroup);
 		// update the object from the database so it has its ID
 		userGroup = userGroupDAO.get(userId);
@@ -90,7 +90,7 @@ public class JDOAccessControlListDAOScaleTest {
 			acl.setCreationDate(new Date(System.currentTimeMillis()));
 			acl.setResourceAccess(new HashSet<ResourceAccess>());
 			ResourceAccess ra = new ResourceAccess();
-			ra.setGroupName(userGroup.getName());
+			ra.setPrincipalId(Long.parseLong(userGroup.getId()));
 
 			// Add each type
 			Set<ACCESS_TYPE> types = new HashSet<ACCESS_TYPE>();

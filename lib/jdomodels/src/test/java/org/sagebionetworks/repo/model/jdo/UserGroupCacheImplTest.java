@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -40,7 +41,7 @@ public class UserGroupCacheImplTest {
 			UserGroup ug = new UserGroup();
 			ug.setCreationDate(new Date(System.currentTimeMillis()));
 			ug.setName(name);
-			ug.setIndividual(i % 2 == 0);
+			ug.setIsIndividual(i % 2 == 0);
 			String id  = userGroupDAO.create(ug);
 			ug.setId(id);
 			userGroups.add(ug);

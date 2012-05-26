@@ -1,20 +1,11 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 
 public interface UserProfileDAO {
-	// TODO delete the commented lines
-//	/**
-//	 * Retrieves the UserProfile given the userName
-//	 * 
-//	 * @param userName
-//	 * @return
-//	 * @throws DatastoreException
-//	 * @throws NotFoundException
-//	 */
-//	public UserProfile getFromUserName(String userName, ObjectSchema schema) throws DatastoreException, NotFoundException;
-
 
 	/**
 	 * @param dto
@@ -35,6 +26,30 @@ public interface UserProfileDAO {
 	 * @throws NotFoundException
 	 */
 	public UserProfile get(String id, ObjectSchema schema) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * 
+	 * Get all the UserProfiles, in a given range
+	 * 
+	 * @param startIncl
+	 * @param endExcl
+	 * @param sort
+	 * @param ascending
+	 * @param schema
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<UserProfile> getInRange(long startIncl, long endExcl, ObjectSchema schema) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the total count of UserProfiles in the system
+	 * 
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public long getCount() throws DatastoreException, NotFoundException;
 
 
 	/**

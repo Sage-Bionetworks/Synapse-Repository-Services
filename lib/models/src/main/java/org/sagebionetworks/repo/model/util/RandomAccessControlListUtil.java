@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.model.util;
 import java.util.HashSet;
 import java.util.Random;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ResourceAccess;
 
@@ -33,13 +33,13 @@ public class RandomAccessControlListUtil {
 	public static AccessControlList generateRandom(Random rand) {
 		AccessControlList acl = new AccessControlList();
 		acl.setId(""+rand.nextLong());
-		//acl.setCreatedBy("createdBy: "+rand.nextLong()); <<< this is a repeat of the line two places above ... don't know whhy
 		acl.setCreationDate(RandomUtils.createRandomStableDate(rand));
 		acl.setResourceAccess(new HashSet<ResourceAccess>());
 		int countToAdd = rand.nextInt(5);
 		for(int i=0; i<countToAdd; i++){
 			ResourceAccess ra = new ResourceAccess();
-			ra.setGroupName(DEFAULT_GROUPS.values()[rand.nextInt(DEFAULT_GROUPS.values().length)].name());
+			//ra.setGroupName(DEFAULT_GROUPS.values()[rand.nextInt(DEFAULT_GROUPS.values().length)].name());
+			ra.setPrincipalId(rand.nextLong());
 			ra.setAccessType(new HashSet<ACCESS_TYPE>());
 			int accesCount = rand.nextInt(5);
 			for(int j=0; j<accesCount; j++){

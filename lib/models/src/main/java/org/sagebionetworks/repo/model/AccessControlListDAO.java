@@ -17,7 +17,7 @@ public interface AccessControlListDAO  {
 	 * @return true iff some group in 'groups' has explicit permission to access 'resourceId' using access type 'accessType'
 	 * @throws DatastoreException 
 	 */
-	public boolean canAccess(Collection<UserGroup> groups, String resourceId, AuthorizationConstants.ACCESS_TYPE accessType) throws DatastoreException;
+	public boolean canAccess(Collection<UserGroup> groups, String resourceId, ACCESS_TYPE accessType) throws DatastoreException;
 
 	/**
 	 * @return the SQL to find the root-accessible nodes that a specified user-group list can access

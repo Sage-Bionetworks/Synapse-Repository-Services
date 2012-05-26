@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -175,7 +175,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!permissionsManager.hasAccess(entityId,
-				AuthorizationConstants.ACCESS_TYPE.UPDATE, userInfo)) {
+				ACCESS_TYPE.UPDATE, userInfo)) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
 							+ entityId);
@@ -194,7 +194,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!permissionsManager.hasAccess(entityId,
-				AuthorizationConstants.ACCESS_TYPE.READ, userInfo)) {
+				ACCESS_TYPE.READ, userInfo)) {
 			throw new UnauthorizedException(
 					"update access is required to obtain an S3Token for entity "
 							+ entityId);

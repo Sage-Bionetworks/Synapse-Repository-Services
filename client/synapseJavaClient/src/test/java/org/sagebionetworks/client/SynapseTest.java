@@ -20,17 +20,16 @@ import org.json.JSONObject;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -192,33 +191,5 @@ public class SynapseTest {
 		assertEquals(1, realResults.getTotalNumberOfResults());
 		EntityHeader firstHeader = realResults.getResults().get(0);
 		assertEquals(proj1Header, firstHeader);
-	}
-	
-	@Test
-	public void testACLRoundTrip() throws Exception {
-		// make an ACL
-		AccessControlList acl = new AccessControlList();
-		acl.setId("101");
-		acl.setEtag("0");
-		acl.setUri("/entity/101/acl");
-		acl.setCreationDate(new Date());
-		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
-		acl.setResourceAccess(ras);
-		ResourceAccess ra = new ResourceAccess();
-		ra.setDisplayName("fname lname");
-		ra.setGroupName("lname@sagebase.org");
-		ra.setPrincipalId(100200L);
-		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
-		ats.add(ACCESS_TYPE.READ);
-		ats.add(ACCESS_TYPE.UPDATE);
-		ra.setAccessType(ats);
-		ras.add(ra);
-		// encode as JSON
-		JSONObject json = Synapse.toJSON(acl);
-		// decode
-		AccessControlList acl2 = Synapse.initializeFromJSONObject(json);
-		// is it the same?
-		assertEquals("JSON was:\n"+json+"\n", acl, acl2);
-	}
-		
+	}		
 }

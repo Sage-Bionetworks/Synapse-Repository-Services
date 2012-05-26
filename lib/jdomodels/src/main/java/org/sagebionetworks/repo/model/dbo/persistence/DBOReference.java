@@ -1,6 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REFERENCE_GROUP_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REFERENCE_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REFERENCE_TARGET_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REFERENCE_TARGET_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REFERENCE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REFERENCE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

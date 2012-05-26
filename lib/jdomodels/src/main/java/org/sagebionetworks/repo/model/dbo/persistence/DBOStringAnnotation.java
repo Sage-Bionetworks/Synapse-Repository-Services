@@ -1,7 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_OWNER_ID_COLUMN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_VALUE_COLUMN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_STRING_ANNOTATION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STRING_ANNOTATIONS;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

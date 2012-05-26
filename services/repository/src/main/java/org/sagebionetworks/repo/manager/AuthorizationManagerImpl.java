@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -71,11 +71,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	 */
 	@Transactional(readOnly = true)
 	@Override
-	public boolean canAccess(UserInfo userInfo, final String nodeId, AuthorizationConstants.ACCESS_TYPE accessType) 
+	public boolean canAccess(UserInfo userInfo, final String nodeId, ACCESS_TYPE accessType) 
 		throws NotFoundException, DatastoreException {
 		// if is an administrator, return true
 		if (userInfo.isAdmin()) return true;
-		if (accessType.equals(AuthorizationConstants.ACCESS_TYPE.DOWNLOAD)) {
+		if (accessType.equals(ACCESS_TYPE.DOWNLOAD)) {
 			return canDownload(userInfo, nodeId);
 		}
 		{
@@ -111,7 +111,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		String parentId = node.getParentId();
 		if (parentId==null) return false; // if not an admin, can't do it!
 		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(parentId);
-		return accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, AuthorizationConstants.ACCESS_TYPE.CREATE);
+		return accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CREATE);
 	}
 	
 	/**

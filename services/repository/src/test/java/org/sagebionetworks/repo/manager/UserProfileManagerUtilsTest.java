@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.User;
@@ -20,7 +23,7 @@ public class UserProfileManagerUtilsTest {
 	public void testIsOwnerOrAdmin() {
 		UserInfo userInfo = new UserInfo(false/*not admin*/);
 		UserGroup individualGroup=new UserGroup();
-		individualGroup.setIndividual(true);
+		individualGroup.setIsIndividual(true);
 		String individualGroupId = "1001";
 		individualGroup.setId(individualGroupId);
 		userInfo.setIndividualGroup(individualGroup);

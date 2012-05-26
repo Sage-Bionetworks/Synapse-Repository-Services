@@ -8,10 +8,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
@@ -88,6 +88,11 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 			toCreate.setModifiedOn(toCreate.getCreatedOn());
 			toCreate.setVersionComment(NodeConstants.DEFAULT_VERSION_LABEL);
 			String nodeId = nodeDao.createNew(toCreate);
+			
+			for (AccessBootstrapData abd: entityBoot.getAccessList()) {
+				Long groupId = Long.parseLong(userGroupDAO.findGroup(abd.getGroup().name(), false).getId());
+				abd.setGroupId(groupId);
+			}
 			// Now create the ACL on the node
 			AccessControlList acl = createAcl(nodeId, bootstrapPrincipal.getId(), entityBoot.getAccessList());
 			// Now set the ACL for this node.
@@ -139,12 +144,11 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 		acl.setResourceAccess(set);
 		for(AccessBootstrapData data: list){
 			// For each group add the types requested.
-			data.getGroup();
 			ResourceAccess access = new ResourceAccess();
 			set.add(access);
 			Set<ACCESS_TYPE> typeSet = new HashSet<ACCESS_TYPE>();
 			access.setAccessType(typeSet);
-			access.setGroupName(data.getGroup().name());
+			access.setPrincipalId(data.getGroupId());
 			// Add each type to the set
 			List<ACCESS_TYPE> types = data.getAccessTypeList();
 			for(ACCESS_TYPE type: types){

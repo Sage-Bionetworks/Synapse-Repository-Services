@@ -40,7 +40,7 @@ public class DBOUserProfileTest {
 		if (individualGroup == null) {
 			individualGroup = new UserGroup();
 			individualGroup.setName(TEST_USER_NAME);
-			individualGroup.setIndividual(true);
+			individualGroup.setIsIndividual(true);
 			individualGroup.setCreationDate(new Date());
 			individualGroup.setId(userGroupDAO.create(individualGroup));
 		}

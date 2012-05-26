@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.model;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 
 /**
  * Test for the ACL DTO object
@@ -19,12 +21,13 @@ public class AccessControlListTest {
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("123");
 		userGroup.setName("one");
+		userGroup.setIsIndividual(false);
 		User user = new User();
 		user.setId("33");
 		user.setUserId("someUser@somedomain.net");
 		info.setUser(user);
 		info.setIndividualGroup(userGroup);
-		AccessControlList acl = AccessControlList.createACLToGrantAll(nodeId, info);
+		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeId, info);
 		assertNotNull(acl);
 		assertEquals(acl.getId(), nodeId);
 		assertNotNull(acl.getCreationDate());
@@ -32,7 +35,7 @@ public class AccessControlListTest {
 		assertEquals(1, acl.getResourceAccess().size());
 		ResourceAccess ra = acl.getResourceAccess().iterator().next();
 		assertNotNull(ra);
-		assertEquals(userGroup.getName(), ra.getGroupName());
+		assertEquals(userGroup.getId(), ra.getPrincipalId().toString());
 		assertNotNull(ra.getAccessType());
 		// There should be one for each type
 		ACCESS_TYPE[] array = ACCESS_TYPE.values();

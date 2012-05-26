@@ -21,6 +21,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -52,9 +53,6 @@ public class JDOAccessControlListDAOImplTest {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
-	@Autowired
-	private UserGroupCache userGroupCache;
-
 	private Collection<Node> nodeList = new ArrayList<Node>();
 	private Collection<UserGroup> groupList = new ArrayList<UserGroup>();
 	private Collection<AccessControlList> aclList = new ArrayList<AccessControlList>();
@@ -112,10 +110,10 @@ public class JDOAccessControlListDAOImplTest {
 		ResourceAccess ra = new ResourceAccess();
 		ra.setGroupName(group.getName()); 
 		ra.setPrincipalId(Long.parseLong(group.getId()));
-		ra.setDisplayName(group.getName());
-		ra.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
-				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
-						AuthorizationConstants.ACCESS_TYPE.READ
+		//ra.setDisplayName(group.getName());
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(
+				Arrays.asList(new ACCESS_TYPE[]{
+						ACCESS_TYPE.READ
 				})));
 		ras.add(ra);
 		acl.setResourceAccess(ras);
@@ -125,7 +123,6 @@ public class JDOAccessControlListDAOImplTest {
 		ras = acl.getResourceAccess();
 		assertEquals(1, ras.size());
 		ResourceAccess raClone = ras.iterator().next();
-		assertEquals(ra.getGroupName(), raClone.getGroupName());
 		assertEquals(ra.getPrincipalId(), raClone.getPrincipalId());
 		// TODO assertEquals(ra.getDisplayName(), raClone.getDisplayName());
 		assertEquals(ra.getAccessType(), raClone.getAccessType());
@@ -173,7 +170,7 @@ public class JDOAccessControlListDAOImplTest {
 
 	
 	/**
-	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl#canAccess(java.util.Collection, java.lang.String, org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE)}.
+	 * Test method for {@link org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl#canAccess(java.util.Collection, java.lang.String, org.sagebionetworks.repo.model.ACCESS_TYPE)}.
 	 */
 	@Test
 	public void testCanAccess() throws Exception {
@@ -181,10 +178,10 @@ public class JDOAccessControlListDAOImplTest {
 		gs.add(group);
 		
 		// as expressed in 'setUp', 'group' has 'READ' access to 'node'
-		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.READ));
+		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 		
 		// but it doesn't have 'UPDATE' access
-		assertFalse(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.UPDATE));
+		assertFalse(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
 		
 		// and no other group has been given access
 		UserGroup sham = new UserGroup();
@@ -192,7 +189,7 @@ public class JDOAccessControlListDAOImplTest {
 		sham.setId("-34876387468764"); // dummy
 		gs.clear();
 		gs.add(sham);
-		assertFalse(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.READ));
+		assertFalse(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 	}
 
 	/**
@@ -232,20 +229,20 @@ public class JDOAccessControlListDAOImplTest {
 		AccessControlList acl = accessControlListDAO.getForResource(rid);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ResourceAccess ra = ras.iterator().next();
-		ra.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
-				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
-						AuthorizationConstants.ACCESS_TYPE.UPDATE,
-						AuthorizationConstants.ACCESS_TYPE.CREATE
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(
+				Arrays.asList(new ACCESS_TYPE[]{
+						ACCESS_TYPE.UPDATE,
+						ACCESS_TYPE.CREATE
 				})));
 		String etagBeforeUpdate = acl.getEtag();
 		accessControlListDAO.update(acl);
 		
 		Collection<UserGroup> gs = new ArrayList<UserGroup>();
 		gs.add(group);
-		assertFalse(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.READ));
+		assertFalse(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
 		
-		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.UPDATE));
-		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.CREATE));
+		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
+		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.CREATE));
 	
 		AccessControlList acl2 = accessControlListDAO.getForResource(rid);
 		// This test is moved to permission manager
@@ -260,19 +257,18 @@ public class JDOAccessControlListDAOImplTest {
 		AccessControlList acl = accessControlListDAO.getForResource(rid);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		ResourceAccess ra = ras.iterator().next();
-		ra.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
-				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
-						AuthorizationConstants.ACCESS_TYPE.UPDATE,
-						AuthorizationConstants.ACCESS_TYPE.CREATE
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(
+				Arrays.asList(new ACCESS_TYPE[]{
+						ACCESS_TYPE.UPDATE,
+						ACCESS_TYPE.CREATE
 				})));
 		// Now add a new resource access for group 2
 		ResourceAccess ra2 = new ResourceAccess();
-		ra2.setGroupName(group2.getName());
 		ra2.setPrincipalId(Long.parseLong(group2.getId()));
-		ra2.setDisplayName(group2.getName());
-		ra2.setAccessType(new HashSet<AuthorizationConstants.ACCESS_TYPE>(
-				Arrays.asList(new AuthorizationConstants.ACCESS_TYPE[]{
-						AuthorizationConstants.ACCESS_TYPE.READ,
+		//ra2.setDisplayName(group2.getName());
+		ra2.setAccessType(new HashSet<ACCESS_TYPE>(
+				Arrays.asList(new ACCESS_TYPE[]{
+						ACCESS_TYPE.READ,
 				})));
 		acl.getResourceAccess().add(ra2);
 		accessControlListDAO.update(acl);
@@ -281,15 +277,15 @@ public class JDOAccessControlListDAOImplTest {
 		gs.add(group);
 		Collection<UserGroup> gs2 = new ArrayList<UserGroup>();
 		gs2.add(group2);
-		assertFalse(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.READ));
-		assertTrue(accessControlListDAO.canAccess(gs2, node.getId(), AuthorizationConstants.ACCESS_TYPE.READ));
+		assertFalse(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.READ));
+		assertTrue(accessControlListDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.READ));
 		
 		// Group one can do this but 2 cannot.
-		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.UPDATE));
-		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), AuthorizationConstants.ACCESS_TYPE.CREATE));
+		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.UPDATE));
+		assertTrue(accessControlListDAO.canAccess(gs, node.getId(), ACCESS_TYPE.CREATE));
 		// Now try 2
-		assertFalse(accessControlListDAO.canAccess(gs2, node.getId(), AuthorizationConstants.ACCESS_TYPE.UPDATE));
-		assertFalse(accessControlListDAO.canAccess(gs2, node.getId(), AuthorizationConstants.ACCESS_TYPE.CREATE));
+		assertFalse(accessControlListDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.UPDATE));
+		assertFalse(accessControlListDAO.canAccess(gs2, node.getId(), ACCESS_TYPE.CREATE));
 		
 	}
 

@@ -3,31 +3,32 @@ package org.sagebionetworks.repo.model;
 import static org.junit.Assert.*;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.util.UserGroupUtil;
 
 public class UserGroupTest {
 	
 	@Test
 	public  void testIsEmailAddress(){
-		assertTrue(UserGroup.isEmailAddress("something@gmail.com"));
-		assertFalse(UserGroup.isEmailAddress("PUBLIC"));
+		assertTrue(UserGroupUtil.isEmailAddress("something@gmail.com"));
+		assertFalse(UserGroupUtil.isEmailAddress("PUBLIC"));
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void validateNull(){
-		UserGroup.validate(null);
+		UserGroupUtil.validate(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void validateNullId(){
 		UserGroup userGroup = new UserGroup();
-		UserGroup.validate(userGroup);
+		UserGroupUtil.validate(userGroup);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void validateNullName(){
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("99");
-		UserGroup.validate(userGroup);
+		UserGroupUtil.validate(userGroup);
 	}
 	
 	@Test
@@ -35,8 +36,8 @@ public class UserGroupTest {
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("99");
 		userGroup.setName("something@somewhere.com");
-		userGroup.setIndividual(true);
-		UserGroup.validate(userGroup);
+		userGroup.setIsIndividual(true);
+		UserGroupUtil.validate(userGroup);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -44,8 +45,8 @@ public class UserGroupTest {
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("99");
 		userGroup.setName("something@somewhere.com");
-		userGroup.setIndividual(false);
-		UserGroup.validate(userGroup);
+		userGroup.setIsIndividual(false);
+		UserGroupUtil.validate(userGroup);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
@@ -53,8 +54,8 @@ public class UserGroupTest {
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("99");
 		userGroup.setName("someName");
-		userGroup.setIndividual(true);
-		UserGroup.validate(userGroup);
+		userGroup.setIsIndividual(true);
+		UserGroupUtil.validate(userGroup);
 	}
 
 }

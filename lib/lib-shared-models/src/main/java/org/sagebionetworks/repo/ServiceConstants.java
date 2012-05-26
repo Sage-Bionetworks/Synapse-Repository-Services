@@ -57,12 +57,20 @@ public class ServiceConstants {
 	public static final String DEFAULT_PAGINATION_LIMIT_PARAM = "10";
 	public static final Integer DEFAULT_PAGINATION_LIMIT_PARAM_INT = Integer
 			.parseInt(DEFAULT_PAGINATION_LIMIT_PARAM);
+	
+	
 	/**
 	 * Default value for limit parameter
 	 */
 	public static final Long DEFAULT_PAGINATION_LIMIT = new Long(
 			DEFAULT_PAGINATION_LIMIT_PARAM);
 
+	/**
+	 * Default value for limit parameter used when requesting a list of Principals
+	 * 
+	 */
+	public static final String DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM = "100";
+	
 	/**
 	 * Request parameter used to indicate upon which field(s) to sort
 	 * <p>

@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.manager;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 
@@ -27,14 +27,14 @@ public class AuthorizationHelper {
 		acl.setResourceAccess(ras);
 		ResourceAccess ra = null;
 		for (ResourceAccess r : ras) {
-			if (r.getGroupName()==ug.getName()) {
+			if (r.getPrincipalId().toString().equals(ug.getId())) {
 				ra=r;
 				break;
 			}
 		}
 		if (ra==null) {
 			ra = new ResourceAccess();
-			ra.setGroupName(ug.getName());
+			ra.setPrincipalId(Long.parseLong(ug.getId()));
 			Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 			ra.setAccessType(ats);
 			ras.add(ra);

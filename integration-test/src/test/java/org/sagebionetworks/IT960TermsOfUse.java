@@ -1,8 +1,10 @@
 package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import org.apache.http.HttpResponse;
@@ -19,6 +21,7 @@ import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.UserGroup;
 
 public class IT960TermsOfUse {
 	private static Synapse synapse = null;
@@ -50,6 +53,13 @@ public class IT960TermsOfUse {
 		project.setName("foo");
 		project = adminSynapse.createEntity(project);
 		// make the project public readable
+		Collection<UserGroup> groups = adminSynapse.getGroups().getResults();
+		String publicGroupPrincipalId = null;
+		for (UserGroup group : groups) {
+			if (group.getName().equals("PUBLIC")) 
+				publicGroupPrincipalId = group.getId();
+		}
+		assertNotNull(publicGroupPrincipalId);
 		String aclUri = project.getAccessControlList();
 		JSONObject acl = adminSynapse.getEntity(aclUri);
 		// now add public-readable and push it back
@@ -57,7 +67,7 @@ public class IT960TermsOfUse {
 		JSONArray accessTypes = new JSONArray();
 		accessTypes.put("READ");
 		JSONObject resourceAccess = new JSONObject();
-		resourceAccess.put("groupName", "PUBLIC"); // add PUBLIC, READ access
+		resourceAccess.put("principalId", publicGroupPrincipalId); // add PUBLIC, READ access
 		resourceAccess.put("accessType", accessTypes); // add PUBLIC, READ access
 		resourceAccessSet.put(resourceAccess); // add it to the list
 		adminSynapse.updateEntity(aclUri, acl); // push back to Synapse

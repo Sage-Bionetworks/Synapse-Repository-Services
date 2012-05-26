@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.backup.migration;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -9,7 +10,6 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.mockito.Mockito;
-import static org.mockito.Mockito.*;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
@@ -25,11 +25,11 @@ public class NodeOwnerMigratorImplTest {
 		UserGroup admin = new UserGroup();
 		admin.setId("100");
 		admin.setName("admin@foo.com");
-		admin.setIndividual(true);
+		admin.setIsIndividual(true);
 		UserGroup nonAdmin = new UserGroup();
 		nonAdmin.setId("101");
 		nonAdmin.setName("nonAdmin@foo.com");
-		nonAdmin.setIndividual(true);
+		nonAdmin.setIsIndividual(true);
 		Collection<UserGroup> principals = Arrays.asList(new UserGroup[]{nonAdmin, admin});
 		when(ugDAO.getAll(true)).thenReturn(principals);
 		final Map<String,UserGroup> adminMap = new HashMap<String,UserGroup>();  adminMap.put(admin.getName(), admin);

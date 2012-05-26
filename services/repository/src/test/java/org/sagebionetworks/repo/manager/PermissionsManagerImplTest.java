@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -19,14 +20,14 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -114,6 +115,11 @@ public class PermissionsManagerImplTest {
 		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
 		assertNotNull(acl);
 		assertEquals(node.getId(), acl.getId());
+		for (ResourceAccess ra : acl.getResourceAccess()) {
+			// ra should have pId but not 'groupName' which is deprecated
+			assertNull(ra.getGroupName());
+			assertNotNull(ra.getPrincipalId());
+		}
 		// retrieve child acl.  should get parent's
 		try{
 			acl = permissionsManager.getACL(childNode.getId(), adminInfo);
@@ -153,7 +159,7 @@ public class PermissionsManagerImplTest {
 		boolean foundIt = false;
 		while(it.hasNext()){
 			ResourceAccess ra = it.next();
-			if(ra.getGroupName().equals(userInfo.getIndividualGroup().getName())){
+			if(ra.getPrincipalId().toString().equals(userInfo.getIndividualGroup().getId())){
 				assertEquals(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})),
 						ra.getAccessType());
 				foundIt = true;
@@ -184,7 +190,7 @@ public class PermissionsManagerImplTest {
 		acl.setId(node.getId());
 		// ...group id is null...
 		ResourceAccess ra = new ResourceAccess();
-		ra.setGroupName(null);
+		ra.setPrincipalId(null);
 		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
 		ra.setAccessType(ats);
 		ra.getAccessType().add(ACCESS_TYPE.READ);

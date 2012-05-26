@@ -18,12 +18,13 @@ public class UserGroupUtilsTest {
 		dto.setName("foo@domain.org");
 		dto.setCreationDate(new Date());
 		dto.setEtag("1");
-		dto.setIndividual(true);
+		dto.setIsIndividual(true);
 		dto.setUri("/userGroup");
 		DBOUserGroup dbo = new DBOUserGroup();
 		UserGroupUtils.copyDtoToDbo(dto, dbo);
 		UserGroup dto2 = new UserGroup();
 		UserGroupUtils.copyDboToDto(dbo, dto2);
+		dto2.setUri("/userGroup");
 		assertEquals(dto, dto2);
 	}
 

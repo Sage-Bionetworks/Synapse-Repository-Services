@@ -3,9 +3,9 @@ package org.sagebionetworks.repo.manager;
 import java.util.Collection;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -76,7 +76,7 @@ public interface PermissionsManager {
 	 */
 	public AccessControlList restoreInheritance(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
-	// the following methods provide the principals (individuals and groups) 
+	// the following methods provide the groups
 	// to which resource access permission may be granted
 	
 	/**
@@ -88,22 +88,10 @@ public interface PermissionsManager {
 	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException, UnauthorizedException;
 	
 	/**
-	 * get all individual user groups
-	 * 
-	 **/
-	public Collection<UserGroup> getIndividuals(UserInfo userInfo) throws DatastoreException, UnauthorizedException;
-	
-	/**
 	 * get non-individual user groups (including Public) in range
 	 * 
 	 **/
 	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException;
-	
-	/**
-	 * get individual user groups in range
-	 * 
-	 **/
-	public List<UserGroup> getIndividualsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Use case:  Need to find out if a user can download a resource.
@@ -113,7 +101,7 @@ public interface PermissionsManager {
 	 * @param accessType
 	 * @return
 	 */
-	public boolean hasAccess(String resourceId, AuthorizationConstants.ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException;
+	public boolean hasAccess(String resourceId, ACCESS_TYPE  accessType, UserInfo userInfo) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Get the user permission for an entity.

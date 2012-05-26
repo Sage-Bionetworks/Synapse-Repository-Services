@@ -6,18 +6,26 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
+import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -35,6 +43,18 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
 	
+	private static final String OFFSET_PARAM_NAME = "offset";
+	private static final String LIMIT_PARAM_NAME = "LIMIT";
+
+	private static final String SELECT_PAGINATED = 
+			"SELECT * FROM "+SqlConstants.TABLE_USER_PROFILE+
+			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
+	private static final String SELECT_COUNT = 
+			"SELECT COUNT(*) FROM "+SqlConstants.TABLE_USER_PROFILE;
+
+	private static final RowMapper<DBOUserProfile> userProfileRowMapper = (new DBOUserProfile()).getTableMapping();
+
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.model.UserProfileDAO#delete(java.lang.String)
 	 */
@@ -68,6 +88,30 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		return dto;
 	}
 
+
+	@Override
+	public List<UserProfile> getInRange(long fromIncl, long toExcl, ObjectSchema schema) throws DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();		
+		param.addValue(OFFSET_PARAM_NAME, fromIncl);
+		long limit = toExcl - fromIncl;
+		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
+		param.addValue(LIMIT_PARAM_NAME, limit);	
+		List<DBOUserProfile> dbos = simpleJdbcTempalte.query(SELECT_PAGINATED, userProfileRowMapper, param);
+		List<UserProfile> dtos = new ArrayList<UserProfile>();
+		for (DBOUserProfile dbo : dbos) {
+			UserProfile dto = new UserProfile();
+			UserProfileUtils.copyDboToDto(dbo, dto, schema);
+			dtos.add(dto);
+		}
+		return dtos;
+	}
+
+	@Override
+	public long getCount() throws DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();	
+		long count = simpleJdbcTempalte.queryForLong(SELECT_COUNT, param);
+		return count;
+	}
 
 	/*
 	 * (non-Javadoc)

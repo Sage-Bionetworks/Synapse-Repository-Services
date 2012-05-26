@@ -2,17 +2,22 @@ package org.sagebionetworks.repo.model.bootstrap;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 
 /**
  * Metadata used to create a resource access.
+ * 
+ * Note:  'group' and 'accessTypeList' are set via Spring (specified in an XML file)
+ * Later, 'groupId' is added.
+ * 
  * @author jmhill
  *
  */
 public class AccessBootstrapData {
 	
 	private DEFAULT_GROUPS group;
+	private Long groupId;
 	private List<ACCESS_TYPE> accessTypeList;
 	
 	public DEFAULT_GROUPS getGroup() {
@@ -20,6 +25,12 @@ public class AccessBootstrapData {
 	}
 	public void setGroup(DEFAULT_GROUPS group) {
 		this.group = group;
+	}
+	public Long getGroupId() {
+		return groupId;
+	}
+	public void setGroupId(Long groupId) {
+		this.groupId = groupId;
 	}
 	public List<ACCESS_TYPE> getAccessTypeList() {
 		return accessTypeList;
