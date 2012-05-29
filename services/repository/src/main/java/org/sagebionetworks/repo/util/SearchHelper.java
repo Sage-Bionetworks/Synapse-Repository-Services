@@ -55,7 +55,7 @@ public class SearchHelper {
 				authorizationFilter += " ";
 			}
 			authorizationFilter += SearchDocumentDriverImpl.ACL_INDEX_FIELD
-					+ ":'" + group.getName() + "'";
+					+ ":'" + group.getId() + "'";
 		}
 		if (1 == groups.size()) {
 			authorizationFilter = "bq=" + authorizationFilter;
