@@ -28,10 +28,6 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
  * @author deflaux
  */
 public class IT510SynapseJavaClientSearchTest {
-	
-	// TODO make this a stack property
-	private static final String INTEGRATION_TEST_USER_ONE_DISPLAY_NAME = "dev usr";
-	
 
 	private static Synapse synapse = null;
 
@@ -280,20 +276,6 @@ public class IT510SynapseJavaClientSearchTest {
 		assertTrue(1 <= results.getFound());
 	}
 	
-	private static String getUserPrincipalIdFromUserDisplayName(String userName) throws SynapseException {
-		PaginatedResults<UserProfile> paginated = synapse.getUsers();
-		int total = (int)paginated.getTotalNumberOfResults();
-		List<UserProfile> users = paginated.getResults();
-		if (users.size()<total) throw new RuntimeException("System has "+total+" total users but we've only retrieved "+users.size());
-		List<String> allDisplayNames = new ArrayList<String>();
-		for (UserProfile up : users) {
-			String displayName = up.getDisplayName();
-			allDisplayNames.add(displayName);
-			if (displayName!=null && displayName.equalsIgnoreCase(userName)) return up.getOwnerId();
-		}
-		throw new RuntimeException("Cannot find "+userName+" among "+users.size()+" users: "+allDisplayNames);
-	}
-	
 	private static String getGroupPrincipalIdFromGroupName(String groupName) throws SynapseException {
 		PaginatedResults<UserGroup> paginated = synapse.getGroups();
 		int total = (int)paginated.getTotalNumberOfResults();
@@ -310,6 +292,11 @@ public class IT510SynapseJavaClientSearchTest {
 	 */
 	@Test
 	public void testSearchAuthorizationFilter() throws Exception {
+		UserProfile myProfile = synapse.getMyProfile();
+		assertNotNull(myProfile);
+		String myPrincipalId = myProfile.getOwnerId();
+		assertNotNull(myPrincipalId);
+		
 		SearchQuery searchQuery = new SearchQuery();
 		List<String> queryTerms = new ArrayList<String>();
 		queryTerms.add("cancer");
@@ -323,7 +310,7 @@ public class IT510SynapseJavaClientSearchTest {
 		String cloudSearchMatchExpr = results.getMatchExpression();
 		assertTrue(-1 < cloudSearchMatchExpr.indexOf("(or acl:"));
 		assertTrue(-1 < cloudSearchMatchExpr
-				.indexOf("acl:'" + getUserPrincipalIdFromUserDisplayName(INTEGRATION_TEST_USER_ONE_DISPLAY_NAME) + "'"));
+				.indexOf("acl:'" + myPrincipalId + "'"));
 		assertTrue(-1 < cloudSearchMatchExpr
 				.indexOf("acl:'"+getGroupPrincipalIdFromGroupName("AUTHENTICATED_USERS")+"'"));
 		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'"+getGroupPrincipalIdFromGroupName("PUBLIC")+"'"));
@@ -335,10 +322,13 @@ public class IT510SynapseJavaClientSearchTest {
 	@Test
 	public void testAnonymousSearchAuthorizationFilter() throws Exception {
 		
+		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
+				StackConfiguration.getIntegrationTestUserOnePassword());
+		
 		String publicPrincipalId = getGroupPrincipalIdFromGroupName("PUBLIC");
 
+		// now 'log out'
 		synapse.setSessionToken(null);
-		// AuthorizationConstants.ANONYMOUS_USER_ID);
 
 		SearchQuery searchQuery = new SearchQuery();
 		List<String> queryTerms = new ArrayList<String>();
