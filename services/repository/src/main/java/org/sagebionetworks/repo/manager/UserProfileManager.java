@@ -32,7 +32,7 @@ public interface UserProfileManager {
 	 * @param ascending
 	 * @return
 	 */
-	public QueryResults<UserProfile> getInRange(long startIncl, long endExcl) throws DatastoreException, NotFoundException;
+	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Update a UserProfile.

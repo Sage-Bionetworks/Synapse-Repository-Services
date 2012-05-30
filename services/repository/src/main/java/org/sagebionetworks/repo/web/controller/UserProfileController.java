@@ -103,7 +103,7 @@ public class UserProfileController extends BaseController {
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;
-		QueryResults<UserProfile >results = userProfileManager.getInRange(offset, endExcl);
+		QueryResults<UserProfile >results = userProfileManager.getInRange(userInfo, offset, endExcl);
 		
 		return new PaginatedResults<UserProfile>(
 				request.getServletPath()+UrlHelpers.USER, 

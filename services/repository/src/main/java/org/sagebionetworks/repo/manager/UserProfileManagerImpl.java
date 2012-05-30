@@ -54,7 +54,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @return
 	 */
 	@Override
-	public QueryResults<UserProfile> getInRange(long startIncl, long endExcl) throws DatastoreException, NotFoundException{
+	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl, schema);
 		long totalNumberOfResults = userProfileDAO.getCount();
