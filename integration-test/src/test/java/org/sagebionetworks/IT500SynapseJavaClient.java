@@ -321,22 +321,25 @@ public class IT500SynapseJavaClient {
 		assertEquals(externalUrlFileSizeBytes, downloadedLayer.length());
 
 	}
-	
-	private static final String INTEGRATION_TEST_USER_1_DISPLAY_NAME = "dev usr";
-	
+		
 	@Test
 	public void testGetUsers() throws Exception {
+		UserProfile myProfile = synapse.getMyProfile();
+		assertNotNull(myProfile);
+		String myPrincipalId = myProfile.getOwnerId();
+		assertNotNull(myPrincipalId);
+
 		PaginatedResults<UserProfile> users = synapse.getUsers();
 		assertTrue(users.getResults().size()>0);
-		boolean foundIntegrationTestUser1 = false;
+		boolean foundSelf = false;
 		List<String> allDisplayNames = new ArrayList<String>();
 		for (UserProfile up : users.getResults()) {
 			assertNotNull(up.getOwnerId());
 			String displayName = up.getDisplayName();
 			allDisplayNames.add(displayName);
-			if (displayName!=null && INTEGRATION_TEST_USER_1_DISPLAY_NAME.equals(displayName)) foundIntegrationTestUser1=true;
+			if (up.getOwnerId().equals(myPrincipalId)) foundSelf=true;
 		}
-		assertTrue("Didn't find "+INTEGRATION_TEST_USER_1_DISPLAY_NAME+" only found "+allDisplayNames, foundIntegrationTestUser1);
+		assertTrue("Didn't find self, only found "+allDisplayNames, foundSelf);
 	}
 	
 	@Test
