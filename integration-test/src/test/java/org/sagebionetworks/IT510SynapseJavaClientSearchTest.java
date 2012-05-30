@@ -286,13 +286,19 @@ public class IT510SynapseJavaClientSearchTest {
 		List<UserProfile> users = paginated.getResults();
 		if (users.size()<total) throw new RuntimeException("System has "+total+" total users but we've only retrieved "+users.size());
 		for (UserProfile up : users) {
-			if (up.getDisplayName().equalsIgnoreCase(userName)) return up.getOwnerId();
+			String displayName = up.getDisplayName();
+			if (displayName!=null && displayName.equalsIgnoreCase(userName)) return up.getOwnerId();
 		}
 		throw new RuntimeException("Cannot find "+userName+" among users.");
 	}
 	
 	private String getGroupPrincipalIdFromGroupName(String groupName) throws SynapseException {
-		PaginatedResults<UserGroup> paginated = synapse.getGroups();
+		PaginatedResults<UserGroup> paginated = null; 
+		try {
+			paginated = synapse.getGroups();
+		} catch (SynapseException e) {
+			throw new SynapseException("session token: "+synapse.getCurrentSessionToken(), e);
+		}
 		int total = (int)paginated.getTotalNumberOfResults();
 		List<UserGroup> groups = paginated.getResults();
 		if (groups.size()<total) throw new RuntimeException("System has "+total+" total users but we've only retrieved "+groups.size());
