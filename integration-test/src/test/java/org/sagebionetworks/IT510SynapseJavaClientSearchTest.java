@@ -280,32 +280,29 @@ public class IT510SynapseJavaClientSearchTest {
 		assertTrue(1 <= results.getFound());
 	}
 	
-	private String getUserPrincipalIdFromUserDisplayName(String userName) throws SynapseException {
+	private static String getUserPrincipalIdFromUserDisplayName(String userName) throws SynapseException {
 		PaginatedResults<UserProfile> paginated = synapse.getUsers();
 		int total = (int)paginated.getTotalNumberOfResults();
 		List<UserProfile> users = paginated.getResults();
 		if (users.size()<total) throw new RuntimeException("System has "+total+" total users but we've only retrieved "+users.size());
+		List<String> allDisplayNames = new ArrayList<String>();
 		for (UserProfile up : users) {
 			String displayName = up.getDisplayName();
+			allDisplayNames.add(displayName);
 			if (displayName!=null && displayName.equalsIgnoreCase(userName)) return up.getOwnerId();
 		}
-		throw new RuntimeException("Cannot find "+userName+" among users.");
+		throw new RuntimeException("Cannot find "+userName+" among "+users.size()+" users: "+allDisplayNames);
 	}
 	
-	private String getGroupPrincipalIdFromGroupName(String groupName) throws SynapseException {
-		PaginatedResults<UserGroup> paginated = null; 
-		try {
-			paginated = synapse.getGroups();
-		} catch (SynapseException e) {
-			throw new SynapseException("session token: "+synapse.getCurrentSessionToken(), e);
-		}
+	private static String getGroupPrincipalIdFromGroupName(String groupName) throws SynapseException {
+		PaginatedResults<UserGroup> paginated = synapse.getGroups();
 		int total = (int)paginated.getTotalNumberOfResults();
 		List<UserGroup> groups = paginated.getResults();
 		if (groups.size()<total) throw new RuntimeException("System has "+total+" total users but we've only retrieved "+groups.size());
 		for (UserGroup group : groups) {
 			if (group.getName().equalsIgnoreCase(groupName)) return group.getId();
 		}
-		throw new RuntimeException("Cannot find "+groupName+" among users.");
+		throw new RuntimeException("Cannot find "+groupName+" among groups.");
 	}
 	
 	/**
@@ -337,6 +334,8 @@ public class IT510SynapseJavaClientSearchTest {
 	 */
 	@Test
 	public void testAnonymousSearchAuthorizationFilter() throws Exception {
+		
+		String publicPrincipalId = getGroupPrincipalIdFromGroupName("PUBLIC");
 
 		synapse.setSessionToken(null);
 		// AuthorizationConstants.ANONYMOUS_USER_ID);
@@ -356,7 +355,7 @@ public class IT510SynapseJavaClientSearchTest {
 		// TODO reenable the following line, which depends on how the 'display name' for 'anonymous' is configured
 		//assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'anonymous@sagebase.org'", 0));
 		
-		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'"+getGroupPrincipalIdFromGroupName("PUBLIC")+"'"));
+		assertTrue(-1 < cloudSearchMatchExpr.indexOf("acl:'"+publicPrincipalId+"'"));
 
 		// We are reusing this client, so restore the prior logged in user
 		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
