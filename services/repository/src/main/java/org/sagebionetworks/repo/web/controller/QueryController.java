@@ -99,17 +99,6 @@ public class QueryController extends BaseController {
 		return results;
 	}
 
-//	/**
-//	 * @return the schema
-//	 * @throws DatastoreException
-//	 */
-//	@ResponseStatus(HttpStatus.OK)
-//	@RequestMapping(value = UrlHelpers.QUERY + UrlHelpers.SCHEMA, method = RequestMethod.GET)
-//	public @ResponseBody
-//	JsonSchema getQuerySchema() throws DatastoreException {
-//		return SchemaHelper.getSchema(QueryResults.class);
-//	}
-
 	/**
 	 * Process all of the results.
 	 * @param stmt

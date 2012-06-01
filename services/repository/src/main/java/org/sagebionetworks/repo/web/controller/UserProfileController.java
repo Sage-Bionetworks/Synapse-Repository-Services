@@ -136,19 +136,6 @@ public class UserProfileController extends BaseController {
 		return userProfileManager.updateUserProfile(userInfo, entity);
 	}
 
-//	/**
-//	 * Get the schema for an ACL
-//	 * @param id
-//	 * @param request
-//	 * @return
-//	 * @throws DatastoreException
-//	 */
-//	@ResponseStatus(HttpStatus.OK)
-//	@RequestMapping(value ={UrlHelpers.USER_PROFILE + UrlHelpers.SCHEMA}, method = RequestMethod.GET)
-//	public @ResponseBody
-//	JsonSchema getUserProfileSchema() throws DatastoreException {
-//		return SchemaHelper.getSchema(UserProfile.class);
-//	}
 	
 
 	

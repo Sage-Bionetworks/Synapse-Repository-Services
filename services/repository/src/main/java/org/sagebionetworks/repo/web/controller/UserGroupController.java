@@ -66,19 +66,6 @@ public class UserGroupController extends BaseController {
 				ascending);
 	}
 
-//	/**
-//	 * Get the schema for an ACL
-//	 * @param id
-//	 * @param request
-//	 * @return
-//	 * @throws DatastoreException
-//	 */
-//	@ResponseStatus(HttpStatus.OK)
-//	@RequestMapping(value ={UrlHelpers.USERGROUP + UrlHelpers.SCHEMA}, method = RequestMethod.GET)
-//	public @ResponseBody
-//	JsonSchema getGroupSchema() throws DatastoreException {
-//		return SchemaHelper.getSchema(UserGroup.class);
-//	}
 	
 
 	

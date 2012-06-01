@@ -53,8 +53,6 @@ public class UrlHelpers {
 	public static final String PARENT_ID 		= "/{parentId}";
 	public static final String VERSION_NUMBER 	= "/{versionNumber}";
 	public static final String PARENT_TYPE_ID 	= PARENT_TYPE+PARENT_ID;
-//	public static final String OBJECT_TYPE		= "/{objectType}";
-//	public static final String OBJECT_TYPE_ID	= OBJECT_TYPE+ID;
 	
 //	public static final String TOKEN_ID = "{tokenId}/{filename}.{mimeType}";
 	
@@ -63,10 +61,8 @@ public class UrlHelpers {
 	 * The URL prefix for all object's Access Control List (ACL).
 	 */
 	public static final String ACL = "/acl";
-//	public static final String OBJECT_TYPE_ID_ACL = OBJECT_TYPE_ID+ACL;
 	
 	public static final String BENEFACTOR = "/benefactor";
-//	public static final String OBJECT_TYPE_ID_BENEFACTOR = OBJECT_TYPE_ID+BENEFACTOR;
 	
 	/**
 	 * URL suffix for entity annotations
@@ -410,27 +406,6 @@ public class UrlHelpers {
 		}
 	}
 	
-//	/**
-//	 * Set the URL for the layers for any object that has layers.
-//	 * @param entity
-//	 */
-//	public static void setHasLayersUrl(HasLayers entity){
-//		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
-//		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
-//		entity.setLayers(entity.getUri()+LAYER);
-//	}
-	
-	
-//	/**
-//	 * Set the URL for the preview for any object that has preview.
-//	 * 
-//	 * @param entity
-//	 */
-//	public static void setHasPreviewsUrl(HasPreviews entity){
-//		if(entity == null) throw new IllegalArgumentException("Entity cannot be null");
-//		if(entity.getUri() == null) throw new IllegalArgumentException("Entity.uri cannot be null null");
-//		entity.setPreviews(entity.getUri()+PREVIEW);
-//	}
 	
 	/**
 	 * Set the URL of a versionable entity.
