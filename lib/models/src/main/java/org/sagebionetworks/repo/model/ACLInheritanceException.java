@@ -15,7 +15,7 @@ public class ACLInheritanceException extends Exception {
 	private static final long serialVersionUID = 1L;
 	
 	private String benefactorId = null;
-	private EntityType benefactorType = null;
+//	private EntityType benefactorType = null;
 
 	/**
 	 * 
@@ -23,11 +23,9 @@ public class ACLInheritanceException extends Exception {
 	 * @param benefactorType
 	 * @param benefactorId
 	 */
-	public ACLInheritanceException(String message, EntityType benefactorType, String benefactorId) {
+	public ACLInheritanceException(String message, String benefactorId) {
 		super(message);
-		if(benefactorType == null) throw new IllegalArgumentException("Benefactor type cannot be null");
 		if(benefactorId == null) throw new IllegalArgumentException("The benefactor ID cannot be null");
-		this.benefactorType = benefactorType;
 		this.benefactorId = benefactorId;
 	}
 	
@@ -38,13 +36,7 @@ public class ACLInheritanceException extends Exception {
 	public ACLInheritanceException(String message) {
 		if(message == null) throw new IllegalArgumentException("Message cannot be null");
 		// Parse the type and ID from the the string
-		this.benefactorType = EntityType.getLastTypeInUrl(message);
-		int start = message.indexOf(benefactorType.getUrlPrefix()) + benefactorType.getUrlPrefix().length()+1;
-		int end = message.indexOf("/acl");
-		if(end < start){
-			new IllegalArgumentException("");
-		}
-		this.benefactorId = message.substring(start, end);
+		this.benefactorId = message.split("/entity/")[1].split("/acl")[0];
 	}
 
 	/**
@@ -62,14 +54,5 @@ public class ACLInheritanceException extends Exception {
 	public void setBenefactorId(String benefactorId) {
 		this.benefactorId = benefactorId;
 	}
-
-	public EntityType getBenefactorType() {
-		return benefactorType;
-	}
-
-	public void setBenefactorType(EntityType benefactorType) {
-		this.benefactorType = benefactorType;
-	}
-
 	
 }

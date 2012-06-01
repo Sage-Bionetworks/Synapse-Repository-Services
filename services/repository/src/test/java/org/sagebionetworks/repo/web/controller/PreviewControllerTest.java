@@ -103,12 +103,6 @@ public class PreviewControllerTest {
 		// Check that the update response reflects the change
 		assertEquals(tabDelimitedSnippet, updatedLayerPreview.getString("previewString"));
 
-		// Now make sure the stored one reflects the change too
-		// TODO do we want to leave a breadcrumb for this uri?
-		JSONObject layerPreviewMap = helper.testGetJsonObject(newLayer.getString("previews"));
-		assertNotNull(layerPreviewMap.getInt("totalNumberOfResults"));
-		assertNotNull(layerPreviewMap.getJSONArray("results"));
-		assertEquals(1, layerPreviewMap.getJSONArray("results").length());
 	}
 
 	/**

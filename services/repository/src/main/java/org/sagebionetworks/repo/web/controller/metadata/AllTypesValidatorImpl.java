@@ -36,7 +36,7 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 			// The last header is the direct parent
 			EntityHeader parentHeader = parentPath.get(parentPath.size()-1);
 			// Get the type for this parent.
-			parentType = EntityType.getFirstTypeInUrl(parentHeader.getType());
+			parentType = EntityType.getEntityType(parentHeader.getType());
 		}
 		// Note: Null parent type is valid for some object types.
 		if(!objectType.isValidParentType(parentType)){

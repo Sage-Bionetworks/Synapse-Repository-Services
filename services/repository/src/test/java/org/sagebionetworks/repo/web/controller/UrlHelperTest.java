@@ -11,8 +11,6 @@ import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.HasLayers;
-import org.sagebionetworks.repo.model.HasPreviews;
 import org.sagebionetworks.repo.model.Preview;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.Versionable;
@@ -143,51 +141,6 @@ public class UrlHelperTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testHasLayersUrlEntityNull(){
-		UrlHelpers.setHasLayersUrl(null);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testHasLayersUrlNullUri(){
-		Study ds = new Study();
-		ds.setUri(null);
-		UrlHelpers.setHasLayersUrl(ds);
-	}
-	
-	@Test
-	public void testHasLayersUrlUrls(){
-		Study ds = new Study();
-		// Make sure the preview has a uri
-		String baseUri = "/repo/v1/entity/42";
-		ds.setUri(baseUri);
-		UrlHelpers.setHasLayersUrl(ds);
-		assertEquals(baseUri+UrlHelpers.LAYER, ds.getLayers());
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testHasPreviewEntityNull(){
-		UrlHelpers.setHasPreviewsUrl(null);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testHasPreviewNullUri(){
-		Data layer = new Data();
-		layer.setUri(null);
-		UrlHelpers.setHasPreviewsUrl(layer);
-	}
-	
-	@Test
-	public void testHasPreviewUrls(){
-		Data layer = new Data();
-		// Make sure the preview has a uri
-		String baseUri = "/repo/v1"+EntityType.layer.getUrlPrefix()+"/42";
-		layer.setUri(baseUri);
-		UrlHelpers.setHasPreviewsUrl(layer);
-		assertEquals(baseUri+UrlHelpers.PREVIEW, layer.getPreviews());
-	}
-	
-	
-	@Test (expected=IllegalArgumentException.class)
 	public void testSetVersionableNullUri(){
 		Study dataset = new Study();
 		dataset.setUri(null);
@@ -197,7 +150,7 @@ public class UrlHelperTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetVersionableNullVersionNumber(){
 		Data layer = new Data();
-		String baseUri = "/repo/v1"+EntityType.layer.getUrlPrefix()+"/42";
+		String baseUri = "/repo/v1"+UrlHelpers.ENTITY+"/42";
 		layer.setUri(baseUri);
 		// set the version number to be null
 		layer.setVersionNumber(null);
@@ -209,7 +162,7 @@ public class UrlHelperTest {
 		Data layer = new Data();
 		layer.setVersionNumber(new Long(12));
 		// Make sure the layer has a uri
-		String baseUri = "/repo/v1"+EntityType.layer.getUrlPrefix()+"/42";
+		String baseUri = "/repo/v1"+UrlHelpers.ENTITY+"/42";
 		layer.setUri(baseUri);
 		UrlHelpers.setVersionableUrl(layer);
 		assertEquals(baseUri+UrlHelpers.VERSION, layer.getVersions());
@@ -240,19 +193,6 @@ public class UrlHelperTest {
 			assertEquals(expected, entity.getAnnotations());
 			expected =  expectedBase+UrlHelpers.ACL;
 			assertEquals(expected, entity.getAccessControlList());
-			// TODO: How to fix these?
-			// Has layers
-			if(entity instanceof HasLayers){
-				HasLayers hasLayers = (HasLayers) entity;
-				expected = expectedBase+UrlHelpers.LAYER;
-				assertEquals(expected, hasLayers.getLayers());
-			}
-			// Has preview
-			if(entity instanceof HasPreviews){
-				HasPreviews has = (HasPreviews) entity;
-				expected = expectedBase+UrlHelpers.PREVIEW;
-				assertEquals(expected, has.getPreviews());
-			}
 			// Versionable
 			if(entity instanceof Versionable){
 				Versionable able = (Versionable) entity;
@@ -299,15 +239,6 @@ public class UrlHelperTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testValidateAllNullPreview(){
-		Data layer = new Data();
-		layer.setUri("repo/v1/layer/33");
-		UrlHelpers.setAllEntityUrls(layer);
-		layer.setPreviews(null);
-		UrlHelpers.validateAllUrls(layer);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
 	public void testValidateAllNullVersions(){
 		Code code = new Code();
 		code.setVersionNumber(45l);
@@ -332,29 +263,22 @@ public class UrlHelperTest {
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getContextPath()).thenReturn("http://localhost:8080");
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
-		String redirectURL = UrlHelpers.createACLRedirectURL(mockRequest, EntityType.project, "45");
-		assertEquals("http://localhost:8080/repo/v1/project/45/acl", redirectURL);
+		String redirectURL = UrlHelpers.createACLRedirectURL(mockRequest, "45");
+		assertEquals("http://localhost:8080/repo/v1/entity/45/acl", redirectURL);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateACLRedirectURLNullRequst(){
-		String redirectURL = UrlHelpers.createACLRedirectURL(null, EntityType.project, "45");
+		String redirectURL = UrlHelpers.createACLRedirectURL(null, "45");
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
-	public void testCreateACLRedirectURLNullType(){
-		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
-		when(mockRequest.getContextPath()).thenReturn("http://localhost:8080");
-		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
-		String redirectURL = UrlHelpers.createACLRedirectURL(mockRequest, null, "45");
-	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateACLRedirectURLNullId(){
 		HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getContextPath()).thenReturn("http://localhost:8080");
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
-		String redirectURL = UrlHelpers.createACLRedirectURL(mockRequest, EntityType.dataset, null);
+		String redirectURL = UrlHelpers.createACLRedirectURL(mockRequest, null);
 	}
 
 }

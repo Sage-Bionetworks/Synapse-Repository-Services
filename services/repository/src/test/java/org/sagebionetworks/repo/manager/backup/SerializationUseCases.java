@@ -217,7 +217,6 @@ public class SerializationUseCases {
 		ds.setAnnotations("annotations/456");
 		ds.setCreatedBy("sam@bogus.com");
 		ds.setEtag("2");
-		ds.setLayers("layer/456");
 		ds.setParentId("90");
 // TODO: Add location data back
 		ds.setUri("dataset/456");

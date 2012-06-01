@@ -20,12 +20,19 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RestResourceList;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -175,5 +182,39 @@ public class EntityControllerTest {
 		assertEquals(id, header.getId());
 	}
 	
+	@Test
+	public void testGetRESTResources() throws ServletException, IOException, JSONObjectAdapterException{
+		RestResourceList rrl = entityServletHelper.getRESTResources();
+		assertNotNull(rrl);
+		assertNotNull(rrl.getList());
+		assertTrue(rrl.getList().size() > 0);
+	}
+	
+	
+	@Test
+	public void testGetEffectiveSchema() throws ServletException, IOException, JSONObjectAdapterException{
+		String resourceId = Study.class.getName();
+		ObjectSchema effective = entityServletHelper.getEffectiveSchema(Study.class.getName());
+		assertNotNull(effective);
+		assertEquals(resourceId, effective.getId());
+	}
+	
+	@Test
+	public void testGetFullSchema() throws ServletException, IOException, JSONObjectAdapterException{
+		ObjectSchema full = entityServletHelper.getFullSchema(Study.class.getName());
+		assertNotNull(full);
+		// This class should implement entity.
+		assertNotNull(full.getImplements());
+		assertNotNull(full.getImplements().length > 0);
+	}
+	
+	@Test
+	public void testGetRegistry() throws ServletException, IOException, JSONObjectAdapterException{
+		EntityRegistry registry = entityServletHelper.getEntityRegistry();
+		assertNotNull(registry);
+		assertNotNull(registry.getEntityTypes());
+		assertTrue(registry.getEntityTypes().size() > 0);
+	}
+
 
 }

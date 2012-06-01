@@ -51,7 +51,6 @@ public class LayerTest {
 
 		l1.setNumSamples(1000L);
 		l1.setPlatform("platform");
-		l1.setPreviews("/previews");
 		l1.setTissueType("tissueType");
 		l1.setType(LayerTypeNames.E);
 

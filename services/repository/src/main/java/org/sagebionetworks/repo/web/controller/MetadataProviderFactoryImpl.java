@@ -32,8 +32,7 @@ public class MetadataProviderFactoryImpl implements MetadataProviderFactory,
 	public List<TypeSpecificMetadataProvider<Entity>> getMetadataProvider(
 			EntityType type) {
 
-		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviders
-				.get(type.name());
+		List<TypeSpecificMetadataProvider<Entity>> providers = metadataProviders.get(type.name());
 		if (null == providers) {
 			if (Locationable.class.isAssignableFrom(type.getClassForType())) {
 				providers = new LinkedList<TypeSpecificMetadataProvider<Entity>>();
@@ -60,8 +59,7 @@ public class MetadataProviderFactoryImpl implements MetadataProviderFactory,
 			List<TypeSpecificMetadataProvider<Entity>> allProvidersForType = new LinkedList<TypeSpecificMetadataProvider<Entity>>();
 			allProvidersForType.add(providerEntry.getValue());
 
-			EntityType type = EntityType.getFirstTypeInUrl("/"
-					+ providerEntry.getKey());
+			EntityType type = EntityType.valueOf(providerEntry.getKey());
 			if (Locationable.class.isAssignableFrom(type.getClassForType())) {
 				allProvidersForType.add(locationableProvider);
 			}
