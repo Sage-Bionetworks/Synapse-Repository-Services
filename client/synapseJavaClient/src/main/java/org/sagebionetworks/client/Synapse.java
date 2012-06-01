@@ -34,6 +34,7 @@ import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.ServiceConstants;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -513,6 +514,28 @@ public class Synapse {
 			uep.initializeFromJSONObject(adapter);
 			return uep;
 		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	/**
+	 * Get the current user's permission for a given entity.
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public boolean canAccess(String entityId, ACCESS_TYPE accessType) throws SynapseException {
+		try {
+			String url = ENTITY_URI_PATH + "/" + entityId+ "/access?accessType="+accessType.name();
+			JSONObject jsonObj = getEntity(url);
+			String resultString = null;
+			try {
+				resultString = jsonObj.getString("result");
+			} catch (NullPointerException e) {
+				throw new SynapseException(jsonObj.toString(), e);
+			}
+			return Boolean.parseBoolean(resultString);
+		} catch (JSONException e) {
 			throw new SynapseException(e);
 		}
 	}

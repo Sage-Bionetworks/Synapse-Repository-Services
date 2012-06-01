@@ -169,6 +169,8 @@ public class IT500SynapseJavaClient {
 		assertNotNull(uep);
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
+		assertEquals(true, synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.UPDATE));
+		assertEquals(true, synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.READ));
 		
 		UserProfile profile = synapse.getMyProfile();
 		assertNotNull(profile);
