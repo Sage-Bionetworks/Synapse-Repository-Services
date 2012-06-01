@@ -1,11 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -15,12 +14,9 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
-import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -140,19 +136,19 @@ public class UserProfileController extends BaseController {
 		return userProfileManager.updateUserProfile(userInfo, entity);
 	}
 
-	/**
-	 * Get the schema for an ACL
-	 * @param id
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value ={UrlHelpers.USER_PROFILE + UrlHelpers.SCHEMA}, method = RequestMethod.GET)
-	public @ResponseBody
-	JsonSchema getUserProfileSchema() throws DatastoreException {
-		return SchemaHelper.getSchema(UserProfile.class);
-	}
+//	/**
+//	 * Get the schema for an ACL
+//	 * @param id
+//	 * @param request
+//	 * @return
+//	 * @throws DatastoreException
+//	 */
+//	@ResponseStatus(HttpStatus.OK)
+//	@RequestMapping(value ={UrlHelpers.USER_PROFILE + UrlHelpers.SCHEMA}, method = RequestMethod.GET)
+//	public @ResponseBody
+//	JsonSchema getUserProfileSchema() throws DatastoreException {
+//		return SchemaHelper.getSchema(UserProfile.class);
+//	}
 	
 
 	

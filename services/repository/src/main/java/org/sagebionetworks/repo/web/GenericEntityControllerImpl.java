@@ -6,7 +6,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.manager.EntityManager;
@@ -32,7 +31,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
-import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.controller.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.controller.metadata.AllTypesValidator;
 import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
@@ -126,7 +124,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		}
 		// Return the paginated results
 		return new PaginatedResults<T>(request.getServletPath()
-				+ UrlHelpers.getUrlForModel(clazz), entityList,
+				+ UrlHelpers.ENTITY, entityList,
 				versionNumbers.size(), offset, limit, "versionNumber", false);
 	}
 	
@@ -160,7 +158,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		}
 		// Return the paginated results
 		return new PaginatedResults<T>(request.getServletPath()
-				+ UrlHelpers.getUrlForModel(type.getClassForType()), entityList,
+				+ UrlHelpers.ENTITY, entityList,
 				versionNumbers.size(), offset, limit, "versionNumber", false);
 	}
 	
@@ -195,7 +193,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 			entityList.add(entity);
 		}
 		return new PaginatedResults<T>(request.getServletPath()
-				+ UrlHelpers.getUrlForModel(clazz), entityList,
+				+ UrlHelpers.ENTITY, entityList,
 				nodeResults.getTotalNumberOfResults(), paging.getOffset(), paging.getLimit(), paging.getSortBy(), paging.getAscending());
 	}
 
@@ -211,7 +209,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	public Entity getEntity(String userId, String id, HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		EntityHeader header = entityManager.getEntityHeader(userInfo, id);
-		EntityType type = EntityType.getFirstTypeInUrl(header.getType());
+		EntityType type = EntityType.getEntityType(header.getType());
 		return getEntity(userInfo, id, request, type.getClassForType(), EventType.GET);
 	}
 	/**
@@ -425,17 +423,6 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		}
 	}
 
-	@Override
-	public <T extends Entity> JsonSchema getEntitySchema(Class<? extends T> clazz) throws DatastoreException {
-		return SchemaHelper.getSchema(clazz);
-	}
-	
-	@Override
-	public <T extends Entity> JsonSchema getEntitiesSchema(Class<? extends T> clazz) throws DatastoreException {
-		// TODO is there a better way to pass this class?
-		PaginatedResults<T> empty = new PaginatedResults<T>(clazz);
-		return SchemaHelper.getSchema(empty.getClass());
-	}
 
 	private <T extends Entity> void addServiceSpecificMetadata(T entity, HttpServletRequest request) {
 		UrlHelpers.setAllUrlsForEntity(entity, request);
@@ -484,10 +471,6 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		return annos;
 	}
 
-	@Override
-	public JsonSchema getEntityAnnotationsSchema() throws DatastoreException {
-		return SchemaHelper.getSchema(Annotations.class);
-	}
 
 	@Override
 	public <T extends Entity> List<T> getEntityChildrenOfType(String userId,
@@ -598,11 +581,6 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		permissionsManager.restoreInheritance(id, userInfo);
-	}
-
-	@Override
-	public <T extends Entity> JsonSchema getAclSchema() throws DatastoreException {
-		return SchemaHelper.getSchema(AccessControlList.class);
 	}
 
 

@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model;
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -27,31 +26,31 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 public class EntityType {	
 	
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType dataset = new EntityType();
+	public static final EntityType dataset = new EntityType("org.sagebionetworks.repo.model.Study");
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType layer = new EntityType();
+	public static final EntityType layer = new EntityType("org.sagebionetworks.repo.model.Data");
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType project = new EntityType();
+	public static final EntityType project = new EntityType("org.sagebionetworks.repo.model.Project");
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType folder = new EntityType();
+	public static final EntityType folder = new EntityType("org.sagebionetworks.repo.model.Folder");
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType step = new EntityType();
+	public static final EntityType step = new EntityType("org.sagebionetworks.repo.model.Step");
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType preview = new EntityType();
+	public static final EntityType preview = new EntityType("org.sagebionetworks.repo.model.Preview");
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType code = new EntityType();
+	public static final EntityType code = new EntityType("org.sagebionetworks.repo.model.Code");
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType analysis = new EntityType();
+	public static final EntityType analysis = new EntityType("org.sagebionetworks.repo.model.Analysis");
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType link = new EntityType();
+	public static final EntityType link = new EntityType("org.sagebionetworks.repo.model.Link");
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType phenotypedata = new EntityType();
+	public static final EntityType phenotypedata = new EntityType("org.sagebionetworks.repo.model.PhenotypeData");
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType genotypedata = new EntityType();
+	public static final EntityType genotypedata = new EntityType("org.sagebionetworks.repo.model.GenotypeData");
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType expressiondata = new EntityType();
+	public static final EntityType expressiondata = new EntityType("org.sagebionetworks.repo.model.ExpressionData");
 	@Deprecated // Only added for backwards compatibility.
-	public static final EntityType unknown = new EntityType();
+	public static final EntityType unknown = new EntityType("org.sagebionetworks.repo.model.Unknown");
 
 	/**
 	 * The JSON file that contains the register data.
@@ -62,6 +61,7 @@ public class EntityType {
 	 * Static 
 	 */
 	private static EntityType[] values;
+	private static EntityRegistry registry;
 	static{
 		// Load the Register from the classpath
 		try{
@@ -71,7 +71,7 @@ public class EntityType {
 			String jsonString = readToString(in);
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonString);
 			// Get the model object
-			EntityRegistry registry = new EntityRegistry(adapter);
+			registry = new EntityRegistry(adapter);
 			List<EntityTypeMetadata> typeList = registry.getEntityTypes();
 			values = new EntityType[typeList.size()];
 						
@@ -79,38 +79,37 @@ public class EntityType {
 			for(short i=0; i<typeList.size(); i++){
 				EntityTypeMetadata meta = typeList.get(i);				
 				EntityType type;				
-				if(PrefixConst.DATASET.equals(meta.getUrlPrefix())){
+				if(dataset.getEntityType().equals(meta.getEntityType())){
 					type = dataset;
-				}else if(PrefixConst.LAYER.equals(meta.getUrlPrefix())){
+				}else if(layer.getEntityType().equals(meta.getEntityType())){
 					type = layer;
-				}else if(PrefixConst.PROJECT.equals(meta.getUrlPrefix())){
+				}else if(project.getEntityType().equals(meta.getEntityType())){
 					type = project;
-				}else if(PrefixConst.FOLDER.equals(meta.getUrlPrefix())){
+				}else if(folder.getEntityType().equals(meta.getEntityType())){
 					type = folder;
-				}else if(PrefixConst.STEP.equals(meta.getUrlPrefix())){
+				}else if(step.getEntityType().equals(meta.getEntityType())){
 					type = step;
-				}else if(PrefixConst.PREVIEW.equals(meta.getUrlPrefix())){
+				}else if(preview.getEntityType().equals(meta.getEntityType())){
 					type = preview;
-				}else if(PrefixConst.CODE.equals(meta.getUrlPrefix())){
+				}else if(code.getEntityType().equals(meta.getEntityType())){
 					type = code;
-				}else if(PrefixConst.ANALYSIS.equals(meta.getUrlPrefix())){
+				}else if(analysis.getEntityType().equals(meta.getEntityType())){
 					type = analysis;
-				}else if(PrefixConst.LINK.equals(meta.getUrlPrefix())){
+				}else if(link.getEntityType().equals(meta.getEntityType())){
 					type = link;
-				}else if(PrefixConst.PHENOTYPEDATA.equals(meta.getUrlPrefix())){
+				}else if(phenotypedata.getEntityType().equals(meta.getEntityType())){
 					type = phenotypedata;
-				}else if(PrefixConst.GENOTYPEDATA.equals(meta.getUrlPrefix())){
+				}else if(genotypedata.getEntityType().equals(meta.getEntityType())){
 					type = genotypedata;
-				}else if(PrefixConst.EXPRESSIONDATA.equals(meta.getUrlPrefix())){
+				}else if(expressiondata.getEntityType().equals(meta.getEntityType())){
 					type = expressiondata;
 				}else{
-					type = new EntityType();
+					type = new EntityType(meta.getEntityType());
 				}				
 				
 				values[i] = type;
 				type.id = i;
-				type.clazz = (Class<? extends Entity>) Class.forName(meta.getClassName());
-				type.urlPrefix = meta.getUrlPrefix();
+				type.clazz = (Class<? extends Entity>) Class.forName(meta.getEntityType());
 				type.validParents = meta.getValidParentTypes().toArray(new String[meta.getValidParentTypes().size()]);
 				type.defaultParenPath = meta.getDefaultParentPath();
 				type.name = meta.getName();
@@ -125,12 +124,12 @@ public class EntityType {
 						typeToChildTypes.put(parentPrefix, new HashSet<String>());
 					}
 					// add this type to its parent
-					typeToChildTypes.get(parentPrefix).add(type.urlPrefix);
+					typeToChildTypes.get(parentPrefix).add(type.getEntityType());
 				}
 			}
 			for(EntityType type : values) {
-				if(typeToChildTypes.containsKey(type.urlPrefix)) {
-					Set<String> children = typeToChildTypes.get(type.urlPrefix);
+				if(typeToChildTypes.containsKey(type.getEntityType())) {
+					Set<String> children = typeToChildTypes.get(type.getEntityType());
 					type.validChildren = children.toArray(new String[children.size()]);
 				}
 			}
@@ -138,6 +137,14 @@ public class EntityType {
 			// Convert to a runtime
 			throw new RuntimeException(e);
 		}
+	}
+	
+	/**
+	 * Get the entity Registry
+	 * @return
+	 */
+	public static EntityRegistry getEntityRegistry(){
+		return registry;
 	}
 	
 	/**
@@ -162,14 +169,12 @@ public class EntityType {
 		}
 	}
 	
-	
-	
 	/*
 	 * Non Static
 	 */	
 	private Class<? extends Entity> clazz;
+	private String entityType;
 	private short id;
-	private String urlPrefix;
 	private String[] validParents;
 	private String defaultParenPath;
 	private String name;
@@ -179,8 +184,9 @@ public class EntityType {
 	/**
 	 * Do not make this public
 	 */
-	EntityType(){
-		
+	EntityType(String entityType){
+		if(entityType == null) throw new IllegalArgumentException("EntityType cannot be null");
+		this.entityType = entityType;
 	}
 	
 	/**
@@ -201,13 +207,6 @@ public class EntityType {
 	 */
 	public String name(){
 		return name;
-	}
-	/**
-	 * The Url prefix used by this object
-	 * @return
-	 */
-	public String getUrlPrefix(){
-		return this.urlPrefix;
 	}
 
 	/***
@@ -293,7 +292,7 @@ public class EntityType {
 		if(type == null){
 			prefix = "DEFAULT";
 		}else{
-			prefix = type.getUrlPrefix();
+			prefix = type.getEntityType();
 		}
 		for(String validParent:  typeUrlList){
 			if(validParent.equals(prefix)) return true;
@@ -347,92 +346,23 @@ public class EntityType {
 	 * @param url
 	 * @return
 	 */
-	public static EntityType getFirstTypeInUrl(String url){
-		if(url == null) throw new IllegalArgumentException("URL cannot be null");
+	public static EntityType getEntityType(String entityType){
+		if(entityType == null) throw new IllegalArgumentException("URL cannot be null");
 		EntityType[] array  = EntityType.values();
-		int minIndex = Integer.MAX_VALUE;
-		EntityType minType = null;
 		for(EntityType type: array){
-			int index = url.indexOf(type.getUrlPrefix());
-			if(index < minIndex && index >= 0){
-				minIndex = index;
-				minType = type;
-			}
+			if(type.clazz.getName().equals(entityType)) return type;
 		}
-		if(minType != null) return minType;
-		throw new IllegalArgumentException("Unknown Entity type for URL: "+url);
-	}
-	
-	/**
-	 * Get the last type that occurs in a given url.
-	 * @param url
-	 * @return
-	 */
-	public static EntityType getLastTypeInUrl(String url){
-		if(url == null) throw new IllegalArgumentException("URL cannot be null");
-		EntityType[] array  = EntityType.values();
-		int maxIndex = -1;
-		EntityType maxType = null;
-		for(EntityType type: array){
-			int index = url.lastIndexOf(type.getUrlPrefix());
-			if(index > maxIndex){
-				maxIndex = index;
-				maxType = type;
-			}
-		}
-		if(maxType != null) return maxType;
-		throw new IllegalArgumentException("Unknown Entity type for URL: "+url);
+		throw new IllegalArgumentException("Unknown Entity type for entityType: "+entityType);
 	}
 
-	@Override
-	public int hashCode() {
-		final int prime = 31;
-		int result = 1;
-		result = prime * result + ((clazz == null) ? 0 : clazz.hashCode());
-		result = prime
-				* result
-				+ ((defaultParenPath == null) ? 0 : defaultParenPath.hashCode());
-		result = prime * result + id;
-		result = prime * result
-				+ ((urlPrefix == null) ? 0 : urlPrefix.hashCode());
-		result = prime * result + Arrays.hashCode(validParents);
-		return result;
-	}
-
-	@Override
-	public boolean equals(Object obj) {
-		if (this == obj)
-			return true;
-		if (obj == null)
-			return false;
-		if (getClass() != obj.getClass())
-			return false;
-		EntityType other = (EntityType) obj;
-		if (clazz == null) {
-			if (other.clazz != null)
-				return false;
-		} else if (!clazz.equals(other.clazz))
-			return false;
-		if (defaultParenPath == null) {
-			if (other.defaultParenPath != null)
-				return false;
-		} else if (!defaultParenPath.equals(other.defaultParenPath))
-			return false;
-		if (id != other.id)
-			return false;
-		if (urlPrefix == null) {
-			if (other.urlPrefix != null)
-				return false;
-		} else if (!urlPrefix.equals(other.urlPrefix))
-			return false;
-		if (!Arrays.equals(validParents, other.validParents))
-			return false;
-		return true;
-	}
 
 	@Override
 	public String toString() {
 		return name;
+	}
+
+	public String getEntityType() {
+		return this.entityType;
 	}
 	
 }

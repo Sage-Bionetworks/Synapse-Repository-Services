@@ -143,7 +143,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		assertNotNull(project);
 		toDelete.add(id);
 		// Grant this project public access
-		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, Project.class, id, userName);
+		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, id, userName);
 		assertNotNull(acl);
 		assertEquals(id, acl.getId());
 		ResourceAccess ac = new ResourceAccess();
@@ -153,7 +153,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		ac.setAccessType(new HashSet<ACCESS_TYPE>());
 		ac.getAccessType().add(ACCESS_TYPE.READ);
 		acl.getResourceAccess().add(ac);
-		ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class,id, acl, userName);
+		ServletTestHelper.updateEntityAcl(dispatchServlet,id, acl, userName);
 		
 		// Make sure the anonymous user can see this.
 		Project clone = ServletTestHelper.getEntity(dispatchServlet, Project.class, project.getId(), AuthorizationConstants.ANONYMOUS_USER_ID);
@@ -236,7 +236,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		if(type.isValidParentType(null)) return null;
 		// Try each entry in the list
 		for(EntityHeader header: path){
-			EntityType parentType = EntityType.getFirstTypeInUrl(header.getType());
+			EntityType parentType = EntityType.getEntityType(header.getType());
 			if(type.isValidParentType(parentType)){
 				return header.getId();
 			}
@@ -311,61 +311,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 		}
 	}
 	
-	// Should be handled by query vs. /<type>/<id>/<type>
-	@Ignore
-	@Test
-	public void testEntityChildren() throws Exception {
-		// Create a project
-		Project root = new Project();
-		root.setName("projectRoot");
-		root = ServletTestHelper.createEntity(dispatchServlet, root, userName);
-		assertNotNull(root);
-		toDelete.add(root.getId());
-		
-		// Create a dataset
-		Study datasetParent = (Study) ObjectTypeFactory.createObjectForTest("datasetParent", EntityType.dataset, root.getId());
-		datasetParent = ServletTestHelper.createEntity(dispatchServlet, datasetParent, userName);
-		// Create a layer parent
-		Data layerParent = (Data) ObjectTypeFactory.createObjectForTest("layerParent", EntityType.layer, datasetParent.getId());
-		layerParent = ServletTestHelper.createEntity(dispatchServlet, layerParent, userName);
-		// Now get the path of the layer
-		List<EntityHeader> path = entityController.getEntityPath(userName, layerParent.getId());
-		
-		// Create one of each type
-		EntityType[] types = EntityType.values();
-		int count = 0;
-		for(EntityType parent: types){
-			for(EntityType child: types){
-				// Only test valid parent child combinations
-				if(child.isValidParentType(parent)){
-					// First create a parent of this type
-					String name = "parent_"+parent.name()+"Ofchild_"+child.name();
-					String parentId = findCompatableParentId(path, parent);
-					Entity parentObject = ObjectTypeFactory.createObjectForTest(name, parent, parentId);
-					parentObject = ServletTestHelper.createEntity(dispatchServlet, parentObject, userName);
-					assertNotNull(parentObject);
-					toDelete.add(parentObject.getId());
-					
-					// Create two children of this node.
-					for(int i=0; i<2; i++){
-						name = "child_"+child.name()+"OfParent_"+parent.name()+count;
-						// Create this as a child of the parent
-						Entity childObject = ObjectTypeFactory.createObjectForTest(name, child, parentObject.getId());
-						childObject = ServletTestHelper.createEntity(dispatchServlet, childObject, userName);
-						assertNotNull(childObject);
-						toDelete.add(parentObject.getId());
-						count++;
-					}
-					// Now get all children of this parent
-					PaginatedResults<Entity> results = ServletTestHelper.getAllChildrenEntites(dispatchServlet, parent, parentObject.getId(), child.getClassForType(), 1, 100, "name", true, userName);
-					assertNotNull(results);
-					assertEquals("Parent: "+parent.name()+" with child: "+child.name(), 2, results.getTotalNumberOfResults());
-					assertNotNull(results.getResults());
-					assertEquals(2, results.getResults().size());
-				}
-			}
-		}
-	}
+
 
 	@Test(expected = NotFoundException.class)
 	public void testDelete() throws Exception {
@@ -383,25 +329,6 @@ public class DefaultControllerAutowiredAllTypesTest {
 		}
 	}
 	
-	// Not supported anymore	
-	@Ignore
-	@Test
-	public void testGetSchema() throws Exception{
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		project = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(project);
-		toDelete.add(project.getId());
-		EntityType[] types = EntityType.values();
-		int index = 0;
-		for(EntityType type: types){
-			// Get the schema for each type and confirm it matches this object
-			String schema = ServletTestHelper.getSchema(dispatchServlet, type.getClassForType(), userName);
-			assertNotNull(schema);
-			validateSchemaForObject(schema, type);
-		}
-	}
 	/**
 	 * Helper to validate a schema for an ojbect
 	 * @param schema
@@ -476,7 +403,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 			assertNotNull(myData);
 			assertEquals(entity.getId(), myData.getId());
 			assertEquals(entity.getName(), myData.getName());
-			assertEquals(type.getUrlPrefix(), myData.getType());
+			assertEquals(type.getEntityType(), myData.getType());
 		}
 	}
 	
@@ -536,9 +463,9 @@ public class DefaultControllerAutowiredAllTypesTest {
 		for(Entity entity: created){
 			AccessControlList acl = null;
 			try{
-				acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+				acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userName);
 			}catch(ACLInheritanceException e){
-				acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorType().getClassForType(), e.getBenefactorId(), userName);
+				acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userName);
 			}
 			assertNotNull(acl);
 		}
@@ -555,12 +482,12 @@ public class DefaultControllerAutowiredAllTypesTest {
 		for(Entity entity: created){
 			AccessControlList acl = null;
 			try{
-				acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+				acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userName);
 			}catch(ACLInheritanceException e){
-				acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorType().getClassForType(), e.getBenefactorId(), userName);
+				acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userName);
 			}
 			assertNotNull(acl);
-			ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class, acl.getId(), acl, userName);
+			ServletTestHelper.updateEntityAcl(dispatchServlet, acl.getId(), acl, userName);
 		}
 
 	}
@@ -577,10 +504,10 @@ public class DefaultControllerAutowiredAllTypesTest {
 		for(Entity entity: created){
 			AccessControlList acl = null;
 			try{
-				acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+				acl = ServletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userName);
 			}catch(ACLInheritanceException e){
 				// occurs when the child inherits its permissions from a benefactor
-				acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorType().getClassForType(), e.getBenefactorId(), userName);
+				acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userName);
 			}
 			assertNotNull(acl);
 			// Get the full path of this entity.
@@ -602,22 +529,22 @@ public class DefaultControllerAutowiredAllTypesTest {
 			acl.setId(null);
 			// (Is this OK, or do we have to make new ResourceAccess objects inside?)
 			// now POST to /dataset/{id}/acl with this acl as the body
-			AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, entity.getClass(),entity.getId(), acl, userName);
+			AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, entity.getId(), acl, userName);
 			// now retrieve the acl for the child. should get its own back
-			AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userName);
 			assertEquals(entity.getId(), acl3.getId());
 			
 			
 			// now delete the ACL (restore inheritance)
-			ServletTestHelper.deleteEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+			ServletTestHelper.deleteEntityACL(dispatchServlet, entity.getId(), userName);
 			// try retrieving the ACL for the child
 			
 			// should get the parent's ACL
 			AccessControlList acl4 = null;
 			try{
-				 acl4 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getClass(), entity.getId(), userName);
+				 acl4 = ServletTestHelper.getEntityACL(dispatchServlet, entity.getId(), userName);
 			}catch(ACLInheritanceException e){
-				acl4 = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorType().getClassForType(), e.getBenefactorId(), userName);
+				acl4 = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userName);
 			}
 			assertNotNull(acl4);
 			// the returned ACL should refer to the parent

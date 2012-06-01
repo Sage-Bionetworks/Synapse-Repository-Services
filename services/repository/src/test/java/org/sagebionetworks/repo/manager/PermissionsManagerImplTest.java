@@ -127,7 +127,6 @@ public class PermissionsManagerImplTest {
 		}catch (ACLInheritanceException e){
 			// The exception should tell us the benefactor
 			assertEquals(node.getId(), e.getBenefactorId());
-			assertEquals(node.getNodeType(), e.getBenefactorType().name());
 		}
 
 	}

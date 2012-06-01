@@ -4,7 +4,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -14,7 +13,6 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,19 +66,19 @@ public class UserGroupController extends BaseController {
 				ascending);
 	}
 
-	/**
-	 * Get the schema for an ACL
-	 * @param id
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value ={UrlHelpers.USERGROUP + UrlHelpers.SCHEMA}, method = RequestMethod.GET)
-	public @ResponseBody
-	JsonSchema getGroupSchema() throws DatastoreException {
-		return SchemaHelper.getSchema(UserGroup.class);
-	}
+//	/**
+//	 * Get the schema for an ACL
+//	 * @param id
+//	 * @param request
+//	 * @return
+//	 * @throws DatastoreException
+//	 */
+//	@ResponseStatus(HttpStatus.OK)
+//	@RequestMapping(value ={UrlHelpers.USERGROUP + UrlHelpers.SCHEMA}, method = RequestMethod.GET)
+//	public @ResponseBody
+//	JsonSchema getGroupSchema() throws DatastoreException {
+//		return SchemaHelper.getSchema(UserGroup.class);
+//	}
 	
 
 	

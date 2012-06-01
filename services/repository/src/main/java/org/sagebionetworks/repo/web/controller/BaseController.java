@@ -491,8 +491,7 @@ public abstract class BaseController {
 			HttpServletResponse response) throws IOException {
 		// Build and set the redirect URL
 		String message = ACLInheritanceException.DEFAULT_MSG_PREFIX
-				+ UrlHelpers.createACLRedirectURL(request, ex
-						.getBenefactorType(), ex.getBenefactorId());
+				+ UrlHelpers.createACLRedirectURL(request, ex.getBenefactorId());
 		response.sendError(HttpStatus.NOT_FOUND.value(), message);
 		return new ErrorResponse(message);
 	}

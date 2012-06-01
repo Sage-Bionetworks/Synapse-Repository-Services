@@ -679,7 +679,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		header.setId(nodeId);
 		header.setName(ptn.getName());
 		EntityType type = EntityType.getTypeForId(ptn.getType());
-		header.setType(type.getUrlPrefix());
+		header.setType(type.getEntityType());
 		return header;
 	}
 	/**

@@ -1,19 +1,14 @@
 {
     "description":"Metadata about entities",
     "properties":{
-        "urlPrefix":{
-            "type":"string",
-            "description":"The URL prefix for an entity type.",
-            "required":"true"
-        },
         "name":{
             "type":"string",
             "description":"The Name of this entity.",
             "required":"true"
         },
-        "className":{
+        "entityType":{
             "type":"string",
-            "description":"Class Name for this Entity"
+            "description":"The unique ID for this entity type."
         },
         "defaultParentPath":{
             "type":"string",

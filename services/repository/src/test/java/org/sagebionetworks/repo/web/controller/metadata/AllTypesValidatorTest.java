@@ -56,7 +56,7 @@ public class AllTypesValidatorTest {
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(parentId);
 		parentHeader.setName("name");
-		parentHeader.setType(EntityType.project.getUrlPrefix());
+		parentHeader.setType(EntityType.project.getEntityType());
 		List<EntityHeader> path = new ArrayList<EntityHeader>();
 		path.add(parentHeader);
 		
@@ -73,7 +73,7 @@ public class AllTypesValidatorTest {
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(parentId);
 		parentHeader.setName("name");
-		parentHeader.setType(EntityType.dataset.getUrlPrefix());
+		parentHeader.setType(EntityType.dataset.getEntityType());
 		List<EntityHeader> path = new ArrayList<EntityHeader>();
 		path.add(parentHeader);
 		

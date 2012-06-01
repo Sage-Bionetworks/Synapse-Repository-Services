@@ -223,7 +223,6 @@ public class EntityManagerImplAutowireTest {
 		ds.setAnnotations("someAnnoUrl");
 		ds.setEtag("110");
 		ds.setId("12");
-		ds.setLayers("someLayerUrl");
 		ds.setUri("someUri");
 		return ds;
 	}
