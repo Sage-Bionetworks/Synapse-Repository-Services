@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
@@ -90,7 +91,7 @@ public class EntityServletTestHelper {
 	 * @throws Exception
 	 */
 	public Entity createEntity(Entity entity, String username)
-			throws JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
+			throws JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, NameConflictException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
@@ -213,6 +214,9 @@ public class EntityServletTestHelper {
 		}
 		if(status > 499 && status < 600){
 			throw new DatastoreException(message);
+		}
+		if(status == 409){
+			throw new NameConflictException();
 		}
 		if(status > 399 && status < 500){
 			throw new IllegalArgumentException(message);

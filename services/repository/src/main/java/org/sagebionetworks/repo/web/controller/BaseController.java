@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -190,6 +191,20 @@ public abstract class BaseController {
 	@ResponseStatus(HttpStatus.FORBIDDEN)
 	public @ResponseBody
 	ErrorResponse handleUnauthorizedException(UnauthorizedException ex,
+			HttpServletRequest request) {
+		return handleException(ex, request);
+	}
+	
+	/**
+	 * This exception is thrown when an entity with a given name already exists.
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(NameConflictException.class)
+	@ResponseStatus(HttpStatus.CONFLICT)
+	public @ResponseBody
+	ErrorResponse handleNameConflictException(NameConflictException ex,
 			HttpServletRequest request) {
 		return handleException(ex, request);
 	}
