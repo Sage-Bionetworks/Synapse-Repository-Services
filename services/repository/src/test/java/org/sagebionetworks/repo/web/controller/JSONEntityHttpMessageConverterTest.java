@@ -19,8 +19,10 @@ import org.sagebionetworks.repo.model.ExampleEntity;
 import org.sagebionetworks.sample.Example;
 import org.sagebionetworks.sample.ExampleContainer;
 import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
@@ -135,5 +137,28 @@ public class JSONEntityHttpMessageConverterTest {
 		StringReader reader = new StringReader(jsonString);
 		ExampleEntity clone = (ExampleEntity) JSONEntityHttpMessageConverter.readEntity(reader);
 	}
+	
+	/**
+	 * This test was added for PLFM-1280.
+	 * @throws JSONObjectAdapterException
+	 */
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateEntityFromeAdapterClassNotFound() throws JSONObjectAdapterException{
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		adapter.put("entityType", "org.sagebionetworks.FakeClass");
+		JSONEntityHttpMessageConverter.createEntityFromeAdapter(adapter);
+	}
 
+	/**
+	 * This test was added for PLFM-1280.
+	 * @throws JSONObjectAdapterException
+	 */
+	@Test (expected=JSONObjectAdapterException.class)
+	public void testCreateEntityFromeAdapterBadJSON() throws JSONObjectAdapterException{
+		// Test a vaild entity type with a field that does not exist on that type.
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		adapter.put("entityType", ExampleEntity.class.getName());
+		adapter.put("notAField", "shoudld not exist");
+		JSONEntityHttpMessageConverter.createEntityFromeAdapter(adapter);
+	}
 }
