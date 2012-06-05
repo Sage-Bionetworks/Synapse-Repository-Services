@@ -546,7 +546,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(1l, refs.getTotalNumberOfResults());
 		assertNotNull(refs.getResults());
 		assertEquals(1, refs.getResults().size());
-		assertEquals(project.getId(), refs.getResults().get(0).getId());
+		assertEquals(link.getId(), refs.getResults().get(0).getId());
 		
 	}
 	

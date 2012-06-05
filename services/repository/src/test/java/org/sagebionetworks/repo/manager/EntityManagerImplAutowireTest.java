@@ -1,7 +1,9 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
@@ -20,6 +22,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.GenotypeData;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Study;
@@ -48,9 +51,6 @@ public class EntityManagerImplAutowireTest {
 	
 	private UserInfo userInfo;
 	
-//	private final UserInfo anonUserInfo = new UserInfo(false);
-
-	
 	@Before
 	public void before() throws Exception{
 		assertNotNull(entityManager);
@@ -63,9 +63,6 @@ public class EntityManagerImplAutowireTest {
 		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
 
-//		User anonUser = new User();
-//		anonUser.setUserId(AuthUtilConstants.ANONYMOUS_USER_ID);
-//		anonUserInfo.setUser(anonUser);
 	}
 	
 	@After
@@ -198,6 +195,26 @@ public class EntityManagerImplAutowireTest {
 		annos = entityManager.getAnnotations(userInfo, id);
 		assertNotNull(annos);
 		assertEquals("some string value", annos.getSingleValue("stringKey"));
+		
+	}
+	
+	@Test
+	public void testPLFM_1283() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
+		Data study = new Data();
+		study.setName("test PLFM-1283");
+		String id = entityManager.createEntity(userInfo, study);
+		assertNotNull(id);
+		toDelete.add(id);
+		try{
+			entityManager.getEntityWithAnnotations(userInfo, id, GenotypeData.class);
+			fail("The requested entity type does not match the actaul entity type so this should fail.");
+		}catch(IllegalArgumentException e){
+			// This is expected.
+			System.out.println(e.getMessage());
+			assertTrue(e.getMessage().indexOf(id) > 0);
+			assertTrue(e.getMessage().indexOf(Data.class.getName()) > 0);
+			assertTrue(e.getMessage().indexOf(GenotypeData.class.getName()) > 0);
+		}
 		
 	}
 	

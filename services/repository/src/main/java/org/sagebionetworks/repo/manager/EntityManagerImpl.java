@@ -78,7 +78,7 @@ public class EntityManagerImpl implements EntityManager {
 	 */
 	private <T extends Entity> void validateType(EntityType requestedType, EntityType acutalType, String id){
 		if(acutalType != requestedType){
-			throw new IllegalArgumentException("Requested "+requestedType.getEntityType()+"/"+id+" but the entity with ID="+id+" is not of type: "+requestedType.name());
+			throw new IllegalArgumentException("The Entity: syn"+id+" has an entityType="+acutalType.getEntityType()+" and cannot be changed to entityType="+requestedType.getEntityType());
 		}
 	}
 	
