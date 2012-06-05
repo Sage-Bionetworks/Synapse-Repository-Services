@@ -345,28 +345,6 @@ public class EntityManagerImpl implements EntityManager {
 				throws NotFoundException, DatastoreException {
 		// pass through
 		EntityHeaderQueryResults results = nodeManager.getEntityReferences(userInfo, entityId, versionNumber, offset, limit);
-		// Replace any link with its parent
-		if(results != null && results.getEntityHeaders() != null){
-			List<EntityHeader> list = results.getEntityHeaders();
-			for(int i=0; i<list.size(); i++){
-				EntityHeader header = list.get(i);
-				EntityType type = EntityType.valueOf(header.getType());
-				if(EntityType.link == type){
-					try {
-						List<EntityHeader> path = nodeManager.getNodePath(userInfo, header.getId());
-						if(path != null && path.size() > 1){
-							// Get the parent path
-							EntityHeader parent =path.get(path.size()-2);
-							list.set(i, parent);
-						}
-					} catch (UnauthorizedException e) {
-						// This should not occur
-						throw new DatastoreException(e);
-					}
-				}
-			}
-		}
-
 		return results;
 	}
 

@@ -44,10 +44,6 @@
 			</url>
 		</repository>
 		<repository>
-			<id>atlassian-m2-repository</id>
-			<url>https://m2proxy.atlassian.com/repository/public</url>
-		</repository>
-		<repository>
 			<id>mvn-gae-plugin-repo</id>
 			<url>http://maven-gae-plugin.googlecode.com/svn/repository/</url>
 		</repository>
