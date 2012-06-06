@@ -40,7 +40,7 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 		}
 		// Note: Null parent type is valid for some object types.
 		if(!objectType.isValidParentType(parentType)){
-			throw new IllegalArgumentException("Entity type: "+objectType+" cannot have a parent of type: "+parentType);
+			throw new IllegalArgumentException("Entity type: "+objectType.getEntityType()+" cannot have a parent of type: "+parentType.getEntityType());
 		}
 		// Is this a create or update?
 		if(EventType.CREATE == event.getType() || EventType.UPDATE == event.getType()){

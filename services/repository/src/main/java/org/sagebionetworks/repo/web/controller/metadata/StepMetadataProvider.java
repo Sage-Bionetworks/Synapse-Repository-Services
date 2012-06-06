@@ -45,6 +45,7 @@ public class StepMetadataProvider implements TypeSpecificMetadataProvider<Step> 
 		if(referenceUtil != null){
 			referenceUtil.replaceNullVersionNumbersWithCurrent(entity.getCode());
 			referenceUtil.replaceNullVersionNumbersWithCurrent(entity.getInput());
+			referenceUtil.replaceNullVersionNumbersWithCurrent(entity.getOutput());
 		}
 		
 	}

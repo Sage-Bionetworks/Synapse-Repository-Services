@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -238,5 +239,33 @@ public class EntityControllerTest {
 		two = (Study) entityServletHelper.createEntity(two, TEST_USER1);
 	}
 
+	@Test
+	public void testPLFM_1288() throws Exception{
+		Project p = new Project();
+		p.setName("Create without entity type");
+		p.setEntityType(p.getClass().getName());
+		p = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		toDelete.add(p.getId());
+		
+		Study one = new Study();
+		one.setName("one");
+		one.setParentId(p.getId());
+		one.setEntityType(Study.class.getName());
+		one = (Study) entityServletHelper.createEntity(one, TEST_USER1);
+		// Now try to re-use the name
+		Code two = new Code();
+		two.setName("code");
+		two.setParentId(one.getId());
+		two.setEntityType(Code.class.getName());
+		try{
+			two = (Code) entityServletHelper.createEntity(two, TEST_USER1);
+			fail("Code cannot have a parent of type Study");
+		}catch(IllegalArgumentException e){
+			System.out.println(e.getMessage());
+			assertTrue(e.getMessage().indexOf(Code.class.getName()) > 0);
+			assertTrue(e.getMessage().indexOf(Study.class.getName()) > 0);
+		}
+		
+	}
 
 }
