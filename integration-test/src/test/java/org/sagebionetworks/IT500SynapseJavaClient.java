@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,6 +27,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -129,6 +131,25 @@ public class IT500SynapseJavaClient {
 			assertTrue(annotations.has("blobAnnotations"));
 		}
 	}
+	
+	// for entities like our project, which have 'root' as parent
+	// it should not be possible to delete the ACL
+	@Test
+	public void testNoDeleteACLOnProject() throws Exception {
+		// Get the Users permission for this entity
+		UserEntityPermissions uep = synapse.getUsersEntityPermissions(project.getId());
+		// first, we CAN change permissions (i.e. edit the ACL)
+		assertTrue(uep.getCanChangePermissions());
+		// but we CAN'T just delete the ACL
+		assertFalse(uep.getCanEnableInheritance());
+		// and if we try, it won't work
+		try {
+			synapse.deleteACL(project.getId());
+			fail("exception expected");
+		} catch (SynapseForbiddenException e) {
+			// as expected
+		}
+	}
 
 	/**
 	 * @throws Exception
@@ -171,9 +192,13 @@ public class IT500SynapseJavaClient {
 		assertEquals(true, uep.getCanView());
 		assertEquals(true, synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.UPDATE));
 		assertEquals(true, synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.READ));
+		assertTrue(uep.getCanChangePermissions());
+		assertTrue(uep.getCanEnableInheritance());
 		
 		UserProfile profile = synapse.getMyProfile();
 		assertNotNull(profile);
+		
+		assertEquals(profile.getOwnerId(), uep.getOwnerPrincipalId().toString());
 		
 		// ACL should reflect this information
 		AccessControlList acl = synapse.getACL(project.getId());
@@ -331,7 +356,7 @@ public class IT500SynapseJavaClient {
 		String myPrincipalId = myProfile.getOwnerId();
 		assertNotNull(myPrincipalId);
 
-		PaginatedResults<UserProfile> users = synapse.getUsers();
+		PaginatedResults<UserProfile> users = synapse.getUsers(0,1000);
 		assertTrue(users.getResults().size()>0);
 		boolean foundSelf = false;
 		List<String> allDisplayNames = new ArrayList<String>();
@@ -346,7 +371,7 @@ public class IT500SynapseJavaClient {
 	
 	@Test
 	public void testGetGroups() throws Exception {
-		PaginatedResults<UserGroup> groups = synapse.getGroups();
+		PaginatedResults<UserGroup> groups = synapse.getGroups(0,100);
 		assertTrue(groups.getResults().size()>0);
 		for (UserGroup ug : groups.getResults()) {
 			assertNotNull(ug.getId());

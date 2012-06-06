@@ -53,7 +53,7 @@ public class IT960TermsOfUse {
 		project.setName("foo");
 		project = adminSynapse.createEntity(project);
 		// make the project public readable
-		Collection<UserGroup> groups = adminSynapse.getGroups().getResults();
+		Collection<UserGroup> groups = adminSynapse.getGroups(0,100).getResults();
 		String publicGroupPrincipalId = null;
 		for (UserGroup group : groups) {
 			if (group.getName().equals("PUBLIC")) 

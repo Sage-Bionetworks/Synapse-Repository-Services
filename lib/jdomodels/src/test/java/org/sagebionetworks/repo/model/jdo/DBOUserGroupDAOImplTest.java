@@ -121,11 +121,17 @@ public class DBOUserGroupDAOImplTest {
 		
 		
 		groupNames.clear(); 
-		// Add all of the default groups
+		// Add one of the default groups
 		groupNames.add(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name());
 		map = userGroupDAO.getGroupsByNames(groupNames);
 		assertTrue(map.toString(), map.containsKey(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name()));
 
+		// try the paginated call
+		List<UserGroup> groups = userGroupDAO.getInRange(0, startingCount+100, false);
+		List<String> omit = new ArrayList<String>();
+		omit.add(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name());
+		List<UserGroup> groupsButOne = userGroupDAO.getInRangeExcept(0, startingCount+100, false, omit);
+		assertEquals(groups.size(), groupsButOne.size()+1);
 	}
 
 }

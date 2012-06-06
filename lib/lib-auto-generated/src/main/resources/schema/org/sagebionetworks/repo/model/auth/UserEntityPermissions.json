@@ -26,5 +26,13 @@
             "type":"boolean",
             "description":"Can the user download this entity?",            
         },
+        "canEnableInheritance":{
+        	"type":"boolean",
+        	"description":"Can the user delete the entity's access control list (so it inherits settings from an ancestor)?"
+        },
+        "ownerPrincipalId":{
+        	"type":"integer",
+        	"description":"The principal ID of the entity's owner (i.e. the entity's 'createdBy')"
+        }
     }
 }

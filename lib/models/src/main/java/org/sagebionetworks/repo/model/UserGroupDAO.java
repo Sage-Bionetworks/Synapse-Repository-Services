@@ -30,6 +30,15 @@ public interface UserGroupDAO extends BaseDAO<UserGroup> {
 	public List<UserGroup> getInRange(long fromIncl, long toExcl, boolean isIndividual) throws DatastoreException;
 
 	/**
+	 * this allows the caller to
+	 * separately retrieve the individual and non-individual groups,
+	 * while specifying names of groups to filter out
+	 */
+
+	public List<UserGroup> getInRangeExcept(long fromIncl, long toExcl,
+			boolean isIndividual, Collection<String> groupNamesToOmit)
+			throws DatastoreException;
+	/**
 	 * Does a principal exist with this name?
 	 * @param name
 	 * @return
@@ -42,4 +51,5 @@ public interface UserGroupDAO extends BaseDAO<UserGroup> {
 	 * @return true if deletion occurs
 	 */
 	public boolean deletePrincipal(String name);
+
 }

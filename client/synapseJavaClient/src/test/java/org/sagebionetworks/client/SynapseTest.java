@@ -92,7 +92,7 @@ public class SynapseTest {
 		Study ds = EntityCreator.createNewDataset();
 		// This is what we want returned.
 		String jsonString = EntityFactory.createJSONStringForEntity(ds);
-//		System.out.println(jsonString);
+
 		StringEntity responseEntity = new StringEntity(jsonString);
 		// We want the mock response to return JSON for this entity.
 		when(mockResponse.getEntity()).thenReturn(responseEntity);
@@ -101,6 +101,23 @@ public class SynapseTest {
 		assertNotNull(clone);
 		// The clone should equal the original ds
 		assertEquals(ds, clone);
+	}
+	
+	@Test
+	public void testGetBenefactor() throws Exception {
+		EntityHeader eh = new EntityHeader();
+		eh.setId("syn101");
+		// This is what we want returned.
+		String jsonString = EntityFactory.createJSONStringForEntity(eh);
+
+		StringEntity responseEntity = new StringEntity(jsonString);
+		// We want the mock response to return JSON for this entity.
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		EntityHeader clone = synapse.getEntityBenefactor("syn101");
+		// For this test we want return 
+		assertNotNull(clone);
+		// The clone should equal the original ds
+		assertEquals(eh, clone);
 	}
 	
 	@Test

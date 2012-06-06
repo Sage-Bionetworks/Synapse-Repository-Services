@@ -4,6 +4,7 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -129,6 +130,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Override
 	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo,	String entityId) throws NotFoundException, DatastoreException {
 		UserEntityPermissions permission = new UserEntityPermissions();
+		Node node = nodeDAO.getNode(entityId);
+		permission.setOwnerPrincipalId(node.getCreatedByPrincipalId());
+		boolean parentIsRoot = nodeDAO.isNodesParentRoot(entityId);
+		
 		// Admin gets all
 		if (userInfo.isAdmin()) {
 			permission.setCanAddChild(true);
@@ -137,6 +142,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			permission.setCanEdit(true);
 			permission.setCanView(true);
 			permission.setCanDownload(true);
+			permission.setCanEnableInheritance(!parentIsRoot);
 			return permission;
 		}
 		// must look-up access
@@ -148,6 +154,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		permission.setCanEdit(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.UPDATE));
 		permission.setCanView(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.READ));
 		permission.setCanDownload(this.canDownload(userInfo, entityId));
+		permission.setCanEnableInheritance(!parentIsRoot && permission.getCanChangePermissions());
 		return permission;
 	}
 }

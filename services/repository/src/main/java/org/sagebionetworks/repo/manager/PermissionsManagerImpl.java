@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
@@ -66,19 +67,6 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		//populateDisplayNames(acl);
 		return acl;
 	}
-	
-//	/**
-//	 * 
-//	 * Populate the display names in the ResourceAccess objects of the ACL
-//	 * @param acl
-//	 */
-//	public void populateDisplayNames(AccessControlList acl) throws DatastoreException, NotFoundException {
-//		for (ResourceAccess ra : acl.getResourceAccess()) {
-//			// TODO cache the following look-up so you don't have to do it every time
-//			String displayName = userManager.getDisplayName(ra.getPrincipalId());
-//			ra.setDisplayName(displayName);
-//		}
-//	}
 	
 	public void validateContent(AccessControlList acl) throws InvalidModelException {
 		if (acl.getId()==null) throw new InvalidModelException("Resource ID is null");
@@ -150,11 +138,12 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		}
 		String benefactor = nodeInheritanceManager.getBenefactor(rId);
 		if (!benefactor.equals(rId)) throw new UnauthorizedException("Resource already inherits its permissions.");	
-		// get parent; if null then I cannot continue!!
-		Node node = nodeDao.getNode(rId);
-		if (node.getParentId()==null) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
+
+		// if parent is root, than can't inherit, must have own ACL
+		if (nodeDao.isNodesParentRoot(rId)) throw new UnauthorizedException("Cannot restore inheritance for resource which has no parent.");
 
 		// Before we can update the ACL we must grab the lock on the node.
+		Node node = nodeDao.getNode(rId);
 		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 		nodeInheritanceManager.setNodeToInheritFromNearestParent(rId);
 		
@@ -182,7 +171,9 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	@Override
 	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException {
 		requireUser(userInfo);
-		return userGroupDAO.getInRange(startIncl, endExcl, false);
+		List<String> groupsToOmit = new ArrayList<String>();
+		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
+		return userGroupDAO.getInRangeExcept(startIncl, endExcl, false, groupsToOmit);
 	}
 
 	/**

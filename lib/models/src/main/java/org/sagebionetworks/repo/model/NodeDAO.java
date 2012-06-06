@@ -278,5 +278,15 @@ public interface NodeDAO {
 	 * @return
 	 */
 	public List<Short> getAllNodeTypesForAlias(String alias);
+	
+	/**
+	 * returns true iff the parent of the given node is root
+	 * 
+	 * @param nodeId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException 
+	 */
+    public boolean isNodesParentRoot(String nodeId) throws NotFoundException, DatastoreException;
 
 }

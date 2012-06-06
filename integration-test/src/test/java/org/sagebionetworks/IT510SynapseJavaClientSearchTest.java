@@ -277,7 +277,7 @@ public class IT510SynapseJavaClientSearchTest {
 	}
 	
 	private static String getGroupPrincipalIdFromGroupName(String groupName) throws SynapseException {
-		PaginatedResults<UserGroup> paginated = synapse.getGroups();
+		PaginatedResults<UserGroup> paginated = synapse.getGroups(0,100);
 		int total = (int)paginated.getTotalNumberOfResults();
 		List<UserGroup> groups = paginated.getResults();
 		if (groups.size()<total) throw new RuntimeException("System has "+total+" total users but we've only retrieved "+groups.size());

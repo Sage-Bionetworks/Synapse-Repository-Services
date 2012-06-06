@@ -241,6 +241,13 @@ public class AuthorizationManagerImplTest {
 		assertEquals(true, uep.getCanView());
 		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  childNode.getId());
 		assertEquals(true, uep.getCanView());
+		assertFalse(uep.getCanEnableInheritance());
+		assertEquals(node.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
+		
+		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
+		acl = permissionsManager.updateACL(acl, adminUser);
+		assertFalse(uep.getCanEnableInheritance());
+		
 	}
 
 	// test lack of access to something that doesn't inherit its permissions, whose parent you CAN access
@@ -262,6 +269,8 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanView());
 		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  childNode.getId());
 		assertEquals(false, uep.getCanView());
+		assertFalse(uep.getCanEnableInheritance());
+		assertEquals(node.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
 		
 		// get a new copy of parent ACL
 		acl = permissionsManager.getACL(node.getId(), userInfo);
@@ -358,6 +367,8 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanEdit());
 		assertEquals(false, uep.getCanView());
 		assertEquals(true, uep.getCanDownload()); // can't read but CAN download, which is controlled separately
+		assertEquals(false, uep.getCanEnableInheritance());
+		assertEquals(node.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
 		
 		// Let the user read.
 		AccessControlList acl = permissionsManager.getACL(node.getId(), userInfo);

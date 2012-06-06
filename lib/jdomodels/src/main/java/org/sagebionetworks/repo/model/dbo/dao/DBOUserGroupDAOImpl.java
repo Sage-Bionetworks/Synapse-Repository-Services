@@ -69,6 +69,12 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			" WHERE "+SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL+"=:"+IS_INDIVIDUAL_PARAM_NAME+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
+	private static final String SELECT_BY_IS_INDIVID_OMITTING_SQL_PAGINATED = 
+			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
+			" WHERE "+SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL+"=:"+IS_INDIVIDUAL_PARAM_NAME+
+			" AND "+SqlConstants.COL_USER_GROUP_NAME+" NOT IN (:"+NAME_PARAM_NAME+")"+
+			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
 	private static final String SELECT_ALL = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP;
 	
@@ -135,6 +141,29 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		List<DBOUserGroup> dbos = simpleJdbcTempalte.query(SELECT_BY_IS_INDIVID_SQL_PAGINATED, userGroupRowMapper, param);
+		List<UserGroup> dtos = new ArrayList<UserGroup>();
+		for (DBOUserGroup dbo : dbos) {
+			UserGroup dto = new UserGroup();
+			UserGroupUtils.copyDboToDto(dbo, dto);
+			dtos.add(dto);
+		}
+		return dtos;
+	}
+
+	@Override
+	public List<UserGroup> getInRangeExcept(long fromIncl, long toExcl,
+			boolean isIndividual, Collection<String> groupNamesToOmit) throws DatastoreException {
+		// the SQL will be invalid for an empty list, so we 'divert' that case:
+		if (groupNamesToOmit.isEmpty()) return getInRange(fromIncl, toExcl, isIndividual);
+		
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(IS_INDIVIDUAL_PARAM_NAME, isIndividual);		
+		param.addValue(OFFSET_PARAM_NAME, fromIncl);
+		long limit = toExcl - fromIncl;
+		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
+		param.addValue(LIMIT_PARAM_NAME, limit);	
+		param.addValue(NAME_PARAM_NAME, groupNamesToOmit);
+		List<DBOUserGroup> dbos = simpleJdbcTempalte.query(SELECT_BY_IS_INDIVID_OMITTING_SQL_PAGINATED, userGroupRowMapper, param);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
 		for (DBOUserGroup dbo : dbos) {
 			UserGroup dto = new UserGroup();

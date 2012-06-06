@@ -96,11 +96,17 @@ public class Synapse {
 
 	protected static final String ENTITY_URI_PATH = "/entity";
 	protected static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
-	
+	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
+
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 
 	protected static final String TOTAL_NUM_RESULTS = "totalNumberOfResults";
+	
+	// web request pagination parameters
+	protected static final String LIMIT = "limit";
+	protected static final String OFFSET = "offset";
 
+	// query pagination
 	protected static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
 	protected static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = "select id from entity where parentId == '";
 
@@ -430,6 +436,12 @@ public class Synapse {
 		return initializeFromJSONObject(json, AccessControlList.class);
 	}
 	
+	public EntityHeader getEntityBenefactor(String entityId) throws SynapseException {
+		String uri = ENTITY_URI_PATH + "/" + entityId+ BENEFACTOR;
+		JSONObject json = getEntity(uri);
+		return initializeFromJSONObject(json, EntityHeader.class);
+	}
+	
 	public UserProfile getMyProfile() throws SynapseException {
 		String uri = USER_PROFILE_PATH;
 		JSONObject json = getEntity(uri);
@@ -472,8 +484,8 @@ public class Synapse {
 		}
 	}
 	
-	public PaginatedResults<UserProfile> getUsers() throws SynapseException {
-		String uri = "/user";
+	public PaginatedResults<UserProfile> getUsers(int offset, int limit) throws SynapseException {
+		String uri = "/user?"+OFFSET+"="+offset+"&limit="+limit;
 		JSONObject jsonUsers = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonUsers);
 		PaginatedResults<UserProfile> results = new PaginatedResults<UserProfile>(UserProfile.class);
@@ -486,8 +498,8 @@ public class Synapse {
 	}
 
 
-	public PaginatedResults<UserGroup> getGroups() throws SynapseException {
-		String uri = "/userGroup";
+	public PaginatedResults<UserGroup> getGroups(int offset, int limit) throws SynapseException {
+		String uri = "/userGroup?"+OFFSET+"="+offset+"&limit="+limit;
 		JSONObject jsonUsers = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonUsers);
 		PaginatedResults<UserGroup> results = new PaginatedResults<UserGroup>(UserGroup.class);
@@ -541,7 +553,7 @@ public class Synapse {
 	}
 	
 	/**
-	 * Get the annotaions for an entity.
+	 * Get the annotations for an entity.
 	 * @param entityId
 	 * @return
 	 * @throws SynapseException
@@ -560,7 +572,7 @@ public class Synapse {
 	}
 	
 	/**
-	 * Update the annotaions of an entity.
+	 * Update the annotations of an entity.
 	 * @param entityId
 	 * @return
 	 * @throws SynapseException
