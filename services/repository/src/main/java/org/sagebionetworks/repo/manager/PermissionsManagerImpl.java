@@ -165,7 +165,9 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	@Override
 	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
 		requireUser(userInfo);
-		return userGroupDAO.getAll(false);
+		List<String> groupsToOmit = new ArrayList<String>();
+		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
+		return userGroupDAO.getAllExcept(false, groupsToOmit);
 	}
 
 	@Override

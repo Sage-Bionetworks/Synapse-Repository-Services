@@ -23,6 +23,12 @@ public interface UserGroupDAO extends BaseDAO<UserGroup> {
 	public Collection<UserGroup> getAll(boolean isIndividual) throws DatastoreException;
 
 	/**
+	 * a variant of the generic 'getAll' query, this allows the caller to
+	 * separately retrieve the individual and non-individual groups.
+	 */	
+	public Collection<UserGroup> getAllExcept(boolean isIndividual, Collection<String> groupNamesToOmit) throws DatastoreException;
+
+	/**
 	 * a variant of the generic 'getInRange' query, this allows the caller to
 	 * separately retrieve the individual and non-individual groups.
 	 */
