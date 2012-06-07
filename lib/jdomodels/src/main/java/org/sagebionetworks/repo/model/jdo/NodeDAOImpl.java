@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackupDAO;
@@ -213,7 +214,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @param e
 	 */
 	private void checkExceptionDetails(String name, String parentId, IllegalArgumentException e) {
-		if(e.getMessage().indexOf(CONSTRAINT_UNIQUE_CHILD_NAME) > 0) throw new IllegalArgumentException("An entity with the name: "+name+" already exists with a parentId: "+parentId);
+		if(e.getMessage().indexOf(CONSTRAINT_UNIQUE_CHILD_NAME) > 0) throw new NameConflictException("An entity with the name: "+name+" already exists with a parentId: "+parentId);
 		throw e;
 	}
 	
@@ -679,7 +680,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		header.setId(nodeId);
 		header.setName(ptn.getName());
 		EntityType type = EntityType.getTypeForId(ptn.getType());
-		header.setType(type.getUrlPrefix());
+		header.setType(type.getEntityType());
 		return header;
 	}
 	/**

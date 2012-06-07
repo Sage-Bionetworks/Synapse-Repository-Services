@@ -13,17 +13,15 @@ import java.util.logging.Logger;
 import javax.servlet.http.HttpServletRequest;
 
 import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.schema.JsonSchema;
+import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.queryparser.ParseException;
-import org.sagebionetworks.repo.util.SchemaHelper;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,17 +97,6 @@ public class QueryController extends BaseController {
 		QueryResults results = entityController.executeQueryWithAnnotations(userId, basic, request);
 		results.setResults(formulateResult(stmt, results.getResults()));
 		return results;
-	}
-
-	/**
-	 * @return the schema
-	 * @throws DatastoreException
-	 */
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.QUERY + UrlHelpers.SCHEMA, method = RequestMethod.GET)
-	public @ResponseBody
-	JsonSchema getQuerySchema() throws DatastoreException {
-		return SchemaHelper.getSchema(QueryResults.class);
 	}
 
 	/**

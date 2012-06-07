@@ -60,8 +60,8 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		if(!benefactor.equals(nodeId)){
 			// Look up the type of the benefactor
 			EntityHeader header = nodeDao.getEntityHeader(benefactor);
-			EntityType type = EntityType.getFirstTypeInUrl(header.getType());
-			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor,type, benefactor);
+			EntityType type = EntityType.getEntityType(header.getType());
+			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor, benefactor);
 		}
 		AccessControlList acl = aclDAO.getForResource(nodeId);
 		//populateDisplayNames(acl);

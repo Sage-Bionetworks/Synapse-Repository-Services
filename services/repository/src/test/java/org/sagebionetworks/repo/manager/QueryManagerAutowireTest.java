@@ -108,7 +108,6 @@ public class QueryManagerAutowireTest {
 		ds.setCreatedBy("magic"+i);
 		ds.setCreatedOn(new Date(1001));
 		ds.setAnnotations("someAnnoUrl"+1);
-		ds.setLayers("someLayerUrl"+i);
 		ds.setUri("someUri"+i);
 		return ds;
 	}

@@ -21,9 +21,13 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -87,7 +91,7 @@ public class EntityServletTestHelper {
 	 * @throws Exception
 	 */
 	public Entity createEntity(Entity entity, String username)
-			throws JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
+			throws JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, NameConflictException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
@@ -210,6 +214,9 @@ public class EntityServletTestHelper {
 		}
 		if(status > 499 && status < 600){
 			throw new DatastoreException(message);
+		}
+		if(status == 409){
+			throw new NameConflictException();
 		}
 		if(status > 399 && status < 500){
 			throw new IllegalArgumentException(message);
@@ -366,5 +373,105 @@ public class EntityServletTestHelper {
 		results.initializeFromJSONObject(adapter);
 		return results;
 	}
+	
+	
+	/**
+	 * Get the list of all REST resources.
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public RestResourceList getRESTResources() throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.REST_RESOURCES);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		// Done!
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), RestResourceList.class);
+	}
+	
+	/**
+	 * Get the effective schema for a resource.
+	 * @param resourceId
+	 * @return
+	 * @throws IOException 
+	 * @throws ServletException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public ObjectSchema getEffectiveSchema(String resourceId) throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.REST_RESOURCES+UrlHelpers.EFFECTIVE_SCHEMA);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.addParameter(UrlHelpers.RESOURCE_ID, resourceId);
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		// Done!
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), ObjectSchema.class);
+		
+	}
+	
+	/**
+	 * Get the full schema for a resource.
+	 * @param resourceId
+	 * @return
+	 * @throws IOException 
+	 * @throws ServletException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public ObjectSchema getFullSchema(String resourceId) throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.REST_RESOURCES+UrlHelpers.SCHEMA);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.addParameter(UrlHelpers.RESOURCE_ID, resourceId);
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		// Done!
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), ObjectSchema.class);
+		
+	}
 
+	/**
+	 * Get the entity registry
+	 * @param resourceId
+	 * @return
+	 * @throws IOException 
+	 * @throws ServletException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public EntityRegistry getEntityRegistry() throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ENTITY+UrlHelpers.REGISTRY);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		// Done!
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), EntityRegistry.class);
+		
+	}
 }

@@ -182,6 +182,18 @@ public class JSONEntityHttpMessageConverter implements
 		String jsonString = readToString(reader);
 		// Read it into an adapter
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonString);
+		return createEntityFromeAdapter(adapter);
+	}
+
+	/**
+	 * There are many things that can go wrong with this and we want to make sure the error messages
+	 * are always meaningful.
+	 * @param adapter
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 */
+	public static Entity createEntityFromeAdapter(JSONObjectAdapter adapter)
+			throws JSONObjectAdapterException {
 		// Get the entity type
 		if(!adapter.has("entityType")){
 			throw new IllegalArgumentException("Cannot determine the entity type.  The entityType property is null");
@@ -191,14 +203,17 @@ public class JSONEntityHttpMessageConverter implements
 			throw new IllegalArgumentException("Cannot determine the entity type.  The entityType property is null");
 		}
 		// Create a new instance using the full class name
+		Entity newInstance = null;
 		try {
+			// 
 			Class<? extends Entity> entityClass = (Class<? extends Entity>) Class.forName(typeClassName);
-			Entity newInstance = entityClass.newInstance();
-			newInstance.initializeFromJSONObject(adapter);
-			return newInstance;
+			newInstance = entityClass.newInstance();
 		} catch (Exception e) {
 			throw new IllegalArgumentException("Unknown entity type: "+typeClassName+". Message: "+e.getMessage());
 		}
+		// Populate the new instance with the JSON.
+		newInstance.initializeFromJSONObject(adapter);
+		return newInstance;
 	}
 
 }

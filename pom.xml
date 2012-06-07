@@ -9,7 +9,7 @@
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>platform</artifactId>
 	<!-- This is not the same as the application version. This is a constant. -->
-	<version>0.13.6-SNAPSHOT</version>
+	<version>0.13.7-SNAPSHOT</version>
 	<packaging>pom</packaging>
 	<url>http://www.sagebase.org/</url>
 	<scm>
@@ -42,10 +42,6 @@
 			<name>sagebionetworks-releases-ext</name>
 			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/ext-releases-local
 			</url>
-		</repository>
-		<repository>
-			<id>atlassian-m2-repository</id>
-			<url>https://m2proxy.atlassian.com/repository/public</url>
 		</repository>
 		<repository>
 			<id>mvn-gae-plugin-repo</id>

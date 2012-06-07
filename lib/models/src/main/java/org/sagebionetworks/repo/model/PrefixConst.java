@@ -7,19 +7,7 @@ package org.sagebionetworks.repo.model;
  */
 public class PrefixConst {
 	
-	public final static String DATASET =	"/dataset";
-	public final static String LAYER =		"/layer";
-	public final static String PROJECT =	"/project";
-	public final static String LOCATION =	"/location";
-	public final static String PREVIEW =	"/preview";
-	public final static String FOLDER=		"/folder";
 	public final static String ENTITY=		"/entity";
-	public final static String ANALYSIS =	"/analysis";
-	public final static String STEP =		"/step";
-	public final static String CODE =		"/code";
-	public final static String LINK =		"/link";
-	public final static String PHENOTYPEDATA =	"/phenotypedata";
-	public final static String GENOTYPEDATA = "/genotypedata";
 	public final static String EXPRESSIONDATA = "/expressiondata";
 	public final static String USER_PROFILE	=		"/userProfile";
 	

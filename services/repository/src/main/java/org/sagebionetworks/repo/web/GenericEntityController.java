@@ -5,7 +5,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.codehaus.jackson.schema.JsonSchema;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
@@ -307,28 +306,6 @@ public interface GenericEntityController {
 	public void deleteEntity(String userId, String id) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
-	 * Get the schema for an entity<p>
-	 * <ul>
-	 * <li> http://json-schema.org/ 
-	 * <li> http://wiki.fasterxml.com/JacksonJsonSchemaGeneration
-	 * </ul>
-	 * @return the schema
-	 * @throws DatastoreException 
-	 */
-	public <T extends Entity> JsonSchema getEntitySchema(Class<? extends T> clazz) throws DatastoreException;
-
-	/**
-	 * Get the schema for a paginated list of entities<p>
-	 * <ul>
-	 * <li> http://json-schema.org/ 
-	 * <li> http://wiki.fasterxml.com/JacksonJsonSchemaGeneration
-	 * </ul>
-	 * @return the schema
-	 * @throws DatastoreException 
-	 */
-	public <T extends Entity> JsonSchema getEntitiesSchema(Class<? extends T> clazz) throws DatastoreException;
-
-	/**
 	 * Get the annotations of an entity for the current version.
 	 * @param userId
 	 * @param id
@@ -371,8 +348,6 @@ public interface GenericEntityController {
 	public Annotations updateEntityAnnotations(String userId, String entityId,
 			Annotations updatedAnnotations, HttpServletRequest request) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
-	public JsonSchema getEntityAnnotationsSchema() throws DatastoreException;
-	
 	/**
 	 * Create a new entity
 	 * <p>
@@ -453,10 +428,6 @@ public interface GenericEntityController {
 	public  void deleteEntityACL(String userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
-	/**
-	 * @return the JSON schema for an access control list
-	 */
-	public <T extends Entity> JsonSchema getAclSchema() throws DatastoreException;
 	
 	/**
 	 * Execute a query and include the annotations for each entity.

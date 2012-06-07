@@ -35,8 +35,10 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LocationData;
@@ -46,10 +48,12 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -571,7 +575,7 @@ public class IT500SynapseJavaClient {
 		assertEquals(1l, refs.getTotalNumberOfResults());
 		assertNotNull(refs.getResults());
 		assertEquals(1, refs.getResults().size());
-		assertEquals(project.getId(), refs.getResults().get(0).getId());
+		assertEquals(link.getId(), refs.getResults().get(0).getId());
 		
 	}
 	
@@ -588,5 +592,26 @@ public class IT500SynapseJavaClient {
 		dataset.setNumSamples(null);
 		dataset = synapse.putEntity(dataset);
 		assertEquals(null, dataset.getNumSamples());
+	}
+	
+	@Test
+	public void testPLFM_1272() throws Exception{
+		// Now add a data object 
+		Data data = new Data();
+		data.setParentId(project.getId());
+		data = synapse.createEntity(data);
+
+		// Now query for the data object
+		String queryString = "SELECT id, name FROM data WHERE data.parentId == \""+project.getId()+"\"";
+		JSONObject results = synapse.query(queryString);
+		assertNotNull(results);
+		assertTrue(results.has("totalNumberOfResults"));
+		assertEquals(1l, results.getLong("totalNumberOfResults"));
+		
+		queryString = "SELECT id, name FROM layer WHERE layer.parentId == \""+project.getId()+"\"";
+		results = synapse.query(queryString);
+		assertNotNull(results);
+		assertTrue(results.has("totalNumberOfResults"));
+		assertEquals(1l, results.getLong("totalNumberOfResults"));
 	}
 }

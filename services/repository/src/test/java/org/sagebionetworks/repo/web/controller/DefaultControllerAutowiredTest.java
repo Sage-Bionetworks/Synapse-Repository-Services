@@ -133,24 +133,6 @@ public class DefaultControllerAutowiredTest {
 		entityController.getEntity(userName,	clone.getId(), mockRequest, Project.class);
 	}
 
-	// Not supported anymore
-	@Ignore
-	@Test
-	public void testGetSchema() throws Exception{
-		// Create a project
-		Project project = new Project();
-		project.setName("testCreateProject");
-		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
-		assertNotNull(clone);
-		toDelete.add(clone.getId());
-		// Get the schema
-		String schema = ServletTestHelper.getSchema(dispatchServlet, Project.class, userName);
-		assertNotNull(schema);
-		log.info("Project schema: "+schema);
-	}
-
-
-
 	@Test
 	public void testUpdateEntityAcl() throws ServletException, IOException, ACLInheritanceException{
 		// Create a project
@@ -159,10 +141,10 @@ public class DefaultControllerAutowiredTest {
 		Project clone = ServletTestHelper.createEntity(dispatchServlet, project, userName);
 		assertNotNull(clone);
 		toDelete.add(clone.getId());
-		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, Project.class, clone.getId(), userName);
+		AccessControlList acl = ServletTestHelper.getEntityACL(dispatchServlet, clone.getId(), userName);
 		assertNotNull(acl);
 		assertNotNull(acl.getUri());
-		acl = ServletTestHelper.updateEntityAcl(dispatchServlet, Project.class, clone.getId(), acl, userName);
+		acl = ServletTestHelper.updateEntityAcl(dispatchServlet, clone.getId(), acl, userName);
 		assertNotNull(acl);
 		assertNotNull(acl.getUri());
 	}
@@ -186,11 +168,11 @@ public class DefaultControllerAutowiredTest {
 
 		AccessControlList acl = null;
 		try {
-			acl = ServletTestHelper.getEntityACL(dispatchServlet, Study.class, dsClone.getId(), userName);
+			acl = ServletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userName);
 			fail("Should have failed to get the ACL of an inheriting node");
 		} catch (ACLInheritanceException e) {
 			// Get the ACL from the redirect
-			acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorType().getClassForType(), e.getBenefactorId(), userName);
+			acl = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userName);
 		}
 		assertNotNull(acl);
 		// the returned ACL should refer to the parent
@@ -206,23 +188,23 @@ public class DefaultControllerAutowiredTest {
 		childAcl.setResourceAccess(new HashSet<ResourceAccess>());
 		// (Is this OK, or do we have to make new ResourceAccess objects inside?)
 		// now POST to /dataset/{id}/acl with this acl as the body
-		AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, Study.class, dsClone.getId(), childAcl, userName);
+		AccessControlList acl2 = ServletTestHelper.createEntityACL(dispatchServlet, dsClone.getId(), childAcl, userName);
 		assertNotNull(acl2.getUri());
 		// now retrieve the acl for the child. should get its own back
-		AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, Study.class, dsClone.getId(), userName);
+		AccessControlList acl3 = ServletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userName);
 		assertEquals(dsClone.getId(), acl3.getId());
 
 
 		// now delete the ACL (restore inheritance)
-		ServletTestHelper.deleteEntityACL(dispatchServlet, Study.class,  dsClone.getId(), userName);
+		ServletTestHelper.deleteEntityACL(dispatchServlet, dsClone.getId(), userName);
 		// try retrieving the ACL for the child
 
 		// should get the parent's ACL
 		AccessControlList acl4 = null;
 		try{
-			 ServletTestHelper.getEntityACL(dispatchServlet, Study.class, dsClone.getId(), userName);
+			 ServletTestHelper.getEntityACL(dispatchServlet, dsClone.getId(), userName);
 		}catch (ACLInheritanceException e){
-			acl4 = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorType().getClassForType(), e.getBenefactorId(), userName);
+			acl4 = ServletTestHelper.getEntityACL(dispatchServlet, e.getBenefactorId(), userName);
 		}
 
 		assertNotNull(acl4);
@@ -303,7 +285,7 @@ public class DefaultControllerAutowiredTest {
 
 		EntityHeader type = ServletTestHelper.getEntityType(dispatchServlet, clone.getId(), TestUserDAO.TEST_USER_NAME);
 		assertNotNull(type);
-		assertEquals(EntityType.project.getUrlPrefix(), type.getType());
+		assertEquals(EntityType.project.getEntityType(), type.getType());
 		assertEquals(clone.getId(), type.getName());
 		assertEquals(clone.getId(), type.getId());
 	}
@@ -326,7 +308,7 @@ public class DefaultControllerAutowiredTest {
 		assertNotNull(benefactor);
 		// The project should be its own benefactor
 		assertEquals(project.getId(), benefactor.getId());
-		assertEquals(EntityType.project.getUrlPrefix(), benefactor.getType());
+		assertEquals(EntityType.project.getEntityType(), benefactor.getType());
 		assertEquals(project.getName(), benefactor.getName());
 
 		// Now check the dataset
@@ -334,7 +316,7 @@ public class DefaultControllerAutowiredTest {
 		assertNotNull(benefactor);
 		// The project should be the dataset's benefactor
 		assertEquals(project.getId(), benefactor.getId());
-		assertEquals(EntityType.project.getUrlPrefix(), benefactor.getType());
+		assertEquals(EntityType.project.getEntityType(), benefactor.getType());
 		assertEquals(project.getName(), benefactor.getName());
 
 	}
@@ -353,10 +335,10 @@ public class DefaultControllerAutowiredTest {
 		toDelete.add(ds.getId());
 
 		// Get the ACL for the project
-		AccessControlList projectAcl = ServletTestHelper.getEntityACL(dispatchServlet, Project.class, project.getId(), TestUserDAO.TEST_USER_NAME);
+		AccessControlList projectAcl = ServletTestHelper.getEntityACL(dispatchServlet, project.getId(), TestUserDAO.TEST_USER_NAME);
 
 		// Now attempt to update the ACL as the dataset.
-		projectAcl = ServletTestHelper.updateEntityAcl(dispatchServlet, Study.class, ds.getId(), projectAcl, TestUserDAO.TEST_USER_NAME);
+		projectAcl = ServletTestHelper.updateEntityAcl(dispatchServlet, ds.getId(), projectAcl, TestUserDAO.TEST_USER_NAME);
 
 	}
 

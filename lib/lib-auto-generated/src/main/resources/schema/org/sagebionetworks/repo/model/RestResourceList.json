@@ -1,0 +1,13 @@
+{
+    "title":"REST Resource List",
+    "description":"JSON schema for the REST Resource List POJO",
+    "properties":{
+        "list":{
+            "type":"array",
+            "description":"The List of Rest Resources",
+            "items":{
+                "type":"string"
+            }
+        }
+    }
+}

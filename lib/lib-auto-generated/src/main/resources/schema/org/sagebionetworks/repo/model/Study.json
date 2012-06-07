@@ -4,10 +4,7 @@
     "implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.Locationable"
-        },
-        {
-            "$ref":"org.sagebionetworks.repo.model.HasLayers"
-        }        
+        }       
     ],
     "properties":{
 		"numSamples": {

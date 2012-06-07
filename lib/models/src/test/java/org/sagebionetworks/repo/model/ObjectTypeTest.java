@@ -9,36 +9,6 @@ import org.junit.Test;
 
 public class ObjectTypeTest {
 
-	@Test (expected=IllegalArgumentException.class)
-	public void testgetFirstTypeInUrlUknonw(){
-		// This should throw an exception
-		EntityType type = EntityType.getFirstTypeInUrl("/some/uknown/url");
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testgetLastTypeInUrlUknonw(){
-		// This should throw an exception
-		EntityType type = EntityType.getLastTypeInUrl("/some/uknown/url");
-	}
-	
-	
-	@Test
-	public void testAllTypeForLastAndFirstUrl(){
-		// Make sure we can find any child type given any combination of parent and child
-		EntityType[] array = EntityType.values();
-		for(EntityType parent: array){
-			for(EntityType child: array){
-				String prifix = "/repo/v1";
-				String url = prifix+parent.getUrlPrefix()+"/12"+child.getUrlPrefix();
-//				System.out.println(url);
-				EntityType resultChild = EntityType.getLastTypeInUrl(url);
-				assertEquals(child, resultChild);
-				EntityType resultParent = EntityType.getFirstTypeInUrl(url);
-				assertEquals(parent, resultParent);
-			}
-		}
-	}
-	
 	@Test
 	public void testGetNodeTypeForClass(){
 		EntityType[] array = EntityType.values();

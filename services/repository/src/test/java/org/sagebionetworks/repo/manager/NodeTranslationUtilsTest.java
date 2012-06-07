@@ -150,7 +150,6 @@ public class NodeTranslationUtilsTest {
 		ds.setAnnotations("someAnnoUrl");
 		ds.setEtag("110");
 		ds.setId("12");
-		ds.setLayers("someLayerUrl");
 		ds.setUri("someUri");
 		ds.setContentType("text/xml");
 		ds.setMd5("8b12c8b413504cf19889efca5605a6c9");
@@ -268,7 +267,6 @@ public class NodeTranslationUtilsTest {
 		layer.setName("someName");
 		layer.setNumSamples(new Long(12));
 		layer.setPlatform("somePlate");
-		layer.setPreviews("somePreview");
 		layer.setTissueType("type");
 		layer.setType(LayerTypeNames.C);
 		layer.setUri("someUri");

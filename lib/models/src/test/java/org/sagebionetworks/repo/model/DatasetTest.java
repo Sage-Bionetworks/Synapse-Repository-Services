@@ -28,7 +28,6 @@ public class DatasetTest {
 		ds1.setDescription("description");
 		ds1.setEtag("etag");
 		ds1.setId("id");
-		ds1.setLayers("/layers");
 		ds1.setModifiedBy("modifiedBy");
 		ds1.setModifiedOn(d);
 		ds1.setName("name");

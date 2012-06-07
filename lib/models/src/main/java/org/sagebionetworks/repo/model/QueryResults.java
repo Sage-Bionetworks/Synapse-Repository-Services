@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.model;
 
 import java.io.Serializable;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.xml.bind.annotation.XmlRootElement;
+
+import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.TYPE;
 
 /**
  * Generic class used to encapsulate a paginated list of query results of any
@@ -21,10 +24,19 @@ import javax.xml.bind.annotation.XmlRootElement;
  * and-jaxb-cant-handle-interfaces for more detail.
  * 
  */
-@XmlRootElement(name = "result")
-public class QueryResults<T> implements Serializable {
+public class QueryResults<T> {
 
-	private static final long serialVersionUID = 1L;
+	// This class is not auto-generated so we must create the schema by hand.
+	static ObjectSchema schema;
+	static{
+		schema = new ObjectSchema(TYPE.OBJECT);
+		schema.setId(QueryResults.class.getName());
+		schema.setProperties(new LinkedHashMap<String, ObjectSchema>());
+		schema.getProperties().put("totalNumberOfResults", new ObjectSchema(TYPE.INTEGER));
+		ObjectSchema results = new ObjectSchema(TYPE.ARRAY);
+		results.setItems(new ObjectSchema(TYPE.OBJECT));
+		schema.getProperties().put("results", results);
+	}
 
 	private long totalNumberOfResults;
 	private List<T> results;

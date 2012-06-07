@@ -2,156 +2,142 @@
     "entityTypes":[
         {
             "validParentTypes":[
-                "/project"
+                "org.sagebionetworks.repo.model.Project"
             ],
             "aliases":[
                 "dataset",
                 "study"
             ],
-            "urlPrefix":"/dataset",
             "name":"dataset",
-            "className":"org.sagebionetworks.repo.model.Study",
+            "entityType":"org.sagebionetworks.repo.model.Study",
             "defaultParentPath":"/root"
         },
         {
             "validParentTypes":[
-                "/dataset",
-                "/project"
+                "org.sagebionetworks.repo.model.Study",
+                "org.sagebionetworks.repo.model.Project"
             ],
             "aliases":[
                 "layer",
                 "data"
             ],
-            "urlPrefix":"/layer",
             "name":"layer",
-            "className":"org.sagebionetworks.repo.model.Data",
+            "entityType":"org.sagebionetworks.repo.model.Data",
             "defaultParentPath":"/root"
         },
         {
             "validParentTypes":[
-                "/folder",
-                "/project",
+                "org.sagebionetworks.repo.model.Folder",
+                "org.sagebionetworks.repo.model.Project",
                 "DEFAULT"
             ],
-            "urlPrefix":"/project",
             "name":"project",
-            "className":"org.sagebionetworks.repo.model.Project",
+            "entityType":"org.sagebionetworks.repo.model.Project",
             "defaultParentPath":"/root"
         },
         {
             "validParentTypes":[
-                "/layer"
+                "org.sagebionetworks.repo.model.Data"
             ],
-            "urlPrefix":"/preview",
             "name":"preview",
-            "className":"org.sagebionetworks.repo.model.Preview",
+            "entityType":"org.sagebionetworks.repo.model.Preview",
             "defaultParentPath":"/root"
         },
         {
             "validParentTypes":[
                 "DEFAULT",
-                "/folder"
+                "org.sagebionetworks.repo.model.Folder"
             ],
-            "urlPrefix":"/folder",
             "name":"folder",
-            "className":"org.sagebionetworks.repo.model.Folder",
+            "entityType":"org.sagebionetworks.repo.model.Folder",
             "defaultParentPath":"/root"
         },
         {
             "validParentTypes":[
-                "/project"
+                "org.sagebionetworks.repo.model.Project"
             ],
-            "urlPrefix":"/analysis",
             "name":"analysis",
-            "className":"org.sagebionetworks.repo.model.Analysis",
+            "entityType":"org.sagebionetworks.repo.model.Analysis",
             "defaultParentPath":"/root"
         },
         {
             "validParentTypes":[
-                "/folder",
-                "/analysis",
+                "org.sagebionetworks.repo.model.Folder",
+                "org.sagebionetworks.repo.model.Analysis",
                 "DEFAULT"
             ],
-            "urlPrefix":"/step",
             "name":"step",
-            "className":"org.sagebionetworks.repo.model.Step",
+            "entityType":"org.sagebionetworks.repo.model.Step",
             "defaultParentPath":"/root"
         },
         {
             "validParentTypes":[
-                "/project"
+                "org.sagebionetworks.repo.model.Project"
             ],
             "name":"code",
-            "urlPrefix":"/code",
-            "className":"org.sagebionetworks.repo.model.Code",
+            "entityType":"org.sagebionetworks.repo.model.Code",
             "defaultParentPath":"/root"
         },
         {
             "validParentTypes":[
-                "/project",
-                "/folder",
-                "/study",
-                "/dataset",
-                "/data",
-                "/step",
-                "/analysis",
+                "org.sagebionetworks.repo.model.Project",
+                "org.sagebionetworks.repo.model.Folder",
+                "org.sagebionetworks.repo.model.Study",
+                "org.sagebionetworks.repo.model.Data",
+                "org.sagebionetworks.repo.model.Step",
+                "org.sagebionetworks.repo.model.Analysis",
                 "DEFAULT"
             ],
             "name":"link",
-            "urlPrefix":"/link",
-            "className":"org.sagebionetworks.repo.model.Link",
+            "entityType":"org.sagebionetworks.repo.model.Link",
             "defaultParentPath":"/root"
         },
         {
             "validParentTypes":[
-                "/project",
-                "/dataset"
+                "org.sagebionetworks.repo.model.Project",
+                "org.sagebionetworks.repo.model.Study"
             ],
             "aliases":[
                 "phenotypedata",
                 "layer"
             ],
             "name":"phenotypedata",
-            "urlPrefix":"/phenotypedata",
-            "className":"org.sagebionetworks.repo.model.PhenotypeData",
+            "entityType":"org.sagebionetworks.repo.model.PhenotypeData",
             "defaultParentPath":"/root"
         },
         {
             "validParentTypes":[
-                "/project",
-                "/dataset"
+                "org.sagebionetworks.repo.model.Project",
+                "org.sagebionetworks.repo.model.Study"
             ],
             "aliases":[
                 "genotypedata",
                 "layer"
             ],
             "name":"genotypedata",
-            "urlPrefix":"/genotypedata",
-            "className":"org.sagebionetworks.repo.model.GenotypeData",
+            "entityType":"org.sagebionetworks.repo.model.GenotypeData",
             "defaultParentPath":"/root"
         },
         {
             "validParentTypes":[
-                "/project",
-                "/dataset"
+                "org.sagebionetworks.repo.model.Project",
+                "org.sagebionetworks.repo.model.Study"
             ],
             "aliases":[
                 "expressiondata",
                 "layer"
             ],
             "name":"expressiondata",
-            "urlPrefix":"/expressiondata",
-            "className":"org.sagebionetworks.repo.model.ExpressionData",
+            "entityType":"org.sagebionetworks.repo.model.ExpressionData",
             "defaultParentPath":"/root"
         },
         {
             "validParentTypes":[
-                "/project",
-                "/dataset"
+                "org.sagebionetworks.repo.model.Project",
+                "org.sagebionetworks.repo.model.Study"
             ],
             "name":"robject",
-            "urlPrefix":"/robject",
-            "className":"org.sagebionetworks.repo.model.RObject",
+            "entityType":"org.sagebionetworks.repo.model.RObject",
             "defaultParentPath":"/root"
         }
     ]

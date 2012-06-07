@@ -19,13 +19,22 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RestResourceList;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -175,5 +184,88 @@ public class EntityControllerTest {
 		assertEquals(id, header.getId());
 	}
 	
+	@Test
+	public void testGetRESTResources() throws ServletException, IOException, JSONObjectAdapterException{
+		RestResourceList rrl = entityServletHelper.getRESTResources();
+		assertNotNull(rrl);
+		assertNotNull(rrl.getList());
+		assertTrue(rrl.getList().size() > 0);
+	}
+	
+	
+	@Test
+	public void testGetEffectiveSchema() throws ServletException, IOException, JSONObjectAdapterException{
+		String resourceId = Study.class.getName();
+		ObjectSchema effective = entityServletHelper.getEffectiveSchema(Study.class.getName());
+		assertNotNull(effective);
+		assertEquals(resourceId, effective.getId());
+	}
+	
+	@Test
+	public void testGetFullSchema() throws ServletException, IOException, JSONObjectAdapterException{
+		ObjectSchema full = entityServletHelper.getFullSchema(Study.class.getName());
+		assertNotNull(full);
+		// This class should implement entity.
+		assertNotNull(full.getImplements());
+		assertNotNull(full.getImplements().length > 0);
+	}
+	
+	@Test
+	public void testGetRegistry() throws ServletException, IOException, JSONObjectAdapterException{
+		EntityRegistry registry = entityServletHelper.getEntityRegistry();
+		assertNotNull(registry);
+		assertNotNull(registry.getEntityTypes());
+		assertTrue(registry.getEntityTypes().size() > 0);
+	}
+	
+	@Test (expected=NameConflictException.class)
+	public void testPLFM_449NameConflict() throws Exception{
+		Project p = new Project();
+		p.setName("Create without entity type");
+		p.setEntityType(p.getClass().getName());
+		p = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		toDelete.add(p.getId());
+		
+		Study one = new Study();
+		one.setName("one");
+		one.setParentId(p.getId());
+		one.setEntityType(Study.class.getName());
+		one = (Study) entityServletHelper.createEntity(one, TEST_USER1);
+		// Now try to re-use the name
+		Study two = new Study();
+		two.setName("one");
+		two.setParentId(p.getId());
+		two.setEntityType(Study.class.getName());
+		two = (Study) entityServletHelper.createEntity(two, TEST_USER1);
+	}
+
+	@Test
+	public void testPLFM_1288() throws Exception{
+		Project p = new Project();
+		p.setName("Create without entity type");
+		p.setEntityType(p.getClass().getName());
+		p = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		toDelete.add(p.getId());
+		
+		Study one = new Study();
+		one.setName("one");
+		one.setParentId(p.getId());
+		one.setEntityType(Study.class.getName());
+		one = (Study) entityServletHelper.createEntity(one, TEST_USER1);
+		// Now try to re-use the name
+		Code two = new Code();
+		two.setName("code");
+		two.setParentId(one.getId());
+		two.setEntityType(Code.class.getName());
+		try{
+			two = (Code) entityServletHelper.createEntity(two, TEST_USER1);
+			fail("Code cannot have a parent of type Study");
+		}catch(IllegalArgumentException e){
+			System.out.println(e.getMessage());
+			assertTrue(e.getMessage().indexOf(Code.class.getName()) > 0);
+			assertTrue(e.getMessage().indexOf(Study.class.getName()) > 0);
+		}
+		
+	}
 
 }

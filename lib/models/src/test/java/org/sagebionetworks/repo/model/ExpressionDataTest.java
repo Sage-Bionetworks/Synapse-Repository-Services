@@ -50,7 +50,6 @@ public class ExpressionDataTest {
 		l1.setLocations(ll);
 
 		l1.setNumSamples(1000L);
-		l1.setPreviews("/previews");
 		
 		l1.setNumSamples(100L);
 		l1.setDisease("disease");

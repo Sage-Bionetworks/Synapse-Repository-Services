@@ -48,8 +48,6 @@ public class RObjectTest {
 		l.setType(LocationTypeNames.sage);
 		ll.add(l);
 		l1.setLocations(ll);
-
-		l1.setPreviews("/previews");
 		
 		l1.setS3Token("S3token");
 		l1.setRObjectType("dataframe");

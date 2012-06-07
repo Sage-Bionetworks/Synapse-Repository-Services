@@ -23,7 +23,7 @@ public class LayerMetadataProviderTest {
 
 		EntityHeader parent = new EntityHeader();
 		parent.setId("344");
-		parent.setType(EntityType.dataset.getUrlPrefix());
+		parent.setType(EntityType.dataset.getEntityType());
 		parent.setName("Joe");
 		List<EntityHeader> list  = new ArrayList<EntityHeader>();
 		list.add(parent);
