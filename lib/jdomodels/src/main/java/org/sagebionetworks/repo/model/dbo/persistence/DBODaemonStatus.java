@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BACKUP_ERORR_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BACKUP_ERROR_DETAILS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BACKUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BACKUP_LOG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BACKUP_PROGRESS_MESSAGE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BACKUP_PROGRESS_TOTAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_BACKUP_RUNTIME;
@@ -36,6 +37,7 @@ public class DBODaemonStatus implements AutoIncrementDatabaseObject<DBODaemonSta
 			new FieldColumn("progresssTotal", COL_BACKUP_PROGRESS_TOTAL),
 			new FieldColumn("errorMessage", COL_BACKUP_ERORR_MESSAGE),
 			new FieldColumn("errorDetails", COL_BACKUP_ERROR_DETAILS),
+			new FieldColumn("log", COL_BACKUP_LOG),
 			new FieldColumn("backupUrl", COL_BACKUP_URL),
 			new FieldColumn("totalRunTimeMS", COL_BACKUP_RUNTIME), };
 
@@ -62,6 +64,10 @@ public class DBODaemonStatus implements AutoIncrementDatabaseObject<DBODaemonSta
 				java.sql.Blob blob = rs.getBlob(COL_BACKUP_ERROR_DETAILS);
 				if(blob != null){
 					status.setErrorDetails(blob.getBytes(1, (int) blob.length()));
+				}
+				blob = rs.getBlob(COL_BACKUP_LOG);
+				if(blob != null){
+					status.setLog(blob.getBytes(1, (int) blob.length()));
 				}
 				status.setBackupUrl(rs.getString(COL_BACKUP_URL));
 				if(rs.wasNull()){
@@ -103,6 +109,7 @@ public class DBODaemonStatus implements AutoIncrementDatabaseObject<DBODaemonSta
 	private Long progresssTotal;
 	private String errorMessage;
 	private byte[] errorDetails;
+	private byte[] log;
 	private String backupUrl;
 	private Long totalRunTimeMS;
 
@@ -202,6 +209,14 @@ public class DBODaemonStatus implements AutoIncrementDatabaseObject<DBODaemonSta
 		this.totalRunTimeMS = totalRunTimeMS;
 	}
 
+	public byte[] getLog() {
+		return log;
+	}
+
+	public void setLog(byte[] notes) {
+		this.log = notes;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -212,6 +227,7 @@ public class DBODaemonStatus implements AutoIncrementDatabaseObject<DBODaemonSta
 		result = prime * result
 				+ ((errorMessage == null) ? 0 : errorMessage.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + Arrays.hashCode(log);
 		result = prime
 				* result
 				+ ((progresssCurrent == null) ? 0 : progresssCurrent.hashCode());
@@ -256,6 +272,8 @@ public class DBODaemonStatus implements AutoIncrementDatabaseObject<DBODaemonSta
 			if (other.id != null)
 				return false;
 		} else if (!id.equals(other.id))
+			return false;
+		if (!Arrays.equals(log, other.log))
 			return false;
 		if (progresssCurrent == null) {
 			if (other.progresssCurrent != null)
@@ -308,7 +326,8 @@ public class DBODaemonStatus implements AutoIncrementDatabaseObject<DBODaemonSta
 				+ ", progresssCurrent=" + progresssCurrent
 				+ ", progresssTotal=" + progresssTotal + ", errorMessage="
 				+ errorMessage + ", errorDetails="
-				+ Arrays.toString(errorDetails) + ", backupUrl=" + backupUrl
+				+ Arrays.toString(errorDetails) + ", log="
+				+ Arrays.toString(log) + ", backupUrl=" + backupUrl
 				+ ", totalRunTimeMS=" + totalRunTimeMS + "]";
 	}
 

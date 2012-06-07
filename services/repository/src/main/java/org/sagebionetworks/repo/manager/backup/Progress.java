@@ -16,6 +16,9 @@ public class Progress {
 	private volatile long currentIndex =0;
 	private volatile String message;
 	private volatile boolean terminate = false;
+	// Note we are using a StringBuffer here and not a StringBuilder because
+	// this object is written by one thread and read by another (StringBuilder is not synchronized).
+	private StringBuffer log = new StringBuffer();
 
 	/**
 	 * The total count indicates how much work there is to be done. The current
@@ -74,6 +77,22 @@ public class Progress {
 	 */
 	public void setTerminate(boolean terminate) {
 		this.terminate = terminate;
+	}
+	/**
+	 * Get the log string.
+	 * @return
+	 */
+	public String getLog(){
+		return log.toString();
+	}
+	
+	/**
+	 * Append a message to the log.
+	 * @param message
+	 */
+	public void appendLog(String message){
+		log.append(message);
+		log.append("\n");
 	}
 
 	public String toString(){

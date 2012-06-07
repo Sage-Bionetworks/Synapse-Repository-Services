@@ -41,6 +41,7 @@ public class BackupRestoreStatusUtilTest {
 		dto.setErrorDetails("Does not really have an error");
 		dto.setErrorMessage("Short message");
 		dto.setBackupUrl("https://somehost:port/buck/file.zip");
+		dto.setLog("These are the notes that we kept");
 
 		// Now upate a new JDO from the DTO
 		DBODaemonStatus jdo = new DBODaemonStatus();
@@ -68,6 +69,7 @@ public class BackupRestoreStatusUtilTest {
 		dto.setErrorDetails(null);
 		dto.setErrorMessage(null);
 		dto.setBackupUrl(null);
+		dto.setLog(null);
 
 		// Now upate a new JDO from the DTO
 		DBODaemonStatus jdo = new DBODaemonStatus();

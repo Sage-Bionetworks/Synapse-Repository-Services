@@ -46,6 +46,13 @@ public class BackupRestoreStatusUtil {
 				throw new DatastoreException(e);
 			}
 		}
+		if(jdo.getLog() != null){
+			try {
+				dto.setLog(new String(jdo.getLog(), "UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				throw new DatastoreException(e);
+			}
+		}
 		dto.setTotalTimeMS(jdo.getTotalRunTimeMS());
 		dto.setBackupUrl(jdo.getBackupUrl());
 		return dto;
@@ -82,6 +89,13 @@ public class BackupRestoreStatusUtil {
 		if(dto.getErrorDetails() != null){
 			try {
 				jdo.setErrorDetails(dto.getErrorDetails().getBytes("UTF-8"));
+			} catch (UnsupportedEncodingException e) {
+				throw new DatastoreException(e);
+			}
+		}
+		if(dto.getLog() != null){
+			try {
+				jdo.setLog(dto.getLog().getBytes("UTF-8"));
 			} catch (UnsupportedEncodingException e) {
 				throw new DatastoreException(e);
 			}

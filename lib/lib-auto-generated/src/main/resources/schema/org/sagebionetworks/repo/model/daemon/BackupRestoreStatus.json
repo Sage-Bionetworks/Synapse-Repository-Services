@@ -61,6 +61,10 @@
             "type":"string",
             "description":"This is the full stack trace of the error."
         },
+        "log":{
+            "type":"string",
+            "description":"The log of this deamon."
+        },
         "backupUrl":{
             "type":"string",
             "description":"After a backup is completed this URL will point to the backup file. For a restore, this URL will point to the backup file being used to drive the restore daemon."

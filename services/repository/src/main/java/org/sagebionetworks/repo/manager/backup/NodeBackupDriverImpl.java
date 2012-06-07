@@ -16,7 +16,6 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
-import org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -24,8 +23,6 @@ import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * This class drives the backup and restoration process.
@@ -95,19 +92,23 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 			listToBackup.addAll(entitiesToBackup);
 		}
 		log.info("Starting a backup to file: " + destination.getAbsolutePath());
+		progress.appendLog("Starting a backup to file: " + destination.getAbsolutePath());
 		progress.setTotalCount(backupManager.getTotalNodeCount());
 		// First write to the file
 		FileOutputStream fos = new FileOutputStream(destination);
 		ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(fos));
 		try {
+			progress.appendLog("Processing nodes:");
 			// First write the root node as its own entry
 			for(String idToBackup: listToBackup){
 				// Recursively write each node.
+				progress.appendLog(idToBackup);
 				NodeBackup backup = backupManager.getNode(idToBackup);
 				if(backup == null) throw new IllegalArgumentException("Cannot backup node: "+idToBackup+" because it does not exists");
 				writeBackupNode(zos, backup, "", progress, isRecursive);
 			}
 			zos.close();
+			progress.appendLog("Finished processing nodes.");
 		} finally {
 			if (fos != null) {
 				fos.flush();
@@ -226,6 +227,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 		FileInputStream fis = new FileInputStream(source);
 		try{
 			log.info("Restoring: "+source.getAbsolutePath());
+			progress.appendLog("Restoring: "+source.getAbsolutePath());
 			// First clear all data
 			ZipInputStream zin = new  ZipInputStream(new BufferedInputStream(fis));
 			progress.setMessage("Reading: "+source.getAbsolutePath());
@@ -235,6 +237,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 			NodeBackup backup = null;
 			List<NodeRevisionBackup> revisions = null;
 			ZipEntry entry;
+			progress.appendLog("Processing nodes:");
 			while((entry = zin.getNextEntry()) != null) {
 				progress.setMessage(entry.getName());
 				// Check for termination.
@@ -252,6 +255,8 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 					}
 					// This is a backup file.
 					backup = nodeSerializer.readNodeBackup(zin);
+					// Append this id to the log.
+					progress.appendLog(backup.getNode().getId());
 					revisions = new ArrayList<NodeRevisionBackup>();
 					try{
 						nodeType = EntityType.valueOf(backup.getNode().getNodeType());
@@ -302,6 +307,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 				
 				Thread.yield();
 			}
+			progress.appendLog("Finished processing nodes.");
 			if(backup != null){
 				// do the final backup
 				backupManager.createOrUpdateNodeWithRevisions(backup, revisions);

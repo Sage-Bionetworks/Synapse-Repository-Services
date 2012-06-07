@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.backup.daemon;
 import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.lang.management.ManagementFactory;
 import java.util.Date;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -149,6 +150,8 @@ public class BackupDaemon implements Runnable{
 			
 			// Start the driver
 			progress.setMessage("Starting Driver thread...");
+			progress.appendLog("JVM Name: "+ManagementFactory.getRuntimeMXBean().getName());
+			progress.appendLog("Thread ID:"+Thread.currentThread().getId());
 			progress.setCurrentIndex(0);
 			progress.setTotalCount(Long.MAX_VALUE);
 			progress.setTerminate(false);
@@ -166,6 +169,7 @@ public class BackupDaemon implements Runnable{
 				// Update the status from the progress
 				status.setProgresssMessage(progress.getMessage());
 				status.setProgresssCurrent(progress.getCurrentIndex());
+				status.setLog(progress.getLog());
 				// We add 10% to the total because we will need to upload the file to S3 after
 				// the driver is done creating it.
 				long totalProgress = progress.getTotalCount()+(long)(progress.getTotalCount()*.1);

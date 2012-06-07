@@ -64,6 +64,7 @@ public class BackupRestoreStatusDAOImplTest {
 		dto.setErrorDetails(null);
 		dto.setErrorMessage(null);
 		dto.setBackupUrl(null);
+		dto.setLog(null);
 		
 		// Now create it
 		String id = backupRestoreStatusDao.create(dto);
@@ -135,6 +136,21 @@ public class BackupRestoreStatusDAOImplTest {
 		String id = backupRestoreStatusDao.create(dto);
 		assertNotNull(id);
 		toDelete.add(id);
+	}
+	
+	@Test
+	public void testLog() throws DatastoreException, NotFoundException{
+		BackupRestoreStatus dto = createStatusObject(DaemonStatus.STARTED, DaemonType.BACKUP);
+		String notes ="There are our test notes";
+		dto.setLog(notes);
+		dto.setBackupUrl("https://somedomean:port/bucket/file.zip");
+		// Now create it
+		String id = backupRestoreStatusDao.create(dto);
+		assertNotNull(id);
+		toDelete.add(id);
+		// Get it back
+		dto = backupRestoreStatusDao.get(id);
+		assertEquals(notes, dto.getLog());
 	}
 	
 	@Test (expected=NotFoundException.class)

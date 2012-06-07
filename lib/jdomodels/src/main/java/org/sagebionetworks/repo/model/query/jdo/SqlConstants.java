@@ -134,6 +134,7 @@ public class SqlConstants {
 	public static final String COL_BACKUP_PROGRESS_TOTAL		= "PROGRESS_TOTAL";
 	public static final String COL_BACKUP_ERORR_MESSAGE			= "ERROR_MESSAGE";
 	public static final String COL_BACKUP_ERROR_DETAILS			= "ERROR_DETAILS";
+	public static final String COL_BACKUP_LOG					= "LOG";
 	public static final String COL_BACKUP_URL					= "BACKUP_URL";
 	public static final String COL_BACKUP_RUNTIME				= "RUN_TIME_MS";
 	public static final String DDL_DAEMON_STATUS				= "schema/DaemonStatus-ddl.sql";
