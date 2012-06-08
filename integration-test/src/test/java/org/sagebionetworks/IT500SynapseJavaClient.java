@@ -14,6 +14,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -26,6 +27,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
@@ -153,6 +155,37 @@ public class IT500SynapseJavaClient {
 		} catch (SynapseForbiddenException e) {
 			// as expected
 		}
+	}
+	
+	// PLFM-412 said there was an error when 'PUBLIC' was given an empty array of permissions
+	@Test(expected=SynapseBadRequestException.class)
+	public void testEmptyACLAccessTypeList() throws Exception {
+		AccessControlList acl = synapse.getACL(project.getId());
+		List<UserGroup> ugs = synapse.getGroups(0, 100).getResults();
+		Long publicPrincipalId = null;
+		for (UserGroup ug: ugs) {
+			if (ug.getName().equals("PUBLIC")) {
+				publicPrincipalId = Long.parseLong(ug.getId());
+				break;
+			}
+		}
+		assertTrue(publicPrincipalId!=null);
+		boolean foundIt = false;
+		for (ResourceAccess ra : acl.getResourceAccess()) {
+			if (ra.getPrincipalId().equals(publicPrincipalId)) {
+				foundIt = true;
+				ra.setAccessType(new HashSet<ACCESS_TYPE>()); // make it an empty list
+				break;
+			}
+		}
+		if (!foundIt) {
+			ResourceAccess ra = new ResourceAccess();
+			ra.setPrincipalId(publicPrincipalId);
+			ra.setAccessType(new HashSet<ACCESS_TYPE>()); // make it an empty list
+			acl.getResourceAccess().add(ra);
+		}
+		// now push it, should get a SynapseBadRequestException
+		synapse.updateACL(acl);
 	}
 
 	/**
