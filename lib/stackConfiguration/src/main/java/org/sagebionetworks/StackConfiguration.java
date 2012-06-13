@@ -1,5 +1,7 @@
 package org.sagebionetworks;
 
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -23,6 +25,7 @@ public class StackConfiguration {
 			.getName());
 
 	private static TemplatedConfiguration configuration = null;
+	private static InetAddress address = null; 
 
 	static {
 		configuration = new TemplatedConfigurationImpl(DEFAULT_PROPERTIES_FILENAME,
@@ -554,6 +557,33 @@ public class StackConfiguration {
 	public static String getGoogleAppsOAuthAccessTokenSecret() {
 		return configuration
 				.getDecryptedProperty("org.sagebionetworks.bcc.googleapps.oauth.access.token.secret");
+	}
+	
+	/**
+	 * The AWS domain name is the <stack>+<stackInstance>
+	 * @return
+	 */
+	public String getAWSDomainName(){
+		return getStack()+getStackInstance();
+	}
+	
+	public static String getWorkflowExecutionRetentionPeriodInDays(){
+		return configuration.getProperty("org.sagebionetworks.swf.workflowExecutionRetentionPeriodInDays");
+	}
+	
+	/**
+	 * Get the ip address of this machine.
+	 * @return
+	 */
+	public static InetAddress getIpAddress(){
+		if(address == null){
+			try {
+				address = InetAddress.getLocalHost();
+			} catch (UnknownHostException e) {
+				throw new IllegalStateException(e);
+			}
+		}
+		return address;
 	}
 
 }

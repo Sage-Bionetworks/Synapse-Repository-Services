@@ -13,7 +13,7 @@
 
 	<import resource="classpath:concept-dao-beans.spb.xml" />
 	<import resource="classpath:dao-beans.spb.xml" />
-	<import resource="controllerProfiler-spb.xml" />
+	<import resource="classpath:controllerProfiler-spb.xml" />
 
 	<!-- The real Node DAO -->
 	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
