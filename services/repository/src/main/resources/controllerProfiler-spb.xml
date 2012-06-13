@@ -13,7 +13,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-	<import resource="stack-configuration.spb.xml" />
+	<import resource="classpath:aws-spb.xml" />
 
 	<!-- controllerProfiler that collects latency information in the form of CloudWatch objects --> 
 	<bean id="controllerProfiler" class="profiler.org.sagebionetworks.cloudwatch.ControllerProfiler">
