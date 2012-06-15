@@ -188,8 +188,12 @@ public class IT100BackupRestoration {
 			if (userProfile!=null) assertNotNull(userProfile.getEtag());
 		}
 		File file = new File(PRINCIPALS_BACKUP_FILE_NAME);
-		PrincipalRetriever012.writePrincipalBackups(pbs, file);
-		assertTrue(file.exists());
+		try {
+			PrincipalRetriever012.writePrincipalBackups(pbs, file);
+			assertTrue(file.exists());
+		} finally {
+			file.delete();
+		}
 	}
 	
 	
