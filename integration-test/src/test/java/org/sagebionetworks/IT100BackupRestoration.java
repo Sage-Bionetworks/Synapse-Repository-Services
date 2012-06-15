@@ -163,13 +163,15 @@ public class IT100BackupRestoration {
 		}
 	}
 	
+	// this will be deleted after the 012-0.13 migration
+	@Ignore
 	@Test
 	public void createPrincipalsSnapshot012() throws Exception {
 		String repoEndpoint = "https://repo-staging.sagebase.org/repo/v1";
 		String authEndpoint = "https://auth-staging.sagebase.org/auth/v1";
 		PrincipalRetriever012 pr = new PrincipalRetriever012(authEndpoint, repoEndpoint);
 		String adminUser = "v012integrationtest@sagbase.org";
-		String adminPw = "v012integationtestpw";
+		String adminPw = "do-not-check-in";
 		pr.login(adminUser, adminPw);
 		Collection<EntityData> principalData = pr.getPrincipalData();
 		// validate it
