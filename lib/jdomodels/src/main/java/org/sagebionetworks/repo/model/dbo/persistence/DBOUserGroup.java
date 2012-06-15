@@ -4,7 +4,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_CREATION_DATE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_E_TAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_NAME;
@@ -26,7 +25,6 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 public class DBOUserGroup implements DatabaseObject<DBOUserGroup> {
 	private Long id;
 	private String name;
-	private Long eTag = new Long(0);
 	private Date creationDate;
 	private Boolean isIndividual = false;
 
@@ -34,7 +32,6 @@ public class DBOUserGroup implements DatabaseObject<DBOUserGroup> {
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_USER_GROUP_ID, true),
 		new FieldColumn("name", COL_USER_GROUP_NAME),
-		new FieldColumn("eTag", COL_USER_GROUP_E_TAG),
 		new FieldColumn("creationDate", COL_USER_GROUP_CREATION_DATE),
 		new FieldColumn("isIndividual", COL_USER_GROUP_IS_INDIVIDUAL)
 		};
@@ -49,7 +46,6 @@ public class DBOUserGroup implements DatabaseObject<DBOUserGroup> {
 				DBOUserGroup ug = new DBOUserGroup();
 				ug.setId(rs.getLong(COL_USER_GROUP_ID));
 				ug.setName(rs.getString(COL_USER_GROUP_NAME));
-				ug.seteTag(rs.getLong(COL_USER_GROUP_E_TAG));
 				ug.setCreationDate(rs.getTimestamp(COL_USER_GROUP_CREATION_DATE));
 				ug.setIsIndividual(rs.getBoolean(COL_USER_GROUP_IS_INDIVIDUAL));
 				return ug;
@@ -108,23 +104,6 @@ public class DBOUserGroup implements DatabaseObject<DBOUserGroup> {
 	public void setName(String name) {
 		this.name = name;
 	}
-
-
-	/**
-	 * @return the eTag
-	 */
-	public Long geteTag() {
-		return eTag;
-	}
-
-
-	/**
-	 * @param eTag the eTag to set
-	 */
-	public void seteTag(Long eTag) {
-		this.eTag = eTag;
-	}
-
 
 	/**
 	 * @return the creationDate

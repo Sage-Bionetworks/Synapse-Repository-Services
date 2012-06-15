@@ -169,7 +169,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 		return true;
 	}
 
-	public void checkForTermination(Progress progress)
+	public static void checkForTermination(Progress progress)
 			throws InterruptedException {
 		// Between each node check to see if we should terminate
 		if(progress.shouldTerminate()){

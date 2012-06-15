@@ -22,9 +22,6 @@
       	},
  		"uri":{
             "type":"string",
- 		},
- 		"etag":{
-            "type":"string",
  		}
      }
 }       

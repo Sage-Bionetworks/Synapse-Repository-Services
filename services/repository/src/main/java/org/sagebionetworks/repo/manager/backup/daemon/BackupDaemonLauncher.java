@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.backup.daemon;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.MigrationType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -17,7 +18,7 @@ public interface BackupDaemonLauncher {
 	 * @throws UnauthorizedException 
 	 * @throws DatastoreException 
 	 */
-	public BackupRestoreStatus startBackup(UserInfo username, Set<String> entitiesToBackup) throws UnauthorizedException, DatastoreException;
+	public BackupRestoreStatus startBackup(UserInfo username, Set<String> entitiesToBackup, MigrationType migrationType) throws UnauthorizedException, DatastoreException;
 	
 	/**
 	 * Start a restore daemon that will populate the system using the given backup file.
@@ -29,7 +30,7 @@ public interface BackupDaemonLauncher {
 	 * @throws UnauthorizedException
 	 * @throws DatastoreException
 	 */
-	public BackupRestoreStatus startRestore(UserInfo username, String fileName) throws UnauthorizedException, DatastoreException;
+	public BackupRestoreStatus startRestore(UserInfo username, String fileName, MigrationType migrationType) throws UnauthorizedException, DatastoreException;
 	
 	/**
 	 * The daemon should create a starting status, and then start the thread 

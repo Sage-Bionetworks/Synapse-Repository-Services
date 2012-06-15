@@ -8,6 +8,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.DaemonStatusUtil;
+import org.sagebionetworks.repo.model.MigrationType;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -144,7 +145,7 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 			BackupSubmission sumbission = new BackupSubmission();
 			sumbission.setEntityIdsToBackup(this.entites);
 			// Start a backup.
-			BackupRestoreStatus status = client.startBackupDaemon(sumbission);
+			BackupRestoreStatus status = client.startBackupDaemon(sumbission, MigrationType.ENTITY);
 			// Wait for the backup to complete
 			status = waitForDaemon(status.getId(), client);
 			// Now restore this to the destination
@@ -152,7 +153,7 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 			String backupFileName = getFileNameFromUrl(status.getBackupUrl());
 			RestoreSubmission restoreSub = new RestoreSubmission();
 			restoreSub.setFileName(backupFileName);
-			status = client.startRestoreDaemon(restoreSub);
+			status = client.startRestoreDaemon(restoreSub, MigrationType.ENTITY);
 			// Wait for the backup to complete
 			status = waitForDaemon(status.getId(), client);
 			// Success

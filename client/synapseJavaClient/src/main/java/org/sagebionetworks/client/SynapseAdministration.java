@@ -6,6 +6,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.MigrationType;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
@@ -34,10 +35,10 @@ public class SynapseAdministration extends Synapse {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
-	public BackupRestoreStatus startBackupDaemon(BackupSubmission submission)
+	public BackupRestoreStatus startBackupDaemon(BackupSubmission submission, MigrationType migrationType)
 			throws JSONObjectAdapterException, SynapseException {
 		JSONObject json = EntityFactory.createJSONObjectForEntity(submission);
-		json = createEntity(DAEMON_BACKUP, json);
+		json = createEntity(DAEMON_BACKUP+"?migrationType="+migrationType, json);
 		return EntityFactory.createEntityFromJSONObject(json,
 				BackupRestoreStatus.class);
 	}
@@ -80,12 +81,12 @@ public class SynapseAdministration extends Synapse {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
-	public BackupRestoreStatus startRestoreDaemon(RestoreSubmission submission)
+	public BackupRestoreStatus startRestoreDaemon(RestoreSubmission submission, MigrationType migrationType)
 			throws JSONObjectAdapterException, SynapseException {
 		JSONObject jsonObject = EntityFactory
 				.createJSONObjectForEntity(submission);
 		// Create the entity
-		jsonObject = createEntity(DAEMON_RESTORE, jsonObject);
+		jsonObject = createEntity(DAEMON_RESTORE+"?migrationType="+migrationType, jsonObject);
 		return EntityFactory.createEntityFromJSONObject(jsonObject,
 				BackupRestoreStatus.class);
 	}

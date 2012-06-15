@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigrationType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -77,6 +78,7 @@ public class AdministrationController extends BaseController {
 	public @ResponseBody
 	BackupRestoreStatus startBackup(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.MIGRATION_TYPE_PARAM, required=true) String type,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -93,7 +95,7 @@ public class AdministrationController extends BaseController {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// start a backup daemon
 		// This is a full system backup so 
-		return backupDaemonLauncher.startBackup(userInfo, entityIdsToBackup);
+		return backupDaemonLauncher.startBackup(userInfo, entityIdsToBackup, MigrationType.valueOf(type));
 	}
 	
 	/**
@@ -120,6 +122,7 @@ public class AdministrationController extends BaseController {
 	BackupRestoreStatus startRestore(
 			@RequestBody RestoreSubmission file,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.MIGRATION_TYPE_PARAM, required=true) String type,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -130,7 +133,7 @@ public class AdministrationController extends BaseController {
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// start a restore daemon
-		return backupDaemonLauncher.startRestore(userInfo, file.getFileName());
+		return backupDaemonLauncher.startRestore(userInfo, file.getFileName(), MigrationType.valueOf(type));
 	}
 	
 	/**

@@ -31,6 +31,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.MigrationType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -1180,6 +1181,7 @@ public class ServletTestHelper {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY_BACKUP_DAMEON);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.MIGRATION_TYPE_PARAM, MigrationType.ENTITY.name());
 		// Add a body if we were provided a list of entities.
 		if (submission != null) {
 			request.addHeader("Content-Type", "application/json; charset=UTF-8");
@@ -1304,6 +1306,7 @@ public class ServletTestHelper {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY_RESTORE_DAMEON);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, uesrId);
+		request.setParameter(AuthorizationConstants.MIGRATION_TYPE_PARAM, MigrationType.ENTITY.name());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, file);
