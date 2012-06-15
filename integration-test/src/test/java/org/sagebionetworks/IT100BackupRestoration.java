@@ -3,12 +3,14 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -26,7 +28,11 @@ import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.MigrationType;
+import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -36,6 +42,8 @@ import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.tool.migration.PrincipalRetriever012;
+import org.sagebionetworks.tool.migration.dao.EntityData;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -54,6 +62,7 @@ public class IT100BackupRestoration {
 	public static final long TEST_TIME_OUT = 1000 * 60 * 4; // Currently 4 mins
 
 	public static final String BACKUP_FILE_NAME = "Backup-staging-A-66004-4066545524488105200.zip";
+	public static final String PRINCIPALS_BACKUP_FILE_NAME = "Backup-principals.zip";
 	private static final String S3_DOMAIN = "https://s3.amazonaws.com/";
 	private static String S3_WORKFLOW_BUCKET = StackConfiguration.getS3WorkflowBucket();
 	private static final String S3_WORKFLOW_URL_PREFIX = S3_DOMAIN + S3_WORKFLOW_BUCKET + "/";
@@ -112,7 +121,7 @@ public class IT100BackupRestoration {
 	public void createSnapshot() throws Exception {
 		// Start the daemon
 		BackupSubmission submission = new BackupSubmission();
-		BackupRestoreStatus status = synapse.startBackupDaemon(submission);
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigrationType.ENTITY);
 		assertNotNull(status);
 		assertNotNull(status.getStatus());
 		assertFalse(DaemonStatus.FAILED == status.getStatus());
@@ -153,9 +162,72 @@ public class IT100BackupRestoration {
 			Thread.sleep(1000);
 		}
 	}
+	
+	@Test
+	public void createPrincipalsSnapshot012() throws Exception {
+		String repoEndpoint = "https://repo-staging.sagebase.org/repo/v1";
+		String authEndpoint = "https://auth-staging.sagebase.org/auth/v1";
+		PrincipalRetriever012 pr = new PrincipalRetriever012(authEndpoint, repoEndpoint);
+		String adminUser = "v012integrationtest@sagbase.org";
+		String adminPw = "v012integationtestpw";
+		pr.login(adminUser, adminPw);
+		Collection<EntityData> principalData = pr.getPrincipalData();
+		// validate it
+		Collection<PrincipalBackup> pbs = pr.getPrincipals();
+		assertEquals(principalData.size(), pbs.size());
+		for (PrincipalBackup pb : pbs) {
+			UserGroup group = pb.getUserGroup();
+			assertNotNull(group);
+			UserProfile userProfile = pb.getUserProfile();
+			assertNotNull(group.getIsIndividual());
+			if (group.getIsIndividual()) assertNotNull(userProfile);
+			if (!group.getIsIndividual()) assertNull(userProfile);
+			assertNotNull(group.getId());
+			assertNotNull(group.getName());
+			if (userProfile!=null) assertEquals(group.getId(), userProfile.getOwnerId());
+			if (userProfile!=null) assertNotNull(userProfile.getEtag());
+		}
+		File file = new File(PRINCIPALS_BACKUP_FILE_NAME);
+		PrincipalRetriever012.writePrincipalBackups(pbs, file);
+		assertTrue(file.exists());
+	}
+	
+	
 
 	@Test
 	public void restoreFromBackup() throws Exception {
+
+		// restore principals
+		{
+			// move the file to S3
+			URL principalsFileUrl = IT100BackupRestoration.class.getClassLoader()
+					.getResource(PRINCIPALS_BACKUP_FILE_NAME);
+			File principalBackupFile = new File(principalsFileUrl.getFile().replaceAll("%20", " "));
+			assertTrue(principalBackupFile.getAbsolutePath()+" does not exist.", principalBackupFile.exists());
+			// Now upload the file to s3
+			PutObjectResult putResults = s3Client.putObject(bucket,	PRINCIPALS_BACKUP_FILE_NAME, principalBackupFile);
+			System.out.println(putResults);
+			
+			
+			// Start the daemon
+			RestoreSubmission submission = new RestoreSubmission();
+			submission.setFileName(PRINCIPALS_BACKUP_FILE_NAME);
+			BackupRestoreStatus status = synapse.startRestoreDaemon(submission, MigrationType.PRINCIPAL);
+
+			assertNotNull(status);
+			assertNotNull(status.getStatus());
+			assertFalse(status.getErrorMessage(),DaemonStatus.FAILED == status.getStatus());
+			assertTrue(DaemonType.RESTORE == status.getType());
+			String restoreId = status.getId();
+			assertNotNull(restoreId);
+			
+			// Wait for it to finish
+			waitForDaemon(status.getId());
+
+		}
+		
+		// now restore the Entities
+		
 		// Step one is to upload the file to s3.
 		URL fileUrl = IT100BackupRestoration.class.getClassLoader()
 				.getResource(BACKUP_FILE_NAME);
@@ -169,7 +241,7 @@ public class IT100BackupRestoration {
 		// Start the daemon
 		RestoreSubmission submission = new RestoreSubmission();
 		submission.setFileName(BACKUP_FILE_NAME);
-		BackupRestoreStatus status = synapse.startRestoreDaemon(submission);
+		BackupRestoreStatus status = synapse.startRestoreDaemon(submission, MigrationType.ENTITY);
 
 		assertNotNull(status);
 		assertNotNull(status.getStatus());
@@ -240,7 +312,7 @@ public class IT100BackupRestoration {
 		set.add(project.getId());
 		submission.setEntityIdsToBackup(set);
 		
-		BackupRestoreStatus status = synapse.startBackupDaemon(submission);
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigrationType.ENTITY);
 		assertNotNull(status);
 		// Wait for the daemon to complete
 		status = waitForDaemon(status.getId());
@@ -256,7 +328,7 @@ public class IT100BackupRestoration {
 		// Now restore the single project
 		RestoreSubmission restore = new RestoreSubmission();
 		restore.setFileName(backupFileName);
-		status = synapse.startRestoreDaemon(restore);
+		status = synapse.startRestoreDaemon(restore, MigrationType.ENTITY);
 		// Wait for the daemon to complete
 		status = waitForDaemon(status.getId());
 		// Now make sure we can get the project

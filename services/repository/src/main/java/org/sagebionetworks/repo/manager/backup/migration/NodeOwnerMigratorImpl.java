@@ -74,17 +74,27 @@ public class NodeOwnerMigratorImpl implements NodeOwnerMigrator {
 		String modifierUserName = toMigrate.getModifiedBy();
 		if (toMigrate.getModifiedByPrincipalId() == null) {
 			// then we have to set it based on the modifiedBy user name
-			toMigrate.setModifiedByPrincipalId(getUserPrincipal(modifierUserName));
+			toMigrate.setModifiedByPrincipalId(getUserPrincipalWithSubstitution(modifierUserName));
 		}
 		return type;
 	}
 	
 	@Override
+	public Long getUserPrincipalWithSubstitution(String userName) {
+		Long principalId = getUserPrincipal(userName);
+		if (principalId==null) {
+			if (defaultPrincipalId==null) chooseDefaultUserPrincipal();
+			return defaultPrincipalId;
+		} else {
+			return principalId;			
+		}
+	}
+
+	@Override
 	public Long getUserPrincipal(String userName) {
-		if (defaultPrincipalId==null) chooseDefaultUserPrincipal();
-		Long principalId = defaultPrincipalId;
+		Long principalId = null;
 		if (userName == null) {
-			// use the default principal ID, set above
+			return null;
 		} else {
 			Long cachedValue = principalCache.get(userName);
 			if (cachedValue!=null) {
@@ -100,7 +110,7 @@ public class NodeOwnerMigratorImpl implements NodeOwnerMigrator {
 				}
 				UserGroup ug = userGroupMap.get(userName);
 				if (ug == null) {
-					// use the default principal ID, set above
+					return null;
 				} else {
 					principalId = Long.parseLong(ug.getId());
 				}

@@ -4,6 +4,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -12,6 +14,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -29,8 +32,11 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
+import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.util.RandomNodeBackupUtil;
 import org.sagebionetworks.repo.model.util.RandomNodeRevisionUtil;
 
@@ -48,7 +54,6 @@ public class NodeSerializerUtilTest {
 		
 		StringWriter writer = new StringWriter();
 		NodeSerializerUtil.writeNodeBackup(backup, writer);
-//		System.out.println(writer.toString());
 		
 		// Now read it back
 		StringReader reader = new StringReader(writer.toString());
@@ -56,6 +61,30 @@ public class NodeSerializerUtilTest {
 		assertNotNull(clone);
 		assertEquals(backup, clone);
 		
+	}
+	
+	@Test 
+	public void testRoundTripPrincipalBackup() throws Exception {
+		Collection<PrincipalBackup> pbs = new HashSet<PrincipalBackup>();
+		PrincipalBackup pb = new PrincipalBackup();
+		UserGroup ug = new UserGroup();
+		ug.setId("101");
+		ug.setIsIndividual(true);
+		ug.setName("foo");
+		ug.setCreationDate(new Date());
+		pb.setUserGroup(ug);
+		UserProfile up = new UserProfile();
+		up.setOwnerId(ug.getId());
+		up.setDisplayName("foo bar");
+		pb.setUserProfile(up);
+		pbs.add(pb);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		NodeSerializerUtil.writePrincipalBackups(pbs, baos);
+		baos.close();
+		String serialized = new String(baos.toByteArray());
+		ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+		Collection<PrincipalBackup> pbs2 = NodeSerializerUtil.readPrincipalBackups(bais);
+		assertEquals(pbs, pbs2);
 	}
 
 	

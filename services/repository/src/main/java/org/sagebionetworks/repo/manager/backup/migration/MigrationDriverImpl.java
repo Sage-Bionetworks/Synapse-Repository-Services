@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.backup.migration;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -85,19 +86,32 @@ public class MigrationDriverImpl implements MigrationDriver{
 		if (node.getCreatedByPrincipalId() == null) {
 			// then we have to set it based on the createdBy user name
 			String creatorUserName = node.getCreatedBy();
-			node.setCreatedByPrincipalId(nodeOwnerMigrator.getUserPrincipal(creatorUserName));
+			node.setCreatedByPrincipalId(nodeOwnerMigrator.getUserPrincipalWithSubstitution(creatorUserName));
 		}
 		if (node.getModifiedByPrincipalId() == null) {
 			// then we have to set it based on the modifiedBy user name
 			String modifiedByUserName = node.getModifiedBy();
-			node.setModifiedByPrincipalId(nodeOwnerMigrator.getUserPrincipal(modifiedByUserName));
+			node.setModifiedByPrincipalId(nodeOwnerMigrator.getUserPrincipalWithSubstitution(modifiedByUserName));
 		}
 		AccessControlList acl = nodeBackup.getAcl();
 		if (acl!=null) {
+			// this set will hold the ResourceAccess objects that we don't skip
+			Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
 			for (ResourceAccess ra : acl.getResourceAccess()) {
-				String groupName = ra.getGroupName();
-				if (ra.getPrincipalId()==null) ra.setPrincipalId(nodeOwnerMigrator.getUserPrincipal(groupName));
+				if (ra.getPrincipalId()==null) {
+					Long principalId = nodeOwnerMigrator.getUserPrincipal(ra.getGroupName());
+					if (principalId==null) {
+						continue; // can't figure out the principal, so just skip this ResourceAccess
+					} else {
+						// fix up the ResourceAccess object 
+						ra.setPrincipalId(principalId);
+					}
+				}
+				// the ResourceAccess object is OK or was fixed up.  Now add it to the set.
+				ras.add(ra);
 			}
+			// now put the finalized set of ResourceAccess objects in the acl
+			acl.setResourceAccess(ras);
 		}
 	}
 

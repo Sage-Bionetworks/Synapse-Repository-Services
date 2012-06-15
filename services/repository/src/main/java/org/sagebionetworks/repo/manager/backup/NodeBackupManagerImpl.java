@@ -129,8 +129,6 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 		String nodeId = backup.getNode().getId();
 		// Does this node already exist
 		try {
-			// Before we update make sure the users we need exist
-			createUsersAsNeeded(backup.getAcl());
 			// Now process the node
 			if (nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeId))) {
 				// Update the node
@@ -152,54 +150,6 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 			// node.
 			throw new RuntimeException(e);
 		}
-	}
-
-	/**
-	 * Make sure all of the groups listed in the ACL actually exist
-	 * @param acl
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 */
-	public void createUsersAsNeeded(AccessControlList acl)	throws DatastoreException, InvalidModelException {
-		if(acl != null && acl.getResourceAccess() != null){
-			for(ResourceAccess access: acl.getResourceAccess()){
-				String groupName = null; // access.getGroupName(); << this method is no longer used
-				if(groupName != null){
-					if(!userGroupDAO.doesPrincipalExist(groupName)){
-						UserGroup principal = createUserGroupForName(groupName);
-						String principalId = userGroupDAO.create(principal);
-						if (principal.getIsIndividual()) {
-							UserProfile userProfile = new UserProfile();
-							userProfile.setOwnerId(principalId);
-							userProfile.setFirstName("");
-							userProfile.setLastName(groupName);
-							userProfile.setDisplayName(groupName);
-							try {
-								userProfileDAO.create(userProfile, userProfileSchema);
-							} catch (InvalidModelException e) {
-								throw new RuntimeException(e);
-							}
-							
-						}
-					}
-				}
-			}
-		}
-	}
-
-	/**
-	 * Create a UserGroup for a given name.
-	 * @param groupName
-	 * @return
-	 */
-	public static UserGroup createUserGroupForName(String groupName) {
-		UserGroup principal = new UserGroup();
-		principal.setName(groupName);
-		// Users must have an email address as a name
-		// and groups are not allowed to have an email address as name
-		principal.setIsIndividual(UserGroupUtil.isEmailAddress(groupName));
-		principal.setCreationDate(new Date());
-		return principal;
 	}
 
 	/**

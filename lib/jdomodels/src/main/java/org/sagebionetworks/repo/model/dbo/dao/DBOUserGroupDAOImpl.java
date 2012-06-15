@@ -239,9 +239,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			// Make sure the ID generator has reserved this ID.
 			idGenerator.reserveId(dbo.getId());
 		}
-		if (dbo.geteTag()==null) {
-			dbo.seteTag(0L);
-		}
 		dbo = basicDao.createNew(dbo);
 		return dbo.getId().toString();
 	}

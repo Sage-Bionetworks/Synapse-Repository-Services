@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.manager.backup.NodeBackupDriver;
 import org.sagebionetworks.repo.manager.backup.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.MigrationType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -34,6 +35,8 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	@Autowired
 	NodeBackupDriver backupDriver;
 	@Autowired
+	NodeBackupDriver principalBackupDriver;
+	@Autowired
 	SearchDocumentDriver searchDocumentDriver;
 	@Autowired
 	ExecutorService backupDaemonThreadPool;
@@ -41,14 +44,24 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	ExecutorService backupDaemonThreadPool2;
 
 	@Override
-	public BackupRestoreStatus startBackup(UserInfo username, Set<String> entitiesToBackup) throws UnauthorizedException, DatastoreException {
+	public BackupRestoreStatus startBackup(UserInfo username, Set<String> entitiesToBackup, MigrationType migrationType) throws UnauthorizedException, DatastoreException {
 		UserInfo.validateUserInfo(username);
 		// Only an admin can start a backup Daemon
 		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a backup daemon");
 		
 		AmazonS3Client client = createNewAWSClient();
+		
+		NodeBackupDriver typeSpecificBackupDriver = null;
+		if (migrationType.equals(MigrationType.ENTITY)) {
+			typeSpecificBackupDriver = backupDriver;
+		} else if (migrationType.equals(MigrationType.PRINCIPAL)) {
+			typeSpecificBackupDriver = principalBackupDriver;
+		} else {
+			throw new IllegalArgumentException(migrationType.toString());
+		}
+		
 		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, entitiesToBackup);
+		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, typeSpecificBackupDriver, searchDocumentDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, entitiesToBackup);
 		// Start that bad boy up!
 		return daemon.startBackup(username.getIndividualGroup().getId());
 	}
@@ -60,6 +73,7 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a search document daemon");
 		
 		AmazonS3Client client = createNewAWSClient();
+
 		// Create a new daemon and start it
 		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, workflowBucket, backupDaemonThreadPool, backupDaemonThreadPool2, entityIds);
 		// Start that bad boy up!
@@ -67,14 +81,25 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	}
 	
 	@Override
-	public BackupRestoreStatus startRestore(UserInfo username, String fileName)	throws UnauthorizedException, DatastoreException {
+	public BackupRestoreStatus startRestore(UserInfo username, String fileName, MigrationType migrationType)	throws UnauthorizedException, DatastoreException {
 		UserInfo.validateUserInfo(username);
 		// Only an admin can start a backup Daemon
 		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a restoration daemon");
 		
 		AmazonS3Client client = createNewAWSClient();
+		
+		NodeBackupDriver typeSpecificBackupDriver = null;
+		if (migrationType.equals(MigrationType.ENTITY)) {
+			typeSpecificBackupDriver = backupDriver;
+		} else if (migrationType.equals(MigrationType.PRINCIPAL)) {
+			typeSpecificBackupDriver = principalBackupDriver;
+		} else {
+			throw new IllegalArgumentException(migrationType.toString());
+		}
+		
+
 		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2);
+		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, typeSpecificBackupDriver, searchDocumentDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2);
 		return daemon.startRestore(username.getIndividualGroup().getId(), fileName);
 	}
 

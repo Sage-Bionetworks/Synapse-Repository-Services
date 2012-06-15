@@ -11,11 +11,6 @@ public class UserGroupUtils {
 		} else {
 			dbo.setId(Long.parseLong(dto.getId()));
 		}
-		if (dto.getEtag()==null) {
-			dbo.seteTag(null);
-		} else {
-			dbo.seteTag(Long.parseLong(dto.getEtag()));
-		}
 		dbo.setCreationDate(dto.getCreationDate());
 		dbo.setIsIndividual(dto.getIsIndividual());
 		dbo.setName(dto.getName());
@@ -27,11 +22,6 @@ public class UserGroupUtils {
 			dto.setId(null); 
 		} else {
 			dto.setId(dbo.getId().toString());
-		}
-		if (dbo.geteTag()==null) {
-			dto.setEtag(null);
-		} else {
-			dto.setEtag(""+dbo.geteTag());
 		}
 		dto.setCreationDate(dbo.getCreationDate());
 		dto.setIsIndividual(dbo.getIsIndividual());

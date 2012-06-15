@@ -6,12 +6,16 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
+import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -102,6 +106,20 @@ public class NodeSerializerUtil  {
 		return rev;
 	}
 	
+	public static void writePrincipalBackups(Collection<PrincipalBackup> principalBackups, OutputStream out) {
+		OutputStreamWriter writer = new OutputStreamWriter(out);
+		XStream xstream = createXStream();
+		xstream.toXML(principalBackups, writer);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static Collection<PrincipalBackup> readPrincipalBackups(InputStream in) {
+		InputStreamReader reader = new InputStreamReader(in);
+		XStream xstream = createXStream();
+//		List<PrincipalBackup> principals =  new ArrayList<PrincipalBackup>();
+		return (Collection<PrincipalBackup>)xstream.fromXML(reader);
+	}
+
 	private static XStream createXStream(){
 		XStream xstream = new XStream();
 		xstream.alias(ALIAS_NODE_BACKUP, NodeBackup.class);
