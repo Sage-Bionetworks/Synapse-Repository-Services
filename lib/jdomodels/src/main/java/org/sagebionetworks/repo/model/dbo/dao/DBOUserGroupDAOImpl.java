@@ -12,6 +12,8 @@ import java.util.Map;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_USER_GROUP_ID;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -81,7 +83,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	private static final String SELECT_ALL = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP;
 	
-	private static final String SQL_COUNT_USER_GROUPS = "SELECT COUNT("+COL_USER_GROUP_ID+") FROM "+TABLE_USER_GROUP;
+	private static final String SQL_COUNT_USER_GROUPS = "SELECT COUNT("+COL_USER_GROUP_ID+") FROM "+TABLE_USER_GROUP + " WHERE "+COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME;
 
 	private static final RowMapper<DBOUserGroup> userGroupRowMapper = (new DBOUserGroup()).getTableMapping();
 	
@@ -235,12 +237,16 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			dbo.setId(idGenerator.generateNewId());
 		}else{
 			// If an id was provided then it must not exist
-			if(doesIdExist(dbo.getId())) throw new IllegalArgumentException("The id: "+dbo.getId()+" already exists, so a node cannot be created using that id.");
+			if(doesIdExist(dbo.getId())) throw new IllegalArgumentException("The id: "+dbo.getId()+" already exists, so a UserGroup cannot be created using that id.");
 			// Make sure the ID generator has reserved this ID.
 			idGenerator.reserveId(dbo.getId());
 		}
-		dbo = basicDao.createNew(dbo);
-		return dbo.getId().toString();
+		try {
+			dbo = basicDao.createNew(dbo);
+			return dbo.getId().toString();
+		} catch (Exception e) {
+			throw new DatastoreException("id="+dbo.getId()+" name="+dto.getName(), e);
+		}
 	}
 
 	@Transactional(readOnly = true)
@@ -305,6 +311,17 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	public void afterPropertiesSet() throws Exception {
 		// ensure public group is created
 		// Make sure all of the default groups exist
+		{
+			// special case:  The BOOTSTRAP_USER_GROUP must have a fixed principal ID
+			UserGroup pg = findGroup(BOOTSTRAP_USER_GROUP_NAME, false);
+			if (pg==null) {
+				pg = new UserGroup();
+				pg.setName(BOOTSTRAP_USER_GROUP_NAME);
+				pg.setIsIndividual(false);
+				pg.setId(BOOTSTRAP_USER_GROUP_ID);
+				create(pg);
+			}
+		}
 		DEFAULT_GROUPS[] groups = DEFAULT_GROUPS.values();
 		for (DEFAULT_GROUPS group : groups) {
 			UserGroup pg = findGroup(group.name(), false);

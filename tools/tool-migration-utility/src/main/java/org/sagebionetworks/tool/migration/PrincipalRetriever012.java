@@ -1,5 +1,6 @@
 package org.sagebionetworks.tool.migration;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -11,6 +12,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -19,6 +22,7 @@ import org.apache.http.util.EntityUtils;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.User;
 import org.sagebionetworks.client.HttpClientProvider;
@@ -31,6 +35,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
+import com.amazonaws.auth.AWSCredentials;
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.PutObjectResult;
 import com.thoughtworks.xstream.XStream;
 
 /**
@@ -123,17 +131,44 @@ public class PrincipalRetriever012 {
 	// this is duplicated from NodeSerializerUtil in the repo-svs project
 	// duplication is OK since this class will be removed after the 0.12 migration
 	public static void writePrincipalBackups(Collection<PrincipalBackup> principalBackups, File file) throws IOException {
-		OutputStream out = new FileOutputStream(file);
-		OutputStreamWriter writer = new OutputStreamWriter(out);
-		XStream xstream = new XStream();
-		xstream.toXML(principalBackups, writer);
+		FileOutputStream fos = new FileOutputStream(file);
+		ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(fos));
+		try {
+			//out = new FileOutputStream(file);
+			OutputStreamWriter writer = new OutputStreamWriter(zos);
+			ZipEntry entry = new ZipEntry(file.getName());
+			zos.putNextEntry(entry);
+			XStream xstream = new XStream();
+			xstream.toXML(principalBackups, writer);
+		} finally {
+			if (zos!=null) zos.close();
+		}
+	}
+	
+	public static void sendPrincipalBackupsToS3(Collection<PrincipalBackup> principalBackups,
+			String iamId, String iamKey, String bucket, File tempFile) throws IOException {
+		if (iamId == null)
+			throw new IllegalArgumentException("IAM id cannot be null");
+		if (iamKey == null)
+			throw new IllegalArgumentException("IAM key cannot be null");
+		if (bucket == null)
+			throw new IllegalArgumentException("Bucket cannot be null null");
+		if (tempFile == null)
+			throw new IllegalArgumentException("tempFile cannot be null null");
+
+		writePrincipalBackups(principalBackups, tempFile);
+		AWSCredentials creds = new BasicAWSCredentials(iamId, iamKey);
+		AmazonS3Client s3Client = new AmazonS3Client(creds);
+		s3Client.putObject(bucket,	tempFile.getName(), tempFile);
+
 	}
 
 	
 	public static void main(String[] args) throws Exception {
-		if (args.length<2) throw new Exception("Need to specify admin user and password");
-		PrincipalRetriever012 pr = new PrincipalRetriever012("https://auth-prod.sagebase.org", "https://repo-prod.sagebase.org");
+		if (args.length<4) throw new Exception("Need to specify admin user, password, crowd endpoint, crowd api key");
+		PrincipalRetriever012 pr = new PrincipalRetriever012("https://auth-prod.sagebase.org/auth/v1", "https://repo-prod.sagebase.org/repo/v1");
 		pr.login(args[0], args[1]);
+		CrowdAuthUtil.overrideStackConfig(args[2], args[3]);
 		Collection<PrincipalBackup> pbs = pr.getPrincipals();
 		System.out.println("backed up "+pbs.size()+" principals.");
 	}
@@ -202,10 +237,9 @@ public class PrincipalRetriever012 {
 					userProfile.setDisplayName(crowdUserData.getDisplayName());
 					userProfile.setFirstName(crowdUserData.getFirstName());
 					userProfile.setLastName(crowdUserData.getLastName());
-					userProfile.setOwnerId(group.getId());
-					//System.out.println("Can't find user profile for "+group.getName()+".   Created new profile.");
 				} catch (Exception e2) {
-					//System.out.println("Can't find or create user profile for "+group.getName()+".");
+					// if we can't get info from Crowd, make the best display name we can from the group name
+					userProfile.setDisplayName(getDisplayNameFromGroupName(group.getName()));
 				}
 			} catch (JSONException e) {
 				//System.out.println("Error extracting fields from user profile for "+group.getName()+". JSON: "+profileJson);
@@ -214,6 +248,13 @@ public class PrincipalRetriever012 {
 		}
 		
 		return ans;
+	}
+	
+	// take email address prefix as display name
+	public static String getDisplayNameFromGroupName(String groupName) {
+		int i = groupName.indexOf("@");
+		if (i<0) return groupName;
+		return groupName.substring(0, i);
 	}
 
 }

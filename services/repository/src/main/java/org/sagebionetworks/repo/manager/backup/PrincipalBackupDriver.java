@@ -20,10 +20,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.SchemaCache;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.NodeBackup;
-import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -43,6 +40,9 @@ public class PrincipalBackupDriver implements NodeBackupDriver {
 	
 	@Autowired
 	UserProfileDAO userProfileDAO;
+	
+	@Autowired
+	NodeBackupManager backupManager;
 	
 	public PrincipalBackupDriver() {}
 	
@@ -138,7 +138,7 @@ public class PrincipalBackupDriver implements NodeBackupDriver {
 				NodeBackupDriverImpl.checkForTermination(progress);
 
 				Collection<PrincipalBackup> principalBackups = NodeSerializerUtil.readPrincipalBackups(zin);
-				createOrUpdatePrincipals(principalBackups);
+				createOrUpdatePrincipals(principalBackups, progress);
 				
 				Thread.yield();
 			}
@@ -152,23 +152,55 @@ public class PrincipalBackupDriver implements NodeBackupDriver {
 		return true;
 	}
 	
-	private void createOrUpdatePrincipals(Collection<PrincipalBackup> principalBackups) {
+	private void createOrUpdatePrincipals(Collection<PrincipalBackup> principalBackups, Progress progress) {
 		try {
 		    ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 			for (PrincipalBackup pb : principalBackups) {
-				String id = pb.getUserGroup().getId();
-				boolean isIndividual = pb.getUserGroup().getIsIndividual();
+				UserGroup srcUserGroup = pb.getUserGroup();
+				String id = srcUserGroup.getId();
+				boolean isIndividual = srcUserGroup.getIsIndividual();
 				if (isIndividual && pb.getUserProfile()==null) throw new IllegalArgumentException("No user profile for individual group "+id);
 				if (!isIndividual && pb.getUserProfile()!=null) throw new IllegalArgumentException("Unexpected user profile for multi-user group "+id+" "+pb.getUserProfile().getDisplayName());
-				boolean exists = false;
-				UserGroup dstUserGroup = null;
+
+				// get the UserGroup with the matching ID
+				UserGroup idMatchingUserGroup = null;
 				try {
-					dstUserGroup = userGroupDAO.get(id);
-					exists = true;
+					idMatchingUserGroup = userGroupDAO.get(id);
 				} catch (NotFoundException nfe) {
-					exists = false;
+					idMatchingUserGroup = null;
 				}
-				UserGroup srcUserGroup = pb.getUserGroup();
+
+				// get the UserGroup with the matching name (or return null)
+				UserGroup nameMatchingUserGroup = userGroupDAO.findGroup(srcUserGroup.getName(), isIndividual);
+				
+				boolean exists = false;
+				if (idMatchingUserGroup==null) {
+					if (nameMatchingUserGroup == null) {
+						// UserGroup doesn't exist and will be created
+						exists = false;
+					} else {
+						migrateUserGroup(nameMatchingUserGroup, srcUserGroup, progress);
+						exists = true;
+					}
+				} else {
+					if (nameMatchingUserGroup == null) {
+						// need to delete the erroneous idMatchingUserGroup
+						deleteUserGroup(idMatchingUserGroup);
+						exists = false;
+					} else {
+						if (idMatchingUserGroup.equals(nameMatchingUserGroup)) {
+							// we're good-to-go
+							exists = true;
+						} else {
+							// need to delete the erroneous idMatchingUserGroup
+							deleteUserGroup(idMatchingUserGroup);
+							migrateUserGroup(nameMatchingUserGroup, srcUserGroup, progress);
+							exists = true;
+						}
+					}
+				}
+
+				
 				if (exists) {
 	 				userGroupDAO.update(srcUserGroup);
 	 			} else {
@@ -201,5 +233,53 @@ public class PrincipalBackupDriver implements NodeBackupDriver {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	private void deleteUserGroup(UserGroup ug) throws DatastoreException, NotFoundException {
+		if (ug.getIsIndividual()) {
+			userProfileDAO.delete(ug.getId());
+		}
+		userGroupDAO.delete(ug.getId());
+	}
+	
+	/**
+	 * When we have a UserGroup in the system which has the name that *we* want to
+	 * use under a different principal ID we proceed as follows:
+	 * (1) change the name of the existing user group;
+	 * (2) create the desired group
+	 * (3) update the dependent ResourceAccess, Entity, and Revision objects to the new UserGroup
+	 * (4) delete the original UserGroup
+	 * 
+	 * @param nameMatchingUserGroup
+	 * @param id
+	 * @throws ConflictingUpdateException 
+	 * @throws NotFoundException 
+	 * @throws InvalidModelException 
+	 * @throws DatastoreException 
+	 */
+	private void migrateUserGroup(UserGroup nameMatchingUserGroup, UserGroup srcUserGroup, Progress progress) throws DatastoreException, InvalidModelException, NotFoundException, ConflictingUpdateException {
+		String name = nameMatchingUserGroup.getName();
+		if (!name.equals(srcUserGroup.getName())) throw new IllegalStateException(name+" differs from "+srcUserGroup.getName());
+	
+		// change the name of the existing group
+		nameMatchingUserGroup.setName(nameMatchingUserGroup.getName()+"_"+System.currentTimeMillis());
+		userGroupDAO.update(nameMatchingUserGroup);
+		
+		// create the desired group under the desired ID
+		String id = userGroupDAO.create(srcUserGroup);
+		if (!id.equals(srcUserGroup.getId())) throw new IllegalStateException("srcUserGroup.getId()="+srcUserGroup.getId()+" id="+id);
+		
+		// address foreign key problems
+		backupManager.clearAllData();
+		progress.appendLog("Cleared data to remove foreign key constraints while migrating principals.");
+		
+		// delete the original UserGroup
+		try {
+			deleteUserGroup(nameMatchingUserGroup);
+		} catch (Exception e) {
+			progress.appendLog("Encountered exception deleting user group "+nameMatchingUserGroup.getId()+" "+nameMatchingUserGroup.getName());
+			progress.appendLog(e.getMessage());
+		}
+	}
+
 
 }

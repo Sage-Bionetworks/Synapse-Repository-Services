@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.bootstrap;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.util.List;
 
@@ -48,6 +49,8 @@ public class EntityBootstrapperAutowireTest {
 			String benenefactorId = nodeInheritanceDao.getBenefactor(id);
 			// This node should inherit from itself
 			assertEquals("A bootstrapped node should be its own benefactor",id, benenefactorId);
+			
+			// root nodes don't have ACLs
 			try {
 				AccessControlList acl = accessControlListDAO.getForResource(id);
 				assertNotNull(acl);

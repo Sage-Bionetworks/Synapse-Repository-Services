@@ -37,6 +37,12 @@ public class AuthorizationConstants {
 	public static final String BOOTSTRAP_USER_GROUP_NAME = DEFAULT_GROUPS.BOOTSTRAP_USER_GROUP.name();
 	
 	/**
+	 * BOOTSTRAP group must always have the same ID to allow stack migration
+	 * 
+	 */
+	public static final String BOOTSTRAP_USER_GROUP_ID = "0";
+	
+	/**
 	 * A scheme that describes how an ACL should be applied to an entity.
 	 */
 	public enum ACL_SCHEME{
