@@ -40,10 +40,17 @@ import org.xml.sax.InputSource;
 public class CrowdAuthUtil {
 	private static final Logger log = Logger.getLogger(CrowdAuthUtil.class.getName());
 
-	private static final String CROWD_URL = StackConfiguration.getCrowdEndpoint(); // e.g. https://ec2-50-16-158-220.compute-1.amazonaws.com:8443
-	private static final String API_APPLICATION_KEY = StackConfiguration.getCrowdAPIApplicationKey();
+	// restore the 'final' designations after the 0.12->0.13 migration is complete
+	private static  String CROWD_URL = StackConfiguration.getCrowdEndpoint(); // e.g. https://ec2-50-16-158-220.compute-1.amazonaws.com:8443
+	private static  String API_APPLICATION_KEY = StackConfiguration.getCrowdAPIApplicationKey();
 
 	private static String apiApplication;
+	
+	// remove this after the 0.12->0.13 migration is complete
+	public static void overrideStackConfig(String crowdUrl, String apiApplicationKey) {
+		CROWD_URL = crowdUrl;
+		API_APPLICATION_KEY = apiApplicationKey;
+	}
 
 	static {
 		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 5000);

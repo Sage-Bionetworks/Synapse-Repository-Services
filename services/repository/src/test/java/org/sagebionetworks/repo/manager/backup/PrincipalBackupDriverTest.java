@@ -73,6 +73,13 @@ public class PrincipalBackupDriverTest {
 							if (ug.getId()==null || !groups.containsKey(ug.getId())) throw new RuntimeException("doesn't exist");
 							groups.put(ug.getId(), ug);
 							return null;
+						} else if (method.equals(UserGroupDAO.class.getMethod("findGroup", String.class, Boolean.TYPE))) {
+							String name = (String)args[0];
+							boolean isIndividual = (Boolean)args[1];
+							for (UserGroup ug : groups.values()) {
+								if (ug.getName().equals(name) && ug.getIsIndividual().equals(isIndividual)) return ug;
+							}
+							return null;
 						} else {
 							throw new IllegalArgumentException(method.getName());
 						}

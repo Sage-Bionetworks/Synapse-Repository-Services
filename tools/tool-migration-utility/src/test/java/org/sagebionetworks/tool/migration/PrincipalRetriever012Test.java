@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.zip.ZipInputStream;
 
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -33,9 +34,12 @@ public class PrincipalRetriever012Test {
 			PrincipalRetriever012.writePrincipalBackups(pbs, file);
 			// now see if it can be read back...
 			InputStream in = new FileInputStream(file);
-			InputStreamReader reader = new InputStreamReader(in);
+			ZipInputStream zis = new ZipInputStream(in);
+			assertNotNull(zis.getNextEntry());
+			InputStreamReader reader = new InputStreamReader(zis);
 			XStream xstream = new XStream();
 			Collection<PrincipalBackup> pbs2 = (Collection<PrincipalBackup>)xstream.fromXML(reader);
+			in.close();
 			assertEquals(pbs, pbs2);
 		} finally {
 			if (file!=null) file.delete();

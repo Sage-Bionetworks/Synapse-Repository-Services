@@ -103,7 +103,13 @@ public class MigrationConfigurationImpl implements Configuration {
 					System.getProperty("org.sagebionetworks.source.authentication.endpoint"),
 					System.getProperty("org.sagebionetworks.source.repository.endpoint"),
 					System.getProperty("org.sagebionetworks.source.admin.username"),
-					System.getProperty("org.sagebionetworks.source.admin.password")
+					System.getProperty("org.sagebionetworks.source.admin.password"),
+					System.getProperty("org.sagebionetworks.stack.iam.id"),
+					System.getProperty("org.sagebionetworks.stack.iam.key"),
+					System.getProperty("org.sagebionetworks.shared.s3.backup.bucket"),
+					System.getProperty("org.sagebionetworks.crowd.endpoint"),
+					System.getProperty("org.sagebionetworks.crowdApplicationKey")
+
 				);
 	}
 	
@@ -113,7 +119,12 @@ public class MigrationConfigurationImpl implements Configuration {
 					System.getProperty("org.sagebionetworks.destination.authentication.endpoint"),
 					System.getProperty("org.sagebionetworks.destination.repository.endpoint"),
 					System.getProperty("org.sagebionetworks.destination.admin.username"),
-					System.getProperty("org.sagebionetworks.destination.admin.password")
+					System.getProperty("org.sagebionetworks.destination.admin.password"),
+					System.getProperty("org.sagebionetworks.stack.iam.id"),
+					System.getProperty("org.sagebionetworks.stack.iam.key"),
+					System.getProperty("org.sagebionetworks.shared.s3.backup.bucket"),
+					System.getProperty("org.sagebionetworks.crowd.endpoint"),
+					System.getProperty("org.sagebionetworks.crowdApplicationKey")
 				);
 	}
 	
@@ -131,5 +142,6 @@ public class MigrationConfigurationImpl implements Configuration {
 	public long getWorkerTimeoutMs(){
 		return Long.parseLong(System.getProperty("org.sagebionetworks.worker.thread.timout.ms"));
 	}
+
 	
 }

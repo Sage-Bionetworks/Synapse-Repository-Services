@@ -154,7 +154,12 @@ public class SearchUpdaterConfigurationImpl implements Configuration {
 		return new SynapseConnectionInfo(
 				getAuthenticationServicePrivateEndpoint(),
 				getRepositoryServiceEndpoint(), getSynapseAdminUsername(),
-				getSynapseAdminPassword());
+				getSynapseAdminPassword(),
+				null,
+				null,
+				null,
+				null,
+				null);
 	}
 	@Override
 	public SynapseConnectionInfo getDestinationConnectionInfo() {
