@@ -10,6 +10,7 @@ public class PrefixConst {
 	public final static String ENTITY=		"/entity";
 	public final static String EXPRESSIONDATA = "/expressiondata";
 	public final static String USER_PROFILE	=		"/userProfile";
+	public final static String HEALTHCHECK = "/healthcheck";
 	
 	// Default means a default parent will be chosen.
 	public final static String DEFAULT =		"DEFAULT";

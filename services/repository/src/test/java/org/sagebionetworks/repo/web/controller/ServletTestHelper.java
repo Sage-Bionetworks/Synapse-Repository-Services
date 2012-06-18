@@ -1625,5 +1625,20 @@ public class ServletTestHelper {
 		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), PresignedUrl.class);
 	}
 	
-	
+	public String checkAmznHealth() throws ServletException, IOException {
+		String s = "";
+		
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("HEAD");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.HEALTHCHECK);
+		System.out.println(request.getRequestURL());
+		dispatchServlet.service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		s = response.getContentAsString();
+		return s;
+	}
 }
