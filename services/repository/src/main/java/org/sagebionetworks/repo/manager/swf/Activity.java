@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.swf;
 
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
 import com.amazonaws.services.simpleworkflow.model.ActivityTask;
+import com.amazonaws.services.simpleworkflow.model.ActivityType;
 import com.amazonaws.services.simpleworkflow.model.PollForActivityTaskRequest;
 import com.amazonaws.services.simpleworkflow.model.RegisterActivityTypeRequest;
 
@@ -18,6 +19,12 @@ public interface Activity extends Task {
 	 * @return
 	 */
 	public RegisterActivityTypeRequest getRegisterRequest();
+	
+	/**
+	 * This is used to start an activity of this type.
+	 * @return
+	 */
+	public ActivityType getActivityType();
 	
 	/**
 	 * This method is called when there is work for this activity to perform.

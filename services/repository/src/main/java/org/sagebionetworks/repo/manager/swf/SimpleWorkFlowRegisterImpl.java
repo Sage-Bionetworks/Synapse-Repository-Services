@@ -15,6 +15,7 @@ import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
 import com.amazonaws.services.simpleworkflow.model.DomainAlreadyExistsException;
 import com.amazonaws.services.simpleworkflow.model.RegisterActivityTypeRequest;
 import com.amazonaws.services.simpleworkflow.model.RegisterDomainRequest;
+import com.amazonaws.services.simpleworkflow.model.RegisterWorkflowTypeRequest;
 import com.amazonaws.services.simpleworkflow.model.TypeAlreadyExistsException;
 
 /**
@@ -41,7 +42,7 @@ public class SimpleWorkFlowRegisterImpl implements SimpleWorkFlowRegister {
 	}
 	
 	/**
-	 * This is the flat list of all tasks (Deciders and Activities).
+	 * This is the flat list of all tasks (Decider and Activities).
 	 */
 	List<Task> taskList;
 	
@@ -54,21 +55,25 @@ public class SimpleWorkFlowRegisterImpl implements SimpleWorkFlowRegister {
 		// Look at all of the work flows
 		Set<String> domainSet = new HashSet<String>();
 		List<RegisterActivityTypeRequest> activityTypesToRegister = new LinkedList<RegisterActivityTypeRequest>();
+		List<RegisterWorkflowTypeRequest> workFlowsToRegister = new LinkedList<RegisterWorkflowTypeRequest>();
 		// Build up the list of tasks
 		for(WorkFlow workFlow: workFlowList){
-			// Deciders
-			List<Decider> deciders = workFlow.getDeciderList();
-			// Add all of the deciders for this work flow.
-			taskList.addAll(deciders);
-			for(Decider decider: deciders){
-				// Add this domain to the set
-				if(decider.getDomainName() == null) throw new IllegalArgumentException("Decider "+decider.getClass().getName()+" cannot have a null domainName ");
-				// ensure this domain exists
-				domainSet.add(decider.getDomainName());
-			}
+			// All this to the list.
+			RegisterWorkflowTypeRequest request = workFlow.getWorkFlowTypeRequest();
+			workFlowsToRegister.add(request);
+			// ensure this domain exists
+			domainSet.add(request.getDomain());
+			// Decider
+			Decider decider = workFlow.getDecider();
+			// Add the decider for this work flow.
+			taskList.add(decider);
+			// Add this domain to the set
+			if(decider.getDomainName() == null) throw new IllegalArgumentException("Decider "+decider.getClass().getName()+" cannot have a null domainName ");
+			// ensure this domain exists
+			domainSet.add(decider.getDomainName());
 			// Activities 
 			List<Activity> activities = workFlow.getActivityList();
-			// Add all of these activites to the task list
+			// Add all of these activities to the task list
 			taskList.addAll(activities);
 			for(Activity activity: activities){
 				// Add this domain to the set
@@ -92,6 +97,17 @@ public class SimpleWorkFlowRegisterImpl implements SimpleWorkFlowRegister {
 				log.info("AWS Simple Work Flow domain: "+domainName+" already exists");
 			}
 		}
+		
+		// First register the work flows
+		for(RegisterWorkflowTypeRequest request: workFlowsToRegister){
+			try{
+				simpleWorkFlowClient.registerWorkflowType(request);
+				log.info("Created a new AWS Simple Work Flow : "+request.getName());
+			}catch(TypeAlreadyExistsException e){
+				log.info("AWS Simple Work Flow: "+request.getName()+" already exists");
+			}
+		}
+		
 		// Now register all Activity types.
 		for(RegisterActivityTypeRequest request: activityTypesToRegister){
 			try{

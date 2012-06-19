@@ -3,12 +3,13 @@ package org.sagebionetworks.repo.manager.swf;
 import java.util.List;
 
 import com.amazonaws.services.simpleworkflow.model.RegisterWorkflowTypeRequest;
+import com.amazonaws.services.simpleworkflow.model.WorkflowType;
 
 /**
  * Any work flow should implement this interface.
  * It binds all of the parts of a work flow together,
  * and is used by the SimpleWorkFlowRegister to register
- * the workflow and all of its parts.
+ * the work flow and all of its parts.
  * 
  * @author John
  *
@@ -20,13 +21,19 @@ public interface WorkFlow {
 	 * 
 	 * @return
 	 */
-	public RegisterWorkflowTypeRequest getWorkFlowTypeRequest(String domainName);
+	public RegisterWorkflowTypeRequest getWorkFlowTypeRequest();
 	
 	/**
-	 * Get the list of deciders.
+	 * The type of this work flow.
 	 * @return
 	 */
-	public List<Decider> getDeciderList();
+	public WorkflowType getType();
+	
+	/**
+	 * The decider used by this work flow.
+	 * @return
+	 */
+	public Decider getDecider();
 	
 	/**
 	 * Get the list of Activities.

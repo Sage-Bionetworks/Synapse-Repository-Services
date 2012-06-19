@@ -19,8 +19,10 @@ import org.junit.Test;
 import org.mockito.Matchers;
 import org.mockito.Mockito;
 
+import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
 import com.amazonaws.services.simpleworkflow.model.ActivityTask;
+import com.amazonaws.services.simpleworkflow.model.ActivityType;
 import com.amazonaws.services.simpleworkflow.model.DecisionTask;
 import com.amazonaws.services.simpleworkflow.model.PollForActivityTaskRequest;
 import com.amazonaws.services.simpleworkflow.model.PollForDecisionTaskRequest;
@@ -87,8 +89,6 @@ public class SimpleWorkFlowWatcherTest {
 		ActivityWorker worker = watcher.pollForActivity(stubActivity);
 		// this case should return a null activity.
 		assertNotNull("A new activity should have been created when passed a token", worker);
-		// The activity should not be the same instance passed.
-		assertFalse(stubActivity == worker.activity);
 		assertTrue(worker.activity instanceof StubActivity);
 		StubActivity result = (StubActivity) worker.activity;
 		// run the worker
@@ -115,7 +115,7 @@ public class SimpleWorkFlowWatcherTest {
 		StubDecider stubDecider = new StubDecider();
 		// For this case we have a null token, and therefore should not create an activity.
 		when(mockSWFClient.pollForDecisionTask(any(PollForDecisionTaskRequest.class))).thenReturn(new DecisionTask().withTaskToken(null));
-		DecisionWorker worker = watcher.pollForDecider(stubDecider);
+		DecisionWorker worker = watcher.pollForDecision(stubDecider);
 		// this case should return a null activity.
 		assertEquals("When the taks token is null then the decider should not be called.",null, worker);
 	}
@@ -132,11 +132,9 @@ public class SimpleWorkFlowWatcherTest {
 		String token = "this is a token";
 		DecisionTask decisionTask = new DecisionTask().withTaskToken(token);
 		when(mockSWFClient.pollForDecisionTask(any(PollForDecisionTaskRequest.class))).thenReturn(decisionTask);
-		DecisionWorker worker = watcher.pollForDecider(stubDecider);
+		DecisionWorker worker = watcher.pollForDecision(stubDecider);
 		// this case should return a null activity.
 		assertNotNull("A new decider should have been created when passed a token", worker);
-		// The decider should not be the same instance passed.
-		assertFalse(stubDecider == worker.decider);
 		assertTrue(worker.decider instanceof StubDecider);
 		// Run the worker
 		worker.run();
@@ -268,6 +266,12 @@ public class SimpleWorkFlowWatcherTest {
 			// TODO Auto-generated method stub
 			return null;
 		}
+
+		@Override
+		public ActivityType getActivityType() {
+			// TODO Auto-generated method stub
+			return null;
+		}
 	}
 	
 	/**
@@ -291,12 +295,13 @@ public class SimpleWorkFlowWatcherTest {
 		}
 
 		@Override
-		public void makeDecision(DecisionTask dt,
+		public AmazonWebServiceRequest makeDecision(DecisionTask dt,
 				PollForDecisionTaskRequest pfdtr,
 				AmazonSimpleWorkflowClient simpleWorkFlowClient) {
 			this.task = dt;
 			this.pfdtr = pfdtr;
 			this.simpleWorkFlowClient = simpleWorkFlowClient;
+			return null;
 		}
 
 	}

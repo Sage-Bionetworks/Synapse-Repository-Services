@@ -25,16 +25,35 @@
 		<constructor-arg ref="swfConfig" />
 	</bean>
 
+	<bean id="searchIndexWorkFlow"
+		class="org.sagebionetworks.repo.manager.swf.search.index.SearchIndexWorkFlow">
+		<property name="decider">
+			<bean
+				class="org.sagebionetworks.repo.manager.swf.search.index.SearchIndexDecider" />
+		</property>
+		<property name="activityList">
+			<list>
+				<bean
+					class="org.sagebionetworks.repo.manager.swf.search.index.CreateSearchIndexActivity" />
+			</list>
+		</property>
+	</bean>
+
 	<!-- Does the required SWF registration -->
 	<bean id="swfRegister"
 		class="org.sagebionetworks.repo.manager.swf.SimpleWorkFlowRegisterImpl"
 		init-method="init">
 		<property name="workFlowList">
 			<list>
-				<bean class="org.sagebionetworks.repo.manager.swf.search.index.SearchIndexWorkFlow"/>
+				<ref bean="searchIndexWorkFlow" />
 			</list>
 		</property>
 	</bean>
-	
+
+
+
+	<bean id="workFlowWatcher"
+		class="org.sagebionetworks.repo.manager.swf.SimpleWorkFlowWatcher" />
+
 
 </beans>

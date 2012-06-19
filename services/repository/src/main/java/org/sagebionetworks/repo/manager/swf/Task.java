@@ -4,13 +4,14 @@ import com.amazonaws.services.simpleworkflow.model.TaskList;
 
 /**
  * An abstraction for a task.  Both Decider and Activity extend this interface.
+ * 
  * @author John
  *
  */
 public interface Task {
 	
 	/**
-	 * The task list that this decider works from.
+	 * The task list where events for this task will be pushed and pulled.
 	 * 
 	 * @return
 	 */
