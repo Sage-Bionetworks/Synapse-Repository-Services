@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,7 +27,7 @@ public class SearchUtilTest {
 	}
 	
 	@Test
-	public void generateQueryStringTest() {
+	public void generateQueryStringTest() throws Exception {
 		SearchQuery query = null;
 		String queryStr = null;
 		
@@ -59,6 +60,11 @@ public class SearchUtilTest {
 		kv.setValue("Value2");
 		bqNot.add(kv);
 
+		List<KeyValue> bqSpecialChar = new ArrayList<KeyValue>();
+		kv = new KeyValue();
+		kv.setKey("Facet1");
+		kv.setValue("c:\\dave's_folde,r");
+		bqSpecialChar.add(kv);
 		
 		// null input
 		try {
@@ -81,33 +87,38 @@ public class SearchUtilTest {
 		query = new SearchQuery();
 		query.setQueryTerm(q);
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("q=hello,world", queryStr);
+		assertEquals("q=hello%2Cworld", queryStr);
 
 		// boolean query only
 		query = new SearchQuery();
 		query.setBooleanQuery(bq);
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("bq=Facet1:'Value1'", queryStr);
+		assertEquals("bq=Facet1%3A%27Value1%27", queryStr);
 		
 		// continuous bq
 		query = new SearchQuery();
 		query.setBooleanQuery(bq2);
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("bq=Facet1:..2000", queryStr);
+		assertEquals("bq=Facet1%3A..2000", queryStr);
 		
 		// negated boolean query
 		query = new SearchQuery();
 		query.setBooleanQuery(bqNot);
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("bq=(not Facet1:'Value1')&bq=Facet2:'Value2'", queryStr);
+		assertEquals("bq=%28not+Facet1%3A%27Value1%27%29&bq=Facet2%3A%27Value2%27", queryStr);
 		
+		// special characters in boolean query
+		query = new SearchQuery();
+		query.setBooleanQuery(bqSpecialChar);
+		queryStr = SearchUtil.generateQueryString(query);
+		assertEquals("bq=Facet1%3A%27c%3A%5C%5Cdave%5C%27s_folde%2Cr%27", queryStr);		
 		
 		// Both q and bq
 		query = new SearchQuery();
 		query.setBooleanQuery(bq);
 		query.setQueryTerm(q);
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("q=hello,world&bq=Facet1:'Value1'", queryStr);
+		assertEquals("q=hello%2Cworld&bq=Facet1%3A%27Value1%27", queryStr);
 		
 		// facets
 		query = new SearchQuery();
@@ -118,7 +129,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setFacet(facets);
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("q=hello,world&facet=facet1,facet2", queryStr);
+		assertEquals("q=hello%2Cworld&facet=facet1%2Cfacet2", queryStr);
 
 		// facet field constraints
 		query = new SearchQuery();
@@ -126,15 +137,15 @@ public class SearchUtilTest {
 		List<KeyList> facetFieldConstraints = new ArrayList<KeyList>();
 		KeyList ffc1 = new KeyList();
 		ffc1.setKey("facet1");		
-		ffc1.setValues(Arrays.asList(new String[] { "ffc1v1", "ffc1v2" }));
+		ffc1.setValues(Arrays.asList(new String[] { "one,two\\three", "dave's", "regular" }));
 		facetFieldConstraints.add(ffc1);
 		KeyList ffc2 = new KeyList();
 		ffc2.setKey("facet2");		
-		ffc2.setValues(Arrays.asList(new String[] { "ffc2v1" }));
+		ffc2.setValues(Arrays.asList(new String[] { "123", "4..5" }));
 		facetFieldConstraints.add(ffc2);
 		query.setFacetFieldConstraints(facetFieldConstraints);
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("q=hello,world&facet-facet1-constraints=ffc1v1,ffc1v2&facet-facet2-constraints=ffc2v1", queryStr);
+		assertEquals("q=hello%2Cworld&facet-facet1-constraints=%27one%5C%2Ctwo%5C%5Cthree%27%2C%27dave%5C%27s%27%2C%27regular%27&facet-facet2-constraints=123%2C4..5", queryStr);
 
 		// facet field sort
 		query = new SearchQuery();
@@ -151,7 +162,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setFacetFieldSort(facetFieldSorts);
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("q=hello,world&facet-facet1-sort=alpha", queryStr);
+		assertEquals("q=hello%2Cworld&facet-facet1-sort=alpha", queryStr);
 		
 		fs = new FacetSort();
 		fs.setFacetName("facet2");
@@ -162,7 +173,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setFacetFieldSort(facetFieldSorts);
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("q=hello,world&facet-facet2-sort=count", queryStr);
+		assertEquals("q=hello%2Cworld&facet-facet2-sort=count", queryStr);
 		
 		fs = new FacetSort();
 		fs.setFacetName("facet3");
@@ -174,7 +185,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setFacetFieldSort(facetFieldSorts);
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("q=hello,world&facet-facet3-sort=max(maxfield)", queryStr);
+		assertEquals("q=hello%2Cworld&facet-facet3-sort=max%28maxfield%29", queryStr);
 
 				
 		fs = new FacetSort();
@@ -187,7 +198,7 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setFacetFieldSort(facetFieldSorts);
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("q=hello,world&facet-facet4-sort=sum(sum1,sum2)", queryStr);
+		assertEquals("q=hello%2Cworld&facet-facet4-sort=sum%28sum1%2Csum2%29", queryStr);
 		
 
 		// facet field top N
@@ -208,28 +219,28 @@ public class SearchUtilTest {
 		query.setQueryTerm(q);
 		query.setFacetFieldTopN(topNList);
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("q=hello,world&facet-facet1-top-n=10&facet-facet2-top-n=20", queryStr);
+		assertEquals("q=hello%2Cworld&facet-facet1-top-n=10&facet-facet2-top-n=20", queryStr);
 		
 		// return fields
 		query = new SearchQuery();
 		query.setQueryTerm(q);
 		query.setReturnFields(Arrays.asList(new String[] { "retF1", "retF2" }));
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("q=hello,world&return-fields=retF1,retF2", queryStr);
+		assertEquals("q=hello%2Cworld&return-fields=retF1%2CretF2", queryStr);
 		
 		// size
 		query = new SearchQuery();
 		query.setQueryTerm(q);
 		query.setSize(new Long(100));
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("q=hello,world&size=100", queryStr);
+		assertEquals("q=hello%2Cworld&size=100", queryStr);
 		
 		// start
 		query = new SearchQuery();
 		query.setQueryTerm(q);
 		query.setStart(new Long(10));
 		queryStr = SearchUtil.generateQueryString(query);
-		assertEquals("q=hello,world&start=10", queryStr);		
+		assertEquals("q=hello%2Cworld&start=10", queryStr);		
 		
 	}
 }

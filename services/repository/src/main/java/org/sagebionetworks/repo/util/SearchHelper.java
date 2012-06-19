@@ -6,6 +6,8 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
@@ -31,6 +33,7 @@ public class SearchHelper {
 
 	private static final Logger log = Logger.getLogger(SearchHelper.class
 			.getName());
+	private static final Pattern facetFieldConstraintPattern = Pattern.compile("facet-\\w-constraints");
 
 	/**
 	 * Formulate the boolean query to enforce an access controll list for a
@@ -76,42 +79,46 @@ public class SearchHelper {
 	public static String cleanUpSearchQueries(String query)
 			throws UnsupportedEncodingException {
 
-		// Make sure the url is well-formed so that we can correctly clean it up
-		String decodedQuery = URLDecoder.decode(query, "UTF-8");
-		if (decodedQuery.contains("%") || decodedQuery.contains("+")) {
-			throw new IllegalArgumentException("Query is incorrectly encoded: "
-					+ decodedQuery);
+		// check that query is properly encoded. If there are no '=', then likely it is not escaped properly
+		if (!query.contains("=")) {
+			throw new IllegalArgumentException("Query is incorrectly encoded: " + query);
 		}
 
+		
 		String booleanQuery = "";
 		String escapedQuery = "";
 		int numAndClauses = 0;
-		String splits[] = decodedQuery.split("&");
-		for (int i = 0; i < splits.length; i++) {
-			if (splits[i].startsWith("bq=")) {
-				if (0 < booleanQuery.length()) {
+		for(String matched : query.split("&")) {
+			String[] parts = matched.split("=");
+			if(parts.length != 2) {
+				throw new UnsupportedEncodingException("Query parameter is malformed: "+ matched);
+			}
+			String key = parts[0];
+			String value = URLDecoder.decode(parts[1], "UTF-8");			
+			if ("bq".equals(key)) {
+				if (booleanQuery.length() > 0) {
 					booleanQuery += " ";
 				}
-				String bqValue = splits[i].substring(3);
-				if (0 == bqValue.indexOf("(and ")) {
-					bqValue = bqValue.substring(5, bqValue.length() - 1);
+				if (0 == value.indexOf("(and ")) {
+					value = value.substring(5, value.length() - 1);
 					numAndClauses++;
 				}
-				booleanQuery += bqValue;
+				booleanQuery += value;
 				numAndClauses++;
 			} else {
-				if (0 < escapedQuery.length()) {
+				if (escapedQuery.length() > 0) {
 					escapedQuery += "&";
 				}
-				if (splits[i].startsWith("q=")) {
+				if ("q".equals(key)) {
 					escapedQuery += "q="
 							+ URLEncoder
-									.encode(splits[i].substring(2), "UTF-8");
+									.encode(value, "UTF-8");
 				} else {
-					escapedQuery += splits[i];
+					escapedQuery += matched;
 				}
 			}
-		}
+
+		} 
 
 		if (0 != booleanQuery.length()) {
 			if (1 < numAndClauses) {
@@ -124,5 +131,10 @@ public class SearchHelper {
 			escapedQuery += "bq=" + URLEncoder.encode(booleanQuery, "UTF-8");
 		}
 		return escapedQuery;
+	}
+
+	private static String escapeFacetFieldConstraintCommas(String value) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 }

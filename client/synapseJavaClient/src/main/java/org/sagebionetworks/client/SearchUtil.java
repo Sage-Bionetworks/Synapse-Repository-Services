@@ -1,5 +1,7 @@
 package org.sagebionetworks.client;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -13,7 +15,7 @@ import com.amazonaws.services.cloudfront.model.InvalidArgumentException;
 
 public class SearchUtil {
 
-	public static String generateQueryString(SearchQuery searchQuery) {
+	public static String generateQueryString(SearchQuery searchQuery) throws UnsupportedEncodingException {
 		if (searchQuery == null) {
 			throw new InvalidArgumentException("No search query was provided.");
 		}
@@ -30,32 +32,44 @@ public class SearchUtil {
 
 		// query terms
 		if (q != null && q.size() > 0)
-			params.add("q=" + join(q, ","));
+			params.add("q=" + URLEncoder.encode(join(q, ","), "UTF-8"));
 
 		// boolean query
 		if (bq != null && bq.size() > 0) {
 			for (KeyValue pair : bq) {
 				// this regex is pretty lame to have. need to work continuous into KeyValue model
 				String value = pair.getValue().contains("..") ? pair.getValue()
-						: "'" + pair.getValue() + "'";
+						: "'" + escapeQuotedValue(pair.getValue()) + "'";
 				String term = pair.getKey() + ":" + value; 
 				if(pair.getNot() != null && pair.getNot()) {
 					term = "(not " + term + ")";
 				}
-				params.add("bq=" + term);
+				params.add("bq=" + URLEncoder.encode(term, "UTF-8"));
 			}
 		}
 
 		// facets
 		if (searchQuery.getFacet() != null && searchQuery.getFacet().size() > 0)
-			params.add("facet=" + join(searchQuery.getFacet(), ","));
+			params.add("facet=" + URLEncoder.encode(join(searchQuery.getFacet(), ","), "UTF-8"));
 
 		// facet field constraints
 		if (searchQuery.getFacetFieldConstraints() != null
 				&& searchQuery.getFacetFieldConstraints().size() > 0) {
 			for (KeyList pair : searchQuery.getFacetFieldConstraints()) {
 				String key = "facet-" + pair.getKey() + "-constraints";
-				params.add(key + "=" + join(pair.getValues(), ","));
+				
+				// quote and escape strings but not numbers or ranges
+				List<String> values = new ArrayList<String>();
+				for(String value : pair.getValues()) {
+					if(!value.contains("..") && !isNumeric(value)) {
+						value = "'" + escapeQuotedValue(value) + "'";
+						value = value.replaceAll(",","\\\\,"); // replace , -> \,  -- do this after the escapeQuotedValue
+						values.add(value);
+					} else {
+						values.add(value);
+					}
+				}
+				params.add(key + "=" + URLEncoder.encode(join(values, ","), "UTF-8"));
 			}
 		}
 
@@ -97,7 +111,7 @@ public class SearchUtil {
 							"Unknown Facet Field Sort: "
 									+ facetSort.getSortType());
 				}
-				params.add(key + "=" + value);
+				params.add(key + "=" + URLEncoder.encode(value, "UTF-8"));
 			}
 		}
 
@@ -112,13 +126,13 @@ public class SearchUtil {
 
 		// rank
 		if (searchQuery.getRank() != null && searchQuery.getRank().size() > 0)
-			params.add("rank=" + join(searchQuery.getRank(), ","));
+			params.add("rank=" + URLEncoder.encode(join(searchQuery.getRank(), ","), "UTF-8"));
 
 		// return-fields
 		if (searchQuery.getReturnFields() != null
 				&& searchQuery.getReturnFields().size() > 0)
 			params.add("return-fields="
-					+ join(searchQuery.getReturnFields(), ","));
+					+ URLEncoder.encode(join(searchQuery.getReturnFields(), ","), "UTF-8"));
 
 		// size
 		if (searchQuery.getSize() != null)
@@ -149,4 +163,19 @@ public class SearchUtil {
 		return str;
 	}
 
+	private static String escapeQuotedValue(String value) {
+		value = value.replaceAll("\\\\", "\\\\\\\\"); // replace \ -> \\
+		value = value.replaceAll("'", "\\\\'"); // replace ' -> \'
+		return value;
+	}
+	
+	private static boolean isNumeric(String str) {
+		try {
+			double d = Double.parseDouble(str);
+		} catch (NumberFormatException nfe) {
+			return false;
+		}
+		return true;
+	}
+	
 }

@@ -4,8 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+import org.apache.commons.lang.StringEscapeUtils;
 import org.junit.Test;
 
 /**
@@ -44,7 +50,7 @@ public class SearchHelperTest {
 
 		try {
 			SearchHelper
-					.cleanUpSearchQueries("q=prostate%2Bcancer&return-fields=name,id&facet=node_type,disease,species");
+					.cleanUpSearchQueries("q%3Dprostate%252Bcancer");
 			fail("fail");
 		} catch (IllegalArgumentException e) {
 			assertTrue(e.getMessage()
@@ -52,6 +58,18 @@ public class SearchHelperTest {
 		}
 	}
 
+	@Test
+	public void testCleanUpSearchQueriesInvalidArgument() throws Exception {
+		try {
+			SearchHelper
+					.cleanUpSearchQueries("q=");
+			fail("fail");
+		} catch (UnsupportedEncodingException e) {
+			assertTrue(e.getMessage()
+					.startsWith("Query parameter is malformed"));
+		}		
+	}
+	
 	/**
 	 * @throws Exception
 	 */
@@ -162,26 +180,14 @@ public class SearchHelperTest {
 				SearchHelper
 						.cleanUpSearchQueries("bq=(or acl:'PUBLIC' acl:'AUTHENTICATED_USERS' acl:'nicole.deflaux@gmail.com')&bq=node_type:'dataset'&bq=created_by:'matt.furia@sagebase.org'&return-fields=name,id&facet=node_type,disease,species"));
 
+
+		// fun characters inside values
+		assertEquals("q=dave&bq=some_key%3A%27one%26two%27", SearchHelper
+				.cleanUpSearchQueries("bq="+ URLEncoder.encode("some_key:'one&two'", "UTF-8") + "&q=" + URLEncoder.encode("dave", "UTF-8")));
+
+
 	}
+	
 
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testBooleanQueryEncodedTooManyTimes() throws Exception {
-
-		// Note that we are already skipping one level of encoding here because
-		// the spring stuff does the first decode, but these tests do not
-		// exercise that logic so the query below is only double-encoded to test
-		// the triple encoding case
-
-		try {
-			SearchHelper
-					.cleanUpSearchQueries("q=prostate&return-fields=name&bq=node_type%253a%2527dataset%2527%0d%0a");
-			fail("fail");
-		} catch (IllegalArgumentException e) {
-			assertTrue(e.getMessage()
-					.startsWith("Query is incorrectly encoded"));
-		}
-	}
+	
 }

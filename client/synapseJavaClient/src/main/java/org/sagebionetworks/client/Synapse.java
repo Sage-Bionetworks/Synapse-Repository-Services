@@ -1540,7 +1540,7 @@ public class Synapse {
 	
 	public SearchResults search(SearchQuery searchQuery) throws SynapseException, UnsupportedEncodingException, JSONObjectAdapterException {
 		SearchResults searchResults = null;		
-		String uri = "/search?q=" + URLEncoder.encode(SearchUtil.generateQueryString(searchQuery), "UTF8");
+		String uri = "/search?q=" + URLEncoder.encode(SearchUtil.generateQueryString(searchQuery), "UTF-8");
 		JSONObject obj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
 		if(obj != null) {
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(obj);
