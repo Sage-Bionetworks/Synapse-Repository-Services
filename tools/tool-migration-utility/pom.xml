@@ -4,11 +4,11 @@
 	<parent>
 		<artifactId>tools</artifactId>
 		<groupId>org.sagebionetworks</groupId>
-		<version>0.13.8-SNAPSHOT</version>
+		<version>1.0.0</version>
 	</parent>
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>tool-migration-utility</artifactId>
-	<version>0.13.8-SNAPSHOT</version>
+	<version>1.0.0</version>
 	<packaging>jar</packaging>
 	<name>tool-migration-utility</name>
 	<description>A Utility for migrating Synapse data from one stack to another</description>
@@ -29,7 +29,7 @@
 			<artifactId>xstream</artifactId>
 			<version>${xstream.version}</version>
 		</dependency>
- 
+
         <!-- Only the search updater uses this, remove it once the search updater is migrated to SWF -->
         <dependency>
             <groupId>org.sagebionetworks</groupId>
