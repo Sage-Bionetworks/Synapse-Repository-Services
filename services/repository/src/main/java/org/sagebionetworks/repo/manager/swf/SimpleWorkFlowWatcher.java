@@ -138,27 +138,38 @@ public class SimpleWorkFlowWatcher {
 	}
 
 	/**
-	 * Make an asynchronous poll for either an activity or decider.
-	 * 
-	 * @param task
-	 * @return
+	 * This is a non-blocking method for polling for a Task. When a task token is
+	 * returned from   The resulting Future
+	 * can be used to determine if the polling has finished.  When polling generates
+	 * a task token a worker will be created and run on separate thread.
+	 * @param task - The task to poll for.
+	 * @return The returned future can be used to determine when polling has finished.
+	 * Note: When Future.isDone() returns true, you know it has finished polling, and 
+	 * possible started a worker on another thread.  The worker could still be running
+	 * after the resulting Future.isDone() returns true.
 	 */
-	protected Future<Void> pollForTask(final Task task) {
+	public Future<Void> pollForTask(final Task task) {
 		Future<Void> future;
 		future = executors.submit(new Callable<Void>() {
 			@Override
 			public Void call() throws Exception {
+				Runnable worker = null;
 				// This will either be a decider or activity
 				if(task instanceof Decider){
 					// This is a decider
 					Decider decider = (Decider) task;
-					pollForDecider(decider);
+					worker = pollForDecision(decider);
 				}else if(task instanceof Activity){
 					// This is an activity.
 					Activity activity = (Activity) task;
-					pollForActivity(activity);
+					worker = pollForActivity(activity);
 				}else{
 					throw new IllegalArgumentException("Unknown task type: "+task.getClass().getName());
+				}
+				// If a worker was produced then we need to run it
+				if(worker != null){
+					// Schedule the worker
+					executors.execute(worker);
 				}
 				// done
 				return null;
@@ -168,13 +179,17 @@ public class SimpleWorkFlowWatcher {
 	}
 	
 	/**
-	 * Poll for a decider.
-	 * @param key
-	 * @param decider
+	 * This method will block while polling SWF for the given decider. If SWF returns a task
+	 * token then a worker will be created to handle the decision.  This method will not
+	 * run the worker!  It is up to the caller to actually run the worker.
+	 * @param decider - The TaksList and domain name are used to poll SWF for a decision.
+	 * @return If SWF returns a task token then a worker will be created to handle the decision.
+	 * This method will not run the worker!  If a token was not returned from the polling, then null will
+	 * be returned.
 	 * @throws InstantiationException
 	 * @throws IllegalAccessException
 	 */
-	protected DecisionWorker pollForDecider(Decider decider)throws InstantiationException, IllegalAccessException {
+	public DecisionWorker pollForDecision(Decider decider)throws InstantiationException, IllegalAccessException {
 		// The ID is a combination of the address, process id and thread id.
 		String key = getAddressProcessIdThreadId();
 		PollForDecisionTaskRequest pfdtr = new PollForDecisionTaskRequest();
@@ -186,11 +201,8 @@ public class SimpleWorkFlowWatcher {
 			if(log.isTraceEnabled()){
 				log.trace("Long poll for decider: "+decider.getClass().getName()+" return a task token:"+dt.getTaskToken()+", starting decider");
 			}
-			// Let the decider use this thread to work
-			DecisionWorker worker = new DecisionWorker(decider.getClass().newInstance(), dt, pfdtr, simpleWorkFlowClient);
-			// Do the work on another thread.
-			executors.submit(worker);
-			return worker;
+			// Create a worker to make a decision.
+			return new DecisionWorker(decider, dt, pfdtr, simpleWorkFlowClient);
 		}else{
 			if(log.isTraceEnabled()){
 				log.trace("Long poll for decider: "+decider.getClass().getName()+" return null task token.  Not decisions needed.");
@@ -201,10 +213,16 @@ public class SimpleWorkFlowWatcher {
 
 	}
 	
+
 	/**
-	 * Poll for a decider.
-	 * @param key
-	 * @param decider
+	 * This method will block while polling SWF for the given activity. If SWF returns a task
+	 * token then a worker will be created to handle the activity.  This method will not
+	 * run the worker!  It is up to the caller to actually run the worker.
+	 * 
+	 * @param activity - The activity to poll for.  The activity task list will be used for polling SWF.
+	 * @return If SWF returns a task token then a worker will be created to handle the activity.
+	 * This method will not run the worker!  If a token was not returned from the polling, then null will
+	 * be returned.
 	 * @throws InstantiationException
 	 * @throws IllegalAccessException
 	 */
@@ -220,12 +238,8 @@ public class SimpleWorkFlowWatcher {
 			if(log.isTraceEnabled()){
 				log.trace("Long poll for activity: "+activity.getClass().getName()+" return a task token:"+at.getTaskToken()+", starting decider");
 			}
-			// Let the activity use this thread to work
-			Activity instance = activity.getClass().newInstance();
-			ActivityWorker worker = new ActivityWorker(instance, at, pfatr, simpleWorkFlowClient);
-			// Do the work on another thread.
-			executors.submit(worker);
-			return worker;
+			// Create the worker that will handle the activity.
+			return new ActivityWorker(activity, at, pfatr, simpleWorkFlowClient);
 		}else{
 			if(log.isTraceEnabled()){
 				log.trace("Long poll for activity: "+activity.getClass().getName()+" return null task token.  Not activity work needed.");

@@ -1,10 +1,13 @@
 package org.sagebionetworks.repo.manager.swf.search.index;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.swf.Activity;
 
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
 import com.amazonaws.services.simpleworkflow.model.ActivityTask;
+import com.amazonaws.services.simpleworkflow.model.ActivityType;
 import com.amazonaws.services.simpleworkflow.model.PollForActivityTaskRequest;
 import com.amazonaws.services.simpleworkflow.model.RegisterActivityTypeRequest;
 import com.amazonaws.services.simpleworkflow.model.TaskList;
@@ -17,12 +20,11 @@ import com.amazonaws.services.simpleworkflow.model.TaskList;
  */
 public class CreateSearchIndexActivity implements Activity {
 	
-	public static final String VERSION = "1.0";
+	static private Log log = LogFactory.getLog(CreateSearchIndexActivity.class);
 
 	@Override
 	public TaskList getTaskList() {
-		// TODO Auto-generated method stub
-		return new TaskList().withName(CreateSearchIndexActivity.class.getName()+"-"+VERSION);
+		return new TaskList().withName(CreateSearchIndexActivity.class.getName()+"-"+SearchIndexWorkFlow.VERSION);
 	}
 
 	@Override
@@ -34,7 +36,10 @@ public class CreateSearchIndexActivity implements Activity {
 	@Override
 	public void doWork(ActivityTask task, PollForActivityTaskRequest pfdar,
 			AmazonSimpleWorkflowClient simpleWorkFlowClient) {
-		// TODO Auto-generated method stub
+		// First create Connect to Cloud search client
+		if(log.isDebugEnabled()){
+			log.debug("doWork() "+task);
+		}
 
 	}
 
@@ -42,11 +47,18 @@ public class CreateSearchIndexActivity implements Activity {
 	public RegisterActivityTypeRequest getRegisterRequest() {
 		RegisterActivityTypeRequest request = new RegisterActivityTypeRequest();
 		request.setDomain(getDomainName());
-		request.setName(CreateSearchIndexActivity.class.getName());
-		request.setVersion(VERSION);
+		ActivityType type = getActivityType();
+		request.setName(type.getName());
+		request.setVersion(type.getVersion());
 		request.setDefaultTaskList(getTaskList());
 		request.setDescription("An Activity that will create a new AWS Search Index");
 		return request;
+	}
+
+	@Override
+	public ActivityType getActivityType() {
+		return new ActivityType().withName(CreateSearchIndexActivity.class.getName()).withVersion(SearchIndexWorkFlow.VERSION);
+		
 	}
 
 }

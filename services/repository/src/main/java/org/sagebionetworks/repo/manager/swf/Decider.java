@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.swf;
 
+import com.amazonaws.AmazonWebServiceRequest;
 import com.amazonaws.services.simpleworkflow.AmazonSimpleWorkflowClient;
 import com.amazonaws.services.simpleworkflow.model.DecisionTask;
 import com.amazonaws.services.simpleworkflow.model.PollForDecisionTaskRequest;
@@ -23,7 +24,8 @@ public interface Decider extends Task {
 	 * @param dt - The results from the last poll.
 	 * @param pfdtr - The request used to generate the DecisionTask parameter.
 	 * @param simpleWorkFlowClient - The AmazonSimpleWorkflowClient need to get more pages, make decisions, and close workflows.
+	 * @return - Used by tests to determine what determine what decision was made.
 	 */
-	public void makeDecision(DecisionTask dt, PollForDecisionTaskRequest pfdtr,	AmazonSimpleWorkflowClient simpleWorkFlowClient);
+	public AmazonWebServiceRequest makeDecision(DecisionTask dt, PollForDecisionTaskRequest pfdtr,	AmazonSimpleWorkflowClient simpleWorkFlowClient);
 
 }
