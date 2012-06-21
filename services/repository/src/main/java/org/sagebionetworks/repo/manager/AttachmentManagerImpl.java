@@ -196,8 +196,8 @@ public class AttachmentManagerImpl implements AttachmentManager{
 	static boolean isPreviewType(String fileName){
 		if(fileName == null) return false;
 		String[] split = fileName.split("\\.");
-		if(split.length != 2) return false;
-		return IMAGE_TYPES.contains(split[1].toUpperCase());
+		String fileExt = split[split.length - 1];
+		return IMAGE_TYPES.contains(fileExt.toUpperCase());
 	}
 
 }
