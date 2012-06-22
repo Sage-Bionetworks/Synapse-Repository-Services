@@ -50,6 +50,9 @@ public class AttachmentManagerUnitTest {
 				"six.png",
 				"seven.png",
 				"eight.wbmp",
+				"ni.ne.jpg",
+				"t..en.GiF",
+				".eleven.png"
 		};
 		// All of these type should be true
 		for(String name: validName){
@@ -66,8 +69,9 @@ public class AttachmentManagerUnitTest {
 				"four.zip",
 				"five",
 				"six.tar",
+				"se.ven.ppt"
 		};
-		// All of these type should be true
+		// All of these type should be false
 		for(String name: notImageName){
 			assertFalse("This is not a valid image name: "+name, AttachmentManagerImpl.isPreviewType(name));
 		}
