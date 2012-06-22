@@ -63,24 +63,6 @@ public class UserProfileUtilsTest {
 		assertEquals(dto, dto2);
 	}
 
-	@Test
-	public void testAnnotationsRoundtrip() throws Exception {
-		UserProfile dto = new UserProfile();
-		dto.setOwnerId("101");
-		dto.setFirstName("foo");
-		dto.setLastName("bar");
-		dto.setRStudioUrl("http://rstudio.com");
-		dto.setDisplayName("foo bar");
-		dto.setEtag("0");
 
-		String jsonString = (String) UserProfile.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
-		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
-		NamedAnnotations na = UserProfileUtils.mapDtoFieldsToAnnotations(dto, schema);
-		
-		UserProfile dto2 = new UserProfile();
-		UserProfileUtils.mapAnnotationsToDtoFields(na, dto2, schema);
-
-		assertEquals(dto, dto2);
-	}
 
 }

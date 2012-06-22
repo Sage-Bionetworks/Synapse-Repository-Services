@@ -1,0 +1,11 @@
+{
+    "title":"Terms of Use Requirement Parameters",
+    "description":"JSON schema for Terms of Use Requirement Parameters, used for a 'tier 2' Access Requirement",
+    "properties":{
+        "termsOfUse":{
+            "type":"string",
+            "description":"Terms Of Use for Access",
+            "title":"Terms Of Use"
+        },
+    }
+}
