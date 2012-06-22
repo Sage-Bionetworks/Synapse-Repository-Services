@@ -15,18 +15,10 @@
             "type":"array",
             "uniqueItems":true,
             "items":{
-                "type":"string",
+                "type":"object",
                 "description":"The status of this URL",
                 "name":"ACCESS_TYPE",
-                "id":"org.sagebionetworks.repo.model.ACCESS_TYPE",
-                "enum":[
-                    "CREATE",
-                    "READ",
-                    "UPDATE",
-                    "DELETE",
-                    "CHANGE_PERMISSIONS",
-                    "DOWNLOAD"
-                ]
+                "$ref":"org.sagebionetworks.repo.model.ACCESS_TYPE",
             }
         }
     }

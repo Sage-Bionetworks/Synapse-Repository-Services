@@ -1,0 +1,64 @@
+{
+    "title":"Access Requirement",
+    "description":"JSON schema for AccessRequirement POJO",
+ 	"properties":{
+        "id":{
+            "type":"integer",
+            "description":"The unique immutable ID",
+            "transient":true,
+        },
+        "uri":{
+            "type":"string",
+            "description":"The Uniform Resource Identifier (URI) for this object.",
+            "transient":true,  
+        },
+        "etag":{
+            "type":"string",
+            "description":"Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an object is out-of-date.",
+            "transient":true,
+        },
+        "createdOn":{
+            "type":"string",
+            "format":"date-time",
+            "description":"The date this object was created.",
+            "title":"Created On",
+            "transient":true,
+        },
+        "modifiedOn":{
+            "type":"string",
+            "format":"date-time",
+            "description":"The date this object was last modified.",
+            "title":"Modified On",
+            "transient":true,
+        },
+        "createdBy":{
+            "type":"string",
+            "description":"The user that created this object.",
+            "title":"Created By",
+            "transient":true,
+        },
+        "modifiedBy":{
+            "type":"string",
+            "description":"The user that last modified this object.",
+            "title":"Modified By",
+            "transient":true,
+        },
+        "entityId":{
+            "type":"string",
+            "description":"The ID of the entity controlled by this Access Requirement.",
+            "transient":true,
+        },
+        "accessType":{
+                "type":"object",
+                "description":"The type of access granted when this access requirement is met.",
+                "name":"AccessType",
+                "$ref":"org.sagebionetworks.repo.model.ACCESS_TYPE"
+        },
+        "accessRequirementType":{
+                "type":"object",
+                "description":"The type of access requirement",
+                "name":"AccessRequirementType",
+                "$ref":"org.sagebionetworks.repo.model.AccessRequirementType"
+        }
+     }
+}       
