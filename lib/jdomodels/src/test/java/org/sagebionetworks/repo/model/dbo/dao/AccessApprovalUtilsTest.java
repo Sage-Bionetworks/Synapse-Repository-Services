@@ -7,6 +7,7 @@ import java.util.Date;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -15,7 +16,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 public class AccessApprovalUtilsTest {
 
 	private static AccessApproval createDTO() {
-		AccessApproval dto = new AccessApproval();
+		AccessApproval dto = new TermsOfUseAccessApproval();
 		dto.setId(101L);
 		dto.setEtag("0");
 		dto.setCreatedBy("555");
@@ -37,7 +38,7 @@ public class AccessApprovalUtilsTest {
 		String jsonString = (String) AccessApproval.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
 		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
-		AccessApproval dto2 = new AccessApproval();
+		AccessApproval dto2 = new TermsOfUseAccessApproval();
 		AccessApprovalUtils.copyDboToDto(dbo, dto2);
 		assertEquals(dto, dto2);
 	}
@@ -60,7 +61,7 @@ public class AccessApprovalUtilsTest {
 		String jsonString = (String) AccessApproval.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
 		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
-		AccessApproval dto2 = new AccessApproval();
+		AccessApproval dto2 = new TermsOfUseAccessApproval();
 		AccessApprovalUtils.copyDboToDto(dbo, dto2);
 		assertEquals(dto, dto2);
 	}

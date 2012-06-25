@@ -1,0 +1,15 @@
+{
+    "title":"Terms of Use Access Requirement",
+    "description":"JSON schema for Terms of Use Access Requirement, used for a 'tier 2' Access Requirement",
+     "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.AccessRequirement"
+        }
+    ],
+    "properties":{
+    	"parameters":{
+    		"type":"object",
+    		"$ref":"org.sagebionetworks.repo.model.TermsOfUseRequirementParameters"
+    	}
+    }
+}

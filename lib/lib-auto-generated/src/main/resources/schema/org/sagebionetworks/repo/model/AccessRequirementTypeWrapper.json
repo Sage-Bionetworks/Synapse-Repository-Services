@@ -1,0 +1,11 @@
+{
+    "description":"a class to wrap the type field of AccessRequirement",
+ 	"properties":{
+		"accessRequirementType":{
+                "type":"object",
+                "description":"The type of access requirement",
+                "name":"AccessRequirementType",
+                "$ref":"org.sagebionetworks.repo.model.AccessRequirementType"
+        }
+     }
+}       

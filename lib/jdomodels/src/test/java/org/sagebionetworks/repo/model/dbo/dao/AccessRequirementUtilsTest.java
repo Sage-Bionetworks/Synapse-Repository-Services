@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementType;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -16,7 +17,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 public class AccessRequirementUtilsTest {
 
 	private static AccessRequirement createDTO() {
-		AccessRequirement dto = new AccessRequirement();
+		AccessRequirement dto = new TermsOfUseAccessRequirement();
 		dto.setId(101L);
 		dto.setEtag("0");
 		dto.setEntityId("syn999");
@@ -37,7 +38,7 @@ public class AccessRequirementUtilsTest {
 		String jsonString = (String) AccessRequirement.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
 		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		AccessRequirement dto2 = new AccessRequirement();
+		AccessRequirement dto2 = new TermsOfUseAccessRequirement();
 		AccessRequirementUtils.copyDboToDto(dbo, dto2);
 		assertEquals(dto, dto2);
 	}
@@ -60,7 +61,7 @@ public class AccessRequirementUtilsTest {
 		String jsonString = (String) AccessRequirement.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
 		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		AccessRequirement dto2 = new AccessRequirement();
+		AccessRequirement dto2 = new TermsOfUseAccessRequirement();
 		AccessRequirementUtils.copyDboToDto(dbo, dto2);
 		assertEquals(dto, dto2);
 	}

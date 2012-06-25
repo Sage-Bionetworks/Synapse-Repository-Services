@@ -2,27 +2,12 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.util.Date;
 
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessApprovalType;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 import org.sagebionetworks.schema.ObjectSchema;
 
-
-/*
-	private Long id;
-	private Long eTag = 0L;
-	private Long createdBy;
-	private Date createdOn;
-	private Long modifiedBy;
-	private Date modifiedOn;
-	private Long requirementId;
-	private Long accessorId;
-	private AccessApprovalType approvalType;
-	private byte[] approvalParameters;
- */
 public class AccessApprovalUtils {
 	
 	public static void copyDtoToDbo(AccessApproval dto, DBOAccessApproval dbo) throws DatastoreException{
@@ -43,13 +28,16 @@ public class AccessApprovalUtils {
 		dbo.setRequirementId(dto.getRequirementId());
 		dbo.setAccessorId(Long.parseLong(dto.getAccessorId()));
 		dbo.setApprovalType(dto.getApprovalType().name());
+		copyAccessApprovalParamsDtoToDbo(dto, dbo);
 	}
 	
-	public static void copyAccessApprovalParamsDtoToDbo(Object paramsDto, DBOAccessApproval dbo, ObjectSchema schema) throws DatastoreException {
-		dbo.setApprovalParameters(SchemaSerializationUtils.mapDtoFieldsToAnnotations(paramsDto, schema));
+	public static void copyAccessApprovalParamsDtoToDbo(AccessApproval dto, DBOAccessApproval dbo) throws DatastoreException {
+		Object params = SchemaSerializationUtils.getParamsField(dto);
+		ObjectSchema schema = SchemaSerializationUtils.getParamsSchema(dto);
+		dbo.setApprovalParameters(SchemaSerializationUtils.mapDtoFieldsToAnnotations(params, schema));
 	}
 	
-	public static void copyDboToDto(DBOAccessApproval dbo, AccessApproval dto) {
+	public static void copyDboToDto(DBOAccessApproval dbo, AccessApproval dto) throws DatastoreException {
 		if (dbo.getId()==null) {
 			dto.setId(null);
 		} else {
@@ -67,10 +55,13 @@ public class AccessApprovalUtils {
 		dto.setRequirementId(dbo.getRequirementId());
 		dto.setAccessorId(dbo.getAccessorId().toString());
 		dto.setApprovalType(AccessApprovalType.valueOf(dbo.getApprovalType()));
+		copyApprovalParamsDboToDto(dbo, dto);
 	}
 	
-	public static void copyApprovalParamsDboToDto(DBOAccessApproval dbo, Object paramsDto, ObjectSchema schema) throws DatastoreException {
-		SchemaSerializationUtils.mapAnnotationsToDtoFields(dbo.getApprovalParameters(), paramsDto, schema);
+	public static void copyApprovalParamsDboToDto(DBOAccessApproval dbo, AccessApproval dto) throws DatastoreException {
+		Object params = SchemaSerializationUtils.setParamsField(dto);
+		ObjectSchema schema = SchemaSerializationUtils.getParamsSchema(dto);
+		SchemaSerializationUtils.mapAnnotationsToDtoFields(dbo.getApprovalParameters(), params, schema);
 	}
 	
 }

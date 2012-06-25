@@ -22,6 +22,9 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.TermsOfUseApprovalParameters;
 import org.sagebionetworks.repo.model.TermsOfUseRequirementParameters;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -86,11 +89,11 @@ public class DBOAccessApprovalDAOImplTest {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
 			node.setId( nodeDAO.createNew(node) );
 		};
-		accessRequirement = new AccessRequirement();
+		accessRequirement = new TermsOfUseAccessRequirement();
 		AccessRequirementUtils.copyDboToDto(DBOAccessRequirementTest.newAccessRequirement(individualGroup, node), accessRequirement);
-		String id = accessRequirementDAO.create(accessRequirement);
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		Long id = accessRequirement.getId();
 		assertNotNull(id);
-		accessRequirement.setId(Long.parseLong(id)); 
 	}
 		
 	
@@ -115,7 +118,7 @@ public class DBOAccessApprovalDAOImplTest {
 	@Test
 	public void testCRUD() throws Exception{
 		// Create a new object
-		accessApproval = new AccessApproval();
+		accessApproval = new TermsOfUseAccessApproval();
 		{
 			DBOAccessRequirement dboAccessRequirement = new DBOAccessRequirement();
 			dboAccessRequirement.setId(accessRequirement.getId()); // only need to set id, for the following ussage
@@ -123,50 +126,46 @@ public class DBOAccessApprovalDAOImplTest {
 		}
 		
 		// Create it
-		String id = accessApprovalDAO.create(accessApproval);
+		accessApproval = accessApprovalDAO.create(accessApproval);
+		String id = accessApproval.getId().toString();
 		assertNotNull(id);
-		accessApproval.setId(Long.parseLong(id)); // for the sake of comparing to 'clone'
 		
 		// Fetch it
 		AccessApproval clone = accessApprovalDAO.get(id);
 		assertNotNull(clone);
 		assertEquals(accessApproval, clone);
 		
-		// set the parameters field
-		Object params = newParametersObject();
-		accessApprovalDAO.setAccessApprovalParameters(id, clone.getEtag(), params, schema);
-		// this will increment the etag...
-		
+//		// set the parameters field
+//		Object params = newParametersObject();
+//		accessApprovalDAO.setAccessApprovalParameters(id, clone.getEtag(), params, schema);
+//		// this will increment the etag...
+//		
 		// Get by Node Id
 		Collection<AccessApproval> ars = accessApprovalDAO.getForAccessRequirementsAndPrincipals(
 				Arrays.asList(new String[]{accessRequirement.getId().toString()}), 
 				Arrays.asList(new String[]{individualGroup.getId().toString()}));
 		assertEquals(1, ars.size());
-		// ... so we now have to increment etag to make the comparison work
-		accessApproval.setEtag(""+(1L+Long.parseLong(accessApproval.getEtag())));
+//		// ... so we now have to increment etag to make the comparison work
+//		accessApproval.setEtag(""+(1L+Long.parseLong(accessApproval.getEtag())));
 		assertEquals(accessApproval, ars.iterator().next());
 
 		// update it
 		clone = ars.iterator().next();
-		clone.setApprovalType(AccessApprovalType.ACT_Approval);
+		TermsOfUseApprovalParameters modParams = new TermsOfUseApprovalParameters();
+		modParams.setPlaceholder("mod value: "+System.currentTimeMillis());
+		((TermsOfUseAccessApproval)clone).setParameters(modParams);
 		AccessApproval updatedAA = accessApprovalDAO.update(clone);
-		assertEquals(clone.getApprovalType(), updatedAA.getApprovalType());
+		assertEquals(((TermsOfUseAccessApproval)clone).getParameters(), ((TermsOfUseAccessApproval)updatedAA).getParameters());
 
 		assertTrue("etags should be incremented after an update", !clone.getEtag().equals(updatedAA.getEtag()));
 
 		try {
-			clone.setApprovalType(AccessApprovalType.ACT_Approval);
 			accessApprovalDAO.update(clone);
 			fail("conflicting update exception not thrown");
 		}
 		catch(ConflictingUpdateException e){
 			// We expected this exception
 		}	
-		
-		// get the parameters field
-		Object paramsClone = newParametersObject();
-		accessApprovalDAO.getAccessApprovalParameters(id, paramsClone, schema);
-		assertEquals(params, paramsClone);
 		
 		// Delete it
 		accessApprovalDAO.delete(id);

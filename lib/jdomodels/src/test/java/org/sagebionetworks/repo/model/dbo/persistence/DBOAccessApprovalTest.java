@@ -14,10 +14,15 @@ import org.sagebionetworks.repo.model.AccessApprovalType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.TermsOfUseApprovalParameters;
+import org.sagebionetworks.repo.model.TermsOfUseRequirementParameters;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.dao.SchemaSerializationUtils;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -108,7 +113,12 @@ public class DBOAccessApprovalTest {
 		accessApproval.setAccessorId(Long.parseLong(principal.getId()));
 		accessApproval.setRequirementId(ar.getId());
 		accessApproval.setApprovalType(AccessApprovalType.TOU_Agreement.toString());
-		accessApproval.setApprovalParameters("My dog has fleas.".getBytes());
+		TermsOfUseApprovalParameters parameters = new TermsOfUseApprovalParameters();
+		parameters.setPlaceholder("my dog has fleas.");
+		ObjectSchema schema = SchemaCache.getSchema(parameters);
+		accessApproval.setApprovalParameters(
+			SchemaSerializationUtils.mapDtoFieldsToAnnotations(parameters, schema)
+		);
 		return accessApproval;
 	}
 	

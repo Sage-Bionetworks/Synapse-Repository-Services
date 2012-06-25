@@ -1,14 +1,17 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import java.lang.reflect.Field;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 
 public class AccessRequirementUtils {
 	
@@ -30,13 +33,17 @@ public class AccessRequirementUtils {
 		dbo.setNodeId(KeyFactory.stringToKey(dto.getEntityId()));
 		dbo.setAccessType(dto.getAccessType().name());
 		dbo.setRequirementType(dto.getAccessRequirementType().name());
+		copyAccessRequirementParamsDtoToDbo(dto, dbo);
 	}
 	
-	public static void copyAccessRequirementParamsDtoToDbo(Object paramsDto, DBOAccessRequirement dbo, ObjectSchema schema) throws DatastoreException {
-		dbo.setRequirementParameters(SchemaSerializationUtils.mapDtoFieldsToAnnotations(paramsDto, schema));
+	
+	public static void copyAccessRequirementParamsDtoToDbo(AccessRequirement dto, DBOAccessRequirement dbo) throws DatastoreException {
+		Object params = SchemaSerializationUtils.getParamsField(dto);
+		ObjectSchema schema = SchemaSerializationUtils.getParamsSchema(dto);
+		dbo.setRequirementParameters(SchemaSerializationUtils.mapDtoFieldsToAnnotations(params, schema));
 	}
 	
-	public static void copyDboToDto(DBOAccessRequirement dbo, AccessRequirement dto) {
+	public static void copyDboToDto(DBOAccessRequirement dbo, AccessRequirement dto) throws DatastoreException {
 		if (dbo.getId()==null) {
 			dto.setId(null);
 		} else {
@@ -54,10 +61,14 @@ public class AccessRequirementUtils {
 		dto.setEntityId(KeyFactory.keyToString(dbo.getNodeId()));
 		dto.setAccessType(ACCESS_TYPE.valueOf(dbo.getAccessType()));
 		dto.setAccessRequirementType(AccessRequirementType.valueOf(dbo.getRequirementType()));
+		copyRequirementParamsDboToDto(dbo, dto);
 	}
 	
-	public static void copyRequirementParamsDboToDto(DBOAccessRequirement dbo, Object paramsDto, ObjectSchema schema) throws DatastoreException {
-		SchemaSerializationUtils.mapAnnotationsToDtoFields(dbo.getRequirementParameters(), paramsDto, schema);
+	public static void copyRequirementParamsDboToDto(DBOAccessRequirement dbo, AccessRequirement dto) throws DatastoreException {
+		Object params = SchemaSerializationUtils.setParamsField(dto);
+		ObjectSchema schema = SchemaSerializationUtils.getParamsSchema(dto);
+		SchemaSerializationUtils.mapAnnotationsToDtoFields(dbo.getRequirementParameters(), params, schema);
 	}
 	
+
 }

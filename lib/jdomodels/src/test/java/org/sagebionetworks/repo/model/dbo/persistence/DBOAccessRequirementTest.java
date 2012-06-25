@@ -15,14 +15,17 @@ import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.SchemaCache;
+import org.sagebionetworks.repo.model.TermsOfUseRequirementParameters;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.dao.SchemaSerializationUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -96,7 +99,13 @@ public class DBOAccessRequirementTest {
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD.toString());
 		accessRequirement.setNodeId(KeyFactory.stringToKey(node.getId()));
 		accessRequirement.setRequirementType(AccessRequirementType.TOU_Agreement.toString());
-		accessRequirement.setRequirementParameters("My dog has fleas.".getBytes());
+		TermsOfUseRequirementParameters parameters = new TermsOfUseRequirementParameters();
+		parameters.setIsURL("true");
+		parameters.setTermsOfUse("http://foo.bar/bas.pdf");
+		ObjectSchema schema = SchemaCache.getSchema(parameters);
+		accessRequirement.setRequirementParameters(
+			SchemaSerializationUtils.mapDtoFieldsToAnnotations(parameters, schema)
+		);
 		return accessRequirement;
 	}
 	

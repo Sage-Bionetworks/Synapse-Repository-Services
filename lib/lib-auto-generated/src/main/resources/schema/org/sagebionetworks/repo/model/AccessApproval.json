@@ -1,8 +1,9 @@
 {
     "title":"Access Approval",
+    "type":"interface",
     "description":"JSON schema for AccessApproval POJO",
     "name":"AccessApproval",
- 	"properties":{
+     	"properties":{
         "id":{
             "type":"integer",
             "description":"The unique immutable ID",

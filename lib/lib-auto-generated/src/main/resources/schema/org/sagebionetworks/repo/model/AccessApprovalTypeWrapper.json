@@ -1,0 +1,12 @@
+{
+    "description":"JSON schema for wrapper around AccessApproval type field",
+    "name":"AccessApprovalTypeWrapper",
+     	"properties":{
+         "approvalType":{
+                "type":"object",
+                "description":"The type of this approval object.",
+                "name":"ApprovalType",
+                "$ref":"org.sagebionetworks.repo.model.AccessApprovalType"
+        }
+     }
+}

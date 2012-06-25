@@ -1,6 +1,7 @@
 {
     "title":"Access Requirement",
-    "description":"JSON schema for AccessRequirement POJO",
+    "type":"interface",
+    "description":"Interface for JSON schema for AccessRequirement POJO",
  	"properties":{
         "id":{
             "type":"integer",

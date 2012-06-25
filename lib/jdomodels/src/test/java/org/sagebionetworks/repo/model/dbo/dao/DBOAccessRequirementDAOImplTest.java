@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.TermsOfUseRequirementParameters;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -48,7 +49,7 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	private UserGroup individualGroup = null;
 	private Node node = null;
-	private AccessRequirement accessRequirement = null;
+	private TermsOfUseAccessRequirement accessRequirement = null;
 	
 	private ObjectSchema schema = null;
 	
@@ -62,8 +63,6 @@ public class DBOAccessRequirementDAOImplTest {
 			individualGroup.setCreationDate(new Date());
 			individualGroup.setId(userGroupDAO.create(individualGroup));
 		}
-		String jsonString = (String) TermsOfUseRequirementParameters.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
-		schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		if (node==null) {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
 			node.setId( nodeDAO.createNew(node) );
@@ -90,30 +89,21 @@ public class DBOAccessRequirementDAOImplTest {
 	@Test
 	public void testCRUD() throws Exception{
 		// Create a new object
-		accessRequirement = new AccessRequirement();
+		accessRequirement = new TermsOfUseAccessRequirement();
 		AccessRequirementUtils.copyDboToDto(DBOAccessRequirementTest.newAccessRequirement(individualGroup, node), accessRequirement);
 		
 		// Create it
-		String id = accessRequirementDAO.create(accessRequirement);
-		assertNotNull(id);
-		accessRequirement.setId(Long.parseLong(id)); // for the sake of comparing to 'clone'
+		accessRequirement = accessRequirementDAO.create(accessRequirement);
+		assertNotNull(accessRequirement.getId());
 		
 		// Fetch it
-		AccessRequirement clone = accessRequirementDAO.get(id);
+		AccessRequirement clone = accessRequirementDAO.get(accessRequirement.getId().toString());
 		assertNotNull(clone);
 		assertEquals(accessRequirement, clone);
-		
-		// set the parameters field
-		TermsOfUseRequirementParameters params = new TermsOfUseRequirementParameters();
-		params.setTermsOfUse("foo");
-		accessRequirementDAO.setAccessRequirementParameters(id, clone.getEtag(), params, schema);
-		// this will increment the etag...
-		
+				
 		// Get by Node Id
 		Collection<AccessRequirement> ars = accessRequirementDAO.getForNode(node.getId());
 		assertEquals(1, ars.size());
-		// ... so we now have to increment etag to make the comparison work
-		accessRequirement.setEtag(""+(1L+Long.parseLong(accessRequirement.getEtag())));
 		assertEquals(accessRequirement, ars.iterator().next());
 
 		// update it
@@ -132,14 +122,9 @@ public class DBOAccessRequirementDAOImplTest {
 		catch(ConflictingUpdateException e){
 			// We expected this exception
 		}	
-		
-		// get the parameters field
-		TermsOfUseRequirementParameters paramsClone = new TermsOfUseRequirementParameters();
-		accessRequirementDAO.getAccessRequirementParameters(id, paramsClone, schema);
-		assertEquals(params, paramsClone);
-		
+				
 		// Delete it
-		accessRequirementDAO.delete(id);
+		accessRequirementDAO.delete(accessRequirement.getId().toString());
 	}
 
 

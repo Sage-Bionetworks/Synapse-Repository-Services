@@ -189,6 +189,10 @@ public class UrlHelpers {
 	 */
 	public static final String USERGROUP = "/userGroup";
 	
+	public static final String ACCESS_REQUIREMENT = "/accessRequirement";
+	
+	public static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled";
+	
 	/**
 	 * URL prefix for Users in a UserGroup
 	 * 

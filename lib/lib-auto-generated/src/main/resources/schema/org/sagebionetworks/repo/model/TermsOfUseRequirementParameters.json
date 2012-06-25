@@ -2,10 +2,14 @@
     "title":"Terms of Use Requirement Parameters",
     "description":"JSON schema for Terms of Use Requirement Parameters, used for a 'tier 2' Access Requirement",
     "properties":{
+    	"isURL":{
+    		"type":"string",
+    		"description":"'true'/'false', this flag says whether the termsOfUse field is a URL or the document itself"
+    	},
         "termsOfUse":{
             "type":"string",
-            "description":"Terms Of Use for Access",
+            "description":"Terms Of Use for Access, either the document itself or a URL to the document",
             "title":"Terms Of Use"
-        },
+        }
     }
 }
