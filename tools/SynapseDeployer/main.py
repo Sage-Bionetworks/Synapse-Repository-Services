@@ -1,4 +1,4 @@
-import artifactoryClient, synapseAwsEnvironment, os.path
+import artifactoryClient, synapseAwsEnvironment, os.path, tempfile
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 
@@ -33,7 +33,7 @@ DEV_A_CONFIG = SynapseInstanceConfig(DEV_APPLICATION_NAME, 'auth-dev-a', None, N
 
 # Parameters to drive Deployment - Change these as needed
 deployment_bucket = PLATFORM_DEPLOYMENT_BUCKET
-workDir = os.sep + 'temp' + os.sep 
+workDir = tempfile.gettempdir()
 
 # starting with sprint13, client and server versions can differ
 # in sprint13, server (repo/auth) is 1.0.0, client (portal) is 1.0.1
