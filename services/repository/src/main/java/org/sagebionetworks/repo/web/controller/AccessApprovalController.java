@@ -5,21 +5,16 @@ import java.io.InputStream;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.sagebionetworks.repo.ServiceConstants;
-import org.sagebionetworks.repo.manager.AccessRequirementManager;
+import org.sagebionetworks.repo.manager.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessApprovalType;
 import org.sagebionetworks.repo.model.AccessClassHelper;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.util.ControllerUtil;
@@ -30,7 +25,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -41,10 +35,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import com.amazonaws.util.StringInputStream;
 
 @Controller
-public class AccessRequirementController extends BaseController {
+public class AccessApprovalController extends BaseController {
 
 	@Autowired
-	AccessRequirementManager accessRequirementManager;
+	AccessApprovalManager accessApprovalManager;
 	
 	@Autowired
 	UserManager userManager;
@@ -53,57 +47,33 @@ public class AccessRequirementController extends BaseController {
 	ObjectTypeSerializer objectTypeSerializer;
 
 	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT, method = RequestMethod.POST)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL, method = RequestMethod.POST)
 	public @ResponseBody
-	AccessRequirement createAccessRequirement(
+	AccessApproval createAccessApproval(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
-			) throws Exception {
+			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException, InvalidModelException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		AccessRequirement accessRequirement = deserialize(request, header);
-		return accessRequirementManager.createAccessRequirement(userInfo, accessRequirement);
+		AccessApproval accessApproval = deserialize(request, header);
+		return accessApprovalManager.createAccessApproval(userInfo, accessApproval);
 	}
 	
-	public AccessRequirement deserialize(HttpServletRequest request, HttpHeaders header) throws DatastoreException, IOException {
+	public AccessApproval deserialize(HttpServletRequest request, HttpHeaders header) throws DatastoreException, IOException {
 		String requestBody = ControllerUtil.getRequestBodyAsString(request);
-		AccessRequirementType type = AccessClassHelper.getAccessRequirementTypeFromJSON(requestBody);
-		Class<? extends AccessRequirement> clazz = AccessClassHelper.getClass(type);
+		AccessApprovalType type = AccessClassHelper.getAccessApprovalTypeFromJSON(requestBody);
+		Class<? extends AccessApproval> clazz = AccessClassHelper.getClass(type);
 		// now we know the type so we can deserialize into the correct one
 		// need an input stream
 		InputStream sis = new StringInputStream(requestBody);
-		return (AccessRequirement) objectTypeSerializer.deserialize(sis, header, clazz, header.getContentType());
-	}
-	
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
-	public @ResponseBody
-	PaginatedResults<AccessRequirement>
-	 getUnfulfilledAccessRequirement(
-				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String entityId,
-			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-
-		QueryResults<AccessRequirement> results = 
-			accessRequirementManager.getUnmetAccessRequirement(userInfo, entityId);
 		
-		return new PaginatedResults<AccessRequirement>(
-				request.getServletPath()+UrlHelpers.ACCESS_REQUIREMENT_UNFULFILLED, 
-				results.getResults(),
-				(int)results.getTotalNumberOfResults(), 
-				1, 
-				(int)results.getTotalNumberOfResults(),
-				"", 
-				false);
-
+		return (AccessApproval) objectTypeSerializer.deserialize(sis, header, clazz, header.getContentType());
 	}
 
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT, method = RequestMethod.PUT)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL, method = RequestMethod.PUT)
 	public @ResponseBody
-	AccessRequirement updateAccessRequirement(
+	AccessApproval updateAccessApproval(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
@@ -111,11 +81,11 @@ public class AccessRequirementController extends BaseController {
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, ForbiddenException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		AccessRequirement accessRequirement = deserialize(request, header);
+		AccessApproval accessApproval = deserialize(request, header);		
 		if(etag != null){
-			accessRequirement.setEtag(etag.toString());
+			accessApproval.setEtag(etag.toString());
 		}
-		return accessRequirementManager.updateAccessRequirement(userInfo, accessRequirement);
+		return accessApprovalManager.updateAccessApproval(userInfo, accessApproval);
 	}
 
 	

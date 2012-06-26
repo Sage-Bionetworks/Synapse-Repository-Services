@@ -33,14 +33,15 @@ import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessApprovalType;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LocationData;
@@ -50,12 +51,14 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.TermsOfUseApprovalParameters;
+import org.sagebionetworks.repo.model.TermsOfUseRequirementParameters;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -415,6 +418,62 @@ public class IT500SynapseJavaClient {
 			assertNotNull(ug.getName());
 		}
 	}
+	
+	@Test
+	public void testAccessRequirement() throws Exception {
+		// create a node
+		Data layer = new Data();
+		layer.setType(LayerTypeNames.E);
+		layer.setParentId(dataset.getId());
+		layer = synapse.createEntity(layer);
+
+		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		// add an access requirement
+		TermsOfUseAccessRequirement r = new TermsOfUseAccessRequirement();
+		r.setEntityId(layer.getId());
+		r.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		r.setAccessRequirementType(AccessRequirementType.TOU_Agreement);
+		TermsOfUseRequirementParameters params = new TermsOfUseRequirementParameters();
+		params.setIsURL("true");
+		params.setTermsOfUse("http://foo.bar/bas");
+		r.setParameters(params);
+		synapse.createAccessRequirement(r);
+		
+		// check that can't download
+		// TODO change from assertTrue to assertFalse
+		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+
+		// get unmet access requirements
+		PaginatedResults<AccessRequirement> ars = synapse.getUnmetAccessReqAccessRequirements(layer.getId());
+		assertEquals(1, ars.getTotalNumberOfResults());
+		assertEquals(1, ars.getResults().size());
+		AccessRequirement clone = ars.getResults().get(0);
+		assertEquals(r.getAccessRequirementType(), clone.getAccessRequirementType());
+		assertTrue(clone instanceof TermsOfUseAccessRequirement);
+		assertEquals(params, ((TermsOfUseAccessRequirement)clone).getParameters());
+		
+		// create approval for the requirement
+		TermsOfUseAccessApproval approval = new TermsOfUseAccessApproval();
+		UserProfile profile = synapse.getMyProfile();
+		assertNotNull(profile);
+		assertNotNull(profile.getOwnerId());
+		approval.setAccessorId(profile.getOwnerId());
+		approval.setApprovalType(AccessApprovalType.TOU_Agreement);
+		approval.setRequirementId(clone.getId());
+		TermsOfUseApprovalParameters ap = new TermsOfUseApprovalParameters();
+		ap.setPlaceholder("foo");
+		approval.setParameters(ap);
+		synapse.createAccessApproval(approval);
+		
+		// get unmet requirements -- should be empty
+		ars = synapse.getUnmetAccessReqAccessRequirements(layer.getId());
+		assertEquals(0, ars.getTotalNumberOfResults());
+		assertEquals(0, ars.getResults().size());
+		
+		// check that CAN download
+		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+}
 	
 	
 	/**

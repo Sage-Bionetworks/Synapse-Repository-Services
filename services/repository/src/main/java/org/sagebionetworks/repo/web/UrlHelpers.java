@@ -192,6 +192,9 @@ public class UrlHelpers {
 	public static final String ACCESS_REQUIREMENT = "/accessRequirement";
 	
 	public static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled";
+	public static final String ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = "/accessRequirementUnfulfilled/{entityId}";
+	
+	public static final String ACCESS_APPROVAL = "/accessApproval";
 	
 	/**
 	 * URL prefix for Users in a UserGroup

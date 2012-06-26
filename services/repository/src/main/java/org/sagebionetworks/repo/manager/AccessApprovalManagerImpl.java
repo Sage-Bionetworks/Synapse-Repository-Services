@@ -42,7 +42,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 				a.getRequirementId()==null ) throw new InvalidModelException();
 		
 		if (a.getApprovalType().equals(AccessApprovalType.TOU_Agreement)) {
-			if (!userInfo.isAdmin() && !userInfo.getIndividualGroup().equals(a.getAccessorId()))
+			if (!userInfo.isAdmin() && !userInfo.getIndividualGroup().getId().equals(a.getAccessorId()))
 				throw new UnauthorizedException("A user may not sign Terms of Use on another's behalf");
 		}
 	}

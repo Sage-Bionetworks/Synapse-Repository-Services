@@ -44,9 +44,9 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 
 	private static final long serialVersionUID = 1L;
 
-	private long totalNumberOfResults;
-	private List<T> results;
-	private Map<String, String> paging;
+	protected long totalNumberOfResults;
+	protected List<T> results;
+	protected Map<String, String> paging;
 	
 	private Class<T> clazz;
 	

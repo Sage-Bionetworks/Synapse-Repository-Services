@@ -8,6 +8,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseApprovalParameters;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -16,7 +17,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 public class AccessApprovalUtilsTest {
 
 	private static AccessApproval createDTO() {
-		AccessApproval dto = new TermsOfUseAccessApproval();
+		TermsOfUseAccessApproval dto = new TermsOfUseAccessApproval();
 		dto.setId(101L);
 		dto.setEtag("0");
 		dto.setCreatedBy("555");
@@ -26,7 +27,7 @@ public class AccessApprovalUtilsTest {
 		dto.setAccessorId("777");
 		dto.setApprovalType(AccessApprovalType.TOU_Agreement);
 		dto.setRequirementId(888L);
-		
+		dto.setParameters(new TermsOfUseApprovalParameters());
 		return dto;
 	}
 	
