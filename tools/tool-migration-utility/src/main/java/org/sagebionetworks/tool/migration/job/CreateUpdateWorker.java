@@ -38,13 +38,15 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 	ClientFactory clientFactory = null;
 	Set<String> entites = null;
 	BasicProgress progress = null;
+	MigrationType type = null;
 
-	public CreateUpdateWorker(Configuration configuration, ClientFactory clientFactory, Set<String> entites, BasicProgress progress) {
+	public CreateUpdateWorker(Configuration configuration, ClientFactory clientFactory, Set<String> entites, BasicProgress progress, MigrationType type) {
 		super();
 		this.configuration = configuration;
 		this.clientFactory = clientFactory;
 		this.entites = entites;
 		this.progress = progress;
+		this.type = type;
 	}
 
 
@@ -145,7 +147,7 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 			BackupSubmission sumbission = new BackupSubmission();
 			sumbission.setEntityIdsToBackup(this.entites);
 			// Start a backup.
-			BackupRestoreStatus status = client.startBackupDaemon(sumbission, MigrationType.ENTITY);
+			BackupRestoreStatus status = client.startBackupDaemon(sumbission, type);
 			// Wait for the backup to complete
 			status = waitForDaemon(status.getId(), client);
 			// Now restore this to the destination
@@ -153,7 +155,7 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 			String backupFileName = getFileNameFromUrl(status.getBackupUrl());
 			RestoreSubmission restoreSub = new RestoreSubmission();
 			restoreSub.setFileName(backupFileName);
-			status = client.startRestoreDaemon(restoreSub, MigrationType.ENTITY);
+			status = client.startRestoreDaemon(restoreSub, type);
 			// Wait for the backup to complete
 			status = waitForDaemon(status.getId(), client);
 			// Success

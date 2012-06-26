@@ -46,12 +46,6 @@ public class CrowdAuthUtil {
 
 	private static String apiApplication;
 	
-	// remove this after the 0.12->0.13 migration is complete
-	public static void overrideStackConfig(String crowdUrl, String apiApplicationKey) {
-		CROWD_URL = crowdUrl;
-		API_APPLICATION_KEY = apiApplicationKey;
-	}
-
 	static {
 		HttpClientHelper.setGlobalConnectionTimeout(DefaultHttpClientSingleton.getInstance(), 5000);
 		HttpClientHelper.setGlobalSocketTimeout(DefaultHttpClientSingleton.getInstance(), 10000);

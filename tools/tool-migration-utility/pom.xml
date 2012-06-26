@@ -18,24 +18,6 @@
 			<artifactId>synapseJavaClient</artifactId>
 		</dependency>
 
- 		<!--  needed for 0.12-0.13 migration.  can remove afterwards -->
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>auth-util</artifactId>
-		</dependency>
-		<!--  needed for 0.12-0.13 migration.  can remove afterwards -->
-		<dependency>
-			<groupId>com.thoughtworks.xstream</groupId>
-			<artifactId>xstream</artifactId>
-			<version>${xstream.version}</version>
-		</dependency>
-
-        <!-- Only the search updater uses this, remove it once the search updater is migrated to SWF -->
-        <dependency>
-            <groupId>org.sagebionetworks</groupId>
-            <artifactId>lib-stackConfiguration</artifactId>
-        </dependency>
-
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
