@@ -15,9 +15,8 @@ class Artifact:
     '''
     Describes an artifact obtained from Artifactory
     '''
-    def __init__(self,fileName,buildNumber,warName=None):
+    def __init__(self,fileName,warName=None):
         self.fileName = fileName
-        self.buildNumber = buildNumber
 
 def _determineDownloadURLForResource(artifactName, version, isSnapshot):
     path = "http://sagebionetworks.artifactoryonline.com/sagebionetworks/"
@@ -90,8 +89,7 @@ def downloadArtifact(moduleName, version, isSnapshot, workDir):
     else:
         raise SynapseDeployerError, "ERROR: MD5 does not match"
 
-    buildNumber = _findBuildNumber(tempFileName)
-    return Artifact(tempFileName, buildNumber)
+    return Artifact(tempFileName)
 
 #------- UNIT TESTS -----------------
 if __name__ == '__main__':
@@ -102,7 +100,6 @@ if __name__ == '__main__':
         def test_getArtifact(self):
             #Test happy case with a small artifact
             artifact = downloadArtifact('services-authentication', '0.7.9', False, '/temp/')
-            self.assertEqual(4655, artifact.buildNumber)
             self.assertEqual('/temp/services-authentication-0.7.9.war', artifact.fileName)
         
         def test_getSnapshot(self):
