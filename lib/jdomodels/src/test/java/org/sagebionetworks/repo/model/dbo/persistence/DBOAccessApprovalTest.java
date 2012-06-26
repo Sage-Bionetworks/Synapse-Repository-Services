@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.TermsOfUseApprovalParameters;
-import org.sagebionetworks.repo.model.TermsOfUseRequirementParameters;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;

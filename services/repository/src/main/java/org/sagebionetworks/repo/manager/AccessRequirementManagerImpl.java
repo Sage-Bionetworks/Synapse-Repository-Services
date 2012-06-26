@@ -81,12 +81,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		QueryResults<AccessRequirement> result = new QueryResults<AccessRequirement>(ars, ars.size());
 		return result;
 	}
-
+	
 	@Override
-	public QueryResults<AccessRequirement> getUnmetAccessRequirement(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException, ForbiddenException {
-		if (!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.READ)) {
-			throw new ForbiddenException("You are not allowed to access the requested resource.");
-		}
+	public QueryResults<AccessRequirement> getUnmetAccessRequirementIntern(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException {
 		List<AccessRequirement> ars = accessRequirementDAO.getForNode(entityId);
 		Map<String, AccessRequirement> arIds = new HashMap<String, AccessRequirement>();
 		for (AccessRequirement ar : ars) arIds.put(ar.getId().toString(), ar);
@@ -107,6 +104,14 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		for (String rId : unmetRequirementIds) unmetRequirements.add(arIds.get(rId));
 		QueryResults<AccessRequirement> result = new QueryResults<AccessRequirement>(unmetRequirements, (int)unmetRequirements.size());
 		return result;
+	}	
+
+	@Override
+	public QueryResults<AccessRequirement> getUnmetAccessRequirement(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException, ForbiddenException {
+		if (!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.READ)) {
+			throw new ForbiddenException("You are not allowed to access the requested resource.");
+		}
+		return getUnmetAccessRequirementIntern(userInfo, entityId);
 	}
 
 	@Override

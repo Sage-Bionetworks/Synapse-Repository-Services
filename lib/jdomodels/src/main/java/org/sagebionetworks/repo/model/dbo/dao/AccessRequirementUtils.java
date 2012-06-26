@@ -1,17 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import java.lang.reflect.Field;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.schema.ObjectSchema;
-import org.sagebionetworks.schema.adapter.JSONEntity;
 
 public class AccessRequirementUtils {
 	

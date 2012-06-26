@@ -441,8 +441,7 @@ public class IT500SynapseJavaClient {
 		synapse.createAccessRequirement(r);
 		
 		// check that can't download
-		// TODO change from assertTrue to assertFalse
-		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertFalse(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 
 		// get unmet access requirements
 		PaginatedResults<AccessRequirement> ars = synapse.getUnmetAccessReqAccessRequirements(layer.getId());

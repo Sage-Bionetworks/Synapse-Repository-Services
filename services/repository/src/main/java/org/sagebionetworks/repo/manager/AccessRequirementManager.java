@@ -26,10 +26,27 @@ public interface AccessRequirementManager {
 	
 	/**
 	 *  get all the unmet access requirements
+	 *  This API wraps 'getUnmetAccessRequirementIntern', 
+	 *  and includes an authorization check to see if
+	 *  the user is allowed to READ the entity
+	 *  
 	 * @throws ForbiddenException 
 	 */
 	public QueryResults<AccessRequirement> getUnmetAccessRequirement(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException, ForbiddenException;
 	
+	/**
+	 * This API is for internal use and skips the authorization check  
+	 * (see also 'getUnmetAccessRequirement' which includes the authorization check)
+	 * 
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	QueryResults<AccessRequirement> getUnmetAccessRequirementIntern(
+			UserInfo userInfo, String entityId) throws DatastoreException,
+			NotFoundException;
 	/**
 	 *  update an access requirement
 	 * @throws ForbiddenException 
@@ -40,5 +57,6 @@ public interface AccessRequirementManager {
 	 *  delete an access requirement
 	 */
 	public void deleteAccessRequirement(UserInfo userInfo, String accessRequirementId) throws NotFoundException, DatastoreException, UnauthorizedException, ForbiddenException;
+
 	
 }

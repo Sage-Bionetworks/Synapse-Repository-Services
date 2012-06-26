@@ -16,8 +16,6 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessApprovalType;
 import org.sagebionetworks.repo.model.AccessClassHelper;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -25,7 +23,6 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
@@ -97,11 +94,12 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 
 	@Override
 	public List<AccessApproval> getForAccessRequirementsAndPrincipals(Collection<String> accessRequirementIds, Collection<String> principalIds) throws DatastoreException {
+		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
+		if (accessRequirementIds.isEmpty() || principalIds.isEmpty()) return dtos;
 		MapSqlParameterSource params = new MapSqlParameterSource();		
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementIds);
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
 		List<DBOAccessApproval> dbos = simpleJdbcTempalte.query(SELECT_FOR_REQUIREMENT_AND_PRINCIPAL_SQL, rowMapper, params);
-		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
 		for (DBOAccessApproval dbo : dbos) {
 			AccessApproval dto = instanceForType(dbo.getApprovalType());
 			AccessApprovalUtils.copyDboToDto(dbo, dto);
