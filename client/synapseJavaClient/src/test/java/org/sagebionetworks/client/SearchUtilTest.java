@@ -1,5 +1,6 @@
 package org.sagebionetworks.client;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -78,19 +79,37 @@ public class SearchUtilTest {
 		query = new SearchQuery();
 		try {
 			SearchUtil.generateQueryString(query);
-			assertNotNull(null);
+			fail("no query content should fail");
 		} catch (InvalidArgumentException ex) {
 			assertNull(null);
 		}
+
+		// empty query
+		query = new SearchQuery();
+		query.setQueryTerm(Arrays.asList(new String[] {""}));
+		try {
+			SearchUtil.generateQueryString(query);
+			fail("no real query should fail");
+		} catch (InvalidArgumentException ex) {
+			assertNull(null);
+		}
+
 		
 		// query only
 		query = new SearchQuery();
 		query.setQueryTerm(q);
 		queryStr = SearchUtil.generateQueryString(query);
 		assertEquals("q=hello%2Cworld", queryStr);
-
+		
 		// boolean query only
 		query = new SearchQuery();
+		query.setBooleanQuery(bq);
+		queryStr = SearchUtil.generateQueryString(query);
+		assertEquals("bq=Facet1%3A%27Value1%27", queryStr);
+
+		// boolean query with blank single q
+		query = new SearchQuery();
+		query.setQueryTerm(Arrays.asList(new String[] {""}));
 		query.setBooleanQuery(bq);
 		queryStr = SearchUtil.generateQueryString(query);
 		assertEquals("bq=Facet1%3A%27Value1%27", queryStr);
