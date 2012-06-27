@@ -1,4 +1,4 @@
-import artifactoryClient, synapseAwsEnvironment, os.path
+import artifactoryClient, synapseAwsEnvironment, os.path, tempfile
 from boto.s3.connection import S3Connection
 from boto.s3.key import Key
 
@@ -33,16 +33,21 @@ DEV_A_CONFIG = SynapseInstanceConfig(DEV_APPLICATION_NAME, 'auth-dev-a', None, N
 
 # Parameters to drive Deployment - Change these as needed
 deployment_bucket = PLATFORM_DEPLOYMENT_BUCKET
-workDir = os.sep + 'temp' + os.sep 
+workDir = tempfile.gettempdir()
 
-version = '0.12'
+# starting with sprint13, client and server versions can differ
+# in sprint13, server (repo/auth) is 1.0.0, client (portal) is 1.0.1
+# for now, call this script twice repo/auth@1.0.0 and portal@1.0.1
+version = '1.0.0'
 
-isSnapshot = True
+# Starting with sprint 13, we switch to release
+isSnapshot = False
 
-stacksToUpgrade = [PROD_C_CONFIG]
+stacksToUpgrade = [PROD_A_CONFIG]
 
+#
 #componentsToUpgrade = [AUTH_SERVICE_WAR, REPO_SERVICE_WAR, PORTAL_WAR]
-componentsToUpgrade = [PORTAL_WAR]
+componentsToUpgrade = [AUTH_SERVICE_WAR, REPO_SERVICE_WAR]
 
 
 update_environments = False # if false just create the beanstalk versions, if true also do update of running instance.
@@ -60,7 +65,7 @@ synapse = synapseAwsEnvironment.SynapseAwsEnvironment(deployment_bucket)
 
 # For all wars we want to upgrade, put to S3, create beanstalk versions, and update beanstalk environments
 for artifact in artifacts:
-    key = synapse.putWar(artifact.fileName, artifact.warName, artifact.buildNumber, version, isSnapshot)
+    key = synapse.putWar(artifact.fileName, artifact.warName, version, isSnapshot)
     version_label = key[0:len(key) - 4] #strip off .war
     print 'creating version ' + version_label
     for stack in stacksToUpgrade:

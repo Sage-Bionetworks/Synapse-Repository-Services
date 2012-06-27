@@ -95,10 +95,11 @@ class SynapseAwsEnvironment:
         self.beanstalkConnection = BeanstalkConnection(aws_access_key_id, aws_secret_access_key)
         self.ec2Connection = EC2Connection(aws_access_key_id, aws_secret_access_key)
     
-    def putWar(self, fileName, artifactName, buildNumber, version, isSnapshot):
+    def putWar(self, fileName, artifactName, version, isSnapshot):
         key = artifactName+'-'+version
-        if isSnapshot: key += '-SNAPSHOT'
-        key += '-'+str(buildNumber)+'.war'
+        if isSnapshot:
+            key += '-SNAPSHOT'
+        key += '.war'
         print('uploading '+key)
         self.putFile(key, fileName)
         return key
