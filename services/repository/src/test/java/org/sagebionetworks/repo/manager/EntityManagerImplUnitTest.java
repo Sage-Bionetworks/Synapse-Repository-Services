@@ -21,7 +21,7 @@ import org.springframework.http.HttpMethod;
 
 import com.amazonaws.services.securitytoken.model.Credentials;
 
-public class EntityManagerImplTest {
+public class EntityManagerImplUnitTest {
 
 	private UserManager mockUserManager;
 	private PermissionsManager mockPermissionsManager;

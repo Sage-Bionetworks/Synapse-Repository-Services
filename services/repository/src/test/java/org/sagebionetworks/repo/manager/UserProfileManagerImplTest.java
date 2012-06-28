@@ -182,7 +182,7 @@ public class UserProfileManagerImplTest {
 	
 
 	@Test
-	public void testGetAttachmentUrlAlwaysReadAccess() throws Exception{
+	public void testGetAttachmentUrl() throws Exception{
 		assertNotNull(individualGroup);
 		assertNotNull(userProfile);
 		UserInfo userInfo = new UserInfo(false); // not an admin
@@ -192,35 +192,25 @@ public class UserProfileManagerImplTest {
 		String otherUserProfileId = "12345";
 		
 		// Make the actual call
-		try {
-			PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(userInfo, otherUserProfileId, tokenId.toString());
-		} catch (Exception e) {
-			assertFalse("User blocked from asking for another users profile attachment. It should be public.", true);
-		}
+		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(userInfo, otherUserProfileId, tokenId.toString());
 	}
 	
-	@Test (expected=UnauthorizedException.class)
-	public void testCreateS3AttachmentTokenNoUpdateAccess() throws NumberFormatException, DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException{
+	@Test
+	public void testCreateS3AttachmentToken() throws NumberFormatException, DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException{
 		UserInfo userInfo = new UserInfo(false); // not an admin
 		userInfo.setIndividualGroup(individualGroup);
 		
 		S3AttachmentToken startToken = new S3AttachmentToken();
-		startToken.setFileName(null);
+		startToken.setFileName("/some.jpg");
 		String almostMd5 = "79054025255fb1a26e4bc422aef54eb4";
 		startToken.setMd5(almostMd5);
 		Long tokenId = new Long(456);
-		String entityId = "132";
-		String userId = "007";
-		String expectedPath = entityId+"/"+tokenId.toString();
-		String expectePreSigneUrl = "I am a presigned url! whooot!";
+		String userId = individualGroup.getId();
 		when(mockIdGenerator.generateNewId()).thenReturn(tokenId);
-		Credentials mockCreds = Mockito.mock(Credentials.class);
-		when(mockLocationHelper.createFederationTokenForS3(userId,HttpMethod.PUT,expectedPath)).thenReturn(mockCreds);
-		when(mockLocationHelper.presignS3PUTUrl(mockCreds, expectedPath, almostMd5, "image/jpeg")).thenReturn(expectePreSigneUrl);
-		// Make the actual call
+		// Make the actual calls
 		S3AttachmentToken endToken = userProfileManager.createS3UserProfileAttachmentToken(userInfo, userId, startToken);
 		assertNotNull(endToken);
-		assertEquals(expectePreSigneUrl, endToken.getPresignedUrl());
+		assertNotNull(endToken.getPresignedUrl());
 	}
 
 	

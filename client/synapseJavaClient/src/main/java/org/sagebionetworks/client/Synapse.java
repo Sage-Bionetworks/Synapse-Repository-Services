@@ -1019,7 +1019,7 @@ public class Synapse {
 	 * @throws IOException 
 	 */
 	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
-		return uploadGenericAttachmentToSynapse(entityId, AttachmentType.ENTITY, dataFile, fileName);
+		return uploadAttachmentToSynapse(entityId, AttachmentType.ENTITY, dataFile, fileName);
 	}
 	
 	/**
@@ -1033,10 +1033,21 @@ public class Synapse {
 	 * @throws IOException 
 	 */	
 	public AttachmentData uploadUserProfileAttachmentToSynapse(String userId, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
-		return uploadGenericAttachmentToSynapse(userId, AttachmentType.USER_PROFILE, dataFile, fileName);
+		return uploadAttachmentToSynapse(userId, AttachmentType.USER_PROFILE, dataFile, fileName);
 	}
 	
-	private AttachmentData uploadGenericAttachmentToSynapse(String id, AttachmentType attachmentType, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
+	/**
+	 * Upload an attachment to Synapse.
+	 * @param attachmentType
+	 * @param userId
+	 * @param dataFile
+	 * @param md5
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException 
+	 */	
+	public AttachmentData uploadAttachmentToSynapse(String id, AttachmentType attachmentType, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
 		// First we need to get an S3 token
 		S3AttachmentToken token = new S3AttachmentToken();
 		token.setFileName(fileName);
@@ -1082,7 +1093,7 @@ public class Synapse {
 	}
 	
 	/**
-	 * Get the presigned URL for an entity attachment.
+	 * Get the presigned URL for an attachment.
 	 * @param entityId
 	 * @param attachment data type
 	 * @param newData
@@ -1090,7 +1101,7 @@ public class Synapse {
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	private PresignedUrl createAttachmentPresignedUrl(String id, AttachmentType attachmentType, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
+	public PresignedUrl createAttachmentPresignedUrl(String id, AttachmentType attachmentType, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
 		String url = getAttachmentTypeURL(attachmentType)+"/"+id+ATTACHMENT_URL;
 		PresignedUrl preIn = new PresignedUrl();
 		preIn.setTokenID(tokenOrPreviewId);
@@ -1129,12 +1140,13 @@ public class Synapse {
 	/**
 	 * Wait for the given preview to be created.
 	 * @param entityId
+	 * @param attachment data type
 	 * @param tokenOrPreviewId
 	 * @param timeout
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
-	private PresignedUrl waitForPreviewToBeCreated(String id, AttachmentType type, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
+	public PresignedUrl waitForPreviewToBeCreated(String id, AttachmentType type, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
 		long start = System.currentTimeMillis();
 		PresignedUrl url = createAttachmentPresignedUrl(id, type, tokenOrPreviewId);
 		if(URLStatus.READ_FOR_DOWNLOAD == url.getStatus()) return url;
@@ -1181,12 +1193,12 @@ public class Synapse {
 	/**
 	 * Download an entity attachment to a local file
 	 * @param id
-	 * @param attachmentData
+	 * @param attachmentType
 	 * @param destFile
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
-	private void downloadAttachment(String id, AttachmentType type, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
+	public void downloadAttachment(String id, AttachmentType type, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
 		// First get the URL
 		String url = null;
 		if(attachmentData.getTokenId() != null){
@@ -1229,12 +1241,13 @@ public class Synapse {
 	/**
 	 * Downlaod a preview to the passed file.
 	 * @param entityId
+	 * @param attachment data type
 	 * @param previewId
 	 * @param destFile
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
-	private void downloadAttachmentPreview(String id, AttachmentType type, String previewId, File destFile) throws SynapseException, JSONObjectAdapterException{
+	public void downloadAttachmentPreview(String id, AttachmentType type, String previewId, File destFile) throws SynapseException, JSONObjectAdapterException{
 		// First get the URL
 		String url = null;
 		PresignedUrl preUrl = createAttachmentPresignedUrl(id, type, previewId);

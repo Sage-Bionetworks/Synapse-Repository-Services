@@ -39,8 +39,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	private static final String DEFAULT_MIME_TYPE = "application/binary";
 	private static final FileNameMap FILE_EXTENSION2MIME_TYPE_MAP = URLConnection
 			.getFileNameMap();
-	//this pseudo entity id is used to store user profile attachments in S3 (due to the system constraints around entity attachments)
-	private static final String USER_PROFILE_FAKE_ENTITY_ID = "0";
+	
 	@Autowired
 	private PermissionsManager permissionsManager;
 	@Autowired
@@ -232,7 +231,6 @@ public class S3TokenManagerImpl implements S3TokenManager {
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		// Wrap it up and pass it along
 		// Manipulate the pass-in S3 token to be correct
-//		validateUpdateAccess(userInfo, entityId);
 		validateMd5(token.getMd5());
 		String contentType = validateContentType(token.getFileName());
 		token.setContentType(contentType);
