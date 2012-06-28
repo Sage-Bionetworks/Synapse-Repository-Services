@@ -8,6 +8,7 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.ServiceConstants;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.SchemaManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -27,6 +28,8 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.attachment.PresignedUrl;
+import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.GenericEntityController;
@@ -61,7 +64,8 @@ public class BasicEntityController extends BaseController{
 	
 	@Autowired
 	GenericEntityController entityController;
-	
+	@Autowired
+	EntityManager entityManager;
 	@Autowired
 	SchemaManager schemaManager;
 
@@ -786,4 +790,56 @@ public class BasicEntityController extends BaseController{
 		return schemaManager.getEntityRegistry();
 	}
 	
+	/**
+	 * Create a token used to upload an attachment.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param token
+	 * @param request
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = { UrlHelpers.ENTITY_S3_ATTACHMENT_TOKEN }, method = RequestMethod.POST)
+	public @ResponseBody
+	S3AttachmentToken createS3AttachmentToken(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id, @RequestBody S3AttachmentToken token,
+			HttpServletRequest request) throws NotFoundException,
+			DatastoreException, UnauthorizedException, InvalidModelException {
+		// Pass it along
+		return entityManager.createS3AttachmentToken(userId, id, token);
+	}
+	
+
+	/**
+	 * Create a token used to upload an attachment.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param token
+	 * @param request
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = { UrlHelpers.ENTITY_ATTACHMENT_URL }, method = RequestMethod.POST)
+	public @ResponseBody
+	PresignedUrl getAttachmentUrl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id, 
+			@RequestBody PresignedUrl url,
+			HttpServletRequest request) throws NotFoundException,
+			DatastoreException, UnauthorizedException, InvalidModelException {
+		if(url == null) throw new IllegalArgumentException("A PresignedUrl must be provided");
+		// Pass it along.
+		return entityManager.getAttachmentUrl(userId, id, url.getTokenID());
+	}
 }

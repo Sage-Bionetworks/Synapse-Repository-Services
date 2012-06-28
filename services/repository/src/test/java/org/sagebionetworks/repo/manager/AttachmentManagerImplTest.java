@@ -36,7 +36,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class AttachmentManagerImplTest {
 
-	public static final long MAX_PREVIEW_WAIT = 10*1000;
+	public static final long MAX_PREVIEW_WAIT = 40*1000;
 	@Autowired
 	AttachmentManager attachmentManager;
 	

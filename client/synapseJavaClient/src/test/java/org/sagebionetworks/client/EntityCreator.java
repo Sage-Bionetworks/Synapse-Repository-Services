@@ -2,6 +2,8 @@ package org.sagebionetworks.client;
 
 import java.util.Date;
 
+import javax.servlet.http.HttpServlet;
+
 import org.sagebionetworks.repo.model.Study;
 
 /**
