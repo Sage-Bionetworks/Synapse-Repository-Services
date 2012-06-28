@@ -107,16 +107,6 @@ public class S3TokenControllerTest {
 		testHelper.setTestUser(TEST_USER1);
 		testHelper.tearDown();
 	}
-
-//	public static void main(String[] args) {
-//		String testString = "/00/10886/someImage.jpg";
-//		Pattern ENTITY_FROM_S3KEY_REGEX = Pattern.compile("^(https://s3.amazonaws.com/)?(/)?(\\d+)/.*$");
-//		Matcher matcher = ENTITY_FROM_S3KEY_REGEX.matcher(testString);
-//		if (!matcher.matches())
-//			System.out.println("didn't match");
-//		
-//		KeyFactory.keyToString(Long.parseLong(matcher.group(3)));
-//	}
 	
 	/**
 	 * @throws Exception

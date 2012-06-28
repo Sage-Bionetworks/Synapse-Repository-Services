@@ -100,7 +100,10 @@
  		"pic":{
             "type":"object",
             "description":"picture attachment",
-            "$ref":"org.sagebionetworks.repo.model.attachment.AttachmentData"            
+            "$ref":"org.sagebionetworks.repo.model.attachment.AttachmentData",
+            "links":[
+                {"rel":"describedby", "href":"http://synapse.sagebase.org/access/public",}
+            ]                     
         }
      }
 }       
