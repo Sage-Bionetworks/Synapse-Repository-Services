@@ -223,6 +223,11 @@ public class S3TokenManagerImpl implements S3TokenManager {
 		validateMd5(s3Token);
 		validateContentType(s3Token);
 		validatePath(id, s3Token);
+		
+		// Replace all non-url chars
+		String path = s3Token.getPath();
+		path = SpecialUrlEncoding.replaceUrlCharsIgnoreSlashes(path);
+		s3Token.setPath(path);
 
 		// Generate session credentials (needed for multipart upload)
 		Credentials sessionCredentials = locationHelper
@@ -284,9 +289,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 		fileName = SpecialUrlEncoding.replaceUrlChars(fileName);
 		return id.toString()+"/"+fileName;
 	}
-	
-
-	
+		
 	/**
 	 * Create an attachment path.
 	 * @param entityId
