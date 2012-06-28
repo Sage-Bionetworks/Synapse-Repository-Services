@@ -19,6 +19,7 @@ import org.codehaus.jackson.map.JsonMappingException;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.repo.ServiceConstants;
+import org.sagebionetworks.repo.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -124,6 +125,10 @@ public class ServletTestHelper {
 		this.username = username;
 		testUser = userManager.getUserInfo(this.username);
 		UserInfo.validateUserInfo(testUser);
+	}
+	
+	public UserInfo getTestUser() throws Exception{
+		return testUser;
 	}
 
 	/**
@@ -1562,16 +1567,17 @@ public class ServletTestHelper {
 	 * @throws IOException 
 	 * @throws ServletException 
 	 */
-	public static S3AttachmentToken createS3AttachmentToken(String userId, String entityId, S3AttachmentToken token) throws JSONObjectAdapterException, ServletException, IOException{
+	public static S3AttachmentToken createS3AttachmentToken(String userId, ServiceConstants.AttachmentType attachentType, String id, S3AttachmentToken token) throws JSONObjectAdapterException, ServletException, IOException{
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
-		if(entityId == null) throw new IllegalArgumentException("Entity ID cannot be null");
+		if(id == null) throw new IllegalArgumentException("Entity ID cannot be null");
 		if(token == null) throw new IllegalArgumentException("Token cannot be null");
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.ATTACHMENT_S3_TOKEN);
+		String uri = UrlHelpers.getAttachmentTypeURL(attachentType)+"/"+id+UrlHelpers.ATTACHMENT_S3_TOKEN;
+		request.setRequestURI(uri);
 		System.out.println(request.getRequestURL());
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
@@ -1592,6 +1598,7 @@ public class ServletTestHelper {
 	/**
 	 * Get a pre-signed URL for a an attachment.
 	 * @param userId
+	 * @param attachmentType
 	 * @param entityId
 	 * @param tokenId
 	 * @return
@@ -1606,7 +1613,43 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.ATTACHMENT_URL);
+		request.setRequestURI( UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.ATTACHMENT_URL);
+		System.out.println(request.getRequestURL());
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		PresignedUrl url = new PresignedUrl();
+		url.setTokenID(tokenId);
+		StringWriter out = new StringWriter();
+		objectMapper.writeValue(out, url);
+		String body = out.toString();
+		request.setContent(body.getBytes("UTF-8"));
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		// Done!
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), PresignedUrl.class);
+	}
+	
+	/**
+	 * Get a pre-signed URL for a an attachment.
+	 * @param userId
+	 * @param attachmentType
+	 * @param entityId
+	 * @param tokenId
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public PresignedUrl getUserProfileAttachmentUrl(String userId, String targetProfileId, String tokenId) throws JSONObjectAdapterException, ServletException, IOException{
+		if(tokenId == null) throw new IllegalArgumentException("TokenId cannot be null");
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI( UrlHelpers.USER_PROFILE+"/"+targetProfileId+UrlHelpers.ATTACHMENT_URL);
 		System.out.println(request.getRequestURL());
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");

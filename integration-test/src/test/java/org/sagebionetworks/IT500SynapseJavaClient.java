@@ -37,10 +37,8 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LocationData;
@@ -50,12 +48,10 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -520,6 +516,72 @@ public class IT500SynapseJavaClient {
 			previewDownload.delete();
 		}
 	}
+
+	/**
+	 * Test that we can add an attachment to a project and then get it back.
+	 * 
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	@Test
+	public void testProfileImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
+		// First load an image from the classpath
+		String fileName = "images/profile_pic.png";
+		URL url = IT500SynapseJavaClient.class.getClassLoader().getResource(fileName);
+		assertNotNull("Failed to find: "+fileName+" on the classpath", url);
+		File originalFile = new File(url.getFile());
+		File attachmentDownload = File.createTempFile("AttachmentTestDownload", ".tmp");
+		File previewDownload = File.createTempFile("AttachmentPreviewDownload", ".png");
+		FileOutputStream writer = null;
+		FileInputStream reader = null;
+		try{
+			// We are now ready to add this file as an attachment on the project
+			String finalName = "iamgeFile.jpg";
+			
+			UserProfile profile = synapse.getMyProfile();
+			AttachmentData data = synapse.uploadUserProfileAttachmentToSynapse(profile.getOwnerId(), originalFile, finalName);
+			//save this as part of the user
+			profile.setPic(data);
+			synapse.updateMyProfile(profile);
+			
+			//download, and check that it was updated
+			profile = synapse.getMyProfile();
+			AttachmentData clone = profile.getPic();
+			assertEquals(finalName, data.getName());
+			assertEquals(data.getName(), clone.getName());
+			assertEquals(data.getMd5(), clone.getMd5());
+			assertEquals(data.getContentType(), clone.getContentType());
+			assertEquals(data.getTokenId(), clone.getTokenId());
+			// the attachment should have preview
+			assertNotNull(clone.getPreviewId());
+			// Now make sure we can download our
+			
+			synapse.downloadUserProfileAttachment(profile.getOwnerId(), clone, attachmentDownload);
+			assertTrue(attachmentDownload.exists());
+			System.out.println(attachmentDownload.getAbsolutePath());
+			assertEquals(originalFile.length(), attachmentDownload.length());
+			// Now make sure we can get the preview image
+			// Before we download the preview make sure it exists
+			synapse.waitForUserProfilePreviewToBeCreated(profile.getOwnerId(), clone.getPreviewId(), PREVIEW_TIMOUT);
+			synapse.downloadUserProfileAttachmentPreview(profile.getOwnerId(), clone.getPreviewId(), previewDownload);
+			assertTrue(previewDownload.exists());
+			System.out.println(previewDownload.getAbsolutePath());
+			assertTrue(previewDownload.length() > 0);
+			assertTrue("A preview size should not exceed 100KB.  This one is "+previewDownload.length(), previewDownload.length() < 100*1000);
+		}
+		finally{
+			if(writer != null){
+				writer.close();
+			}
+			if(reader != null){
+				reader.close();
+			}
+			attachmentDownload.delete();
+			previewDownload.delete();
+		}
+	}
+
 	
 	@Test	
 	public void testGetChildCount() throws SynapseException{

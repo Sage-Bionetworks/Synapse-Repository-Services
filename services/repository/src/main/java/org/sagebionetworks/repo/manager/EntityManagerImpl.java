@@ -1,13 +1,12 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -20,8 +19,9 @@ import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.attachment.PresignedUrl;
+import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -35,9 +35,25 @@ public class EntityManagerImpl implements EntityManager {
 	
 	@Autowired
 	NodeManager nodeManager;
-	
+	@Autowired
+	private S3TokenManager s3TokenManager;
+	@Autowired
+	private PermissionsManager permissionsManager;
 	@Autowired
 	UserManager userManager;
+
+	public EntityManagerImpl() {
+	}
+	
+	public EntityManagerImpl(NodeManager nodeManager,
+			S3TokenManager s3TokenManager,
+			PermissionsManager permissionsManager, UserManager userManager) {
+		super();
+		this.nodeManager = nodeManager;
+		this.s3TokenManager = s3TokenManager;
+		this.permissionsManager = permissionsManager;
+		this.userManager = userManager;
+	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -346,6 +362,60 @@ public class EntityManagerImpl implements EntityManager {
 		// pass through
 		EntityHeaderQueryResults results = nodeManager.getEntityReferences(userInfo, entityId, versionNumber, offset, limit);
 		return results;
+	}
+
+	@Override
+	public S3AttachmentToken createS3AttachmentToken(String userId,
+			String entityId, S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException{
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		validateUpdateAccess(userInfo, entityId);
+		return s3TokenManager.createS3AttachmentToken(userId, entityId, token);
+	}
+	
+	@Override
+	public PresignedUrl getAttachmentUrl(String userId, String entityId,
+			String tokenId) throws NotFoundException, DatastoreException,
+			UnauthorizedException, InvalidModelException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		validateReadAccess(userInfo, entityId);
+		return s3TokenManager.getAttachmentUrl(userId, entityId, tokenId);
+	}
+	
+	/**
+	 * Validate that the user has read access.
+	 * 
+	 * @param userId
+	 * @param entityId
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	void validateReadAccess(UserInfo userInfo, String entityId)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
+		if (!permissionsManager.hasAccess(entityId,
+				ACCESS_TYPE.READ, userInfo)) {
+			throw new UnauthorizedException(
+					"update access is required to obtain an S3Token for entity "
+							+ entityId);
+		}
+	}
+	
+	/**
+	 * Dev Note: since the user has update permission, we do not need to check
+	 * whether they have signed the use agreement, also this is just for uploads
+	 * 
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	void validateUpdateAccess(UserInfo userInfo, String entityId)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
+		if (!permissionsManager.hasAccess(entityId,
+				ACCESS_TYPE.UPDATE, userInfo)) {
+			throw new UnauthorizedException(
+					"update access is required to obtain an S3Token for entity "
+							+ entityId);
+		}
 	}
 
 }

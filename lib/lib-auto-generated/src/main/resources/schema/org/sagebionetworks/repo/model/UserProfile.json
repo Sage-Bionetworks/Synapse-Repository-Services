@@ -56,6 +56,54 @@
             "type":"string",
             "title":"RStudio URL",
             "description":"URL for RStudio server assigned to the user"
+        },
+        "summary":{
+            "type":"string",
+            "title":"About You",
+            "description":"Summary description of the user",
+            "links":[
+                {"rel":"describedby", "href":"http://synapse.sagebase.org/access/public",}
+            ]
+ 		},
+ 		"position":{
+            "type":"string",
+            "title":"Position",
+            "description":"Title for the current job",
+            "links":[
+                {"rel":"describedby", "href":"http://synapse.sagebase.org/access/public",}
+            ]
+ 		},
+ 		"location":{
+            "type":"string",
+            "title":"Location",
+            "description":"Location",
+            "links":[
+                {"rel":"describedby", "href":"http://synapse.sagebase.org/access/public",}
+            ]
+ 		},
+ 		"industry":{
+            "type":"string",
+            "title":"Industry",
+            "description":"Industry",
+            "links":[
+                {"rel":"describedby", "href":"http://synapse.sagebase.org/access/public",}
+            ]
+ 		},
+ 		"company":{
+            "type":"string",
+            "title":"Company",
+            "description":"Company",
+            "links":[
+                {"rel":"describedby", "href":"http://synapse.sagebase.org/access/public",}
+            ]
+ 		},
+ 		"pic":{
+            "type":"object",
+            "description":"picture attachment",
+            "$ref":"org.sagebionetworks.repo.model.attachment.AttachmentData",
+            "links":[
+                {"rel":"describedby", "href":"http://synapse.sagebase.org/access/public",}
+            ]                     
         }
      }
 }       

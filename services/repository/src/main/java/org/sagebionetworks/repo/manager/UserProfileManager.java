@@ -7,6 +7,8 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.attachment.PresignedUrl;
+import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface UserProfileManager {
@@ -46,5 +48,36 @@ public interface UserProfileManager {
 	 * @throws InvalidModelException 
 	 */
 	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
+
+	/**
+	 * userId may not match the profileId
+	 * @param userId
+	 * @param userInfo
+	 * @param profileId
+	 * @param token
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 */
+	public S3AttachmentToken createS3UserProfileAttachmentToken(
+			UserInfo userInfo, String profileId, S3AttachmentToken token)
+			throws NotFoundException, DatastoreException,
+			UnauthorizedException, InvalidModelException;
+
+	/**
+	 * return the preassigned url for the user profile attachment
+	 * @param userInfo
+	 * @param profileId
+	 * @param tokenID
+	 * @return
+	 * @throws InvalidModelException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public PresignedUrl getUserProfileAttachmentUrl(UserInfo userInfo,
+			String profileId, String tokenID) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 	
 }

@@ -39,7 +39,8 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	private static final String DEFAULT_MIME_TYPE = "application/binary";
 	private static final FileNameMap FILE_EXTENSION2MIME_TYPE_MAP = URLConnection
 			.getFileNameMap();
-
+	//this pseudo entity id is used to store user profile attachments in S3 (due to the system constraints around entity attachments)
+	private static final String USER_PROFILE_FAKE_ENTITY_ID = "0";
 	@Autowired
 	private PermissionsManager permissionsManager;
 	@Autowired
@@ -182,25 +183,6 @@ public class S3TokenManagerImpl implements S3TokenManager {
 		}
 	}
 
-	/**
-	 * Validate that the user has read access.
-	 * 
-	 * @param userId
-	 * @param entityId
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
-	void validateReadAccess(UserInfo userInfo, String entityId)
-			throws DatastoreException, NotFoundException, UnauthorizedException {
-		if (!permissionsManager.hasAccess(entityId,
-				ACCESS_TYPE.READ, userInfo)) {
-			throw new UnauthorizedException(
-					"update access is required to obtain an S3Token for entity "
-							+ entityId);
-		}
-	}
-
 	@Override
 	public S3Token createS3Token(String userId, String id, S3Token s3Token,
 			EntityType type) throws DatastoreException, NotFoundException,
@@ -243,22 +225,22 @@ public class S3TokenManagerImpl implements S3TokenManager {
 
 		return s3Token;
 	}
-
+	
 	@Override
 	public S3AttachmentToken createS3AttachmentToken(String userId, String entityId,
 			S3AttachmentToken token) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		// Wrap it up and pass it along
 		// Manipulate the pass-in S3 token to be correct
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		validateUpdateAccess(userInfo, entityId);
+//		validateUpdateAccess(userInfo, entityId);
 		validateMd5(token.getMd5());
 		String contentType = validateContentType(token.getFileName());
 		token.setContentType(contentType);
 		// Issue a new id for this entity.
 		String tokenId = createTokenId(idGenerator.generateNewId(), token.getFileName());
 		// The path of any attachment is is simply the entity-id/token-id
-		String path = createAttachmentPathSlash(entityId, tokenId);
+		
+		String path=createAttachmentPathSlash(entityId, tokenId);
 		// Generate session credentials (needed for multipart upload)
 		Credentials sessionCredentials = locationHelper
 				.createFederationTokenForS3(userId, HttpMethod.PUT, path);
@@ -266,6 +248,7 @@ public class S3TokenManagerImpl implements S3TokenManager {
 		String presignedUrl = locationHelper.presignS3PUTUrl(
 				sessionCredentials, path, token.getMd5(),
 				token.getContentType());
+		
 		token.setPresignedUrl(presignedUrl);
 		token.setTokenId(tokenId);
 		return token;
@@ -335,7 +318,6 @@ public class S3TokenManagerImpl implements S3TokenManager {
 	 */
 	private PresignedUrl presignedUrl(UserInfo user, String entityId, String tokenId, boolean isPreview) throws DatastoreException, NotFoundException, UnauthorizedException{
 		if(tokenId == null) throw new IllegalArgumentException("TokenId cannot be null");
-		validateReadAccess(user, entityId);
 		// First determine if this exists
 		String pathNoSlash = createAttachmentPathNoSlash(entityId, tokenId);
 		if(!s3Utility.doesExist(pathNoSlash)){
