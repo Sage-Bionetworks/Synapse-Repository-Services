@@ -44,7 +44,6 @@ public interface S3TokenManager {
 	 */
 	public S3AttachmentToken createS3AttachmentToken(String userId, String entityId, S3AttachmentToken token) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 	
-	
 	/**
 	 * Create a new pre-signed URL for an attachment.
 	 * @param userId
@@ -70,6 +69,5 @@ public interface S3TokenManager {
 	 * @throws InvalidModelException
 	 */
 	PresignedUrl getAttachmentUrl(UserInfo user, String entityId,String tokenId) throws NotFoundException,	DatastoreException, UnauthorizedException, InvalidModelException;
-
 
 }

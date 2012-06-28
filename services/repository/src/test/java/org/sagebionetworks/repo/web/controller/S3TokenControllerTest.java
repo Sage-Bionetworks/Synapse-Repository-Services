@@ -18,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.manager.AmazonS3Utility;
 import org.sagebionetworks.repo.manager.S3TokenManagerImpl;
 import org.sagebionetworks.repo.manager.TestUserDAO;
@@ -58,6 +59,7 @@ public class S3TokenControllerTest {
 	@Autowired
 	UserGroupDAO userGroupDAO;
 
+	private UserGroup testUser;
 	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
 	private static final String TEST_USER2 = "testuser2@test.org";
 	private static final String TEST_MD5 = "4053f00b39aae693a6969f37102e2764";
@@ -72,7 +74,7 @@ public class S3TokenControllerTest {
 	public void setUp() throws Exception {
 		testHelper.setUp();
 		testHelper.setTestUser(TEST_USER1);
-
+		
 		project = new Project();
 		project.setName("proj");
 		project = testHelper.createEntity(project, null);
@@ -93,6 +95,8 @@ public class S3TokenControllerTest {
 		ac.getAccessType().add(ACCESS_TYPE.READ);
 		projectAcl.getResourceAccess().add(ac);
 		projectAcl = testHelper.updateEntityAcl(project, projectAcl);
+		
+		testUser = userGroupDAO.findGroup(TEST_USER1, true);
 	}
 
 	/**
@@ -104,6 +108,16 @@ public class S3TokenControllerTest {
 		testHelper.tearDown();
 	}
 
+//	public static void main(String[] args) {
+//		String testString = "/00/10886/someImage.jpg";
+//		Pattern ENTITY_FROM_S3KEY_REGEX = Pattern.compile("^(https://s3.amazonaws.com/)?(/)?(\\d+)/.*$");
+//		Matcher matcher = ENTITY_FROM_S3KEY_REGEX.matcher(testString);
+//		if (!matcher.matches())
+//			System.out.println("didn't match");
+//		
+//		KeyFactory.keyToString(Long.parseLong(matcher.group(3)));
+//	}
+	
 	/**
 	 * @throws Exception
 	 */
@@ -191,6 +205,53 @@ public class S3TokenControllerTest {
 	}
 	
 	@Test
+	public void testcreateS3ProfileToken() throws JSONObjectAdapterException, ServletException, IOException, DatastoreException{
+		S3AttachmentToken startToken = new S3AttachmentToken();
+		startToken.setFileName("someImage.jpg");
+		startToken.setMd5(TEST_MD5);
+		
+		String fileName = "images/squarish.png";
+		URL toUpUrl = S3TokenControllerTest.class.getClassLoader().getResource(fileName);
+		assertNotNull("Failed to find: "+fileName+" on the classpath", toUpUrl);
+		File toUpload = new File(toUpUrl.getFile());
+		// Create the token
+		
+		S3AttachmentToken resultToken = testHelper.createS3AttachmentToken(TestUserDAO.TEST_USER_NAME, ServiceConstants.AttachmentType.USER_PROFILE,testUser.getId(), startToken);
+		System.out.println(resultToken);
+		assertNotNull(resultToken);
+		assertNotNull(resultToken.getTokenId());
+		assertNotNull(resultToken.getPresignedUrl());
+		
+		// Upload it
+		String path = S3TokenManagerImpl.createAttachmentPathNoSlash(testUser.getId(), resultToken.getTokenId());
+		s3Utility.uploadToS3(toUpload, path);
+
+		// Make sure we can get a signed download URL for this attachment.
+		long now = System.currentTimeMillis();
+		long oneMinuteFromNow = now + (60*1000);
+		PresignedUrl url = testHelper.getUserProfileAttachmentUrl(TestUserDAO.TEST_USER_NAME, testUser.getId(), resultToken.getTokenId());
+		System.out.println(url);
+		assertNotNull(url);
+		assertNotNull(url.getPresignedUrl());
+		URL urlReal = new URL(url.getPresignedUrl());
+		// Check that it expires quickly (not as important when it's the public user profile picture)
+		String[] split = urlReal.getQuery().split("&");
+		assertTrue(split.length > 1);
+		String[] expiresSplit = split[0].split("=");
+		assertEquals("Expires", expiresSplit[0]);
+		//It should expire within a minute max
+		Long expirsInt = Long.parseLong(expiresSplit[1]);
+		long expiresMil = expirsInt.longValue() * 1000l;
+		System.out.println("Now: "+new Date(now));
+		System.out.println("Expires: "+new Date(expiresMil));
+		assertTrue("This URL should expire in under a minute!", expiresMil < oneMinuteFromNow);
+		assertTrue("This URL should expire after now!", now <= expiresMil);
+		
+		// Delete the file
+		s3Utility.deleteFromS3(path);
+	}
+	
+	@Test
 	public void testcreateS3AttachmentToken() throws JSONObjectAdapterException, ServletException, IOException, DatastoreException{
 		S3AttachmentToken startToken = new S3AttachmentToken();
 		startToken.setFileName("someImage.jpg");
@@ -201,7 +262,7 @@ public class S3TokenControllerTest {
 		assertNotNull("Failed to find: "+fileName+" on the classpath", toUpUrl);
 		File toUpload = new File(toUpUrl.getFile());
 		// Create the token
-		S3AttachmentToken resultToken = testHelper.createS3AttachmentToken(TestUserDAO.TEST_USER_NAME, project.getId(), startToken);
+		S3AttachmentToken resultToken = testHelper.createS3AttachmentToken(TestUserDAO.TEST_USER_NAME, ServiceConstants.AttachmentType.ENTITY, project.getId(), startToken);
 		System.out.println(resultToken);
 		assertNotNull(resultToken);
 		assertNotNull(resultToken.getTokenId());
