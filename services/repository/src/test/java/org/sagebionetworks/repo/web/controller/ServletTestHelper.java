@@ -1598,7 +1598,6 @@ public class ServletTestHelper {
 	/**
 	 * Get a pre-signed URL for a an attachment.
 	 * @param userId
-	 * @param attachmentType
 	 * @param entityId
 	 * @param tokenId
 	 * @return
@@ -1607,31 +1606,24 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 */
 	public PresignedUrl getAttachmentUrl(String userId, String entityId, String tokenId) throws JSONObjectAdapterException, ServletException, IOException{
-		if(entityId == null) throw new IllegalArgumentException("Entity ID cannot be null");
-		if(tokenId == null) throw new IllegalArgumentException("TokenId cannot be null");
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("POST");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI( UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.ATTACHMENT_URL);
-		System.out.println(request.getRequestURL());
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.addHeader("Content-Type", "application/json; charset=UTF-8");
-		PresignedUrl url = new PresignedUrl();
-		url.setTokenID(tokenId);
-		StringWriter out = new StringWriter();
-		objectMapper.writeValue(out, url);
-		String body = out.toString();
-		request.setContent(body.getBytes("UTF-8"));
-		dispatchServlet.service(request, response);
-		log.debug("Results: " + response.getContentAsString());
-		if (response.getStatus() != HttpStatus.CREATED.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		// Done!
-		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), PresignedUrl.class);
+		return getAttachmentUrl(userId, AttachmentType.ENTITY, entityId, tokenId);
 	}
 	
+	/**
+	 * Get a pre-signed URL for a user profile attachment.
+	 * @param userId
+	 * @param profileId
+	 * @param tokenId
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public PresignedUrl getUserProfileAttachmentUrl(String userId, String targetProfileId, String tokenId) throws JSONObjectAdapterException, ServletException, IOException{
+		return getAttachmentUrl(userId, AttachmentType.USER_PROFILE, targetProfileId, tokenId);
+	}
+	
+
 	/**
 	 * Get a pre-signed URL for a an attachment.
 	 * @param userId
@@ -1643,13 +1635,14 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public PresignedUrl getUserProfileAttachmentUrl(String userId, String targetProfileId, String tokenId) throws JSONObjectAdapterException, ServletException, IOException{
+	public PresignedUrl getAttachmentUrl(String userId, AttachmentType type, String id, String tokenId) throws JSONObjectAdapterException, ServletException, IOException{
+		if(id == null) throw new IllegalArgumentException("ID cannot be null");
 		if(tokenId == null) throw new IllegalArgumentException("TokenId cannot be null");
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI( UrlHelpers.USER_PROFILE+"/"+targetProfileId+UrlHelpers.ATTACHMENT_URL);
+		request.setRequestURI( UrlHelpers.getAttachmentTypeURL(type)+"/"+id+UrlHelpers.ATTACHMENT_URL);
 		System.out.println(request.getRequestURL());
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
