@@ -5,11 +5,11 @@
   <parent>
     <artifactId>tools</artifactId>
     <groupId>org.sagebionetworks</groupId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
   </parent>
   <groupId>org.sagebionetworks</groupId>
   <artifactId>usageMetrics</artifactId>
-  <version>1.0.1</version>
+  <version>1.0.2</version>
   <name>usageMetrics</name>
   <url>http://maven.apache.org</url>
   <dependencies>
