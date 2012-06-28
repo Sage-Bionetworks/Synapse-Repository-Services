@@ -9,7 +9,7 @@
 	<groupId>org.sagebionetworks</groupId>
 	<artifactId>platform</artifactId>
 	<!-- This is not the same as the application version. This is a constant. -->
-	<version>1.0.1</version>
+	<version>1.0.2</version>
 	<packaging>pom</packaging>
 	<url>http://www.sagebase.org/</url>
 	<scm>
@@ -415,7 +415,7 @@
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
 					<artifactId>lifecycle-mapping</artifactId>
-					<version>1.0.1</version>
+					<version>1.0.2</version>
 					<configuration>
 						<lifecycleMappingMetadata>
 							<pluginExecutions>

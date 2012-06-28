@@ -345,6 +345,38 @@ public class EntityManagerImpl implements EntityManager {
 				throws NotFoundException, DatastoreException {
 		// pass through
 		EntityHeaderQueryResults results = nodeManager.getEntityReferences(userInfo, entityId, versionNumber, offset, limit);
+		// Note: This is a hack that we currently depend on for Mike's demo.
+		// In the demo we want to show that one dataset is derived from another dataset. The current implementation.
+		// involves making a link entity as a child of the original dataset that points to the derived datasts.
+		// Lastly, from the derived datast's page we want to show the original datast in the "Referenced By" window.
+		// In order for this to work we must replace the link entity with its PARENT!  This is a total hack that cause
+		// weird behavior for other scenarios but for now we must leave it in place.  The plan to address this issue
+		// is with the new Provenance feature.  Once that feature is in place the derived dataset will have the following
+		// property:
+		// Reference derivedFrom
+		// This propery will then point to the original dataset.  At that point this method will work without this hack!
+		if (results != null && results.getEntityHeaders() != null) {
+			List<EntityHeader> list = results.getEntityHeaders();
+			for (int i = 0; i < list.size(); i++) {
+				EntityHeader header = list.get(i);
+				EntityType type = EntityType.valueOf(header.getType());
+				if (EntityType.link == type) {
+					try {
+						List<EntityHeader> path = nodeManager.getNodePath(
+								userInfo, header.getId());
+						if (path != null && path.size() > 1) {
+							// Get the parent path
+							EntityHeader parent = path.get(path.size() - 2);
+							list.set(i, parent);
+						}
+					} catch (UnauthorizedException e) {
+						// This should not occur
+						throw new DatastoreException(e);
+					}
+
+				}
+			}
+		}
 		return results;
 	}
 
