@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PreviewState;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -76,6 +77,15 @@ public class AttachmentManagerImpl implements AttachmentManager{
 		}
 	}
 
+	@Override
+	public void checkAttachmentsForPreviews(UserProfile profile)
+			throws NotFoundException, DatastoreException,
+			UnauthorizedException, InvalidModelException {
+		if (profile != null && profile.getPic() != null){
+			validateAndCheckForPreview(profile.getOwnerId(), profile.getPic());
+		}
+	}
+	
 	/**
 	 * Validate the passed attachment data and attempt to create a preview if it does not exist
 	 * @param userId

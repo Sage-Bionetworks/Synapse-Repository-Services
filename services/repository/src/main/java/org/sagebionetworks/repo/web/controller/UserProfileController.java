@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.attachment.PresignedUrl;
+import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -136,7 +139,59 @@ public class UserProfileController extends BaseController {
 		return userProfileManager.updateUserProfile(userInfo, entity);
 	}
 
-	
+	/**
+	 * Create a security token for use for a particular with a particular
+	 * locationable user profile picture to be stored in AWS S3
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param etag
+	 * @param s3Token
+	 * @param request
+	 * @return a filled-in S3Token
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = { UrlHelpers.USER_PROFILE_S3_ATTACHMENT_TOKEN }, method = RequestMethod.POST)
+	public @ResponseBody
+	S3AttachmentToken createUserProfileS3AttachmentToken(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String profileId, @RequestBody S3AttachmentToken token,
+			HttpServletRequest request) throws NotFoundException,
+			DatastoreException, UnauthorizedException, InvalidModelException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return userProfileManager.createS3UserProfileAttachmentToken(userInfo, profileId, token);
+	}
+	/**
+	 * Create a token used to upload an attachment.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param token
+	 * @param request
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws InvalidModelException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = { UrlHelpers.USER_PROFILE_ATTACHMENT_URL }, method = RequestMethod.POST)
+	public @ResponseBody
+	PresignedUrl getUserProfileAttachmentUrl(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String profileId,
+			@RequestBody PresignedUrl url,
+			HttpServletRequest request) throws NotFoundException,
+			DatastoreException, UnauthorizedException, InvalidModelException {
+		if(url == null) throw new IllegalArgumentException("A PresignedUrl must be provided");
+		// Pass it along.
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return userProfileManager.getUserProfileAttachmentUrl(userInfo, profileId, url.getTokenID());
+	}
 
 	
 }
