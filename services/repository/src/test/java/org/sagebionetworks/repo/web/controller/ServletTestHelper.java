@@ -1606,7 +1606,7 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 */
 	public PresignedUrl getAttachmentUrl(String userId, String entityId, String tokenId) throws JSONObjectAdapterException, ServletException, IOException{
-		return getUserProfileAttachmentUrl(userId, AttachmentType.ENTITY, entityId, tokenId);
+		return getAttachmentUrl(userId, AttachmentType.ENTITY, entityId, tokenId);
 	}
 	
 	/**
@@ -1620,7 +1620,7 @@ public class ServletTestHelper {
 	 * @throws IOException
 	 */
 	public PresignedUrl getUserProfileAttachmentUrl(String userId, String targetProfileId, String tokenId) throws JSONObjectAdapterException, ServletException, IOException{
-		return getUserProfileAttachmentUrl(userId, AttachmentType.USER_PROFILE, targetProfileId, tokenId);
+		return getAttachmentUrl(userId, AttachmentType.USER_PROFILE, targetProfileId, tokenId);
 	}
 	
 
@@ -1635,7 +1635,7 @@ public class ServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public PresignedUrl getUserProfileAttachmentUrl(String userId, AttachmentType type, String id, String tokenId) throws JSONObjectAdapterException, ServletException, IOException{
+	public PresignedUrl getAttachmentUrl(String userId, AttachmentType type, String id, String tokenId) throws JSONObjectAdapterException, ServletException, IOException{
 		if(id == null) throw new IllegalArgumentException("ID cannot be null");
 		if(tokenId == null) throw new IllegalArgumentException("TokenId cannot be null");
 		MockHttpServletRequest request = new MockHttpServletRequest();
