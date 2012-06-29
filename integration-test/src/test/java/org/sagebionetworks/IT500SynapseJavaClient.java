@@ -608,7 +608,8 @@ public class IT500SynapseJavaClient {
 		assertEquals(1l, refs.getTotalNumberOfResults());
 		assertNotNull(refs.getResults());
 		assertEquals(1, refs.getResults().size());
-		assertEquals(link.getId(), refs.getResults().get(0).getId());
+		// Test that the hack for PLFM-1287 is still in place.
+		assertEquals(project.getId(), refs.getResults().get(0).getId());
 		
 	}
 	
