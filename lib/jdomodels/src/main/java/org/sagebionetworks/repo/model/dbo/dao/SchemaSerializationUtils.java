@@ -78,54 +78,5 @@ public class SchemaSerializationUtils {
 		}
 	}
 
-	// because of how the JSON schemas are defined, the subtype of AccessRequirement
-	// passed in will include a field called 'parameters' not defined in AccessRequirement itself
-	
-	public static String PARAMETERS_FIELD_NAME = "parameters";
-	
-	public static Object getParamsField(Object dto) throws DatastoreException {
-		try {
-			Field field = dto.getClass().getDeclaredField(PARAMETERS_FIELD_NAME);
-			field.setAccessible(true);
-			return field.get(dto);
-		} catch (SecurityException e) {
-			throw new DatastoreException(e);
-		} catch (NoSuchFieldException e) {
-			throw new DatastoreException("no field "+PARAMETERS_FIELD_NAME+" in object of class "+dto.getClass());
-		} catch (IllegalAccessException e) {
-			throw new DatastoreException(e);
-		}
-	}
-	
-	public static Object setParamsField(Object dto) throws DatastoreException {
-		try {
-			Field field = dto.getClass().getDeclaredField(PARAMETERS_FIELD_NAME);
-			field.setAccessible(true);
-			Object params = field.getType().newInstance();
-			field.set(dto, params);
-			return params;
-		} catch (SecurityException e) {
-			throw new DatastoreException(e);
-		} catch (NoSuchFieldException e) {
-			throw new DatastoreException("no field "+PARAMETERS_FIELD_NAME+" in object of class "+dto.getClass());
-		} catch (IllegalAccessException e) {
-			throw new DatastoreException(e);
-		} catch (InstantiationException e) {
-			throw new DatastoreException(e);
-		}
-	}
-	
-	public static <T extends JSONEntity> ObjectSchema getParamsSchema(T dto) throws DatastoreException {
-		try {
-			Field field = dto.getClass().getDeclaredField(PARAMETERS_FIELD_NAME);
-			Class<? extends JSONEntity> paramType = (Class<? extends JSONEntity>)field.getType();
-			return SchemaCache.getSchema(paramType);
-		} catch (SecurityException e) {
-			throw new DatastoreException(e);
-		} catch (NoSuchFieldException e) {
-			throw new DatastoreException(e);
-		}		
-	}
-	
-	
+
 }

@@ -7,9 +7,7 @@ import java.util.Date;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.TermsOfUseRequirementParameters;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
@@ -26,9 +24,9 @@ public class AccessRequirementUtilsTest {
 		dto.setCreatedOn(new Date());
 		dto.setModifiedBy("666");
 		dto.setModifiedOn(new Date());
-		dto.setAccessRequirementType(AccessRequirementType.TOU_Agreement);
+		dto.setEntityType("org.sagebionetworks.repo.model.TermsOfUseAcessRequirement");
 		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);	
-		dto.setParameters(new TermsOfUseRequirementParameters());
+		dto.setTermsOfUse("foo");
 		return dto;
 	}
 	
@@ -40,8 +38,7 @@ public class AccessRequirementUtilsTest {
 		String jsonString = (String) AccessRequirement.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
 		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		AccessRequirement dto2 = new TermsOfUseAccessRequirement();
-		AccessRequirementUtils.copyDboToDto(dbo, dto2);
+		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dbo);
 		assertEquals(dto, dto2);
 	}
 
@@ -63,8 +60,7 @@ public class AccessRequirementUtilsTest {
 		String jsonString = (String) AccessRequirement.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
 		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		AccessRequirement dto2 = new TermsOfUseAccessRequirement();
-		AccessRequirementUtils.copyDboToDto(dbo, dto2);
+		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dbo);
 		assertEquals(dto, dto2);
 	}
 

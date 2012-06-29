@@ -7,13 +7,13 @@ import java.util.List;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
-import org.sagebionetworks.repo.model.AccessApprovalType;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -38,10 +38,12 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	
 	public static void validateAccessApproval(UserInfo userInfo, AccessApproval a) throws InvalidModelException, UnauthorizedException {
 		if (a.getAccessorId()==null ||
-				a.getApprovalType()==null || 
+				a.getEntityType()==null || 
 				a.getRequirementId()==null ) throw new InvalidModelException();
 		
-		if (a.getApprovalType().equals(AccessApprovalType.TOU_Agreement)) {
+		if (!a.getEntityType().equals(a.getClass().getName())) throw new InvalidModelException("entity type differs from class");
+		
+		if (a instanceof TermsOfUseAccessApproval) {
 			if (!userInfo.isAdmin() && !userInfo.getIndividualGroup().getId().equals(a.getAccessorId()))
 				throw new UnauthorizedException("A user may not sign Terms of Use on another's behalf");
 		}

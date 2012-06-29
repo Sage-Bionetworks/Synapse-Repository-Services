@@ -25,6 +25,14 @@ import com.google.gdata.data.spreadsheet.WorksheetEntry;
 import com.google.gdata.util.ServiceException;
 
 public class SpreadsheetHelper {
+	  public static void main(String[] args) throws Exception {
+		  SpreadsheetHelper ssh = new SpreadsheetHelper();
+		  String spreadsheetTitle = BccConfigHelper.getBCCSpreadsheetTitle();
+		  
+		  // in its initial state there is just one participant for whom to allocate resources
+		  List<String> participantsToAllocate = ssh.getParticipantsToAllocate();
+		  System.out.println("Number of participants to allocate: "+participantsToAllocate.size());
+	  }
 	  
 	  public static final String SPREADSHEET_SCOPE = "https://spreadsheets.google.com/feeds https://docs.google.com/feeds";
 	  public static final String SPREADSHEET_FEED_URL = "https://spreadsheets.google.com/feeds/spreadsheets/private/full";

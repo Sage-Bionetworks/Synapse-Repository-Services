@@ -4,12 +4,17 @@
      "implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.AccessRequirement"
-        }
+        },
     ],
     "properties":{
-    	"parameters":{
-    		"type":"object",
-    		"$ref":"org.sagebionetworks.repo.model.TermsOfUseRequirementParameters"
-    	}
+        "termsOfUse":{
+            "type":"string",
+            "description":"Terms Of Use for Access, stored directly in the document (versus in a referenced Location)",
+            "title":"Terms Of Use"
+        },
+        "locationData":{
+        	"type":"object",
+             "$ref":"org.sagebionetworks.repo.model.LocationData"
+        }
     }
 }

@@ -10,10 +10,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 import java.util.ArrayList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AccessClassHelper;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
-import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -73,26 +71,26 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		AccessRequirementUtils.copyDtoToDbo(dto, jdo);
 		if (jdo.geteTag()==null) jdo.seteTag(0L);
 		jdo = basicDao.createNew(jdo);
-		AccessRequirementUtils.copyDboToDto(jdo, dto);
-		return dto;
+		T result = (T)AccessRequirementUtils.copyDboToDto(jdo);
+		return result;
 	}
 	
-	public static AccessRequirement instanceForType(String typeString) throws DatastoreException {
-		AccessRequirementType type = AccessRequirementType.valueOf(typeString);
-		try {
-			return AccessClassHelper.getClass(type).newInstance();
-		} catch (Exception e) {
-			throw new DatastoreException(e);
-		}
-	}
+//	public static AccessRequirement instanceForType(String typeString) throws DatastoreException {
+//		try {
+//			return (AccessRequirement)Class.forName(typeString).newInstance();
+//		} catch (Exception e) {
+//			throw new DatastoreException(e);
+//		}
+//	}
+
 
 	@Override
 	public AccessRequirement get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_REQUIREMENT_ID.toLowerCase(), id);
 		DBOAccessRequirement dbo = basicDao.getObjectById(DBOAccessRequirement.class, param);
-		AccessRequirement dto = instanceForType(dbo.getRequirementType());
-		AccessRequirementUtils.copyDboToDto(dbo, dto);
+//		AccessRequirement dto = instanceForType(dbo.getEntityType());
+		AccessRequirement dto = AccessRequirementUtils.copyDboToDto(dbo);
 		return dto;
 	}
 
@@ -103,8 +101,9 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		List<DBOAccessRequirement> dbos = simpleJdbcTempalte.query(SELECT_FOR_NODE_SQL, rowMapper, param);
 		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
 		for (DBOAccessRequirement dbo : dbos) {
-			AccessRequirement dto = instanceForType(dbo.getRequirementType());
-			AccessRequirementUtils.copyDboToDto(dbo, dto);
+//			AccessRequirement dto = instanceForType(dbo.getEntityType());
+//			AccessRequirementUtils.copyDboToDto(dbo, dto);
+			AccessRequirement dto = AccessRequirementUtils.copyDboToDto(dbo);
 			dtos.add(dto);
 		}
 		return dtos;
@@ -132,8 +131,9 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		dbo.seteTag(1L+dbo.geteTag());
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user Access Requirement in database.");
-		T updatedAR = (T)instanceForType(dbo.getRequirementType());
-		AccessRequirementUtils.copyDboToDto(dbo,  updatedAR);
+//		T updatedAR = (T)instanceForType(dbo.getEntityType());
+//		AccessRequirementUtils.copyDboToDto(dbo,  updatedAR);
+		T updatedAR = (T)AccessRequirementUtils.copyDboToDto(dbo);
 		return updatedAR;
 	} // the 'commit' is implicit in returning from a method annotated 'Transactional'
 }

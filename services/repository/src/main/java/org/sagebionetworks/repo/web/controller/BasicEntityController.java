@@ -7,7 +7,6 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.manager.SchemaManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -25,6 +24,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestResourceList;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;

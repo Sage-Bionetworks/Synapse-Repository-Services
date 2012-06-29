@@ -11,19 +11,15 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.SchemaCache;
-import org.sagebionetworks.repo.model.TermsOfUseRequirementParameters;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.SchemaSerializationUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -89,7 +85,7 @@ public class DBOAccessRequirementTest {
 		}
 	}
 	
-	public static DBOAccessRequirement newAccessRequirement(UserGroup principal, Node node) throws DatastoreException {
+	public static DBOAccessRequirement newAccessRequirement(UserGroup principal, Node node, byte[] serializedEntity) throws DatastoreException {
 		DBOAccessRequirement accessRequirement = new DBOAccessRequirement();
 		accessRequirement.setCreatedBy(Long.parseLong(principal.getId()));
 		accessRequirement.setCreatedOn(System.currentTimeMillis());
@@ -98,21 +94,15 @@ public class DBOAccessRequirementTest {
 		accessRequirement.seteTag(10L);
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD.toString());
 		accessRequirement.setNodeId(KeyFactory.stringToKey(node.getId()));
-		accessRequirement.setRequirementType(AccessRequirementType.TOU_Agreement.toString());
-		TermsOfUseRequirementParameters parameters = new TermsOfUseRequirementParameters();
-		parameters.setIsURL("true");
-		parameters.setTermsOfUse("http://foo.bar/bas.pdf");
-		ObjectSchema schema = SchemaCache.getSchema(parameters);
-		accessRequirement.setRequirementParameters(
-			SchemaSerializationUtils.mapDtoFieldsToAnnotations(parameters, schema)
-		);
+		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
+		accessRequirement.setSerializedEntity(serializedEntity);
 		return accessRequirement;
 	}
 	
 	@Test
 	public void testCRUD() throws Exception{
 		// Create a new object
-		DBOAccessRequirement accessRequirement = newAccessRequirement(individualGroup, node);
+		DBOAccessRequirement accessRequirement = newAccessRequirement(individualGroup, node, "foo".getBytes());
 		
 		// Create it
 		DBOAccessRequirement clone = dboBasicDao.createNew(accessRequirement);
@@ -127,12 +117,9 @@ public class DBOAccessRequirementTest {
 		assertEquals(accessRequirement, clone);
 		
 		// Update it
-		String newContent = "Your dog has fleas!";
-		clone.setRequirementParameters(newContent.getBytes());
 		dboBasicDao.update(clone);
 		clone = dboBasicDao.getObjectById(DBOAccessRequirement.class, params);
 		assertNotNull(clone);
-		assertEquals(newContent, new String(clone.getRequirementParameters()));
 		
 		// Delete it
 		boolean result = dboBasicDao.deleteObjectById(DBOAccessRequirement.class,  params);

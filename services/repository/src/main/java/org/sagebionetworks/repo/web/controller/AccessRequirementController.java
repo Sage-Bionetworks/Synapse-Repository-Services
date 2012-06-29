@@ -5,27 +5,26 @@ import java.io.InputStream;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.manager.AccessRequirementManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessClassHelper;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityClassHelper;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.util.ControllerUtil;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -66,15 +65,22 @@ public class AccessRequirementController extends BaseController {
 	}
 	
 	public AccessRequirement deserialize(HttpServletRequest request, HttpHeaders header) throws DatastoreException, IOException {
-		String requestBody = ControllerUtil.getRequestBodyAsString(request);
-		AccessRequirementType type = AccessClassHelper.getAccessRequirementTypeFromJSON(requestBody);
-		Class<? extends AccessRequirement> clazz = AccessClassHelper.getClass(type);
-		// now we know the type so we can deserialize into the correct one
-		// need an input stream
-		InputStream sis = new StringInputStream(requestBody);
-		return (AccessRequirement) objectTypeSerializer.deserialize(sis, header, clazz, header.getContentType());
+		try {
+			String requestBody = ControllerUtil.getRequestBodyAsString(request);
+			// TODO:  what if the body is not JSON??
+			JSONObjectAdapter jsonObjectAdapter = (new JSONObjectAdapterImpl()).createNew(requestBody);
+			String type = EntityClassHelper.entityType(jsonObjectAdapter);
+			Class<? extends AccessRequirement> clazz = (Class<? extends AccessRequirement>)Class.forName(type);
+			// now we know the type so we can deserialize into the correct one
+			// need an input stream
+			InputStream sis = new StringInputStream(requestBody);
+			return (AccessRequirement) objectTypeSerializer.deserialize(sis, header, clazz, header.getContentType());
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		}
 	}
-	
+
+
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
 	public @ResponseBody

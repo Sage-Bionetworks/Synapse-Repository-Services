@@ -17,14 +17,11 @@ import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
-import org.sagebionetworks.repo.model.AccessClassHelper;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
@@ -32,10 +29,10 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.InstanceGenerator;
 import org.sagebionetworks.repo.model.MigrationType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -55,7 +52,6 @@ import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -1680,26 +1676,11 @@ public class ServletTestHelper {
 		return returnedEntity;
 	}
 	
-	public static VariableContentPaginatedResults<AccessRequirement> createAccessRequirementPaginatedResultsFromJSON(
+    public static VariableContentPaginatedResults<AccessRequirement> createAccessRequirementPaginatedResultsFromJSON(
 			String jsonString) throws JSONException,
 			JsonParseException, JsonMappingException, IOException {
 		VariableContentPaginatedResults<AccessRequirement> pr = 
-			new VariableContentPaginatedResults<AccessRequirement>(
-					new InstanceGenerator<AccessRequirement>() {
-						@Override
-						public AccessRequirement newInstanceForSchema(
-								JSONObjectAdapter schema) {
-							try {
-							AccessRequirementType type = AccessClassHelper.getAccessRequirementTypeFromJSON(schema.toString());
-							return AccessClassHelper.getClass(type).newInstance();
-							} catch (Exception e) {
-								throw new RuntimeException(e);
-							}
-						}
-						@Override
-						public Class<AccessRequirement> getClazz() {return AccessRequirement.class;}
-					}
-		);
+			new VariableContentPaginatedResults<AccessRequirement>();
 		try {
 			pr.initializeFromJSONObject(new JSONObjectAdapterImpl(jsonString));
 			return pr;

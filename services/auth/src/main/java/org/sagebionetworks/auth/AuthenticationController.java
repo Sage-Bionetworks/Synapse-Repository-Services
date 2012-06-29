@@ -1,7 +1,7 @@
 package org.sagebionetworks.auth;
 
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCEPTS_TERMS_OF_USE_ATTRIBUTE;
-import static org.sagebionetworks.repo.ServiceConstants.ACCEPTS_TERMS_OF_USE_PARAM;
+import static org.sagebionetworks.repo.model.ServiceConstants.ACCEPTS_TERMS_OF_USE_PARAM;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -29,7 +29,7 @@ import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.authutil.Session;
 import org.sagebionetworks.authutil.User;
-import org.sagebionetworks.repo.ServiceConstants;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;

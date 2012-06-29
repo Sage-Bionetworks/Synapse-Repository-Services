@@ -33,13 +33,10 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
-import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AccessClassHelper;
-import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
@@ -47,12 +44,12 @@ import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.InstanceGenerator;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
@@ -605,9 +602,18 @@ public class Synapse {
 		}
 	}
 	
+	private static Class<AccessRequirement> getAccessRequirementClassFromType(String s) {
+		try {
+			return (Class<AccessRequirement>)Class.forName(s);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
 	public AccessRequirement createAccessRequirement(AccessRequirement ar) throws SynapseException {
 	
-		if (ar==null) throw new IllegalArgumentException("AccessRequirement cannot be null");		
+		if (ar==null) throw new IllegalArgumentException("AccessRequirement cannot be null");
+		ar.setEntityType(ar.getClass().getName());
 		// Get the json for this entity
 		JSONObject jsonObject;
 		try {
@@ -615,33 +621,18 @@ public class Synapse {
 			// Create the entity
 			jsonObject = createEntity(ACCESS_REQUIREMENT, jsonObject);
 			// Now convert to Object to an entity
-			return initializeFromJSONObject(jsonObject, AccessClassHelper.getClass(ar.getAccessRequirementType()));
+			return initializeFromJSONObject(jsonObject, getAccessRequirementClassFromType(ar.getEntityType()));
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
 		
 	}
 
-	public PaginatedResults<AccessRequirement> getUnmetAccessReqAccessRequirements(String entityId) throws SynapseException {
+	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessReqAccessRequirements(String entityId) throws SynapseException {
 		String uri = ACCESS_REQUIREMENT_UNFULFILLED+entityId;
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
-		PaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>(
-				new InstanceGenerator<AccessRequirement>() {
-					@Override
-					public AccessRequirement newInstanceForSchema(
-							JSONObjectAdapter schema) {
-						try {
-						AccessRequirementType type = AccessClassHelper.getAccessRequirementTypeFromJSON(schema.toString());
-						return AccessClassHelper.getClass(type).newInstance();
-						} catch (Exception e) {
-							throw new RuntimeException(e);
-						}
-					}
-					@Override
-					public Class<AccessRequirement> getClazz() {return AccessRequirement.class;}
-				}
-		);
+		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
 		try {
 			results.initializeFromJSONObject(adapter);
 			return results;
@@ -650,9 +641,18 @@ public class Synapse {
 		}
 	}
 
+	private static Class<AccessApproval> getAccessApprovalClassFromType(String s) {
+		try {
+			return (Class<AccessApproval>)Class.forName(s);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
 	public AccessApproval createAccessApproval(AccessApproval aa) throws SynapseException {
 		
 		if (aa==null) throw new IllegalArgumentException("AccessApproval cannot be null");		
+		aa.setEntityType(aa.getClass().getName());
 		// Get the json for this entity
 		JSONObject jsonObject;
 		try {
@@ -660,7 +660,7 @@ public class Synapse {
 			// Create the entity
 			jsonObject = createEntity(ACCESS_APPROVAL, jsonObject);
 			// Now convert to Object to an entity
-			return initializeFromJSONObject(jsonObject, AccessClassHelper.getClass(aa.getApprovalType()));
+			return initializeFromJSONObject(jsonObject, getAccessApprovalClassFromType(aa.getEntityType()));
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}

@@ -55,11 +55,10 @@
                 "name":"AccessType",
                 "$ref":"org.sagebionetworks.repo.model.ACCESS_TYPE"
         },
-        "accessRequirementType":{
-                "type":"object",
-                "description":"The type of access requirement",
-                "name":"AccessRequirementType",
-                "$ref":"org.sagebionetworks.repo.model.AccessRequirementType"
+        "entityType":{
+            "type":"string",
+            "description":"The full class name of this entiy.",
+            "transient":true,
         }
      }
 }       

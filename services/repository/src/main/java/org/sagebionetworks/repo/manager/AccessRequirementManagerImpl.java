@@ -40,9 +40,11 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	public static final ACCESS_TYPE ADMINISTER_ACCESS_REQUIREMENTS_ACCESS_TYPE = ACCESS_TYPE.CHANGE_PERMISSIONS;
 	
 	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
-		if (a.getAccessRequirementType()==null ||
+		if (a.getEntityType()==null ||
 				a.getAccessType()==null || 
 				a.getEntityId()==null ) throw new InvalidModelException();
+		
+		if (!a.getEntityType().equals(a.getClass().getName())) throw new InvalidModelException("entity type differs from class");
 	}
 	
 	public static void populateCreationFields(UserInfo userInfo, AccessRequirement a) {

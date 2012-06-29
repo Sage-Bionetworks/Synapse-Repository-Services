@@ -1,10 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,19 +16,16 @@ import org.apache.commons.logging.LogFactory;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import static org.junit.Assert.assertEquals;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AccessRequirementType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.TermsOfUseRequirementParameters;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.GenericEntityController;
@@ -115,9 +111,9 @@ public class AccessRequirementControllerAutowiredTest {
 
 	private static AccessRequirement newAccessRequirement() {
 		TermsOfUseAccessRequirement dto = new TermsOfUseAccessRequirement();
-		dto.setAccessRequirementType(AccessRequirementType.TOU_Agreement);
-		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);	
-		dto.setParameters(new TermsOfUseRequirementParameters());
+		dto.setEntityType(dto.getClass().getName());
+		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		dto.setTermsOfUse("foo");
 		return dto;
 	}
 	

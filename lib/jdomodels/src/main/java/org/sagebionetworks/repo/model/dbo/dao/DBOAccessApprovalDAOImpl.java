@@ -14,8 +14,6 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
-import org.sagebionetworks.repo.model.AccessApprovalType;
-import org.sagebionetworks.repo.model.AccessClassHelper;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -68,18 +66,17 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		AccessApprovalUtils.copyDtoToDbo(dto, jdo);
 		if (jdo.geteTag()==null) jdo.seteTag(0L);
 		jdo = basicDao.createNew(jdo);
-		AccessApprovalUtils.copyDboToDto(jdo, dto);
-		return dto;
+		T result = (T)AccessApprovalUtils.copyDboToDto(jdo);
+		return result;
 	}
 
-	public static AccessApproval instanceForType(String typeString) throws DatastoreException {
-		AccessApprovalType type = AccessApprovalType.valueOf(typeString);
-		try {
-			return AccessClassHelper.getClass(type).newInstance();
-		} catch (Exception e) {
-			throw new DatastoreException(e);
-		}
-	}
+//	public static AccessApproval instanceForType(String typeString) throws DatastoreException {
+//		try {
+//			return (AccessApproval)Class.forName(typeString).newInstance();
+//		} catch (Exception e) {
+//			throw new DatastoreException(e);
+//		}
+//	}
 
 	@Override
 	public AccessApproval get(String id) throws DatastoreException,
@@ -87,8 +84,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ID.toLowerCase(), id);
 		DBOAccessApproval dbo = basicDao.getObjectById(DBOAccessApproval.class, param);
-		AccessApproval dto = instanceForType(dbo.getApprovalType());
-		AccessApprovalUtils.copyDboToDto(dbo, dto);
+		AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
 		return dto;
 	}
 
@@ -101,8 +97,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
 		List<DBOAccessApproval> dbos = simpleJdbcTempalte.query(SELECT_FOR_REQUIREMENT_AND_PRINCIPAL_SQL, rowMapper, params);
 		for (DBOAccessApproval dbo : dbos) {
-			AccessApproval dto = instanceForType(dbo.getApprovalType());
-			AccessApprovalUtils.copyDboToDto(dbo, dto);
+			AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
 			dtos.add(dto);
 		}
 		return dtos;
@@ -130,8 +125,9 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		dbo.seteTag(1L+dbo.geteTag());
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user Access Approval in database.");
-		T resultantDto = (T)instanceForType(dbo.getApprovalType());
-		AccessApprovalUtils.copyDboToDto(dbo,  resultantDto);
+
+		T resultantDto = (T)AccessApprovalUtils.copyDboToDto(dbo);
+
 		return resultantDto;
 	} // the 'commit' is implicit in returning from a method annotated 'Transactional'
 

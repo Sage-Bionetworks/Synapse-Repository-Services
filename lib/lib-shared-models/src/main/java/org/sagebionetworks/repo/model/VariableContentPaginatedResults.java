@@ -10,13 +10,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public class VariableContentPaginatedResults<T extends JSONEntity> extends PaginatedResults<T> {
-	InstanceGenerator<T> instanceGenerator;
 	
-	public VariableContentPaginatedResults(InstanceGenerator<T> instanceGenerator) {
-		super(instanceGenerator.getClazz());
-		this.instanceGenerator = instanceGenerator;
-	}
-
 	@Override
 	public JSONObjectAdapter initializeFromJSONObject(JSONObjectAdapter adapter) throws JSONObjectAdapterException {
 		if(adapter == null) throw new IllegalArgumentException("Adapter cannot be null");
@@ -27,9 +21,7 @@ public class VariableContentPaginatedResults<T extends JSONEntity> extends Pagin
 			for(int i=0; i<array.length(); i++){
 				JSONObjectAdapter childAdapter = array.getJSONObject(i);
 				try {
-					T newInstance = instanceGenerator.newInstanceForSchema(childAdapter);
-					newInstance.initializeFromJSONObject(childAdapter);
-					this.results.add(newInstance);
+					this.results.add((T)EntityClassHelper.deserialize(childAdapter));
 				} catch (Exception e) {
 					throw new JSONObjectAdapterException(e);
 				}

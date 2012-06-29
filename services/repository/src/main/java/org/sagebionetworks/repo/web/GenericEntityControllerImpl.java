@@ -7,7 +7,6 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.ServiceConstants;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -26,6 +25,7 @@ import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;

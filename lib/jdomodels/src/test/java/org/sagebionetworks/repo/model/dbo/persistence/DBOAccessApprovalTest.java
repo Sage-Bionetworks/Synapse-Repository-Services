@@ -10,22 +10,20 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AccessApprovalType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.SchemaCache;
-import org.sagebionetworks.repo.model.TermsOfUseApprovalParameters;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.dao.SchemaSerializationUtils;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.util.SerializationUtils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -64,7 +62,7 @@ public class DBOAccessApprovalTest {
 		};
 		deleteAccessApproval();
 		deleteAccessRequirement();
-		DBOAccessRequirement accessRequirement = DBOAccessRequirementTest.newAccessRequirement(individualGroup, node);
+		DBOAccessRequirement accessRequirement = DBOAccessRequirementTest.newAccessRequirement(individualGroup, node, "foo".getBytes());
 		ar = dboBasicDao.createNew(accessRequirement);
 	}
 	
@@ -111,13 +109,8 @@ public class DBOAccessApprovalTest {
 		accessApproval.seteTag(10L);
 		accessApproval.setAccessorId(Long.parseLong(principal.getId()));
 		accessApproval.setRequirementId(ar.getId());
-		accessApproval.setApprovalType(AccessApprovalType.TOU_Agreement.toString());
-		TermsOfUseApprovalParameters parameters = new TermsOfUseApprovalParameters();
-		parameters.setPlaceholder("my dog has fleas.");
-		ObjectSchema schema = SchemaCache.getSchema(parameters);
-		accessApproval.setApprovalParameters(
-			SchemaSerializationUtils.mapDtoFieldsToAnnotations(parameters, schema)
-		);
+		accessApproval.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
+		accessApproval.setSerializedEntity("my dog has fleas".getBytes());
 		return accessApproval;
 	}
 	
@@ -138,12 +131,9 @@ public class DBOAccessApprovalTest {
 		assertEquals(accessApproval, clone);
 		
 		// Update it
-		String newContent = "Your dog has fleas!";
-		clone.setApprovalParameters(newContent.getBytes());
 		dboBasicDao.update(clone);
 		clone = dboBasicDao.getObjectById(DBOAccessApproval.class, params);
 		assertNotNull(clone);
-		assertEquals(newContent, new String(clone.getApprovalParameters()));
 		
 		// Delete it
 		boolean result = dboBasicDao.deleteObjectById(DBOAccessApproval.class,  params);

@@ -56,11 +56,10 @@
             "title":"Accessor",
             "transient":true,
         },
-        "approvalType":{
-                "type":"object",
-                "description":"The type of this approval object.",
-                "name":"ApprovalType",
-                "$ref":"org.sagebionetworks.repo.model.AccessApprovalType"
+        "entityType":{
+            "type":"string",
+            "description":"The full class name of this entiy.",
+            "transient":true,
         }
-     }
+ 	}
 }

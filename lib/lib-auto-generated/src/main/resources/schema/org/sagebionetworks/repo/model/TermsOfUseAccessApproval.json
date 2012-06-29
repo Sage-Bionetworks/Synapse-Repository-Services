@@ -5,11 +5,5 @@
         {
             "$ref":"org.sagebionetworks.repo.model.AccessApproval"
         }
-    ],
-    "properties":{
-    	"parameters":{
-    		"type":"object",
-    		"$ref":"org.sagebionetworks.repo.model.TermsOfUseApprovalParameters"
-    	}
-    }
+    ]
 }
