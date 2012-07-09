@@ -78,9 +78,9 @@ public class UserProfileController extends BaseController {
 	public @ResponseBody
 	UserProfile getUserProfileByOwnerId(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String id) throws DatastoreException, UnauthorizedException, NotFoundException {
+			@PathVariable String profileId) throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.getUserProfile(userInfo, id);
+		return userProfileManager.getUserProfile(userInfo, profileId);
 	}
 
 	/**
