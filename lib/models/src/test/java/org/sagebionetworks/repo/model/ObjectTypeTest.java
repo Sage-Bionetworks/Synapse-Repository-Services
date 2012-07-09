@@ -31,7 +31,7 @@ public class ObjectTypeTest {
 	
 	@Test
 	public void testDatasetValidParent(){
-		EntityType[] expectedValid = new EntityType[]{EntityType.project};
+		EntityType[] expectedValid = new EntityType[]{EntityType.project, EntityType.folder};
 		testValidParents(expectedValid,  EntityType.dataset);
 	}
 	
@@ -43,13 +43,13 @@ public class ObjectTypeTest {
 	
 	@Test
 	public void testLayerValidParent(){
-		EntityType[] expectedValid = new EntityType[]{EntityType.dataset, EntityType.project};
+		EntityType[] expectedValid = new EntityType[]{EntityType.dataset, EntityType.project, EntityType.folder};
 		testValidParents(expectedValid, EntityType.layer);
 	}
 	
 	@Test
 	public void testPreviewValidParent(){
-		EntityType[] expectedValid = new EntityType[]{ EntityType.layer};
+		EntityType[] expectedValid = new EntityType[]{ EntityType.layer, EntityType.folder};
 		testValidParents(expectedValid, EntityType.preview);
 	}
 	
