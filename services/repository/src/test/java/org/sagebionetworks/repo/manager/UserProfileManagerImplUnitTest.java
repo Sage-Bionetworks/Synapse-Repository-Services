@@ -28,7 +28,7 @@ public class UserProfileManagerImplUnitTest {
 	UserInfo adminUserInfo;
 	UserManager mockUserManager;
 	LocationHelper mocKLocationHelper;
-	
+	S3AttachmentToken testToken;
 	
 	@Before
 	public void before() {
@@ -43,19 +43,21 @@ public class UserProfileManagerImplUnitTest {
 		user.setId("111");
 		userInfo.setIndividualGroup(user);
 		adminUserInfo.setIndividualGroup(user);
+		testToken = new S3AttachmentToken();
+		testToken.setFileName("testonly.jpg");
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testCreateS3URLNonAdminNonOwner() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		userProfileManagerImpl.createS3UserProfileAttachmentToken(userInfo, "222", new S3AttachmentToken());
+		userProfileManagerImpl.createS3UserProfileAttachmentToken(userInfo, "222", testToken);
 	}
 	@Test
 	public void testIsOwner() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		userProfileManagerImpl.createS3UserProfileAttachmentToken(userInfo, "111", new S3AttachmentToken());			
+		userProfileManagerImpl.createS3UserProfileAttachmentToken(userInfo, "111", testToken);			
 	}
 	@Test
 	public void testIsAdmin() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
-		userProfileManagerImpl.createS3UserProfileAttachmentToken(adminUserInfo, "Superman", new S3AttachmentToken());
+		userProfileManagerImpl.createS3UserProfileAttachmentToken(adminUserInfo, "Superman", testToken);
 	}	
 	@Test
 	public void testAdminGetPresignedUrl() throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
