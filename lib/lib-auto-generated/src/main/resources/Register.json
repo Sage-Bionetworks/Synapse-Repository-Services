@@ -49,7 +49,10 @@
         {
             "validParentTypes":[
                 "DEFAULT",
-                "org.sagebionetworks.repo.model.Folder"
+                "org.sagebionetworks.repo.model.Project",
+                "org.sagebionetworks.repo.model.Folder",
+                "org.sagebionetworks.repo.model.Study",
+                "org.sagebionetworks.repo.model.Analysis"
             ],
             "name":"folder",
             "entityType":"org.sagebionetworks.repo.model.Folder",
