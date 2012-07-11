@@ -212,6 +212,23 @@ public class UserProfileManagerImplTest {
 		assertNotNull(endToken);
 		assertNotNull(endToken.getPresignedUrl());
 	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testCreateS3AttachmentTokenFromInvalidFile() throws NumberFormatException, DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException{
+		UserInfo userInfo = new UserInfo(false); // not an admin
+		userInfo.setIndividualGroup(individualGroup);
+		
+		S3AttachmentToken startToken = new S3AttachmentToken();
+		startToken.setFileName("/not_an_image.txt");
+		String almostMd5 = "79054025255fb1a26e4bc422aef54eb4";
+		startToken.setMd5(almostMd5);
+		Long tokenId = new Long(456);
+		String userId = individualGroup.getId();
+		when(mockIdGenerator.generateNewId()).thenReturn(tokenId);
+		//next line should result in an IllegalArgumentException, since the filename does not not indicate an image file that we recognize
+		userProfileManager.createS3UserProfileAttachmentToken(userInfo, userId, startToken);
+	}
+
 
 	
 
