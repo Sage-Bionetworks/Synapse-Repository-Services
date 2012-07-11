@@ -237,11 +237,12 @@ public class IT100BackupRestoration {
 		// first create a backup copy of all of the users
 		// Start the daemon
 		BackupSubmission submission = new BackupSubmission();
+		submission.setEntityIdsToBackup(synapse.getAllUserAndGroupIds());
 		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigrationType.PRINCIPAL);
 		assertNotNull(status);
 		assertNotNull(status.getStatus());
 		assertFalse(status.getErrorMessage(),DaemonStatus.FAILED == status.getStatus());
-		assertTrue(DaemonType.RESTORE == status.getType());
+		assertTrue(DaemonType.BACKUP == status.getType());
 		String restoreId = status.getId();
 		assertNotNull(restoreId);
 		// Wait for it to finish
@@ -250,7 +251,8 @@ public class IT100BackupRestoration {
 		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
 		// Now restore the users from this backup file
 		RestoreSubmission restoreSub = new RestoreSubmission();
-		restoreSub.setFileName(status.getBackupUrl());
+		String backupFileName = getFileNameFromUrl(status.getBackupUrl());
+		restoreSub.setFileName(backupFileName);
 		status = synapse.startRestoreDaemon(restoreSub, MigrationType.PRINCIPAL);
 		// Wait for it to finish
 		status = waitForDaemon(status.getId());

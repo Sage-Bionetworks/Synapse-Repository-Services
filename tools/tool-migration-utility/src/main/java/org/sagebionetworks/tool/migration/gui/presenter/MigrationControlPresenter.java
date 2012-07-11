@@ -6,6 +6,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -301,13 +302,18 @@ public class MigrationControlPresenter {
 						log.debug("Finished phase one.  Source entity count: "+sourceData.size()+". Destination entity Count: "+destData.size());
 						
 						// Start the migration of principals.
-						BasicProgress principalProgress = new BasicProgress();
-						Future<WorkerResult> future = RepositoryMigrationDriver.migratePrincipals(factory, threadPool, principalProgress, MigrationType.PRINCIPAL);
-						while(!future.isDone()){
-							//log.info("Processing entities: "+consumingProgress.getCurrentStatus());
-							// Update the progress
-							updateCreationProgress(principalProgress, "Migrating all princiapls");
-							Thread.sleep(200);
+						// Calculate the users and groups that need to be migrated.
+						Set<String> usersAndGroupsToMigrate = RepositoryMigrationDriver.calculateUserDelta(sourceClient, destClient);
+						// Skip this step if there no users or groups to migrate
+						if(usersAndGroupsToMigrate.size() > 0){
+							BasicProgress principalProgress = new BasicProgress();
+							Future<WorkerResult> future = RepositoryMigrationDriver.migratePrincipals(factory, threadPool, principalProgress, usersAndGroupsToMigrate);
+							while(!future.isDone()){
+								//log.info("Processing entities: "+consumingProgress.getCurrentStatus());
+								// Update the progress
+								updateCreationProgress(principalProgress, "Migrating all princiapls");
+								Thread.sleep(200);
+							}
 						}
 						
 						// Start phase 4

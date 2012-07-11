@@ -3,8 +3,10 @@ package org.sagebionetworks.tool.migration;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -12,6 +14,10 @@ import java.util.concurrent.Executors;
 
 import org.junit.Before;
 import org.junit.Test;
+import static org.mockito.Mockito.*;
+import org.mockito.Mockito;
+import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 import org.sagebionetworks.tool.migration.job.Job;
 import org.sagebionetworks.tool.migration.job.Job.Type;
@@ -177,6 +183,31 @@ public class MigrationDriverTest {
 		assertEquals(expectedCreate, createCount);
 		assertEquals(expectedUpdate, updateCount);
 		assertEquals(expectedDelete, deleteCount);
+	}
+	
+	@Test
+	public void testCalculateUserDelta() throws SynapseException{
+		
+		// Setup the source
+		Set<String> sourceId = new HashSet<String>();
+		sourceId.add("1");
+		sourceId.add("2");
+		sourceId.add("3");
+		Synapse mockSource = Mockito.mock(Synapse.class);
+		when(mockSource.getAllUserAndGroupIds()).thenReturn(sourceId);
+		// Setup the dest
+		Synapse mockDest = Mockito.mock(Synapse.class);
+		Set<String> destIds = new HashSet<String>();
+		destIds.add("2");
+		destIds.add("4");
+		when(mockDest.getAllUserAndGroupIds()).thenReturn(destIds);
+		
+		Set<String> delta = RepositoryMigrationDriver.calculateUserDelta(mockSource, mockDest);
+		assertNotNull(delta);
+		assertTrue(delta.contains("1"));
+		assertTrue(delta.contains("3"));
+		assertFalse(delta.contains("2"));
+		assertFalse(delta.contains("4"));
 	}
 
 }

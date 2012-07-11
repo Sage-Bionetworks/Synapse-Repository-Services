@@ -17,6 +17,7 @@ import java.util.concurrent.Future;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.MigrationType;
 import org.sagebionetworks.tool.migration.Progress.AggregateProgress;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
@@ -172,6 +173,26 @@ public class RepositoryMigrationDriver {
 	}
 	
 	/**
+	 * Calculate the 
+	 * @param sourceClient
+	 * @param desSynapse
+	 * @return
+	 * @throws SynapseException
+	 */
+	public static Set<String> calculateUserDelta(Synapse sourceClient, Synapse desSynapse) throws SynapseException{
+		HashSet<String> delta = new HashSet<String>();
+		Set<String> sourceIds  = sourceClient.getAllUserAndGroupIds();
+		Set<String> destIds = desSynapse.getAllUserAndGroupIds();
+		// Find the ids that are in the source but on in the destination.
+		for(String sourceId: sourceIds){
+			if(!destIds.contains(sourceId)){
+				delta.add(sourceId);
+			}
+		}
+		return delta;
+	}
+	
+	/**
 	 * Migrate all users.
 	 * @param factory
 	 * @param threadPool
@@ -180,10 +201,10 @@ public class RepositoryMigrationDriver {
 	 * @throws InterruptedException
 	 * @throws ExecutionException
 	 */
-	public static Future<WorkerResult> migratePrincipals(ClientFactory clientFactory, ExecutorService threadPool, BasicProgress progress, MigrationType type)
+	public static Future<WorkerResult> migratePrincipals(ClientFactory clientFactory, ExecutorService threadPool, BasicProgress progress, Set<String> toMigrate)
 			throws InterruptedException, ExecutionException {
 		// Create a new worker job.
-		CreateUpdateWorker worker = new CreateUpdateWorker(configuration, clientFactory, new HashSet<String>(0), progress, type);
+		CreateUpdateWorker worker = new CreateUpdateWorker(configuration, clientFactory, toMigrate, progress, MigrationType.PRINCIPAL);
 		// Start the worker job.
 		return threadPool.submit(worker);
 	}
