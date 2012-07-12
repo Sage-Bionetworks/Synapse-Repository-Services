@@ -4,9 +4,9 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.util.Collection;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
@@ -17,7 +17,6 @@ import javax.swing.SwingUtilities;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
@@ -30,7 +29,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.migration.AllEntityDataWorker;
 import org.sagebionetworks.tool.migration.ClientFactory;
 import org.sagebionetworks.tool.migration.ClientFactoryImpl;
-import org.sagebionetworks.tool.migration.PrincipalRetriever012;
+import org.sagebionetworks.tool.migration.Configuration;
 import org.sagebionetworks.tool.migration.RepositoryMigrationDriver;
 import org.sagebionetworks.tool.migration.ResponseBundle;
 import org.sagebionetworks.tool.migration.SynapseConnectionInfo;
@@ -43,6 +42,7 @@ import org.sagebionetworks.tool.migration.job.AggregateResult;
 import org.sagebionetworks.tool.migration.job.BuilderResponse;
 import org.sagebionetworks.tool.migration.job.CreateUpdateWorker;
 import org.sagebionetworks.tool.migration.job.Job;
+import org.sagebionetworks.tool.migration.job.WorkerResult;
 
 public class MigrationControlPresenter {
 	
@@ -300,21 +300,21 @@ public class MigrationControlPresenter {
 						// Give interrupt a chance.
 						Thread.sleep(100);
 						log.debug("Finished phase one.  Source entity count: "+sourceData.size()+". Destination entity Count: "+destData.size());
-
-						Callable<Void> c = new Callable<Void>() {
-
-							@Override
-							public Void call() throws Exception {
-								migratePrincipals(sourceInfo, destInfo, factory);
-								return null;
+						
+						// Start the migration of principals.
+						// Calculate the users and groups that need to be migrated.
+						Set<String> usersAndGroupsToMigrate = RepositoryMigrationDriver.calculateUserDelta(sourceClient, destClient);
+						// Skip this step if there no users or groups to migrate
+						if(usersAndGroupsToMigrate.size() > 0){
+							BasicProgress principalProgress = new BasicProgress();
+							Future<WorkerResult> future = RepositoryMigrationDriver.migratePrincipals(factory, threadPool, principalProgress, usersAndGroupsToMigrate);
+							while(!future.isDone()){
+								//log.info("Processing entities: "+consumingProgress.getCurrentStatus());
+								// Update the progress
+								updateCreationProgress(principalProgress, "Migrating all princiapls");
+								Thread.sleep(200);
 							}
-							
-						};
-						
-						Future<Void> principalsMigrationResult = threadPool.submit(c);
-						
-						// block until thread is complete
-						principalsMigrationResult.get();
+						}
 						
 						// Start phase 4
 						log.debug("Starting phase two: Calculating creates, updates, and deletes...");
@@ -363,66 +363,64 @@ public class MigrationControlPresenter {
 		
 	}
 	
-	private static final String REMOTE_PRINCIPALS_FILE_NAME_PREFIX = "principalBackup";
+//	// this must be removed after 0.12->0.13 migration is complete!!!!!!!!
+//	private void migratePrincipals(SynapseConnectionInfo sourceConnInfo, SynapseConnectionInfo destConnInfo, ClientFactory clientFactory) {
+//		File file = null;
+//		try {
+//			PrincipalRetriever012 pr = new PrincipalRetriever012(sourceConnInfo.getAuthenticationEndPoint(), sourceConnInfo.getRepositoryEndPoint());
+//			CrowdAuthUtil.overrideStackConfig(sourceConnInfo.getCrowdEndpoint(), sourceConnInfo.getCrowdApplicationKey());
+//			pr.login(sourceConnInfo.getAdminUsername(), sourceConnInfo.getAdminPassword());
+//			// get all the principals
+//			Collection<PrincipalBackup> principalBackups = pr.getPrincipals();
+//			// write them to a file and move to the S3 bucket
+//			String iamId = sourceConnInfo.getStackIamId();
+//			String iamKey = sourceConnInfo.getStackIamKey();
+//			String bucket= sourceConnInfo.getSharedS3BackupBucket();
+//			file = File.createTempFile(REMOTE_PRINCIPALS_FILE_NAME_PREFIX, ".zip");
+//			PrincipalRetriever012.sendPrincipalBackupsToS3(principalBackups,
+//					 iamId,  iamKey,  bucket, file);
+//			// call destination-side service to restore entities
+//			SynapseAdministration destClient = new SynapseAdministration();
+//			destClient.setAuthEndpoint(destConnInfo.getAuthenticationEndPoint());
+//			destClient.setRepositoryEndpoint(destConnInfo.getRepositoryEndPoint());
+//			destClient.login(destConnInfo.getAdminUsername(), destConnInfo.getAdminPassword());
+//			RestoreSubmission submission = new RestoreSubmission();
+//			submission.setFileName(file.getName());
+//
+//			BackupRestoreStatus status = destClient.startRestoreDaemon(submission, MigrationType.PRINCIPAL);
+//			
+//			// wait for it to finish
+//			waitForDaemon(status.getId(), destClient, 120*1000L/* two minutes in milliseconds*/);
+//		} catch (Exception e) {
+//			if (e instanceof RuntimeException) throw (RuntimeException)e; else throw new RuntimeException(e);
+//		} finally {
+//			if (file!=null) file.delete();
+//		}
+//	}
 	
-	// this must be removed after 0.12->0.13 migration is complete!!!!!!!!
-	private void migratePrincipals(SynapseConnectionInfo sourceConnInfo, SynapseConnectionInfo destConnInfo, ClientFactory clientFactory) {
-		File file = null;
-		try {
-			PrincipalRetriever012 pr = new PrincipalRetriever012(sourceConnInfo.getAuthenticationEndPoint(), sourceConnInfo.getRepositoryEndPoint());
-			CrowdAuthUtil.overrideStackConfig(sourceConnInfo.getCrowdEndpoint(), sourceConnInfo.getCrowdApplicationKey());
-			pr.login(sourceConnInfo.getAdminUsername(), sourceConnInfo.getAdminPassword());
-			// get all the principals
-			Collection<PrincipalBackup> principalBackups = pr.getPrincipals();
-			// write them to a file and move to the S3 bucket
-			String iamId = sourceConnInfo.getStackIamId();
-			String iamKey = sourceConnInfo.getStackIamKey();
-			String bucket= sourceConnInfo.getSharedS3BackupBucket();
-			file = File.createTempFile(REMOTE_PRINCIPALS_FILE_NAME_PREFIX, ".zip");
-			PrincipalRetriever012.sendPrincipalBackupsToS3(principalBackups,
-					 iamId,  iamKey,  bucket, file);
-			// call destination-side service to restore entities
-			SynapseAdministration destClient = new SynapseAdministration();
-			destClient.setAuthEndpoint(destConnInfo.getAuthenticationEndPoint());
-			destClient.setRepositoryEndpoint(destConnInfo.getRepositoryEndPoint());
-			destClient.login(destConnInfo.getAdminUsername(), destConnInfo.getAdminPassword());
-			RestoreSubmission submission = new RestoreSubmission();
-			submission.setFileName(file.getName());
-
-			BackupRestoreStatus status = destClient.startRestoreDaemon(submission, MigrationType.PRINCIPAL);
-			
-			// wait for it to finish
-			waitForDaemon(status.getId(), destClient, 120*1000L/* two minutes in milliseconds*/);
-		} catch (Exception e) {
-			if (e instanceof RuntimeException) throw (RuntimeException)e; else throw new RuntimeException(e);
-		} finally {
-			if (file!=null) file.delete();
-		}
-	}
-	
-	// this must be removed after 0.12->0.13 migration is complete!!!!!!!!
-	public BackupRestoreStatus waitForDaemon(String daemonId, SynapseAdministration client, long timeoutMilliseconds)
-			throws SynapseException, JSONObjectAdapterException,
-			InterruptedException {
-		// Wait for the daemon to finish.
-		long start = System.currentTimeMillis();
-		while (true) {
-			long now = System.currentTimeMillis();
-			if(now-start > timeoutMilliseconds){
-				throw new InterruptedException("Timed out waiting for the daemon to complete");
-			}
-			BackupRestoreStatus status = client.getDaemonStatus(daemonId);
-			// Check to see if we failed.
-			if(DaemonStatus.FAILED == status.getStatus()){
-				throw new InterruptedException("Failed: "+status.getType()+" message:"+status.getErrorMessage());
-			} else 	if (DaemonStatus.COMPLETED == status.getStatus()) {
-				return status;
-			}
-
-			// Wait.
-			Thread.sleep(2000);
-		}
-	}
+//	// this must be removed after 0.12->0.13 migration is complete!!!!!!!!
+//	public BackupRestoreStatus waitForDaemon(String daemonId, SynapseAdministration client, long timeoutMilliseconds)
+//			throws SynapseException, JSONObjectAdapterException,
+//			InterruptedException {
+//		// Wait for the daemon to finish.
+//		long start = System.currentTimeMillis();
+//		while (true) {
+//			long now = System.currentTimeMillis();
+//			if(now-start > timeoutMilliseconds){
+//				throw new InterruptedException("Timed out waiting for the daemon to complete");
+//			}
+//			BackupRestoreStatus status = client.getDaemonStatus(daemonId);
+//			// Check to see if we failed.
+//			if(DaemonStatus.FAILED == status.getStatus()){
+//				throw new InterruptedException("Failed: "+status.getType()+" message:"+status.getErrorMessage());
+//			} else 	if (DaemonStatus.COMPLETED == status.getStatus()) {
+//				return status;
+//			}
+//
+//			// Wait.
+//			Thread.sleep(2000);
+//		}
+//	}
 
 	
 	private void stopMigration(){
