@@ -184,4 +184,18 @@ public class SearchUpdaterConfigurationImpl implements Configuration {
 		return Long.parseLong(configuration
 				.getProperty("org.sagebionetworks.worker.thread.timout.ms"));
 	}
+
+	/**
+	 * When true, all search documents will be updated even if they are already up-to-date.
+	 * @return
+	 */
+	public boolean forceSearchDocumentUpdate() {
+		try{
+			return Boolean.parseBoolean(System.getProperty("org.sagebionetworks.search.worker.force.search.document.update"));
+		}catch(Exception e){
+			// If the property is not provided default to false.
+			return false;
+		}
+
+	}
 }
