@@ -11,9 +11,11 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -1746,5 +1748,24 @@ public class Synapse {
 		else if (type == AttachmentType.USER_PROFILE)
 			return USER_PROFILE_PATH;
 		else throw new IllegalArgumentException("Unrecognized attachment type: " + type);
+	}
+	/**
+	 * Get the ids of all users and groups.
+	 * @param client
+	 * @return
+	 * @throws SynapseException
+	 */
+	public Set<String> getAllUserAndGroupIds() throws SynapseException {
+		HashSet<String> ids = new HashSet<String>();
+		// Get all the users
+		PaginatedResults<UserProfile> pr = this.getUsers(0, Integer.MAX_VALUE);
+		for(UserProfile up : pr.getResults()){
+			ids.add(up.getOwnerId());
+		}
+		PaginatedResults<UserGroup> groupPr = this.getGroups(0, Integer.MAX_VALUE);
+		for(UserGroup ug : groupPr.getResults()){
+			ids.add(ug.getId());
+		}
+		return ids;
 	}
 }

@@ -3,9 +3,11 @@ package org.sagebionetworks.tool.migration;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -15,6 +17,8 @@ import java.util.concurrent.Future;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.MigrationType;
 import org.sagebionetworks.tool.migration.Progress.AggregateProgress;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 import org.sagebionetworks.tool.migration.dao.EntityData;
@@ -22,12 +26,14 @@ import org.sagebionetworks.tool.migration.dao.QueryRunner;
 import org.sagebionetworks.tool.migration.dao.QueryRunnerImpl;
 import org.sagebionetworks.tool.migration.job.AggregateResult;
 import org.sagebionetworks.tool.migration.job.BuilderResponse;
+import org.sagebionetworks.tool.migration.job.CreateUpdateWorker;
 import org.sagebionetworks.tool.migration.job.CreationJobBuilder;
 import org.sagebionetworks.tool.migration.job.DeleteJobBuilder;
 import org.sagebionetworks.tool.migration.job.Job;
 import org.sagebionetworks.tool.migration.job.JobQueueWorker;
 import org.sagebionetworks.tool.migration.job.JobUtil;
 import org.sagebionetworks.tool.migration.job.UpdateJobBuilder;
+import org.sagebionetworks.tool.migration.job.WorkerResult;
 
 /**
  * The main driver for migration.
@@ -164,6 +170,43 @@ public class RepositoryMigrationDriver {
 		JobQueueWorker queueWorker = new JobQueueWorker(configuration, jobQueue, threadPool, factory, progress);
 		// Start the worker job.
 		return threadPool.submit(queueWorker);
+	}
+	
+	/**
+	 * Calculate the 
+	 * @param sourceClient
+	 * @param desSynapse
+	 * @return
+	 * @throws SynapseException
+	 */
+	public static Set<String> calculateUserDelta(Synapse sourceClient, Synapse desSynapse) throws SynapseException{
+		HashSet<String> delta = new HashSet<String>();
+		Set<String> sourceIds  = sourceClient.getAllUserAndGroupIds();
+		Set<String> destIds = desSynapse.getAllUserAndGroupIds();
+		// Find the ids that are in the source but on in the destination.
+		for(String sourceId: sourceIds){
+			if(!destIds.contains(sourceId)){
+				delta.add(sourceId);
+			}
+		}
+		return delta;
+	}
+	
+	/**
+	 * Migrate all users.
+	 * @param factory
+	 * @param threadPool
+	 * @param jobQueue
+	 * @return
+	 * @throws InterruptedException
+	 * @throws ExecutionException
+	 */
+	public static Future<WorkerResult> migratePrincipals(ClientFactory clientFactory, ExecutorService threadPool, BasicProgress progress, Set<String> toMigrate)
+			throws InterruptedException, ExecutionException {
+		// Create a new worker job.
+		CreateUpdateWorker worker = new CreateUpdateWorker(configuration, clientFactory, toMigrate, progress, MigrationType.PRINCIPAL);
+		// Start the worker job.
+		return threadPool.submit(worker);
 	}
 
 	/**
