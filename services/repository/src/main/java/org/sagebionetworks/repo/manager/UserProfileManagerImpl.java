@@ -114,6 +114,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		boolean isOwnerOrAdmin = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, profileId);
 		if (!isOwnerOrAdmin)
 			throw new UnauthorizedException("Can't assign attachment to another user's profile");
+		if (!AttachmentManagerImpl.isPreviewType(token.getFileName()))
+			throw new IllegalArgumentException("User profile attachment is not a recognized image type, please try a different file.");
 		return s3TokenManager.createS3AttachmentToken(userInfo.getIndividualGroup().getId(), profileId, token);
 	}
 	
