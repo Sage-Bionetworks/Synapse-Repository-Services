@@ -10,6 +10,10 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
 public class AccessApprovalUtils {
 	
+	// the convention is that the individual fields take precedence
+	// over the serialized objects.  When restoring the dto we first deserialize
+	// the 'blob' and then populate the individual fields
+	
 	public static void copyDtoToDbo(AccessApproval dto, DBOAccessApproval dbo) throws DatastoreException{
 		if (dto.getId()==null) {
 			dbo.setId(null);
@@ -21,8 +25,8 @@ public class AccessApprovalUtils {
 		} else {
 			dbo.seteTag(Long.parseLong(dto.getEtag()));
 		}
-		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
-		dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		if (dto.getCreatedBy()!=null) dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
+		if (dto.getCreatedOn()!=null) dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setRequirementId(dto.getRequirementId());
@@ -33,7 +37,6 @@ public class AccessApprovalUtils {
 	
 	public static AccessApproval copyDboToDto(DBOAccessApproval dbo) throws DatastoreException {
 		AccessApproval dto = copyFromSerializedField(dbo);
-		// TODO the rest may not be necessary ...
 		if (dbo.getId()==null) {
 			dto.setId(null);
 		} else {

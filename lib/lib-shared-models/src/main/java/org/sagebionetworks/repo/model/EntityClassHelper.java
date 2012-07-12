@@ -12,7 +12,7 @@ public class EntityClassHelper {
 	public static String entityType(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {
 		return jsonObjectAdapter.getString(ENTITY_TYPE_FIELD_NAME);
 	}
-
+	
 	public static JSONEntity deserialize(JSONObjectAdapter jsonObjectAdapter) throws JSONObjectAdapterException {
 		String entityType = entityType(jsonObjectAdapter);
 		JSONEntity newInstance = (JSONEntity)autoGenFactory.newInstance(entityType);

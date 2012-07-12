@@ -8,11 +8,14 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.manager.AccessApprovalManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessApproval;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityClassHelper;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -26,6 +29,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -71,9 +75,7 @@ public class AccessApprovalController extends BaseController {
 	public AccessApproval deserialize(HttpServletRequest request, HttpHeaders header) throws DatastoreException, IOException {
 		try {
 			String requestBody = ControllerUtil.getRequestBodyAsString(request);
-			// TODO:  what if the body is not JSON??
-			JSONObjectAdapter jsonObjectAdapter = (new JSONObjectAdapterImpl()).createNew(requestBody);
-			String type = EntityClassHelper.entityType(jsonObjectAdapter);
+			String type = ControllerEntityClassHelper.entityType(requestBody, header.getContentType());
 			Class<? extends AccessApproval> clazz = (Class<? extends AccessApproval>)Class.forName(type);
 			// now we know the type so we can deserialize into the correct one
 			// need an input stream
@@ -85,24 +87,38 @@ public class AccessApprovalController extends BaseController {
 	}
 
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL, method = RequestMethod.PUT)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	AccessApproval updateAccessApproval(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestHeader HttpHeaders header,
-			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
-			HttpServletRequest request)
-			throws NotFoundException, ConflictingUpdateException,
-			DatastoreException, InvalidModelException, UnauthorizedException, ForbiddenException, IOException {
+	PaginatedResults<AccessApproval> getAccessApprovals(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String entityId,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		AccessApproval accessApproval = deserialize(request, header);		
-		if(etag != null){
-			accessApproval.setEtag(etag.toString());
-		}
-		return accessApprovalManager.updateAccessApproval(userInfo, accessApproval);
+
+		QueryResults<AccessApproval> results = 
+			accessApprovalManager.getAccessApprovalsForEntity(userInfo, entityId);
+		
+		return new PaginatedResults<AccessApproval>(
+				request.getServletPath()+UrlHelpers.ACCESS_APPROVAL, 
+				results.getResults(),
+				(int)results.getTotalNumberOfResults(), 
+				1, 
+				(int)results.getTotalNumberOfResults(),
+				"", 
+				false);
+
 	}
 
-	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_APPROVAL_ID, method = RequestMethod.DELETE)
+	public void deleteAccessApprovals(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String approvalId) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
 
+		accessApprovalManager.deleteAccessApproval(userInfo, approvalId);
+
+	}
 	
 }

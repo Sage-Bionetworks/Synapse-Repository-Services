@@ -67,9 +67,7 @@ public class AccessRequirementController extends BaseController {
 	public AccessRequirement deserialize(HttpServletRequest request, HttpHeaders header) throws DatastoreException, IOException {
 		try {
 			String requestBody = ControllerUtil.getRequestBodyAsString(request);
-			// TODO:  what if the body is not JSON??
-			JSONObjectAdapter jsonObjectAdapter = (new JSONObjectAdapterImpl()).createNew(requestBody);
-			String type = EntityClassHelper.entityType(jsonObjectAdapter);
+			String type = ControllerEntityClassHelper.entityType(requestBody, header.getContentType());
 			Class<? extends AccessRequirement> clazz = (Class<? extends AccessRequirement>)Class.forName(type);
 			// now we know the type so we can deserialize into the correct one
 			// need an input stream
@@ -93,7 +91,7 @@ public class AccessRequirementController extends BaseController {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		QueryResults<AccessRequirement> results = 
-			accessRequirementManager.getUnmetAccessRequirement(userInfo, entityId);
+			accessRequirementManager.getUnmetAccessRequirements(userInfo, entityId);
 		
 		return new PaginatedResults<AccessRequirement>(
 				request.getServletPath()+UrlHelpers.ACCESS_REQUIREMENT_UNFULFILLED, 
@@ -107,24 +105,42 @@ public class AccessRequirementController extends BaseController {
 	}
 
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT, method = RequestMethod.PUT)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	AccessRequirement updateAccessRequirement(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestHeader HttpHeaders header,
-			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
-			HttpServletRequest request)
-			throws NotFoundException, ConflictingUpdateException,
-			DatastoreException, InvalidModelException, UnauthorizedException, ForbiddenException, IOException {
+	PaginatedResults<AccessRequirement>
+	 getAccessRequirements(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String entityId,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		AccessRequirement accessRequirement = deserialize(request, header);
-		if(etag != null){
-			accessRequirement.setEtag(etag.toString());
-		}
-		return accessRequirementManager.updateAccessRequirement(userInfo, accessRequirement);
+
+		QueryResults<AccessRequirement> results = 
+			accessRequirementManager.getAccessRequirementsForEntity(userInfo, entityId);
+		
+		return new PaginatedResults<AccessRequirement>(
+				request.getServletPath()+UrlHelpers.ACCESS_REQUIREMENT, 
+				results.getResults(),
+				(int)results.getTotalNumberOfResults(), 
+				1, 
+				(int)results.getTotalNumberOfResults(),
+				"", 
+				false);
+
 	}
 
-	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.DELETE)
+	public void deleteAccessRequirements(
+				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String requirementId) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+
+		accessRequirementManager.deleteAccessRequirement(userInfo, requirementId);
+
+	}
+
+
 
 	
 }

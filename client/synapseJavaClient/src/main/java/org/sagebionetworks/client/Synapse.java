@@ -428,6 +428,11 @@ public class Synapse {
 		try {
 			T obj = clazz.newInstance();
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(o);
+			Iterator<String> it = adapter.keys();
+			while (it.hasNext()) {
+				String s = it.next();
+				System.out.println(s);
+			}
 			obj.initializeFromJSONObject(adapter);
 			return obj;
 		} catch (IllegalAccessException e) {
@@ -610,7 +615,7 @@ public class Synapse {
 		}
 	}
 	
-	public AccessRequirement createAccessRequirement(AccessRequirement ar) throws SynapseException {
+	public <T extends AccessRequirement> T createAccessRequirement(T ar) throws SynapseException {
 	
 		if (ar==null) throw new IllegalArgumentException("AccessRequirement cannot be null");
 		ar.setEntityType(ar.getClass().getName());
@@ -621,7 +626,7 @@ public class Synapse {
 			// Create the entity
 			jsonObject = createEntity(ACCESS_REQUIREMENT, jsonObject);
 			// Now convert to Object to an entity
-			return initializeFromJSONObject(jsonObject, getAccessRequirementClassFromType(ar.getEntityType()));
+			return (T)initializeFromJSONObject(jsonObject, getAccessRequirementClassFromType(ar.getEntityType()));
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -649,7 +654,7 @@ public class Synapse {
 		}
 	}
 	
-	public AccessApproval createAccessApproval(AccessApproval aa) throws SynapseException {
+	public <T extends AccessApproval> T createAccessApproval(T aa) throws SynapseException {
 		
 		if (aa==null) throw new IllegalArgumentException("AccessApproval cannot be null");		
 		aa.setEntityType(aa.getClass().getName());
@@ -660,7 +665,7 @@ public class Synapse {
 			// Create the entity
 			jsonObject = createEntity(ACCESS_APPROVAL, jsonObject);
 			// Now convert to Object to an entity
-			return initializeFromJSONObject(jsonObject, getAccessApprovalClassFromType(aa.getEntityType()));
+			return (T)initializeFromJSONObject(jsonObject, getAccessApprovalClassFromType(aa.getEntityType()));
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}

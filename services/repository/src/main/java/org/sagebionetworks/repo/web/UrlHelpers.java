@@ -190,11 +190,15 @@ public class UrlHelpers {
 	public static final String USERGROUP = "/userGroup";
 	
 	public static final String ACCESS_REQUIREMENT = "/accessRequirement";
+	public static final String ACCESS_REQUIREMENT_WITH_ENTITY_ID = ACCESS_REQUIREMENT+"/{entityId}";
+	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID = ACCESS_REQUIREMENT+"/{requirementId}";
 	
 	public static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled";
-	public static final String ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = "/accessRequirementUnfulfilled/{entityId}";
+	public static final String ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ACCESS_REQUIREMENT_UNFULFILLED+"/{entityId}";
 	
 	public static final String ACCESS_APPROVAL = "/accessApproval";
+	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ACCESS_APPROVAL+"/{entityId}";
+	public static final String ACCESS_APPROVAL_WITH_APPROVAL_ID = ACCESS_APPROVAL+"/{approvalId}";
 	
 	/**
 	 * URL prefix for Users in a UserGroup

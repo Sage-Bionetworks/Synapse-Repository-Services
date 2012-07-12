@@ -44,10 +44,13 @@
             "title":"Modified By",
             "transient":true,
         },
-        "entityId":{
-            "type":"string",
-            "description":"The ID of the entity controlled by this Access Requirement.",
+        "entityIds":{
+            "type":"array",
+            "description":"The IDs of the entities controlled by this Access Requirement.",
             "transient":true,
+            "items":{
+                "type":"string"
+            }
         },
         "accessType":{
                 "type":"object",
@@ -57,7 +60,7 @@
         },
         "entityType":{
             "type":"string",
-            "description":"The full class name of this entiy.",
+            "description":"The full class name of this entitiy.",
             "transient":true,
         }
      }

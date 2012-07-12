@@ -32,7 +32,7 @@ public interface AccessRequirementManager {
 	 *  
 	 * @throws ForbiddenException 
 	 */
-	public QueryResults<AccessRequirement> getUnmetAccessRequirement(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException, ForbiddenException;
+	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException, ForbiddenException;
 	
 	/**
 	 * This API is for internal use and skips the authorization check  

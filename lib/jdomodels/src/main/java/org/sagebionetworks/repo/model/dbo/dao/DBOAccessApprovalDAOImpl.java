@@ -41,7 +41,6 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
 	
-
 	private static final String SELECT_FOR_REQUIREMENT_AND_PRINCIPAL_SQL = 
 			"SELECT * FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
 			COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+
@@ -69,14 +68,6 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		T result = (T)AccessApprovalUtils.copyDboToDto(jdo);
 		return result;
 	}
-
-//	public static AccessApproval instanceForType(String typeString) throws DatastoreException {
-//		try {
-//			return (AccessApproval)Class.forName(typeString).newInstance();
-//		} catch (Exception e) {
-//			throw new DatastoreException(e);
-//		}
-//	}
 
 	@Override
 	public AccessApproval get(String id) throws DatastoreException,

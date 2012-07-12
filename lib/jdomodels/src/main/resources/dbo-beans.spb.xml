@@ -35,6 +35,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOResourceAccessType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeAccessRequirement" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODaemonStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODaemonTerminate" />

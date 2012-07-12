@@ -10,7 +10,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ENTITY_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_REQUIREMENT;
@@ -35,7 +34,6 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 	private long createdOn;
 	private Long modifiedBy;
 	private long modifiedOn;
-	private Long nodeId;
 	private String accessType;
 	private String entityType;
 	private byte[] serializedEntity;
@@ -47,7 +45,6 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 		new FieldColumn("createdOn", COL_ACCESS_REQUIREMENT_CREATED_ON),
 		new FieldColumn("modifiedBy", COL_ACCESS_REQUIREMENT_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_ACCESS_REQUIREMENT_MODIFIED_ON),
-		new FieldColumn("nodeId", COL_ACCESS_REQUIREMENT_NODE_ID),
 		new FieldColumn("accessType", COL_ACCESS_REQUIREMENT_ACCESS_TYPE),
 		new FieldColumn("entityType", COL_ACCESS_REQUIREMENT_ENTITY_TYPE),
 		new FieldColumn("serializedEntity", COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY)
@@ -67,7 +64,6 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 				ar.setCreatedOn(rs.getLong(COL_ACCESS_REQUIREMENT_CREATED_ON));
 				ar.setModifiedBy(rs.getLong(COL_ACCESS_REQUIREMENT_MODIFIED_BY));
 				ar.setModifiedOn(rs.getLong(COL_ACCESS_REQUIREMENT_MODIFIED_ON));
-				ar.setNodeId(rs.getLong(COL_ACCESS_REQUIREMENT_NODE_ID));
 				ar.setAccessType(rs.getString(COL_ACCESS_REQUIREMENT_ACCESS_TYPE));
 				ar.setEntityType(rs.getString(COL_ACCESS_REQUIREMENT_ENTITY_TYPE));
 				java.sql.Blob blob = rs.getBlob(COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY);
@@ -140,17 +136,6 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 		this.modifiedBy = modifiedBy;
 	}
 
-
-	public Long getNodeId() {
-		return nodeId;
-	}
-
-
-	public void setNodeId(Long nodeId) {
-		this.nodeId = nodeId;
-	}
-
-
 	public String getAccessType() {
 		return accessType;
 	}
@@ -216,7 +201,6 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
 		result = prime * result + (int) (modifiedOn ^ (modifiedOn >>> 32));
-		result = prime * result + ((nodeId == null) ? 0 : nodeId.hashCode());
 		result = prime * result + Arrays.hashCode(serializedEntity);
 		return result;
 	}
@@ -265,11 +249,6 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 			return false;
 		if (modifiedOn != other.modifiedOn)
 			return false;
-		if (nodeId == null) {
-			if (other.nodeId != null)
-				return false;
-		} else if (!nodeId.equals(other.nodeId))
-			return false;
 		if (!Arrays.equals(serializedEntity, other.serializedEntity))
 			return false;
 		return true;
@@ -281,7 +260,7 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 		return "DBOAccessRequirement [id=" + id + ", eTag=" + eTag
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ ", nodeId=" + nodeId + ", accessType=" + accessType
+				 + ", accessType=" + accessType
 				+ ", entityType=" + entityType + ", serializedEntity="
 				+ Arrays.toString(serializedEntity) + "]";
 	}

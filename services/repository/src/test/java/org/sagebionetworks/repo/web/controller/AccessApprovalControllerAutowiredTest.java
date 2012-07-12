@@ -22,10 +22,12 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -45,7 +47,7 @@ import org.springframework.web.servlet.DispatcherServlet;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class AccessRequirementControllerAutowiredTest {
+public class AccessApprovalControllerAutowiredTest {
 
 	// Used for cleanup
 	@Autowired
@@ -55,7 +57,7 @@ public class AccessRequirementControllerAutowiredTest {
 	private UserManager userManager;
 
 	static private Log log = LogFactory
-			.getLog(AccessRequirementControllerAutowiredTest.class);
+			.getLog(AccessApprovalControllerAutowiredTest.class);
 
 	private static HttpServlet dispatchServlet;
 	
@@ -64,7 +66,17 @@ public class AccessRequirementControllerAutowiredTest {
 	private Project project;
 
 	private List<String> toDelete;
+	
+	private AccessRequirement accessRequirement = null;
 
+	private static AccessRequirement newAccessRequirement() {
+		TermsOfUseAccessRequirement dto = new TermsOfUseAccessRequirement();
+		dto.setEntityType(dto.getClass().getName());
+		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		dto.setTermsOfUse("foo");
+		return dto;
+	}
+	
 	@Before
 	public void before() throws Exception {
 		assertNotNull(entityController);
@@ -78,10 +90,19 @@ public class AccessRequirementControllerAutowiredTest {
 		project = ServletTestHelper.createEntity(dispatchServlet, project, userName);
 		assertNotNull(project);
 		toDelete.add(project.getId());
+
+		// create a new access requirement
+		Map<String, String> extraParams = new HashMap<String, String>();
+		accessRequirement = newAccessRequirement();
+		String entityId = project.getId();
+		accessRequirement.setEntityIds(Arrays.asList(new String[]{entityId})); 
+		accessRequirement = ServletTestHelper.createAccessRequirement(
+				 dispatchServlet, accessRequirement, userName, extraParams);
 	}
 
 	@After
-	public void after() throws UnauthorizedException {
+	public void after() throws Exception {
+		ServletTestHelper.deleteAccessRequirements(dispatchServlet, accessRequirement.getId().toString(), userName);
 		if (entityController != null && toDelete != null) {
 			for (String idToDelete : toDelete) {
 				try {
@@ -110,42 +131,35 @@ public class AccessRequirementControllerAutowiredTest {
 	}
 
 
-	private static AccessRequirement newAccessRequirement() {
-		TermsOfUseAccessRequirement dto = new TermsOfUseAccessRequirement();
-		dto.setEntityType(dto.getClass().getName());
-		dto.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		dto.setTermsOfUse("foo");
-		return dto;
+	
+	private static TermsOfUseAccessApproval newToUAccessApproval(Long requirementId, String accessorId) {
+		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		aa.setAccessorId(accessorId);
+		aa.setEntityType(TermsOfUseAccessApproval.class.getName());
+		aa.setRequirementId(requirementId);
+		return aa;
 	}
 	
 	@Test
 	public void testRoundTrip() throws Exception {
-		// create a new access requirement
-		AccessRequirement accessRequirement = null;
+		// create a new access approval
 		Map<String, String> extraParams = new HashMap<String, String>();
-		accessRequirement = newAccessRequirement();
+		AccessApproval accessApproval = newToUAccessApproval(accessRequirement.getId(), testUser.getIndividualGroup().getId());
 		String entityId = project.getId();
-		accessRequirement.setEntityIds(Arrays.asList(new String[]{entityId})); 
-		AccessRequirement clone = ServletTestHelper.createAccessRequirement(
-				 dispatchServlet, accessRequirement, userName, extraParams);
+		AccessApproval clone = ServletTestHelper.createAccessApproval(
+				 dispatchServlet, accessApproval, userName, extraParams);
 		assertNotNull(clone);
 
-		// test getAccessRequirementsForEntity
-		PaginatedResults<AccessRequirement> results = ServletTestHelper.getAccessRequirements(
+		// test getAccessApprovals for the entity
+		PaginatedResults<AccessApproval> results = ServletTestHelper.getAccessApprovals(
 				dispatchServlet, entityId, userName);	
-		List<AccessRequirement> ars = results.getResults();
-		assertEquals(1, ars.size());
-		
-		// get the unmet access requirements for the entity
-		results = ServletTestHelper.getUnmetAccessRequirements(
-				dispatchServlet, entityId, userName);	
-		ars = results.getResults();
+		List<AccessApproval> ars = results.getResults();
 		assertEquals(1, ars.size());
 		
 		// test deletion
-		ServletTestHelper.deleteAccessRequirements(dispatchServlet, ars.get(0).getId().toString(), userName);
+		ServletTestHelper.deleteAccessApprovals(dispatchServlet, ars.get(0).getId().toString(), userName);
 		
-		results = ServletTestHelper.getAccessRequirements(
+		results = ServletTestHelper.getAccessApprovals(
 				dispatchServlet, entityId, userName);	
 		ars = results.getResults();
 		assertEquals(0, ars.size());

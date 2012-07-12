@@ -41,8 +41,8 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
 		if (a.getEntityType()==null ||
-				a.getAccessType()==null || 
-				a.getEntityId()==null ) throw new InvalidModelException();
+				a.getAccessType()==null ||
+				a.getEntityIds()==null) throw new InvalidModelException();
 		
 		if (!a.getEntityType().equals(a.getClass().getName())) throw new InvalidModelException("entity type differs from class");
 	}
@@ -57,19 +57,28 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 
 	public static void populateModifiedFields(UserInfo userInfo, AccessRequirement a) {
 		Date now = new Date();
-		a.setCreatedBy(null);
+		a.setCreatedBy(null); // by setting to null we are telling the DAO to use the current values
 		a.setCreatedOn(null);
 		a.setModifiedBy(userInfo.getIndividualGroup().getId());
 		a.setModifiedOn(now);
 	}
 	
+	private void verifyAccess(UserInfo userInfo, AccessRequirement accessRequirement, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException, ForbiddenException {
+		List<String> entityIds = accessRequirement.getEntityIds();
+		List<String> lackAccess = new ArrayList<String>();
+		for (String entityId : entityIds) {
+			if (!authorizationManager.canAccess(userInfo, entityId, accessType)) lackAccess.add(entityId);
+		}
+		if (!lackAccess.isEmpty()) {
+			throw new ForbiddenException("Based on your permission levels on these entities: "+lackAccess+
+					", you are forbidden from accessing the requested resource.");
+		}
+	}
+
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ForbiddenException {
 		validateAccessRequirement(accessRequirement);
-		String entityId = accessRequirement.getEntityId();
-		if (!authorizationManager.canAccess(userInfo, entityId, ADMINISTER_ACCESS_REQUIREMENTS_ACCESS_TYPE)) {
-			throw new ForbiddenException("You are not allowed to access the requested resource.");
-		}
+		verifyAccess(userInfo, accessRequirement, ADMINISTER_ACCESS_REQUIREMENTS_ACCESS_TYPE);
 		populateCreationFields(userInfo, accessRequirement);
 		return accessRequirementDAO.create(accessRequirement);
 	}
@@ -109,7 +118,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}	
 
 	@Override
-	public QueryResults<AccessRequirement> getUnmetAccessRequirement(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException, ForbiddenException {
+	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException, ForbiddenException {
 		if (!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.READ)) {
 			throw new ForbiddenException("You are not allowed to access the requested resource.");
 		}
@@ -117,12 +126,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}
 
 	@Override
-	public <T extends AccessRequirement> T  updateAccessRequirement(UserInfo userInfo, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, ForbiddenException, DatastoreException {
+	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, ForbiddenException, DatastoreException {
 		validateAccessRequirement(accessRequirement);
-		String entityId = accessRequirement.getEntityId();
-		if (!authorizationManager.canAccess(userInfo, entityId, ADMINISTER_ACCESS_REQUIREMENTS_ACCESS_TYPE)) {
-			throw new ForbiddenException("You are not allowed to access the requested resource.");
-		}
+		verifyAccess(userInfo, accessRequirement, ADMINISTER_ACCESS_REQUIREMENTS_ACCESS_TYPE);
 		populateModifiedFields(userInfo, accessRequirement);
 		return accessRequirementDAO.update(accessRequirement);
 	}
@@ -132,10 +138,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			String accessRequirementId) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ForbiddenException {
 		AccessRequirement accessRequirement = accessRequirementDAO.get(accessRequirementId);
-		String entityId = accessRequirement.getEntityId();
-		if (!authorizationManager.canAccess(userInfo, entityId, ADMINISTER_ACCESS_REQUIREMENTS_ACCESS_TYPE)) {
-			throw new ForbiddenException("You are not allowed to access the requested resource.");
-		}
+		verifyAccess(userInfo, accessRequirement, ADMINISTER_ACCESS_REQUIREMENTS_ACCESS_TYPE);
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 	}
 }
