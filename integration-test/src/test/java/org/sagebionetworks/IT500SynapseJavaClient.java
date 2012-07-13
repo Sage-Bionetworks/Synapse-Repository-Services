@@ -599,6 +599,72 @@ public class IT500SynapseJavaClient {
 			previewDownload.delete();
 		}
 	}
+
+	/**
+	 * Test that we can add an attachment to a project and then get it back.
+	 * 
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	@Test
+	public void testProfileImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
+		// First load an image from the classpath
+		String fileName = "images/profile_pic.png";
+		URL url = IT500SynapseJavaClient.class.getClassLoader().getResource(fileName);
+		assertNotNull("Failed to find: "+fileName+" on the classpath", url);
+		File originalFile = new File(url.getFile());
+		File attachmentDownload = File.createTempFile("AttachmentTestDownload", ".tmp");
+		File previewDownload = File.createTempFile("AttachmentPreviewDownload", ".png");
+		FileOutputStream writer = null;
+		FileInputStream reader = null;
+		try{
+			// We are now ready to add this file as an attachment on the project
+			String finalName = "iamgeFile.jpg";
+			
+			UserProfile profile = synapse.getMyProfile();
+			AttachmentData data = synapse.uploadUserProfileAttachmentToSynapse(profile.getOwnerId(), originalFile, finalName);
+			//save this as part of the user
+			profile.setPic(data);
+			synapse.updateMyProfile(profile);
+			
+			//download, and check that it was updated
+			profile = synapse.getMyProfile();
+			AttachmentData clone = profile.getPic();
+			assertEquals(finalName, data.getName());
+			assertEquals(data.getName(), clone.getName());
+			assertEquals(data.getMd5(), clone.getMd5());
+			assertEquals(data.getContentType(), clone.getContentType());
+			assertEquals(data.getTokenId(), clone.getTokenId());
+			// the attachment should have preview
+			assertNotNull(clone.getPreviewId());
+			// Now make sure we can download our
+			
+			synapse.downloadUserProfileAttachment(profile.getOwnerId(), clone, attachmentDownload);
+			assertTrue(attachmentDownload.exists());
+			System.out.println(attachmentDownload.getAbsolutePath());
+			assertEquals(originalFile.length(), attachmentDownload.length());
+			// Now make sure we can get the preview image
+			// Before we download the preview make sure it exists
+			synapse.waitForUserProfilePreviewToBeCreated(profile.getOwnerId(), clone.getPreviewId(), PREVIEW_TIMOUT);
+			synapse.downloadUserProfileAttachmentPreview(profile.getOwnerId(), clone.getPreviewId(), previewDownload);
+			assertTrue(previewDownload.exists());
+			System.out.println(previewDownload.getAbsolutePath());
+			assertTrue(previewDownload.length() > 0);
+			assertTrue("A preview size should not exceed 100KB.  This one is "+previewDownload.length(), previewDownload.length() < 100*1000);
+		}
+		finally{
+			if(writer != null){
+				writer.close();
+			}
+			if(reader != null){
+				reader.close();
+			}
+			attachmentDownload.delete();
+			previewDownload.delete();
+		}
+	}
+
 	
 	@Test	
 	public void testGetChildCount() throws SynapseException{
@@ -687,7 +753,8 @@ public class IT500SynapseJavaClient {
 		assertEquals(1l, refs.getTotalNumberOfResults());
 		assertNotNull(refs.getResults());
 		assertEquals(1, refs.getResults().size());
-		assertEquals(link.getId(), refs.getResults().get(0).getId());
+		// Test that the hack for PLFM-1287 is still in place.
+		assertEquals(project.getId(), refs.getResults().get(0).getId());
 		
 	}
 	
@@ -725,5 +792,24 @@ public class IT500SynapseJavaClient {
 		assertNotNull(results);
 		assertTrue(results.has("totalNumberOfResults"));
 		assertEquals(1l, results.getLong("totalNumberOfResults"));
+	}
+	
+	@Test
+	public void testGetAllUserAndGroupIds() throws SynapseException{
+		HashSet<String> expected = new HashSet<String>();
+		// Get all the users
+		PaginatedResults<UserProfile> pr = synapse.getUsers(0, Integer.MAX_VALUE);
+		for(UserProfile up : pr.getResults()){
+			expected.add(up.getOwnerId());
+		}
+		PaginatedResults<UserGroup> groupPr = synapse.getGroups(0, Integer.MAX_VALUE);
+		for(UserGroup ug : groupPr.getResults()){
+			expected.add(ug.getId());
+		}
+		Set<String> results = synapse.getAllUserAndGroupIds();
+		assertNotNull(results);
+		assertEquals(expected.size(), results.size());
+		assertEquals(expected,results);
+		
 	}
 }

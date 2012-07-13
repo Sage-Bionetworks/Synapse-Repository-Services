@@ -3,14 +3,12 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,10 +27,7 @@ import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.MigrationType;
-import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -42,8 +37,6 @@ import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-import org.sagebionetworks.tool.migration.PrincipalRetriever012;
-import org.sagebionetworks.tool.migration.dao.EntityData;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -163,42 +156,6 @@ public class IT100BackupRestoration {
 		}
 	}
 	
-	// this will be deleted after the 012-0.13 migration
-	@Ignore
-	@Test
-	public void createPrincipalsSnapshot012() throws Exception {
-		String repoEndpoint = "https://repo-staging.sagebase.org/repo/v1";
-		String authEndpoint = "https://auth-staging.sagebase.org/auth/v1";
-		PrincipalRetriever012 pr = new PrincipalRetriever012(authEndpoint, repoEndpoint);
-		String adminUser = "v012integrationtest@sagbase.org";
-		String adminPw = "do-not-check-in";
-		pr.login(adminUser, adminPw);
-		Collection<EntityData> principalData = pr.getPrincipalData();
-		// validate it
-		Collection<PrincipalBackup> pbs = pr.getPrincipals();
-		assertEquals(principalData.size(), pbs.size());
-		for (PrincipalBackup pb : pbs) {
-			UserGroup group = pb.getUserGroup();
-			assertNotNull(group);
-			UserProfile userProfile = pb.getUserProfile();
-			assertNotNull(group.getIsIndividual());
-			if (group.getIsIndividual()) assertNotNull(userProfile);
-			if (!group.getIsIndividual()) assertNull(userProfile);
-			assertNotNull(group.getId());
-			assertNotNull(group.getName());
-			if (userProfile!=null) assertEquals(group.getId(), userProfile.getOwnerId());
-			if (userProfile!=null) assertNotNull(userProfile.getEtag());
-		}
-		File file = new File(PRINCIPALS_BACKUP_FILE_NAME);
-		try {
-			PrincipalRetriever012.writePrincipalBackups(pbs, file);
-			assertTrue(file.exists());
-		} finally {
-			file.delete();
-		}
-	}
-	
-	
 
 	@Test
 	public void restoreFromBackup() throws Exception {
@@ -267,6 +224,39 @@ public class IT100BackupRestoration {
 				.query("select * from dataset where name == \"MSKCC Prostate Cancer\"");
 		assertEquals(1, datasetQueryResults.getJSONArray("results").length());
 		System.out.println("Found the 'MSKCC Prostate Cancer' using devUser1@sagebase.org");
+	}
+	
+	/**
+	 * Test the complete round trip of user migration.
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 * @throws InterruptedException 
+	 */
+	@Test
+	public void testUserProfileRoundTrip() throws Exception {
+		// first create a backup copy of all of the users
+		// Start the daemon
+		BackupSubmission submission = new BackupSubmission();
+		submission.setEntityIdsToBackup(synapse.getAllUserAndGroupIds());
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigrationType.PRINCIPAL);
+		assertNotNull(status);
+		assertNotNull(status.getStatus());
+		assertFalse(status.getErrorMessage(),DaemonStatus.FAILED == status.getStatus());
+		assertTrue(DaemonType.BACKUP == status.getType());
+		String restoreId = status.getId();
+		assertNotNull(restoreId);
+		// Wait for it to finish
+		status = waitForDaemon(status.getId());
+		assertNotNull(status.getBackupUrl());
+		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+		// Now restore the users from this backup file
+		RestoreSubmission restoreSub = new RestoreSubmission();
+		String backupFileName = getFileNameFromUrl(status.getBackupUrl());
+		restoreSub.setFileName(backupFileName);
+		status = synapse.startRestoreDaemon(restoreSub, MigrationType.PRINCIPAL);
+		// Wait for it to finish
+		status = waitForDaemon(status.getId());
+		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
 	}
 	
 	@Test

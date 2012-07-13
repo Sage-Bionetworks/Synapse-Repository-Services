@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
@@ -205,17 +206,16 @@ public class DefaultControllerAutowiredAllTypesTest {
 				assertNotNull(clone);
 				assertNotNull(clone.getId());
 				assertNotNull(clone.getEtag());
-				if(parentId == null){
-					// We need to delete any node that does not have a parent
-					toDelete.add(clone.getId());
-				}
+				
+				// Mark entities for deletion after the current test completes
+				toDelete.add(clone.getId());
 				
 				// Stash these for later use
 				if (EntityType.dataset == type) {
 					dataset = (Study) clone;
 				}
 				
-				// Check the base ursl
+				// Check the base urls
 				UrlHelpers.validateAllUrls(clone);
 				// Add this to the list of entities created
 				newChildren.add(clone);
@@ -313,7 +313,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	
 
 
-	@Test(expected = NotFoundException.class)
+	@Test
 	public void testDelete() throws Exception {
 		// First create one of each type
 		List<Entity> created = createEntitesOfEachType(1);
@@ -325,12 +325,17 @@ public class DefaultControllerAutowiredAllTypesTest {
 			ServletTestHelper.deleteEntity(dispatchServlet, entity.getClass(), entity.getId(), userName);
 			// This should throw an exception
 			HttpServletRequest mockRequest = Mockito.mock(HttpServletRequest.class);
-			entityController.getEntity(userName, entity.getId(), mockRequest, Project.class);
+			try {
+				ServletTestHelper.getEntity(dispatchServlet, entity.getClass(), entity.getId(), userName);
+				fail("Entity ID " + entity.getId() + " should no longer exist. Expected an exception.");
+			} catch (Exception e) {
+				// expected
+			}
 		}
 	}
 	
 	/**
-	 * Helper to validate a schema for an ojbect
+	 * Helper to validate a schema for an object
 	 * @param schema
 	 * @param type
 	 * @throws JSONException

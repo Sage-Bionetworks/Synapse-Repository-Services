@@ -7,6 +7,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
+import org.sagebionetworks.repo.model.MigrationType;
 import org.sagebionetworks.tool.migration.ClientFactory;
 import org.sagebionetworks.tool.migration.Configuration;
 import org.sagebionetworks.tool.migration.Progress.AggregateProgress;
@@ -58,7 +59,7 @@ public class JobQueueWorker implements Callable<AggregateResult> {
 			// Start the works
 			if (Type.CREATE == job.getJobType()	|| Type.UPDATE == job.getJobType()) {
 				// Create a works
-				CreateUpdateWorker worker = new CreateUpdateWorker(configuration, this.factory, job.getEntityIds(), progress);
+				CreateUpdateWorker worker = new CreateUpdateWorker(configuration, this.factory, job.getEntityIds(), progress, MigrationType.ENTITY);
 				// add this worker to the list
 				workerList.add(worker);
 			} else if (Type.DELETE == job.getJobType()) {

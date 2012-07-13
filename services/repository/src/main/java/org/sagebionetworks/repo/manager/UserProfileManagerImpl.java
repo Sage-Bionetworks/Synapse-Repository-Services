@@ -14,6 +14,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.attachment.PresignedUrl;
+import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,25 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class UserProfileManagerImpl implements UserProfileManager {
 	@Autowired
 	private UserProfileDAO userProfileDAO;
+	@Autowired
+	private S3TokenManager s3TokenManager;
+	@Autowired
+	AttachmentManager attachmentManager;
+	
+	public UserProfileManagerImpl() {
+	}
+
+	/**
+	 * Used by unit tests
+	 * @param userProfileDAO
+	 * @param s3TokenManager
+	 */
+	public UserProfileManagerImpl(UserProfileDAO userProfileDAO,
+			S3TokenManager s3TokenManager) {
+		super();
+		this.userProfileDAO = userProfileDAO;
+		this.s3TokenManager = s3TokenManager;
+	}
 
 	/***
 	 *
@@ -81,8 +102,28 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		UserProfile userProfile = userProfileDAO.get(updated.getOwnerId(), schema);
 		boolean canUpdate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
 		if (!canUpdate) throw new UnauthorizedException("Only owner or administrator may update UserProfile.");
+		attachmentManager.checkAttachmentsForPreviews(updated);
 		return userProfileDAO.update(updated, schema);
 	}
 
 
+	@Override
+	public S3AttachmentToken createS3UserProfileAttachmentToken(
+			UserInfo userInfo, String profileId, S3AttachmentToken token)
+			throws NotFoundException, DatastoreException,
+			UnauthorizedException, InvalidModelException {
+		boolean isOwnerOrAdmin = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, profileId);
+		if (!isOwnerOrAdmin)
+			throw new UnauthorizedException("Can't assign attachment to another user's profile");
+		if (!AttachmentManagerImpl.isPreviewType(token.getFileName()))
+			throw new IllegalArgumentException("User profile attachment is not a recognized image type, please try a different file.");
+		return s3TokenManager.createS3AttachmentToken(userInfo.getIndividualGroup().getId(), profileId, token);
+	}
+	
+	@Override
+	public PresignedUrl getUserProfileAttachmentUrl(UserInfo userInfo,
+			String profileId, String tokenID) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+		//anyone can see the public profile pictures
+		return s3TokenManager.getAttachmentUrl(userInfo, profileId, tokenID);
+	}
 }

@@ -197,4 +197,6 @@ public class ServiceConstants {
 		return;
 	}
 
+	public static enum AttachmentType {ENTITY, USER_PROFILE};
+	
 }
