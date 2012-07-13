@@ -1,14 +1,15 @@
 package org.sagebionetworks.repo.manager;
 
-import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -24,6 +25,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
+	
+	@Autowired
+	private AccessRequirementManager  accessRequirementManager;
 	
 	@Autowired
 	NodeQueryDao nodeQueryDao;
@@ -43,20 +47,12 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private boolean canDownload(UserInfo userInfo, final String nodeId) throws DatastoreException, NotFoundException {
 		if (userInfo.isAdmin()) return true;
 		if (!agreesToTermsOfUse(userInfo)) return false;
-		// TODO node-specific checks to see if download is allowed:
-		// Tier 2:
-		// 1) if the node is a dataset, see if it has a EULA
-		// if its parent is a dataset, see if the dataset has a EULA
-		// (TODO this should probably be generalized to something like a 'Download permissions benefactor')
-		//
-		// 2) If so, see if there is an Agreement (a) pointing to the EULA and (b) dataset, (c) *owned* by the current user
-		//	If there is no such Agreement, then do not allow the download
-		//
-		// Tier 3:
-		// 3) Check to see if there is an ApprovalNeeded object.  The object will refer to an ACT UserGroup
-		// 4) If so, see if there is an Approval (a) pointing to the ACT UserGroup and (b) dataset, (c) owned by the current user
-		// If there is no such approval, then do not allow the download
-		//
+		// if there are any unmet access requirements for Download, return false;
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirementIntern(userInfo, nodeId);
+		for (AccessRequirement ar : ars.getResults()) {
+			if (ACCESS_TYPE.DOWNLOAD.equals(ar.getAccessType())) return false;
+		}
+		
 		return true;
 	}
 	
@@ -81,7 +77,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 		{
 			// if the user is the owner of the object, then she has full access to the object
-			// (note, this does not include 'download' access, handled above
+			// (note, this does not include 'download' access, handled above)
 			Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
 			Node node = nodeDAO.getNode(nodeId);
 			if (node.getCreatedByPrincipalId().equals(principalId)) return true;

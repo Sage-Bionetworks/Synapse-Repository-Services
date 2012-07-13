@@ -4,6 +4,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
@@ -12,7 +13,6 @@ import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.queryparser.QueryNode;
 import org.sagebionetworks.repo.queryparser.QueryParser;
 import org.sagebionetworks.repo.queryparser.TokenMgrError;
-import org.sagebionetworks.repo.ServiceConstants;
 
 /**
  * QueryStatement encapsulates the logic that extracts values from the parse
