@@ -52,6 +52,7 @@ public class AllTypesValidatorTest {
 	@Test
 	public void testProjectWithProjectParent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
 		String parentId = "123";
+		String childId = "456";
 		// This is our parent header
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(parentId);
@@ -62,6 +63,7 @@ public class AllTypesValidatorTest {
 		
 		Project project = new Project();
 		project.setParentId(parentId);
+		project.setId(childId);
 		// This should be valid
 		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
 	}
@@ -69,6 +71,7 @@ public class AllTypesValidatorTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testProjectWithDatasetParent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
 		String parentId = "123";
+		String childId = "456";
 		// This is our parent header
 		EntityHeader parentHeader = new EntityHeader();
 		parentHeader.setId(parentId);
@@ -79,6 +82,52 @@ public class AllTypesValidatorTest {
 		
 		Project project = new Project();
 		project.setParentId(parentId);
+		project.setId(childId);
+		// This should not be valid
+		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testFolderWithSelfParent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
+		String parentId = "123";
+		// This is our parent header
+		EntityHeader parentHeader = new EntityHeader();
+		parentHeader.setId(parentId);
+		parentHeader.setName("name");
+		parentHeader.setType(EntityType.folder.getEntityType());
+		List<EntityHeader> path = new ArrayList<EntityHeader>();
+		path.add(parentHeader);
+		
+		Project project = new Project();
+		project.setParentId(parentId);
+		project.setId(parentId);
+		// This should not be valid
+		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testFolderWithSelfAncestor() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
+		String grandparentId = "123";
+		String parentId = "456";
+		
+		// This is our grandparent header
+		EntityHeader grandparentHeader = new EntityHeader();
+		grandparentHeader.setId(grandparentId);
+		grandparentHeader.setName("gp");
+		grandparentHeader.setType(EntityType.folder.getEntityType());
+		List<EntityHeader> path = new ArrayList<EntityHeader>();
+		path.add(grandparentHeader);
+		
+		// This is our direct parent header
+		EntityHeader parentHeader = new EntityHeader();
+		parentHeader.setId(parentId);
+		parentHeader.setName("p");
+		parentHeader.setType(EntityType.folder.getEntityType());
+		path.add(parentHeader);
+				
+		Project project = new Project();
+		project.setParentId(parentId);
+		project.setId(grandparentId);
 		// This should not be valid
 		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, path, null));
 	}

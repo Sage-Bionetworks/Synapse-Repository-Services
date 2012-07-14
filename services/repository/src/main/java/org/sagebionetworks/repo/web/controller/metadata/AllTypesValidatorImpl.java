@@ -44,8 +44,14 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 		}
 		// Is this a create or update?
 		if(EventType.CREATE == event.getType() || EventType.UPDATE == event.getType()){
-			if(entity.getAttachments() != null){
-				// This step will create any previews as needed.
+			// Verify that path is acyclic
+			if (parentPath != null)
+				for (EntityHeader eh : parentPath)
+					if (entity.getId().equals(eh.getId()))
+						throw new IllegalArgumentException("Invalid hierarchy: an entity cannot be an ancestor of itself");
+			
+			// Create any previews as needed
+			if(entity.getAttachments() != null){				
 				try {
 					attachmentManager.checkAttachmentsForPreviews(entity);
 				} catch (NotFoundException e) {
