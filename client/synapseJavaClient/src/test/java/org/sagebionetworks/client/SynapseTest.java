@@ -18,7 +18,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -27,9 +26,9 @@ import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
@@ -233,4 +232,29 @@ public class SynapseTest {
 		EntityHeader firstHeader = realResults.getResults().get(0);
 		assertEquals(proj1Header, firstHeader);
 	}		
+	
+	@Test
+	public void testCreateAccessRequirement() throws Exception {
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		ar.setEntityType(ar.getClass().getName());
+		ar.setEntityIds(new ArrayList<String>());
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setTermsOfUse("foo");
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		ar.writeToJSONObject(adapter);
+		StringEntity responseEntity = new StringEntity(adapter.toJSONString());
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		synapse.createAccessRequirement(ar);
+	}
+	
+	@Test
+	public void testCreateAccessApproval() throws Exception {
+		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		aa.setEntityType(aa.getClass().getName());
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		aa.writeToJSONObject(adapter);
+		StringEntity responseEntity = new StringEntity(adapter.toJSONString());
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		synapse.createAccessApproval(aa);
+	}
 }

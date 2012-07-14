@@ -1,20 +1,20 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.Collection;
+import java.util.List;
 
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 
 public interface AccessRequirementDAO {
 
 	/**
 	 * @param dto
 	 *            object to be created
+	 * @param paramsSchema the schema of the parameters field
 	 * @return the id of the newly created object
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public String create(AccessRequirement dto) throws DatastoreException, InvalidModelException;
+	public <T extends AccessRequirement> T create(T dto) throws DatastoreException, InvalidModelException;
 
 	/**
 	 * Retrieves the object given its id
@@ -32,20 +32,17 @@ public interface AccessRequirementDAO {
 	 * @return the AccessRequirement objects related to this node
 	 * @throws DatastoreException 
 	 */
-	public Collection<AccessRequirement> getForNode(String nodeId) throws DatastoreException;
+	public List<AccessRequirement> getForNode(String nodeId) throws DatastoreException;
 	
 
 	/**
 	 * updates the 'shallow' properties of an object
 	 * 
 	 * @param dto
-	 *            non-null id is required
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
+	 * @throws DatastoreException 
 	 */
-	public AccessRequirement update(AccessRequirement dto) throws DatastoreException, InvalidModelException,
-			NotFoundException, ConflictingUpdateException;
+	public <T extends AccessRequirement> T update(T accessRequirement) throws InvalidModelException,
+			NotFoundException, ConflictingUpdateException, DatastoreException;
 
 	/**
 	 * delete the object given by the given ID
@@ -56,31 +53,4 @@ public interface AccessRequirementDAO {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
-	
-	/**
-	 * 
-	 * gets the parameters of the given Access RequirementsObject
-	 * @param id the ID of the AccessRequirements object
-	 * @param paramsDto
-	 * @param schema
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public void getAccessRequirementParameters(String id, Object paramsDto, ObjectSchema schema)  throws DatastoreException, NotFoundException;
-
-
-	/**
-	 * Set the parameters field of the AccessRequirements.
-	 * @param id
-	 * @param etag
-	 * @param paramsDto
-	 * @param schema
-	 * @return the updated etag
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws NotFoundException
-	 * @throws ConflictingUpdateException
-	 */
-	public String setAccessRequirementParameters(String id, String etag, Object paramsDto, ObjectSchema schema) throws DatastoreException, InvalidModelException,
-	NotFoundException, ConflictingUpdateException;
 }

@@ -1,9 +1,0 @@
-{
-    "description":"JSON schema for the access requirement types.",
-    "name": "AccessRequirementType",
-    "type":"string",
-    "enum":[
-        "TOU_Agreement",
-        "ACT_Approval",
-    ]
-}

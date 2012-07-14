@@ -40,6 +40,10 @@
 
 	<bean id="userProfileManager" class="org.sagebionetworks.repo.manager.UserProfileManagerImpl" />
 
+	<bean id="accessRequirementManager" class="org.sagebionetworks.repo.manager.AccessRequirementManagerImpl" />
+
+	<bean id="accessApprovalManager" class="org.sagebionetworks.repo.manager.AccessApprovalManagerImpl" />
+
 	<bean id="amazonClientFactory" class="org.sagebionetworks.repo.util.AmazonClientFactoryImpl"
 		scope="singleton" />
 

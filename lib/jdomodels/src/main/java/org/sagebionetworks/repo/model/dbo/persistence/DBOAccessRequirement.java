@@ -10,9 +10,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_R
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_PARAMETERS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ENTITY_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 
@@ -35,10 +34,9 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 	private long createdOn;
 	private Long modifiedBy;
 	private long modifiedOn;
-	private Long nodeId;
 	private String accessType;
-	private String requirementType;
-	private byte[] requirementParameters;
+	private String entityType;
+	private byte[] serializedEntity;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACCESS_REQUIREMENT_ID, true),
@@ -47,10 +45,9 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 		new FieldColumn("createdOn", COL_ACCESS_REQUIREMENT_CREATED_ON),
 		new FieldColumn("modifiedBy", COL_ACCESS_REQUIREMENT_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_ACCESS_REQUIREMENT_MODIFIED_ON),
-		new FieldColumn("nodeId", COL_ACCESS_REQUIREMENT_NODE_ID),
 		new FieldColumn("accessType", COL_ACCESS_REQUIREMENT_ACCESS_TYPE),
-		new FieldColumn("requirementType", COL_ACCESS_REQUIREMENT_TYPE),
-		new FieldColumn("requirementParameters", COL_ACCESS_REQUIREMENT_PARAMETERS)
+		new FieldColumn("entityType", COL_ACCESS_REQUIREMENT_ENTITY_TYPE),
+		new FieldColumn("serializedEntity", COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY)
 		};
 
 
@@ -67,12 +64,11 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 				ar.setCreatedOn(rs.getLong(COL_ACCESS_REQUIREMENT_CREATED_ON));
 				ar.setModifiedBy(rs.getLong(COL_ACCESS_REQUIREMENT_MODIFIED_BY));
 				ar.setModifiedOn(rs.getLong(COL_ACCESS_REQUIREMENT_MODIFIED_ON));
-				ar.setNodeId(rs.getLong(COL_ACCESS_REQUIREMENT_NODE_ID));
 				ar.setAccessType(rs.getString(COL_ACCESS_REQUIREMENT_ACCESS_TYPE));
-				ar.setRequirementType(rs.getString(COL_ACCESS_REQUIREMENT_TYPE));
-				java.sql.Blob blob = rs.getBlob(COL_ACCESS_REQUIREMENT_PARAMETERS);
+				ar.setEntityType(rs.getString(COL_ACCESS_REQUIREMENT_ENTITY_TYPE));
+				java.sql.Blob blob = rs.getBlob(COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY);
 				if(blob != null){
-					ar.setRequirementParameters(blob.getBytes(1, (int) blob.length()));
+					ar.setSerializedEntity(blob.getBytes(1, (int) blob.length()));
 				}
 				return ar;
 			}
@@ -140,17 +136,6 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 		this.modifiedBy = modifiedBy;
 	}
 
-
-	public Long getNodeId() {
-		return nodeId;
-	}
-
-
-	public void setNodeId(Long nodeId) {
-		this.nodeId = nodeId;
-	}
-
-
 	public String getAccessType() {
 		return accessType;
 	}
@@ -159,27 +144,6 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 	public void setAccessType(String accessType) {
 		this.accessType = accessType;
 	}
-
-
-	public String getRequirementType() {
-		return requirementType;
-	}
-
-
-	public void setRequirementType(String requirementType) {
-		this.requirementType = requirementType;
-	}
-
-
-	public byte[] getRequirementParameters() {
-		return requirementParameters;
-	}
-
-
-	public void setRequirementParameters(byte[] requirementParameters) {
-		this.requirementParameters = requirementParameters;
-	}
-
 
 	public long getCreatedOn() {
 		return createdOn;
@@ -201,6 +165,26 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 	}
 
 
+	public String getEntityType() {
+		return entityType;
+	}
+
+
+	public void setEntityType(String entityType) {
+		this.entityType = entityType;
+	}
+
+
+	public byte[] getSerializedEntity() {
+		return serializedEntity;
+	}
+
+
+	public void setSerializedEntity(byte[] serializedEntity) {
+		this.serializedEntity = serializedEntity;
+	}
+
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -211,14 +195,13 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + (int) (createdOn ^ (createdOn >>> 32));
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
+		result = prime * result
+				+ ((entityType == null) ? 0 : entityType.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
 		result = prime * result + (int) (modifiedOn ^ (modifiedOn >>> 32));
-		result = prime * result + ((nodeId == null) ? 0 : nodeId.hashCode());
-		result = prime * result + Arrays.hashCode(requirementParameters);
-		result = prime * result
-				+ ((requirementType == null) ? 0 : requirementType.hashCode());
+		result = prime * result + Arrays.hashCode(serializedEntity);
 		return result;
 	}
 
@@ -249,6 +232,11 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 				return false;
 		} else if (!eTag.equals(other.eTag))
 			return false;
+		if (entityType == null) {
+			if (other.entityType != null)
+				return false;
+		} else if (!entityType.equals(other.entityType))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
@@ -261,17 +249,7 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 			return false;
 		if (modifiedOn != other.modifiedOn)
 			return false;
-		if (nodeId == null) {
-			if (other.nodeId != null)
-				return false;
-		} else if (!nodeId.equals(other.nodeId))
-			return false;
-		if (!Arrays.equals(requirementParameters, other.requirementParameters))
-			return false;
-		if (requirementType == null) {
-			if (other.requirementType != null)
-				return false;
-		} else if (!requirementType.equals(other.requirementType))
+		if (!Arrays.equals(serializedEntity, other.serializedEntity))
 			return false;
 		return true;
 	}
@@ -282,11 +260,11 @@ public class DBOAccessRequirement implements AutoIncrementDatabaseObject<DBOAcce
 		return "DBOAccessRequirement [id=" + id + ", eTag=" + eTag
 				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
 				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ ", nodeId=" + nodeId + ", accessType=" + accessType
-				+ ", requirementType=" + requirementType
-				+ ", requirementParameters="
-				+ Arrays.toString(requirementParameters) + "]";
+				 + ", accessType=" + accessType
+				+ ", entityType=" + entityType + ", serializedEntity="
+				+ Arrays.toString(serializedEntity) + "]";
 	}
+
 
 	
 

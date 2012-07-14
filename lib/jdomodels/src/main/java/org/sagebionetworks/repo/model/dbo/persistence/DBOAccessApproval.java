@@ -10,9 +10,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_MODIFIED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_PARAMETERS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_SERIALIZED_ENTITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ENTITY_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACCESS_APPROVAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
 
@@ -37,8 +37,8 @@ public class DBOAccessApproval implements AutoIncrementDatabaseObject<DBOAccessA
 	private long modifiedOn;
 	private Long requirementId;
 	private Long accessorId;
-	private String approvalType;
-	private byte[] approvalParameters;
+	private String entityType;
+	private byte[] serializedEntity;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACCESS_APPROVAL_ID, true),
@@ -49,8 +49,8 @@ public class DBOAccessApproval implements AutoIncrementDatabaseObject<DBOAccessA
 		new FieldColumn("modifiedOn", COL_ACCESS_APPROVAL_MODIFIED_ON),
 		new FieldColumn("requirementId", COL_ACCESS_APPROVAL_REQUIREMENT_ID),
 		new FieldColumn("accessorId", COL_ACCESS_APPROVAL_ACCESSOR_ID),
-		new FieldColumn("approvalType", COL_ACCESS_APPROVAL_TYPE),
-		new FieldColumn("approvalParameters", COL_ACCESS_APPROVAL_PARAMETERS)
+		new FieldColumn("entityType", COL_ACCESS_APPROVAL_ENTITY_TYPE),
+		new FieldColumn("serializedEntity", COL_ACCESS_APPROVAL_SERIALIZED_ENTITY)
 		};
 
 
@@ -69,10 +69,10 @@ public class DBOAccessApproval implements AutoIncrementDatabaseObject<DBOAccessA
 				aa.setModifiedOn(rs.getLong(COL_ACCESS_APPROVAL_MODIFIED_ON));
 				aa.setRequirementId(rs.getLong(COL_ACCESS_APPROVAL_REQUIREMENT_ID));
 				aa.setAccessorId(rs.getLong(COL_ACCESS_APPROVAL_ACCESSOR_ID));
-				aa.setApprovalType(rs.getString(COL_ACCESS_APPROVAL_TYPE));
-				java.sql.Blob blob = rs.getBlob(COL_ACCESS_APPROVAL_PARAMETERS);
+				aa.setEntityType(rs.getString(COL_ACCESS_APPROVAL_ENTITY_TYPE));
+				java.sql.Blob blob = rs.getBlob(COL_ACCESS_APPROVAL_SERIALIZED_ENTITY);
 				if(blob != null){
-					aa.setApprovalParameters(blob.getBytes(1, (int) blob.length()));
+					aa.setSerializedEntity(blob.getBytes(1, (int) blob.length()));
 				}
 				return aa;
 			}
@@ -159,27 +159,6 @@ public class DBOAccessApproval implements AutoIncrementDatabaseObject<DBOAccessA
 		this.accessorId = accessorId;
 	}
 
-
-	public String getApprovalType() {
-		return approvalType;
-	}
-
-
-	public void setApprovalType(String approvalType) {
-		this.approvalType = approvalType;
-	}
-
-
-	public byte[] getApprovalParameters() {
-		return approvalParameters;
-	}
-
-
-	public void setApprovalParameters(byte[] approvalParameters) {
-		this.approvalParameters = approvalParameters;
-	}
-
-
 	public long getCreatedOn() {
 		return createdOn;
 	}
@@ -200,25 +179,45 @@ public class DBOAccessApproval implements AutoIncrementDatabaseObject<DBOAccessA
 	}
 
 
+	public String getEntityType() {
+		return entityType;
+	}
+
+
+	public void setEntityType(String entityType) {
+		this.entityType = entityType;
+	}
+
+
+	public byte[] getSerializedEntity() {
+		return serializedEntity;
+	}
+
+
+	public void setSerializedEntity(byte[] serilizedEntity) {
+		this.serializedEntity = serilizedEntity;
+	}
+
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
 				+ ((accessorId == null) ? 0 : accessorId.hashCode());
-		result = prime * result + Arrays.hashCode(approvalParameters);
-		result = prime * result
-				+ ((approvalType == null) ? 0 : approvalType.hashCode());
 		result = prime * result
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result + (int) (createdOn ^ (createdOn >>> 32));
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
+		result = prime * result
+				+ ((entityType == null) ? 0 : entityType.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
 		result = prime * result + (int) (modifiedOn ^ (modifiedOn >>> 32));
 		result = prime * result
 				+ ((requirementId == null) ? 0 : requirementId.hashCode());
+		result = prime * result + Arrays.hashCode(serializedEntity);
 		return result;
 	}
 
@@ -237,13 +236,6 @@ public class DBOAccessApproval implements AutoIncrementDatabaseObject<DBOAccessA
 				return false;
 		} else if (!accessorId.equals(other.accessorId))
 			return false;
-		if (!Arrays.equals(approvalParameters, other.approvalParameters))
-			return false;
-		if (approvalType == null) {
-			if (other.approvalType != null)
-				return false;
-		} else if (!approvalType.equals(other.approvalType))
-			return false;
 		if (createdBy == null) {
 			if (other.createdBy != null)
 				return false;
@@ -255,6 +247,11 @@ public class DBOAccessApproval implements AutoIncrementDatabaseObject<DBOAccessA
 			if (other.eTag != null)
 				return false;
 		} else if (!eTag.equals(other.eTag))
+			return false;
+		if (entityType == null) {
+			if (other.entityType != null)
+				return false;
+		} else if (!entityType.equals(other.entityType))
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -272,6 +269,8 @@ public class DBOAccessApproval implements AutoIncrementDatabaseObject<DBOAccessA
 			if (other.requirementId != null)
 				return false;
 		} else if (!requirementId.equals(other.requirementId))
+			return false;
+		if (!Arrays.equals(serializedEntity, other.serializedEntity))
 			return false;
 		return true;
 	}

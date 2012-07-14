@@ -1,29 +1,18 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import java.io.IOException;
 import java.util.Date;
 
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessApprovalType;
 import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessApprovalType;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessApproval;
-import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 
-
-/*
-	private Long id;
-	private Long eTag = 0L;
-	private Long createdBy;
-	private Date createdOn;
-	private Long modifiedBy;
-	private Date modifiedOn;
-	private Long requirementId;
-	private Long accessorId;
-	private AccessApprovalType approvalType;
-	private byte[] approvalParameters;
- */
 public class AccessApprovalUtils {
+	
+	// the convention is that the individual fields take precedence
+	// over the serialized objects.  When restoring the dto we first deserialize
+	// the 'blob' and then populate the individual fields
 	
 	public static void copyDtoToDbo(AccessApproval dto, DBOAccessApproval dbo) throws DatastoreException{
 		if (dto.getId()==null) {
@@ -36,20 +25,18 @@ public class AccessApprovalUtils {
 		} else {
 			dbo.seteTag(Long.parseLong(dto.getEtag()));
 		}
-		dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
-		dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		if (dto.getCreatedBy()!=null) dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
+		if (dto.getCreatedOn()!=null) dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setRequirementId(dto.getRequirementId());
 		dbo.setAccessorId(Long.parseLong(dto.getAccessorId()));
-		dbo.setApprovalType(dto.getApprovalType().name());
+		dbo.setEntityType(dto.getEntityType());
+		copyToSerializedField(dto, dbo);
 	}
 	
-	public static void copyAccessApprovalParamsDtoToDbo(Object paramsDto, DBOAccessApproval dbo, ObjectSchema schema) throws DatastoreException {
-		dbo.setApprovalParameters(SchemaSerializationUtils.mapDtoFieldsToAnnotations(paramsDto, schema));
-	}
-	
-	public static void copyDboToDto(DBOAccessApproval dbo, AccessApproval dto) {
+	public static AccessApproval copyDboToDto(DBOAccessApproval dbo) throws DatastoreException {
+		AccessApproval dto = copyFromSerializedField(dbo);
 		if (dbo.getId()==null) {
 			dto.setId(null);
 		} else {
@@ -66,11 +53,24 @@ public class AccessApprovalUtils {
 		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
 		dto.setRequirementId(dbo.getRequirementId());
 		dto.setAccessorId(dbo.getAccessorId().toString());
-		dto.setApprovalType(AccessApprovalType.valueOf(dbo.getApprovalType()));
+		dto.setEntityType(dbo.getEntityType());
+		return dto;
 	}
 	
-	public static void copyApprovalParamsDboToDto(DBOAccessApproval dbo, Object paramsDto, ObjectSchema schema) throws DatastoreException {
-		SchemaSerializationUtils.mapAnnotationsToDtoFields(dbo.getApprovalParameters(), paramsDto, schema);
+	public static void copyToSerializedField(AccessApproval dto, DBOAccessApproval dbo) throws DatastoreException {
+		try {
+			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		}
+	}
+	
+	public static AccessApproval copyFromSerializedField(DBOAccessApproval dbo) throws DatastoreException {
+		try {
+			return (AccessApproval)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedEntity());
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		}
 	}
 	
 }

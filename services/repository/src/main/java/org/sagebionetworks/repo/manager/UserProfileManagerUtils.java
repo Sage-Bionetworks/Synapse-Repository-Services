@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.lang.reflect.Field;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.schema.LinkDescription;

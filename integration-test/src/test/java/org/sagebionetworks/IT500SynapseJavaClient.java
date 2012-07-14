@@ -14,6 +14,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,6 +35,7 @@ import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
@@ -48,8 +50,11 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -233,6 +238,37 @@ public class IT500SynapseJavaClient {
 		
 		assertEquals(profile.getOwnerId(), uep.getOwnerPrincipalId().toString());
 		
+		// should be able to download
+		assertTrue(synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		// now add a ToU restriction
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		ar.setEntityIds(Arrays.asList(new String[]{aNewDataset.getId()}));
+		ar.setEntityType(ar.getClass().getName());
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setTermsOfUse("play nice");
+		ar = synapse.createAccessRequirement(ar);
+		
+		// should not be able to download
+		assertFalse(synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		VariableContentPaginatedResults<AccessRequirement> vcpr = synapse.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
+		assertEquals(1, vcpr.getResults().size());
+		
+		// now add the ToU approval
+		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		aa.setAccessorId(profile.getOwnerId());
+		aa.setEntityType(TermsOfUseAccessApproval.class.getName());
+		aa.setRequirementId(ar.getId());
+		
+		synapse.createAccessApproval(aa);
+		
+		vcpr = synapse.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
+		assertEquals(0, vcpr.getResults().size());
+		
+		// should be able to download
+		assertTrue(synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		
 		// ACL should reflect this information
 		AccessControlList acl = synapse.getACL(project.getId());
 		Set<ResourceAccess> ras = acl.getResourceAccess();
@@ -411,6 +447,53 @@ public class IT500SynapseJavaClient {
 			assertNotNull(ug.getName());
 		}
 	}
+	
+	@Test
+	public void testAccessRequirement() throws Exception {
+		// create a node
+		Data layer = new Data();
+		layer.setType(LayerTypeNames.E);
+		layer.setParentId(dataset.getId());
+		layer = synapse.createEntity(layer);
+
+		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		// add an access requirement
+		TermsOfUseAccessRequirement r = new TermsOfUseAccessRequirement();
+		r.setEntityIds(Arrays.asList(new String[]{layer.getId()}));
+		r.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		r.setTermsOfUse("I promise to be good.");
+		synapse.createAccessRequirement(r);
+		
+		// check that can't download
+		assertFalse(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+
+		// get unmet access requirements
+		PaginatedResults<AccessRequirement> ars = synapse.getUnmetAccessReqAccessRequirements(layer.getId());
+		assertEquals(1, ars.getTotalNumberOfResults());
+		assertEquals(1, ars.getResults().size());
+		AccessRequirement clone = ars.getResults().get(0);
+		assertEquals(r.getEntityType(), clone.getEntityType());
+		assertTrue(clone instanceof TermsOfUseAccessRequirement);
+		assertEquals(r.getTermsOfUse(), ((TermsOfUseAccessRequirement)clone).getTermsOfUse());
+		
+		// create approval for the requirement
+		TermsOfUseAccessApproval approval = new TermsOfUseAccessApproval();
+		UserProfile profile = synapse.getMyProfile();
+		assertNotNull(profile);
+		assertNotNull(profile.getOwnerId());
+		approval.setAccessorId(profile.getOwnerId());
+		approval.setRequirementId(clone.getId());
+		synapse.createAccessApproval(approval);
+		
+		// get unmet requirements -- should be empty
+		ars = synapse.getUnmetAccessReqAccessRequirements(layer.getId());
+		assertEquals(0, ars.getTotalNumberOfResults());
+		assertEquals(0, ars.getResults().size());
+		
+		// check that CAN download
+		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+}
 	
 	
 	/**

@@ -71,7 +71,7 @@ public class GwtTestSuite extends GWTTestCase {
 	 * @throws UnsupportedEncodingException 
 	 */
 	@Test
-	public void testRegister() throws JSONObjectAdapterException, UnsupportedEncodingException{
+	public void testRegister() throws JSONObjectAdapterException, UnsupportedEncodingException {
 		RegisterConstants constants = GWT.create(RegisterConstants.class);
 		// Load the Regiseter json
 		GwtAdapterFactory factory = new GwtAdapterFactory();
@@ -84,6 +84,12 @@ public class GwtTestSuite extends GWTTestCase {
 		EntityRegistry registry = new EntityRegistry();
 		registry.initializeFromJSONObject(adapter);
 		
+	}
+	
+	
+	@Test
+	public void serviceConstantsTest() throws JSONObjectAdapterException, UnsupportedEncodingException{
+		assertNotNull(ServiceConstants.DEFAULT_PAGINATION_OFFSET);
 	}
 	
 

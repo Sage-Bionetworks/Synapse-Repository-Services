@@ -73,11 +73,16 @@ public class SqlConstants {
 	public static final String COL_ACCESS_REQUIREMENT_CREATED_ON	= "CREATED_ON";
 	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_BY	= "MODIFIED_BY";
 	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_ON	= "MODIFIED_ON";
-	public static final String COL_ACCESS_REQUIREMENT_NODE_ID		= "NODE_ID";
 	public static final String COL_ACCESS_REQUIREMENT_ACCESS_TYPE	= "ACCESS_TYPE";
-	public static final String COL_ACCESS_REQUIREMENT_TYPE			= "REQUIREMENT_TYPE";
-	public static final String COL_ACCESS_REQUIREMENT_PARAMETERS	= "REQUIREMENT_PARAMETERS";
+	public static final String COL_ACCESS_REQUIREMENT_ENTITY_TYPE	= "ENTITY_TYPE";
+	public static final String COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY	= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_REQUIREMENT			= "schema/AccessRequirement-ddl.sql";
+
+	// The NODE_ACCESS_REQUIREMENT table (a join table linking the JDONODE and ACCESS_REQUIREMENT tables
+	public static final String TABLE_NODE_ACCESS_REQUIREMENT		= "NODE_ACCESS_REQUIREMENT";
+	public static final String COL_NODE_ACCESS_REQUIREMENT_NODE_ID			= "NODE_ID";
+	public static final String COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
+	public static final String DDL_FILE_NODE_ACCESS_REQUIREMENT			= "schema/NodeAccessRequirement-ddl.sql";
 
 	// The ACCESS_APPROVAL table
 	public static final String TABLE_ACCESS_APPROVAL				= "ACCESS_APPROVAL";
@@ -89,8 +94,8 @@ public class SqlConstants {
 	public static final String COL_ACCESS_APPROVAL_MODIFIED_ON		= "MODIFIED_ON";
 	public static final String COL_ACCESS_APPROVAL_REQUIREMENT_ID	= "REQUIREMENT_ID";
 	public static final String COL_ACCESS_APPROVAL_ACCESSOR_ID		= "ACCESSOR_ID";
-	public static final String COL_ACCESS_APPROVAL_TYPE				= "APPROVAL_TYPE";
-	public static final String COL_ACCESS_APPROVAL_PARAMETERS		= "APPROVAL_PARAMETERS";
+	public static final String COL_ACCESS_APPROVAL_ENTITY_TYPE		= "ENTITY_TYPE";
+	public static final String COL_ACCESS_APPROVAL_SERIALIZED_ENTITY= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_APPROVAL				= "schema/AccessApproval-ddl.sql";
 
 	// 

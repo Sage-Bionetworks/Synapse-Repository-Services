@@ -5,7 +5,6 @@ import static org.junit.Assert.assertNotNull;
 import java.io.IOException;
 import java.io.StringWriter;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
@@ -18,12 +17,14 @@ import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.repo.ServiceConstants;
-import org.sagebionetworks.repo.ServiceConstants.AttachmentType;
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BooleanResult;
@@ -31,13 +32,14 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.MigrationType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -1677,4 +1679,190 @@ public class ServletTestHelper {
 		s = response.getContentAsString();
 		return s;
 	}
+	
+	public static <T extends AccessRequirement> T createAccessRequirement(
+			HttpServlet dispatchServlet, T accessRequirement, String userId,
+			Map<String, String> extraParams) throws ServletException,
+			IOException {
+		if (dispatchServlet == null)
+			throw new IllegalArgumentException("Servlet cannot be null");
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ACCESS_REQUIREMENT);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		if (null != extraParams) {
+			for (Map.Entry<String, String> param : extraParams.entrySet()) {
+				request.setParameter(param.getKey(), param.getValue());
+			}
+		}
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		StringWriter out = new StringWriter();
+		objectMapper.writeValue(out, accessRequirement);
+		String body = out.toString();
+		request.setContent(body.getBytes("UTF-8"));
+		log.debug("About to send: " + body);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		@SuppressWarnings("unchecked")
+		T returnedEntity = (T) objectMapper.readValue(
+				response.getContentAsString(), accessRequirement.getClass());
+		return returnedEntity;
+	}
+	
+    public static VariableContentPaginatedResults<AccessRequirement> createAccessRequirementPaginatedResultsFromJSON(
+			String jsonString) throws JSONException,
+			JsonParseException, JsonMappingException, IOException {
+		VariableContentPaginatedResults<AccessRequirement> pr = 
+			new VariableContentPaginatedResults<AccessRequirement>();
+		try {
+			pr.initializeFromJSONObject(new JSONObjectAdapterImpl(jsonString));
+			return pr;
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+
+	}
+
+
+	public static PaginatedResults<AccessRequirement> getAccessRequirements(
+			HttpServlet dispatchServlet, String id,
+			String userId) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ACCESS_REQUIREMENT + "/" + id);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return createAccessRequirementPaginatedResultsFromJSON(response.getContentAsString());
+	}
+
+	public static PaginatedResults<AccessRequirement> getUnmetAccessRequirements(
+			HttpServlet dispatchServlet, String id,
+			String userId) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ACCESS_REQUIREMENT_UNFULFILLED + "/" + id);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return createAccessRequirementPaginatedResultsFromJSON(response.getContentAsString());
+	}
+
+	public static void deleteAccessRequirements(
+			HttpServlet dispatchServlet, String id,
+			String userId) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("DELETE");
+		request.setRequestURI(UrlHelpers.ACCESS_REQUIREMENT + "/" + id);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+	}
+
+	public static <T extends AccessApproval> T createAccessApproval(
+			HttpServlet dispatchServlet, T accessApproval, String userId,
+			Map<String, String> extraParams) throws ServletException,
+			IOException {
+		if (dispatchServlet == null)
+			throw new IllegalArgumentException("Servlet cannot be null");
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ACCESS_APPROVAL);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		if (null != extraParams) {
+			for (Map.Entry<String, String> param : extraParams.entrySet()) {
+				request.setParameter(param.getKey(), param.getValue());
+			}
+		}
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		StringWriter out = new StringWriter();
+		objectMapper.writeValue(out, accessApproval);
+		String body = out.toString();
+		request.setContent(body.getBytes("UTF-8"));
+		log.debug("About to send: " + body);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		@SuppressWarnings("unchecked")
+		T returnedEntity = (T) objectMapper.readValue(
+				response.getContentAsString(), accessApproval.getClass());
+		return returnedEntity;
+	}
+	
+	public static PaginatedResults<AccessApproval> getAccessApprovals(
+			HttpServlet dispatchServlet, String id,
+			String userId) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ACCESS_APPROVAL + "/" + id);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return createAccessApprovalPaginatedResultsFromJSON(response.getContentAsString());
+	}
+
+    public static VariableContentPaginatedResults<AccessApproval> createAccessApprovalPaginatedResultsFromJSON(
+			String jsonString) throws JSONException,
+			JsonParseException, JsonMappingException, IOException {
+		VariableContentPaginatedResults<AccessApproval> pr = 
+			new VariableContentPaginatedResults<AccessApproval>();
+		try {
+			pr.initializeFromJSONObject(new JSONObjectAdapterImpl(jsonString));
+			return pr;
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+
+	}
+
+
+	public static void deleteAccessApprovals(
+			HttpServlet dispatchServlet, String id,
+			String userId) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("DELETE");
+		request.setRequestURI(UrlHelpers.ACCESS_APPROVAL + "/" + id);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+	}
+
+
 }

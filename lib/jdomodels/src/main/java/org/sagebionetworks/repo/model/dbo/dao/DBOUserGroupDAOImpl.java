@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 
@@ -12,15 +14,12 @@ import java.util.Map;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME;
-import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_USER_GROUP_ID;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.jdo.UserGroupCache;
 import org.sagebionetworks.repo.model.jdo.UserGroupDAOInitializingBean;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
