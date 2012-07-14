@@ -12,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -39,6 +40,9 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	private DBOBasicDao basicDao;
 	
 	@Autowired
+	private IdGenerator idGenerator;
+	
+	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
 	
 	private static final String SELECT_FOR_REQUIREMENT_AND_PRINCIPAL_SQL = 
@@ -64,6 +68,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		DBOAccessApproval jdo = new DBOAccessApproval();
 		AccessApprovalUtils.copyDtoToDbo(dto, jdo);
 		if (jdo.geteTag()==null) jdo.seteTag(0L);
+		jdo.setId(idGenerator.generateNewId());
 		jdo = basicDao.createNew(jdo);
 		T result = (T)AccessApprovalUtils.copyDboToDto(jdo);
 		return result;

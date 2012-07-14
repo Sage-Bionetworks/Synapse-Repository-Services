@@ -10,6 +10,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
@@ -34,6 +35,8 @@ public class DBOAccessRequirementTest {
 	
 	@Autowired 
 	UserGroupDAO userGroupDAO;
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	@Autowired
 	NodeDAO nodeDAO;
@@ -85,7 +88,7 @@ public class DBOAccessRequirementTest {
 		}
 	}
 	
-	public static DBOAccessRequirement newAccessRequirement(UserGroup principal, Node node, byte[] serializedEntity) throws DatastoreException {
+	public static DBOAccessRequirement newAccessRequirement(UserGroup principal, Node node, byte[] serializedEntity, Long id) throws DatastoreException {
 		DBOAccessRequirement accessRequirement = new DBOAccessRequirement();
 		accessRequirement.setCreatedBy(Long.parseLong(principal.getId()));
 		accessRequirement.setCreatedOn(System.currentTimeMillis());
@@ -95,13 +98,14 @@ public class DBOAccessRequirementTest {
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD.toString());
 		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setSerializedEntity(serializedEntity);
+		accessRequirement.setId(id);
 		return accessRequirement;
 	}
 	
 	@Test
 	public void testCRUD() throws Exception{
 		// Create a new object
-		DBOAccessRequirement accessRequirement = newAccessRequirement(individualGroup, node, "foo".getBytes());
+		DBOAccessRequirement accessRequirement = newAccessRequirement(individualGroup, node, "foo".getBytes(), idGenerator.generateNewId());
 		
 		// Create it
 		DBOAccessRequirement clone = dboBasicDao.createNew(accessRequirement);

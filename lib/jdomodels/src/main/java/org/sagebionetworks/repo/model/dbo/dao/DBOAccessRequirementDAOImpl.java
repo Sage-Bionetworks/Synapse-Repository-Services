@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -40,6 +41,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	@Autowired
 	private DBOBasicDao basicDao;
+	
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
@@ -83,6 +87,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		DBOAccessRequirement jdo = new DBOAccessRequirement();
 		AccessRequirementUtils.copyDtoToDbo(dto, jdo);
 		if (jdo.geteTag()==null) jdo.seteTag(0L);
+		jdo.setId(idGenerator.generateNewId());
 		jdo = basicDao.createNew(jdo);
 		populateNodeAccessRequirement(jdo.getId(), dto.getEntityIds());
 		T result = (T)AccessRequirementUtils.copyDboToDto(jdo, getEntities(jdo.getId()));
