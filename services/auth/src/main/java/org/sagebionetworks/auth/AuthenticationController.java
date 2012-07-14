@@ -1,7 +1,7 @@
 package org.sagebionetworks.auth;
 
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCEPTS_TERMS_OF_USE_ATTRIBUTE;
 import static org.sagebionetworks.repo.ServiceConstants.ACCEPTS_TERMS_OF_USE_PARAM;
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCEPTS_TERMS_OF_USE_ATTRIBUTE;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -360,6 +360,7 @@ public class AuthenticationController extends BaseController {
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "No user info for "+AuthorizationConstants.ANONYMOUS_USER_ID, null);
 		User user = CrowdAuthUtil.getUser(userId);
 		return user;
+//		throw new AuthenticationException(HttpStatus.MOVED_PERMANENTLY.value(), "Get User Profile information from /userProfile", null);
 	}
 	
 	// for integration testing
@@ -384,6 +385,7 @@ public class AuthenticationController extends BaseController {
 				throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Changing email address is not permitted.", null);
 		
 		CrowdAuthUtil.updateUser(user);
+//		throw new AuthenticationException(HttpStatus.MOVED_PERMANENTLY.value(), "Send User Profile updates to /userProfile", null);
 	}
 	
 	static enum PW_MODE {
