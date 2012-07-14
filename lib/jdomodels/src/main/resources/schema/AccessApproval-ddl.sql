@@ -1,5 +1,5 @@
 CREATE TABLE `ACCESS_APPROVAL` (
-  `ID` bigint(20) NOT NULL AUTO_INCREMENT,
+  `ID` bigint(20) NOT NULL,
   `ETAG` bigint(20) NOT NULL,
   `CREATED_BY` bigint(20) NOT NULL,
   `CREATED_ON` bigint(20) NOT NULL,
