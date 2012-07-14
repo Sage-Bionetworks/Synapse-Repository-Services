@@ -10,6 +10,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -37,6 +38,8 @@ public class DBOAccessApprovalTest {
 	
 	@Autowired
 	NodeDAO nodeDAO;
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private static final String TEST_USER_NAME = "test-user";
 	
@@ -62,7 +65,7 @@ public class DBOAccessApprovalTest {
 		};
 		deleteAccessApproval();
 		deleteAccessRequirement();
-		DBOAccessRequirement accessRequirement = DBOAccessRequirementTest.newAccessRequirement(individualGroup, node, "foo".getBytes());
+		DBOAccessRequirement accessRequirement = DBOAccessRequirementTest.newAccessRequirement(individualGroup, node, "foo".getBytes(), idGenerator.generateNewId());
 		ar = dboBasicDao.createNew(accessRequirement);
 	}
 	
@@ -100,7 +103,7 @@ public class DBOAccessApprovalTest {
 		}
 	}
 	
-	public static DBOAccessApproval newAccessApproval(UserGroup principal, DBOAccessRequirement ar) throws DatastoreException {
+	public static DBOAccessApproval newAccessApproval(UserGroup principal, DBOAccessRequirement ar, Long id) throws DatastoreException {
 		DBOAccessApproval accessApproval = new DBOAccessApproval();
 		accessApproval.setCreatedBy(Long.parseLong(principal.getId()));
 		accessApproval.setCreatedOn(System.currentTimeMillis());
@@ -111,12 +114,13 @@ public class DBOAccessApprovalTest {
 		accessApproval.setRequirementId(ar.getId());
 		accessApproval.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
 		accessApproval.setSerializedEntity("my dog has fleas".getBytes());
+		accessApproval.setId(id);
 		return accessApproval;
 	}
 	
 	@Test
 	public void testCRUD() throws Exception{
-		accessApproval = dboBasicDao.createNew(newAccessApproval(individualGroup, ar));
+		accessApproval = dboBasicDao.createNew(newAccessApproval(individualGroup, ar, idGenerator.generateNewId()));
 		// Create a new object		
 		
 		// Create it

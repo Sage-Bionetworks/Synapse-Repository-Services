@@ -22,7 +22,7 @@ import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 
 /**
- * The datababase object for a node.
+ * The database object for a node.
  * 
  * @author jmhill
  *
