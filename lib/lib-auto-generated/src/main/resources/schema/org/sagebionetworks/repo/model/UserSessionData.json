@@ -1,0 +1,19 @@
+{
+    "title":"User Session Data",
+    "description":"JSON schema for UserSessionData POJO",
+ 	"properties":{
+        "sessionToken":{
+            "type":"string",
+            "description":"Session token",
+        },
+        "isSSO":{
+            "type":"boolean",
+            "description":"Is this a SSO session?",
+        },
+        "profile":{
+            "type":"object",
+            "description":"The associated user profile.",
+            "$ref":"org.sagebionetworks.repo.model.UserProfile",
+        }
+     }
+}       
