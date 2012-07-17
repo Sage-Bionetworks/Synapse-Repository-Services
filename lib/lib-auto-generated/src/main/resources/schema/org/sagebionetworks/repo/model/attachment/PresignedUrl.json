@@ -1,24 +1,23 @@
 {
-    "description":"JSON Data about a single attachment.",
-    "properties":{
-        "tokenID":{
-             "type":"string",
-             "description":"The token ID for this url"
-        },
-        "presignedUrl":{
-            "type":"string",
-             "description":"A presigned url for downloading."
-        },
-        "status":{
-            "type":"string",
-            "description":"The status of this URL",
-            "name":"URLStatus",
-            "id":"org.sagebionetworks.repo.model.attachment.URLStatus",
-            "enum":[
-                "DOES_NOT_EXIST",
-                "READ_FOR_DOWNLOAD",
-            ],
-            
-        }
-    }
+	"description": "JSON Data about a single attachment.",
+	"properties": {
+		"tokenID": {
+			"type": "string",
+			"description": "The token ID for this url"
+		},
+		"presignedUrl": {
+			"type": "string",
+			"description": "A presigned url for downloading."
+		},
+		"status": {
+			"type": "string",
+			"description": "The status of this URL",
+			"name": "URLStatus",
+			"id": "org.sagebionetworks.repo.model.attachment.URLStatus",
+			"enum": [
+				"DOES_NOT_EXIST",
+				"READ_FOR_DOWNLOAD"
+			]
+		}
+	}
 }

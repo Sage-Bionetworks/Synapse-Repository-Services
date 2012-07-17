@@ -10,7 +10,7 @@
 				{
 					"source": {"name": "status", "type": "string", "bucket": "primary"},
 					"destination": {"name": "", "type": "", "bucket": "deleted"}
-				},
+				}
 				
 			]
 		},

@@ -1,41 +1,41 @@
 {
-    "title":"Access Control List",
-    "description":"JSON schema for a AccessControlList POJO",
- 	"properties":{
-        "id":{
-            "type":"string",
-            "description":"The entity id",
-        },
-        "createdBy":{
-            "type":"string",
-         	"description":"UNUSED -- maintained only for backwards compatibility with archived objects",
-       },
-        "creationDate":{
-            "type":"string",
-            "format":"date-time"
-        },
-        "modifiedBy":{
-            "type":"string",
-        	"description":"UNUSED -- maintained only for backwards compatibility with archived objects",
-        },
- 		"modifiedOn":{
-            "type":"string",
-            "format":"date-time",
-            "description":"UNUSED -- maintained only for backwards compatibility with archived objects",
- 		},
- 		"etag":{
-            "type":"string"
- 		},
- 		"uri":{
-            "type":"string"
- 		},
- 		"resourceAccess":{
-            "type":"array",
-            "description":"The list of principals who can access the data with the allowed types of access for each.",
-           "uniqueItems":true,
-            "items":{
-                "$ref":"org.sagebionetworks.repo.model.ResourceAccess"
-            }
-        },
-     }
-}       
+	"title": "Access Control List",
+	"description": "JSON schema for a AccessControlList POJO",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The entity id"
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "UNUSED -- maintained only for backwards compatibility with archived objects"
+		},
+		"creationDate": {
+			"type": "string",
+			"format": "date-time"
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "UNUSED -- maintained only for backwards compatibility with archived objects"
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "UNUSED -- maintained only for backwards compatibility with archived objects"
+		},
+		"etag": {
+			"type": "string"
+		},
+		"uri": {
+			"type": "string"
+		},
+		"resourceAccess": {
+			"type": "array",
+			"description": "The list of principals who can access the data with the allowed types of access for each.",
+			"uniqueItems": true,
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.ResourceAccess"
+			}
+		}
+	}
+}

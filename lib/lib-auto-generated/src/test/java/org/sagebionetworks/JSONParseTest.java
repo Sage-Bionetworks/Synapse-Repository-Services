@@ -1,0 +1,58 @@
+package org.sagebionetworks;
+
+import static org.junit.Assert.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.Iterator;
+
+import org.apache.commons.io.FileUtils;
+import org.codehaus.jackson.JsonParseException;
+import org.junit.Test;
+
+/**
+ * Validate all JSON schema files in lib-auto-generated
+ * 
+ * @author bkng
+ *
+ */
+public class JSONParseTest {
+
+	@Test
+	public void testFile() {
+		File dir = new File("src/main/resources");
+		Iterator<?> itr =  FileUtils.iterateFiles(dir, new String[]{"json"}, true);
+
+		while (itr.hasNext()) {
+		    File file = (File) itr.next();		    
+		    try {
+		    	String jstr = readFileToString(file.getAbsolutePath());
+				assertTrue(JSONValidator.isValidJSON(jstr));
+		    } catch (JsonParseException jpe) {
+		    	fail("Parse failed on file '" + file.getName() + "'\n" + jpe.getMessage());
+			} catch (Exception ioe) {
+				ioe.printStackTrace();
+				fail();
+			}
+		    // System.out.println("Parsing '" + file.getName() + "' was successful");
+		}
+	}
+	
+	private String readFileToString(String filePath) throws IOException {
+	    BufferedReader reader = new BufferedReader(new FileReader(filePath));
+	    try {
+		    String line = null;
+		    StringBuilder sb = new StringBuilder();
+		    String ls = System.getProperty("line.separator");
+		    while ((line = reader.readLine()) != null) {
+		        sb.append(line);
+		        sb.append(ls);
+		    }	
+		    return sb.toString();
+	    } finally {
+	    	reader.close();
+	    }
+	}
+
+}

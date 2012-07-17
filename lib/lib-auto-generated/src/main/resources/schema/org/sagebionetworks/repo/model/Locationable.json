@@ -1,35 +1,32 @@
 {
-    "description":"A Versionable interface for any entity that has multiple locations",
-    "type":"interface",
-    "implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.Versionable"
-        },
-        
-    ],
-    "properties":{
-        "locations":{
-            "type":"array",
-            "description":"The list of location data.",
-            "uniqueItems":false,
-            "contentEncoding":"binary",
-            "items":{
-                "$ref":"org.sagebionetworks.repo.model.LocationData"
-            }
-        },
-        "md5":{
-            "description":"The checksum of this location",
-            "type":"string",
-            
-        },
-        "contentType":{
-            "description":"The type of file of this location",
-            "type":"string",
-            
-        },
-        "s3Token":{
-            "type":"string",
-            "description":"The URL to an S3 token for this entity. This URL is provided by Synapse."
-        }
-    }
+	"description": "A Versionable interface for any entity that has multiple locations",
+	"type": "interface",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.Versionable"
+		}
+	],
+	"properties": {
+		"locations": {
+			"type": "array",
+			"description": "The list of location data.",
+			"uniqueItems": false,
+			"contentEncoding": "binary",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.LocationData"
+			}
+		},
+		"md5": {
+			"description": "The checksum of this location",
+			"type": "string"
+		},
+		"contentType": {
+			"description": "The type of file of this location",
+			"type": "string"
+		},
+		"s3Token": {
+			"type": "string",
+			"description": "The URL to an S3 token for this entity. This URL is provided by Synapse."
+		}
+	}
 }
