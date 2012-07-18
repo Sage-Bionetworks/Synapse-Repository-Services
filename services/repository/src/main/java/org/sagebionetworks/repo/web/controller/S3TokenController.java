@@ -61,7 +61,7 @@ public class S3TokenController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.ENTITY_S3TOKEN},
 			method = RequestMethod.POST)
 	public @ResponseBody
-	S3Token createS3Token(
+	S3Token createEntityS3Token(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, @RequestBody S3Token s3Token,
 			HttpServletRequest request) throws DatastoreException,
@@ -70,60 +70,6 @@ public class S3TokenController extends BaseController {
 		// Infer one more parameter
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		EntityType entityType = entityManager.getEntityType(userInfo, id);
-				
 		return s3TokenManager.createS3Token(userId, id, s3Token, entityType);
 	}
-
-	/**
-	 * Create a token used to upload an attachment.
-	 * 
-	 * @param userId
-	 * @param id
-	 * @param token
-	 * @param request
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws InvalidModelException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.ENTITY_S3_ATTACHMENT_TOKEN }, method = RequestMethod.POST)
-	public @ResponseBody
-	S3AttachmentToken createS3AttachmentToken(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String id, @RequestBody S3AttachmentToken token,
-			HttpServletRequest request) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException {
-		// Pass it along
-		return s3TokenManager.createS3AttachmentToken(userId, id, token);
-	}
-
-	/**
-	 * Create a token used to upload an attachment.
-	 * 
-	 * @param userId
-	 * @param id
-	 * @param token
-	 * @param request
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws InvalidModelException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { UrlHelpers.ENTITY_ATTACHMENT_URL }, method = RequestMethod.POST)
-	public @ResponseBody
-	PresignedUrl getAttachmentUrl(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String id, 
-			@RequestBody PresignedUrl url,
-			HttpServletRequest request) throws NotFoundException,
-			DatastoreException, UnauthorizedException, InvalidModelException {
-		if(url == null) throw new IllegalArgumentException("A PresignedUrl must be provided");
-		// Pass it along.
-		return s3TokenManager.getAttachmentUrl(userId, id, url.getTokenID());
-	}
-
 }

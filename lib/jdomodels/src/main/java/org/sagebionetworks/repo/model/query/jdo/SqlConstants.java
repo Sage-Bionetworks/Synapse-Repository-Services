@@ -64,6 +64,40 @@ public class SqlConstants {
 	public static final String COL_USER_PROFILE_ETAG			= "ETAG";
 	public static final String COL_USER_PROFILE_PROPS_BLOB		= "PROPERTIES";
 	public static final String DDL_FILE_USER_PROFILE			= "schema/UserProfile-ddl.sql";
+
+	// The ACCESS_REQUIREMENT table
+	public static final String TABLE_ACCESS_REQUIREMENT				= "ACCESS_REQUIREMENT";
+	public static final String COL_ACCESS_REQUIREMENT_ID			= "ID";
+	public static final String COL_ACCESS_REQUIREMENT_ETAG			= "ETAG";
+	public static final String COL_ACCESS_REQUIREMENT_CREATED_BY	= "CREATED_BY";
+	public static final String COL_ACCESS_REQUIREMENT_CREATED_ON	= "CREATED_ON";
+	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_BY	= "MODIFIED_BY";
+	public static final String COL_ACCESS_REQUIREMENT_MODIFIED_ON	= "MODIFIED_ON";
+	public static final String COL_ACCESS_REQUIREMENT_ACCESS_TYPE	= "ACCESS_TYPE";
+	public static final String COL_ACCESS_REQUIREMENT_ENTITY_TYPE	= "ENTITY_TYPE";
+	public static final String COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY	= "SERIALIZED_ENTITY";
+	public static final String DDL_FILE_ACCESS_REQUIREMENT			= "schema/AccessRequirement-ddl.sql";
+
+	// The NODE_ACCESS_REQUIREMENT table (a join table linking the JDONODE and ACCESS_REQUIREMENT tables
+	public static final String TABLE_NODE_ACCESS_REQUIREMENT		= "NODE_ACCESS_REQUIREMENT";
+	public static final String COL_NODE_ACCESS_REQUIREMENT_NODE_ID			= "NODE_ID";
+	public static final String COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
+	public static final String DDL_FILE_NODE_ACCESS_REQUIREMENT			= "schema/NodeAccessRequirement-ddl.sql";
+
+	// The ACCESS_APPROVAL table
+	public static final String TABLE_ACCESS_APPROVAL				= "ACCESS_APPROVAL";
+	public static final String COL_ACCESS_APPROVAL_ID				= "ID";
+	public static final String COL_ACCESS_APPROVAL_ETAG				= "ETAG";
+	public static final String COL_ACCESS_APPROVAL_CREATED_BY		= "CREATED_BY";
+	public static final String COL_ACCESS_APPROVAL_CREATED_ON		= "CREATED_ON";
+	public static final String COL_ACCESS_APPROVAL_MODIFIED_BY		= "MODIFIED_BY";
+	public static final String COL_ACCESS_APPROVAL_MODIFIED_ON		= "MODIFIED_ON";
+	public static final String COL_ACCESS_APPROVAL_REQUIREMENT_ID	= "REQUIREMENT_ID";
+	public static final String COL_ACCESS_APPROVAL_ACCESSOR_ID		= "ACCESSOR_ID";
+	public static final String COL_ACCESS_APPROVAL_ENTITY_TYPE		= "ENTITY_TYPE";
+	public static final String COL_ACCESS_APPROVAL_SERIALIZED_ENTITY= "SERIALIZED_ENTITY";
+	public static final String DDL_FILE_ACCESS_APPROVAL				= "schema/AccessApproval-ddl.sql";
+
 	// 
 	public static final String COL_STACK_STATUS_STATUS				= "STATUS";
 	public static final String COL_STACK_STATUS_CURRENT_MESSAGE		= "CURRENT_MESSAGE";

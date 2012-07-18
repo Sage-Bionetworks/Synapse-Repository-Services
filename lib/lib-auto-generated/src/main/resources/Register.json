@@ -2,6 +2,7 @@
     "entityTypes":[
         {
             "validParentTypes":[
+            	"org.sagebionetworks.repo.model.Folder",
                 "org.sagebionetworks.repo.model.Project"
             ],
             "aliases":[
@@ -14,6 +15,7 @@
         },
         {
             "validParentTypes":[
+            	"org.sagebionetworks.repo.model.Folder",
                 "org.sagebionetworks.repo.model.Study",
                 "org.sagebionetworks.repo.model.Project"
             ],
@@ -37,6 +39,7 @@
         },
         {
             "validParentTypes":[
+           		"org.sagebionetworks.repo.model.Folder",
                 "org.sagebionetworks.repo.model.Data"
             ],
             "name":"preview",
@@ -46,7 +49,10 @@
         {
             "validParentTypes":[
                 "DEFAULT",
-                "org.sagebionetworks.repo.model.Folder"
+                "org.sagebionetworks.repo.model.Project",
+                "org.sagebionetworks.repo.model.Folder",
+                "org.sagebionetworks.repo.model.Study",
+                "org.sagebionetworks.repo.model.Analysis"
             ],
             "name":"folder",
             "entityType":"org.sagebionetworks.repo.model.Folder",
@@ -54,6 +60,7 @@
         },
         {
             "validParentTypes":[
+                "org.sagebionetworks.repo.model.Folder",
                 "org.sagebionetworks.repo.model.Project"
             ],
             "name":"analysis",
@@ -72,6 +79,7 @@
         },
         {
             "validParentTypes":[
+                "org.sagebionetworks.repo.model.Folder",
                 "org.sagebionetworks.repo.model.Project"
             ],
             "name":"code",
@@ -94,6 +102,7 @@
         },
         {
             "validParentTypes":[
+                "org.sagebionetworks.repo.model.Folder",
                 "org.sagebionetworks.repo.model.Project",
                 "org.sagebionetworks.repo.model.Study"
             ],
@@ -107,6 +116,7 @@
         },
         {
             "validParentTypes":[
+                "org.sagebionetworks.repo.model.Folder",
                 "org.sagebionetworks.repo.model.Project",
                 "org.sagebionetworks.repo.model.Study"
             ],
@@ -120,6 +130,7 @@
         },
         {
             "validParentTypes":[
+                "org.sagebionetworks.repo.model.Folder",
                 "org.sagebionetworks.repo.model.Project",
                 "org.sagebionetworks.repo.model.Study"
             ],
@@ -133,6 +144,7 @@
         },
         {
             "validParentTypes":[
+                "org.sagebionetworks.repo.model.Folder",
                 "org.sagebionetworks.repo.model.Project",
                 "org.sagebionetworks.repo.model.Study"
             ],

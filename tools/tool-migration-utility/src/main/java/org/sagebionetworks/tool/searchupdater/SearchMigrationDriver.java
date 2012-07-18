@@ -56,6 +56,11 @@ public class SearchMigrationDriver {
 
 	ExecutorService threadPool;
 	Queue<Job> jobQueue;
+	
+	/**
+	 * This is used to force the update of all search documents.
+	 */
+	private boolean forceUpdate = false;
 
 	/**
 	 * @throws SynapseException
@@ -64,6 +69,9 @@ public class SearchMigrationDriver {
 		factory = new ClientFactoryImpl();
 		sourceClient = configuration.createSynapseClient();
 		destClient = configuration.createCloudSearchClient();
+		
+		// should we force an update of all documents?
+		forceUpdate = configuration.forceSearchDocumentUpdate();
 
 		// Create the query provider
 		sourceQueryRunner = new QueryRunnerImpl(sourceClient);
@@ -139,6 +147,13 @@ public class SearchMigrationDriver {
 		log.debug("Finished phase one.  Source entity count: "
 				+ sourceData.size() + ". Destination entity Count: "
 				+ destData.size());
+		// should we force an update of all search documents?
+		if(forceUpdate){
+			// To force the update of all search documents, we just change the etag of each search document to be -1
+			for(EntityData ed: destData){
+				ed.seteTag("-1");
+			}
+		}
 		// Start phase 2
 		log
 				.debug("Starting phase two: Calculating creates, updates, and deletes...");

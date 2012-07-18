@@ -95,6 +95,7 @@ public class SearchUtilTest {
 		}
 
 		
+
 		// query only
 		query = new SearchQuery();
 		query.setQueryTerm(q);
@@ -114,6 +115,13 @@ public class SearchUtilTest {
 		queryStr = SearchUtil.generateQueryString(query);
 		assertEquals("bq=Facet1%3A%27Value1%27", queryStr);
 		
+		// boolean query with blank single q
+		query = new SearchQuery();
+		query.setQueryTerm(Arrays.asList(new String[] {""}));
+		query.setBooleanQuery(bq);
+		queryStr = SearchUtil.generateQueryString(query);
+		assertEquals("bq=Facet1%3A%27Value1%27", queryStr);
+
 		// continuous bq
 		query = new SearchQuery();
 		query.setBooleanQuery(bq2);

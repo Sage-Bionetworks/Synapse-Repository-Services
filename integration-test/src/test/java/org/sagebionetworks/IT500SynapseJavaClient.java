@@ -14,6 +14,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -34,13 +35,12 @@ import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LocationData;
@@ -50,12 +50,13 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -237,6 +238,37 @@ public class IT500SynapseJavaClient {
 		
 		assertEquals(profile.getOwnerId(), uep.getOwnerPrincipalId().toString());
 		
+		// should be able to download
+		assertTrue(synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		// now add a ToU restriction
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		ar.setEntityIds(Arrays.asList(new String[]{aNewDataset.getId()}));
+		ar.setEntityType(ar.getClass().getName());
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setTermsOfUse("play nice");
+		ar = synapse.createAccessRequirement(ar);
+		
+		// should not be able to download
+		assertFalse(synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		VariableContentPaginatedResults<AccessRequirement> vcpr = synapse.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
+		assertEquals(1, vcpr.getResults().size());
+		
+		// now add the ToU approval
+		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		aa.setAccessorId(profile.getOwnerId());
+		aa.setEntityType(TermsOfUseAccessApproval.class.getName());
+		aa.setRequirementId(ar.getId());
+		
+		synapse.createAccessApproval(aa);
+		
+		vcpr = synapse.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
+		assertEquals(0, vcpr.getResults().size());
+		
+		// should be able to download
+		assertTrue(synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		
 		// ACL should reflect this information
 		AccessControlList acl = synapse.getACL(project.getId());
 		Set<ResourceAccess> ras = acl.getResourceAccess();
@@ -416,6 +448,53 @@ public class IT500SynapseJavaClient {
 		}
 	}
 	
+	@Test
+	public void testAccessRequirement() throws Exception {
+		// create a node
+		Data layer = new Data();
+		layer.setType(LayerTypeNames.E);
+		layer.setParentId(dataset.getId());
+		layer = synapse.createEntity(layer);
+
+		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		// add an access requirement
+		TermsOfUseAccessRequirement r = new TermsOfUseAccessRequirement();
+		r.setEntityIds(Arrays.asList(new String[]{layer.getId()}));
+		r.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		r.setTermsOfUse("I promise to be good.");
+		synapse.createAccessRequirement(r);
+		
+		// check that can't download
+		assertFalse(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+
+		// get unmet access requirements
+		PaginatedResults<AccessRequirement> ars = synapse.getUnmetAccessReqAccessRequirements(layer.getId());
+		assertEquals(1, ars.getTotalNumberOfResults());
+		assertEquals(1, ars.getResults().size());
+		AccessRequirement clone = ars.getResults().get(0);
+		assertEquals(r.getEntityType(), clone.getEntityType());
+		assertTrue(clone instanceof TermsOfUseAccessRequirement);
+		assertEquals(r.getTermsOfUse(), ((TermsOfUseAccessRequirement)clone).getTermsOfUse());
+		
+		// create approval for the requirement
+		TermsOfUseAccessApproval approval = new TermsOfUseAccessApproval();
+		UserProfile profile = synapse.getMyProfile();
+		assertNotNull(profile);
+		assertNotNull(profile.getOwnerId());
+		approval.setAccessorId(profile.getOwnerId());
+		approval.setRequirementId(clone.getId());
+		synapse.createAccessApproval(approval);
+		
+		// get unmet requirements -- should be empty
+		ars = synapse.getUnmetAccessReqAccessRequirements(layer.getId());
+		assertEquals(0, ars.getTotalNumberOfResults());
+		assertEquals(0, ars.getResults().size());
+		
+		// check that CAN download
+		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+}
+	
 	
 	/**
 	 * tests signing requests using an API key, as an alternative to logging in
@@ -520,6 +599,72 @@ public class IT500SynapseJavaClient {
 			previewDownload.delete();
 		}
 	}
+
+	/**
+	 * Test that we can add an attachment to a project and then get it back.
+	 * 
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	@Test
+	public void testProfileImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
+		// First load an image from the classpath
+		String fileName = "images/profile_pic.png";
+		URL url = IT500SynapseJavaClient.class.getClassLoader().getResource(fileName);
+		assertNotNull("Failed to find: "+fileName+" on the classpath", url);
+		File originalFile = new File(url.getFile());
+		File attachmentDownload = File.createTempFile("AttachmentTestDownload", ".tmp");
+		File previewDownload = File.createTempFile("AttachmentPreviewDownload", ".png");
+		FileOutputStream writer = null;
+		FileInputStream reader = null;
+		try{
+			// We are now ready to add this file as an attachment on the project
+			String finalName = "iamgeFile.jpg";
+			
+			UserProfile profile = synapse.getMyProfile();
+			AttachmentData data = synapse.uploadUserProfileAttachmentToSynapse(profile.getOwnerId(), originalFile, finalName);
+			//save this as part of the user
+			profile.setPic(data);
+			synapse.updateMyProfile(profile);
+			
+			//download, and check that it was updated
+			profile = synapse.getMyProfile();
+			AttachmentData clone = profile.getPic();
+			assertEquals(finalName, data.getName());
+			assertEquals(data.getName(), clone.getName());
+			assertEquals(data.getMd5(), clone.getMd5());
+			assertEquals(data.getContentType(), clone.getContentType());
+			assertEquals(data.getTokenId(), clone.getTokenId());
+			// the attachment should have preview
+			assertNotNull(clone.getPreviewId());
+			// Now make sure we can download our
+			
+			synapse.downloadUserProfileAttachment(profile.getOwnerId(), clone, attachmentDownload);
+			assertTrue(attachmentDownload.exists());
+			System.out.println(attachmentDownload.getAbsolutePath());
+			assertEquals(originalFile.length(), attachmentDownload.length());
+			// Now make sure we can get the preview image
+			// Before we download the preview make sure it exists
+			synapse.waitForUserProfilePreviewToBeCreated(profile.getOwnerId(), clone.getPreviewId(), PREVIEW_TIMOUT);
+			synapse.downloadUserProfileAttachmentPreview(profile.getOwnerId(), clone.getPreviewId(), previewDownload);
+			assertTrue(previewDownload.exists());
+			System.out.println(previewDownload.getAbsolutePath());
+			assertTrue(previewDownload.length() > 0);
+			assertTrue("A preview size should not exceed 100KB.  This one is "+previewDownload.length(), previewDownload.length() < 100*1000);
+		}
+		finally{
+			if(writer != null){
+				writer.close();
+			}
+			if(reader != null){
+				reader.close();
+			}
+			attachmentDownload.delete();
+			previewDownload.delete();
+		}
+	}
+
 	
 	@Test	
 	public void testGetChildCount() throws SynapseException{
@@ -647,5 +792,24 @@ public class IT500SynapseJavaClient {
 		assertNotNull(results);
 		assertTrue(results.has("totalNumberOfResults"));
 		assertEquals(1l, results.getLong("totalNumberOfResults"));
+	}
+	
+	@Test
+	public void testGetAllUserAndGroupIds() throws SynapseException{
+		HashSet<String> expected = new HashSet<String>();
+		// Get all the users
+		PaginatedResults<UserProfile> pr = synapse.getUsers(0, Integer.MAX_VALUE);
+		for(UserProfile up : pr.getResults()){
+			expected.add(up.getOwnerId());
+		}
+		PaginatedResults<UserGroup> groupPr = synapse.getGroups(0, Integer.MAX_VALUE);
+		for(UserGroup ug : groupPr.getResults()){
+			expected.add(ug.getId());
+		}
+		Set<String> results = synapse.getAllUserAndGroupIds();
+		assertNotNull(results);
+		assertEquals(expected.size(), results.size());
+		assertEquals(expected,results);
+		
 	}
 }

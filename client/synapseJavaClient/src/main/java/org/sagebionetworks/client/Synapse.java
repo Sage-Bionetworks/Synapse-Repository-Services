@@ -11,9 +11,11 @@ import java.net.URL;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -33,9 +35,12 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
-import org.sagebionetworks.repo.ServiceConstants;
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
@@ -48,8 +53,10 @@ import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -101,6 +108,12 @@ public class Synapse {
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 
 	protected static final String TOTAL_NUM_RESULTS = "totalNumberOfResults";
+	
+	protected static final String ACCESS_REQUIREMENT = "/accessRequirement";
+	
+	protected static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled/";
+	
+	protected static final String ACCESS_APPROVAL = "/accessApproval";
 	
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
@@ -419,6 +432,11 @@ public class Synapse {
 		try {
 			T obj = clazz.newInstance();
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(o);
+			Iterator<String> it = adapter.keys();
+			while (it.hasNext()) {
+				String s = it.next();
+				System.out.println(s);
+			}
 			obj.initializeFromJSONObject(adapter);
 			return obj;
 		} catch (IllegalAccessException e) {
@@ -446,6 +464,15 @@ public class Synapse {
 		String uri = USER_PROFILE_PATH;
 		JSONObject json = getEntity(uri);
 		return initializeFromJSONObject(json, UserProfile.class);
+	}
+	
+	public void updateMyProfile(UserProfile userProfile) throws SynapseException {
+		try {
+			String uri = USER_PROFILE_PATH;
+			putEntity(uri, EntityFactory.createJSONObjectForEntity(userProfile));
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 	
 	public UserProfile getUserProfile(String ownerId) throws SynapseException {
@@ -592,8 +619,73 @@ public class Synapse {
 			throw new RuntimeException(e1);
 		}
 	}
+	
+	private static Class<AccessRequirement> getAccessRequirementClassFromType(String s) {
+		try {
+			return (Class<AccessRequirement>)Class.forName(s);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	public <T extends AccessRequirement> T createAccessRequirement(T ar) throws SynapseException {
+	
+		if (ar==null) throw new IllegalArgumentException("AccessRequirement cannot be null");
+		ar.setEntityType(ar.getClass().getName());
+		// Get the json for this entity
+		JSONObject jsonObject;
+		try {
+			jsonObject = EntityFactory.createJSONObjectForEntity(ar);
+			// Create the entity
+			jsonObject = createEntity(ACCESS_REQUIREMENT, jsonObject);
+			// Now convert to Object to an entity
+			return (T)initializeFromJSONObject(jsonObject, getAccessRequirementClassFromType(ar.getEntityType()));
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+		
+	}
 
-	/**
+	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessReqAccessRequirements(String entityId) throws SynapseException {
+		String uri = ACCESS_REQUIREMENT_UNFULFILLED+entityId;
+		JSONObject jsonAccessRequirements = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
+		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	private static Class<AccessApproval> getAccessApprovalClassFromType(String s) {
+		try {
+			return (Class<AccessApproval>)Class.forName(s);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+	}
+	
+	public <T extends AccessApproval> T createAccessApproval(T aa) throws SynapseException {
+		
+		if (aa==null) throw new IllegalArgumentException("AccessApproval cannot be null");		
+		aa.setEntityType(aa.getClass().getName());
+		// Get the json for this entity
+		JSONObject jsonObject;
+		try {
+			jsonObject = EntityFactory.createJSONObjectForEntity(aa);
+			// Create the entity
+			jsonObject = createEntity(ACCESS_APPROVAL, jsonObject);
+			// Now convert to Object to an entity
+			return (T)initializeFromJSONObject(jsonObject, getAccessApprovalClassFromType(aa.getEntityType()));
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+		
+	}
+
+/**
 	 * Get an entity given an Entity ID and the class of the Entity.
 	 * 
 	 * @param <T>
@@ -1009,6 +1101,35 @@ public class Synapse {
 	 * @throws IOException 
 	 */
 	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
+		return uploadAttachmentToSynapse(entityId, AttachmentType.ENTITY, dataFile, fileName);
+	}
+	
+	/**
+	 * Upload a user profile attachment to Synapse.
+	 * @param userId
+	 * @param dataFile
+	 * @param md5
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException 
+	 */	
+	public AttachmentData uploadUserProfileAttachmentToSynapse(String userId, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
+		return uploadAttachmentToSynapse(userId, AttachmentType.USER_PROFILE, dataFile, fileName);
+	}
+	
+	/**
+	 * Upload an attachment to Synapse.
+	 * @param attachmentType
+	 * @param userId
+	 * @param dataFile
+	 * @param md5
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 * @throws IOException 
+	 */	
+	public AttachmentData uploadAttachmentToSynapse(String id, AttachmentType attachmentType, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
 		// First we need to get an S3 token
 		S3AttachmentToken token = new S3AttachmentToken();
 		token.setFileName(fileName);
@@ -1016,7 +1137,7 @@ public class Synapse {
 				.getAbsolutePath());
 		token.setMd5(md5);
 		// Create the token
-		token = createAttachmentS3Token(entityId, token);
+		token = createAttachmentS3Token(id, attachmentType, token);
 		// Upload the file
 		dataUploader.uploadDataSingle(token, dataFile);
 		// We are now done
@@ -1031,19 +1152,48 @@ public class Synapse {
 	/**
 	 * Get the presigned URL for an entity attachment.
 	 * @param entityId
+	 * @param attachment data type
 	 * @param newData
 	 * @return
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	public PresignedUrl createAttachmentPresignedUrl(String entityId, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
-		String url = ENTITY+"/"+entityId+ATTACHMENT_URL;
+	public PresignedUrl createAttachmentPresignedUrl(String id, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
+		return createAttachmentPresignedUrl(id, AttachmentType.ENTITY, tokenOrPreviewId);
+	}
+	/**
+	 * Get the presigned URL for a user profile attachment.
+	 * @param userId
+	 * @param attachment data type
+	 * @param newData
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public PresignedUrl createUserProfileAttachmentPresignedUrl(String id, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
+		return createAttachmentPresignedUrl(id, AttachmentType.USER_PROFILE, tokenOrPreviewId);
+	}
+	
+	/**
+	 * Get the presigned URL for an attachment.
+	 * @param entityId
+	 * @param attachment data type
+	 * @param newData
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public PresignedUrl createAttachmentPresignedUrl(String id, AttachmentType attachmentType, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
+		String url = getAttachmentTypeURL(attachmentType)+"/"+id+ATTACHMENT_URL;
 		PresignedUrl preIn = new PresignedUrl();
 		preIn.setTokenID(tokenOrPreviewId);
 		JSONObject jsonBody = EntityFactory.createJSONObjectForEntity(preIn);
 		JSONObject json = createEntity(url, jsonBody);
 		return EntityFactory.createEntityFromJSONObject(json, PresignedUrl.class);
 	}
+	
+	
+	
 	
 	/**
 	 * Wait for the given preview to be created.
@@ -1054,8 +1204,33 @@ public class Synapse {
 	 * @throws JSONObjectAdapterException
 	 */
 	public PresignedUrl waitForPreviewToBeCreated(String entityId, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
+		return waitForPreviewToBeCreated(entityId, AttachmentType.ENTITY, tokenOrPreviewId, timeout);
+	}
+	
+	/**
+	 * Wait for the given preview to be created.
+	 * @param userId
+	 * @param tokenOrPreviewId
+	 * @param timeout
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public PresignedUrl waitForUserProfilePreviewToBeCreated(String userId, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
+		return waitForPreviewToBeCreated(userId, AttachmentType.USER_PROFILE, tokenOrPreviewId, timeout);
+	}
+	
+	/**
+	 * Wait for the given preview to be created.
+	 * @param entityId
+	 * @param attachment data type
+	 * @param tokenOrPreviewId
+	 * @param timeout
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public PresignedUrl waitForPreviewToBeCreated(String id, AttachmentType type, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
 		long start = System.currentTimeMillis();
-		PresignedUrl url = createAttachmentPresignedUrl(entityId, tokenOrPreviewId);
+		PresignedUrl url = createAttachmentPresignedUrl(id, type, tokenOrPreviewId);
 		if(URLStatus.READ_FOR_DOWNLOAD == url.getStatus()) return url;
 		while(URLStatus.DOES_NOT_EXIST == url.getStatus()){
 			// Wait for it.
@@ -1064,7 +1239,7 @@ public class Synapse {
 				long now = System.currentTimeMillis();
 				long eplase = now-start;
 				if(eplase > timeout) throw new SynapseException("Timed-out wiating for a preview to be created.");
-				url = createAttachmentPresignedUrl(entityId, tokenOrPreviewId);
+				url = createAttachmentPresignedUrl(id, type, tokenOrPreviewId);
 				if(URLStatus.READ_FOR_DOWNLOAD == url.getStatus()) return url;
 			} catch (InterruptedException e) {
 				throw new SynapseException(e);
@@ -1082,11 +1257,35 @@ public class Synapse {
 	 * @throws JSONObjectAdapterException
 	 */
 	public void downloadEntityAttachment(String entityId, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
+		downloadAttachment(entityId, AttachmentType.ENTITY, attachmentData, destFile);
+	}
+	
+	/**
+	 * Download an user profile attachment to a local file
+	 * @param userId
+	 * @param attachmentData
+	 * @param destFile
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public void downloadUserProfileAttachment(String userId, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
+		downloadAttachment(userId, AttachmentType.USER_PROFILE, attachmentData, destFile);
+	}
+	
+	/**
+	 * Download an entity attachment to a local file
+	 * @param id
+	 * @param attachmentType
+	 * @param destFile
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public void downloadAttachment(String id, AttachmentType type, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
 		// First get the URL
 		String url = null;
 		if(attachmentData.getTokenId() != null){
 			// Use the token to get the file
-			PresignedUrl preUrl = createAttachmentPresignedUrl(entityId, attachmentData.getTokenId());
+			PresignedUrl preUrl = createAttachmentPresignedUrl(id, type, attachmentData.getTokenId());
 			url = preUrl.getPresignedUrl();
 		}else{
 			// Just download the file.
@@ -1095,6 +1294,7 @@ public class Synapse {
 		//Now download the file
 		downloadFromSynapse(url, null, destFile);
 	}
+	
 	
 	/**
 	 * Downlaod a preview to the passed file.
@@ -1105,9 +1305,34 @@ public class Synapse {
 	 * @throws JSONObjectAdapterException
 	 */
 	public void downloadEntityAttachmentPreview(String entityId, String previewId, File destFile) throws SynapseException, JSONObjectAdapterException{
+		downloadAttachmentPreview(entityId, AttachmentType.ENTITY, previewId, destFile);
+	}
+	
+	/**
+	 * Downlaod a preview to the passed file.
+	 * @param userId
+	 * @param previewId
+	 * @param destFile
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public void downloadUserProfileAttachmentPreview(String userId, String previewId, File destFile) throws SynapseException, JSONObjectAdapterException{
+		downloadAttachmentPreview(userId, AttachmentType.USER_PROFILE, previewId, destFile);
+	}
+	
+	/**
+	 * Downlaod a preview to the passed file.
+	 * @param entityId
+	 * @param attachment data type
+	 * @param previewId
+	 * @param destFile
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public void downloadAttachmentPreview(String id, AttachmentType type, String previewId, File destFile) throws SynapseException, JSONObjectAdapterException{
 		// First get the URL
 		String url = null;
-		PresignedUrl preUrl = createAttachmentPresignedUrl(entityId, previewId);
+		PresignedUrl preUrl = createAttachmentPresignedUrl(id, type, previewId);
 		url = preUrl.getPresignedUrl();
 		//Now download the file
 		downloadFromSynapse(url, null, destFile);
@@ -1121,11 +1346,11 @@ public class Synapse {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException 
 	 */
-	public S3AttachmentToken createAttachmentS3Token(String entityId, S3AttachmentToken token) throws JSONObjectAdapterException, SynapseException{
-		if(entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
+	public S3AttachmentToken createAttachmentS3Token(String id, ServiceConstants.AttachmentType attachmentType, S3AttachmentToken token) throws JSONObjectAdapterException, SynapseException{
+		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		if(token == null) throw new IllegalArgumentException("S3AttachmentToken cannot be null");
 		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(token);
-		String uri = ENTITY+"/"+entityId+ATTACHMENT_S3_TOKEN;
+		String uri = getAttachmentTypeURL(attachmentType)+"/"+id+ATTACHMENT_S3_TOKEN;
 		jsonObject = createEntity(uri, jsonObject);
 		return EntityFactory.createEntityFromJSONObject(jsonObject, S3AttachmentToken.class);
 	}
@@ -1589,5 +1814,38 @@ public class Synapse {
 		} catch (JSONException e) {
 			throw new SynapseException(e);
 		}
+	}
+	
+	/**
+	 * Get the appropriate piece of the URL based on the attachment type
+	 * @param type
+	 * @return
+	 */
+	public static String getAttachmentTypeURL(ServiceConstants.AttachmentType type)
+	{
+		if (type == AttachmentType.ENTITY)
+			return ENTITY;
+		else if (type == AttachmentType.USER_PROFILE)
+			return USER_PROFILE_PATH;
+		else throw new IllegalArgumentException("Unrecognized attachment type: " + type);
+	}
+	/**
+	 * Get the ids of all users and groups.
+	 * @param client
+	 * @return
+	 * @throws SynapseException
+	 */
+	public Set<String> getAllUserAndGroupIds() throws SynapseException {
+		HashSet<String> ids = new HashSet<String>();
+		// Get all the users
+		PaginatedResults<UserProfile> pr = this.getUsers(0, Integer.MAX_VALUE);
+		for(UserProfile up : pr.getResults()){
+			ids.add(up.getOwnerId());
+		}
+		PaginatedResults<UserGroup> groupPr = this.getGroups(0, Integer.MAX_VALUE);
+		for(UserGroup ug : groupPr.getResults()){
+			ids.add(ug.getId());
+		}
+		return ids;
 	}
 }

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.when;
 
 import java.util.Date;
 import java.util.Random;
@@ -13,17 +14,29 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.model.SchemaCache;
+import org.mockito.Mockito;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.attachment.PresignedUrl;
+import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpMethod;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.services.securitytoken.model.Credentials;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:manager-test-context.xml" })
@@ -37,7 +50,9 @@ public class UserProfileManagerImplTest {
 	
 	@Autowired
 	private UserProfileManager userProfileManager;
-	
+
+	private LocationHelper mockLocationHelper;
+	private IdGenerator mockIdGenerator;
 	private static final String TEST_USER_NAME = "test-user";
 	private static final String TEST_USER_DISPLAY_NAME = "test-user display-name";
 	
@@ -70,6 +85,8 @@ public class UserProfileManagerImplTest {
 				userProfile = userProfileDAO.get(id, schema);
 			}
 		}
+		mockIdGenerator = Mockito.mock(IdGenerator.class);
+		mockLocationHelper = Mockito.mock(LocationHelper.class);
 	}
 
 	@After
@@ -163,6 +180,57 @@ public class UserProfileManagerImplTest {
 		// the following step will fail
 		userProfileManager.updateUserProfile(userInfo, upClone);
 	}
+	
+
+	@Test
+	public void testGetAttachmentUrl() throws Exception{
+		assertNotNull(individualGroup);
+		assertNotNull(userProfile);
+		UserInfo userInfo = new UserInfo(false); // not an admin
+		userInfo.setIndividualGroup(individualGroup);
+		
+		Long tokenId = new Long(456);
+		String otherUserProfileId = "12345";
+		
+		// Make the actual call
+		PresignedUrl url = userProfileManager.getUserProfileAttachmentUrl(userInfo, otherUserProfileId, tokenId.toString());
+	}
+	
+	@Test
+	public void testCreateS3AttachmentToken() throws NumberFormatException, DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException{
+		UserInfo userInfo = new UserInfo(false); // not an admin
+		userInfo.setIndividualGroup(individualGroup);
+		
+		S3AttachmentToken startToken = new S3AttachmentToken();
+		startToken.setFileName("/some.jpg");
+		String almostMd5 = "79054025255fb1a26e4bc422aef54eb4";
+		startToken.setMd5(almostMd5);
+		Long tokenId = new Long(456);
+		String userId = individualGroup.getId();
+		when(mockIdGenerator.generateNewId()).thenReturn(tokenId);
+		// Make the actual calls
+		S3AttachmentToken endToken = userProfileManager.createS3UserProfileAttachmentToken(userInfo, userId, startToken);
+		assertNotNull(endToken);
+		assertNotNull(endToken.getPresignedUrl());
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testCreateS3AttachmentTokenFromInvalidFile() throws NumberFormatException, DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException{
+		UserInfo userInfo = new UserInfo(false); // not an admin
+		userInfo.setIndividualGroup(individualGroup);
+		
+		S3AttachmentToken startToken = new S3AttachmentToken();
+		startToken.setFileName("/not_an_image.txt");
+		String almostMd5 = "79054025255fb1a26e4bc422aef54eb4";
+		startToken.setMd5(almostMd5);
+		Long tokenId = new Long(456);
+		String userId = individualGroup.getId();
+		when(mockIdGenerator.generateNewId()).thenReturn(tokenId);
+		//next line should result in an IllegalArgumentException, since the filename does not not indicate an image file that we recognize
+		userProfileManager.createS3UserProfileAttachmentToken(userInfo, userId, startToken);
+	}
+
+
 	
 
 }

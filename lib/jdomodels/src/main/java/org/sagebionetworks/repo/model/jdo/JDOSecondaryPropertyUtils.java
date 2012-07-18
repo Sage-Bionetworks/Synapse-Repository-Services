@@ -104,6 +104,10 @@ public class JDOSecondaryPropertyUtils {
 	 * @throws IOException 
 	 */
 	public static byte[] compressAnnotations(NamedAnnotations dto) throws IOException{
+		return compressObject(dto);
+	}
+	
+	public static byte[] compressObject(Object dto) throws IOException{
 		if(dto == null) return null;
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
 		BufferedOutputStream buff = new BufferedOutputStream(out);
@@ -180,20 +184,25 @@ public class JDOSecondaryPropertyUtils {
 	 */
 	@SuppressWarnings("unchecked")
 	public static NamedAnnotations decompressedAnnotations(byte[] zippedByes) throws IOException{
+		Object o = decompressedObject(zippedByes);
+		if (o==null) return new NamedAnnotations();
+		return (NamedAnnotations)o;
+	}
+		
+	public static Object decompressedObject(byte[] zippedByes) throws IOException{
 		if(zippedByes != null){
 			ByteArrayInputStream in = new ByteArrayInputStream(zippedByes);
 			GZIPInputStream unZipper = new GZIPInputStream(in);
 			try{
 				XStream xstream = createXStream();
 				if(zippedByes != null){
-					return (NamedAnnotations) xstream.fromXML(unZipper);
+					return xstream.fromXML(unZipper);
 				}
 			}finally{
 				unZipper.close();
 			}			
 		}
-		// Return an empty map.
-		return new NamedAnnotations();
+		return null;
 	}
 
 	/**

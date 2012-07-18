@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo;
+package org.sagebionetworks.repo.model;
 
 /**
  * Constants for query parameter keys, header names, and field names used by the
@@ -197,4 +197,6 @@ public class ServiceConstants {
 		return;
 	}
 
+	public static enum AttachmentType {ENTITY, USER_PROFILE};
+	
 }

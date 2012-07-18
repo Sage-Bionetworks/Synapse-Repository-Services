@@ -35,6 +35,10 @@
 
 	<bean id="userProfileDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOUserProfileDAOImpl" />
 
+	<bean id="accessRequirementDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessRequirementDAOImpl" />
+
+	<bean id="accessApprovalDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessApprovalDAOImpl" />
+
 	<bean id="userGroupCache" class="org.sagebionetworks.repo.model.jdo.UserGroupCacheImpl"
 		scope="singleton" />
 

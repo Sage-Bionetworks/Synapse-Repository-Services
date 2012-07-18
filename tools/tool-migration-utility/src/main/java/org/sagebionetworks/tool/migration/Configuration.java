@@ -1,6 +1,5 @@
 package org.sagebionetworks.tool.migration;
 
-import org.sagebionetworks.StackConfiguration;
 
 
 /**
@@ -32,5 +31,6 @@ public interface Configuration {
 	public int getMaximumBatchSize();
 	
 	public long getWorkerTimeoutMs();	
+	
 	
 }

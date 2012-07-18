@@ -23,6 +23,11 @@ public class SearchUtil {
 		List<String> params = new ArrayList<String>();
 		List<String> q = searchQuery.getQueryTerm();
 		List<KeyValue> bq = searchQuery.getBooleanQuery();
+		
+		// clean up empty q
+		if(q != null && q.size() == 1 && "".equals(q.get(0))) {
+			q = null;
+		}		
 
 		// clean up empty q
 		if(q != null && q.size() == 1 && "".equals(q.get(0))) {

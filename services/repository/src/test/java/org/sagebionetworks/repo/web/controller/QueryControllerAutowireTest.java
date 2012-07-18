@@ -101,5 +101,21 @@ public class QueryControllerAutowireTest {
 		assertNotNull(results);
 		assertEquals(1l, results.getTotalNumberOfResults());
 	}
+	
+	@Test
+	public void testQueryByPrincipal() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ParseException{
+		// Create a project
+		Project p = new Project();
+		p.setEntityType(Project.class.getName());
+		p.setName("name");
+		String id = entityManager.createEntity(user, p);
+		p.setId(id);
+		toDelete.add(p.getId());
+		// Now query for the data object
+		String queryString = "SELECT id, name FROM project WHERE createdByPrincipalId == \""+user.getIndividualGroup().getId()+"\"";
+		QueryResults results = controller.query(TestUserDAO.ADMIN_USER_NAME, queryString, mockRequest);
+		assertNotNull(results);
+		assertEquals(1l, results.getTotalNumberOfResults());
+	}
 
 }

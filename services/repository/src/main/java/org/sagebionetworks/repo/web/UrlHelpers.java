@@ -12,6 +12,8 @@ import java.util.regex.Pattern;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
@@ -48,6 +50,12 @@ public class UrlHelpers {
 	 * 
 	 */
 	public static final String ID = "/{id}";
+	
+	/**
+	 * URL prefix for all objects that are referenced by their ID.
+	 * 
+	 */
+	public static final String PROFILE_ID = "/{profileId}";
 	
 	public static final String PARENT_TYPE 		= "/{parentType}";
 	public static final String PARENT_ID 		= "/{parentId}";
@@ -120,7 +128,7 @@ public class UrlHelpers {
 	 * All of the base URLs for Synapse objects with ID.
 	 */
 	public static final String ENTITY_ID	= ENTITY+ID;
-	public static final String USER_PROFILE_ID		= USER_PROFILE+ID;
+	public static final String USER_PROFILE_ID		= USER_PROFILE+PROFILE_ID;
 	
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
@@ -133,6 +141,11 @@ public class UrlHelpers {
 	 * The url used to get an attachment URL.
 	 */
 	public static final String ENTITY_ATTACHMENT_URL = ENTITY_ID+ATTACHMENT_URL;
+	
+	/**
+	 * The url used to get a user profile attachment URL.
+	 */
+	public static final String USER_PROFILE_ATTACHMENT_URL = USER_PROFILE_ID+ATTACHMENT_URL;
 	
 	
 	/**
@@ -149,6 +162,11 @@ public class UrlHelpers {
 	 * All of the base URLs for locationable entity s3Tokens
 	 */
 	public static final String ENTITY_S3TOKEN	= ENTITY_ID+S3TOKEN;
+	
+	/**
+	 * Used to get a user profile attachment token
+	 */
+	public static final String USER_PROFILE_S3_ATTACHMENT_TOKEN = USER_PROFILE_ID+ATTACHMENT_S3_TOKEN;
 	
 	/**
 	 * All of the base URLs for Synapse objects's paths.
@@ -188,6 +206,17 @@ public class UrlHelpers {
 	 * 
 	 */
 	public static final String USERGROUP = "/userGroup";
+	
+	public static final String ACCESS_REQUIREMENT = "/accessRequirement";
+	public static final String ACCESS_REQUIREMENT_WITH_ENTITY_ID = ACCESS_REQUIREMENT+"/{entityId}";
+	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID = ACCESS_REQUIREMENT+"/{requirementId}";
+	
+	public static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled";
+	public static final String ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ACCESS_REQUIREMENT_UNFULFILLED+"/{entityId}";
+	
+	public static final String ACCESS_APPROVAL = "/accessApproval";
+	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ACCESS_APPROVAL+"/{entityId}";
+	public static final String ACCESS_APPROVAL_WITH_APPROVAL_ID = ACCESS_APPROVAL+"/{approvalId}";
 	
 	/**
 	 * URL prefix for Users in a UserGroup
@@ -501,5 +530,14 @@ public class UrlHelpers {
 		redirectURL.append(id);
 		redirectURL.append(UrlHelpers.ACL);
 		return redirectURL.toString();
+	}
+	
+	public static String getAttachmentTypeURL(ServiceConstants.AttachmentType type)
+	{
+		if (type == AttachmentType.ENTITY)
+			return UrlHelpers.ENTITY;
+		else if (type == AttachmentType.USER_PROFILE)
+			return UrlHelpers.USER_PROFILE;
+		else throw new IllegalArgumentException("Unrecognized attachment type: " + type);
 	}
 }

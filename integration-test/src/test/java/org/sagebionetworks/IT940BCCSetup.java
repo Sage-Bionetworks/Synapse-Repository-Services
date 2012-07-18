@@ -19,9 +19,10 @@ public class IT940BCCSetup {
 		  SpreadsheetHelper ssh = new SpreadsheetHelper();
 		  String spreadsheetTitle = BccConfigHelper.getBCCSpreadsheetTitle();
 		  
+		  System.out.println("Title: "+spreadsheetTitle);
 		  // in its initial state there is just one participant for whom to allocate resources
 		  List<String> participantsToAllocate = ssh.getParticipantsToAllocate();
-		  assertEquals(1, participantsToAllocate.size());
+		  assertEquals(spreadsheetTitle+", expected 1 but was "+participantsToAllocate.size(), 1, participantsToAllocate.size());
 		  String participant = participantsToAllocate.iterator().next();
 		  ssh.recordAllocation(participant, "<timestamp>"); // would use an actual time stamp here
 		  ssh.setCellValue(spreadsheetTitle, participant, "VM NAME", "foo"); // set some other field
@@ -59,8 +60,8 @@ public class IT940BCCSetup {
 		  // now delete the row
 		  ssh.deleteSpreadshetRow(TEST_SHEET_NAME, emailAddressHeader, email);
 		  try {
-			  ssh.getCellValue(TEST_SHEET_NAME, email, valueHeader);
-			  fail("Failed to delete spreadsheet row");
+			  String content = ssh.getCellValue(TEST_SHEET_NAME, email, valueHeader);
+			  fail("Failed to delete spreadsheet row: content="+content);
 		  } catch (IllegalStateException e) {
 			  // as expected
 		  }
