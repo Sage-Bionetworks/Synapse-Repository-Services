@@ -3,10 +3,7 @@
     "properties":{
         "fileName":{
             "type":"string",
-            "description":"The file name of the backup file to restore.",
-            
-        },
-        
-    },
-    
+            "description":"The file name of the backup file to restore."            
+        }        
+    }    
 }

@@ -1,33 +1,33 @@
 {
-    "description":"JSON schema for a the result of a search.",
-    "properties":{
-        "found":{
-            "type":"integer",
-            "description":"The total number of hits found for this search."
-        },
-        "start":{
-            "type":"integer",
-            "description":"The zero-based number of the first hit returned in this page of search results."
-        },
-        "matchExpression":{
-                "type":"string",
-                "description":"The search match expression parsed from the search request parameters.  This is useful for debugging purposes.",
-        },
-        "hits":{
-            "type":"array",
-            "description":"The hits in this page of search results",
-            "uniqueItems":false,
-            "items":{
-                "$ref":"org.sagebionetworks.repo.model.search.Hit"
-            }
-        },
-        "facets":{
-            "type":"array",
-            "description":"The facets found in all results of this search.",
-            "uniqueItems":false,
-            "items":{
-                "$ref":"org.sagebionetworks.repo.model.search.Facet"
-            }
-        }
-    }
+	"description": "JSON schema for a the result of a search.",
+	"properties": {
+		"found": {
+			"type": "integer",
+			"description": "The total number of hits found for this search."
+		},
+		"start": {
+			"type": "integer",
+			"description": "The zero-based number of the first hit returned in this page of search results."
+		},
+		"matchExpression": {
+			"type": "string",
+			"description": "The search match expression parsed from the search request parameters.  This is useful for debugging purposes."
+		},
+		"hits": {
+			"type": "array",
+			"description": "The hits in this page of search results",
+			"uniqueItems": false,
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.Hit"
+			}
+		},
+		"facets": {
+			"type": "array",
+			"description": "The facets found in all results of this search.",
+			"uniqueItems": false,
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.search.Facet"
+			}
+		}
+	}
 }
