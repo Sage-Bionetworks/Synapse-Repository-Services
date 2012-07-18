@@ -148,6 +148,13 @@
 	</dependencies>
 
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
+	
 		<plugins>
 			<!-- Make a WAR file -->
 			<plugin>
@@ -241,7 +248,7 @@
 					</execution>
 				</executions>
 			</plugin>
-
+			
 		</plugins>
 	</build>
 

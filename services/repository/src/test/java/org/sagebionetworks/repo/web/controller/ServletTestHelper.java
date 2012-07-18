@@ -1864,5 +1864,22 @@ public class ServletTestHelper {
 		}
 	}
 
+	
+	public String getVersionInfo() throws ServletException, IOException {
+		String s;
+		
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.VERSIONINFO);
+		System.out.println(request.getRequestURL());
+		dispatchServlet.service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		s = response.getContentAsString();
+		return s;
+	}
 
 }
