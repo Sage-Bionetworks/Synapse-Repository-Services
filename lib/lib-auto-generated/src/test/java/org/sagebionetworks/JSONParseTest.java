@@ -20,7 +20,7 @@ import org.junit.Test;
 public class JSONParseTest {
 
 	@Test
-	public void testFile() {
+	public void testFile() throws IOException {
 		File dir = new File("src/main/resources");
 		Iterator<?> itr =  FileUtils.iterateFiles(dir, new String[]{"json"}, true);
 
@@ -31,10 +31,7 @@ public class JSONParseTest {
 				assertTrue(JSONValidator.isValidJSON(jstr));
 		    } catch (JsonParseException jpe) {
 		    	fail("Parse failed on file '" + file.getName() + "'\n" + jpe.getMessage());
-			} catch (Exception ioe) {
-				ioe.printStackTrace();
-				fail();
-			}
+		    }
 		    // System.out.println("Parsing '" + file.getName() + "' was successful");
 		}
 	}
