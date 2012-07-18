@@ -1,39 +1,38 @@
 {
-    "description":"JSON Data about a single attachment.",
-    "properties":{
-        "name":{
-            "type":"string",
-             "description":"The name of this attachment."
-        },
-        "tokenId":{
-            "type":"string",
-            "description":"This token is used to get a pre-signed URL that can be used to download this attachment."
-        },
-        "previewId":{
-            "type":"string",
-            "description":"This token is used to get a pre-signed URL that can be used to download this attachment's preview."
-        },
-        "url":{
-            "type":"string",
-            "description":"When provided, the URL can be used to directly download this attachment."
-        },
-        "contentType":{
-            "type":"string"
-        },
-        "md5":{
-            "type":"string"
-        },
-        "previewState":{
-            "type":"string",
-            "description":"The state of the preview for this attachment",
-            "name":"PreviewState",
-            "id":"org.sagebionetworks.repo.model.attachment.PreviewState",
-            "enum":[
-                "FAILED",
-                "PREVIEW_EXISTS",
-                "NOT_COMPATIBLE",
-            ],
-            
-        },
-    }
+	"description": "JSON Data about a single attachment.",
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "The name of this attachment."
+		},
+		"tokenId": {
+			"type": "string",
+			"description": "This token is used to get a pre-signed URL that can be used to download this attachment."
+		},
+		"previewId": {
+			"type": "string",
+			"description": "This token is used to get a pre-signed URL that can be used to download this attachment's preview."
+		},
+		"url": {
+			"type": "string",
+			"description": "When provided, the URL can be used to directly download this attachment."
+		},
+		"contentType": {
+			"type": "string"
+		},
+		"md5": {
+			"type": "string"
+		},
+		"previewState": {
+			"type": "string",
+			"description": "The state of the preview for this attachment",
+			"name": "PreviewState",
+			"id": "org.sagebionetworks.repo.model.attachment.PreviewState",
+			"enum": [
+				"FAILED",
+				"PREVIEW_EXISTS",
+				"NOT_COMPATIBLE"
+			]
+		}
+	}
 }

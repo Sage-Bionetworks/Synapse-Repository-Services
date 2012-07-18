@@ -7,7 +7,6 @@
             "items":{
                 "type":"string"
             }
-        },
-        
+        }        
     }
 }
