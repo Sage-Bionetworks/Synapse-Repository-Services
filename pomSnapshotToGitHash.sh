@@ -1,10 +1,16 @@
-#!/bin/sh
+#!/bin/sh 
 #This script will change the vesion of all pom.xml files from:
 #<version>develop-SNAPSHOT</version>
 # to
 #<version>yyyy-mm-dd-hash</version>
 # The new version number is <date>-<hash>.  The <hash> is the abbreviated hash of the last commit
-abbreviatedCommitHash="<version>"$(date +%Y-%m-%d)"-"`git log master -n 1 --pretty=format:%h`"</version>"
+args=("$@")
+buildNumber=${args[0]}
+if [ -z "$buildNumber" ] ;
+  then buildNumber="??"
+fi
+echo $buildNumber
+abbreviatedCommitHash="<version>"$(date +%Y-%m-%d)"-"`git log master -n 1 --pretty=format:%h`"-$buildNumber</version>"
 echo "Changing all pom.xml to version=$abbreviatedCommitHash"
 #sed "s|<version>develop-SNAPSHOT</version>|$abbreviatedCommitHash|g" pom.xml > temp-pom.xml
 for f in `find -name "pom.xml"` ; do
