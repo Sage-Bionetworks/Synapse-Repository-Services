@@ -41,4 +41,5 @@ public class VersionInfoControllerTest {
 		s = testHelper.getVersionInfo();
 		assertTrue(s.length() > 0);
 	}
+	
 }
