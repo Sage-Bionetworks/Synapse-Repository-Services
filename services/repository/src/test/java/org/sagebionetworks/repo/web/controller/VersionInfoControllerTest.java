@@ -10,6 +10,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
 
 /**
  *
@@ -37,9 +38,9 @@ public class VersionInfoControllerTest {
 	
 	@Test
 	public void testGetVersionInfo() throws Exception {
-		String s;
-		s = testHelper.getVersionInfo();
-		assertTrue(s.length() > 0);
+		VersionInfo vi;
+		vi = testHelper.getVersionInfo();
+		assertTrue(vi.getVersion().length() > 0);
 	}
 	
 }

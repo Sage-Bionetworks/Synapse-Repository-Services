@@ -51,6 +51,7 @@ import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
 import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -1865,8 +1866,8 @@ public class ServletTestHelper {
 	}
 
 	
-	public String getVersionInfo() throws ServletException, IOException {
-		String s;
+	public VersionInfo getVersionInfo() throws ServletException, IOException {
+		VersionInfo vi;
 		
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -1878,8 +1879,9 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		s = response.getContentAsString();
-		return s;
+		vi = (VersionInfo) objectMapper.readValue(
+				response.getContentAsString(), VersionInfo.class);
+		return vi;
 	}
 
 }

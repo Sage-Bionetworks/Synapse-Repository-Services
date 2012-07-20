@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
 import org.sagebionetworks.repo.web.UrlHelpers;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class VersionInfoController extends BaseController {
 	
 	private static class Holder {
-		private static String versionInfo;
+		private static String versionInfo = "";
 		
 		static {
 			InputStream s = VersionInfoController.class.getResourceAsStream("/version-info.properties");
@@ -35,7 +36,6 @@ public class VersionInfoController extends BaseController {
 			try {
 				prop.load(s);
 			} catch (IOException e) {
-				versionInfo = "";
 				throw new RuntimeException("version-info.properties file not found", e);
 			}
 			versionInfo = prop.getProperty("org.sagebionetworks.repository.version");
@@ -55,9 +55,10 @@ public class VersionInfoController extends BaseController {
 	public 
 	@ResponseBody
 //	String getVersionInfo(HttpServletRequest req) throws IOException {
-	String getVersionInfo() throws IOException {
-
-		return Holder.getVersionInfo();
+	VersionInfo getVersionInfo() throws RuntimeException {
+		VersionInfo vInfo = new VersionInfo();
+		vInfo.setVersion(Holder.getVersionInfo());
+		return vInfo;
 	}
 	
 }
