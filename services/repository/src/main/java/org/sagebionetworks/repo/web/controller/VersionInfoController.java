@@ -36,6 +36,7 @@ public class VersionInfoController extends BaseController {
 				prop.load(s);
 			} catch (IOException e) {
 				versionInfo = "";
+				throw new RuntimeException("version-info.properties file not found", e);
 			}
 			versionInfo = prop.getProperty("org.sagebionetworks.repository.version");
 		}
