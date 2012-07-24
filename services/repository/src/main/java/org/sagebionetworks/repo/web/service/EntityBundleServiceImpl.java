@@ -23,21 +23,43 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	public EntityBundle getEntityBundle(String userId, String entityId, int mask, HttpServletRequest request, 
 			Integer offset, Integer limit, String sort, Boolean ascending)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
+		return getEntityBundle(userId, entityId, null, mask, request, offset, limit, sort, ascending);
+	}
+
+	@Override
+	public EntityBundle getEntityBundle(String userId, String entityId,
+			Long versionNumber, int mask, HttpServletRequest request,
+			Integer offset, Integer limit, String sort, Boolean ascending)
+			throws NotFoundException, DatastoreException,
+			UnauthorizedException, ACLInheritanceException, ParseException {
+
 		EntityBundle eb = new EntityBundle();
-		if ((mask & EntityBundle.ENTITY) > 0)
-			eb.setEntity(serviceProvider.getEntityService().getEntity(userId, entityId, request));
-		if ((mask & EntityBundle.ANNOTATIONS) > 0)
-			eb.setAnnotations(serviceProvider.getEntityService().getEntityAnnotations(userId, entityId, request));
-		if ((mask & EntityBundle.PERMISSIONS) > 0)
+		if ((mask & EntityBundle.ENTITY) > 0) {
+			if(versionNumber == null) {
+				eb.setEntity(serviceProvider.getEntityService().getEntity(userId, entityId, request));
+			} else {
+				eb.setEntity(serviceProvider.getEntityService().getEntityForVersion(userId, entityId, versionNumber, request));
+			}
+		}
+		if ((mask & EntityBundle.ANNOTATIONS) > 0) {
+			if(versionNumber == null) {
+				eb.setAnnotations(serviceProvider.getEntityService().getEntityAnnotations(userId, entityId, request));
+			} else {
+				eb.setAnnotations(serviceProvider.getEntityService().getEntityAnnotationsForVersion(userId, entityId, versionNumber, request));				
+			}
+		}
+		if ((mask & EntityBundle.PERMISSIONS) > 0) {
 			eb.setPermissions(serviceProvider.getEntityService().getUserEntityPermissions(userId, entityId));
+		}
 		if ((mask & EntityBundle.ENTITY_PATH) > 0) {
 			List<EntityHeader> path = serviceProvider.getEntityService().getEntityPath(userId, entityId);
 			EntityPath ep = new EntityPath();
 			ep.setPath(path);
 			eb.setPath(ep);
 		}
-		if ((mask & EntityBundle.ENTITY_REFERENCEDBY) > 0)
+		if ((mask & EntityBundle.ENTITY_REFERENCEDBY) > 0) {
 			eb.setReferencedBy(serviceProvider.getEntityService().getEntityReferences(userId, entityId, null, null, null, request));
+		}
 		if ((mask & EntityBundle.CHILD_COUNT) > 0) {
 			try {
 				eb.setChildCount(serviceProvider.getEntityService().getChildCount(userId, entityId, request));
@@ -46,8 +68,11 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				throw e;
 			}
 		}
-		if ((mask & EntityBundle.ACL) > 0)			
-			eb.setAccessControlList(serviceProvider.getEntityService().getEntityACL(entityId, userId, request));			
+		if ((mask & EntityBundle.ACL) > 0) {			
+			eb.setAccessControlList(serviceProvider.getEntityService().getEntityACL(entityId, userId, request));
+		}
+		
+		// TODO : these do not belong in the entity bundle
 		if ((mask & EntityBundle.USERS) > 0) {
 			eb.setUsers(serviceProvider.getUserProfileService().getUserProfilesPaginated(request, userId, offset, limit, sort, ascending));
 		}
@@ -55,6 +80,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			eb.setGroups(serviceProvider.getUserGroupService().getUserGroups(request, userId, offset, limit, sort, ascending));
 		}
 		return eb;
+
 	}	
 
 }

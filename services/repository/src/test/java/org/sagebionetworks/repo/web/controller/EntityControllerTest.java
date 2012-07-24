@@ -9,12 +9,14 @@ import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.servlet.ServletException;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
@@ -22,10 +24,13 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Code;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.LocationData;
+import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -269,7 +274,7 @@ public class EntityControllerTest {
 		}
 		
 	}
-
+	
 	@Test
 	public void testGetEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
 		// Create an entity
@@ -343,6 +348,80 @@ public class EntityControllerTest {
 		
 		PaginatedResults<UserGroup> ug = eb.getGroups();
 		assertNotNull("UserGroups was requested, but null in bundle", ug);
+	}
+		
+	/**
+	 * Test that proper versions are returned
+	 * @throws NameConflictException
+	 * @throws JSONObjectAdapterException
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	@Test
+	public void testGetEntityBundleForVersion() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {		
+		// Create an entity
+		Project p = new Project();
+		p.setName("Dummy Project");
+		p.setEntityType(p.getClass().getName());
+		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		String parentId = p2.getId();
+		toDelete.add(parentId);
+		
+		Data d1 = new Data();
+		d1.setName("Dummy Data 1");
+		d1.setParentId(parentId);
+		d1.setEntityType(d1.getClass().getName());
+		LocationData d1Location = new LocationData();
+		d1Location.setPath("fakepath");
+		d1Location.setType(LocationTypeNames.external);		
+		d1.setLocations(Arrays.asList(new LocationData[] { d1Location }));
+		d1.setMd5("c88c3db97754be31f9242eb3c08382ee");
+		d1 = (Data) entityServletHelper.createEntity(d1, TEST_USER1);
+		toDelete.add(d1.getId());
+		// Get/add/update annotations for this entity
+		Annotations a1 = entityServletHelper.getEntityAnnotaions(d1.getId(), TEST_USER1);
+		a1.addAnnotation("v1", new Long(1));
+		a1 = entityServletHelper.updateAnnotations(a1, TEST_USER1);
+		a1 = entityServletHelper.getEntityAnnotaions(d1.getId(), TEST_USER1);
+	
+		// create 2nd version of entity and annotations
+		d1 = (Data) entityServletHelper.getEntity(d1.getId(), TEST_USER1);
+		d1Location = new LocationData();
+		d1Location.setPath("fakepath_2");
+		d1Location.setType(LocationTypeNames.external);		
+		d1.setLocations(Arrays.asList(new LocationData[] { d1Location }));
+		d1.setMd5("c88c3db97754be31f9242eb3c08382e0");
+		entityServletHelper.updateEntity(d1, TEST_USER1);
+		// Get/add/update annotations for this entity
+		Annotations a2 = entityServletHelper.getEntityAnnotaions(d1.getId(), TEST_USER1);
+		a2.addAnnotation("v2", new Long(2));
+		a2 = entityServletHelper.updateAnnotations(a2, TEST_USER1);
+		a2 = entityServletHelper.getEntityAnnotaions(d1.getId(), TEST_USER1);
+		
+		int mask =  EntityBundle.ENTITY | 
+					EntityBundle.ANNOTATIONS |
+					EntityBundle.ENTITY_REFERENCEDBY;
+		// Get the bundle for version 1, verify contents
+		Long versionNumber = new Long(1);
+		EntityBundle eb = entityServletHelper.getEntityBundleForVersion(d1.getId(), versionNumber, mask, TEST_USER1);
+		Data d2 = (Data) eb.getEntity();
+		assertEquals(versionNumber, d2.getVersionNumber());
+		
+		Annotations a3 = eb.getAnnotations();
+		assertTrue(a3.getLongAnnotations().containsKey("v1"));
+		assertFalse(a3.getLongAnnotations().containsKey("v2"));
+		
+		// Get the bundle for version 2, verify contents
+		versionNumber = new Long(2);
+		EntityBundle eb2 = entityServletHelper.getEntityBundleForVersion(d1.getId(), versionNumber, mask, TEST_USER1);
+		d2 = (Data) eb2.getEntity();
+		assertEquals(versionNumber, d2.getVersionNumber());
+		
+		a3 = eb2.getAnnotations();
+		assertTrue(a3.getLongAnnotations().containsKey("v1"));
+		assertTrue(a3.getLongAnnotations().containsKey("v2"));	
 	}
 	
 	@Test
