@@ -5,6 +5,7 @@
 #<version>GitTag</version>
 # The new version number is the last Git tag
 
+
 newVersion=`git describe --tags`
 echo "Changing all pom.xml to version=$newVersion"
 for f in `find . -name "pom.xml"` ; do
