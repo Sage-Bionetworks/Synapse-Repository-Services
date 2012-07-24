@@ -6,7 +6,7 @@
    <parent>
     <artifactId>tools</artifactId>
     <groupId>org.sagebionetworks</groupId>
-    <version>1.2.0</version>
+    <version>develop-SNAPSHOT</version>
   </parent>
 
   <groupId>org.sagebionetworks</groupId>
