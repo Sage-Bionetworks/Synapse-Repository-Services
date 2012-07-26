@@ -227,6 +227,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		}
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String create(UserGroup dto) throws DatastoreException,
 			InvalidModelException {
