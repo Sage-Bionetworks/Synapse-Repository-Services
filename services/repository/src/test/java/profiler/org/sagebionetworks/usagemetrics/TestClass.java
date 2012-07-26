@@ -19,6 +19,10 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class TestClass {
 
 	@Test
+	public void fakeTest() {
+
+	}
+
 	public void testMethod(String arg1, Integer arg2) {
 	}
 
