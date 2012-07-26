@@ -220,7 +220,6 @@ public class UserManagerImpl implements UserManager {
 
 	/**
 	 * Clear the user cache.
-	 * Exposing as public for testing purposes only
 	 */
 	private void clearCache() {
 		userInfoCache.clear();
