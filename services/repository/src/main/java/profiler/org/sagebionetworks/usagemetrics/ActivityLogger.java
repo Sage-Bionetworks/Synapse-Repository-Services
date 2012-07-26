@@ -82,10 +82,11 @@ public class ActivityLogger {
 
 		//converting from nanoseconds to milliseconds
 		long latencyMS = (end - start) / NANOSECOND_PER_MILLISECOND;
-
-		LogData logData = createLogData(latencyMS, declaringClass, methodName, args);
-
-		log.trace(logData.toString());
+		
+		String toLog = String.format("%dms %s.%s(%s)", 
+				latencyMS, declaringClass.getSimpleName(), methodName, args);
+		
+		log.trace(toLog);
 
 		return result;
 	}
@@ -137,23 +138,6 @@ public class ActivityLogger {
 		}
 
 		return argString.toString();
-	}
-
-	LogData createLogData(long latencyMS, Class<?> declaringClass,
-			String methodName, String args) {
-		// No null arguments
-		if (declaringClass == null || methodName == null || args == null) {
-			throw (new IllegalArgumentException());
-		}
-
-		LogData logData = new LogData();
-
-		logData.setLatency(latencyMS);
-		logData.setController(declaringClass);
-		logData.setServiceCall(methodName);
-		logData.setArgs(args);
-
-		return logData;
 	}
 
 }
