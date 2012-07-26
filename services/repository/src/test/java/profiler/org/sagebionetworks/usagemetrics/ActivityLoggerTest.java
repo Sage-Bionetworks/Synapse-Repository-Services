@@ -1,19 +1,15 @@
 package profiler.org.sagebionetworks.usagemetrics;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
 import org.aspectj.lang.ProceedingJoinPoint;
-import org.aspectj.lang.Signature;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -57,12 +53,10 @@ public class ActivityLoggerTest {
 	@Autowired
 	ActivityLogger activityLogger;
 
-	private static Log mockLog = mock(Log.class);
+	private static Log mockLog;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		ActivityLogger.setLog(mockLog);
-
 		Class<TestClass> clazz = TestClass.class;
 		Method[] declaredMethods = clazz.getDeclaredMethods();
 		for (Method method : declaredMethods) {
@@ -78,6 +72,8 @@ public class ActivityLoggerTest {
 	@Before
 	public void before() throws Exception {
 		activityLogger.setShouldLogAnnotations(false);
+		mockLog = mock(Log.class);
+		ActivityLogger.setLog(mockLog);
 	}
 
 	/**
