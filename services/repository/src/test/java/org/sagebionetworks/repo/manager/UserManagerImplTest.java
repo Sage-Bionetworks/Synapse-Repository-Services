@@ -13,11 +13,22 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.query.BasicQuery;
+import org.sagebionetworks.repo.model.query.Comparator;
+import org.sagebionetworks.repo.model.query.CompoundId;
+import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NodeConstants;
+import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeQueryDao;
+import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -35,6 +46,12 @@ public class UserManagerImplTest {
 	@Autowired
 	UserGroupDAO userGroupDAO;
 	
+	@Autowired
+	NodeDAO nodeDao;
+	
+	@Autowired
+	NodeQueryDao nodeQueryDao;
+	
 	private static final String TEST_USER = "test-user";
 	
 	private List<String> groupsToDelete = null;
@@ -44,19 +61,69 @@ public class UserManagerImplTest {
 	public void setUp() throws Exception {
 		groupsToDelete = new ArrayList<String>();
 		userManager.setUserDAO(new TestUserDAO());
-		UserGroup ug = userGroupDAO.findGroup(TEST_USER, true);
-		if(ug != null){
-			userGroupDAO.delete(ug.getId());
-		}
+		userManager.deletePrincipal(TEST_USER);
 	}
 
 	@After
 	public void tearDown() throws Exception {
 		if(groupsToDelete != null && userGroupDAO != null){
 			for(String groupId: groupsToDelete){
-				userGroupDAO.delete(groupId);
+				UserGroup ug = userGroupDAO.get(groupId);
+				userManager.deletePrincipal(ug.getName());
 			}
 		}
+	}
+	
+	@Test
+	public void testPLFM1399() throws Exception {
+		
+		// verify that our test user belongs to the 'public' group
+		UserInfo userInfo = userManager.getUserInfo(TEST_USER);
+		UserGroup publicPrincipal = null;
+		for (UserGroup g : userInfo.getGroups()) {
+			if (g.getName().equals(DEFAULT_GROUPS.PUBLIC.name())) publicPrincipal = g;
+		}
+		assertNotNull(publicPrincipal);
+		String origPrincipalId = publicPrincipal.getId();
+		
+		// now we duplicate the action of the migrator:  delete the group and recreate (with another ID)
+		
+		// we need to delete all objects (except root), else foreign key constraints fail upon deleting the group
+		String rootId = nodeDao.getNodeIdForPath(NodeConstants.ROOT_FOLDER_PATH);
+		EntityType[] entityTypes = new EntityType[]{EntityType.folder, EntityType.project};
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		for (EntityType entityType : entityTypes) {
+			BasicQuery queryForNode = new BasicQuery();
+			queryForNode.setFrom(entityType.name());
+			queryForNode.addExpression(new Expression(new CompoundId("JDONODE", "parentId"), 
+				org.sagebionetworks.repo.model.query.Comparator.EQUALS, rootId));
+			NodeQueryResults queryResults = nodeQueryDao.executeQuery(queryForNode, adminInfo);
+			List<String> resultIds = queryResults.getResultIds();
+			for (String resultId : resultIds) {
+				System.out.println(resultId);
+				nodeDao.delete(resultId);
+			}
+		}
+		
+		// *** NOTE:  To make this work we delete via the UserManager (which clears the user info cache) rather than the userGroupDAO
+		assertTrue(userManager.deletePrincipal(publicPrincipal.getName()));
+		publicPrincipal = new UserGroup();
+		publicPrincipal.setIsIndividual(false);
+		publicPrincipal.setName(DEFAULT_GROUPS.PUBLIC.name());
+		String newId = userGroupDAO.create(publicPrincipal);
+		assertFalse(newId.equals(origPrincipalId));
+		
+		// now get the user info again
+		userInfo = userManager.getUserInfo(TEST_USER);
+		publicPrincipal = null;
+		for (UserGroup g : userInfo.getGroups()) {
+			if (g.getName().equals(DEFAULT_GROUPS.PUBLIC.name())) publicPrincipal = g;
+		}
+		assertNotNull(publicPrincipal);
+		
+		// if the info is cached, then the ID of the retrieved group will be the old one (different from the new one)
+		// and the following will fail
+		assertEquals(newId, publicPrincipal.getId());
 	}
 	
 	@Test
@@ -118,7 +185,7 @@ public class UserManagerImplTest {
 		assertTrue(ui.getGroups().contains(userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false)));
 		// call for a user in a Group not in the Permissions system
 		//		verify the group is created in the Permissions system
-		assertTrue(ui.getGroups().contains(testGroup));
+		assertTrue("Missing "+testGroup+"  Has "+ui.getGroups(), ui.getGroups().contains(testGroup));
 	}
 		
 	@Test
