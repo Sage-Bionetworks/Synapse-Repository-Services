@@ -40,17 +40,13 @@ public class UserManagerImpl implements UserManager {
 	@Autowired
 	UserProfileDAO userProfileDAO;
 
-	private static Map<DEFAULT_GROUPS, UserGroup> defaultGroups;
-
 	private static Map<String, UserInfo> userInfoCache = null;
 	private static Long cacheTimeout = null;
 	private static Date lastCacheDump = null;
-
+	
 	public UserManagerImpl() {
 		userInfoCache = Collections
 				.synchronizedMap(new HashMap<String, UserInfo>());
-		defaultGroups = Collections
-				.synchronizedMap(new HashMap<DEFAULT_GROUPS, UserGroup>());
 		lastCacheDump = new Date();
 		String s = System
 				.getProperty(AuthorizationConstants.AUTH_CACHE_TIMEOUT_MILLIS);
@@ -96,7 +92,7 @@ public class UserManagerImpl implements UserManager {
 				group.setCreationDate(new Date());
 				try {
 					String id = userGroupDAO.create(group);
-					group.setId(id);
+					group = userGroupDAO.get(id);
 				} catch (InvalidModelException ime) {
 					// should not happen if our code is written correctly
 					throw new RuntimeException(ime);
@@ -113,7 +109,11 @@ public class UserManagerImpl implements UserManager {
 		individualGroup.setIsIndividual(true);
 		individualGroup.setCreationDate(new Date());
 		try {
-			individualGroup.setId(userGroupDAO.create(individualGroup));
+			String id = userGroupDAO.create(individualGroup);
+			individualGroup = userGroupDAO.get(id);
+		} catch (NotFoundException ime) {
+			// shouldn't happen!
+			throw new DatastoreException(ime);
 		} catch (InvalidModelException ime) {
 			// shouldn't happen!
 			throw new DatastoreException(ime);
@@ -237,11 +237,7 @@ public class UserManagerImpl implements UserManager {
 	@Override
 	public UserGroup getDefaultUserGroup(DEFAULT_GROUPS group)
 			throws DatastoreException {
-		UserGroup ug = defaultGroups.get(group);
-		if (ug == null) {
-			ug = userGroupDAO.findGroup(group.name(), false);
-			defaultGroups.put(group, ug);
-		}
+		UserGroup ug = userGroupDAO.findGroup(group.name(), false);
 		if (ug == null)
 			throw new DatastoreException(group + " should exist.");
 		return ug;
