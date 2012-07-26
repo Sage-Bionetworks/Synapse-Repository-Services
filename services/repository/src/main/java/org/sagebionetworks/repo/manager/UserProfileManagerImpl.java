@@ -5,6 +5,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -56,6 +57,17 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Override
 	public UserProfile getUserProfile(UserInfo userInfo, String ownerId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
+		//if the user is set, and it's the anonymous user, then return an anonymous profile
+		if (userInfo != null && userInfo.getUser() != null && userInfo.getUser().getUserId() != null && 
+				AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())){
+			//for anonymous, just return an empty profile that points to the correct principle id
+			UserProfile anonUserProfile = new UserProfile();
+			anonUserProfile.setOwnerId(userInfo.getIndividualGroup().getId());
+			anonUserProfile.setUserName(AuthorizationConstants.ANONYMOUS_USER_ID);
+			anonUserProfile.setEmail(AuthorizationConstants.ANONYMOUS_USER_ID);
+			return anonUserProfile;
+		}
+		
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		UserProfile userProfile = userProfileDAO.get(ownerId, schema);
 		boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
