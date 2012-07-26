@@ -13,7 +13,7 @@
 	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 	
-	<import resource="classpath:aws-spb.xml" />
+	<import resource="stack-configuration.spb.xml" />
 
 	<!-- controller --> 
 	<bean id="activityLogger" class="profiler.org.sagebionetworks.usagemetrics.ActivityLogger">
