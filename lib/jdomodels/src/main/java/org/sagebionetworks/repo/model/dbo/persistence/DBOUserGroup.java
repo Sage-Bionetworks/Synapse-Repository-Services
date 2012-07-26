@@ -12,6 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_G
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.util.Date;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
@@ -46,7 +47,8 @@ public class DBOUserGroup implements DatabaseObject<DBOUserGroup> {
 				DBOUserGroup ug = new DBOUserGroup();
 				ug.setId(rs.getLong(COL_USER_GROUP_ID));
 				ug.setName(rs.getString(COL_USER_GROUP_NAME));
-				ug.setCreationDate(rs.getTimestamp(COL_USER_GROUP_CREATION_DATE));
+				Timestamp ts = rs.getTimestamp(COL_USER_GROUP_CREATION_DATE);
+				ug.setCreationDate(ts==null ? null : new Date(ts.getTime()));
 				ug.setIsIndividual(rs.getBoolean(COL_USER_GROUP_IS_INDIVIDUAL));
 				return ug;
 			}
