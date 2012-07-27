@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.web.controller.metadata.EventType;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 
 /**
  * Controller interface for all operations common to entities.
@@ -519,4 +520,13 @@ public interface GenericEntityController {
 	 * @throws NotFoundException 
 	 */
 	public UserEntityPermissions getUserEntityPermissions(String userId, String entityId) throws NotFoundException, DatastoreException;
+	
+	
+	/**
+	 * Used to test deadlock.
+	 * 
+	 * @param param
+	 * @return
+	 */
+	public String throwDeadlockException(DeadlockLoserDataAccessException toThrow);
 }

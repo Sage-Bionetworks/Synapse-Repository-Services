@@ -37,6 +37,7 @@ import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
 import org.sagebionetworks.repo.web.controller.metadata.EventType;
 import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 
 /**
  * Implementation for REST controller for CRUD operations on Entity DTOs and Entity
@@ -665,6 +666,14 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// TODO Auto-generated method stub
 		return permissionsManager.getUserPermissionsForEntity(userInfo, entityId);
+	}
+
+
+
+
+	@Override
+	public String throwDeadlockException(DeadlockLoserDataAccessException toThrow) {
+		throw toThrow;
 	}
 
 
