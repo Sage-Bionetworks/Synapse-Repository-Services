@@ -27,12 +27,12 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StringEncrypter;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
-import org.sagebionetworks.authutil.RegistrationInfo;
 import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.authutil.Session;
 import org.sagebionetworks.authutil.User;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
@@ -491,6 +491,7 @@ public class AuthenticationController extends BaseController {
 		user.setEmail(realUserId);
 		user.setPassword(registrationInfo.getPassword());
 		CrowdAuthUtil.updatePassword(user);
+		CrowdAuthUtil.deauthenticate(sessionToken);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
