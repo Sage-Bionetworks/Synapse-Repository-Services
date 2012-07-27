@@ -4,20 +4,28 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ACCESS_REQUIREMENT_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_ACCESS_REQUIREMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.ObjectData;
+import org.sagebionetworks.repo.model.ObjectDescriptor;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
@@ -48,8 +56,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
 	
-
-	// TODO update this to support multiple nodes
 	private static final String SELECT_FOR_NODE_SQL = 
 			"SELECT * FROM "+SqlConstants.TABLE_ACCESS_REQUIREMENT+" ar, "+ 
 			SqlConstants.TABLE_NODE_ACCESS_REQUIREMENT +" nar WHERE ar."+
@@ -57,7 +63,13 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			" AND nar."+COL_NODE_ACCESS_REQUIREMENT_NODE_ID+"=:"+COL_NODE_ACCESS_REQUIREMENT_NODE_ID;
 	
 	private static final String SELECT_FOR_NAR_SQL = "select * from "+TABLE_NODE_ACCESS_REQUIREMENT+" where "+
-			COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID+"=:"+COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID;
+	COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID+" = "+COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID;
+
+	private static final String SELECT_FOR_RANGE_SQL = "select * from "+TABLE_ACCESS_REQUIREMENT+" order by "+COL_ACCESS_REQUIREMENT_ID+
+	" offset :"+OFFSET_PARAM_NAME+" limit :"+LIMIT_PARAM_NAME;
+
+	private static final String SELECT_FOR_MULTIPLE_NAR_SQL = "select * from "+TABLE_NODE_ACCESS_REQUIREMENT+" where "+
+		COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID+" IN (:"+COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID+")";
 
 	private static final String SELECT_FOR_UPDATE_SQL = "select * from "+TABLE_ACCESS_REQUIREMENT+" where "+COL_ACCESS_REQUIREMENT_ID+
 			"=:"+COL_ACCESS_REQUIREMENT_ID+" for update";
@@ -125,6 +137,62 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		List<Long> ans = new ArrayList<Long>();	
 		for (DBONodeAccessRequirement nar: nars) ans.add(nar.getNodeId());
 		return ans;
+	}
+	
+	@Transactional(readOnly = true)
+	@Override
+	public long getCount() throws DatastoreException {
+		return basicDao.getCount(DBOAccessRequirement.class);
+	}
+
+	/**
+	 * 
+	 */
+	@Transactional(readOnly = true)
+	@Override
+	public QueryResults<ObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies) throws DatastoreException {
+		// (1) get one 'page' of AccessRequirements
+		List<DBOAccessRequirement> ars = null;
+		{
+			MapSqlParameterSource param = new MapSqlParameterSource();
+			param.addValue(OFFSET_PARAM_NAME, offset);
+			param.addValue(LIMIT_PARAM_NAME, limit);
+			ars = simpleJdbcTempalte.query(SELECT_FOR_RANGE_SQL, accessRequirementRowMapper, param);
+		}
+		Map<String, ObjectData> arMap = new HashMap<String, ObjectData>();	
+		for (DBOAccessRequirement ar: ars) {
+			ObjectData objectData = new ObjectData();
+			ObjectDescriptor od = new ObjectDescriptor();
+			od.setId(ar.getId().toString());
+			od.setType(AccessRequirement.class.getName());
+			objectData.setId(od);
+			objectData.setEtag(ar.geteTag().toString());
+			objectData.setDependencies(new ArrayList<ObjectDescriptor>());
+			arMap.put(ar.getId().toString(), objectData);
+		}
+		// (2) find the dependencies
+		if (includeDependencies) {
+			List<DBONodeAccessRequirement> nars = null;
+			{
+				MapSqlParameterSource param = new MapSqlParameterSource();
+				param.addValue(COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID, arMap.keySet());
+				nars = simpleJdbcTempalte.query(SELECT_FOR_MULTIPLE_NAR_SQL, nodeAccessRequirementRowMapper, param);
+			}
+			String entityType = Entity.class.getName();
+			// (3) add the dependencies to the objects
+			for (DBONodeAccessRequirement nar : nars) {
+				ObjectDescriptor od = new ObjectDescriptor();
+				od.setId(nar.getNodeId().toString());
+				od.setType(entityType);
+				ObjectData objectData = arMap.get(nar.getAccessRequirementId().toString());
+				objectData.getDependencies().add(od);
+			}
+		}
+		// (4) return the 'page' of objects, along with the total result count
+		QueryResults<ObjectData> queryResults = new QueryResults<ObjectData>();
+		queryResults.setResults(new ArrayList<ObjectData>(arMap.values()));
+		queryResults.setTotalNumberOfResults((int)getCount());
+		return queryResults;
 	}
 
 	@Transactional(readOnly = true)

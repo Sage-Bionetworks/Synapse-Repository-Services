@@ -1,0 +1,12 @@
+{
+ 	"properties":{
+        "id":{
+            "type":"string",
+            "transient":true
+        },
+        "type":{
+            "type":"string",
+            "transient":true
+        }
+	}
+}

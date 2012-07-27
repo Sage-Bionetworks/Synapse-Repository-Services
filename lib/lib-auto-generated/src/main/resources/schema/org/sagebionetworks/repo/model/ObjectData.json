@@ -1,0 +1,18 @@
+{
+ 	"properties":{
+         "id":{
+        	"type":"object",
+             "$ref":"org.sagebionetworks.repo.model.ObjectDescriptor"
+         },
+         "etag":{
+        	"type":"string"
+         },
+ 		 "dependencies":{
+            "type":"array",
+            "uniqueItems":false,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.ObjectDescriptor"
+            }
+ 		 }	
+	}	
+}

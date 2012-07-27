@@ -6,17 +6,28 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_TYPE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STRING_ANNOTATIONS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ACL_OWNER_ID_COLUMN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 
 import java.io.IOException;
 import java.sql.ResultSet;
@@ -28,6 +39,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import javax.swing.text.html.parser.Entity;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
@@ -43,7 +56,11 @@ import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
+import org.sagebionetworks.repo.model.ObjectData;
+import org.sagebionetworks.repo.model.ObjectDescriptor;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDao;
@@ -79,6 +96,37 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String SQL_COUNT_STRING_ANNOTATIONS_FOR_NODE = "SELECT COUNT("+ANNOTATION_OWNER_ID_COLUMN+") FROM "+TABLE_STRING_ANNOTATIONS+" WHERE "+ANNOTATION_OWNER_ID_COLUMN+" = ? AND "+ANNOTATION_ATTRIBUTE_COLUMN+" = ?";
 		
+	
+	// get all ids, paginated
+	private static final String SQL_GET_NODES_PAGINATED =
+		"SELECT n."+COL_NODE_ID+", n."+COL_NODE_ETAG+
+		" FROM "+TABLE_NODE+" n "+
+		" ORDER BY n."+COL_NODE_ID+
+		" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
+	// select n.id, n.created_by, n.etag, n.parent_id, n.benefactor_id, r.modified_by
+	// from jdonode n, jdorevison r
+	// where n.id=r.owner_node_id order by n.id limit L offset O
+	private static final String SQL_GET_NODES_AND_DEPENDENCIES_PAGINATED =
+		"SELECT n."+COL_NODE_ID+", n."+COL_NODE_CREATED_BY+", n."+COL_NODE_ETAG+", n."+COL_NODE_PARENT_ID+
+			", n."+COL_NODE_BENEFACTOR_ID+", r."+COL_REVISION_MODIFIED_BY+
+			" FROM "+TABLE_NODE+" n, "+TABLE_REVISION+" r "+
+			" WHERE n."+COL_NODE_ID+"=r."+COL_REVISION_OWNER_NODE+" ORDER BY n."+COL_NODE_ID+
+			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+	
+	// find the principal dependencies created by the ACLs on auth benefactor nodes
+	// Note, we identify the benefactor nodes by the fact that they are their own benefactor
+	// below 'LIST' is the list of ids returned by the paginated query above
+	//
+	// select n.id, ra.group_id
+	// from jdonode n, acl acl, jdoresourceaccess ra
+	// where n.id=acl.owner_id_column and ra.owner_id=acl.id and n.id=n.benefactor_id AND n.id in (:LIST)
+	private static final String SQL_GET_BENEFACTORS_DEPENDENCIES =
+		"SELECT n."+COL_NODE_ID+", ra."+COL_RESOURCE_ACCESS_GROUP_ID+
+		" FROM "+TABLE_NODE+" n, "+TABLE_ACCESS_CONTROL_LIST+" acl, "+TABLE_RESOURCE_ACCESS+" ra, "+
+		" WHERE n."+COL_NODE_ID+"=acl."+ACL_OWNER_ID_COLUMN+" and ra."+COL_RESOURCE_ACCESS_OWNER+"=acl."+COL_ACL_OWNER_ID+
+		" AND n."+COL_NODE_ID+"=n."+COL_NODE_BENEFACTOR_ID+" AND n."+COL_NODE_ID+" in (:"+COL_NODE_ID+")";
+	
 	// This is better suited for simple JDBC query.
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -99,6 +147,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	
 	private static String SQL_GET_ALL_VERSION_NUMBERS = "SELECT "+COL_REVISION_NUMBER+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE +" = ? ORDER BY "+COL_REVISION_NUMBER+" DESC";
 	
+	private static String SQL_COUNT_ALL = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
 	// Used to determine if a node id already exists
 	private static String SQL_COUNT_NODE_ID = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID +" = :"+BIND_ID_KEY;
 	private static String SQL_COUNT_REVISON_ID = "SELECT COUNT("+COL_REVISION_OWNER_NODE+") FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE +" = ? AND "+COL_REVISION_NUMBER+" = ?";
@@ -648,6 +697,12 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	
 	@Transactional(readOnly = true)
 	@Override
+	public long getCount() {
+		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL);
+	}
+	
+	@Transactional(readOnly = true)
+	@Override
 	public boolean doesNodeRevisionExist(String nodeId, Long revNumber) {
 		try{
 			long count = simpleJdbcTemplate.queryForLong(SQL_COUNT_REVISON_ID, KeyFactory.stringToKey(nodeId), revNumber);
@@ -999,5 +1054,124 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
         ParentTypeName parentPtn = getParentTypeName(ptn.parentId);
         // Root is the only entity with a null parent.
         return parentPtn.parentId == null && "root".equals(parentPtn.name);
+	}
+	
+	private static final String OBJECT_DESCRIPTOR_NODE_TYPE = Entity.class.getName();
+	private static final String OBJECT_DESCRIPTOR_PRINCIPAL_TYPE = UserGroup.class.getName();
+	
+	private static ObjectDescriptor createObjectDescriptor(String id, String type) {
+		ObjectDescriptor obj = new ObjectDescriptor();
+		obj.setId(id);
+		obj.setType(type);
+		return obj;
+	}
+	
+	private static ObjectDescriptor createEntityObjectDescriptor(long id) {
+		return createObjectDescriptor(KeyFactory.keyToString(id), OBJECT_DESCRIPTOR_NODE_TYPE);
+	}
+	
+	private static ObjectDescriptor createPrincipalObjectDescriptor(long principalId) {
+		return createObjectDescriptor(""+principalId, OBJECT_DESCRIPTOR_PRINCIPAL_TYPE);
+	}
+
+	public QueryResults<ObjectData> getMigrationObjectDataWithoutDependencies(long offset,
+			long limit) throws DatastoreException {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);
+		
+		List<ObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_PAGINATED, new RowMapper<ObjectData>() {
+			@Override
+			public ObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
+				ObjectData data = new ObjectData();
+				data.setId(createEntityObjectDescriptor(rs.getLong(COL_NODE_ID)));
+				data.setEtag(rs.getString(COL_NODE_ETAG));
+				data.setDependencies(new ArrayList<ObjectDescriptor>());
+				return  data;
+			}
+		}, params);
+		QueryResults<ObjectData> queryResults = new QueryResults<ObjectData>();
+		queryResults.setResults(ods);
+		queryResults.setTotalNumberOfResults((int)getCount());
+		return queryResults;
+	}
+	
+	@Transactional(readOnly = true)
+	@Override
+	public QueryResults<ObjectData> getMigrationObjectData(long offset,
+			long limit, boolean includeDependencies) throws DatastoreException {
+		
+		if (!includeDependencies) return getMigrationObjectDataWithoutDependencies(offset, limit);
+		
+		// for each node, need to get its ID, etag, parent, creator, modifier, and everything referenced by its ACL
+		// first get all the dependencies EXCEPT those of the ACL (include the auth-benefactor dependency which
+		// implicitly makes the node dependent on its ACL)
+		// select n.id, n.created_by, n.etag, n.parent_id, n.benefactor_id, r.modified_by
+		// from jdonode n, jdorevison r
+		// where n.id=r.owner_node_id order by n.id limit L offset O
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);
+		
+		List<ObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_AND_DEPENDENCIES_PAGINATED, new RowMapper<ObjectData>() {
+			@Override
+			public ObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
+				ObjectData data = new ObjectData();
+				long nodeId = rs.getLong(COL_NODE_ID);
+				data.setId(createEntityObjectDescriptor(nodeId));
+				data.setEtag(rs.getString(COL_NODE_ETAG));
+				List<ObjectDescriptor> dependencies = new ArrayList<ObjectDescriptor>();
+
+				long createdBy = rs.getLong(COL_NODE_CREATED_BY);
+				dependencies.add(createPrincipalObjectDescriptor(createdBy));
+				long modifiedBy = rs.getLong(COL_REVISION_MODIFIED_BY);
+				if (modifiedBy!=createdBy) {
+					dependencies.add(createPrincipalObjectDescriptor(modifiedBy));					
+				}
+				Long parentId = rs.getLong(COL_NODE_PARENT_ID);
+				if (parentId!=null) {
+					dependencies.add(createEntityObjectDescriptor(parentId));
+				}
+				long benefactorId = rs.getLong(COL_NODE_BENEFACTOR_ID);
+				if (benefactorId!=nodeId) {
+					dependencies.add(createEntityObjectDescriptor(nodeId));
+				}
+				data.setDependencies(dependencies);
+				return data;
+			}
+		}, params);
+		
+		final Map<String, ObjectData> odMap = new HashMap<String, ObjectData>();
+		for (ObjectData od : ods) odMap.put(od.getId().getId(), od);
+		
+		List<Long> nodeIDList = new ArrayList<Long>();
+		for (String entityId : odMap.keySet()) nodeIDList.add(KeyFactory.stringToKey(entityId));
+		params = new MapSqlParameterSource();
+		params.addValue(COL_NODE_ID, nodeIDList);		
+		
+		// now find the principal dependencies created by the ACLs on auth benefactor nodes
+		// Note, we identify the benefactor nodes by the fact that they are their own benefactor
+		// below 'LIST' is the list of ids returned by the paginated query above
+		//
+		// select n.id, ra.group_id
+		// from jdonode n, acl acl, jdoresourceaccess ra
+		// where n.id=acl.owner_id_column and ra.owner_id=acl.id and n.id=n.benefactor_id AND n.id in (:LIST)
+		this.simpleJdbcTemplate.query(SQL_GET_BENEFACTORS_DEPENDENCIES, new RowMapper<Integer>() {
+			@Override
+			public Integer mapRow(ResultSet rs, int rowNum) throws SQLException {
+				long nodeId = rs.getLong(COL_NODE_ID);
+				ObjectData od = odMap.get(KeyFactory.keyToString(nodeId));
+				if (od==null) return 0;
+				List<ObjectDescriptor> dependencies = od.getDependencies();
+				ObjectDescriptor aclMember = createPrincipalObjectDescriptor(rs.getLong(COL_RESOURCE_ACCESS_GROUP_ID));
+				if (!dependencies.contains(aclMember)) dependencies.add(aclMember);
+				return 0;
+			}
+		}, params);
+		
+		QueryResults<ObjectData> queryResults = new QueryResults<ObjectData>();
+		queryResults.setResults(ods);
+		queryResults.setTotalNumberOfResults((int)getCount());
+		return queryResults;
 	}
 }

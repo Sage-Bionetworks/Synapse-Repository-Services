@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * @author jmhill
  *
  */
-public interface NodeDAO {
+public interface NodeDAO extends MigratableDAO {
 	
 	/**
 	 * Create a new node.

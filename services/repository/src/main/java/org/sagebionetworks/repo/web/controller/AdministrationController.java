@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
@@ -8,11 +9,17 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
+import org.sagebionetworks.repo.manager.backup.migration.DependencyManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MigrationType;
+import org.sagebionetworks.repo.model.ObjectData;
+import org.sagebionetworks.repo.model.ObjectDescriptor;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -54,9 +61,31 @@ public class AdministrationController extends BaseController {
 	
 	@Autowired
 	UserManager userManager;
+	
 	@Autowired
 	StackStatusManager stackStatusManager;
+	
+	@Autowired
+	DependencyManager dependencyManager;
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.GET_ALL_BACKUP_OBJECTS, method = RequestMethod.GET)
+	public @ResponseBody PaginatedResults<ObjectData> getAllBackupObjects(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.INCLUDE_DEPENDENCIES_PARAM, required = false, defaultValue = "true") Boolean  includeDependencies
 
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
+		QueryResults<ObjectData> queryResults = dependencyManager.getAllObjects(offset, limit, includeDependencies);
+		PaginatedResults<ObjectData> result = new PaginatedResults<ObjectData>();
+		result.setResults(queryResults.getResults());
+		result.setTotalNumberOfResults(queryResults.getTotalNumberOfResults());
+		return result;
+	}
+	
 	
 	/**
 	 * Start a backup daemon.  Monitor the status of the daemon with the getStatus method.

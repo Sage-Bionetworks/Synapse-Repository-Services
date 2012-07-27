@@ -212,6 +212,9 @@ public class SqlConstants {
 	
 	public static final String AUTH_FILTER_ALIAS = "auth";
 	
+	// standard range parameters
+	public static final String OFFSET_PARAM_NAME = "OFFSET";
+	public static final String LIMIT_PARAM_NAME = "LIMIT";
 	
 	public static final String[] PRIMARY_FIELDS;
 	

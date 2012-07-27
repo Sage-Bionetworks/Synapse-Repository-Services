@@ -67,15 +67,30 @@ public class PrincipalBackupDriver implements NodeBackupDriver {
 
 		// get the UserGroups, UserProfiles for the given IDs
 		List<PrincipalBackup> backups = new ArrayList<PrincipalBackup>();
-		Set<String> principalIds = new HashSet<String>(principalsToBackup);
+		Set<String> principalIds = null;
+		boolean migrateEverything = false;
+		if (principalsToBackup==null) {
+			migrateEverything = true;
+		} else {
+			principalIds = new HashSet<String>(principalsToBackup);
+		}
 		// get all the groups
 		Collection<UserGroup> groups = userGroupDAO.getAll(false);
+		// get all the users
+		Collection<UserGroup> users = userGroupDAO.getAll(true);
 		
-		progress.setTotalCount(principalsToBackup.size());
+		int total = 0;
+		if (migrateEverything) {
+			total = groups.size() + users.size();
+		} else {
+			total = principalIds.size();
+		}
+		progress.setTotalCount(total);
+		
 		long currentIndex = 0L;
 
 		for (UserGroup g : groups) {
-			if (!principalIds.contains(g.getId())) continue;
+			if (!migrateEverything && !principalIds.contains(g.getId())) continue;
 			PrincipalBackup pb = new PrincipalBackup();
 			pb.setUserGroup(g);
 			pb.setUserProfile(null); // no user profile for a multiuser group
@@ -83,9 +98,8 @@ public class PrincipalBackupDriver implements NodeBackupDriver {
 			progress.setCurrentIndex(++currentIndex);
 		}
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-		Collection<UserGroup> users = userGroupDAO.getAll(true);
 		for (UserGroup u : users) {
-			if (!principalIds.contains(u.getId())) continue;
+			if (!migrateEverything && !principalIds.contains(u.getId())) continue;
 			PrincipalBackup pb = new PrincipalBackup();
 			pb.setUserGroup(u);
 			UserProfile userProfile = userProfileDAO.get(u.getId(), schema);

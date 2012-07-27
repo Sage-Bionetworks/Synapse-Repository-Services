@@ -278,6 +278,12 @@ public class UrlHelpers {
 	 * The parameter for a resource name.
 	 */
 	public static final String RESOURCE_ID = "resourceId";
+	
+	public static final String OBJECT_TYPE_PARAM = "type";
+
+	public static final String OBJECT_ID_PARAM = "id";
+	
+	public static final String GET_ALL_BACKUP_OBJECTS = "backupObjects";
 
 	/**
 	 * This is a memoized cache for our URL regular expressions
