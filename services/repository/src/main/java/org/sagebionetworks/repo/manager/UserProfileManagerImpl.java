@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class UserProfileManagerImpl implements UserProfileManager {
+	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
 	@Autowired
@@ -60,12 +61,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		//if the user is set, and it's the anonymous user, then return an anonymous profile
 		if (userInfo != null && userInfo.getUser() != null && userInfo.getUser().getUserId() != null && 
 				AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())){
-			//for anonymous, just return an empty profile that points to the correct principle id
-			UserProfile anonUserProfile = new UserProfile();
-			anonUserProfile.setOwnerId(userInfo.getIndividualGroup().getId());
-			anonUserProfile.setUserName(AuthorizationConstants.ANONYMOUS_USER_ID);
-			anonUserProfile.setEmail(AuthorizationConstants.ANONYMOUS_USER_ID);
-			return anonUserProfile;
+			return getAnonymousUserProfile(userInfo.getIndividualGroup().getId());
 		}
 		
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
@@ -77,6 +73,22 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		return userProfile;
 	}
 
+	/**
+	 * Returns the anonymous user's profile - essentially an empty profile that points to the correct principle id
+	 * @param principleId
+	 * @return
+	 */
+	private UserProfile getAnonymousUserProfile(String principleId){
+		UserProfile anonymousUserProfile = new UserProfile();
+		anonymousUserProfile.setOwnerId(principleId);
+		anonymousUserProfile.setUserName(AuthorizationConstants.ANONYMOUS_USER_ID);
+		anonymousUserProfile.setEmail(AuthorizationConstants.ANONYMOUS_USER_ID);
+		anonymousUserProfile.setDisplayName(AuthorizationConstants.ANONYMOUS_USER_DISPLAY_NAME);
+		anonymousUserProfile.setFirstName(AuthorizationConstants.ANONYMOUS_USER_DISPLAY_NAME);
+		anonymousUserProfile.setLastName("");
+		return anonymousUserProfile;
+	}
+	
 	/**
 	 * Get the public profiles of the users in the system, paginated
 	 * 
