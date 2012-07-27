@@ -1,46 +1,44 @@
 package org.sagebionetworks.repo.model.jdo;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ACL_OWNER_ID_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_OWNER_ID_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_TYPE_ALIAS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STRING_ANNOTATIONS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACL_OWNER_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ACL_OWNER_ID_COLUMN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 
 import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import javax.swing.text.html.parser.Entity;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
@@ -60,7 +58,6 @@ import org.sagebionetworks.repo.model.ObjectData;
 import org.sagebionetworks.repo.model.ObjectDescriptor;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDao;
 import org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDao;
@@ -123,8 +120,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	// where n.id=acl.owner_id_column and ra.owner_id=acl.id and n.id=n.benefactor_id AND n.id in (:LIST)
 	private static final String SQL_GET_BENEFACTORS_DEPENDENCIES =
 		"SELECT n."+COL_NODE_ID+", ra."+COL_RESOURCE_ACCESS_GROUP_ID+
-		" FROM "+TABLE_NODE+" n, "+TABLE_ACCESS_CONTROL_LIST+" acl, "+TABLE_RESOURCE_ACCESS+" ra, "+
-		" WHERE n."+COL_NODE_ID+"=acl."+ACL_OWNER_ID_COLUMN+" and ra."+COL_RESOURCE_ACCESS_OWNER+"=acl."+COL_ACL_OWNER_ID+
+		" FROM "+TABLE_NODE+" n, "+TABLE_ACCESS_CONTROL_LIST+" acl, "+TABLE_RESOURCE_ACCESS+" ra "+
+		" WHERE n."+COL_NODE_ID+"=acl."+ACL_OWNER_ID_COLUMN+" and ra."+COL_RESOURCE_ACCESS_OWNER+"=acl."+ACL_OWNER_ID_COLUMN+
 		" AND n."+COL_NODE_ID+"=n."+COL_NODE_BENEFACTOR_ID+" AND n."+COL_NODE_ID+" in (:"+COL_NODE_ID+")";
 	
 	// This is better suited for simple JDBC query.
@@ -1056,24 +1053,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
         return parentPtn.parentId == null && "root".equals(parentPtn.name);
 	}
 	
-	private static final String OBJECT_DESCRIPTOR_NODE_TYPE = Entity.class.getName();
-	private static final String OBJECT_DESCRIPTOR_PRINCIPAL_TYPE = UserGroup.class.getName();
-	
-	private static ObjectDescriptor createObjectDescriptor(String id, String type) {
-		ObjectDescriptor obj = new ObjectDescriptor();
-		obj.setId(id);
-		obj.setType(type);
-		return obj;
-	}
-	
-	private static ObjectDescriptor createEntityObjectDescriptor(long id) {
-		return createObjectDescriptor(KeyFactory.keyToString(id), OBJECT_DESCRIPTOR_NODE_TYPE);
-	}
-	
-	private static ObjectDescriptor createPrincipalObjectDescriptor(long principalId) {
-		return createObjectDescriptor(""+principalId, OBJECT_DESCRIPTOR_PRINCIPAL_TYPE);
-	}
-
 	public QueryResults<ObjectData> getMigrationObjectDataWithoutDependencies(long offset,
 			long limit) throws DatastoreException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
@@ -1084,9 +1063,9 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			@Override
 			public ObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
 				ObjectData data = new ObjectData();
-				data.setId(createEntityObjectDescriptor(rs.getLong(COL_NODE_ID)));
+				data.setId(ObjectDescriptorUtils.createEntityObjectDescriptor(rs.getLong(COL_NODE_ID)));
 				data.setEtag(rs.getString(COL_NODE_ETAG));
-				data.setDependencies(new ArrayList<ObjectDescriptor>());
+				data.setDependencies(new HashSet<ObjectDescriptor>());
 				return  data;
 			}
 		}, params);
@@ -1118,23 +1097,21 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			public ObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
 				ObjectData data = new ObjectData();
 				long nodeId = rs.getLong(COL_NODE_ID);
-				data.setId(createEntityObjectDescriptor(nodeId));
+				data.setId(ObjectDescriptorUtils.createEntityObjectDescriptor(nodeId));
 				data.setEtag(rs.getString(COL_NODE_ETAG));
-				List<ObjectDescriptor> dependencies = new ArrayList<ObjectDescriptor>();
+				Set<ObjectDescriptor> dependencies = new HashSet<ObjectDescriptor>();
 
 				long createdBy = rs.getLong(COL_NODE_CREATED_BY);
-				dependencies.add(createPrincipalObjectDescriptor(createdBy));
+				dependencies.add(ObjectDescriptorUtils.createPrincipalObjectDescriptor(createdBy));
 				long modifiedBy = rs.getLong(COL_REVISION_MODIFIED_BY);
-				if (modifiedBy!=createdBy) {
-					dependencies.add(createPrincipalObjectDescriptor(modifiedBy));					
+				dependencies.add(ObjectDescriptorUtils.createPrincipalObjectDescriptor(modifiedBy));					
+				long parentId = rs.getLong(COL_NODE_PARENT_ID); // can be null
+				if (!rs.wasNull()) {
+					dependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(parentId));
 				}
-				Long parentId = rs.getLong(COL_NODE_PARENT_ID);
-				if (parentId!=null) {
-					dependencies.add(createEntityObjectDescriptor(parentId));
-				}
-				long benefactorId = rs.getLong(COL_NODE_BENEFACTOR_ID);
-				if (benefactorId!=nodeId) {
-					dependencies.add(createEntityObjectDescriptor(nodeId));
+				long benefactorId = rs.getLong(COL_NODE_BENEFACTOR_ID); // can be null
+				if (!rs.wasNull() && benefactorId!=nodeId) {
+					dependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(benefactorId));
 				}
 				data.setDependencies(dependencies);
 				return data;
@@ -1162,8 +1139,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 				long nodeId = rs.getLong(COL_NODE_ID);
 				ObjectData od = odMap.get(KeyFactory.keyToString(nodeId));
 				if (od==null) return 0;
-				List<ObjectDescriptor> dependencies = od.getDependencies();
-				ObjectDescriptor aclMember = createPrincipalObjectDescriptor(rs.getLong(COL_RESOURCE_ACCESS_GROUP_ID));
+				Collection<ObjectDescriptor> dependencies = od.getDependencies();
+				ObjectDescriptor aclMember = ObjectDescriptorUtils.createPrincipalObjectDescriptor(rs.getLong(COL_RESOURCE_ACCESS_GROUP_ID));
 				if (!dependencies.contains(aclMember)) dependencies.add(aclMember);
 				return 0;
 			}

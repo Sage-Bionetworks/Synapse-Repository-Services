@@ -3,16 +3,20 @@
  */
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ACCESS_REQUIREMENT_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_ACCESS_REQUIREMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -21,7 +25,6 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ObjectData;
 import org.sagebionetworks.repo.model.ObjectDescriptor;
@@ -31,6 +34,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.ObjectDescriptorUtils;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,7 +70,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID+" = "+COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID;
 
 	private static final String SELECT_FOR_RANGE_SQL = "select * from "+TABLE_ACCESS_REQUIREMENT+" order by "+COL_ACCESS_REQUIREMENT_ID+
-	" offset :"+OFFSET_PARAM_NAME+" limit :"+LIMIT_PARAM_NAME;
+	" limit :"+LIMIT_PARAM_NAME+" offset :"+OFFSET_PARAM_NAME;
 
 	private static final String SELECT_FOR_MULTIPLE_NAR_SQL = "select * from "+TABLE_NODE_ACCESS_REQUIREMENT+" where "+
 		COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID+" IN (:"+COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID+")";
@@ -151,46 +155,54 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	@Transactional(readOnly = true)
 	@Override
 	public QueryResults<ObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies) throws DatastoreException {
-		// (1) get one 'page' of AccessRequirements
-		List<DBOAccessRequirement> ars = null;
+		// (1) get one 'page' of AccessRequirements (just their IDs and Etags)
+		List<ObjectData> ods = null;
 		{
 			MapSqlParameterSource param = new MapSqlParameterSource();
 			param.addValue(OFFSET_PARAM_NAME, offset);
 			param.addValue(LIMIT_PARAM_NAME, limit);
-			ars = simpleJdbcTempalte.query(SELECT_FOR_RANGE_SQL, accessRequirementRowMapper, param);
+			ods = simpleJdbcTempalte.query(SELECT_FOR_RANGE_SQL, new RowMapper<ObjectData>() {
+
+				@Override
+				public ObjectData mapRow(ResultSet rs, int rowNum)
+						throws SQLException {
+					String id = rs.getString(COL_ACCESS_REQUIREMENT_ID);
+					String etag = rs.getString(COL_ACCESS_REQUIREMENT_ETAG);
+					ObjectData objectData = new ObjectData();
+					ObjectDescriptor od = new ObjectDescriptor();
+					od.setId(id);
+					od.setType(AccessRequirement.class.getName());
+					objectData.setId(od);
+					objectData.setEtag(etag);
+					objectData.setDependencies(new HashSet<ObjectDescriptor>());
+					return objectData;
+				}
+			
+			}, param);
 		}
-		Map<String, ObjectData> arMap = new HashMap<String, ObjectData>();	
-		for (DBOAccessRequirement ar: ars) {
-			ObjectData objectData = new ObjectData();
-			ObjectDescriptor od = new ObjectDescriptor();
-			od.setId(ar.getId().toString());
-			od.setType(AccessRequirement.class.getName());
-			objectData.setId(od);
-			objectData.setEtag(ar.geteTag().toString());
-			objectData.setDependencies(new ArrayList<ObjectDescriptor>());
-			arMap.put(ar.getId().toString(), objectData);
-		}
+		
 		// (2) find the dependencies
 		if (includeDependencies) {
+			Map<String, ObjectData> arMap = new HashMap<String, ObjectData>();	
+			for (ObjectData od: ods) arMap.put(od.getId().getId(), od);
+			
 			List<DBONodeAccessRequirement> nars = null;
 			{
 				MapSqlParameterSource param = new MapSqlParameterSource();
 				param.addValue(COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID, arMap.keySet());
 				nars = simpleJdbcTempalte.query(SELECT_FOR_MULTIPLE_NAR_SQL, nodeAccessRequirementRowMapper, param);
 			}
-			String entityType = Entity.class.getName();
+
 			// (3) add the dependencies to the objects
 			for (DBONodeAccessRequirement nar : nars) {
-				ObjectDescriptor od = new ObjectDescriptor();
-				od.setId(nar.getNodeId().toString());
-				od.setType(entityType);
+				ObjectDescriptor od = ObjectDescriptorUtils.createEntityObjectDescriptor(nar.getNodeId());
 				ObjectData objectData = arMap.get(nar.getAccessRequirementId().toString());
 				objectData.getDependencies().add(od);
 			}
 		}
 		// (4) return the 'page' of objects, along with the total result count
 		QueryResults<ObjectData> queryResults = new QueryResults<ObjectData>();
-		queryResults.setResults(new ArrayList<ObjectData>(arMap.values()));
+		queryResults.setResults(ods);
 		queryResults.setTotalNumberOfResults((int)getCount());
 		return queryResults;
 	}

@@ -15,6 +15,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -95,15 +96,15 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	// the query is: select g.id, p.etag from user_group g LEFT OUTER JOIN user_profile p on g.id=p.owner_id order by g.id limit l offset o 
 	private static final String SELECT_ALL_PAGINATED_WITH_ETAG = 
 		"SELECT g."+COL_USER_GROUP_ID+", p."+COL_USER_PROFILE_ETAG+" FROM "+
-		TABLE_USER_GROUP+"g LEFT OUTER JOIN "+TABLE_USER_PROFILE+
+		TABLE_USER_GROUP+" g LEFT OUTER JOIN "+TABLE_USER_PROFILE+
 		" p ON g."+COL_USER_GROUP_ID+" = p."+COL_USER_PROFILE_ID+
-		" ORDER BY "+COL_USER_GROUP_ID+" LIMIT "+LIMIT_PARAM_NAME+
-		" OFFSET "+OFFSET_PARAM_NAME;
+		" ORDER BY g."+COL_USER_GROUP_ID+" LIMIT :"+LIMIT_PARAM_NAME+
+		" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	// the query above is an outer join. For non-individual groups there is no UserProfile and
 	// hence no etag.  The group is immutable and so it's Etag should always be 0.  The following
 	// is the default etag used in such a case.
-	private static final String DEFAULT_ETAG = "0";
+	public static final String DEFAULT_ETAG = "0";
 
 	private static final String SQL_COUNT_USER_GROUPS = "SELECT COUNT("+COL_USER_GROUP_ID+") FROM "+TABLE_USER_GROUP + " WHERE "+COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME;
 
@@ -158,52 +159,39 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		return dtos;
 	}
 
-	class IDETag {
-		private String id;
-		private String etag;
-		public String getId() {return id;}
-		public void setId(String id) {this.id = id;}
-		public String getEtag() {return etag;}
-		public void setEtag(String etag) {this.etag = etag;}
-	}
+
 
 	@Override
 	@Transactional(readOnly = true)
 	public QueryResults<ObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies)
 			throws DatastoreException {
 		// get a page of user groups
-		List<IDETag> dbos = null;
+		List<ObjectData> ods = null;
 		{
 			MapSqlParameterSource param = new MapSqlParameterSource();
 			param.addValue(OFFSET_PARAM_NAME, offset);		
 			param.addValue(LIMIT_PARAM_NAME, limit);		
-			dbos = simpleJdbcTempalte.query(SELECT_ALL_PAGINATED_WITH_ETAG, new RowMapper<IDETag>() {
+			ods = simpleJdbcTempalte.query(SELECT_ALL_PAGINATED_WITH_ETAG, new RowMapper<ObjectData>() {
 
 				@Override
-				public IDETag mapRow(ResultSet rs, int rowNum)
+				public ObjectData mapRow(ResultSet rs, int rowNum)
 						throws SQLException {
 					// NOTE this is an outer join, so we have to handle the case in which there
 					// is no etag for the given user group
-					IDETag row = new IDETag();
-					row.setId(rs.getString(COL_USER_GROUP_ID));
+					String ugId = rs.getString(COL_USER_GROUP_ID);
 					String etag = rs.getString(COL_USER_PROFILE_ETAG);
 					if (etag==null) etag = DEFAULT_ETAG;
-					row.setEtag(etag);
-					return row;
+					ObjectData od = new ObjectData();
+					ObjectDescriptor id = new ObjectDescriptor();
+					id.setId(ugId);
+					id.setType(UserGroup.class.getName());
+					od.setId(id);
+					od.setEtag(etag);
+					od.setDependencies(new HashSet<ObjectDescriptor>()); // UserGroups have no dependencies
+					return od;
 				}
 			
 			}, param);
-		}
-		
-		List<ObjectData> ods = new ArrayList<ObjectData>();
-		for (IDETag dbo : dbos) {
-			ObjectData od = new ObjectData();
-			ObjectDescriptor id = new ObjectDescriptor();
-			id.setId(dbo.getId());
-			id.setType(UserGroup.class.getName());
-			od.setId(id);
-			od.setEtag(dbo.getEtag());
-			od.setDependencies(new ArrayList<ObjectDescriptor>()); // UserGroups have no dependencies
 		}
 		
 		QueryResults<ObjectData> queryResults = new QueryResults<ObjectData>();

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.jdo;
+package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -17,8 +17,16 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ObjectData;
+import org.sagebionetworks.repo.model.ObjectDescriptor;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.schema.ObjectSchema;
+import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -31,6 +39,9 @@ public class DBOUserGroupDAOImplTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
+		
+	@Autowired
+	private UserProfileDAO userProfileDAO;
 		
 	List<String> groupsToDelete;
 	
@@ -59,6 +70,7 @@ public class DBOUserGroupDAOImplTest {
 		UserGroup group = new UserGroup();
 		group.setName(GROUP_NAME);
 		group.setIsIndividual(false);
+		long initialCount = userGroupDAO.getCount();
 		String groupId = userGroupDAO.create(group);
 		assertNotNull(groupId);
 		groupsToDelete.add(groupId);
@@ -66,6 +78,54 @@ public class DBOUserGroupDAOImplTest {
 		assertEquals(groupId, clone.getId());
 		assertEquals(GROUP_NAME, clone.getName());
 		assertEquals(group.getIsIndividual(), clone.getIsIndividual());
+		assertEquals(1+initialCount, userGroupDAO.getCount());
+	}
+	
+	@Test
+	public void testGetMigrationObjectData() throws Exception {
+		boolean foundPublic = false;
+		UserGroup ug = userGroupDAO.findGroup("PUBLIC", false);
+		assertNotNull(ug);
+		
+		boolean foundUser = false;
+		UserGroup oner = new UserGroup();
+		oner.setName("oner");
+		oner.setIsIndividual(true);
+		String onerId = userGroupDAO.create(oner);
+		groupsToDelete.add(onerId);
+		
+		UserProfile up = new UserProfile();
+		up.setOwnerId(onerId);
+		String jsonString = (String) UserProfile.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
+		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
+		String upId = userProfileDAO.create(up, schema); // this will be deleted via cascade when the user-group is deleted
+		
+		QueryResults<ObjectData> migrationData = userGroupDAO.getMigrationObjectData(0, 10000, true);
+		assert(migrationData.getTotalNumberOfResults()>1);
+		assertEquals(migrationData.getTotalNumberOfResults(), migrationData.getResults().size());
+		
+		for (ObjectData od : migrationData.getResults()) {
+			ObjectDescriptor obj = od.getId();
+			assertNotNull(obj.getId());
+			assertEquals(UserGroup.class.getName(), obj.getType());
+			assertNotNull(od.getEtag());
+			assertTrue(od.getDependencies().isEmpty()); // Groups are not dependent on any other migratable object
+			if (obj.getId().equals(ug.getId())) {
+				foundPublic = true;
+				assertEquals(DBOUserGroupDAOImpl.DEFAULT_ETAG, od.getEtag()); // multiuser groups have no real etags
+			}
+			
+			if (obj.getId().equals(onerId)) {
+				foundUser=true;
+			}
+		}
+		
+		assertTrue(foundPublic);
+		assertTrue(foundUser);
+		
+		// make sure pagination works
+		migrationData = userGroupDAO.getMigrationObjectData(0, 1, true);
+		assertEquals(1, migrationData.getResults().size());
 	}
 	
 	

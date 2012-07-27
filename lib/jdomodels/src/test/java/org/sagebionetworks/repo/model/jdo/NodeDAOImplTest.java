@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -25,6 +26,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -35,7 +37,11 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
+import org.sagebionetworks.repo.model.ObjectData;
+import org.sagebionetworks.repo.model.ObjectDescriptor;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,11 +72,11 @@ public class NodeDAOImplTest {
 	List<String> toDelete = new ArrayList<String>();
 	
 	
-	private Long creatorUserGroupId = null;
-	
+	private Long creatorUserGroupId = null;	
 	@Before
 	public void before() throws Exception {
 		creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		assertNotNull(creatorUserGroupId);
 		assertNotNull(nodeDao);
 		assertNotNull(nodeInheritanceDAO);
 		toDelete = new ArrayList<String>();
@@ -125,7 +131,9 @@ public class NodeDAOImplTest {
 		Node toCreate = privateCreateNew("firstNodeEver");
 		toCreate.setVersionComment("This is the first version of the first node ever!");
 		toCreate.setVersionLabel("0.0.1");
+		long initialCount = nodeDao.getCount();
 		String id = nodeDao.createNew(toCreate);
+		assertEquals(1+initialCount, nodeDao.getCount()); // piggy-back checking count on top of other tests :^)
 		toDelete.add(id);
 		assertNotNull(id);
 		// This node should exist
@@ -145,6 +153,46 @@ public class NodeDAOImplTest {
 		// Since this node has no parent, it should be its own benefactor.
 		String benefactorId = nodeInheritanceDAO.getBenefactor(id);
 		assertEquals(id, benefactorId);
+		
+		checkMigrationDependenciesNoParent(id);
+	}
+	
+	public void checkMigrationDependenciesNoParent(String id) throws Exception {
+		// first check what happens if dependencies are NOT requested
+		QueryResults<ObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
+		List<ObjectData> ods = results.getResults();
+		assertEquals(ods.size(), results.getTotalNumberOfResults());
+		assertTrue(ods.size()>0);
+		boolean foundId = false;
+		for (ObjectData od : ods) {
+			if (od.getId().getId().equals(id)) {
+				foundId=true;
+			}
+			assertEquals(Entity.class.getName(), od.getId().getType());
+			
+		}
+		assertTrue(foundId);
+		
+		// now query for objects WITH dependencies
+		results = nodeDao.getMigrationObjectData(0, 10000, true);
+		ods = results.getResults();
+		assertEquals(ods.size(), results.getTotalNumberOfResults());
+		assertTrue(ods.size()>0);
+		foundId = false;
+		for (ObjectData od : ods) {
+			if (od.getId().getId().equals(id)) {
+				foundId=true;
+				// since there's no parent or ACL, the only dependency is on the creator/modifier
+				Collection<ObjectDescriptor> deps = od.getDependencies();
+				assertEquals("id: "+id+" dependencies: "+deps.toString(), 1, deps.size());
+				ObjectDescriptor creatorDescriptor = deps.iterator().next();
+				assertEquals(creatorUserGroupId.toString(), creatorDescriptor.getId());
+				assertEquals(UserGroup.class.getName(), creatorDescriptor.getType());
+				
+			}
+			assertEquals(Entity.class.getName(), od.getId().getType());
+		}
+		assertTrue(foundId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -246,6 +294,9 @@ public class NodeDAOImplTest {
 		String childBenefactorId = nodeInheritanceDAO.getBenefactor(childId);
 		assertEquals(parentId, childBenefactorId);
 		
+		
+		checkMigrationDependenciesWithParent(childId, parentId);
+		
 		// Now delete the parent and confirm the child is gone too
 		nodeDao.delete(parentId);
 		// the child should no longer exist
@@ -257,6 +308,52 @@ public class NodeDAOImplTest {
 		}catch (JdoObjectRetrievalFailureException e){
 			System.out.println(e);
 		}
+	}
+	
+	public void checkMigrationDependenciesWithParent(String id, String parentId) throws Exception {
+		// first check what happens if dependencies are NOT requested
+		QueryResults<ObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
+		List<ObjectData> ods = results.getResults();
+		assertEquals(ods.size(), results.getTotalNumberOfResults());
+		assertTrue(ods.size()>0);
+		boolean foundId = false;
+		for (ObjectData od : ods) {
+			if (od.getId().getId().equals(id)) {
+				foundId=true;
+			}
+			assertEquals(Entity.class.getName(), od.getId().getType());
+			
+		}
+		assertTrue(foundId);
+		
+		// now query for objects WITH dependencies
+		results = nodeDao.getMigrationObjectData(0, 10000, true);
+		ods = results.getResults();
+		assertEquals(ods.size(), results.getTotalNumberOfResults());
+		assertTrue(ods.size()>0);
+		foundId = false;
+		for (ObjectData od : ods) {
+			if (od.getId().getId().equals(id)) {
+				foundId=true;
+				// dependencies are the creator/modifier and the parent/benefactor
+				Collection<ObjectDescriptor> deps = od.getDependencies();
+				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
+				boolean foundCreator = false;
+				boolean foundParent = false;
+				for (ObjectDescriptor d : deps) {
+					if (creatorUserGroupId.toString().equals(d.getId())) {
+						foundCreator=true;
+						assertEquals(UserGroup.class.getName(), d.getType());
+					} else if (parentId.equals(d.getId())) {
+						foundParent=true;
+						assertEquals(Entity.class.getName(), d.getType());
+					}
+				}
+				assertTrue(foundCreator);
+				assertTrue(foundParent);
+			}
+		}
+		assertTrue(foundId);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

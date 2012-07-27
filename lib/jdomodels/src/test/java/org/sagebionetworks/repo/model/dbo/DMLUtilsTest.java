@@ -131,6 +131,15 @@ public class DMLUtilsTest {
 	}
 	
 	@Test
+	public void testCreateGetCountStatment(){
+		// Here is our simple mapping.
+		String dml = DMLUtils.createGetCountStatement(mapping);
+		assertNotNull(dml);
+		System.out.println(dml);
+		assertEquals("SELECT COUNT(*) FROM SOME_TABLE", dml);
+	}
+	
+	@Test
 	public void testCreateUpdateStatmentTwoKeys(){
 		// Here is our simple mapping.
 		String dml = DMLUtils.createUpdateStatment(mappingTwoKeys);

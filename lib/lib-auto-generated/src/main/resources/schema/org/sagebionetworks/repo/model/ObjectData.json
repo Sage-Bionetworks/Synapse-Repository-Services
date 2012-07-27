@@ -9,7 +9,7 @@
          },
  		 "dependencies":{
             "type":"array",
-            "uniqueItems":false,
+            "uniqueItems":true,
             "items":{
                 "$ref":"org.sagebionetworks.repo.model.ObjectDescriptor"
             }
