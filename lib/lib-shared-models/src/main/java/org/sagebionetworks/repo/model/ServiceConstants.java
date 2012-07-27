@@ -176,13 +176,6 @@ public class ServiceConstants {
 	 */
 	public static final String ACCEPTS_TERMS_OF_USE_REQUIRED_TOKEN = "TermsOfUseAcceptanceRequired";
 	
-	
-	/**
-	 * Used by AdministrationController service to say whether object dependencies should be calculated
-	 * when listing objects to back up.
-	 */
-	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
-
 	/**
 	 * Utility method to sanity check pagination parameters
 	 * <p>

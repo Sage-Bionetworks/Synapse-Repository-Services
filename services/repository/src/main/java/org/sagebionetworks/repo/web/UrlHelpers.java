@@ -279,11 +279,13 @@ public class UrlHelpers {
 	 */
 	public static final String RESOURCE_ID = "resourceId";
 	
-	public static final String OBJECT_TYPE_PARAM = "type";
-
-	public static final String OBJECT_ID_PARAM = "id";
-	
 	public static final String GET_ALL_BACKUP_OBJECTS = "backupObjects";
+
+	/**
+	 * Used by AdministrationController service to say whether object dependencies should be calculated
+	 * when listing objects to back up.
+	 */
+	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
 
 	/**
 	 * This is a memoized cache for our URL regular expressions
