@@ -1,13 +1,31 @@
 package org.sagebionetworks.repo.model;
 
-import java.security.acl.Permission;
-
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
+/**
+ * Low-level bundle to transport an Entity and related data objects between the 
+ * Synapse platform and external clients.
+ * 
+ * @author bkng
+ *
+ */
 public class EntityBundle implements JSONEntity {
+	
+	/**
+	 * Masks for requesting what should be included in the bundle.
+	 */
+	public static int ENTITY 		      	= 0x1;
+	public static int ANNOTATIONS	      	= 0x2;
+	public static int PERMISSIONS	     	= 0x4;
+	public static int ENTITY_PATH	      	= 0x8;
+	public static int ENTITY_REFERENCEDBY 	= 0x10;
+	public static int CHILD_COUNT			= 0x20;
+	public static int ACL					= 0x40;
+	public static int USERS					= 0x80;
+	public static int GROUPS				= 0x100;
 	
 	private static final String JSON_ENTITY = "entity";
 	private static final String JSON_ENTITY_TYPE = "entityType";
@@ -33,12 +51,20 @@ public class EntityBundle implements JSONEntity {
 	
 	private AutoGenFactory agf;
 	
-	public EntityBundle() {
-		initialize();
-	}
+	/**
+	 * Create a new EntityBundle
+	 */
+	public EntityBundle() {}
 	
-	public void initialize() {
-		
+	/**
+	 * Create a new EntityBundle and initialize from a JSONObjectAdapter.
+	 * 
+	 * @param initializeFrom
+	 * @throws JSONObjectAdapterException
+	 */
+	public EntityBundle(JSONObjectAdapter initializeFrom) throws JSONObjectAdapterException {
+		this();
+		initializeFromJSONObject(initializeFrom);
 	}
 
 	@Override

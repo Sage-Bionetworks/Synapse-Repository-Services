@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -21,7 +22,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -32,9 +33,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -88,7 +87,7 @@ public class EntityControllerTest {
 		// Make sure we can update it
 		clone2.setName("My new name");
 		Project clone3 = (Project) entityServletHelper.updateEntity(clone2, TEST_USER1);
-		assertNotNull(clone3);
+		assertNotNull(clone3);		
 		assertEquals(clone2.getName(), clone3.getName());
 		// Should not match the original
 		assertFalse(p.getName().equals(clone3.getName()));
@@ -266,6 +265,80 @@ public class EntityControllerTest {
 			assertTrue(e.getMessage().indexOf(Study.class.getName()) > 0);
 		}
 		
+	}
+
+	@Test
+	public void testGetEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
+		// Create an entity
+		Project p = new Project();
+		p.setName("Dummy Project");
+		p.setEntityType(p.getClass().getName());
+		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		String id = p2.getId();
+		toDelete.add(id);
+		
+		// Get/add/update annotations for this entity
+		Annotations a = entityServletHelper.getEntityAnnotaions(id, TEST_USER1);
+		a.addAnnotation("doubleAnno", new Double(45.0001));
+		a.addAnnotation("string", "A string");
+		Annotations a2 = entityServletHelper.updateAnnotations(a, TEST_USER1);
+		
+		// Get the bundle, verify contents
+		int mask =  EntityBundle.ENTITY | 
+					EntityBundle.ANNOTATIONS |
+					EntityBundle.PERMISSIONS |
+					EntityBundle.ENTITY_PATH;
+		EntityBundle eb = entityServletHelper.getEntityBundle(id, mask, TEST_USER1);
+		Project p3 = (Project) eb.getEntity();
+		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
+		p2.setEtag(p3.getEtag());
+		assertEquals(p2, p3);
+		
+		Annotations a3 = eb.getAnnotations();
+		assertFalse("Etag should have been updated, but was not", a3.getEtag().equals(a.getEtag()));
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a2, a3);
+		
+		UserEntityPermissions uep = eb.getPermissions();
+		assertNotNull("Permissions were requested, but null in bundle", uep);
+		assertTrue("Invalid Permissions", uep.getCanEdit());
+		
+		EntityPath path = eb.getPath();
+		assertNotNull("Path was requested, but null in bundle", path);
+		assertNotNull("Invalid path", path.getPath());
+	}
+	
+	@Test
+	public void testGetPartialEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
+		// Create an entity
+		Project p = new Project();
+		p.setName("Dummy Project");
+		p.setEntityType(p.getClass().getName());
+		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		String id = p2.getId();
+		toDelete.add(id);
+		
+		// Get/add/update annotations for this entity
+		Annotations a = entityServletHelper.getEntityAnnotaions(id, TEST_USER1);
+		a.addAnnotation("doubleAnno", new Double(45.0001));
+		a.addAnnotation("string", "A string");
+		entityServletHelper.updateAnnotations(a, TEST_USER1);
+		
+		// Get the bundle, verify contents
+		int mask =  EntityBundle.ENTITY;
+		EntityBundle eb = entityServletHelper.getEntityBundle(id, mask, TEST_USER1);
+		Project p3 = (Project) eb.getEntity();
+		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
+		p2.setEtag(p3.getEtag());
+		assertEquals(p2, p3);
+		
+		Annotations a3 = eb.getAnnotations();
+		assertNull("Annotations were not requested, but were returned in bundle", a3);
+		
+		UserEntityPermissions uep = eb.getPermissions();
+		assertNull("Permissions were not requested, but were returned in bundle", uep);
+		
+		EntityPath path = eb.getPath();
+		assertNull("Path was not requested, but was returned in bundle", path);
 	}
 
 }

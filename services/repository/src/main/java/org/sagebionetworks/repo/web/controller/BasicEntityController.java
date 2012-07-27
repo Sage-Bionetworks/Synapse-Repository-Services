@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -64,6 +65,52 @@ public class BasicEntityController extends BaseController{
 	@Autowired
 	SchemaManager schemaManager;
 
+	
+	/**
+	 * Get an entity and related data with a single GET. Note that childCount is
+	 * calculated in the QueryController.
+	 * 
+	 * @param userId -The user that is doing the get.
+	 * @param id - The ID of the entity to fetch.
+	 * @param request
+	 * @return The requested Entity if it exists.
+	 * @throws NotFoundException - Thrown if the requested entity does not exist.
+	 * @throws DatastoreException - Thrown when an there is a server failure. 
+	 * @throws UnauthorizedException
+	 * @throws ACLInheritanceException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.GET)
+	public @ResponseBody
+	EntityBundle getEntityBundle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id, 
+			@RequestParam int mask, HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException {
+		EntityBundle eb = new EntityBundle();
+		if ((mask & EntityBundle.ENTITY) > 0)
+			eb.setEntity(entityController.getEntity(userId, id, request));
+		if ((mask & EntityBundle.ANNOTATIONS) > 0)
+			eb.setAnnotations(entityController.getEntityAnnotations(userId, id, request));
+		if ((mask & EntityBundle.PERMISSIONS) > 0)
+			eb.setPermissions(entityController.getUserEntityPermissions(userId, id));
+		if ((mask & EntityBundle.ENTITY_PATH) > 0) {
+			List<EntityHeader> path = entityController.getEntityPath(userId, id);
+			EntityPath ep = new EntityPath();
+			ep.setPath(path);
+			eb.setPath(ep);
+		}
+		if ((mask & EntityBundle.ENTITY_REFERENCEDBY) > 0)
+			eb.setReferencedBy(entityController.getEntityReferences(userId, id, null, null, null, request));
+		
+		if ((mask & EntityBundle.ACL) > 0)
+			eb.setAccessControlList(entityController.getEntityACL(id, userId, request));			
+		// NOTE: childCount is calculated by querying the QueryController
+		//       users in the UserProfileController
+		//       groups in the UserGroupController
+		return eb;
+	}
+	
 	/**
 	 * Get an existing entity with a GET.
 	 * @param id - The ID of the entity to fetch.

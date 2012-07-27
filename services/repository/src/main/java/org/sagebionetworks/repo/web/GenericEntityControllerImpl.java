@@ -432,7 +432,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	private void addServiceSpecificMetadata(String id, Annotations annotations,
 			HttpServletRequest request) {
 		annotations.setId(id); // the NON url-encoded id
-		annotations.setUri(UrlHelpers.makeEntityPropertyUri(request));
+		annotations.setUri(UrlHelpers.makeEntityAnnotationsUri(id));
 	}
 
 	@Override
