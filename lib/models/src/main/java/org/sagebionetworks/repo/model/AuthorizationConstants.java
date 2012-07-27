@@ -67,7 +67,8 @@ public class AuthorizationConstants {
 	 * The reserved userId for an anonymous user.
 	 */
 	public static final String ANONYMOUS_USER_ID = "anonymous@sagebase.org";
-
+	public static final String ANONYMOUS_USER_DISPLAY_NAME = "Anonymous";
+	
 	/**
 	 * Per http://sagebionetworks.jira.com/browse/PLFM-192
 	 * authenticated requests made with an API key have the following
