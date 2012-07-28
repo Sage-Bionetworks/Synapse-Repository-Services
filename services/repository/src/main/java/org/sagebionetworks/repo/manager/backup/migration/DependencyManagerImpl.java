@@ -40,8 +40,8 @@ public class DependencyManagerImpl implements DependencyManager {
 			List<ObjectData> ods = new ArrayList<ObjectData>();
 			for (MigratableDAO migratableDAO : getMigratableDaos()) {
 				long numNeeded = limit-ods.size();
-				long localOffset = offset-total;
-				if (numNeeded>0L && localOffset>=0L) {
+				long localOffset = Math.max(0, offset-total); // offset relative to current DAO's results
+				if (numNeeded>0L) {
 					QueryResults<ObjectData> localResults = 
 						migratableDAO.getMigrationObjectData(localOffset, numNeeded, includeDependencies);
 					ods.addAll(localResults.getResults());

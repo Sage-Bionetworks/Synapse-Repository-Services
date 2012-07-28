@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.MigrationType;
+import org.sagebionetworks.repo.model.ObjectData;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -1864,5 +1865,37 @@ public class ServletTestHelper {
 		}
 	}
 
+	public static PaginatedResults<ObjectData> getAllMigrationObjects(
+			HttpServlet dispatchServlet, long offset, long limit,
+			String userId) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.GET_ALL_BACKUP_OBJECTS);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""+offset);
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""+limit);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return createObjectDataPaginatedResultsFromJSON(response.getContentAsString());
+	}
+
+    public static PaginatedResults<ObjectData> createObjectDataPaginatedResultsFromJSON(
+			String jsonString) throws JSONException,
+			JsonParseException, JsonMappingException, IOException {
+		PaginatedResults<ObjectData> pr = new PaginatedResults<ObjectData>();
+		try {
+			pr.initializeFromJSONObject(new JSONObjectAdapterImpl(jsonString));
+			return pr;
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e);
+		}
+
+	}
 
 }

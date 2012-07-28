@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -29,6 +30,8 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.ObjectData;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -108,6 +111,14 @@ public class AdministrationControllerTest {
 				}
 			}
 		}
+	}
+	
+	@Test
+	public void testGetAllBackupObjects() throws Exception {
+		long offset = 0;
+		long limit = 10;
+		PaginatedResults<ObjectData> migrationData = ServletTestHelper.getAllMigrationObjects(dispatchServlet, offset, limit, adminUserName);
+		assertTrue(migrationData.getResults().size()>0);
 	}
 	
 	/**

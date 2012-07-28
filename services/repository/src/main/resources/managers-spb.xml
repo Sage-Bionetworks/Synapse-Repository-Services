@@ -258,12 +258,12 @@
 	</bean>
 
 	<!-- A manager that returns all system objects and their dependencies. -->
-	<bean id="migratableDaos" class="org.sagebionetworks.repo.manager.backup.migration.DependencyManagerImpl">
+	<bean id="dependencyManager" class="org.sagebionetworks.repo.manager.backup.migration.DependencyManagerImpl">
 		<property name="migratableDaos">
 			<list>
-				<bean name="userGroupDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOUserGroupDAOImpl" />
-				<bean name="nodeDAO" class="org.sagebionetworks.repo.model.jdo.NodeDAOImpl" />
-				<bean name="accessRequirementDAO" class="org.sagebionetworks.repo.model.dbo.dao.DBOAccessRequireentDAOImpl" />
+				<ref bean="userGroupDAO"/>
+				<ref bean="nodeDao"/>
+				<ref bean="accessRequirementDAO"/>
 			</list>
 		</property>
 	</bean>

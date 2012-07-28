@@ -279,7 +279,7 @@ public class UrlHelpers {
 	 */
 	public static final String RESOURCE_ID = "resourceId";
 	
-	public static final String GET_ALL_BACKUP_OBJECTS = "backupObjects";
+	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
 
 	/**
 	 * Used by AdministrationController service to say whether object dependencies should be calculated
