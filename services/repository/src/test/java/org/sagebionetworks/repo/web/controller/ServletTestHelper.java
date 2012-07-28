@@ -1882,20 +1882,22 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		return createObjectDataPaginatedResultsFromJSON(response.getContentAsString());
+//		return createObjectDataPaginatedResultsFromJSON(response.getContentAsString());
+		return createPaginatedResultsFromJSON(response.getContentAsString(),
+				ObjectData.class);
 	}
 
-    public static PaginatedResults<ObjectData> createObjectDataPaginatedResultsFromJSON(
-			String jsonString) throws JSONException,
-			JsonParseException, JsonMappingException, IOException {
-		PaginatedResults<ObjectData> pr = new PaginatedResults<ObjectData>();
-		try {
-			pr.initializeFromJSONObject(new JSONObjectAdapterImpl(jsonString));
-			return pr;
-		} catch (JSONObjectAdapterException e) {
-			throw new RuntimeException(e);
-		}
+//    public static PaginatedResults<ObjectData> createObjectDataPaginatedResultsFromJSON(
+//			String jsonString) throws JSONException,
+//			JsonParseException, JsonMappingException, IOException {
+//		PaginatedResults<ObjectData> pr = new PaginatedResults<ObjectData>();
+//		try {
+//			pr.initializeFromJSONObject(new JSONObjectAdapterImpl(jsonString));
+//			return pr;
+//		} catch (JSONObjectAdapterException e) {
+//			throw new RuntimeException(e);
+//		}
 
-	}
+//	}
 
 }

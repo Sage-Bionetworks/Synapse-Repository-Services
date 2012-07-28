@@ -115,10 +115,13 @@ public class AdministrationControllerTest {
 	
 	@Test
 	public void testGetAllBackupObjects() throws Exception {
-		long offset = 0;
-		long limit = 10;
+		long offset = 0L;
+		long limit = 10L;
 		PaginatedResults<ObjectData> migrationData = ServletTestHelper.getAllMigrationObjects(dispatchServlet, offset, limit, adminUserName);
 		assertTrue(migrationData.getResults().size()>0);
+		
+		offset = 100L;
+		migrationData = ServletTestHelper.getAllMigrationObjects(dispatchServlet, offset, limit, adminUserName);
 	}
 	
 	/**

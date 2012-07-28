@@ -182,7 +182,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		}
 		
 		// (2) find the dependencies
-		if (includeDependencies) {
+		if (includeDependencies && !ods.isEmpty()) {
 			Map<String, ObjectData> arMap = new HashMap<String, ObjectData>();	
 			for (ObjectData od: ods) arMap.put(od.getId().getId(), od);
 			

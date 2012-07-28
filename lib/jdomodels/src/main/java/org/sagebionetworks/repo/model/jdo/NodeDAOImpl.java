@@ -1118,33 +1118,35 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			}
 		}, params);
 		
-		final Map<String, ObjectData> odMap = new HashMap<String, ObjectData>();
-		for (ObjectData od : ods) odMap.put(od.getId().getId(), od);
-		
-		List<Long> nodeIDList = new ArrayList<Long>();
-		for (String entityId : odMap.keySet()) nodeIDList.add(KeyFactory.stringToKey(entityId));
-		params = new MapSqlParameterSource();
-		params.addValue(COL_NODE_ID, nodeIDList);		
-		
-		// now find the principal dependencies created by the ACLs on auth benefactor nodes
-		// Note, we identify the benefactor nodes by the fact that they are their own benefactor
-		// below 'LIST' is the list of ids returned by the paginated query above
-		//
-		// select n.id, ra.group_id
-		// from jdonode n, acl acl, jdoresourceaccess ra
-		// where n.id=acl.owner_id_column and ra.owner_id=acl.id and n.id=n.benefactor_id AND n.id in (:LIST)
-		this.simpleJdbcTemplate.query(SQL_GET_BENEFACTORS_DEPENDENCIES, new RowMapper<Integer>() {
-			@Override
-			public Integer mapRow(ResultSet rs, int rowNum) throws SQLException {
-				long nodeId = rs.getLong(COL_NODE_ID);
-				ObjectData od = odMap.get(KeyFactory.keyToString(nodeId));
-				if (od==null) return 0;
-				Collection<ObjectDescriptor> dependencies = od.getDependencies();
-				ObjectDescriptor aclMember = ObjectDescriptorUtils.createPrincipalObjectDescriptor(rs.getLong(COL_RESOURCE_ACCESS_GROUP_ID));
-				if (!dependencies.contains(aclMember)) dependencies.add(aclMember);
-				return 0;
-			}
-		}, params);
+		if (!ods.isEmpty()) {
+			final Map<String, ObjectData> odMap = new HashMap<String, ObjectData>();
+			for (ObjectData od : ods) odMap.put(od.getId().getId(), od);
+			
+			List<Long> nodeIDList = new ArrayList<Long>();
+			for (String entityId : odMap.keySet()) nodeIDList.add(KeyFactory.stringToKey(entityId));
+			params = new MapSqlParameterSource();
+			params.addValue(COL_NODE_ID, nodeIDList);		
+			
+			// now find the principal dependencies created by the ACLs on auth benefactor nodes
+			// Note, we identify the benefactor nodes by the fact that they are their own benefactor
+			// below 'LIST' is the list of ids returned by the paginated query above
+			//
+			// select n.id, ra.group_id
+			// from jdonode n, acl acl, jdoresourceaccess ra
+			// where n.id=acl.owner_id_column and ra.owner_id=acl.id and n.id=n.benefactor_id AND n.id in (:LIST)
+			this.simpleJdbcTemplate.query(SQL_GET_BENEFACTORS_DEPENDENCIES, new RowMapper<Integer>() {
+				@Override
+				public Integer mapRow(ResultSet rs, int rowNum) throws SQLException {
+					long nodeId = rs.getLong(COL_NODE_ID);
+					ObjectData od = odMap.get(KeyFactory.keyToString(nodeId));
+					if (od==null) return 0;
+					Collection<ObjectDescriptor> dependencies = od.getDependencies();
+					ObjectDescriptor aclMember = ObjectDescriptorUtils.createPrincipalObjectDescriptor(rs.getLong(COL_RESOURCE_ACCESS_GROUP_ID));
+					if (!dependencies.contains(aclMember)) dependencies.add(aclMember);
+					return 0;
+				}
+			}, params);
+		}
 		
 		QueryResults<ObjectData> queryResults = new QueryResults<ObjectData>();
 		queryResults.setResults(ods);
