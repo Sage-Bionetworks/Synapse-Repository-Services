@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 
 /**
  * This class drives the backup and restoration process.
@@ -248,7 +249,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 				if(isNodeBackupFile(entry.getName())){
 					// Push the current data
 					if(backup != null){
-						backupManager.createOrUpdateNodeWithRevisions(backup, revisions);
+						createOrUpdateNodeWithRevisions(backup, revisions);
 						// clear the current data
 						backup = null;
 						
@@ -310,7 +311,7 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 			progress.appendLog("Finished processing nodes.");
 			if(backup != null){
 				// do the final backup
-				backupManager.createOrUpdateNodeWithRevisions(backup, revisions);
+				createOrUpdateNodeWithRevisions(backup, revisions);
 			}
 		}finally{
 			if(fis != null){
@@ -356,5 +357,23 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 		if(name == null) throw new IllegalArgumentException("Name cannot be null");
 		int index = name.indexOf(REVISIONS_FOLDER);
 		return index >= 0;
+	}
+	
+	/**
+	 * Create or update the node with deadlock detection.
+	 * @param backup
+	 * @param revisions
+	 * @throws InterruptedException
+	 */
+	void createOrUpdateNodeWithRevisions(NodeBackup backup, List<NodeRevisionBackup> revisions) throws InterruptedException{
+		// This can deadlock (see PLFM-1341)
+		try{
+			backupManager.createOrUpdateNodeWithRevisions(backup, revisions);
+		}catch (DeadlockLoserDataAccessException e){
+			// Try again
+			Thread.sleep(100);
+			//Try once more.  If it fails again then the exception is thrown.
+			backupManager.createOrUpdateNodeWithRevisions(backup, revisions);
+		}
 	}
 }

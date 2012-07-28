@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.backup;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
@@ -7,19 +8,26 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.BatchUpdateException;
 import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.Random;
 import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
+import static org.mockito.Mockito.*;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.util.RandomAccessControlListUtil;
 import org.sagebionetworks.repo.model.util.RandomNodeRevisionUtil;
 import org.sagebionetworks.repo.model.util.RandomNodeUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 
 /**
  * This is a unit test for NodeBackupDriverImpl.
@@ -319,5 +327,26 @@ public class NodeBackupDriverImplTest {
 			// Cleanup the file
 			temp.delete();
 		}
+	}
+	
+	@Test
+	public void testCreateOrUpdateDeadLock() throws InterruptedException{
+		// Mock the 
+		NodeBackupManager mockManager = Mockito.mock(NodeBackupManager.class);
+		MigrationDriver mockDriver = Mockito.mock(MigrationDriver.class);
+		NodeBackupDriverImpl driver = new NodeBackupDriverImpl(mockManager, mockDriver);
+		NodeBackup backup = new NodeBackup();
+		List<NodeRevisionBackup> revs = new LinkedList<NodeRevisionBackup>();
+		// Now simulate deadlock
+		DeadlockLoserDataAccessException exception = new DeadlockLoserDataAccessException("Deadlock", new BatchUpdateException());
+		doThrow(exception).when(mockManager).createOrUpdateNodeWithRevisions(backup, revs);
+		try{
+			driver.createOrUpdateNodeWithRevisions(backup, revs);
+			fail("Expected a DeadlockLoserDataAccessException");
+		}catch(DeadlockLoserDataAccessException e){
+			// expected.
+		}
+		// Verify that we tried twice
+		verify(mockManager, times(2)).createOrUpdateNodeWithRevisions(backup, revs);
 	}
 }
