@@ -28,6 +28,10 @@
 	<!-- The Generic Entity Controller -->
 	<bean id="entityController"
 		class="org.sagebionetworks.repo.web.GenericEntityControllerImpl" />
+		
+	<!-- Make sure we can watch for deadlock on all methods of the Generic Entity Controller -->	
+	<bean id="deadlockWatcher"
+		class="org.sagebionetworks.repo.web.DeadlockWatcher" />
 
 	<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
