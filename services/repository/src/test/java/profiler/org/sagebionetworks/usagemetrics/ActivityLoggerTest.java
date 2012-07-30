@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 
 import org.apache.commons.logging.Log;
@@ -40,14 +41,10 @@ public class ActivityLoggerTest {
 	private static final Object[] ANNOTATION_METHOD_ARGS = new Object[] {"entityIdval", "userIdval"};
 
 	private static final String SIMPLE_ARG_STRING = SIMPLE_METHOD_PARAM_NAMES[0]+"="
-			+ SIMPLE_METHOD_ARGS[0] + ","+SIMPLE_METHOD_PARAM_NAMES[1]+"=" + SIMPLE_METHOD_ARGS[1];
+			+ SIMPLE_METHOD_ARGS[0] + "&"+SIMPLE_METHOD_PARAM_NAMES[1]+"=" + SIMPLE_METHOD_ARGS[1];
 
 	private static final String ANNOTATION_ARG_STRING = ANNOTATION_METHOD_PARAM_NAMES[0]+"="
-			+ ANNOTATION_METHOD_ARGS[0] + ","+ANNOTATION_METHOD_PARAM_NAMES[1]+"="
-			+ ANNOTATION_METHOD_ARGS[1];
-
-	private static final String ANNOTATION_ARG_STRING_WITH_ANNOTATIONS = ANNOTATION_METHOD_PARAM_NAMES[0]+"{@org.springframework.web.bind.annotation.PathVariable(value=)}="
-			+ ANNOTATION_METHOD_ARGS[0] + ","+ANNOTATION_METHOD_PARAM_NAMES[1]+"{@org.springframework.web.bind.annotation.RequestParam(value=userId, required=false, defaultValue=)}="
+			+ ANNOTATION_METHOD_ARGS[0] + "&"+ANNOTATION_METHOD_PARAM_NAMES[1]+"="
 			+ ANNOTATION_METHOD_ARGS[1];
 
 	@Autowired
@@ -90,7 +87,7 @@ public class ActivityLoggerTest {
 	}
 
 	private String doGetArgs(Method method, String methodName, String[] methodArgNames, Class<?>[] methodArgTypes, Object[] methodArgs)
-			throws NoSuchMethodException {
+			throws NoSuchMethodException, UnsupportedEncodingException {
 		Class<? extends TestClass> classTestClass = TestClass.class;
 
 		MethodSignature mockSig = mock(MethodSignature.class);
@@ -118,8 +115,16 @@ public class ActivityLoggerTest {
 
 		ArgumentCaptor<String> arg = ArgumentCaptor.forClass(String.class);
 		verify(mockLog).trace(arg.capture());
-		System.out.println(arg.getValue());
-		String expected = "TestClass.testAnnotationsMethod(id=entityIdval,userId=userIdval)";
-		assertEquals(expected, arg.getValue().split(" ")[1]);
+
+		String[] methodAndArgs = arg.getValue().split("\\?");
+		String[] classAndMethod = methodAndArgs[0].split("/");
+
+		String latencyArg = "latency=0&";
+		int indexOf = methodAndArgs[1].indexOf(latencyArg);
+
+		assertEquals(ANNOTATION_ARG_STRING, methodAndArgs[1].substring(indexOf + latencyArg.length()));
+
+		assertEquals(TestClass.class.getSimpleName(), classAndMethod[0]);
+		assertEquals(classAndMethod[1], ANNOTATION_METHOD_NAME);
 	}
 }

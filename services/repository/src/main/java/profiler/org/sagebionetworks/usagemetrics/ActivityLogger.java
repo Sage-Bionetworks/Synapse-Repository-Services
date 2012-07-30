@@ -1,5 +1,8 @@
 package profiler.org.sagebionetworks.usagemetrics;
 
+import static java.net.URLEncoder.encode;
+
+import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -68,15 +71,22 @@ public class ActivityLogger {
 		String methodName = signature.getName();
 
 		Class<?> declaringClass = signature.getDeclaringType();
+		String args;
 
-		String args = getArgs(declaringClass, signature, pjp.getArgs());
+		try {
+			args = getArgs(declaringClass, signature, pjp.getArgs());
+		} catch (UnsupportedEncodingException e) {
+			log.error("Could not properly encode arguments", e);
+			args = Arrays.toString(pjp.getArgs());
+		}
+
 
 		//converting from nanoseconds to milliseconds
 		long latencyMS = (end - start) / NANOSECOND_PER_MILLISECOND;
-		
-		String toLog = String.format("%dms %s.%s(%s)", 
-				latencyMS, declaringClass.getSimpleName(), methodName, args);
-		
+
+		String toLog = String.format("%s/%s?latency=%d&%s",
+				declaringClass.getSimpleName(), methodName, latencyMS, args);
+
 		log.trace(toLog);
 
 		return result;
@@ -84,20 +94,21 @@ public class ActivityLogger {
 
 	/**
 	 * Method for returning a coherent arg string from the relevant information.
-	 * We probably want to use the org.springframework.core.LocalVariableTableParameterNameDiscoverer
-	 * because this is how spring discovers parameter names.
 	 * @param declaringClass the class that declared the join point
 	 * @param sig method signature from the join point
 	 * @param args list of actual arguments to be passed to the join point
 	 * @return
+	 * @throws UnsupportedEncodingException
 	 */
-	public String getArgs(Class<?> declaringClass, MethodSignature sig, Object[] args) {
+	public String getArgs(Class<?> declaringClass, MethodSignature sig, Object[] args) throws UnsupportedEncodingException {
 		Method method = sig.getMethod();
 
 		if (method == null) {
 			return Arrays.toString(args);
 		}
 		String[] parameterNames = sig.getParameterNames();
+
+		String encoding = "UTF-8";
 
 		String argSep = "";
 
@@ -108,10 +119,10 @@ public class ActivityLogger {
 			argString.append(parameterNames[i]);
 
 			argString.append("=");
-
-			argString.append(args[i]);
+			if (args[i] != null) 
+				argString.append(encode(args[i].toString(), encoding));
 			// Reset for next iteration
-			argSep = ",";
+			argSep = "&";
 		}
 
 		return argString.toString();
