@@ -54,7 +54,6 @@ import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.S3Token;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
@@ -121,11 +120,6 @@ public class Synapse {
 	protected static final String LIMIT = "limit";
 	protected static final String OFFSET = "offset";
 
-	// query pagination
-	private static final int USER_PAGINATION_OFFSET = 0;
-	private static final int USER_PAGINATION_LIMIT = 1000; 
-	private static final int GROUPS_PAGINATION_OFFSET = 0;
-	private static final int GROUPS_PAGINATION_LIMIT = 1000; 
 	protected static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
 	protected static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = "select id from entity where parentId == '";
 
@@ -362,7 +356,6 @@ public class Synapse {
 	 * @return the newly created entity
 	 * @throws SynapseException
 	 */
-	@SuppressWarnings("unchecked")
 	public <T extends Entity> T createEntity(T entity)
 			throws SynapseException {
 		if (entity == null)
@@ -451,13 +444,6 @@ public class Synapse {
 		try {
 			EntityBundle eb = new EntityBundle();
 			eb.initializeFromJSONObject(adapter);
-			// query for childCount, if requested
-			if ((partsMask & EntityBundle.CHILD_COUNT) > 0)
-				eb.setChildCount(getChildCount(entityId));
-			if ((partsMask & EntityBundle.USERS) > 0)
-				eb.setUsers(getUsers(USER_PAGINATION_OFFSET, USER_PAGINATION_LIMIT));
-			if ((partsMask & EntityBundle.GROUPS) > 0)
-				eb.setGroups(getGroups(GROUPS_PAGINATION_OFFSET, GROUPS_PAGINATION_LIMIT));	
 			return eb;
 		} catch (JSONObjectAdapterException e1) {
 			throw new RuntimeException(e1);

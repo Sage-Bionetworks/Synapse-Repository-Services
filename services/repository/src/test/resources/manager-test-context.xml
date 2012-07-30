@@ -10,5 +10,7 @@
 	<context:annotation-config />
 
 	<import resource="classpath:managers-spb.xml" />
+	
+	<bean id="objectTypeSerializer" class="org.sagebionetworks.repo.web.controller.ObjectTypeSerializerImpl"/>
 
 </beans>

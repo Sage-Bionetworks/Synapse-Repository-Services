@@ -33,7 +33,7 @@ public class DeadlockWatcher {
 		log = mockLock;
 	}
 	
-	@Around("execution(* org.sagebionetworks.repo.web.GenericEntityController.*(..))")
+	@Around("execution(* org.sagebionetworks.repo.web.service.EntityService.*(..))")
 	public Object detectDeadlock(ProceedingJoinPoint pjp) throws Throwable {
 		try{
 			// Let all methods proceed as expected.

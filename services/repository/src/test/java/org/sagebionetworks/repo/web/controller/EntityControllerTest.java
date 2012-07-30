@@ -46,7 +46,6 @@ public class EntityControllerTest {
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
 	
-
 	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
 	
 	private List<String> toDelete = null;
