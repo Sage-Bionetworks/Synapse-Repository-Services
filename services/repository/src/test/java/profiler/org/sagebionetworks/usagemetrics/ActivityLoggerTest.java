@@ -72,7 +72,6 @@ public class ActivityLoggerTest {
 
 	@Before
 	public void before() throws Exception {
-		activityLogger.setShouldLogAnnotations(false);
 		mockLog = mock(Log.class);
 		ActivityLogger.setLog(mockLog);
 	}
@@ -89,17 +88,6 @@ public class ActivityLoggerTest {
 		String annotationsLog = doGetArgs(ANNOTATION_METHOD, ANNOTATION_METHOD_NAME, ANNOTATION_METHOD_PARAM_NAMES,
 				ANNOTATION_METHOD_ARG_TYPES, ANNOTATION_METHOD_ARGS);
 		assertEquals(ANNOTATION_ARG_STRING, annotationsLog);
-	}
-
-	@Ignore
-	@Test
-	public void testGetArgsWithAnnotations() throws Exception {
-		activityLogger.setShouldLogAnnotations(true);
-
-		String annotationsLog = doGetArgs(ANNOTATION_METHOD, ANNOTATION_METHOD_NAME, ANNOTATION_METHOD_PARAM_NAMES,
-				ANNOTATION_METHOD_ARG_TYPES, ANNOTATION_METHOD_ARGS);
-
-		assertEquals(ANNOTATION_ARG_STRING_WITH_ANNOTATIONS, annotationsLog);
 	}
 
 	private String doGetArgs(Method method, String methodName, String[] methodArgNames, Class<?>[] methodArgTypes, Object[] methodArgs)
