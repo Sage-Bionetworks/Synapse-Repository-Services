@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -257,4 +258,16 @@ public class SynapseTest {
 		when(mockResponse.getEntity()).thenReturn(responseEntity);
 		synapse.createAccessApproval(aa);
 	}
+	
+	@Test
+	public void testGetVersionInfo() throws Exception {
+		VersionInfo expectedVersion = new VersionInfo();
+		expectedVersion.setVersion("versionString");
+		String jsonString = EntityFactory.createJSONStringForEntity(expectedVersion);
+		StringEntity responseEntity = new StringEntity(jsonString);
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		VersionInfo vi = synapse.getVersionInfo();
+		assertNotNull(vi);
+		assertEquals(vi, expectedVersion);
+	};
 }

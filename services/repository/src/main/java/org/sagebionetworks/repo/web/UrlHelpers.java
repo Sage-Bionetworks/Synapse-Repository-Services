@@ -116,7 +116,7 @@ public class UrlHelpers {
 	public static final String ENTITY	 = PrefixConst.ENTITY;
 	public static final String USER_PROFILE  = PrefixConst.USER_PROFILE;
 	public static final String HEALTHCHECK = PrefixConst.HEALTHCHECK;
-	
+	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;	
 	/**
 	 * All of the base URLs for Synapse object batch requests
 	 */
