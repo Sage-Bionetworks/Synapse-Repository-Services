@@ -23,8 +23,6 @@ public class ActivityLogger {
 
 	private boolean shouldProfile;
 
-	private boolean shouldLogAnnotations = false;
-
 	public static Log getLog() {
 		return log;
 	}
@@ -39,14 +37,6 @@ public class ActivityLogger {
 
 	public void setShouldProfile(boolean shouldProfile) {
 		this.shouldProfile = shouldProfile;
-	}
-
-	public boolean shouldLogAnnotations() {
-		return shouldLogAnnotations;
-	}
-
-	public void setShouldLogAnnotations(boolean shouldLogAnnotations) {
-		this.shouldLogAnnotations = shouldLogAnnotations;
 	}
 
 	public ActivityLogger() {
@@ -108,9 +98,7 @@ public class ActivityLogger {
 			return Arrays.toString(args);
 		}
 		String[] parameterNames = sig.getParameterNames();
-		Annotation[][] parameterAnnotations = method.getParameterAnnotations();
 
-		String annotationSep = "";
 		String argSep = "";
 
 		StringBuilder argString = new StringBuilder();
@@ -119,22 +107,10 @@ public class ActivityLogger {
 			argString.append(argSep);
 			argString.append(parameterNames[i]);
 
-			if (shouldLogAnnotations && parameterAnnotations[i].length > 0) {
-				argString.append("{");
-				for (Annotation annotation : parameterAnnotations[i]) {
-					argString.append(annotationSep);
-					argString.append(annotation.toString());
-					annotation.annotationType();
-
-					annotationSep = ";";
-				}
-				argString.append("}");
-			}
 			argString.append("=");
 
 			argString.append(args[i]);
 			// Reset for next iteration
-			annotationSep = "";
 			argSep = ",";
 		}
 
