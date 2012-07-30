@@ -305,7 +305,7 @@ public class SynapseTest {
 		EntityBundle eb2 = synapse.getEntityBundle(s.getId(), mask);
 		
 		Study s2 = (Study) eb2.getEntity();
-		assertEquals(s, s2);
+		assertEquals("Retrieved Entity in bundle does not match original one", s, s2);
 		
 		Annotations a2 = eb2.getAnnotations();
 		assertEquals("Retrieved Annotations in bundle do not match original ones", a, a2);

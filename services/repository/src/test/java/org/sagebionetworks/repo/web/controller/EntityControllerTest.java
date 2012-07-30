@@ -18,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Code;
@@ -26,9 +27,12 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -276,6 +280,20 @@ public class EntityControllerTest {
 		String id = p2.getId();
 		toDelete.add(id);
 		
+		Study s1 = new Study();
+		s1.setName("Dummy Study 1");
+		s1.setEntityType(s1.getClass().getName());
+		s1.setParentId(id);
+		s1 = (Study) entityServletHelper.createEntity(s1, TEST_USER1);
+		toDelete.add(s1.getId());
+		
+		Study s2 = new Study();
+		s2.setName("Dummy Study 2");
+		s2.setEntityType(s2.getClass().getName());
+		s2.setParentId(id);
+		s2 = (Study) entityServletHelper.createEntity(s2, TEST_USER1);
+		toDelete.add(s2.getId());
+		
 		// Get/add/update annotations for this entity
 		Annotations a = entityServletHelper.getEntityAnnotaions(id, TEST_USER1);
 		a.addAnnotation("doubleAnno", new Double(45.0001));
@@ -286,7 +304,12 @@ public class EntityControllerTest {
 		int mask =  EntityBundle.ENTITY | 
 					EntityBundle.ANNOTATIONS |
 					EntityBundle.PERMISSIONS |
-					EntityBundle.ENTITY_PATH;
+					EntityBundle.ENTITY_PATH |
+					EntityBundle.ENTITY_REFERENCEDBY |
+					EntityBundle.CHILD_COUNT |
+					EntityBundle.ACL |
+					EntityBundle.USERS |
+					EntityBundle.GROUPS;
 		EntityBundle eb = entityServletHelper.getEntityBundle(id, mask, TEST_USER1);
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
@@ -304,6 +327,22 @@ public class EntityControllerTest {
 		EntityPath path = eb.getPath();
 		assertNotNull("Path was requested, but null in bundle", path);
 		assertNotNull("Invalid path", path.getPath());
+		
+		PaginatedResults<EntityHeader> rb = eb.getReferencedBy();
+		assertNotNull("ReferencedBy was requested, but null in bundle", rb);
+		
+		Long cc = eb.getChildCount();
+		assertNotNull("ChildCount was requested, but null in bundle", cc);
+		assertEquals("Incorrect ChildCount", 2, cc.intValue());
+		
+		AccessControlList acl = eb.getAccessControlList();
+		assertNotNull("AccessControlList was requested, but null in bundle", acl);
+		
+		PaginatedResults<UserProfile> up = eb.getUsers();
+		assertNotNull("Users was requested, but null in bundle", up);
+		
+		PaginatedResults<UserGroup> ug = eb.getGroups();
+		assertNotNull("UserGroups was requested, but null in bundle", ug);
 	}
 	
 	@Test
@@ -337,7 +376,21 @@ public class EntityControllerTest {
 		assertNull("Permissions were not requested, but were returned in bundle", uep);
 		
 		EntityPath path = eb.getPath();
-		assertNull("Path was not requested, but was returned in bundle", path);
+		assertNull("Path was not requested, but were returned in bundle", path);
+		
+		PaginatedResults<EntityHeader> rb = eb.getReferencedBy();
+		assertNull("ReferencedBy was not requested, but were returned in bundle", rb);
+		
+		Long cc = eb.getChildCount();
+		assertNull("ChildCount was not requested, but were returned in bundle", cc);
+		
+		AccessControlList acl = eb.getAccessControlList();
+		assertNull("AccessControlList was not requested, but were returned in bundle", acl);
+		
+		PaginatedResults<UserProfile> up = eb.getUsers();
+		assertNull("Users were not requested, but were returned in bundle", up);
+		
+		PaginatedResults<UserGroup> ug = eb.getGroups();
+		assertNull("UserGroups were not requested, but were returned in bundle", ug);
 	}
-
 }
