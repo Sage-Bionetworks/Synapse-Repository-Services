@@ -63,7 +63,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 				AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())){
 			return getAnonymousUserProfile(userInfo.getIndividualGroup().getId());
 		}
-		
+
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		UserProfile userProfile = userProfileDAO.get(ownerId, schema);
 		boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
@@ -88,7 +88,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		anonymousUserProfile.setLastName("");
 		return anonymousUserProfile;
 	}
-	
+
 	/**
 	 * Get the public profiles of the users in the system, paginated
 	 * 
