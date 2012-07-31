@@ -5,10 +5,8 @@
             "type":"array",
             "description":"The list of concet URI.",
             "items":{
-                "type":"string",
-                
+                "type":"string"                
             }
-        },
-        
+        }        
     }
 }

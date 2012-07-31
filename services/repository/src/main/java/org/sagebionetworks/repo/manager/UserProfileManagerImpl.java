@@ -5,6 +5,7 @@ package org.sagebionetworks.repo.manager;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -56,6 +57,12 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	@Override
 	public UserProfile getUserProfile(UserInfo userInfo, String ownerId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
+		//if the user is set, and it's the anonymous user, then return an anonymous profile
+		if (userInfo != null && userInfo.getUser() != null && userInfo.getUser().getUserId() != null && 
+				AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())){
+			return getAnonymousUserProfile(userInfo.getIndividualGroup().getId());
+		}
+
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		UserProfile userProfile = userProfileDAO.get(ownerId, schema);
 		boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
@@ -63,6 +70,21 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			UserProfileManagerUtils.clearPrivateFields(userProfile);
 		}
 		return userProfile;
+	}
+
+	/**
+	 * Returns the anonymous user's profile - essentially an empty profile that points to the correct principle id
+	 * @param principleId
+	 * @return
+	 */
+	private UserProfile getAnonymousUserProfile(String principleId){
+		UserProfile anonymousUserProfile = new UserProfile();
+		anonymousUserProfile.setOwnerId(principleId);
+		anonymousUserProfile.setUserName(AuthorizationConstants.ANONYMOUS_USER_ID);
+		anonymousUserProfile.setDisplayName(AuthorizationConstants.ANONYMOUS_USER_DISPLAY_NAME);
+		anonymousUserProfile.setFirstName(AuthorizationConstants.ANONYMOUS_USER_DISPLAY_NAME);
+		anonymousUserProfile.setLastName("");
+		return anonymousUserProfile;
 	}
 
 	/**

@@ -1,25 +1,25 @@
 {
-    "description":"JSON schema for S3Token POJO, TODO add regular expressions to all of these to check validity",
-    "implements":[
-        {
-            "$ref":"org.sagebionetworks.repo.model.S3TokenBase"
-        }        
-    ],
-    "properties":{
-        "path":{
-            "type":"string",  
-        },
-        "accessKeyId":{
-            "type":"string",  
-        },
-        "secretAccessKey":{
-            "type":"string",  
-        },
-        "sessionToken":{
-            "type":"string",  
-        },
-        "bucket":{
-            "type":"string",  
-        },
-    }
+	"description": "JSON schema for S3Token POJO, TODO add regular expressions to all of these to check validity",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.S3TokenBase"
+		}
+	],
+	"properties": {
+		"path": {
+			"type": "string"
+		},
+		"accessKeyId": {
+			"type": "string"
+		},
+		"secretAccessKey": {
+			"type": "string"
+		},
+		"sessionToken": {
+			"type": "string"
+		},
+		"bucket": {
+			"type": "string"
+		}
+	}
 }
