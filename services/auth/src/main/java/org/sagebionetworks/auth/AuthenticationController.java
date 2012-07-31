@@ -137,8 +137,6 @@ public class AuthenticationController extends BaseController {
 		return true;
 	}
 	
-	private static final String TERMS_OF_USE_ERROR_MESSAGE = "You need to sign the Synapse Terms of Use.   This may be done by logging in to Synapse on the Web.";
-	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/session", method = RequestMethod.POST)
 	public @ResponseBody
@@ -153,7 +151,7 @@ public class AuthenticationController extends BaseController {
 			if (session==null) { // not using cache or not found in cache
 				session = CrowdAuthUtil.authenticate(credentials, true);
 				if (!acceptsTermsOfUse(credentials.getEmail(), credentials.isAcceptsTermsOfUse()))
-					throw new ForbiddenException(TERMS_OF_USE_ERROR_MESSAGE);
+					throw new ForbiddenException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
 				if (cacheTimeout>0) {
 					sessionCache.put(credentials, session);
 				}
@@ -315,7 +313,7 @@ public class AuthenticationController extends BaseController {
 	public void revalidate(@RequestBody Session session) throws Exception {
 		String userId = CrowdAuthUtil.revalidate(session.getSessionToken());
 		if (!acceptsTermsOfUse(userId, false /*i.e. may have accepted TOU previously, but acceptance is not given in this request*/)) {
-			throw new ForbiddenException(TERMS_OF_USE_ERROR_MESSAGE);
+			throw new ForbiddenException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
 		}
 	}
 
