@@ -197,6 +197,8 @@ public class ServiceConstants {
 		return;
 	}
 
-	public static enum AttachmentType {ENTITY, USER_PROFILE};
+	public static enum AttachmentType {ENTITY, USER_PROFILE}
+
+	public static final String TERMS_OF_USE_ERROR_MESSAGE = "You need to sign the Synapse Terms of Use.   This may be done by logging in to Synapse on the Web.";;
 	
 }
