@@ -17,6 +17,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.sagebionetworks.repo.web.controller.ActivityLoggerTestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -54,7 +55,7 @@ public class ActivityLoggerTest {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		Class<TestClass> clazz = TestClass.class;
+		Class<ActivityLoggerTestHelper> clazz = ActivityLoggerTestHelper.class;
 		Method[] declaredMethods = clazz.getDeclaredMethods();
 		for (Method method : declaredMethods) {
 			if (method.getName().equalsIgnoreCase(SIMPLE_METHOD_NAME)) {
@@ -88,7 +89,7 @@ public class ActivityLoggerTest {
 
 	private String doGetArgs(Method method, String methodName, String[] methodArgNames, Class<?>[] methodArgTypes, Object[] methodArgs)
 			throws NoSuchMethodException, UnsupportedEncodingException {
-		Class<? extends TestClass> classTestClass = TestClass.class;
+		Class<? extends ActivityLoggerTestHelper> classTestClass = ActivityLoggerTestHelper.class;
 
 		MethodSignature mockSig = mock(MethodSignature.class);
 		when(mockSig.getName()).thenReturn(methodName);
@@ -106,7 +107,7 @@ public class ActivityLoggerTest {
 		when(mockPjp.getArgs()).thenReturn(ANNOTATION_METHOD_ARGS);
 		when(mockPjp.getSignature()).thenReturn(mockSig);
 
-		when(mockSig.getDeclaringType()).thenReturn(TestClass.class);
+		when(mockSig.getDeclaringType()).thenReturn(ActivityLoggerTestHelper.class);
 		when(mockSig.getMethod()).thenReturn(ANNOTATION_METHOD);
 		when(mockSig.getName()).thenReturn(ANNOTATION_METHOD_NAME);
 		when(mockSig.getParameterNames()).thenReturn(ANNOTATION_METHOD_PARAM_NAMES);
@@ -124,7 +125,7 @@ public class ActivityLoggerTest {
 
 		assertEquals(ANNOTATION_ARG_STRING, methodAndArgs[1].substring(indexOf + latencyArg.length()));
 
-		assertEquals(TestClass.class.getSimpleName(), classAndMethod[0]);
+		assertEquals(ActivityLoggerTestHelper.class.getSimpleName(), classAndMethod[0]);
 		assertEquals(classAndMethod[1], ANNOTATION_METHOD_NAME);
 	}
 }
