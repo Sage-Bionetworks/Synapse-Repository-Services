@@ -6,6 +6,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 
 import org.apache.commons.logging.Log;
@@ -16,6 +17,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.sagebionetworks.repo.web.controller.ActivityLoggerTestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -40,14 +42,10 @@ public class ActivityLoggerTest {
 	private static final Object[] ANNOTATION_METHOD_ARGS = new Object[] {"entityIdval", "userIdval"};
 
 	private static final String SIMPLE_ARG_STRING = SIMPLE_METHOD_PARAM_NAMES[0]+"="
-			+ SIMPLE_METHOD_ARGS[0] + ","+SIMPLE_METHOD_PARAM_NAMES[1]+"=" + SIMPLE_METHOD_ARGS[1];
+			+ SIMPLE_METHOD_ARGS[0] + "&"+SIMPLE_METHOD_PARAM_NAMES[1]+"=" + SIMPLE_METHOD_ARGS[1];
 
 	private static final String ANNOTATION_ARG_STRING = ANNOTATION_METHOD_PARAM_NAMES[0]+"="
-			+ ANNOTATION_METHOD_ARGS[0] + ","+ANNOTATION_METHOD_PARAM_NAMES[1]+"="
-			+ ANNOTATION_METHOD_ARGS[1];
-
-	private static final String ANNOTATION_ARG_STRING_WITH_ANNOTATIONS = ANNOTATION_METHOD_PARAM_NAMES[0]+"{@org.springframework.web.bind.annotation.PathVariable(value=)}="
-			+ ANNOTATION_METHOD_ARGS[0] + ","+ANNOTATION_METHOD_PARAM_NAMES[1]+"{@org.springframework.web.bind.annotation.RequestParam(value=userId, required=false, defaultValue=)}="
+			+ ANNOTATION_METHOD_ARGS[0] + "&"+ANNOTATION_METHOD_PARAM_NAMES[1]+"="
 			+ ANNOTATION_METHOD_ARGS[1];
 
 	@Autowired
@@ -57,7 +55,7 @@ public class ActivityLoggerTest {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		Class<TestClass> clazz = TestClass.class;
+		Class<ActivityLoggerTestHelper> clazz = ActivityLoggerTestHelper.class;
 		Method[] declaredMethods = clazz.getDeclaredMethods();
 		for (Method method : declaredMethods) {
 			if (method.getName().equalsIgnoreCase(SIMPLE_METHOD_NAME)) {
@@ -71,7 +69,6 @@ public class ActivityLoggerTest {
 
 	@Before
 	public void before() throws Exception {
-		activityLogger.setShouldLogAnnotations(false);
 		mockLog = mock(Log.class);
 		ActivityLogger.setLog(mockLog);
 	}
@@ -90,19 +87,9 @@ public class ActivityLoggerTest {
 		assertEquals(ANNOTATION_ARG_STRING, annotationsLog);
 	}
 
-	@Test
-	public void testGetArgsWithAnnotations() throws Exception {
-		activityLogger.setShouldLogAnnotations(true);
-
-		String annotationsLog = doGetArgs(ANNOTATION_METHOD, ANNOTATION_METHOD_NAME, ANNOTATION_METHOD_PARAM_NAMES,
-				ANNOTATION_METHOD_ARG_TYPES, ANNOTATION_METHOD_ARGS);
-
-		assertEquals(ANNOTATION_ARG_STRING_WITH_ANNOTATIONS, annotationsLog);
-	}
-
 	private String doGetArgs(Method method, String methodName, String[] methodArgNames, Class<?>[] methodArgTypes, Object[] methodArgs)
-			throws NoSuchMethodException {
-		Class<? extends TestClass> classTestClass = TestClass.class;
+			throws NoSuchMethodException, UnsupportedEncodingException {
+		Class<? extends ActivityLoggerTestHelper> classTestClass = ActivityLoggerTestHelper.class;
 
 		MethodSignature mockSig = mock(MethodSignature.class);
 		when(mockSig.getName()).thenReturn(methodName);
@@ -120,7 +107,7 @@ public class ActivityLoggerTest {
 		when(mockPjp.getArgs()).thenReturn(ANNOTATION_METHOD_ARGS);
 		when(mockPjp.getSignature()).thenReturn(mockSig);
 
-		when(mockSig.getDeclaringType()).thenReturn(TestClass.class);
+		when(mockSig.getDeclaringType()).thenReturn(ActivityLoggerTestHelper.class);
 		when(mockSig.getMethod()).thenReturn(ANNOTATION_METHOD);
 		when(mockSig.getName()).thenReturn(ANNOTATION_METHOD_NAME);
 		when(mockSig.getParameterNames()).thenReturn(ANNOTATION_METHOD_PARAM_NAMES);
@@ -129,8 +116,16 @@ public class ActivityLoggerTest {
 
 		ArgumentCaptor<String> arg = ArgumentCaptor.forClass(String.class);
 		verify(mockLog).trace(arg.capture());
-		System.out.println(arg.getValue());
-		String expected = "TestClass.testAnnotationsMethod(id=entityIdval,userId=userIdval)";
-		assertEquals(expected, arg.getValue().split(" ")[1]);
+
+		String[] methodAndArgs = arg.getValue().split("\\?");
+		String[] classAndMethod = methodAndArgs[0].split("/");
+
+		String latencyArg = "latency=0&";
+		int indexOf = methodAndArgs[1].indexOf(latencyArg);
+
+		assertEquals(ANNOTATION_ARG_STRING, methodAndArgs[1].substring(indexOf + latencyArg.length()));
+
+		assertEquals(ActivityLoggerTestHelper.class.getSimpleName(), classAndMethod[0]);
+		assertEquals(classAndMethod[1], ANNOTATION_METHOD_NAME);
 	}
 }

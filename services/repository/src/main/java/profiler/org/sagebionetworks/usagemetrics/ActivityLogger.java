@@ -1,5 +1,8 @@
 package profiler.org.sagebionetworks.usagemetrics;
 
+import static java.net.URLEncoder.encode;
+
+import java.io.UnsupportedEncodingException;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -23,8 +26,6 @@ public class ActivityLogger {
 
 	private boolean shouldProfile;
 
-	private boolean shouldLogAnnotations = false;
-
 	public static Log getLog() {
 		return log;
 	}
@@ -41,19 +42,21 @@ public class ActivityLogger {
 		this.shouldProfile = shouldProfile;
 	}
 
-	public boolean shouldLogAnnotations() {
-		return shouldLogAnnotations;
-	}
-
-	public void setShouldLogAnnotations(boolean shouldLogAnnotations) {
-		this.shouldLogAnnotations = shouldLogAnnotations;
-	}
-
 	public ActivityLogger() {
 	}
 
-	@Around("profiler.org.sagebionetworks.usagemetrics.SystemArchitecture.isWebService() && " +
-			"execution(* org.sagebionetworks.repo.web.controller.BasicEntityController.*(..))")
+	/**
+	 * A method to do basic logging of all calls to the REST service.
+	 * It logs like this: ClassName/MethodName?latency=<time-in-ms>[&argName=argValue]...
+	 * argValue is just the result of calling toString on the argument object.
+	 * All argValue's are {@link java.net.URLEncoder#encode(String, String) URLEncoded}.
+	 * @param pjp
+	 * @return
+	 * @throws Throwable
+	 */
+	@Around("@within(org.springframework.stereotype.Controller) &&" +
+			"@annotation(org.springframework.web.bind.annotation.ResponseStatus) &&" +
+			"execution(* org.sagebionetworks.repo.web.controller.*.*(..))")
 	public Object doBasicLogging(ProceedingJoinPoint pjp) throws Throwable {
 		if (!this.shouldProfile){
 			//if turned off, just proceed with method
@@ -77,38 +80,45 @@ public class ActivityLogger {
 		String methodName = signature.getName();
 
 		Class<?> declaringClass = signature.getDeclaringType();
+		String args;
 
-		String args = getArgs(declaringClass, signature, pjp.getArgs());
+		try {
+			args = getArgs(declaringClass, signature, pjp.getArgs());
+		} catch (UnsupportedEncodingException e) {
+			log.error("Could not properly encode arguments", e);
+			args = Arrays.toString(pjp.getArgs());
+		}
+
 
 		//converting from nanoseconds to milliseconds
 		long latencyMS = (end - start) / NANOSECOND_PER_MILLISECOND;
 
-		LogData logData = createLogData(latencyMS, declaringClass, methodName, args);
+		String toLog = String.format("%s/%s?latency=%d&%s",
+				declaringClass.getSimpleName(), methodName, latencyMS, args);
 
-		log.trace(logData.toString());
+		log.trace(toLog);
 
 		return result;
 	}
 
 	/**
 	 * Method for returning a coherent arg string from the relevant information.
-	 * We probably want to use the org.springframework.core.LocalVariableTableParameterNameDiscoverer
-	 * because this is how spring discovers parameter names.
 	 * @param declaringClass the class that declared the join point
 	 * @param sig method signature from the join point
 	 * @param args list of actual arguments to be passed to the join point
 	 * @return
+	 * @throws UnsupportedEncodingException
 	 */
-	public String getArgs(Class<?> declaringClass, MethodSignature sig, Object[] args) {
+	public String getArgs(Class<?> declaringClass, MethodSignature sig, Object[] args) throws UnsupportedEncodingException {
 		Method method = sig.getMethod();
 
 		if (method == null) {
 			return Arrays.toString(args);
 		}
 		String[] parameterNames = sig.getParameterNames();
-		Annotation[][] parameterAnnotations = method.getParameterAnnotations();
 
-		String annotationSep = "";
+		String encoding = "UTF-8";
+
 		String argSep = "";
 
 		StringBuilder argString = new StringBuilder();
@@ -117,43 +127,14 @@ public class ActivityLogger {
 			argString.append(argSep);
 			argString.append(parameterNames[i]);
 
-			if (shouldLogAnnotations && parameterAnnotations[i].length > 0) {
-				argString.append("{");
-				for (Annotation annotation : parameterAnnotations[i]) {
-					argString.append(annotationSep);
-					argString.append(annotation.toString());
-					annotation.annotationType();
-
-					annotationSep = ";";
-				}
-				argString.append("}");
-			}
 			argString.append("=");
-
-			argString.append(args[i]);
+			if (args[i] != null)
+				argString.append(encode(args[i].toString(), encoding));
 			// Reset for next iteration
-			annotationSep = "";
-			argSep = ",";
+			argSep = "&";
 		}
 
 		return argString.toString();
-	}
-
-	LogData createLogData(long latencyMS, Class<?> declaringClass,
-			String methodName, String args) {
-		// No null arguments
-		if (declaringClass == null || methodName == null || args == null) {
-			throw (new IllegalArgumentException());
-		}
-
-		LogData logData = new LogData();
-
-		logData.setLatency(latencyMS);
-		logData.setController(declaringClass);
-		logData.setServiceCall(methodName);
-		logData.setArgs(args);
-
-		return logData;
 	}
 
 }
