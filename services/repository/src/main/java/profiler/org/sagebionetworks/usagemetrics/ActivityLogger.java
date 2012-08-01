@@ -45,6 +45,15 @@ public class ActivityLogger {
 	public ActivityLogger() {
 	}
 
+	/**
+	 * A method to do basic logging of all calls to the REST service.
+	 * It logs like this: ClassName/MethodName?latency=<time-in-ms>[&argName=argValue]...
+	 * argValue is just the result of calling toString on the argument object.
+	 * All argValue's are {@link java.net.URLEncoder#encode(String, String) URLEncoded}.
+	 * @param pjp
+	 * @return
+	 * @throws Throwable
+	 */
 	@Around("@within(org.springframework.stereotype.Controller) &&" +
 			"@annotation(org.springframework.web.bind.annotation.ResponseStatus) &&" +
 			"execution(* org.sagebionetworks.repo.web.controller.*.*(..))")
@@ -119,7 +128,7 @@ public class ActivityLogger {
 			argString.append(parameterNames[i]);
 
 			argString.append("=");
-			if (args[i] != null) 
+			if (args[i] != null)
 				argString.append(encode(args[i].toString(), encoding));
 			// Reset for next iteration
 			argSep = "&";
