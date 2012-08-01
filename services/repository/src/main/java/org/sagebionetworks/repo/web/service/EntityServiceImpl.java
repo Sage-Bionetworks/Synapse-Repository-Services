@@ -1,8 +1,14 @@
-package org.sagebionetworks.repo.web;
+package org.sagebionetworks.repo.web.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -28,14 +34,23 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.attachment.PresignedUrl;
+import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
+import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.PaginatedParameters;
+import org.sagebionetworks.repo.web.QueryUtils;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.MetadataProviderFactory;
+import org.sagebionetworks.repo.web.controller.QueryTranslator;
 import org.sagebionetworks.repo.web.controller.metadata.AllTypesValidator;
 import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
 import org.sagebionetworks.repo.web.controller.metadata.EventType;
 import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
+import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 
@@ -53,7 +68,7 @@ import org.springframework.dao.DeadlockLoserDataAccessException;
  *            the particular type of entity the controller is managing
  */
 @SuppressWarnings({"rawtypes","unchecked"})
-public class GenericEntityControllerImpl implements GenericEntityController {
+public class EntityServiceImpl implements EntityService {
 	
 	@Autowired
 	NodeQueryDao nodeQueryDao;
@@ -70,9 +85,29 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	@Autowired
 	private AllTypesValidator allTypesValidator;
 	
-	public GenericEntityControllerImpl(){
-		
+	// Use a static instance of this per
+	// http://wiki.fasterxml.com/JacksonBestPracticesPerformance
+	private static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
+	private static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = 
+			"select id from entity where parentId == '";
+	private static final String excludedDatasetProperties[] = { "uri", "etag",
+			"annotations", "layer" };
+	private static final String excludedLayerProperties[] = { "uri", "etag",
+			"annotations", "preview", "locations" };
+	private static final Map<String, Set<String>> EXCLUDED_PROPERTIES;
+
+	static {
+		Set<String> datasetProperties = new HashSet<String>();
+		datasetProperties.addAll(Arrays.asList(excludedDatasetProperties));
+		Set<String> layerProperties = new HashSet<String>();
+		layerProperties.addAll(Arrays.asList(excludedLayerProperties));
+		Map<String, Set<String>> excludedProperties = new HashMap<String, Set<String>>();
+		excludedProperties.put("dataset", datasetProperties);
+		excludedProperties.put("layer", layerProperties);
+		EXCLUDED_PROPERTIES = Collections.unmodifiableMap(excludedProperties);
 	}
+	
+	public EntityServiceImpl(){}
 	
 
 	/**
@@ -80,7 +115,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	 * @param entitiesAccessor
 	 * @param entityManager
 	 */
-	GenericEntityControllerImpl(EntityManager entityManager) {
+	public EntityServiceImpl(EntityManager entityManager) {
 		super();
 		this.entityManager = entityManager;
 	}
@@ -163,41 +198,6 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 				versionNumbers.size(), offset, limit, "versionNumber", false);
 	}
 	
-	/**
-	 * First, execute the given query to determine the nodes that match the criteria.
-	 * Then, for each node id, fetch the entity and build up the paginated results.
-	 * 
-	 * @param <T>
-	 * @param paging
-	 * @param request
-	 * @param clazz
-	 * @param userInfo
-	 * @param nodeResults
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	private <T extends Entity> PaginatedResults<T> executeQueryAndConvertToEntites(
-			PaginatedParameters paging,
-			HttpServletRequest request,
-			Class<? extends T> clazz,
-			UserInfo userInfo,
-			BasicQuery query) throws NotFoundException,
-			DatastoreException, UnauthorizedException {
-		// First execute the query.
-		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
-		// Fetch each entity
-		List<T> entityList = new ArrayList<T>();
-		for(String id: nodeResults.getResultIds()){
-			T entity = this.getEntity(userInfo, id, request, clazz, EventType.GET);
-			entityList.add(entity);
-		}
-		return new PaginatedResults<T>(request.getServletPath()
-				+ UrlHelpers.ENTITY, entityList,
-				nodeResults.getTotalNumberOfResults(), paging.getOffset(), paging.getLimit(), paging.getSortBy(), paging.getAscending());
-	}
-
 	@Override
 	public <T extends Entity> T getEntity(String userId, String id, HttpServletRequest request, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -432,7 +432,7 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	private void addServiceSpecificMetadata(String id, Annotations annotations,
 			HttpServletRequest request) {
 		annotations.setId(id); // the NON url-encoded id
-		annotations.setUri(UrlHelpers.makeEntityPropertyUri(request));
+		annotations.setUri(UrlHelpers.makeEntityAnnotationsUri(id));
 	}
 
 	@Override
@@ -496,7 +496,14 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		return executeQueryAndConvertToEntites(paging, request, clazz, userInfo, query);
 	}
 	
-	
+	@Override
+	public Long getChildCount(String userId, String entityId, HttpServletRequest request) throws DatastoreException, ParseException, NotFoundException, UnauthorizedException {
+		String queryString = SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID + entityId + 
+				LIMIT_1_OFFSET_1;
+		QueryResults qr = query(userId, queryString, request);
+		return qr.getTotalNumberOfResults();
+	}
+
 	@Override
 	public <T extends Entity> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,	HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
@@ -585,16 +592,6 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 	}
 
 
-	@Override
-	public QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
-		if(query == null) throw new IllegalArgumentException("Query cannot be null");
-		// Lookup the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
-		// done
-		return new QueryResults(nodeResults.getAllSelectedData(), nodeResults.getTotalNumberOfResults());
-	}
-	
 	/**
 	 * determine whether a user has the given access type for a given entity
 	 * @param nodeId
@@ -660,27 +657,132 @@ public class GenericEntityControllerImpl implements GenericEntityController {
 		return new PaginatedResults(urlPath,  results.getEntityHeaders(), results.getTotalNumberOfResults(), offset, limit, /*sort*/null, /*ascending*/true);
 	}
 
-
 	@Override
 	public UserEntityPermissions getUserEntityPermissions(String userId, String entityId) throws NotFoundException, DatastoreException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		// TODO Auto-generated method stub
 		return permissionsManager.getUserPermissionsForEntity(userInfo, entityId);
 	}
-
-
-
-
+	
 	@Override
 	public String throwDeadlockException(DeadlockLoserDataAccessException toThrow) {
 		throw toThrow;
 	}
 
 
+	@Override
+	public S3AttachmentToken createS3AttachmentToken(String userId, String entityId,
+			S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException {
+		return entityManager.createS3AttachmentToken(userId, entityId, token);
+	}
+
+	@Override
+	public PresignedUrl getAttachmentUrl(String userId, String entityId,
+			String tokenId) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+		return entityManager.getAttachmentUrl(userId, entityId, tokenId);
+	}
+
+	
+	/**
+	 * ===== Query services =====
+	 */
+	
+	/**
+	 * @param userId
+	 * @param query
+	 * @param request
+	 * @return paginated results
+	 * @throws DatastoreException
+	 * @throws ParseException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	@Override
+	public QueryResults query(String userId, String query, HttpServletRequest request) 
+			throws DatastoreException, ParseException, NotFoundException, UnauthorizedException {
+		// Parse and validate the query
+		QueryStatement stmt = new QueryStatement(query);
+		// Convert from a query statement to a basic query
+		BasicQuery basic = QueryTranslator.createBasicQuery(stmt);
+		QueryResults results = executeQueryWithAnnotations(userId, basic, request);
+		results.setResults(formulateResult(stmt, results.getResults()));
+		return results;
+	}
+	
+	@Override
+	public QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
+		if(query == null) throw new IllegalArgumentException("Query cannot be null");
+		// Lookup the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
+		// done
+		return new QueryResults(nodeResults.getAllSelectedData(), nodeResults.getTotalNumberOfResults());
+	}
 
 
+	/**
+	 * First, execute the given query to determine the nodes that match the criteria.
+	 * Then, for each node id, fetch the entity and build up the paginated results.
+	 * 
+	 * @param <T>
+	 * @param paging
+	 * @param request
+	 * @param clazz
+	 * @param userInfo
+	 * @param nodeResults
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	private <T extends Entity> PaginatedResults<T> executeQueryAndConvertToEntites(
+			PaginatedParameters paging,
+			HttpServletRequest request,
+			Class<? extends T> clazz,
+			UserInfo userInfo,
+			BasicQuery query) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
+		// First execute the query.
+		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
+		// Fetch each entity
+		List<T> entityList = new ArrayList<T>();
+		for(String id: nodeResults.getResultIds()){
+			T entity = this.getEntity(userInfo, id, request, clazz, EventType.GET);
+			entityList.add(entity);
+		}
+		return new PaginatedResults<T>(request.getServletPath()
+				+ UrlHelpers.ENTITY, entityList,
+				nodeResults.getTotalNumberOfResults(), paging.getOffset(), paging.getLimit(), paging.getSortBy(), paging.getAscending());
+	}
 
 
+	/**
+	 * Process all of the results.
+	 * @param stmt
+	 * @param rows
+	 * @return
+	 */
+	private List<Map<String, Object>> formulateResult(QueryStatement stmt, List<Map<String, Object>> rows) {
+		List<Map<String, Object>> results = new ArrayList<Map<String,Object>>();
+		for(Map<String, Object> row: rows){
+			results.add(formulateResult(stmt, row));
+		}
+		return results;
+	}
 
-
+	private Map<String, Object> formulateResult(QueryStatement stmt,
+			Map<String, Object> fields) {
+		// TODO filter out un-requested fields when we support more than
+		// SELECT *
+		Map<String, Object> result = new HashMap<String, Object>();
+		for (String field : fields.keySet()) {
+			if (EXCLUDED_PROPERTIES.get("dataset").contains(field)) {
+				// skip this
+			} else {
+				result
+						.put(stmt.getTableName() + "." + field, fields
+								.get(field));
+			}
+		}
+		return result;
+	}	
 }

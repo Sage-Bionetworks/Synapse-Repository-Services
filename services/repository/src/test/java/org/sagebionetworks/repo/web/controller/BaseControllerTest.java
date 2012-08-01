@@ -37,7 +37,7 @@ public class BaseControllerTest {
 	
 	@Test
 	public void testDeadlockError(){
-		BasicEntityController controller = new BasicEntityController();
+		EntityController controller = new EntityController();
 		HttpServletRequest request = new MockHttpServletRequest();
 		ErrorResponse response = controller.handleDeadlockExceptions(new DeadlockLoserDataAccessException("Message", new BatchUpdateException()), request);
 		assertEquals(BaseController.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());

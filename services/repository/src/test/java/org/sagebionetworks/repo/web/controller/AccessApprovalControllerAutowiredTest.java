@@ -31,8 +31,8 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.test.context.ContextConfiguration;
@@ -51,7 +51,7 @@ public class AccessApprovalControllerAutowiredTest {
 
 	// Used for cleanup
 	@Autowired
-	private GenericEntityController entityController;
+	private EntityService entityController;
 	
 	@Autowired
 	private UserManager userManager;

@@ -4,22 +4,19 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.service.UserProfileService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -38,13 +35,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class UserProfileController extends BaseController {
 
 	@Autowired
-	UserProfileManager userProfileManager;
-	
-	@Autowired
-	UserManager userManager;
-
-	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;
+	UserProfileService userProfileService;
 
 	/**
 	 * Get a user profile
@@ -59,8 +50,7 @@ public class UserProfileController extends BaseController {
 	UserProfile getMyOwnUserProfile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.getUserProfile(userInfo, userInfo.getIndividualGroup().getId());
+		return userProfileService.getMyOwnUserProfile(userId);
 	}
 
 	/**
@@ -76,8 +66,7 @@ public class UserProfileController extends BaseController {
 	UserProfile getUserProfileByOwnerId(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String profileId) throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.getUserProfile(userInfo, profileId);
+		return userProfileService.getUserProfileByOwnerId(userId, profileId);
 	}
 
 	/**
@@ -96,19 +85,8 @@ public class UserProfileController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		long endExcl = offset+limit;
-		QueryResults<UserProfile >results = userProfileManager.getInRange(userInfo, offset, endExcl);
-		
-		return new PaginatedResults<UserProfile>(
-				request.getServletPath()+UrlHelpers.USER, 
-				results.getResults(),
-				(int)results.getTotalNumberOfResults(), 
-				offset, 
-				limit,
-				sort, 
-				ascending);
+			) throws DatastoreException, UnauthorizedException, NotFoundException {		
+		return userProfileService.getUserProfilesPaginated(request, userId, offset, limit, sort, ascending);
 	}
 
 	/**
@@ -128,12 +106,7 @@ public class UserProfileController extends BaseController {
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
-		if(etag != null){
-			entity.setEtag(etag.toString());
-		}
-		return userProfileManager.updateUserProfile(userInfo, entity);
+		return userProfileService.updateUserProfile(userId, header, etag, request);
 	}
 
 	/**
@@ -159,8 +132,7 @@ public class UserProfileController extends BaseController {
 			@PathVariable String profileId, @RequestBody S3AttachmentToken token,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.createS3UserProfileAttachmentToken(userInfo, profileId, token);
+		return userProfileService.createUserProfileS3AttachmentToken(userId, profileId, token, request);
 	}
 	/**
 	 * Create a token used to upload an attachment.
@@ -184,10 +156,7 @@ public class UserProfileController extends BaseController {
 			@RequestBody PresignedUrl url,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
-		if(url == null) throw new IllegalArgumentException("A PresignedUrl must be provided");
-		// Pass it along.
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.getUserProfileAttachmentUrl(userInfo, profileId, url.getTokenID());
+		return userProfileService.getUserProfileAttachmentUrl(userId, profileId, url, request);
 	}
 
 	
