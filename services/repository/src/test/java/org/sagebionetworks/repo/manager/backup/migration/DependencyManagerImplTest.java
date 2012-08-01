@@ -3,17 +3,18 @@ package org.sagebionetworks.repo.manager.backup.migration;
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyLong;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.MigratableDAO;
-import org.sagebionetworks.repo.model.ObjectData;
-import org.sagebionetworks.repo.model.ObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.jdo.ObjectDescriptorUtils;
@@ -24,12 +25,12 @@ public class DependencyManagerImplTest {
 	
 	private static final long LIST_SIZE = 3;
 	
-	private static QueryResults<ObjectData> generateMigrationData(long startId, long num, boolean isEntity) {
-		QueryResults<ObjectData> qr = new QueryResults<ObjectData>();
+	private static QueryResults<MigratableObjectData> generateMigrationData(long startId, long num, boolean isEntity) {
+		QueryResults<MigratableObjectData> qr = new QueryResults<MigratableObjectData>();
 		qr.setTotalNumberOfResults((int)LIST_SIZE);
-		List<ObjectData> results = new ArrayList<ObjectData>();
+		List<MigratableObjectData> results = new ArrayList<MigratableObjectData>();
 		for (int i=0; i<num; i++) {
-			ObjectData od = new ObjectData();
+			MigratableObjectData od = new MigratableObjectData();
 			if (isEntity) {
 				od.setId(ObjectDescriptorUtils.createEntityObjectDescriptor(startId++));
 			} else {
@@ -61,23 +62,23 @@ public class DependencyManagerImplTest {
 
 		dependencyManager.setMigratableDaos(migratableDaos);
 		int requestedNum = 5;
-		QueryResults<ObjectData> results = dependencyManager.getAllObjects(0, requestedNum, true);
+		QueryResults<MigratableObjectData> results = dependencyManager.getAllObjects(0, requestedNum, true);
 		
-		List<ObjectData> ods = results.getResults();
+		List<MigratableObjectData> ods = results.getResults();
 		assertEquals(requestedNum, ods.size());
 		assertEquals(2L*LIST_SIZE, results.getTotalNumberOfResults());
 		
 		// should get 3 from dao1 and 2 from dao2
 		for (int i=0; i<3L; i++) {
-			ObjectData od = ods.get(i);
-			ObjectDescriptor id = od.getId();
-			assertEquals(Entity.class.getName(), id.getType());
+			MigratableObjectData od = ods.get(i);
+			MigratableObjectDescriptor id = od.getId();
+			assertEquals(MigratableObjectType.Entity, id.getType());
 			assertEquals("syn"+i, id.getId());
 		}
 		for (int i=3; i<5L; i++) {
-			ObjectData od = ods.get(i);
-			ObjectDescriptor id = od.getId();
-			assertEquals(UserGroup.class.getName(), id.getType());
+			MigratableObjectData od = ods.get(i);
+			MigratableObjectDescriptor id = od.getId();
+			assertEquals(MigratableObjectType.UserGroup, id.getType());
 			assertEquals(""+i, id.getId());
 		}
 	}
@@ -101,17 +102,17 @@ public class DependencyManagerImplTest {
 
 		dependencyManager.setMigratableDaos(migratableDaos);
 		int requestedNum = 2;
-		QueryResults<ObjectData> results = dependencyManager.getAllObjects(3, requestedNum, true);
+		QueryResults<MigratableObjectData> results = dependencyManager.getAllObjects(3, requestedNum, true);
 		
-		List<ObjectData> ods = results.getResults();
+		List<MigratableObjectData> ods = results.getResults();
 		assertEquals(requestedNum, ods.size());
 		assertEquals(2L*LIST_SIZE, results.getTotalNumberOfResults());
 		
 		// should get 2 from dao2
 		for (int i=3; i<5L; i++) {
-			ObjectData od = ods.get(i-3);
-			ObjectDescriptor id = od.getId();
-			assertEquals(UserGroup.class.getName(), id.getType());
+			MigratableObjectData od = ods.get(i-3);
+			MigratableObjectDescriptor id = od.getId();
+			assertEquals(MigratableObjectType.UserGroup, id.getType());
 			assertEquals(""+i, id.getId());
 		}
 	}

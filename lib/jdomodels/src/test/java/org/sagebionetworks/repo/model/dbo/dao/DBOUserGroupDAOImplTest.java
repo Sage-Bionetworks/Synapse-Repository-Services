@@ -17,8 +17,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ObjectData;
-import org.sagebionetworks.repo.model.ObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -100,14 +101,14 @@ public class DBOUserGroupDAOImplTest {
 		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		String upId = userProfileDAO.create(up, schema); // this will be deleted via cascade when the user-group is deleted
 		
-		QueryResults<ObjectData> migrationData = userGroupDAO.getMigrationObjectData(0, 10000, true);
+		QueryResults<MigratableObjectData> migrationData = userGroupDAO.getMigrationObjectData(0, 10000, true);
 		assert(migrationData.getTotalNumberOfResults()>1);
 		assertEquals(migrationData.getTotalNumberOfResults(), migrationData.getResults().size());
 		
-		for (ObjectData od : migrationData.getResults()) {
-			ObjectDescriptor obj = od.getId();
+		for (MigratableObjectData od : migrationData.getResults()) {
+			MigratableObjectDescriptor obj = od.getId();
 			assertNotNull(obj.getId());
-			assertEquals(UserGroup.class.getName(), obj.getType());
+			assertEquals(MigratableObjectType.UserGroup, obj.getType());
 			assertNotNull(od.getEtag());
 			assertTrue(od.getDependencies().isEmpty()); // Groups are not dependent on any other migratable object
 			if (obj.getId().equals(ug.getId())) {

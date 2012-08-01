@@ -7,6 +7,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 import org.sagebionetworks.tool.migration.job.BuilderResponse;
 import org.sagebionetworks.tool.migration.job.Job;
@@ -68,14 +69,14 @@ public class SearchDocumentAddJobBuilder implements Callable<BuilderResponse> {
 			}
 
 			if (batchToAdd.size() >= this.batchSize) {
-				Job addJob = new Job(batchToAdd, Type.SEARCH_ADD);
+				Job addJob = new Job(batchToAdd, MigratableObjectType.Entity, Type.SEARCH_ADD);
 				this.queue.add(addJob);
 				batchToAdd = new HashSet<String>();
 			}
 		}
 		// Submit any adds left over
 		if (!batchToAdd.isEmpty()) {
-			Job addJob = new Job(batchToAdd, Type.SEARCH_ADD);
+			Job addJob = new Job(batchToAdd, MigratableObjectType.Entity, Type.SEARCH_ADD);
 			this.queue.add(addJob);
 			batchToAdd = new HashSet<String>();
 		}

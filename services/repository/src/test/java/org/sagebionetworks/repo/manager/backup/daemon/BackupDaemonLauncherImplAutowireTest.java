@@ -19,7 +19,7 @@ import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigrationType;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -71,14 +71,14 @@ public class BackupDaemonLauncherImplAutowireTest {
 	public void testNonAdminUserStartBackup() throws UnauthorizedException, DatastoreException{
 		UserInfo nonAdmin = testUserProvider.getTestUserInfo();
 		// A non-admin should not be able to start the daemon
-		backupDaemonLauncher.startBackup(nonAdmin, null, MigrationType.ENTITY);
+		backupDaemonLauncher.startBackup(nonAdmin, null, MigratableObjectType.Entity);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testNonAdminUserStartRestore() throws UnauthorizedException, DatastoreException{
 		UserInfo nonAdmin = testUserProvider.getTestUserInfo();
 		// A non-admin should not be able to start the daemon
-		backupDaemonLauncher.startRestore(nonAdmin, "SomeFile", MigrationType.ENTITY);
+		backupDaemonLauncher.startRestore(nonAdmin, "SomeFile", MigratableObjectType.Entity);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
@@ -109,7 +109,7 @@ public class BackupDaemonLauncherImplAutowireTest {
 		
 		// First start the backup daemon as an administrator
 		UserInfo admin = testUserProvider.getTestAdminUserInfo();
-		BackupRestoreStatus status = backupDaemonLauncher.startBackup(admin, null, MigrationType.ENTITY);
+		BackupRestoreStatus status = backupDaemonLauncher.startBackup(admin, null, MigratableObjectType.Entity);
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish
@@ -124,7 +124,7 @@ public class BackupDaemonLauncherImplAutowireTest {
 		nodeManager.delete(nonAdmin, id);
 		
 		// Now restore the node from the backup
-		status = backupDaemonLauncher.startRestore(admin, fileName, MigrationType.ENTITY);
+		status = backupDaemonLauncher.startRestore(admin, fileName, MigratableObjectType.Entity);
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish
@@ -162,7 +162,7 @@ public class BackupDaemonLauncherImplAutowireTest {
 		UserInfo admin = testUserProvider.getTestAdminUserInfo();
 		HashSet<String> batch = new HashSet<String>();
 		batch.add(id);
-		BackupRestoreStatus status = backupDaemonLauncher.startBackup(admin, batch, MigrationType.ENTITY);
+		BackupRestoreStatus status = backupDaemonLauncher.startBackup(admin, batch, MigratableObjectType.Entity);
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish
@@ -177,7 +177,7 @@ public class BackupDaemonLauncherImplAutowireTest {
 		nodeManager.delete(nonAdmin, id);
 		
 		// Now restore the node from the backup
-		status = backupDaemonLauncher.startRestore(admin, fileName, MigrationType.ENTITY);
+		status = backupDaemonLauncher.startRestore(admin, fileName, MigratableObjectType.Entity);
 		assertNotNull(status);
 		assertNotNull(status.getId());
 		// Wait for it finish

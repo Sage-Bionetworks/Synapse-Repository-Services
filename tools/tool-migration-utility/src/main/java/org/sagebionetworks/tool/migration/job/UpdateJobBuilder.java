@@ -1,5 +1,6 @@
 package org.sagebionetworks.tool.migration.job;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -7,7 +8,9 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
-import org.sagebionetworks.tool.migration.dao.EntityData;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.tool.migration.job.Job.Type;
 
 /**
@@ -18,8 +21,8 @@ import org.sagebionetworks.tool.migration.job.Job.Type;
  */
 public class UpdateJobBuilder implements Callable<BuilderResponse> {
 	
-	List<EntityData> sourceList;
-	Map<String, EntityData> destMap;
+	List<MigratableObjectData> sourceList;
+	Map<MigratableObjectDescriptor, MigratableObjectData> destMap;
 	private Queue<Job> queue;
 	private int batchSize;
 
@@ -31,7 +34,7 @@ public class UpdateJobBuilder implements Callable<BuilderResponse> {
 	 * @param queue
 	 * @param batchSize
 	 */
-	public UpdateJobBuilder(List<EntityData> sourceList, Map<String, EntityData> destMap, Queue<Job> queue, int batchSize) {
+	public UpdateJobBuilder(List<MigratableObjectData> sourceList, Map<MigratableObjectDescriptor, MigratableObjectData> destMap, Queue<Job> queue, int batchSize) {
 		super();
 		this.sourceList = sourceList;
 		this.destMap = destMap;
@@ -44,29 +47,41 @@ public class UpdateJobBuilder implements Callable<BuilderResponse> {
 		// Get the two clients		
 		int updateSubmitted = 0;
 		// Walk over the source list
-		Set<String> batchToUpdate = new HashSet<String>();
-		for(EntityData source: sourceList){
+		Map<MigratableObjectType, Set<String>> batchesToUpdate = new HashMap<MigratableObjectType, Set<String>>();
+		for(MigratableObjectData source: sourceList) {
 			// We only care about entities that already exist
-			EntityData destEtntiy = destMap.get(source.getEntityId());
-			if(destEtntiy != null){
+			MigratableObjectData destObject = destMap.get(source.getId());
+			if(destObject != null){
 				// Do the eTags match?
-				if(!source.geteTag().equals(destEtntiy.geteTag())){
-					// Tags do not match
-					batchToUpdate.add(source.getEntityId());
+				if(!source.getEtag().equals(destObject.getEtag())
+						// also check dependencies
+						&& JobUtil.dependenciesFulfilled(source, destMap.keySet())
+				) {
+					// Tags do not match. New dependencies are in place.  Let's migrate it!
+					MigratableObjectType objectType = source.getId().getType();
+					Set<String> batchToUpdate = batchesToUpdate.get(objectType);
+					if (batchToUpdate==null) {
+						batchToUpdate = new HashSet<String>();
+						batchesToUpdate.put(objectType, batchToUpdate);
+					}
+					batchToUpdate.add(source.getId().getId());
 					updateSubmitted++;
+					if(batchToUpdate.size() >= this.batchSize){
+						Job createJob = new Job(batchToUpdate, objectType, Type.UPDATE);
+						this.queue.add(createJob);
+						batchesToUpdate.remove(objectType);
+					}
 				}
 			}
-			if(batchToUpdate.size() >= this.batchSize){
-				Job createJob = new Job(batchToUpdate, Type.UPDATE);
-				this.queue.add(createJob);
-				batchToUpdate = new HashSet<String>();
-			}
 		}
-		// Submit any creates left over
-		if(!batchToUpdate.isEmpty()){
-			Job updateJob = new Job(batchToUpdate, Type.UPDATE);
-			this.queue.add(updateJob);
-			batchToUpdate = new HashSet<String>();
+		// Submit any updates left over
+		for (MigratableObjectType objectType : batchesToUpdate.keySet()) {
+			Set<String> batchToUpdate = batchesToUpdate.get(objectType);
+			if(!batchToUpdate.isEmpty()) {
+				Job updateJob = new Job(batchToUpdate, objectType, Type.UPDATE);
+				this.queue.add(updateJob);
+				batchesToUpdate.remove(objectType);
+			}
 		}
 		// Report the results.
 		return new BuilderResponse(updateSubmitted, 0);

@@ -174,7 +174,7 @@ public class StackStatusPresenter implements Runnable{
 				ClientFactoryImpl factory = new ClientFactoryImpl();
 				SynapseAdministration client = factory.createNewConnection(this.connectionInfo);
 				// Get the status
-				setProgresssValue(current++, "Getting stack status...");
+				setProgressValue(current++, "Getting stack status...");
 				StackStatus status = client.getCurrentStackStatus();
 				setStackStatus(status.getStatus().name());
 				
@@ -182,19 +182,19 @@ public class StackStatusPresenter implements Runnable{
 				// Get each entity type
 				for(EntityType type: EntityType.values()){
 					// Make some progress
-					setProgresssValue(current++, "Querying for "+type.name()+" count...");
+					setProgressValue(current++, "Querying for "+type.name()+" count...");
 					long count = queryRunner.getCountForType(type);
 					setCountForEntity(type, count);
 				}
 				
 				// Make some progress
-				setProgresssValue(current++, "Querying for total entity count...");
+				setProgressValue(current++, "Querying for total entity count...");
 				// Count the total number of entities
 				long total = queryRunner.getTotalEntityCount();
 				setTotalCount(total);
 				
 				// Finished
-				setProgresssValue(totalProgress, "Waiting for next run...");
+				setProgressValue(totalProgress, "Waiting for next run...");
 				
 				Thread.sleep(20000);
 			}catch(final Exception e){
@@ -251,7 +251,7 @@ public class StackStatusPresenter implements Runnable{
 	 * @param value
 	 * @param message
 	 */
-	private void setProgresssValue(final int value, final String message) {
+	private void setProgressValue(final int value, final String message) {
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {

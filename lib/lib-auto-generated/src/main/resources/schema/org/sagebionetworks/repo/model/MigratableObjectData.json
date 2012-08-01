@@ -2,7 +2,7 @@
  	"properties":{
          "id":{
         	"type":"object",
-             "$ref":"org.sagebionetworks.repo.model.ObjectDescriptor"
+             "$ref":"org.sagebionetworks.repo.model.MigratableObjectDescriptor"
          },
          "etag":{
         	"type":"string"
@@ -11,7 +11,7 @@
             "type":"array",
             "uniqueItems":true,
             "items":{
-                "$ref":"org.sagebionetworks.repo.model.ObjectDescriptor"
+           	  	"$ref":"org.sagebionetworks.repo.model.MigratableObjectDescriptor"
             }
  		 }	
 	}	

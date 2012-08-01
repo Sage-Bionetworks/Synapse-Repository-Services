@@ -45,11 +45,15 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
 	
+	private static final String SELECT_FOR_REQUIREMENT_SQL = 
+		"SELECT * FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
+		COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = "+COL_ACCESS_APPROVAL_REQUIREMENT_ID;
+
 	private static final String SELECT_FOR_REQUIREMENT_AND_PRINCIPAL_SQL = 
-			"SELECT * FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
-			COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+
-			") AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
-	
+		"SELECT * FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
+		COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+
+		") AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
+
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
 
@@ -131,6 +135,20 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			"=:"+COL_ACCESS_APPROVAL_ID+" for update";
 	
 	private static final TableMapping<DBOAccessApproval> TABLE_MAPPING = (new DBOAccessApproval()).getTableMapping();
+
+
+	@Override
+	public List<AccessApproval> getForAccessRequirement(String accessRequirementId) throws DatastoreException {
+		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
+		MapSqlParameterSource params = new MapSqlParameterSource();		
+		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
+		List<DBOAccessApproval> dbos = simpleJdbcTempalte.query(SELECT_FOR_REQUIREMENT_SQL, rowMapper, params);
+		for (DBOAccessApproval dbo : dbos) {
+			AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
+			dtos.add(dto);
+		}
+		return dtos;
+	}
 	
 
 }

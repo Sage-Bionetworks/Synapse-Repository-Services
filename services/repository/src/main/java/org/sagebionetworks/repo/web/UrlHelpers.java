@@ -109,7 +109,15 @@ public class UrlHelpers {
 	public static final String ATTACHMENT_S3_TOKEN = "/s3AttachmentToken";
 	
 	public static final String ATTACHMENT_URL = "/attachmentUrl";
+	
+	public static final String MIGRATION_OBJECT_ID_PARAM = "id";
 
+	/**
+	 * parameter used by migration services to describe the type of migration 
+	 * to be performed
+	 */
+	public static final String MIGRATION_TYPE_PARAM = "migrationType";
+	
 	/**
 	 * All of the base URLs for Synapse objects
 	 */

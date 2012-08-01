@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.backup.migration;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.ObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.QueryResults;
 
 /**
@@ -22,6 +22,6 @@ public interface DependencyManager {
 	 * @return
 	 * @throws DatastoreException 
 	 */
-	QueryResults<ObjectData> getAllObjects(long offset, long limit, boolean includeDependencies) throws DatastoreException;
+	QueryResults<MigratableObjectData> getAllObjects(long offset, long limit, boolean includeDependencies) throws DatastoreException;
 
 }

@@ -8,7 +8,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MigratableDAO;
-import org.sagebionetworks.repo.model.ObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.QueryResults;
 
 /**
@@ -35,14 +35,14 @@ public class DependencyManagerImpl implements DependencyManager {
 	}
 
 	@Override
-	public QueryResults<ObjectData> getAllObjects(long offset, long limit, boolean includeDependencies) throws DatastoreException {
+	public QueryResults<MigratableObjectData> getAllObjects(long offset, long limit, boolean includeDependencies) throws DatastoreException {
 			long total = 0L;
-			List<ObjectData> ods = new ArrayList<ObjectData>();
+			List<MigratableObjectData> ods = new ArrayList<MigratableObjectData>();
 			for (MigratableDAO migratableDAO : getMigratableDaos()) {
 				long numNeeded = limit-ods.size();
 				long localOffset = Math.max(0, offset-total); // offset relative to current DAO's results
 				if (numNeeded>0L) {
-					QueryResults<ObjectData> localResults = 
+					QueryResults<MigratableObjectData> localResults = 
 						migratableDAO.getMigrationObjectData(localOffset, numNeeded, includeDependencies);
 					ods.addAll(localResults.getResults());
 					total += localResults.getTotalNumberOfResults();
@@ -50,7 +50,7 @@ public class DependencyManagerImpl implements DependencyManager {
 					total += migratableDAO.getCount();
 				}
 			}
-			QueryResults<ObjectData> queryResults = new QueryResults<ObjectData>();
+			QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
 			queryResults.setResults(ods);
 			queryResults.setTotalNumberOfResults((int)total);
 			return queryResults;

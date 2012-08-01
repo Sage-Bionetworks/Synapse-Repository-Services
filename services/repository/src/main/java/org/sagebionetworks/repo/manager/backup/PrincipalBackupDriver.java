@@ -17,6 +17,7 @@ import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -30,7 +31,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class PrincipalBackupDriver implements NodeBackupDriver {
+public class PrincipalBackupDriver implements GenericBackupDriver {
 	public static final String PRINCIPAL_XML_FILE = "principals.xml";
 	
 	static private Log log = LogFactory.getLog(PrincipalBackupDriver.class);
@@ -62,7 +63,7 @@ public class PrincipalBackupDriver implements NodeBackupDriver {
 					"Destination file cannot be null");
 		if (!destination.exists())
 			throw new IllegalArgumentException(
-					"Destination file dose not exist: "
+					"Destination file does not exist: "
 							+ destination.getAbsolutePath());
 
 		// get the UserGroups, UserProfiles for the given IDs
@@ -193,6 +194,10 @@ public class PrincipalBackupDriver implements NodeBackupDriver {
 						// UserGroup doesn't exist and will be created
 						exists = false;
 					} else {
+						// This is a pretty bad state:  There is a group with my name but some other ID.
+						// This could happen for bootstrapped groups, but should not happen for any other groups.
+						// For bootstrapped groups, we clean up the database, delete the offending group and start over.
+						// For other groups, we can only throw an exception.
 						migrateUserGroup(nameMatchingUserGroup, srcUserGroup, progress);
 						exists = true;
 					}
@@ -206,8 +211,13 @@ public class PrincipalBackupDriver implements NodeBackupDriver {
 							// we're good-to-go
 							exists = true;
 						} else {
+							// As above, this is a pretty bad state:  There is one group using my ID and another group using my name.
+							// We try to recover by deleting the group who has appropriated my ID and then cleaning the database,
+							// deleting the group using my name and starting over.  
+							//
 							// need to delete the erroneous idMatchingUserGroup
 							deleteUserGroup(idMatchingUserGroup);
+							// now clean up the database and start over
 							migrateUserGroup(nameMatchingUserGroup, srcUserGroup, progress);
 							exists = true;
 						}
@@ -260,7 +270,7 @@ public class PrincipalBackupDriver implements NodeBackupDriver {
 	 * use under a different principal ID we proceed as follows:
 	 * (1) change the name of the existing user group;
 	 * (2) create the desired group
-	 * (3) update the dependent ResourceAccess, Entity, and Revision objects to the new UserGroup
+	 * (3) delete entities (to avoid foreign key violations in the next step).
 	 * (4) delete the original UserGroup
 	 * 
 	 * @param nameMatchingUserGroup
@@ -273,6 +283,10 @@ public class PrincipalBackupDriver implements NodeBackupDriver {
 	private void migrateUserGroup(UserGroup nameMatchingUserGroup, UserGroup srcUserGroup, Progress progress) throws DatastoreException, InvalidModelException, NotFoundException, ConflictingUpdateException {
 		String name = nameMatchingUserGroup.getName();
 		if (!name.equals(srcUserGroup.getName())) throw new IllegalStateException(name+" differs from "+srcUserGroup.getName());
+		
+		// The only time this should actually happen is when we are dealing with bootstrapped groups.
+		// If it happens elsewhere, give up and throw an exception.
+		if (!isBootstrappedPrincipal(name)) throw new IllegalStateException("Name collision found during migration of non-boostrapped principal: "+name);
 	
 		// change the name of the existing group
 		nameMatchingUserGroup.setName(nameMatchingUserGroup.getName()+"_"+System.currentTimeMillis());
@@ -293,6 +307,25 @@ public class PrincipalBackupDriver implements NodeBackupDriver {
 			progress.appendLog("Encountered exception deleting user group "+nameMatchingUserGroup.getId()+" "+nameMatchingUserGroup.getName());
 			progress.appendLog(e.getMessage());
 		}
+	}
+	
+	public static boolean isBootstrappedPrincipal(String name) {
+			boolean foundit = false;
+			for (DEFAULT_GROUPS g : DEFAULT_GROUPS.values()) {
+				if (g.name().equals(name)) foundit=true;
+			}
+			return foundit;
+	}
+
+	@Override
+	public void delete(String id) throws DatastoreException, NotFoundException {
+		UserGroup ug = userGroupDAO.get(id);
+		String name = ug.getName();
+		// The only time this should actually happen is when we are dealing with bootstrapped groups.
+		// If it happens elsewhere, give up and throw an exception.
+		if (!isBootstrappedPrincipal(name)) throw new IllegalStateException("Cannot delete "+name);
+		
+		deleteUserGroup(ug);
 	}
 
 

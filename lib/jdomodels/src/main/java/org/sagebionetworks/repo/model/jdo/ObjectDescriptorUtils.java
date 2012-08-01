@@ -1,27 +1,25 @@
 package org.sagebionetworks.repo.model.jdo;
 
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.ObjectDescriptor;
-import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 
 public class ObjectDescriptorUtils {
-	private static final String OBJECT_DESCRIPTOR_NODE_TYPE = Entity.class.getName();
-	private static final String OBJECT_DESCRIPTOR_PRINCIPAL_TYPE = UserGroup.class.getName();
+	private static final MigratableObjectType OBJECT_DESCRIPTOR_NODE_TYPE = MigratableObjectType.Entity;
+	private static final MigratableObjectType OBJECT_DESCRIPTOR_PRINCIPAL_TYPE = MigratableObjectType.UserGroup;
 	
-	public static ObjectDescriptor createObjectDescriptor(String id, String type) {
-		ObjectDescriptor obj = new ObjectDescriptor();
+	public static MigratableObjectDescriptor createObjectDescriptor(String id, MigratableObjectType type) {
+		MigratableObjectDescriptor obj = new MigratableObjectDescriptor();
 		obj.setId(id);
 		obj.setType(type);
 		return obj;
 	}
 	
-	public static ObjectDescriptor createEntityObjectDescriptor(long id) {
+	public static MigratableObjectDescriptor createEntityObjectDescriptor(long id) {
 		return createObjectDescriptor(KeyFactory.keyToString(id), OBJECT_DESCRIPTOR_NODE_TYPE);
 	}
 	
-	public static ObjectDescriptor createPrincipalObjectDescriptor(long principalId) {
+	public static MigratableObjectDescriptor createPrincipalObjectDescriptor(long principalId) {
 		return createObjectDescriptor(""+principalId, OBJECT_DESCRIPTOR_PRINCIPAL_TYPE);
 	}
-
 
 }

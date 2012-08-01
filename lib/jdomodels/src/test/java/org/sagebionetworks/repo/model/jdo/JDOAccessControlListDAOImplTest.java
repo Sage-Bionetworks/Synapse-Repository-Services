@@ -28,10 +28,11 @@ import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectData;
-import org.sagebionetworks.repo.model.ObjectDescriptor;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -161,16 +162,16 @@ public class JDOAccessControlListDAOImplTest {
 	@Test
 	public void testMigrationData() throws Exception {
 		// first check what happens if dependencies are NOT requested
-		QueryResults<ObjectData> results = nodeDAO.getMigrationObjectData(0, 10000, false);
-		List<ObjectData> ods = results.getResults();
+		QueryResults<MigratableObjectData> results = nodeDAO.getMigrationObjectData(0, 10000, false);
+		List<MigratableObjectData> ods = results.getResults();
 		assertEquals(ods.size(), results.getTotalNumberOfResults());
 		assertTrue(ods.size()>0);
 		boolean foundId = false;
-		for (ObjectData od : ods) {
+		for (MigratableObjectData od : ods) {
 			if (od.getId().getId().equals(node.getId())) {
 				foundId=true;
 			}
-			assertEquals(Entity.class.getName(), od.getId().getType());
+			assertEquals(MigratableObjectType.Entity, od.getId().getType());
 			
 		}
 		assertTrue(foundId);
@@ -181,32 +182,32 @@ public class JDOAccessControlListDAOImplTest {
 		assertEquals(ods.size(), results.getTotalNumberOfResults());
 		assertTrue(ods.size()>0);
 		foundId = false;
-		for (ObjectData od : ods) {
+		for (MigratableObjectData od : ods) {
 			if (od.getId().getId().equals(node.getId())) {
 				foundId=true;
-				Collection<ObjectDescriptor> deps = od.getDependencies();
+				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
 				assertEquals(" dependencies: "+deps.toString(), 3, deps.size());
 				
 				boolean foundCreator = false;
 				boolean foundModifier = false;
 				boolean foundAclGroup = false;
-				for (ObjectDescriptor d : deps) {
+				for (MigratableObjectDescriptor d : deps) {
 					if (createdById.toString().equals(d.getId())) {
 						foundCreator=true;
-						assertEquals(UserGroup.class.getName(), d.getType());
+						assertEquals(MigratableObjectType.UserGroup, d.getType());
 					} else if (modifiedById.toString().equals(d.getId())) {
 						foundModifier=true;
-						assertEquals(UserGroup.class.getName(), d.getType());
+						assertEquals(MigratableObjectType.UserGroup, d.getType());
 					} else if (group.getId().equals(d.getId())) {
 						foundAclGroup=true;
-						assertEquals(UserGroup.class.getName(), d.getType());
+						assertEquals(MigratableObjectType.UserGroup, d.getType());
 					}
 				}
 				assertTrue(foundCreator);
 				assertTrue(foundModifier);
 				assertTrue(foundAclGroup);
 			}
-			assertEquals(Entity.class.getName(), od.getId().getType());
+			assertEquals(MigratableObjectType.Entity, od.getId().getType());
 		}
 		assertTrue(foundId);
 		

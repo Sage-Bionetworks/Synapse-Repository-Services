@@ -95,12 +95,6 @@ public class AuthorizationConstants {
 	
 	
 	/**
-	 * parameter used by migration services to describe the type of migration 
-	 * to be performed
-	 */
-	public static final String MIGRATION_TYPE_PARAM = "migrationType";
-	
-	/**
 	 * A reserved parameter name for passing in a user id (not necessarily the name of the requestor,
 	 * which is given by USER_ID_PARAM)
 	 */

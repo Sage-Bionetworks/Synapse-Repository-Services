@@ -26,7 +26,7 @@ import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.MigrationType;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
@@ -114,7 +114,7 @@ public class IT100BackupRestoration {
 	public void createSnapshot() throws Exception {
 		// Start the daemon
 		BackupSubmission submission = new BackupSubmission();
-		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigrationType.ENTITY);
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.Entity);
 		assertNotNull(status);
 		assertNotNull(status.getStatus());
 		assertFalse(DaemonStatus.FAILED == status.getStatus());
@@ -175,7 +175,7 @@ public class IT100BackupRestoration {
 			// Start the daemon
 			RestoreSubmission submission = new RestoreSubmission();
 			submission.setFileName(PRINCIPALS_BACKUP_FILE_NAME);
-			BackupRestoreStatus status = synapse.startRestoreDaemon(submission, MigrationType.PRINCIPAL);
+			BackupRestoreStatus status = synapse.startRestoreDaemon(submission, MigratableObjectType.UserGroup);
 
 			assertNotNull(status);
 			assertNotNull(status.getStatus());
@@ -204,7 +204,7 @@ public class IT100BackupRestoration {
 		// Start the daemon
 		RestoreSubmission submission = new RestoreSubmission();
 		submission.setFileName(BACKUP_FILE_NAME);
-		BackupRestoreStatus status = synapse.startRestoreDaemon(submission, MigrationType.ENTITY);
+		BackupRestoreStatus status = synapse.startRestoreDaemon(submission, MigratableObjectType.Entity);
 
 		assertNotNull(status);
 		assertNotNull(status.getStatus());
@@ -238,7 +238,7 @@ public class IT100BackupRestoration {
 		// Start the daemon
 		BackupSubmission submission = new BackupSubmission();
 		submission.setEntityIdsToBackup(synapse.getAllUserAndGroupIds());
-		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigrationType.PRINCIPAL);
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.UserGroup);
 		assertNotNull(status);
 		assertNotNull(status.getStatus());
 		assertFalse(status.getErrorMessage(),DaemonStatus.FAILED == status.getStatus());
@@ -253,7 +253,7 @@ public class IT100BackupRestoration {
 		RestoreSubmission restoreSub = new RestoreSubmission();
 		String backupFileName = getFileNameFromUrl(status.getBackupUrl());
 		restoreSub.setFileName(backupFileName);
-		status = synapse.startRestoreDaemon(restoreSub, MigrationType.PRINCIPAL);
+		status = synapse.startRestoreDaemon(restoreSub, MigratableObjectType.UserGroup);
 		// Wait for it to finish
 		status = waitForDaemon(status.getId());
 		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
@@ -308,7 +308,7 @@ public class IT100BackupRestoration {
 		set.add(project.getId());
 		submission.setEntityIdsToBackup(set);
 		
-		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigrationType.ENTITY);
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.Entity);
 		assertNotNull(status);
 		// Wait for the daemon to complete
 		status = waitForDaemon(status.getId());
@@ -324,7 +324,7 @@ public class IT100BackupRestoration {
 		// Now restore the single project
 		RestoreSubmission restore = new RestoreSubmission();
 		restore.setFileName(backupFileName);
-		status = synapse.startRestoreDaemon(restore, MigrationType.ENTITY);
+		status = synapse.startRestoreDaemon(restore, MigratableObjectType.Entity);
 		// Wait for the daemon to complete
 		status = waitForDaemon(status.getId());
 		// Now make sure we can get the project

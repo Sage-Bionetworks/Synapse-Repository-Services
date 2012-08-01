@@ -52,4 +52,10 @@ public interface AccessRequirementDAO extends MigratableDAO {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @return all IDs in the system
+	 */
+	List<String> getIds();
 }

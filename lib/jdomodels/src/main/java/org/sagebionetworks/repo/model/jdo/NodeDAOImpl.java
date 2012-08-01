@@ -47,6 +47,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -54,8 +56,6 @@ import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.ObjectData;
-import org.sagebionetworks.repo.model.ObjectDescriptor;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -1053,23 +1053,23 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
         return parentPtn.parentId == null && "root".equals(parentPtn.name);
 	}
 	
-	public QueryResults<ObjectData> getMigrationObjectDataWithoutDependencies(long offset,
+	public QueryResults<MigratableObjectData> getMigrationObjectDataWithoutDependencies(long offset,
 			long limit) throws DatastoreException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
 		
-		List<ObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_PAGINATED, new RowMapper<ObjectData>() {
+		List<MigratableObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_PAGINATED, new RowMapper<MigratableObjectData>() {
 			@Override
-			public ObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
-				ObjectData data = new ObjectData();
+			public MigratableObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
+				MigratableObjectData data = new MigratableObjectData();
 				data.setId(ObjectDescriptorUtils.createEntityObjectDescriptor(rs.getLong(COL_NODE_ID)));
 				data.setEtag(rs.getString(COL_NODE_ETAG));
-				data.setDependencies(new HashSet<ObjectDescriptor>());
+				data.setDependencies(new HashSet<MigratableObjectDescriptor>());
 				return  data;
 			}
 		}, params);
-		QueryResults<ObjectData> queryResults = new QueryResults<ObjectData>();
+		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
 		queryResults.setResults(ods);
 		queryResults.setTotalNumberOfResults((int)getCount());
 		return queryResults;
@@ -1077,7 +1077,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	
 	@Transactional(readOnly = true)
 	@Override
-	public QueryResults<ObjectData> getMigrationObjectData(long offset,
+	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset,
 			long limit, boolean includeDependencies) throws DatastoreException {
 		
 		if (!includeDependencies) return getMigrationObjectDataWithoutDependencies(offset, limit);
@@ -1092,14 +1092,14 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
 		
-		List<ObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_AND_DEPENDENCIES_PAGINATED, new RowMapper<ObjectData>() {
+		List<MigratableObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_AND_DEPENDENCIES_PAGINATED, new RowMapper<MigratableObjectData>() {
 			@Override
-			public ObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
-				ObjectData data = new ObjectData();
+			public MigratableObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
+				MigratableObjectData data = new MigratableObjectData();
 				long nodeId = rs.getLong(COL_NODE_ID);
 				data.setId(ObjectDescriptorUtils.createEntityObjectDescriptor(nodeId));
 				data.setEtag(rs.getString(COL_NODE_ETAG));
-				Set<ObjectDescriptor> dependencies = new HashSet<ObjectDescriptor>();
+				Set<MigratableObjectDescriptor> dependencies = new HashSet<MigratableObjectDescriptor>();
 
 				long createdBy = rs.getLong(COL_NODE_CREATED_BY);
 				dependencies.add(ObjectDescriptorUtils.createPrincipalObjectDescriptor(createdBy));
@@ -1119,8 +1119,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}, params);
 		
 		if (!ods.isEmpty()) {
-			final Map<String, ObjectData> odMap = new HashMap<String, ObjectData>();
-			for (ObjectData od : ods) odMap.put(od.getId().getId(), od);
+			final Map<String, MigratableObjectData> odMap = new HashMap<String, MigratableObjectData>();
+			for (MigratableObjectData od : ods) odMap.put(od.getId().getId(), od);
 			
 			List<Long> nodeIDList = new ArrayList<Long>();
 			for (String entityId : odMap.keySet()) nodeIDList.add(KeyFactory.stringToKey(entityId));
@@ -1138,17 +1138,17 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 				@Override
 				public Integer mapRow(ResultSet rs, int rowNum) throws SQLException {
 					long nodeId = rs.getLong(COL_NODE_ID);
-					ObjectData od = odMap.get(KeyFactory.keyToString(nodeId));
+					MigratableObjectData od = odMap.get(KeyFactory.keyToString(nodeId));
 					if (od==null) return 0;
-					Collection<ObjectDescriptor> dependencies = od.getDependencies();
-					ObjectDescriptor aclMember = ObjectDescriptorUtils.createPrincipalObjectDescriptor(rs.getLong(COL_RESOURCE_ACCESS_GROUP_ID));
+					Collection<MigratableObjectDescriptor> dependencies = od.getDependencies();
+					MigratableObjectDescriptor aclMember = ObjectDescriptorUtils.createPrincipalObjectDescriptor(rs.getLong(COL_RESOURCE_ACCESS_GROUP_ID));
 					if (!dependencies.contains(aclMember)) dependencies.add(aclMember);
 					return 0;
 				}
 			}, params);
 		}
 		
-		QueryResults<ObjectData> queryResults = new QueryResults<ObjectData>();
+		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
 		queryResults.setResults(ods);
 		queryResults.setTotalNumberOfResults((int)getCount());
 		return queryResults;

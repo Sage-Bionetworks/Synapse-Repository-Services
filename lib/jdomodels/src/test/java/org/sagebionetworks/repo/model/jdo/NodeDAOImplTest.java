@@ -30,6 +30,9 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackupDAO;
@@ -37,8 +40,6 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.ObjectData;
-import org.sagebionetworks.repo.model.ObjectDescriptor;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -159,16 +160,16 @@ public class NodeDAOImplTest {
 	
 	public void checkMigrationDependenciesNoParent(String id) throws Exception {
 		// first check what happens if dependencies are NOT requested
-		QueryResults<ObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
-		List<ObjectData> ods = results.getResults();
+		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
+		List<MigratableObjectData> ods = results.getResults();
 		assertEquals(ods.size(), results.getTotalNumberOfResults());
 		assertTrue(ods.size()>0);
 		boolean foundId = false;
-		for (ObjectData od : ods) {
+		for (MigratableObjectData od : ods) {
 			if (od.getId().getId().equals(id)) {
 				foundId=true;
 			}
-			assertEquals(Entity.class.getName(), od.getId().getType());
+			assertEquals(MigratableObjectType.Entity, od.getId().getType());
 			
 		}
 		assertTrue(foundId);
@@ -179,18 +180,18 @@ public class NodeDAOImplTest {
 		assertEquals(ods.size(), results.getTotalNumberOfResults());
 		assertTrue(ods.size()>0);
 		foundId = false;
-		for (ObjectData od : ods) {
+		for (MigratableObjectData od : ods) {
 			if (od.getId().getId().equals(id)) {
 				foundId=true;
 				// since there's no parent or ACL, the only dependency is on the creator/modifier
-				Collection<ObjectDescriptor> deps = od.getDependencies();
+				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
 				assertEquals("id: "+id+" dependencies: "+deps.toString(), 1, deps.size());
-				ObjectDescriptor creatorDescriptor = deps.iterator().next();
+				MigratableObjectDescriptor creatorDescriptor = deps.iterator().next();
 				assertEquals(creatorUserGroupId.toString(), creatorDescriptor.getId());
-				assertEquals(UserGroup.class.getName(), creatorDescriptor.getType());
+				assertEquals(MigratableObjectType.UserGroup, creatorDescriptor.getType());
 				
 			}
-			assertEquals(Entity.class.getName(), od.getId().getType());
+			assertEquals(MigratableObjectType.Entity, od.getId().getType());
 		}
 		assertTrue(foundId);
 	}
@@ -312,16 +313,16 @@ public class NodeDAOImplTest {
 	
 	public void checkMigrationDependenciesWithParent(String id, String parentId) throws Exception {
 		// first check what happens if dependencies are NOT requested
-		QueryResults<ObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
-		List<ObjectData> ods = results.getResults();
+		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
+		List<MigratableObjectData> ods = results.getResults();
 		assertEquals(ods.size(), results.getTotalNumberOfResults());
 		assertTrue(ods.size()>0);
 		boolean foundId = false;
-		for (ObjectData od : ods) {
+		for (MigratableObjectData od : ods) {
 			if (od.getId().getId().equals(id)) {
 				foundId=true;
 			}
-			assertEquals(Entity.class.getName(), od.getId().getType());
+			assertEquals(MigratableObjectType.Entity, od.getId().getType());
 			
 		}
 		assertTrue(foundId);
@@ -332,21 +333,21 @@ public class NodeDAOImplTest {
 		assertEquals(ods.size(), results.getTotalNumberOfResults());
 		assertTrue(ods.size()>0);
 		foundId = false;
-		for (ObjectData od : ods) {
+		for (MigratableObjectData od : ods) {
 			if (od.getId().getId().equals(id)) {
 				foundId=true;
 				// dependencies are the creator/modifier and the parent/benefactor
-				Collection<ObjectDescriptor> deps = od.getDependencies();
+				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
 				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
 				boolean foundCreator = false;
 				boolean foundParent = false;
-				for (ObjectDescriptor d : deps) {
+				for (MigratableObjectDescriptor d : deps) {
 					if (creatorUserGroupId.toString().equals(d.getId())) {
 						foundCreator=true;
-						assertEquals(UserGroup.class.getName(), d.getType());
+						assertEquals(MigratableObjectType.UserGroup, d.getType());
 					} else if (parentId.equals(d.getId())) {
 						foundParent=true;
-						assertEquals(Entity.class.getName(), d.getType());
+						assertEquals(MigratableObjectType.Entity, d.getType());
 					}
 				}
 				assertTrue(foundCreator);

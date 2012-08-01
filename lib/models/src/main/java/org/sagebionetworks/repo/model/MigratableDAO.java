@@ -11,10 +11,6 @@ public interface MigratableDAO {
 	
 	long getCount() throws DatastoreException;
 	
-	QueryResults<ObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies) throws DatastoreException;
+	QueryResults<MigratableObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies) throws DatastoreException;
 	
-//	void serialize(String file);
-//	
-//	void deserialize(String file);
-
 }

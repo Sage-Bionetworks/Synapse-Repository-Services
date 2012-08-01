@@ -1,0 +1,9 @@
+{
+    "description":"JSON enum for the types of objects which can be migrated.",
+    "type":"string",
+    "enum":[
+        "Entity",
+        "UserGroup",
+        "AccessRequirement"
+    ]
+}

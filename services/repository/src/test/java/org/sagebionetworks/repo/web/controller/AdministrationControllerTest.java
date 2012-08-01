@@ -28,9 +28,9 @@ import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.ObjectData;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StackStatusDao;
@@ -117,7 +117,7 @@ public class AdministrationControllerTest {
 	public void testGetAllBackupObjects() throws Exception {
 		long offset = 0L;
 		long limit = 10L;
-		PaginatedResults<ObjectData> migrationData = ServletTestHelper.getAllMigrationObjects(dispatchServlet, offset, limit, adminUserName);
+		PaginatedResults<MigratableObjectData> migrationData = ServletTestHelper.getAllMigrationObjects(dispatchServlet, offset, limit, adminUserName);
 		assertTrue(migrationData.getResults().size()>0);
 		
 		offset = 100L;

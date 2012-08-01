@@ -3,11 +3,9 @@ package org.sagebionetworks.tool.migration;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Queue;
-import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -16,24 +14,20 @@ import java.util.concurrent.Future;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.client.Synapse;
-import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.MigrationType;
+import org.sagebionetworks.client.SynapseAdministration;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.tool.migration.Progress.AggregateProgress;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
-import org.sagebionetworks.tool.migration.dao.EntityData;
-import org.sagebionetworks.tool.migration.dao.QueryRunner;
-import org.sagebionetworks.tool.migration.dao.QueryRunnerImpl;
+import org.sagebionetworks.tool.migration.dao.MigrationQueryRunner;
 import org.sagebionetworks.tool.migration.job.AggregateResult;
 import org.sagebionetworks.tool.migration.job.BuilderResponse;
-import org.sagebionetworks.tool.migration.job.CreateUpdateWorker;
 import org.sagebionetworks.tool.migration.job.CreationJobBuilder;
 import org.sagebionetworks.tool.migration.job.DeleteJobBuilder;
 import org.sagebionetworks.tool.migration.job.Job;
 import org.sagebionetworks.tool.migration.job.JobQueueWorker;
 import org.sagebionetworks.tool.migration.job.JobUtil;
 import org.sagebionetworks.tool.migration.job.UpdateJobBuilder;
-import org.sagebionetworks.tool.migration.job.WorkerResult;
 
 /**
  * The main driver for migration.
@@ -58,12 +52,12 @@ public class RepositoryMigrationDriver {
 		SynapseConnectionInfo destInfo = configuration.getDestinationConnectionInfo();
 		// Create a source and destination
 		ClientFactoryImpl factory = new ClientFactoryImpl();
-		Synapse sourceClient = factory.createNewConnection(sourceInfo);
-		Synapse destClient = factory.createNewConnection(destInfo);
+		SynapseAdministration sourceClient = factory.createNewConnection(sourceInfo);
+		SynapseAdministration destClient = factory.createNewConnection(destInfo);
 
 		// Create the query providers
-		QueryRunner sourceQueryRunner = new QueryRunnerImpl(sourceClient);
-		QueryRunner destQueryRunner = new QueryRunnerImpl(destClient);
+		MigrationQueryRunner sourceQueryRunner = new MigrationQueryRunner(sourceClient, /*queryForDependencies*/true);
+		MigrationQueryRunner destQueryRunner = new MigrationQueryRunner(destClient, /*queryForDependencies*/false);
 		long sourceTotal = sourceQueryRunner.getTotalEntityCount();
 		long destTotal = destQueryRunner.getTotalEntityCount();
 		// Do a safety check.  If the destination has more entities than the source then confirm with the user that they want to proceed.
@@ -92,11 +86,11 @@ public class RepositoryMigrationDriver {
 			// 1. Get all entity data from both the source and destination.
 			BasicProgress sourceProgress = new BasicProgress();
 			BasicProgress destProgress = new BasicProgress();
-			AllEntityDataWorker sourceQueryWorker = new AllEntityDataWorker(sourceQueryRunner, sourceProgress);
-			AllEntityDataWorker destQueryWorker = new AllEntityDataWorker(destQueryRunner, destProgress);
+			AllEntityDataWorker<MigratableObjectData> sourceQueryWorker = new AllEntityDataWorker<MigratableObjectData>(sourceQueryRunner, sourceProgress);
+			AllEntityDataWorker<MigratableObjectData> destQueryWorker = new AllEntityDataWorker<MigratableObjectData>(destQueryRunner, destProgress);
 			// Start both at the same time
-			Future<List<EntityData>> sourceFuture = threadPool.submit(sourceQueryWorker);
-			Future<List<EntityData>> destFuture = threadPool.submit(destQueryWorker);
+			Future<List<MigratableObjectData>> sourceFuture = threadPool.submit(sourceQueryWorker);
+			Future<List<MigratableObjectData>> destFuture = threadPool.submit(destQueryWorker);
 			// Wait for both to finish
 			log.info("Starting phase one: Gathering all data from the source and destination repository...");
 			while(!sourceFuture.isDone() || !destFuture.isDone()){
@@ -107,8 +101,8 @@ public class RepositoryMigrationDriver {
 			}
 			
 			// Get the results
-			List<EntityData> sourceData = sourceFuture.get();
-			List<EntityData> destData = destFuture.get();
+			List<MigratableObjectData> sourceData = sourceFuture.get();
+			List<MigratableObjectData> destData = destFuture.get();
 			log.debug("Finished phase one.  Source entity count: "+sourceData.size()+". Destination entity Count: "+destData.size());
 			// Start phase 2
 			log.debug("Starting phase two: Calculating creates, updates, and deletes...");
@@ -172,42 +166,42 @@ public class RepositoryMigrationDriver {
 		return threadPool.submit(queueWorker);
 	}
 	
-	/**
-	 * Calculate the 
-	 * @param sourceClient
-	 * @param desSynapse
-	 * @return
-	 * @throws SynapseException
-	 */
-	public static Set<String> calculateUserDelta(Synapse sourceClient, Synapse desSynapse) throws SynapseException{
-		HashSet<String> delta = new HashSet<String>();
-		Set<String> sourceIds  = sourceClient.getAllUserAndGroupIds();
-		Set<String> destIds = desSynapse.getAllUserAndGroupIds();
-		// Find the ids that are in the source but on in the destination.
-		for(String sourceId: sourceIds){
-			if(!destIds.contains(sourceId)){
-				delta.add(sourceId);
-			}
-		}
-		return delta;
-	}
+//	/**
+//	 * Calculate the 
+//	 * @param sourceClient
+//	 * @param desSynapse
+//	 * @return
+//	 * @throws SynapseException
+//	 */
+//	public static Set<String> calculateUserDelta(Synapse sourceClient, Synapse desSynapse) throws SynapseException{
+//		HashSet<String> delta = new HashSet<String>();
+//		Set<String> sourceIds  = sourceClient.getAllUserAndGroupIds();
+//		Set<String> destIds = desSynapse.getAllUserAndGroupIds();
+//		// Find the ids that are in the source but on in the destination.
+//		for(String sourceId: sourceIds){
+//			if(!destIds.contains(sourceId)){
+//				delta.add(sourceId);
+//			}
+//		}
+//		return delta;
+//	}
 	
-	/**
-	 * Migrate all users.
-	 * @param factory
-	 * @param threadPool
-	 * @param jobQueue
-	 * @return
-	 * @throws InterruptedException
-	 * @throws ExecutionException
-	 */
-	public static Future<WorkerResult> migratePrincipals(ClientFactory clientFactory, ExecutorService threadPool, BasicProgress progress, Set<String> toMigrate)
-			throws InterruptedException, ExecutionException {
-		// Create a new worker job.
-		CreateUpdateWorker worker = new CreateUpdateWorker(configuration, clientFactory, toMigrate, progress, MigrationType.PRINCIPAL);
-		// Start the worker job.
-		return threadPool.submit(worker);
-	}
+//	/**
+//	 * Migrate all users.
+//	 * @param factory
+//	 * @param threadPool
+//	 * @param jobQueue
+//	 * @return
+//	 * @throws InterruptedException
+//	 * @throws ExecutionException
+//	 */
+//	public static Future<WorkerResult> migratePrincipals(ClientFactory clientFactory, ExecutorService threadPool, BasicProgress progress, Set<String> toMigrate)
+//			throws InterruptedException, ExecutionException {
+//		// Create a new worker job.
+//		CreateUpdateWorker worker = new CreateUpdateWorker(configuration, clientFactory, toMigrate, progress, MigratableObjectType.UserGroup);
+//		// Start the worker job.
+//		return threadPool.submit(worker);
+//	}
 
 	/**
 	 * Populate the queue with create, update, and delete jobs using what we know about the source and destination repositories using the configured batch size.
@@ -219,7 +213,7 @@ public class RepositoryMigrationDriver {
 	 * @throws InterruptedException
 	 * @throws ExecutionException
 	 */
-	public static ResponseBundle populateQueue(ExecutorService threadPool, Queue<Job> jobQueue, List<EntityData> sourceData, List<EntityData> destData) throws InterruptedException,
+	public static ResponseBundle populateQueue(ExecutorService threadPool, Queue<Job> jobQueue, List<MigratableObjectData> sourceData, List<MigratableObjectData> destData) throws InterruptedException,
 			ExecutionException {
 		return populateQueue(threadPool, jobQueue, sourceData, destData, configuration.getMaximumBatchSize());
 	}
@@ -234,11 +228,11 @@ public class RepositoryMigrationDriver {
 	 * @throws InterruptedException
 	 * @throws ExecutionException
 	 */
-	public static ResponseBundle populateQueue(ExecutorService threadPool, Queue<Job> jobQueue, List<EntityData> sourceData, List<EntityData> destData, int maxBatchSize) throws InterruptedException,
+	public static ResponseBundle populateQueue(ExecutorService threadPool, Queue<Job> jobQueue, List<MigratableObjectData> sourceData, List<MigratableObjectData> destData, int maxBatchSize) throws InterruptedException,
 			ExecutionException {
 		// Build the maps
-		Map<String, EntityData> destMap = JobUtil.buildMapFromList(destData);
-		Map<String, EntityData> sourceMap = JobUtil.buildMapFromList(sourceData);
+		Map<MigratableObjectDescriptor, MigratableObjectData> destMap = JobUtil.buildMigratableMapFromList(destData);
+		Map<MigratableObjectDescriptor, MigratableObjectData> sourceMap = JobUtil.buildMigratableMapFromList(sourceData);
 		// Build up the create jobs
 		CreationJobBuilder createBuilder = new CreationJobBuilder(sourceData, destMap, jobQueue, maxBatchSize);
 		Future<BuilderResponse> createFuture = threadPool.submit(createBuilder);
@@ -252,7 +246,7 @@ public class RepositoryMigrationDriver {
 		BuilderResponse createResponse = createFuture.get();
 		BuilderResponse updateResponse = updateFuture.get();
 		BuilderResponse deleteResponse = deleteFuture.get();
-		log.info("Submitted "+createResponse.getSubmitedToQueue()+" Entities to create queue.  There are "+createResponse.getPendingDependancies()+" Entities pending dependency creations. Submitted "+updateResponse.getSubmitedToQueue()+" updates to the queue. Submitted "+deleteResponse.getSubmitedToQueue()+" for delete.");
+		log.info("Submitted "+createResponse.getSubmittedToQueue()+" Entities to create queue.  There are "+createResponse.getPendingDependencies()+" Entities pending dependency creations. Submitted "+updateResponse.getSubmittedToQueue()+" updates to the queue. Submitted "+deleteResponse.getSubmittedToQueue()+" for delete.");
 		
 		return new ResponseBundle(createResponse, updateResponse, deleteResponse);
 	}

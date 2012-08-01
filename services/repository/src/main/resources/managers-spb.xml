@@ -123,6 +123,10 @@
 		class="org.sagebionetworks.repo.manager.backup.PrincipalBackupDriver"
 		scope="singleton" />
 
+	<bean id="accessRequirementBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.AccessRequirementBackupDriver"
+		scope="singleton" />
+
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />
 

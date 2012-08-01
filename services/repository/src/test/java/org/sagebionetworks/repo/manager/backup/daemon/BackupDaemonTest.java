@@ -18,12 +18,14 @@ import java.util.concurrent.Executors;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.manager.backup.NodeBackupDriver;
+import org.sagebionetworks.repo.manager.backup.GenericBackupDriver;
 import org.sagebionetworks.repo.manager.backup.Progress;
 import org.sagebionetworks.repo.manager.backup.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -48,7 +50,7 @@ public class BackupDaemonTest {
 	public static final long TIMEOUT = 10*1000;
 	
 	AmazonS3Client mockAwsClient = null;
-	NodeBackupDriver mockDriver = null;
+	GenericBackupDriver mockDriver = null;
 	SearchDocumentDriver mockSearchDocumentDriver = null;
 	BackupRestoreStatusDAO stubDao = null;
 	BackupDaemon daemon = null;
@@ -60,7 +62,7 @@ public class BackupDaemonTest {
 	public void before(){
 		// Mock the AWS client
 		mockAwsClient = Mockito.mock(AmazonS3Client.class);
-		mockDriver =  Mockito.mock(NodeBackupDriver.class);
+		mockDriver =  Mockito.mock(GenericBackupDriver.class);
 		mockSearchDocumentDriver =  Mockito.mock(SearchDocumentDriver.class);
 		// Using a stub for the dao gives us more control over the test.
 		stubDao = new BackupRestoreStatusDAOStub();
@@ -108,7 +110,7 @@ public class BackupDaemonTest {
 	}
 	
 	@Test
-	public void testSuccessfulRestoreRun() throws UnauthorizedException, DatastoreException, NotFoundException, InterruptedException, IOException{
+	public void testSuccessfulRestoreRun() throws UnauthorizedException, DatastoreException, NotFoundException, InterruptedException, IOException, InvalidModelException, ConflictingUpdateException{
 		// Start the daemon
 		BackupRestoreStatus status = daemon.startRestore(getStarterPrincipalId(), "someBackupFileName");
 		assertNotNull(status);

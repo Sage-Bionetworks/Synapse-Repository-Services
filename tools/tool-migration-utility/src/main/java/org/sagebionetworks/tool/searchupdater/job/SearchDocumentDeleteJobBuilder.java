@@ -7,6 +7,7 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 import org.sagebionetworks.tool.migration.job.BuilderResponse;
 import org.sagebionetworks.tool.migration.job.Job;
@@ -55,7 +56,7 @@ public class SearchDocumentDeleteJobBuilder implements
 				deleteSubmitted++;
 			}
 			if (batchToDelete.size() >= this.batchSize) {
-				Job deleteJob = new Job(batchToDelete, Type.SEARCH_DELETE);
+				Job deleteJob = new Job(batchToDelete, MigratableObjectType.Entity, Type.SEARCH_DELETE);
 				this.queue.add(deleteJob);
 				batchToDelete = new HashSet<String>();
 			}
@@ -63,7 +64,7 @@ public class SearchDocumentDeleteJobBuilder implements
 
 		// Submit any deletes left over
 		if (!batchToDelete.isEmpty()) {
-			Job deleteJob = new Job(batchToDelete, Type.SEARCH_DELETE);
+			Job deleteJob = new Job(batchToDelete, MigratableObjectType.Entity, Type.SEARCH_DELETE);
 			this.queue.add(deleteJob);
 			batchToDelete = new HashSet<String>();
 		}

@@ -5,8 +5,7 @@
             "transient":true
         },
         "type":{
-            "type":"string",
-            "transient":true
-        }
+			"$ref":"org.sagebionetworks.repo.model.MigratableObjectType"
+		}
 	}
 }

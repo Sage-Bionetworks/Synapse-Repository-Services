@@ -3,11 +3,11 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
 import java.sql.ResultSet;
@@ -25,14 +25,13 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ObjectData;
-import org.sagebionetworks.repo.model.ObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOUserProfile;
 import org.sagebionetworks.repo.model.jdo.UserGroupDAOInitializingBean;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -163,38 +162,38 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 
 	@Override
 	@Transactional(readOnly = true)
-	public QueryResults<ObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies)
+	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies)
 			throws DatastoreException {
 		// get a page of user groups
-		List<ObjectData> ods = null;
+		List<MigratableObjectData> ods = null;
 		{
 			MapSqlParameterSource param = new MapSqlParameterSource();
 			param.addValue(OFFSET_PARAM_NAME, offset);		
 			param.addValue(LIMIT_PARAM_NAME, limit);		
-			ods = simpleJdbcTempalte.query(SELECT_ALL_PAGINATED_WITH_ETAG, new RowMapper<ObjectData>() {
+			ods = simpleJdbcTempalte.query(SELECT_ALL_PAGINATED_WITH_ETAG, new RowMapper<MigratableObjectData>() {
 
 				@Override
-				public ObjectData mapRow(ResultSet rs, int rowNum)
+				public MigratableObjectData mapRow(ResultSet rs, int rowNum)
 						throws SQLException {
 					// NOTE this is an outer join, so we have to handle the case in which there
 					// is no etag for the given user group
 					String ugId = rs.getString(COL_USER_GROUP_ID);
 					String etag = rs.getString(COL_USER_PROFILE_ETAG);
 					if (etag==null) etag = DEFAULT_ETAG;
-					ObjectData od = new ObjectData();
-					ObjectDescriptor id = new ObjectDescriptor();
+					MigratableObjectData od = new MigratableObjectData();
+					MigratableObjectDescriptor id = new MigratableObjectDescriptor();
 					id.setId(ugId);
-					id.setType(UserGroup.class.getName());
+					id.setType(MigratableObjectType.UserGroup);
 					od.setId(id);
 					od.setEtag(etag);
-					od.setDependencies(new HashSet<ObjectDescriptor>()); // UserGroups have no dependencies
+					od.setDependencies(new HashSet<MigratableObjectDescriptor>()); // UserGroups have no dependencies
 					return od;
 				}
 			
 			}, param);
 		}
 		
-		QueryResults<ObjectData> queryResults = new QueryResults<ObjectData>();
+		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
 		queryResults.setResults(ods);
 		queryResults.setTotalNumberOfResults((int)getCount());
 		return queryResults;

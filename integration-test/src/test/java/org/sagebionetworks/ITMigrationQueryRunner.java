@@ -93,7 +93,7 @@ public class ITMigrationQueryRunner {
 		results = queryRunner.queryForAllPages(query, Constants.ENTITY, children, null);
 		assertEquals(expectedList, results);
 		// Also make sure we can run the real query
-		results = queryRunner.getAllAllChildrenOfEntity(parent.getId());
+		results = queryRunner.getAllChildrenOfEntity(parent.getId());
 		assertEquals(expectedList, results);
 	}
 	

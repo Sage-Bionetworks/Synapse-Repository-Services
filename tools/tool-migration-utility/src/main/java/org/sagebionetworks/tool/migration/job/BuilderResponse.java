@@ -2,8 +2,8 @@ package org.sagebionetworks.tool.migration.job;
 
 public class BuilderResponse {
 	
-	int submitedToQueue;
-	int pendingDependancies;
+	int submittedToQueue;
+	int pendingDependencies;
 	
 	
 	/**
@@ -13,24 +13,24 @@ public class BuilderResponse {
 	 */
 	public BuilderResponse(int submitedToQueue, int pendingDependancies) {
 		super();
-		this.submitedToQueue = submitedToQueue;
-		this.pendingDependancies = pendingDependancies;
+		this.submittedToQueue = submitedToQueue;
+		this.pendingDependencies = pendingDependancies;
 	}
 	
 	/**
 	 * How many creates were submitted to the queue.
 	 * @return
 	 */
-	public int getSubmitedToQueue() {
-		return submitedToQueue;
+	public int getSubmittedToQueue() {
+		return submittedToQueue;
 	}
 
 	/**
 	 * How many creates are still pending submission due to dependency requirements.
 	 * @return
 	 */
-	public int getPendingDependancies() {
-		return pendingDependancies;
+	public int getPendingDependencies() {
+		return pendingDependencies;
 	}
 
 	

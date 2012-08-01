@@ -26,8 +26,9 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.ObjectData;
-import org.sagebionetworks.repo.model.ObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -59,6 +60,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
+	
+	private static final String SELECT_ALL_IDS_SQL = "SELECT "+SqlConstants.COL_ACCESS_REQUIREMENT_ID+" FROM "+SqlConstants.TABLE_ACCESS_REQUIREMENT;
 	
 	private static final String SELECT_FOR_NODE_SQL = 
 			"SELECT * FROM "+SqlConstants.TABLE_ACCESS_REQUIREMENT+" ar, "+ 
@@ -134,6 +137,18 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return dto;
 	}
 	
+	// TODO migrate this to 'basicDao' so many DAOs can use it
+	@Transactional(readOnly = true)
+	@Override
+	public List<String> getIds() {
+		return simpleJdbcTempalte.query(SELECT_ALL_IDS_SQL, new RowMapper<String>() {
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getString(SqlConstants.COL_ACCESS_REQUIREMENT_ID);
+			}
+		});
+	}
+	
 	public List<Long> getEntities(Long accessRequirementId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID, accessRequirementId);
@@ -154,27 +169,27 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	 */
 	@Transactional(readOnly = true)
 	@Override
-	public QueryResults<ObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies) throws DatastoreException {
+	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies) throws DatastoreException {
 		// (1) get one 'page' of AccessRequirements (just their IDs and Etags)
-		List<ObjectData> ods = null;
+		List<MigratableObjectData> ods = null;
 		{
 			MapSqlParameterSource param = new MapSqlParameterSource();
 			param.addValue(OFFSET_PARAM_NAME, offset);
 			param.addValue(LIMIT_PARAM_NAME, limit);
-			ods = simpleJdbcTempalte.query(SELECT_FOR_RANGE_SQL, new RowMapper<ObjectData>() {
+			ods = simpleJdbcTempalte.query(SELECT_FOR_RANGE_SQL, new RowMapper<MigratableObjectData>() {
 
 				@Override
-				public ObjectData mapRow(ResultSet rs, int rowNum)
+				public MigratableObjectData mapRow(ResultSet rs, int rowNum)
 						throws SQLException {
 					String id = rs.getString(COL_ACCESS_REQUIREMENT_ID);
 					String etag = rs.getString(COL_ACCESS_REQUIREMENT_ETAG);
-					ObjectData objectData = new ObjectData();
-					ObjectDescriptor od = new ObjectDescriptor();
+					MigratableObjectData objectData = new MigratableObjectData();
+					MigratableObjectDescriptor od = new MigratableObjectDescriptor();
 					od.setId(id);
-					od.setType(AccessRequirement.class.getName());
+					od.setType(MigratableObjectType.AccessRequirement);
 					objectData.setId(od);
 					objectData.setEtag(etag);
-					objectData.setDependencies(new HashSet<ObjectDescriptor>());
+					objectData.setDependencies(new HashSet<MigratableObjectDescriptor>());
 					return objectData;
 				}
 			
@@ -183,8 +198,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		
 		// (2) find the dependencies
 		if (includeDependencies && !ods.isEmpty()) {
-			Map<String, ObjectData> arMap = new HashMap<String, ObjectData>();	
-			for (ObjectData od: ods) arMap.put(od.getId().getId(), od);
+			Map<String, MigratableObjectData> arMap = new HashMap<String, MigratableObjectData>();	
+			for (MigratableObjectData od: ods) arMap.put(od.getId().getId(), od);
 			
 			List<DBONodeAccessRequirement> nars = null;
 			{
@@ -195,13 +210,13 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 
 			// (3) add the dependencies to the objects
 			for (DBONodeAccessRequirement nar : nars) {
-				ObjectDescriptor od = ObjectDescriptorUtils.createEntityObjectDescriptor(nar.getNodeId());
-				ObjectData objectData = arMap.get(nar.getAccessRequirementId().toString());
+				MigratableObjectDescriptor od = ObjectDescriptorUtils.createEntityObjectDescriptor(nar.getNodeId());
+				MigratableObjectData objectData = arMap.get(nar.getAccessRequirementId().toString());
 				objectData.getDependencies().add(od);
 			}
 		}
 		// (4) return the 'page' of objects, along with the total result count
-		QueryResults<ObjectData> queryResults = new QueryResults<ObjectData>();
+		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
 		queryResults.setResults(ods);
 		queryResults.setTotalNumberOfResults((int)getCount());
 		return queryResults;

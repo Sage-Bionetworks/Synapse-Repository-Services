@@ -17,8 +17,6 @@ import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -32,11 +30,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.MigrationType;
-import org.sagebionetworks.repo.model.ObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -1189,7 +1188,7 @@ public class ServletTestHelper {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY_BACKUP_DAMEON);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.setParameter(AuthorizationConstants.MIGRATION_TYPE_PARAM, MigrationType.ENTITY.name());
+		request.setParameter(UrlHelpers.MIGRATION_TYPE_PARAM, MigratableObjectType.Entity.name());
 		// Add a body if we were provided a list of entities.
 		if (submission != null) {
 			request.addHeader("Content-Type", "application/json; charset=UTF-8");
@@ -1314,7 +1313,7 @@ public class ServletTestHelper {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY_RESTORE_DAMEON);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, uesrId);
-		request.setParameter(AuthorizationConstants.MIGRATION_TYPE_PARAM, MigrationType.ENTITY.name());
+		request.setParameter(UrlHelpers.MIGRATION_TYPE_PARAM, MigratableObjectType.Entity.name());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, file);
@@ -1865,7 +1864,7 @@ public class ServletTestHelper {
 		}
 	}
 
-	public static PaginatedResults<ObjectData> getAllMigrationObjects(
+	public static PaginatedResults<MigratableObjectData> getAllMigrationObjects(
 			HttpServlet dispatchServlet, long offset, long limit,
 			String userId) throws Exception {
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -1882,22 +1881,9 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-//		return createObjectDataPaginatedResultsFromJSON(response.getContentAsString());
 		return createPaginatedResultsFromJSON(response.getContentAsString(),
-				ObjectData.class);
+				MigratableObjectData.class);
 	}
 
-//    public static PaginatedResults<ObjectData> createObjectDataPaginatedResultsFromJSON(
-//			String jsonString) throws JSONException,
-//			JsonParseException, JsonMappingException, IOException {
-//		PaginatedResults<ObjectData> pr = new PaginatedResults<ObjectData>();
-//		try {
-//			pr.initializeFromJSONObject(new JSONObjectAdapterImpl(jsonString));
-//			return pr;
-//		} catch (JSONObjectAdapterException e) {
-//			throw new RuntimeException(e);
-//		}
-
-//	}
 
 }

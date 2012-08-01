@@ -20,10 +20,11 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.ObjectData;
-import org.sagebionetworks.repo.model.ObjectDescriptor;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -144,29 +145,29 @@ public class DBOAccessRequirementDAOImplTest {
 			// We expected this exception
 		}	
 		
-		QueryResults<ObjectData> migrationData = accessRequirementDAO.getMigrationObjectData(0, 10000, true);
+		QueryResults<MigratableObjectData> migrationData = accessRequirementDAO.getMigrationObjectData(0, 10000, true);
 		
-		List<ObjectData> results = migrationData.getResults();
+		List<MigratableObjectData> results = migrationData.getResults();
 		assertEquals(1+initialCount, results.size());
 		assertEquals(migrationData.getTotalNumberOfResults(), results.size());
 		
 		boolean foundAr = false;
-		for (ObjectData od : results) {
-			ObjectDescriptor obj = od.getId();
+		for (MigratableObjectData od : results) {
+			MigratableObjectDescriptor obj = od.getId();
 			assertNotNull(obj.getId());
 			assertNotNull(od.getEtag());
-			assertEquals(AccessRequirement.class.getName(), obj.getType());
+			assertEquals(MigratableObjectType.AccessRequirement, obj.getType());
 			assertNotNull(od.getDependencies());
 			if (obj.getId().equals(clone.getId().toString())) {
 				foundAr=true;
-				Collection<ObjectDescriptor> deps = od.getDependencies();
+				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
 				assertTrue(deps.size()>0); // is dependent on 'node'
 				boolean foundNode = false;
-				for (ObjectDescriptor d : deps) {
+				for (MigratableObjectDescriptor d : deps) {
 					if (d.getId().equals(node.getId())) {
 						foundNode = true;
 					}
-					assertEquals(Entity.class.getName(), d.getType());
+					assertEquals(MigratableObjectType.Entity, d.getType());
 				}
 				assertTrue("dependencies: "+deps, foundNode);
 			}

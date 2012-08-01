@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
@@ -14,9 +13,9 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigrationType;
-import org.sagebionetworks.repo.model.ObjectData;
-import org.sagebionetworks.repo.model.ObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -70,7 +69,7 @@ public class AdministrationController extends BaseController {
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.GET_ALL_BACKUP_OBJECTS, method = RequestMethod.GET)
-	public @ResponseBody PaginatedResults<ObjectData> getAllBackupObjects(
+	public @ResponseBody PaginatedResults<MigratableObjectData> getAllBackupObjects(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
@@ -79,8 +78,8 @@ public class AdministrationController extends BaseController {
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
-		QueryResults<ObjectData> queryResults = dependencyManager.getAllObjects(offset, limit, includeDependencies);
-		PaginatedResults<ObjectData> result = new PaginatedResults<ObjectData>();
+		QueryResults<MigratableObjectData> queryResults = dependencyManager.getAllObjects(offset, limit, includeDependencies);
+		PaginatedResults<MigratableObjectData> result = new PaginatedResults<MigratableObjectData>();
 		result.setResults(queryResults.getResults());
 		result.setTotalNumberOfResults(queryResults.getTotalNumberOfResults());
 		return result;
@@ -107,7 +106,7 @@ public class AdministrationController extends BaseController {
 	public @ResponseBody
 	BackupRestoreStatus startBackup(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = AuthorizationConstants.MIGRATION_TYPE_PARAM, required=true) String type,
+			@RequestParam(value = UrlHelpers.MIGRATION_TYPE_PARAM, required=true) String type,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -124,7 +123,7 @@ public class AdministrationController extends BaseController {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// start a backup daemon
 		// This is a full system backup so 
-		return backupDaemonLauncher.startBackup(userInfo, entityIdsToBackup, MigrationType.valueOf(type));
+		return backupDaemonLauncher.startBackup(userInfo, entityIdsToBackup, MigratableObjectType.valueOf(type));
 	}
 	
 	/**
@@ -151,7 +150,7 @@ public class AdministrationController extends BaseController {
 	BackupRestoreStatus startRestore(
 			@RequestBody RestoreSubmission file,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = AuthorizationConstants.MIGRATION_TYPE_PARAM, required=true) String type,
+			@RequestParam(value = UrlHelpers.MIGRATION_TYPE_PARAM, required=true) String type,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -162,7 +161,43 @@ public class AdministrationController extends BaseController {
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// start a restore daemon
-		return backupDaemonLauncher.startRestore(userInfo, file.getFileName(), MigrationType.valueOf(type));
+		return backupDaemonLauncher.startRestore(userInfo, file.getFileName(), MigratableObjectType.valueOf(type));
+	}
+	
+	/**
+	 * Delete a migratable object
+	 * 
+	 * @param userId
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws ConflictingUpdateException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.ENTITY_RESTORE_DAMEON
+			}, method = RequestMethod.DELETE)
+	public void deleteMigratableObject(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = UrlHelpers.MIGRATION_OBJECT_ID_PARAM, required=true) String objectId,
+			@RequestParam(value = UrlHelpers.MIGRATION_TYPE_PARAM, required=true) String type,
+			@RequestHeader HttpHeaders header,
+			HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
+
+		// Get the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		MigratableObjectDescriptor mod = new MigratableObjectDescriptor();
+		mod.setId(objectId);
+		mod.setType(MigratableObjectType.valueOf(type));
+		// start a restore daemon
+		backupDaemonLauncher.delete(userInfo, mod);
 	}
 	
 	/**
@@ -183,7 +218,7 @@ public class AdministrationController extends BaseController {
 			UrlHelpers.ENTITY_SEARCH_DOCUMENT_DAMEON
 			}, method = RequestMethod.POST)
 	public @ResponseBody
-	BackupRestoreStatus startSeachDocument(
+	BackupRestoreStatus startSearchDocument(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
