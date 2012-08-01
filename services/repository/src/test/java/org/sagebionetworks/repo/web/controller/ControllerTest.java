@@ -68,7 +68,7 @@ public class ControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.BasicEntityController#getEntitySchema} .
+	 * {@link org.sagebionetworks.repo.web.EntityController#getEntitySchema} .
 	 * 
 	 * @throws Exception
 	 */
@@ -100,7 +100,7 @@ public class ControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.BasicEntityController#createEntity} .
+	 * {@link org.sagebionetworks.repo.web.EntityController#createEntity} .
 	 * 
 	 * @throws Exception
 	 */
@@ -136,7 +136,7 @@ public class ControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.BasicEntityController#createEntity} .
+	 * {@link org.sagebionetworks.repo.web.EntityController#createEntity} .
 	 * 
 	 * @throws Exception
 	 */
@@ -171,7 +171,7 @@ public class ControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.BasicEntityController#createEntity} .
+	 * {@link org.sagebionetworks.repo.web.EntityController#createEntity} .
 	 * 
 	 * @throws Exception
 	 */
@@ -207,7 +207,7 @@ public class ControllerTest {
 
 	/**
 	 * Test method for
-	 * {@link org.sagebionetworks.repo.web.BasicEntityController#updateEntity} .
+	 * {@link org.sagebionetworks.repo.web.EntityController#updateEntity} .
 	 * 
 	 * @throws Exception
 	 */

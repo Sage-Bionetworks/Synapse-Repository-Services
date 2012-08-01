@@ -53,7 +53,7 @@ public class ActivityLogger {
 	}
 
 	@Around("profiler.org.sagebionetworks.usagemetrics.SystemArchitecture.isWebService() && " +
-			"execution(* org.sagebionetworks.repo.web.controller.BasicEntityController.*(..))")
+			"execution(* org.sagebionetworks.repo.web.controller.EntityController.*(..))")
 	public Object doBasicLogging(ProceedingJoinPoint pjp) throws Throwable {
 		if (!this.shouldProfile){
 			//if turned off, just proceed with method

@@ -1,20 +1,16 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.util.List;
-
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.manager.PermissionsManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.service.UserGroupService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -29,11 +25,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class UserGroupController extends BaseController {
 
 	@Autowired
-	PermissionsManager permissionsManager;
-	
-	@Autowired
-	UserManager userManager;
-
+	UserGroupService userGroupService;
 
 	/**
 	 * Get the user-groups in the system
@@ -52,21 +44,8 @@ public class UserGroupController extends BaseController {
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		long endExcl = offset+limit;
-		List<UserGroup> results = permissionsManager.getGroupsInRange(userInfo, offset, endExcl, sort, ascending);
-		int totalNumberOfResults = permissionsManager.getGroups(userInfo).size();
-		return new PaginatedResults<UserGroup>(
-				request.getServletPath()+UrlHelpers.USERGROUP, 
-				results,
-				totalNumberOfResults, 
-				offset, 
-				limit,
-				sort, 
-				ascending);
-	}
-
-	
-
+		return userGroupService.getUserGroups(request, userId, offset, limit, sort, ascending);
+		
+	}	
 	
 }
