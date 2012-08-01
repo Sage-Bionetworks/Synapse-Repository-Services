@@ -1,20 +1,23 @@
 package profiler.org.sagebionetworks.usagemetrics;
 
 import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
+import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
 import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.Signature;
 import org.aspectj.lang.reflect.MethodSignature;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
@@ -42,12 +45,17 @@ public class ActivityLoggerTest {
 	private static final Object[] SIMPLE_METHOD_ARGS = new Object[] {"testarg", new Integer(12)};
 	private static final Object[] ANNOTATION_METHOD_ARGS = new Object[] {"entityIdval", "userIdval"};
 
-	private static final String SIMPLE_ARG_STRING = SIMPLE_METHOD_PARAM_NAMES[0]+"="
-			+ SIMPLE_METHOD_ARGS[0] + "&"+SIMPLE_METHOD_PARAM_NAMES[1]+"=" + SIMPLE_METHOD_ARGS[1];
+	private static final String ARG_FMT_STRING = "%s=%s&%s=%s";
 
-	private static final String ANNOTATION_ARG_STRING = ANNOTATION_METHOD_PARAM_NAMES[0]+"="
-			+ ANNOTATION_METHOD_ARGS[0] + "&"+ANNOTATION_METHOD_PARAM_NAMES[1]+"="
-			+ ANNOTATION_METHOD_ARGS[1];
+	private static final String SIMPLE_ARG_STRING = String.format(
+			ARG_FMT_STRING, SIMPLE_METHOD_PARAM_NAMES[0],
+			SIMPLE_METHOD_ARGS[0], SIMPLE_METHOD_PARAM_NAMES[1],
+			SIMPLE_METHOD_ARGS[1]);
+
+	private static final String ANNOTATION_ARG_STRING = String.format(
+			ARG_FMT_STRING, ANNOTATION_METHOD_PARAM_NAMES[0],
+			ANNOTATION_METHOD_ARGS[0], ANNOTATION_METHOD_PARAM_NAMES[1],
+			ANNOTATION_METHOD_ARGS[1]);
 
 	@Autowired
 	ActivityLogger activityLogger;
@@ -74,11 +82,32 @@ public class ActivityLoggerTest {
 		ActivityLogger.setLog(mockLog);
 	}
 
-	/**
-	 * \@RequestParam spits out a bunch of garbage if the default is left unchanged.
-	 * This is intentional behavior, on their part, and so we have to work around it somehow.
-	 * @throws Exception
-	 */
+	@Test
+	public void testGetArgsNoMethod() throws Exception {
+		String simpleLog = doGetArgs(null, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES, SIMPLE_METHOD_ARGS);
+		assertEquals(Arrays.toString(SIMPLE_METHOD_ARGS), simpleLog);
+	}
+
+	@Test
+	public void testGetArgsNoArgs() throws Exception {
+		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES,
+				new Object[]{null, null});
+		assertEquals(String.format(ARG_FMT_STRING,
+				SIMPLE_METHOD_PARAM_NAMES[0], "null",
+				SIMPLE_METHOD_PARAM_NAMES[1], "null"), simpleLog);
+	}
+
+	@Test
+	public void testGetArgsEncoding() throws Exception {
+		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES, 
+				new Object[] {"{athing=another, two=2}", "?&= "});
+		String[] encoded = {"%7Bathing%3Danother%2C+two%3D2%7D", "%3F%26%3D+"};
+		System.out.println(simpleLog);
+		assertEquals(String.format(ARG_FMT_STRING,
+				SIMPLE_METHOD_PARAM_NAMES[0], encoded[0],
+				SIMPLE_METHOD_PARAM_NAMES[1], encoded[1]), simpleLog);
+	}
+
 	@Test
 	public void testGetArgs() throws Exception {
 		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES, SIMPLE_METHOD_ARGS);
@@ -128,5 +157,17 @@ public class ActivityLoggerTest {
 
 		assertEquals(ActivityLoggerTestHelper.class.getSimpleName(), classAndMethod[0]);
 		assertEquals(classAndMethod[1], ANNOTATION_METHOD_NAME);
+	}
+
+	@Test
+	public void testDoBasicLoggingJoinPointNotMethod() throws Throwable {
+		ProceedingJoinPoint mockPjp = mock(ProceedingJoinPoint.class);
+		Signature mockSig = mock(Signature.class, CALLS_REAL_METHODS);
+
+		when(mockPjp.getSignature()).thenReturn(mockSig);
+
+		activityLogger.doBasicLogging(mockPjp);
+
+		verify(mockLog).error(anyString());
 	}
 }

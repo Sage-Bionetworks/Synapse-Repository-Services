@@ -130,6 +130,9 @@ public class ActivityLogger {
 			argString.append("=");
 			if (args[i] != null)
 				argString.append(encode(args[i].toString(), encoding));
+			else
+				argString.append(encode("null", encoding));
+
 			// Reset for next iteration
 			argSep = "&";
 		}
