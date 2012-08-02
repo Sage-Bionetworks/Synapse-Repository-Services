@@ -1,13 +1,10 @@
 package org.sagebionetworks.repo.web.controller;
 
 import javax.servlet.http.HttpServletRequest;
-import org.sagebionetworks.repo.manager.EntityManager;
-
-import org.sagebionetworks.repo.manager.S3TokenManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -32,11 +29,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class S3TokenController extends BaseController {
 
 	@Autowired
-	private S3TokenManager s3TokenManager;
-	@Autowired
-	private EntityManager entityManager;
-	@Autowired
-	private UserManager userManager;
+	ServiceProvider serviceProvider;
 
 	/**
 	 * Create a security token for use for a particular with a particular
@@ -63,10 +56,6 @@ public class S3TokenController extends BaseController {
 			@PathVariable String id, @RequestBody S3Token s3Token,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException, InvalidModelException {
-
-		// Infer one more parameter
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		EntityType entityType = entityManager.getEntityType(userInfo, id);
-		return s3TokenManager.createS3Token(userId, id, s3Token, entityType);
+		return serviceProvider.s3TokenService.createEntityS3Token(userId, id, s3Token, request);
 	}
 }

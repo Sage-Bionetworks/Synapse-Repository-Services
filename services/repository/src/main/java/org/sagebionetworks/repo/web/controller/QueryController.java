@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.service.EntityService;
+import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class QueryController extends BaseController {
 
 	@Autowired
-	EntityService entityService;	
+	ServiceProvider serviceProvider;	
 
 	/**
 	 * @param userId
@@ -48,7 +48,7 @@ public class QueryController extends BaseController {
 			@RequestParam(value = ServiceConstants.QUERY_PARAM, required = true) String query,
 			HttpServletRequest request) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException {
-		return entityService.query(userId, query, request);
+		return serviceProvider.entityService.query(userId, query, request);
 	}
 	
 }

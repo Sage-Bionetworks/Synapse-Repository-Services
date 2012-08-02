@@ -1,20 +1,15 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.util.List;
-
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.manager.ontology.ConceptManager;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityQueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
-import org.sagebionetworks.repo.model.ontology.ConceptSummary;
-import org.sagebionetworks.repo.model.ontology.SummaryRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -37,10 +32,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class ConceptController extends BaseController {
 	
 	@Autowired
-	ConceptManager conceptManager;
+	ServiceProvider serviceProvider;
 	
-	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;
 	/**
 	 * Get the children concepts for a parent concept.
 	 * @param summaryRequest
@@ -62,25 +55,7 @@ public class ConceptController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException {
-		
-		int limitInt = 10;
-		if(limit != null){
-			limitInt = limit.intValue();
-		}
-		int offesetInt = 0;
-		if(offset != null){
-			offesetInt = offset.intValue();
-		}
-		String conceptUri = conceptManager.getOntologyBaseURI()+id;
-//		SummaryRequest summaryRequest =  (SummaryRequest) objectTypeSerializer.deserialize(request.getInputStream(), header, SummaryRequest.class, header.getContentType());
-		// Get the results from the manager
-		EntityQueryResults<Concept> eqr = conceptManager.getChildConcepts(conceptUri, prefixFilter, limitInt, offesetInt);
-		ConceptResponsePage results = new ConceptResponsePage();
-		results.setChildren(eqr.getResults());
-		results.setParentConceptUri(conceptUri);
-		results.setPrefixFilter(prefixFilter);
-		results.setTotalNumberOfResults(new Long(eqr.getTotalNumberOfResults()));
-		return results;
+		return serviceProvider.conceptService.getConceptsForParent(id, prefixFilter, offset, limit, header, request);
 	}
 	
 	
@@ -102,9 +77,7 @@ public class ConceptController extends BaseController {
 			@PathVariable String id, 
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException {
-		
-		String conceptUri = conceptManager.getOntologyBaseURI()+id;
-		return conceptManager.getConcept(conceptUri);
+		return serviceProvider.conceptService.getConcept(id, header, request);
 	}
 
 }

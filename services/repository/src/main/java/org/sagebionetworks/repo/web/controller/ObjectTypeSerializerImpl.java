@@ -12,14 +12,13 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpInputMessage;
 import org.springframework.http.HttpOutputMessage;
 import org.springframework.http.MediaType;
-import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 import org.springframework.http.converter.json.MappingJacksonHttpMessageConverter;
 
 /**
  * Utility for serializing/deserializing objects using the same HttpMessageConverters
- * that the controllers use.
+ * that the services use.
  * 
  * @author jmhill
  * 
@@ -47,7 +46,7 @@ public class ObjectTypeSerializerImpl implements ObjectTypeSerializer{
 	 * @throws IOException
 	 */
 	@Override
-	@SuppressWarnings({ "rawtypes", "unchecked" })
+	@SuppressWarnings({ "unchecked" })
 	public <T extends JSONEntity> T deserialize(final InputStream body,	final HttpHeaders headers, Class<? extends T> clazz, MediaType type) {
 		HttpInputMessage message = new HttpInputMessage() {
 			@Override
@@ -77,7 +76,6 @@ public class ObjectTypeSerializerImpl implements ObjectTypeSerializer{
 	 * @param toSerializer
 	 * @param type
 	 */
-	@SuppressWarnings({ "unchecked", "rawtypes" })
 	public <T extends JSONEntity> void serializer(final OutputStream body,
 			final HttpHeaders headers, T toSerializer, MediaType type) {
 		HttpOutputMessage message = new HttpOutputMessage() {

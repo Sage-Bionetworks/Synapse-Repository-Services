@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.service.EntityBundleService;
+import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -31,8 +31,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class EntityBundleController extends BaseController {
 	
 	@Autowired
-	EntityBundleService entityBundleService;
-
+	ServiceProvider serviceProvider;
 	
 	/**
 	 * Get an entity and related data with a single GET. Note that childCount is
@@ -61,7 +60,7 @@ public class EntityBundleController extends BaseController {
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending
 			)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return entityBundleService.getEntityBundle(userId, id, mask, request, offset, limit, sort, ascending);
+		return serviceProvider.entityBundleService.getEntityBundle(userId, id, mask, request, offset, limit, sort, ascending);
 	}	
 
 }
