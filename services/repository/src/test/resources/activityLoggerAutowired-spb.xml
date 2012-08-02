@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <beans xmlns="http://www.springframework.org/schema/beans"
-	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xmlns:aop="http://www.springframework.org/schema/aop"
 	xmlns:tx="http://www.springframework.org/schema/tx"
 	xmlns:util="http://www.springframework.org/schema/util"
@@ -10,13 +10,21 @@
        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
-	<import resource="stack-configuration.spb.xml" />
+	<import resource="activityLogger-spb.xml" />
 
-	<!-- A logger that logs profiling and call data for all web services.
-	       The goal is to have a record of all user interactions with the
-	       services that we can mine for statistics. --> 
-	<bean id="activityLogger" class="profiler.org.sagebionetworks.usagemetrics.ActivityLogger">
-		<property name="shouldProfile" ref="stackConfiguration.controllerLoggingEnabled"/>
+	<!-- By defining this bean, the set of beans that are referenced inside of it
+			will be instantiated with Mockito test spies wrapping them. You can then
+			autowire that bean into your class and use it as both the regular test
+			and as the test spy. -->
+
+	<bean id="testClass" class="org.sagebionetworks.repo.web.controller.ActivityLoggerTestHelper"/>
+
+	<bean class="org.sagebionetworks.repo.util.MockitoSpyPostProcessor">
+		<property name="spyNames">
+			<set>
+				<idref bean="activityLogger"/>
+			</set>
+		</property>
 	</bean>
 
 </beans>
