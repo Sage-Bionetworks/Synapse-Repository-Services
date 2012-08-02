@@ -111,7 +111,15 @@ public class UrlHelpers {
 	public static final String ATTACHMENT_S3_TOKEN = "/s3AttachmentToken";
 	
 	public static final String ATTACHMENT_URL = "/attachmentUrl";
+	
+	public static final String MIGRATION_OBJECT_ID_PARAM = "id";
 
+	/**
+	 * parameter used by migration services to describe the type of migration 
+	 * to be performed
+	 */
+	public static final String MIGRATION_TYPE_PARAM = "migrationType";
+	
 	/**
 	 * All of the base URLs for Synapse objects
 	 */
@@ -281,6 +289,14 @@ public class UrlHelpers {
 	 * The parameter for a resource name.
 	 */
 	public static final String RESOURCE_ID = "resourceId";
+	
+	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
+
+	/**
+	 * Used by AdministrationController service to say whether object dependencies should be calculated
+	 * when listing objects to back up.
+	 */
+	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
 
 	/**
 	 * This is a memoized cache for our URL regular expressions

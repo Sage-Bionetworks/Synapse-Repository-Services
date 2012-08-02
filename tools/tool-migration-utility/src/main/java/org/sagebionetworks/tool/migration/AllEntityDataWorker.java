@@ -3,9 +3,7 @@ package org.sagebionetworks.tool.migration;
 import java.util.List;
 import java.util.concurrent.Callable;
 
-import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
-import org.sagebionetworks.tool.migration.dao.EntityData;
 import org.sagebionetworks.tool.migration.dao.QueryRunner;
 
 /**
@@ -13,11 +11,11 @@ import org.sagebionetworks.tool.migration.dao.QueryRunner;
  * @author jmhill
  *
  */
-public class AllEntityDataWorker implements Callable<List<EntityData>>{
+public class AllEntityDataWorker<T> implements Callable<List<T>>{
 	
 	// This is used to keep track of the progress.
 	private BasicProgress progress;
-	private QueryRunner queryRunner;
+	private QueryRunner<T> queryRunner;
 	
 	
 
@@ -27,7 +25,7 @@ public class AllEntityDataWorker implements Callable<List<EntityData>>{
 	 * @param queryRunner
 	 * @param progress
 	 */
-	public AllEntityDataWorker(QueryRunner queryRunner,
+	public AllEntityDataWorker(QueryRunner<T> queryRunner,
 			BasicProgress progress) {
 		super();
 		this.queryRunner = queryRunner;
@@ -37,7 +35,7 @@ public class AllEntityDataWorker implements Callable<List<EntityData>>{
 
 
 	@Override
-	public List<EntityData> call() throws Exception {
+	public List<T> call() throws Exception {
 		// Execute the query
 		return queryRunner.getAllEntityData(progress);
 	}

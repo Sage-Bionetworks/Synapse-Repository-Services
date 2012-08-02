@@ -175,7 +175,7 @@ public class ServiceConstants {
 	 * 
 	 */
 	public static final String ACCEPTS_TERMS_OF_USE_REQUIRED_TOKEN = "TermsOfUseAcceptanceRequired";
-
+	
 	/**
 	 * Utility method to sanity check pagination parameters
 	 * <p>

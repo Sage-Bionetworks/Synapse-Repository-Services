@@ -6,7 +6,12 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.MigrationType;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
@@ -28,6 +33,29 @@ public class SynapseAdministration extends Synapse {
 	public static final String DAEMON_BACKUP = DAEMON + BACKUP;
 	public static final String DAEMON_RESTORE = DAEMON + RESTORE;
 	public static final String DAEMON_SEARCH_DOCUMENT = DAEMON + SEARCH_DOCUMENT;
+	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
+	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
+	
+	public SynapseAdministration() {
+		super();
+	}
+	
+	public SynapseAdministration(HttpClientProvider clientProvider, DataUploader dataUploader) {
+		super(clientProvider, dataUploader);
+	}
+	
+	@SuppressWarnings("unchecked")
+	public PaginatedResults<MigratableObjectData> getAllMigratableObjectsPaginated(long offset, long limit, boolean includeDependencies)  throws JSONObjectAdapterException, SynapseException  {
+		return (PaginatedResults<MigratableObjectData>)getJSONEntity(GET_ALL_BACKUP_OBJECTS + "?" + 
+				ServiceConstants.PAGINATION_OFFSET_PARAM+"="+offset+"&"+
+				ServiceConstants.PAGINATION_LIMIT_PARAM+"="+limit+"&"+
+				INCLUDE_DEPENDENCIES_PARAM+"="+includeDependencies
+				, PaginatedResults.class);	
+	}
+	
+	public void deleteObject(MigratableObjectDescriptor mod)  throws SynapseNotFoundException, SynapseException {
+		deleteEntity(DAEMON_RESTORE+"?migrationType="+mod.getType()+"&id="+mod.getId());
+	}
 
 	/**
 	 * @param submission
@@ -35,7 +63,7 @@ public class SynapseAdministration extends Synapse {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
-	public BackupRestoreStatus startBackupDaemon(BackupSubmission submission, MigrationType migrationType)
+	public BackupRestoreStatus startBackupDaemon(BackupSubmission submission, MigratableObjectType migrationType)
 			throws JSONObjectAdapterException, SynapseException {
 		JSONObject json = EntityFactory.createJSONObjectForEntity(submission);
 		json = createEntity(DAEMON_BACKUP+"?migrationType="+migrationType, json);
@@ -81,7 +109,7 @@ public class SynapseAdministration extends Synapse {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException
 	 */
-	public BackupRestoreStatus startRestoreDaemon(RestoreSubmission submission, MigrationType migrationType)
+	public BackupRestoreStatus startRestoreDaemon(RestoreSubmission submission, MigratableObjectType migrationType)
 			throws JSONObjectAdapterException, SynapseException {
 		JSONObject jsonObject = EntityFactory
 				.createJSONObjectForEntity(submission);

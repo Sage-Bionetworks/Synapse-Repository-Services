@@ -278,9 +278,9 @@ public class SearchMigrationDriver {
 		// Wait for each to complete
 		BuilderResponse searchAddResponse = searchAddFuture.get();
 		BuilderResponse searchDeleteResponse = searchDeleteFuture.get();
-		log.info("Submitted " + searchAddResponse.getSubmitedToQueue()
+		log.info("Submitted " + searchAddResponse.getSubmittedToQueue()
 				+ " entities to be added to the search index.  Submitted "
-				+ searchDeleteResponse.getSubmitedToQueue() + " for delete.");
+				+ searchDeleteResponse.getSubmittedToQueue() + " for delete.");
 
 		return new ResponseBundle(searchAddResponse, null, searchDeleteResponse);
 	}

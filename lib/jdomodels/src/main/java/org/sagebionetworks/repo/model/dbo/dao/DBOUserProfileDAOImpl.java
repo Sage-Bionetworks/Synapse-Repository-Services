@@ -5,6 +5,8 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -40,16 +42,10 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
 	
-	private static final String OFFSET_PARAM_NAME = "offset";
-	private static final String LIMIT_PARAM_NAME = "LIMIT";
-
 	private static final String SELECT_PAGINATED = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_PROFILE+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
-	private static final String SELECT_COUNT = 
-			"SELECT COUNT(*) FROM "+SqlConstants.TABLE_USER_PROFILE;
-
 	private static final RowMapper<DBOUserProfile> userProfileRowMapper = (new DBOUserProfile()).getTableMapping();
 
 	/* (non-Javadoc)
@@ -105,9 +101,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 
 	@Override
 	public long getCount() throws DatastoreException {
-		MapSqlParameterSource param = new MapSqlParameterSource();	
-		long count = simpleJdbcTempalte.queryForLong(SELECT_COUNT, param);
-		return count;
+		return basicDao.getCount(DBOUserProfile.class);
 	}
 
 	/*
