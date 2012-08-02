@@ -75,30 +75,30 @@ public class EntityBundle implements JSONEntity {
         }	
 		if (toInitFrom.has(JSON_ENTITY)) {
 			entityType = toInitFrom.getString(JSON_ENTITY_TYPE);
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_ENTITY);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ENTITY);
 			entity = (Entity) autoGenFactory.newInstance(entityType);
 			entity.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_ANNOTATIONS)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_ANNOTATIONS);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ANNOTATIONS);
 			if (annotations == null)
 				annotations = new Annotations();
 			annotations.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_PERMISSIONS)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_PERMISSIONS);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_PERMISSIONS);
 			if (permissions == null)
 				permissions = (UserEntityPermissions) autoGenFactory.newInstance(UserEntityPermissions.class.getName());
 			permissions.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_PATH)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_PATH);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_PATH);
 			if (path == null)
 				path = (EntityPath) autoGenFactory.newInstance(EntityPath.class.getName());
 			path.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_REFERENCED_BY)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_REFERENCED_BY);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_REFERENCED_BY);
 			if (referencedBy == null)
 				referencedBy = new PaginatedResults<EntityHeader>(EntityHeader.class);
 			referencedBy.initializeFromJSONObject(joa);
@@ -107,19 +107,19 @@ public class EntityBundle implements JSONEntity {
 			childCount = toInitFrom.getLong(JSON_CHILD_COUNT);
 		}
 		if (toInitFrom.has(JSON_ACL)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_ACL);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ACL);
 			if (acl == null)
 				acl = (AccessControlList) autoGenFactory.newInstance(AccessControlList.class.getName());
 			acl.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_USERS)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_USERS);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_USERS);
 			if (users == null)
 				users = new PaginatedResults<UserProfile>(UserProfile.class);
 			users.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_GROUPS)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_GROUPS);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_GROUPS);
 			if (groups == null)
 				groups = new PaginatedResults<UserGroup>(UserGroup.class);
 			groups.initializeFromJSONObject(joa);
@@ -135,7 +135,7 @@ public class EntityBundle implements JSONEntity {
 		}
 		if (entity != null) {
 			JSONObjectAdapter joa = writeTo.createNew();
-			entity.writeToJSONObject(joa).toJSONString();
+			entity.writeToJSONObject(joa);
 			writeTo.put(JSON_ENTITY, joa);
 			writeTo.put(JSON_ENTITY_TYPE, entityType);
 		}
