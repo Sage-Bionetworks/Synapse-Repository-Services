@@ -140,6 +140,10 @@
 		class="org.sagebionetworks.repo.manager.backup.PrincipalBackupDriver"
 		scope="singleton" />
 
+	<bean id="accessRequirementBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.AccessRequirementBackupDriver"
+		scope="singleton" />
+
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />
 
@@ -270,6 +274,17 @@
 			<list>
 				<bean name="loggingProfiler" class="profiler.org.sagebionetworks.LoggingProfiler" />
 				<bean name="perThreadProfiler" class="profiler.org.sagebionetworks.PerThreadHandler" />
+			</list>
+		</property>
+	</bean>
+
+	<!-- A manager that returns all system objects and their dependencies. -->
+	<bean id="dependencyManager" class="org.sagebionetworks.repo.manager.backup.migration.DependencyManagerImpl">
+		<property name="migratableDaos">
+			<list>
+				<ref bean="userGroupDAO"/>
+				<ref bean="nodeDao"/>
+				<ref bean="accessRequirementDAO"/>
 			</list>
 		</property>
 	</bean>

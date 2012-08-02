@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface AccessRequirementDAO {
+public interface AccessRequirementDAO extends MigratableDAO {
 
 	/**
 	 * @param dto
@@ -34,7 +34,6 @@ public interface AccessRequirementDAO {
 	 */
 	public List<AccessRequirement> getForNode(String nodeId) throws DatastoreException;
 	
-
 	/**
 	 * updates the 'shallow' properties of an object
 	 * 
@@ -53,4 +52,10 @@ public interface AccessRequirementDAO {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @return all IDs in the system
+	 */
+	List<String> getIds();
 }

@@ -59,6 +59,19 @@ public class DMLUtils {
 		appendPrimaryKey(mapping, main);
 		return main.toString();
 	}
+	
+	/**
+	 * Create a COUNT statement for a given mapping
+	 * @param mapping
+	 * @return the COUNT statement
+	 */
+	public static String createGetCountStatement(TableMapping mapping) {
+		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
+		StringBuilder main = new StringBuilder();
+		main.append("SELECT COUNT(*) FROM ");
+		main.append(mapping.getTableName());
+		return main.toString();		
+	}
 
 	/**
 	 * Append the primary key

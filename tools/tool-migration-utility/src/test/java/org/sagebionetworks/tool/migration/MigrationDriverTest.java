@@ -18,47 +18,49 @@ import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 import org.sagebionetworks.tool.migration.job.Job;
 import org.sagebionetworks.tool.migration.job.Job.Type;
+import org.sagebionetworks.tool.migration.job.XestUtil;
 
 public class MigrationDriverTest {
 	
 	ExecutorService threadPool = Executors.newFixedThreadPool(1);
 	// The JOB queue
 	Queue<Job> jobQueue = new ConcurrentLinkedQueue<Job>();
-	List<EntityData> source;
+	List<MigratableObjectData> source;
 	
 	@Before
 	public void before(){
 		// Start with a clean queue
 		jobQueue = new ConcurrentLinkedQueue<Job>();
 		// Setup each test the same
-		source = new ArrayList<EntityData>();
+		source = new ArrayList<MigratableObjectData>();
 		// Create a root
-		source.add(new EntityData("1", "0", null));
+		source.add(XestUtil.createMigratableObjectData("1", "0", null));
 		// Add a few children of root
-		source.add(new EntityData("2", "0", "1"));
-		source.add(new EntityData("3", "0", "1"));
-		source.add(new EntityData("4", "0", "1"));
+		source.add(XestUtil.createMigratableObjectData("2", "0", "1"));
+		source.add(XestUtil.createMigratableObjectData("3", "0", "1"));
+		source.add(XestUtil.createMigratableObjectData("4", "0", "1"));
 		
 		// Add some children to 2
-		source.add(new EntityData("5", "0", "2"));
-		source.add(new EntityData("6", "0", "2"));
-		source.add(new EntityData("7", "0", "2"));
-		source.add(new EntityData("8", "0", "2"));
+		source.add(XestUtil.createMigratableObjectData("5", "0", "2"));
+		source.add(XestUtil.createMigratableObjectData("6", "0", "2"));
+		source.add(XestUtil.createMigratableObjectData("7", "0", "2"));
+		source.add(XestUtil.createMigratableObjectData("8", "0", "2"));
 		
 		// Add some children to 3
-		source.add(new EntityData("9", "0", "3"));
-		source.add(new EntityData("10", "0", "3"));
-		source.add(new EntityData("11", "0", "3"));
-		source.add(new EntityData("12", "0", "3"));
+		source.add(XestUtil.createMigratableObjectData("9", "0", "3"));
+		source.add(XestUtil.createMigratableObjectData("10", "0", "3"));
+		source.add(XestUtil.createMigratableObjectData("11", "0", "3"));
+		source.add(XestUtil.createMigratableObjectData("12", "0", "3"));
 		
 		// Add some children to 4
-		source.add(new EntityData("13", "0", "4"));
-		source.add(new EntityData("14", "0", "4"));
-		source.add(new EntityData("15", "0", "4"));
-		source.add(new EntityData("16", "0", "4"));
+		source.add(XestUtil.createMigratableObjectData("13", "0", "4"));
+		source.add(XestUtil.createMigratableObjectData("14", "0", "4"));
+		source.add(XestUtil.createMigratableObjectData("15", "0", "4"));
+		source.add(XestUtil.createMigratableObjectData("16", "0", "4"));
 	}
 	
 	/**
@@ -67,29 +69,40 @@ public class MigrationDriverTest {
 	 * 
 	 */
 	@Test
-	public void testPopulateQueueStaringData() throws InterruptedException, ExecutionException{
+	public void testPopulateQueueStartingData() throws InterruptedException, ExecutionException{
 		// this is how most new stacks will start with three bootstrapped entities.
-		List<EntityData> dest = new ArrayList<EntityData>();
-		dest.add(new EntityData("99", "0", null));
-		dest.add(new EntityData("101", "0", "99"));
-		dest.add(new EntityData("102", "0", "99"));
+		List<MigratableObjectData> dest = new ArrayList<MigratableObjectData>();
+		dest.add(XestUtil.createMigratableObjectData("99", "0", null));
+		dest.add(XestUtil.createMigratableObjectData("101", "0", "99"));
+		dest.add(XestUtil.createMigratableObjectData("102", "0", "99"));
 		// Populate the queue for this setup
-		RepositoryMigrationDriver.populateQueue(threadPool, jobQueue, source, dest, 1);
+		int MAX_BATCH_SIZE = 1;
+		RepositoryMigrationDriver.populateQueue(threadPool, jobQueue, source, dest, MAX_BATCH_SIZE);
 		// Only the first entity can be created since it is root.
 		int expectedCreate = 1;
+		// since there are no common objects bet src and dst, there's nothing to update
 		int expectedUpdate = 0;
-		int expectedDelete = 1;
-		assertEquals(expectedCreate+expectedUpdate+expectedDelete, jobQueue.size());
+		// we will delete *everything* in dest
+		int expectedDelete = 3;
+		Job head = jobQueue.peek();
+		assertEquals("First job: "+head.getJobType()+" "+head.getObjectIds(), expectedCreate+expectedUpdate+expectedDelete, jobQueue.size());
 		
 		int createCount = 0;
 		int deleteCount = 0;
 		int updateCount = 0;
+		Set<String> sourceIds = new HashSet<String>();
+		for (MigratableObjectData mod : source) sourceIds.add(mod.getId().getId());
+		Set<String> destIds = new HashSet<String>();
+		for (MigratableObjectData mod : dest) destIds.add(mod.getId().getId());
+		
 		for(Job job: jobQueue){
 			if(job.getJobType() == Type.CREATE){
-				assertTrue(job.getEntityIds().contains(source.get(0).getEntityId()));
+				assertEquals(1, job.getObjectIds().size()); // this is because we set MAX_BATCH_SIZE = 1
+				assertTrue(sourceIds.contains(job.getObjectIds().iterator().next()));
 				createCount++;
 			}else if(job.getJobType() == Type.DELETE){
-				assertTrue(job.getEntityIds().contains(dest.get(0).getEntityId()));
+				assertEquals(1, job.getObjectIds().size()); // this is because we set MAX_BATCH_SIZE = 1
+				assertTrue(destIds.contains(job.getObjectIds().iterator().next()));
 				deleteCount++;
 			}else if(job.getJobType() == Type.UPDATE){
 				updateCount++;
@@ -109,9 +122,9 @@ public class MigrationDriverTest {
 	@Test
 	public void testSourceAndDestInSynch() throws InterruptedException, ExecutionException{
 		// this is how most new stacks will start with three bootstrapped entities.
-		List<EntityData> dest = new ArrayList<EntityData>();
-		for(EntityData sourceD: source){
-			dest.add(new EntityData(sourceD));
+		List<MigratableObjectData> dest = new ArrayList<MigratableObjectData>();
+		for(MigratableObjectData sourceD: source){
+			dest.add(sourceD);
 		}
 		// Populate the queue for this setup
 		RepositoryMigrationDriver.populateQueue(threadPool, jobQueue, source, dest, 1);
@@ -142,17 +155,17 @@ public class MigrationDriverTest {
 	@Test
 	public void testOutOfSych() throws InterruptedException, ExecutionException{
 		// this is how most new stacks will start with three bootstrapped entities.
-		List<EntityData> dest = new ArrayList<EntityData>();
-		for(EntityData sourceD: source){
-			dest.add(new EntityData(sourceD));
+		List<MigratableObjectData> dest = new ArrayList<MigratableObjectData>();
+		for(MigratableObjectData sourceD: source){
+			dest.add(XestUtil.cloneMigratableObjectData(sourceD));
 		}
 		// Add one entity to the destination that is not in the source
 		// this should get deleted.
-		dest.add(new EntityData("99","0",null));
+		dest.add(XestUtil.createMigratableObjectData("99","0",null));
 		// Update one in source.  This should get updated.
-		source.get(3).seteTag("2");
+		source.get(3).setEtag("2");
 		// Add one to source.  This should get created.
-		source.add(new EntityData("17", "0", "16"));
+		source.add(XestUtil.createMigratableObjectData("17", "0", "16"));
 		
 	
 		// Populate the queue for this setup
@@ -169,13 +182,13 @@ public class MigrationDriverTest {
 		// Tally what is in the queue.
 		for(Job job: jobQueue){
 			if(job.getJobType() == Type.CREATE){
-				assertTrue(job.getEntityIds().contains("17"));
+				assertTrue(job.getObjectIds().contains("17"));
 				createCount++;
 			}else if(job.getJobType() == Type.DELETE){
-				assertTrue(job.getEntityIds().contains("99"));
+				assertTrue(job.getObjectIds().contains("99"));
 				deleteCount++;
 			}else if(job.getJobType() == Type.UPDATE){
-				assertTrue(job.getEntityIds().contains(source.get(3).getEntityId()));
+				assertTrue(job.getObjectIds().contains(source.get(3).getId().getId()));
 				updateCount++;
 			}
 		}
@@ -183,31 +196,6 @@ public class MigrationDriverTest {
 		assertEquals(expectedCreate, createCount);
 		assertEquals(expectedUpdate, updateCount);
 		assertEquals(expectedDelete, deleteCount);
-	}
-	
-	@Test
-	public void testCalculateUserDelta() throws SynapseException{
-		
-		// Setup the source
-		Set<String> sourceId = new HashSet<String>();
-		sourceId.add("1");
-		sourceId.add("2");
-		sourceId.add("3");
-		Synapse mockSource = Mockito.mock(Synapse.class);
-		when(mockSource.getAllUserAndGroupIds()).thenReturn(sourceId);
-		// Setup the dest
-		Synapse mockDest = Mockito.mock(Synapse.class);
-		Set<String> destIds = new HashSet<String>();
-		destIds.add("2");
-		destIds.add("4");
-		when(mockDest.getAllUserAndGroupIds()).thenReturn(destIds);
-		
-		Set<String> delta = RepositoryMigrationDriver.calculateUserDelta(mockSource, mockDest);
-		assertNotNull(delta);
-		assertTrue(delta.contains("1"));
-		assertTrue(delta.contains("3"));
-		assertFalse(delta.contains("2"));
-		assertFalse(delta.contains("4"));
 	}
 
 }

@@ -14,6 +14,7 @@ import java.io.StringReader;
 import java.io.StringWriter;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessRequirementBackup;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -35,6 +37,8 @@ import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.util.RandomNodeBackupUtil;
@@ -78,6 +82,42 @@ public class NodeSerializerUtilTest {
 		up.setDisplayName("foo bar");
 		pb.setUserProfile(up);
 		pbs.add(pb);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		NodeSerializerUtil.writePrincipalBackups(pbs, baos);
+		baos.close();
+		String serialized = new String(baos.toByteArray());
+		ByteArrayInputStream bais = new ByteArrayInputStream(baos.toByteArray());
+		Collection<PrincipalBackup> pbs2 = NodeSerializerUtil.readPrincipalBackups(bais);
+		assertEquals(pbs, pbs2);
+	}
+
+	@Test 
+	public void testRoundTripAccessRequirementBackup() throws Exception {
+		Collection<PrincipalBackup> pbs = new HashSet<PrincipalBackup>();
+		AccessRequirementBackup pb = new AccessRequirementBackup();
+
+		TermsOfUseAccessRequirement accessRequirement = new TermsOfUseAccessRequirement();
+		accessRequirement.setCreatedBy("101");
+		accessRequirement.setCreatedOn(new Date());
+		accessRequirement.setModifiedBy("102");
+		accessRequirement.setModifiedOn(new Date());
+		accessRequirement.setEtag("10");
+		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		accessRequirement.setEntityIds(Arrays.asList(new String[]{"103"}));
+		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
+		accessRequirement.setId(104L);
+
+		TermsOfUseAccessApproval accessApproval = new TermsOfUseAccessApproval();
+		accessApproval.setCreatedBy("101");
+		accessApproval.setCreatedOn(new Date());
+		accessApproval.setModifiedBy("102");
+		accessApproval.setModifiedOn(new Date());
+		accessApproval.setEtag("10");
+		accessApproval.setAccessorId("100");
+		accessApproval.setRequirementId(accessRequirement.getId());
+		accessApproval.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");
+		
+		
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		NodeSerializerUtil.writePrincipalBackups(pbs, baos);
 		baos.close();
