@@ -19,7 +19,6 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -30,7 +29,6 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -53,8 +51,6 @@ public class DBOAccessRequirementDAOImplTest {
 	private UserGroup individualGroup = null;
 	private Node node = null;
 	private TermsOfUseAccessRequirement accessRequirement = null;
-	
-	private ObjectSchema schema = null;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -156,7 +152,7 @@ public class DBOAccessRequirementDAOImplTest {
 			MigratableObjectDescriptor obj = od.getId();
 			assertNotNull(obj.getId());
 			assertNotNull(od.getEtag());
-			assertEquals(MigratableObjectType.AccessRequirement, obj.getType());
+			assertEquals(MigratableObjectType.ACCESSREQUIREMENT, obj.getType());
 			assertNotNull(od.getDependencies());
 			if (obj.getId().equals(clone.getId().toString())) {
 				foundAr=true;
@@ -167,7 +163,7 @@ public class DBOAccessRequirementDAOImplTest {
 					if (d.getId().equals(node.getId())) {
 						foundNode = true;
 					}
-					assertEquals(MigratableObjectType.Entity, d.getType());
+					assertEquals(MigratableObjectType.ENTITY, d.getType());
 				}
 				assertTrue("dependencies: "+deps, foundNode);
 			}

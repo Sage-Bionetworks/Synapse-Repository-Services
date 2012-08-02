@@ -78,9 +78,9 @@ public class CreationJobBuilder implements Callable<BuilderResponse> {
 			if(!batchToCreate.isEmpty()){
 				Job createJob = new Job(batchToCreate, objectType, Type.CREATE);
 				this.queue.add(createJob);
-				batchesToCreate.remove(objectType);
 			}
 		}
+		batchesToCreate.clear();
 		// Report the results.
 		return new BuilderResponse(createsSubmitted, pendingCreates);
 	}

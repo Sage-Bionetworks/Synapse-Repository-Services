@@ -169,7 +169,7 @@ public class NodeDAOImplTest {
 			if (od.getId().getId().equals(id)) {
 				foundId=true;
 			}
-			assertEquals(MigratableObjectType.Entity, od.getId().getType());
+			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
 			
 		}
 		assertTrue(foundId);
@@ -188,10 +188,10 @@ public class NodeDAOImplTest {
 				assertEquals("id: "+id+" dependencies: "+deps.toString(), 1, deps.size());
 				MigratableObjectDescriptor creatorDescriptor = deps.iterator().next();
 				assertEquals(creatorUserGroupId.toString(), creatorDescriptor.getId());
-				assertEquals(MigratableObjectType.UserGroup, creatorDescriptor.getType());
+				assertEquals(MigratableObjectType.PRINCIPAL, creatorDescriptor.getType());
 				
 			}
-			assertEquals(MigratableObjectType.Entity, od.getId().getType());
+			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
 		}
 		assertTrue(foundId);
 	}
@@ -322,7 +322,7 @@ public class NodeDAOImplTest {
 			if (od.getId().getId().equals(id)) {
 				foundId=true;
 			}
-			assertEquals(MigratableObjectType.Entity, od.getId().getType());
+			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
 			
 		}
 		assertTrue(foundId);
@@ -344,10 +344,10 @@ public class NodeDAOImplTest {
 				for (MigratableObjectDescriptor d : deps) {
 					if (creatorUserGroupId.toString().equals(d.getId())) {
 						foundCreator=true;
-						assertEquals(MigratableObjectType.UserGroup, d.getType());
+						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
 					} else if (parentId.equals(d.getId())) {
 						foundParent=true;
-						assertEquals(MigratableObjectType.Entity, d.getType());
+						assertEquals(MigratableObjectType.ENTITY, d.getType());
 					}
 				}
 				assertTrue(foundCreator);

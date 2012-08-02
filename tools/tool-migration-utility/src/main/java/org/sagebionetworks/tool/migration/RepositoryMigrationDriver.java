@@ -166,43 +166,6 @@ public class RepositoryMigrationDriver {
 		return threadPool.submit(queueWorker);
 	}
 	
-//	/**
-//	 * Calculate the 
-//	 * @param sourceClient
-//	 * @param desSynapse
-//	 * @return
-//	 * @throws SynapseException
-//	 */
-//	public static Set<String> calculateUserDelta(Synapse sourceClient, Synapse desSynapse) throws SynapseException{
-//		HashSet<String> delta = new HashSet<String>();
-//		Set<String> sourceIds  = sourceClient.getAllUserAndGroupIds();
-//		Set<String> destIds = desSynapse.getAllUserAndGroupIds();
-//		// Find the ids that are in the source but on in the destination.
-//		for(String sourceId: sourceIds){
-//			if(!destIds.contains(sourceId)){
-//				delta.add(sourceId);
-//			}
-//		}
-//		return delta;
-//	}
-	
-//	/**
-//	 * Migrate all users.
-//	 * @param factory
-//	 * @param threadPool
-//	 * @param jobQueue
-//	 * @return
-//	 * @throws InterruptedException
-//	 * @throws ExecutionException
-//	 */
-//	public static Future<WorkerResult> migratePrincipals(ClientFactory clientFactory, ExecutorService threadPool, BasicProgress progress, Set<String> toMigrate)
-//			throws InterruptedException, ExecutionException {
-//		// Create a new worker job.
-//		CreateUpdateWorker worker = new CreateUpdateWorker(configuration, clientFactory, toMigrate, progress, MigratableObjectType.UserGroup);
-//		// Start the worker job.
-//		return threadPool.submit(worker);
-//	}
-
 	/**
 	 * Populate the queue with create, update, and delete jobs using what we know about the source and destination repositories using the configured batch size.
 	 * This will block until the queue is populated.

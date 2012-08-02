@@ -62,11 +62,11 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		AmazonS3Client client = createNewAWSClient();
 		
 		GenericBackupDriver typeSpecificBackupDriver = null;
-		if (migrationType.equals(MigratableObjectType.Entity)) {
+		if (migrationType.equals(MigratableObjectType.ENTITY)) {
 			typeSpecificBackupDriver = backupDriver;
-		} else if (migrationType.equals(MigratableObjectType.UserGroup)) {
+		} else if (migrationType.equals(MigratableObjectType.PRINCIPAL)) {
 			typeSpecificBackupDriver = principalBackupDriver;
-		} else if (migrationType.equals(MigratableObjectType.AccessRequirement)) {
+		} else if (migrationType.equals(MigratableObjectType.ACCESSREQUIREMENT)) {
 			typeSpecificBackupDriver = accessRequirementBackupDriver;
 		} else {
 			throw new IllegalArgumentException(migrationType.toString());
@@ -101,11 +101,11 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		AmazonS3Client client = createNewAWSClient();
 		
 		GenericBackupDriver typeSpecificBackupDriver = null;
-		if (migrationType.equals(MigratableObjectType.Entity)) {
+		if (migrationType.equals(MigratableObjectType.ENTITY)) {
 			typeSpecificBackupDriver = backupDriver;
-		} else if (migrationType.equals(MigratableObjectType.UserGroup)) {
+		} else if (migrationType.equals(MigratableObjectType.PRINCIPAL)) {
 			typeSpecificBackupDriver = principalBackupDriver;
-		} else if (migrationType.equals(MigratableObjectType.AccessRequirement)) {
+		} else if (migrationType.equals(MigratableObjectType.ACCESSREQUIREMENT)) {
 			typeSpecificBackupDriver = accessRequirementBackupDriver;
 		} else {
 			throw new IllegalArgumentException(migrationType.toString());
@@ -159,11 +159,11 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		if(!user.isAdmin()) throw new UnauthorizedException("Must be an administrator to invoke the backup/restore daemon");
 		
 		MigratableObjectType migrationType = mod.getType();
-		if (migrationType.equals(MigratableObjectType.Entity)) {
+		if (migrationType.equals(MigratableObjectType.ENTITY)) {
 			backupDriver.delete(mod.getId());
-		} else if (migrationType.equals(MigratableObjectType.UserGroup)) {
+		} else if (migrationType.equals(MigratableObjectType.PRINCIPAL)) {
 			principalBackupDriver.delete(mod.getId());
-		} else if (migrationType.equals(MigratableObjectType.AccessRequirement)) {
+		} else if (migrationType.equals(MigratableObjectType.ACCESSREQUIREMENT)) {
 			accessRequirementBackupDriver.delete(mod.getId());
 		} else {
 			throw new IllegalArgumentException(migrationType.toString());

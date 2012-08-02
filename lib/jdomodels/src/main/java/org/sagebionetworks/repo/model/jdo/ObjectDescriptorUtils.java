@@ -4,8 +4,8 @@ import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 
 public class ObjectDescriptorUtils {
-	private static final MigratableObjectType OBJECT_DESCRIPTOR_NODE_TYPE = MigratableObjectType.Entity;
-	private static final MigratableObjectType OBJECT_DESCRIPTOR_PRINCIPAL_TYPE = MigratableObjectType.UserGroup;
+	private static final MigratableObjectType OBJECT_DESCRIPTOR_NODE_TYPE = MigratableObjectType.ENTITY;
+	private static final MigratableObjectType OBJECT_DESCRIPTOR_PRINCIPAL_TYPE = MigratableObjectType.PRINCIPAL;
 	
 	public static MigratableObjectDescriptor createObjectDescriptor(String id, MigratableObjectType type) {
 		MigratableObjectDescriptor obj = new MigratableObjectDescriptor();

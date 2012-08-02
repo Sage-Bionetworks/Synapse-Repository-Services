@@ -108,7 +108,7 @@ public class DBOUserGroupDAOImplTest {
 		for (MigratableObjectData od : migrationData.getResults()) {
 			MigratableObjectDescriptor obj = od.getId();
 			assertNotNull(obj.getId());
-			assertEquals(MigratableObjectType.UserGroup, obj.getType());
+			assertEquals(MigratableObjectType.PRINCIPAL, obj.getType());
 			assertNotNull(od.getEtag());
 			assertTrue(od.getDependencies().isEmpty()); // Groups are not dependent on any other migratable object
 			if (obj.getId().equals(ug.getId())) {

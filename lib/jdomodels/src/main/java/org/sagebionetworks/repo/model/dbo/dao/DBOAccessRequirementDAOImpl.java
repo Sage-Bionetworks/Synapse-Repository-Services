@@ -103,13 +103,13 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	@Override
 	public <T extends AccessRequirement> T create(T dto) throws DatastoreException, InvalidModelException{
 	
-		DBOAccessRequirement jdo = new DBOAccessRequirement();
-		AccessRequirementUtils.copyDtoToDbo(dto, jdo);
-		if (jdo.geteTag()==null) jdo.seteTag(0L);
-		jdo.setId(idGenerator.generateNewId());
-		jdo = basicDao.createNew(jdo);
-		populateNodeAccessRequirement(jdo.getId(), dto.getEntityIds());
-		T result = (T)AccessRequirementUtils.copyDboToDto(jdo, getEntities(jdo.getId()));
+		DBOAccessRequirement dbo = new DBOAccessRequirement();
+		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
+		if (dbo.geteTag()==null) dbo.seteTag(0L);
+		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId());
+		dbo = basicDao.createNew(dbo);
+		populateNodeAccessRequirement(dbo.getId(), dto.getEntityIds());
+		T result = (T)AccessRequirementUtils.copyDboToDto(dbo, getEntities(dbo.getId()));
 		return result;
 	}
 	
@@ -186,7 +186,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 					MigratableObjectData objectData = new MigratableObjectData();
 					MigratableObjectDescriptor od = new MigratableObjectDescriptor();
 					od.setId(id);
-					od.setType(MigratableObjectType.AccessRequirement);
+					od.setType(MigratableObjectType.ACCESSREQUIREMENT);
 					objectData.setId(od);
 					objectData.setEtag(etag);
 					objectData.setDependencies(new HashSet<MigratableObjectDescriptor>());

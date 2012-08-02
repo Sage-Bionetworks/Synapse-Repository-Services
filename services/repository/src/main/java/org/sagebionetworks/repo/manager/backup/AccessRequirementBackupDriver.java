@@ -34,6 +34,13 @@ public class AccessRequirementBackupDriver implements GenericBackupDriver {
 
 	@Autowired
 	private AccessApprovalDAO accessApprovalDAO;
+	
+	public AccessRequirementBackupDriver() {}
+	
+	public AccessRequirementBackupDriver(AccessRequirementDAO accessRequirementDAO, AccessApprovalDAO accessApprovalDAO) {
+		this.accessRequirementDAO = accessRequirementDAO;
+		this.accessApprovalDAO = accessApprovalDAO;
+	}
 
 	static private Log log = LogFactory.getLog(AccessRequirementBackupDriver.class);
 	
@@ -153,15 +160,31 @@ public class AccessRequirementBackupDriver implements GenericBackupDriver {
 	public void createOrUpdateAccessRequirementAndApprovals(AccessRequirementBackup backup) throws DatastoreException, NotFoundException, InvalidModelException, ConflictingUpdateException {
 		// create the access requirement
 		AccessRequirement ar = backup.getAccessRequirement();
-		if (null==accessRequirementDAO.get(ar.getId().toString())) {
-			accessRequirementDAO.create(ar);
+		AccessRequirement arFromSystem = null;
+		try {
+			arFromSystem = accessRequirementDAO.get(ar.getId().toString());
+		} catch (NotFoundException e) {
+			arFromSystem = null;
+		}
+		if (null==arFromSystem) {
+			ar = accessRequirementDAO.create(ar);
 		} else {
-			accessRequirementDAO.update(ar);
+			ar = accessRequirementDAO.update(ar);
 		}
 		
 		// create the access approvals
 		for (AccessApproval aa : backup.getAccessApprovals()) {
-			if (null==accessApprovalDAO.get(aa.getId().toString())) {
+			if (!ar.getId().equals(aa.getRequirementId())) throw new 
+				IllegalStateException("AccessApproval references requirement "+aa.getRequirementId()+
+						", the ID in the backup file is "+backup.getAccessRequirement().getId()+
+						", and the ID after restoration is "+ar.getId());
+			AccessApproval aaFromSystem = null;
+			try {
+				aaFromSystem = accessApprovalDAO.get(aa.getId().toString());
+			} catch (NotFoundException e) {
+				aaFromSystem = null;
+			}
+			if (null==aaFromSystem) {
 				accessApprovalDAO.create(aa);
 			} else {
 				accessApprovalDAO.update(aa);

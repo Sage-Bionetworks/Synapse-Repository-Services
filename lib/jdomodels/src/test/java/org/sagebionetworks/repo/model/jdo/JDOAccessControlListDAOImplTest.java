@@ -171,7 +171,7 @@ public class JDOAccessControlListDAOImplTest {
 			if (od.getId().getId().equals(node.getId())) {
 				foundId=true;
 			}
-			assertEquals(MigratableObjectType.Entity, od.getId().getType());
+			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
 			
 		}
 		assertTrue(foundId);
@@ -194,20 +194,20 @@ public class JDOAccessControlListDAOImplTest {
 				for (MigratableObjectDescriptor d : deps) {
 					if (createdById.toString().equals(d.getId())) {
 						foundCreator=true;
-						assertEquals(MigratableObjectType.UserGroup, d.getType());
+						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
 					} else if (modifiedById.toString().equals(d.getId())) {
 						foundModifier=true;
-						assertEquals(MigratableObjectType.UserGroup, d.getType());
+						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
 					} else if (group.getId().equals(d.getId())) {
 						foundAclGroup=true;
-						assertEquals(MigratableObjectType.UserGroup, d.getType());
+						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
 					}
 				}
 				assertTrue(foundCreator);
 				assertTrue(foundModifier);
 				assertTrue(foundAclGroup);
 			}
-			assertEquals(MigratableObjectType.Entity, od.getId().getType());
+			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
 		}
 		assertTrue(foundId);
 		

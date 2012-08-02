@@ -75,9 +75,9 @@ public class DeleteJobBuilder implements Callable<BuilderResponse> {
 			if(!batchToDelete.isEmpty()){
 				Job updateJob = new Job(batchToDelete, objectType, Type.DELETE);
 				this.queue.add(updateJob);
-				batchesToDelete.remove(objectType);
 			}
 		}
+		batchesToDelete.clear();
 		// Report the results.
 		return new BuilderResponse(deleteSubmitted, 0);
 	}

@@ -2,6 +2,7 @@ package org.sagebionetworks.tool.migration.job;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
@@ -14,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 
 public class DeleteJobBuilderTest {
@@ -100,6 +102,49 @@ public class DeleteJobBuilderTest {
 		Set<String> toDelete = jobQueue.peek().getObjectIds();
 		assertNotNull(toDelete);
 		assertNotNull(toDelete.contains(destList.get(0).getId().getId()));
+	}
+	
+	@Test
+	public void testDestinationSharedParentDeleteMultipleTypes() throws Exception{
+		// The destination is empty
+		List<MigratableObjectData> destList = new ArrayList<MigratableObjectData>();
+		// This is the only one that should be deleted.
+		destList.add(XestUtil.createMigratableObjectData("20", "0", null));
+		// All of these will be deleted due to the cascade delete.
+		destList.add(XestUtil.createMigratableObjectData("21", "0", "20"));
+		destList.add(XestUtil.createMigratableObjectData("22", "0", "21"));
+		destList.add(XestUtil.createMigratableObjectData("23", "0", "22"));
+	
+		// in addition to Entities, we have an access requirement to migrate
+		destList.add(XestUtil.createMigratableObjectData("1", "0", null, MigratableObjectType.ACCESSREQUIREMENT));
+
+		// now run the job
+		int batchSize = 5;
+		DeleteJobBuilder builder = new DeleteJobBuilder(sourceMap, destList, jobQueue, batchSize);
+		BuilderResponse response = builder.call();
+		assertNotNull(response);
+
+		int expectedSubmited = 4+1; // +1 for separate job for AR
+		assertEquals(expectedSubmited, response.getSubmittedToQueue());
+		assertEquals(0, response.pendingDependencies);
+		assertEquals(1+1, jobQueue.size()); // two jobs, one for Entities and one for ARs
+		boolean foundEntityJob = false;
+		boolean foundARJob = false;
+		while (!jobQueue.isEmpty()) {
+			Job job = jobQueue.poll();
+			Set<String> toDelete = job.getObjectIds();
+			assertNotNull(toDelete);
+			if (job.getObjectType().equals(MigratableObjectType.ENTITY)) {
+				assertNotNull(toDelete.contains(destList.get(0).getId().getId())); 
+				foundEntityJob = true;
+			}
+			if (job.getObjectType().equals(MigratableObjectType.ACCESSREQUIREMENT)) {
+				assertNotNull(toDelete.contains(destList.get(destList.size()-1).getId().getId())); 
+				foundARJob = true;
+			}
+		}
+		assertTrue(foundEntityJob);
+		assertTrue(foundARJob);
 	}
 	
 	@Test

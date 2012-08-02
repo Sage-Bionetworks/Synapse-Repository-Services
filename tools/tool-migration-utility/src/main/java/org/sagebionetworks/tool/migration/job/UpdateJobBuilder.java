@@ -80,9 +80,9 @@ public class UpdateJobBuilder implements Callable<BuilderResponse> {
 			if(!batchToUpdate.isEmpty()) {
 				Job updateJob = new Job(batchToUpdate, objectType, Type.UPDATE);
 				this.queue.add(updateJob);
-				batchesToUpdate.remove(objectType);
 			}
 		}
+		batchesToUpdate.clear();
 		// Report the results.
 		return new BuilderResponse(updateSubmitted, 0);
 	}

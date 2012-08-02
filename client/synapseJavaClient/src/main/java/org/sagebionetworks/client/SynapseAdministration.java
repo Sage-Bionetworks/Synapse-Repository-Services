@@ -36,6 +36,14 @@ public class SynapseAdministration extends Synapse {
 	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
 	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
 	
+	public SynapseAdministration() {
+		super();
+	}
+	
+	public SynapseAdministration(HttpClientProvider clientProvider, DataUploader dataUploader) {
+		super(clientProvider, dataUploader);
+	}
+	
 	@SuppressWarnings("unchecked")
 	public PaginatedResults<MigratableObjectData> getAllMigratableObjectsPaginated(long offset, long limit, boolean includeDependencies)  throws JSONObjectAdapterException, SynapseException  {
 		return (PaginatedResults<MigratableObjectData>)getJSONEntity(GET_ALL_BACKUP_OBJECTS + "?" + 

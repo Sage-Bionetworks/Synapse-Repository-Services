@@ -84,6 +84,40 @@ public class CreationJobBuilderTest {
 	}
 
 	@Test
+	public void testMultipleTypes() throws Exception{
+		// in addition to Entities, we have an access requirement to migrate
+		source.add(XestUtil.createMigratableObjectData("1", "0", null, MigratableObjectType.ACCESSREQUIREMENT));
+		// The destination is empty
+		List<MigratableObjectData> dest = new ArrayList<MigratableObjectData>();
+		Map<MigratableObjectDescriptor, MigratableObjectData> destMap = JobUtil.buildMigratableMapFromList(dest);
+		// now run the job
+		int batchSize = 5;
+		CreationJobBuilder builder = new CreationJobBuilder(source, destMap, jobQueue, batchSize);
+		BuilderResponse response = builder.call();
+		assertNotNull(response);
+		// Just the root and the single AR should have been submitted
+		int expectedSubmited = 2;
+		assertEquals(expectedSubmited, response.getSubmittedToQueue());
+		assertEquals(source.size()-expectedSubmited, response.pendingDependencies);
+		assertEquals(2, jobQueue.size());
+		
+		// Check the jobQue
+		boolean foundEntityJob = false;
+		boolean foundARJob = false;
+		while (!jobQueue.isEmpty()) {
+			Job job = jobQueue.poll();
+			assertNotNull(job.getObjectIds());
+			assertEquals(1, job.getObjectIds().size());
+			assertTrue(job.getObjectIds().contains("1"));  // both 'jobs' are for id=1, each for a different type
+			if (job.getObjectType().equals(MigratableObjectType.ACCESSREQUIREMENT)) foundARJob = true;
+			if (job.getObjectType().equals(MigratableObjectType.ENTITY)) foundEntityJob = true;
+		}
+		assertTrue(foundEntityJob);
+		assertTrue(foundARJob);
+		
+	}
+
+	@Test
 	public void testDestinationWithRoot() throws Exception{
 		// This time add root to the destination.
 		List<MigratableObjectData> dest = new ArrayList<MigratableObjectData>();

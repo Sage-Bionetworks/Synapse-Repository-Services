@@ -15,6 +15,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 import org.sagebionetworks.tool.migration.job.Job.Type;
 
@@ -116,6 +117,44 @@ public class UpdateJobBuilderTest {
 		assertNotNull(response);
 		// Nothing should have been submitted.
 		int expectedSubmited = 3;
+		assertEquals(expectedSubmited, response.getSubmittedToQueue());
+		assertEquals(0, response.pendingDependencies);
+		assertEquals(expectedSubmited/batchSize+1, jobQueue.size());
+		
+		// Check the jobQue
+		Job job = null;
+		while((job = jobQueue.poll()) != null){
+			assertNotNull(job);
+			assertEquals(Type.UPDATE, job.getJobType());
+			assertNotNull(job.getObjectIds());
+			assertTrue(job.getObjectIds().size() <= batchSize);
+		}
+	}
+	
+	@Test
+	public void testSourceWithUpdatesMultipleTypes() throws Exception{
+		// in addition to Entities, we have an access requirement to migrate
+		source.add(XestUtil.createMigratableObjectData("1", "0", null, MigratableObjectType.ACCESSREQUIREMENT));
+		// make sure the destination is the same as the source
+		List<MigratableObjectData> dest = new ArrayList<MigratableObjectData>();
+		for(MigratableObjectData fromSource: source) {
+			dest.add(XestUtil.cloneMigratableObjectData(fromSource));
+		}
+		assertEquals(source, dest);
+		// Change some eTags on the source
+		source.get(2).setEtag("33");
+		source.get(5).setEtag("33");
+		source.get(7).setEtag("33");
+		source.get(source.size()-1).setEtag("33"); 
+		
+		Map<MigratableObjectDescriptor, MigratableObjectData> destMap = JobUtil.buildMigratableMapFromList(dest);
+		// now run the job
+		int batchSize = 2;
+		UpdateJobBuilder builder = new UpdateJobBuilder(source, destMap, jobQueue, batchSize);
+		BuilderResponse response = builder.call();
+		assertNotNull(response);
+		// Nothing should have been submitted.
+		int expectedSubmited = 3+1; // "+1" for separate type
 		assertEquals(expectedSubmited, response.getSubmittedToQueue());
 		assertEquals(0, response.pendingDependencies);
 		assertEquals(expectedSubmited/batchSize+1, jobQueue.size());

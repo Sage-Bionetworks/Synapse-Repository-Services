@@ -72,13 +72,13 @@ public class DependencyManagerImplTest {
 		for (int i=0; i<3L; i++) {
 			MigratableObjectData od = ods.get(i);
 			MigratableObjectDescriptor id = od.getId();
-			assertEquals(MigratableObjectType.Entity, id.getType());
+			assertEquals(MigratableObjectType.ENTITY, id.getType());
 			assertEquals("syn"+i, id.getId());
 		}
 		for (int i=3; i<5L; i++) {
 			MigratableObjectData od = ods.get(i);
 			MigratableObjectDescriptor id = od.getId();
-			assertEquals(MigratableObjectType.UserGroup, id.getType());
+			assertEquals(MigratableObjectType.PRINCIPAL, id.getType());
 			assertEquals(""+i, id.getId());
 		}
 	}
@@ -112,7 +112,7 @@ public class DependencyManagerImplTest {
 		for (int i=3; i<5L; i++) {
 			MigratableObjectData od = ods.get(i-3);
 			MigratableObjectDescriptor id = od.getId();
-			assertEquals(MigratableObjectType.UserGroup, id.getType());
+			assertEquals(MigratableObjectType.PRINCIPAL, id.getType());
 			assertEquals(""+i, id.getId());
 		}
 	}

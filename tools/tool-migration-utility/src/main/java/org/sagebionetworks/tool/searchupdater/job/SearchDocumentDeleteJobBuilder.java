@@ -56,7 +56,7 @@ public class SearchDocumentDeleteJobBuilder implements
 				deleteSubmitted++;
 			}
 			if (batchToDelete.size() >= this.batchSize) {
-				Job deleteJob = new Job(batchToDelete, MigratableObjectType.Entity, Type.SEARCH_DELETE);
+				Job deleteJob = new Job(batchToDelete, MigratableObjectType.ENTITY, Type.SEARCH_DELETE);
 				this.queue.add(deleteJob);
 				batchToDelete = new HashSet<String>();
 			}
@@ -64,7 +64,7 @@ public class SearchDocumentDeleteJobBuilder implements
 
 		// Submit any deletes left over
 		if (!batchToDelete.isEmpty()) {
-			Job deleteJob = new Job(batchToDelete, MigratableObjectType.Entity, Type.SEARCH_DELETE);
+			Job deleteJob = new Job(batchToDelete, MigratableObjectType.ENTITY, Type.SEARCH_DELETE);
 			this.queue.add(deleteJob);
 			batchToDelete = new HashSet<String>();
 		}

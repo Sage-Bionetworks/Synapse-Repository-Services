@@ -27,6 +27,7 @@ public class MigrationQueryRunner implements QueryRunner<MigratableObjectData> {
 	
 	public static final long PAGE_SIZE = 100L;
 	
+	@Override
 	public List<MigratableObjectData> getAllEntityData(BasicProgress progress)
 			throws SynapseException, JSONException, InterruptedException,
 			JSONObjectAdapterException {
@@ -75,10 +76,11 @@ public class MigrationQueryRunner implements QueryRunner<MigratableObjectData> {
 		else return next;
 	}
 
+	@Override
 	public long getTotalEntityCount() throws SynapseException, JSONException,
 			JSONObjectAdapterException {
 		// TODO add a special service that just gives the total, without computing a page of results
-		PaginatedResults<MigratableObjectData> results = client.getAllMigratableObjectsPaginated(0, 10, false);
+		PaginatedResults<MigratableObjectData> results = client.getAllMigratableObjectsPaginated(0, PAGE_SIZE, false);
 		return (int)results.getTotalNumberOfResults();
 	}
 

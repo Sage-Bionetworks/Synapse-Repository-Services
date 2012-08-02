@@ -17,6 +17,7 @@ import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -41,6 +42,9 @@ public class PrincipalBackupDriver implements GenericBackupDriver {
 	
 	@Autowired
 	UserProfileDAO userProfileDAO;
+	
+	@Autowired
+	UserManager userManager;
 	
 	@Autowired
 	NodeBackupManager backupManager;
@@ -258,11 +262,10 @@ public class PrincipalBackupDriver implements GenericBackupDriver {
 		}
 	}
 	
+	// we delete groups via the UserManager.deletePrincipal, rather than UserGroupDAO.delete()
+	// to ensure that the user is removed from the UserManager userInfo cache
 	private void deleteUserGroup(UserGroup ug) throws DatastoreException, NotFoundException {
-		if (ug.getIsIndividual()) {
-			userProfileDAO.delete(ug.getId());
-		}
-		userGroupDAO.delete(ug.getId());
+		userManager.deletePrincipal(ug.getName());
 	}
 	
 	/**
