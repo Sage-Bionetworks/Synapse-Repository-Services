@@ -1795,7 +1795,12 @@ public class Synapse {
 			Class<? extends T> clazz) throws SynapseException,
 			JSONObjectAdapterException {
 		JSONObject jsonObject = getEntity(uri);
-		return EntityFactory.createEntityFromJSONObject(jsonObject, clazz);
+		try {
+			return EntityFactory.createEntityFromJSONObject(jsonObject, clazz);
+		} catch (Exception e) {
+			throw new SynapseException("Failed to create an Entity for <<"+jsonObject+">>", e);
+		}
+		
 	}
 	
 	public SearchResults search(SearchQuery searchQuery) throws SynapseException, UnsupportedEncodingException, JSONObjectAdapterException {

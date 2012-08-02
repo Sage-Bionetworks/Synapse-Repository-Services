@@ -12,12 +12,15 @@ import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 /**
  * Java Client API for Synapse Administrative REST APIs
@@ -44,13 +47,20 @@ public class SynapseAdministration extends Synapse {
 		super(clientProvider, dataUploader);
 	}
 	
-	@SuppressWarnings("unchecked")
 	public PaginatedResults<MigratableObjectData> getAllMigratableObjectsPaginated(long offset, long limit, boolean includeDependencies)  throws JSONObjectAdapterException, SynapseException  {
-		return (PaginatedResults<MigratableObjectData>)getJSONEntity(GET_ALL_BACKUP_OBJECTS + "?" + 
-				ServiceConstants.PAGINATION_OFFSET_PARAM+"="+offset+"&"+
-				ServiceConstants.PAGINATION_LIMIT_PARAM+"="+limit+"&"+
-				INCLUDE_DEPENDENCIES_PARAM+"="+includeDependencies
-				, PaginatedResults.class);	
+		String uri = GET_ALL_BACKUP_OBJECTS + "?" + 
+			ServiceConstants.PAGINATION_OFFSET_PARAM+"="+offset+"&"+
+			ServiceConstants.PAGINATION_LIMIT_PARAM+"="+limit+"&"+
+			INCLUDE_DEPENDENCIES_PARAM+"="+includeDependencies;
+		JSONObject jsonUsers = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonUsers);
+		PaginatedResults<MigratableObjectData> results = new PaginatedResults<MigratableObjectData>(MigratableObjectData.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 	
 	public void deleteObject(MigratableObjectDescriptor mod)  throws SynapseNotFoundException, SynapseException {

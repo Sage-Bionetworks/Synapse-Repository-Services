@@ -60,6 +60,12 @@ public class ITMigrationQueryRunner {
 	}
 	
 	@Test
+	public void testGetTotalEntityCount() throws Exception {
+		MigrationQueryRunner mqr = new MigrationQueryRunner(synapse, true);
+		mqr.getTotalEntityCount();
+	}
+	
+	@Test
 	public void testQueryForRoot() throws SynapseException, JSONException{
 		// Make sure we can get the root Entity
 		QueryRunnerImpl queryRunner = new QueryRunnerImpl(synapse);
