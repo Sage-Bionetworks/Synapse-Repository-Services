@@ -1,22 +1,24 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.json.JSONException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
+import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.tool.migration.Constants;
 import org.sagebionetworks.tool.migration.dao.EntityData;
+import org.sagebionetworks.tool.migration.dao.MigrationQueryRunner;
 import org.sagebionetworks.tool.migration.dao.QueryRunnerImpl;
 
 /**
@@ -26,13 +28,13 @@ import org.sagebionetworks.tool.migration.dao.QueryRunnerImpl;
  */
 public class ITMigrationQueryRunner {
 	
-	private static Synapse synapse;
+	private static SynapseAdministration synapse;
 	private List<Entity> toDelete = null;
 	
 	@Before
 	public void before() throws SynapseException{
 		toDelete = new ArrayList<Entity>();
-		synapse = new Synapse();
+		synapse = new SynapseAdministration();
 		synapse.setAuthEndpoint(StackConfiguration
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration
@@ -49,6 +51,18 @@ public class ITMigrationQueryRunner {
 				synapse.deleteEntity(e);
 			}
 		}
+	}
+	
+	@Test
+	public void testQueryForAllMigratableData() throws Exception {
+		MigrationQueryRunner mqr = new MigrationQueryRunner(synapse, true);
+		mqr.getAllEntityData(null);
+	}
+	
+	@Test
+	public void testGetTotalEntityCount() throws Exception {
+		MigrationQueryRunner mqr = new MigrationQueryRunner(synapse, true);
+		mqr.getTotalEntityCount();
 	}
 	
 	@Test
@@ -93,7 +107,7 @@ public class ITMigrationQueryRunner {
 		results = queryRunner.queryForAllPages(query, Constants.ENTITY, children, null);
 		assertEquals(expectedList, results);
 		// Also make sure we can run the real query
-		results = queryRunner.getAllAllChildrenOfEntity(parent.getId());
+		results = queryRunner.getAllChildrenOfEntity(parent.getId());
 		assertEquals(expectedList, results);
 	}
 	

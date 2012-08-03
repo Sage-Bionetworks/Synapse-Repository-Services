@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -166,6 +167,38 @@ public class EntityServletTestHelper {
 		// Read in the value.
 		StringReader reader = new StringReader(response.getContentAsString());
 		return JSONEntityHttpMessageConverter.readEntity(reader);
+	}
+	
+	/**
+	 * Get an entity bundle using only the ID.
+	 * @param id
+	 * @param testUser1
+	 * @return
+	 * @throws IOException 
+	 * @throws ServletException 
+	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public EntityBundle getEntityBundle(String id, int mask, String username) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ENTITY+"/"+id+UrlHelpers.BUNDLE);
+		request.setParameter("mask", "" + mask);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		return new EntityBundle(joa);
 	}
 
 	/**

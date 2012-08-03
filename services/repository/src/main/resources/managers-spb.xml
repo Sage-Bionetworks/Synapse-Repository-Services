@@ -25,13 +25,25 @@
 	<!-- The Entity manager -->
 	<bean id="entityManager" class="org.sagebionetworks.repo.manager.EntityManagerImpl" />
 
-	<!-- The Generic Entity Controller -->
-	<bean id="entityController"
-		class="org.sagebionetworks.repo.web.GenericEntityControllerImpl" />
-		
 	<!-- Make sure we can watch for deadlock on all methods of the Generic Entity Controller -->	
 	<bean id="deadlockWatcher"
 		class="org.sagebionetworks.repo.web.DeadlockWatcher" />
+
+	<!-- The Entity Service  -->
+	<bean id="entityService"
+		class="org.sagebionetworks.repo.web.service.EntityServiceImpl" />
+
+	<!-- The UserProfile Service -->
+	<bean id="userProfileService"
+		class="org.sagebionetworks.repo.web.service.UserProfileServiceImpl" />
+		
+	<!-- The UserGroup Service -->
+	<bean id="userGroupService"
+		class="org.sagebionetworks.repo.web.service.UserGroupServiceImpl" />
+
+	<!-- The EntityBundle Service  -->
+	<bean id="entityBundleService"
+		class="org.sagebionetworks.repo.web.service.EntityBundleServiceImpl" />
 
 	<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
@@ -126,6 +138,10 @@
 
 	<bean id="principalBackupDriver"
 		class="org.sagebionetworks.repo.manager.backup.PrincipalBackupDriver"
+		scope="singleton" />
+
+	<bean id="accessRequirementBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.AccessRequirementBackupDriver"
 		scope="singleton" />
 
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
@@ -258,6 +274,17 @@
 			<list>
 				<bean name="loggingProfiler" class="profiler.org.sagebionetworks.LoggingProfiler" />
 				<bean name="perThreadProfiler" class="profiler.org.sagebionetworks.PerThreadHandler" />
+			</list>
+		</property>
+	</bean>
+
+	<!-- A manager that returns all system objects and their dependencies. -->
+	<bean id="dependencyManager" class="org.sagebionetworks.repo.manager.backup.migration.DependencyManagerImpl">
+		<property name="migratableDaos">
+			<list>
+				<ref bean="userGroupDAO"/>
+				<ref bean="nodeDao"/>
+				<ref bean="accessRequirementDAO"/>
 			</list>
 		</property>
 	</bean>

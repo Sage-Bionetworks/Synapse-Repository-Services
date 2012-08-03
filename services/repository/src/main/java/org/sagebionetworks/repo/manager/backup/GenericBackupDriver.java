@@ -5,10 +5,12 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface NodeBackupDriver {
+public interface GenericBackupDriver {
 	
 	
 	
@@ -32,7 +34,14 @@ public interface NodeBackupDriver {
 	 * @param progress - Used to track the progress of the restore.
 	 * @throws IOException
 	 * @throws InterruptedException 
+	 * @throws ConflictingUpdateException 
+	 * @throws InvalidModelException 
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public boolean restoreFromBackup(File source, Progress progress) throws IOException, InterruptedException;
+	public boolean restoreFromBackup(File source, Progress progress) throws IOException, InterruptedException, DatastoreException, NotFoundException, InvalidModelException, ConflictingUpdateException;
+	
+	
+	public void delete(String id) throws DatastoreException, NotFoundException;
 
 }

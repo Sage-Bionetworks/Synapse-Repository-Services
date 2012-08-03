@@ -3,11 +3,19 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_USER_GROUP_ID;
 import static org.sagebionetworks.repo.model.AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_GROUP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_PROFILE;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -17,6 +25,10 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
@@ -62,9 +74,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL+"=:"+IS_INDIVIDUAL_PARAM_NAME;
 	
-	private static final String OFFSET_PARAM_NAME = "offset";
-	private static final String LIMIT_PARAM_NAME = "LIMIT";
-
 	private static final String SELECT_BY_IS_INDIVID_SQL_PAGINATED = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP+
 			" WHERE "+SqlConstants.COL_USER_GROUP_IS_INDIVIDUAL+"=:"+IS_INDIVIDUAL_PARAM_NAME+
@@ -80,8 +89,22 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
 	private static final String SELECT_ALL = 
-			"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP;
+		"SELECT * FROM "+SqlConstants.TABLE_USER_GROUP;
+
+	// the pattern is: select x.id, y.etag from g x LEFT OUTER JOIN p y on x.id=y.owner order by x.id
+	// the query is: select g.id, p.etag from user_group g LEFT OUTER JOIN user_profile p on g.id=p.owner_id order by g.id limit l offset o 
+	private static final String SELECT_ALL_PAGINATED_WITH_ETAG = 
+		"SELECT g."+COL_USER_GROUP_ID+", p."+COL_USER_PROFILE_ETAG+" FROM "+
+		TABLE_USER_GROUP+" g LEFT OUTER JOIN "+TABLE_USER_PROFILE+
+		" p ON g."+COL_USER_GROUP_ID+" = p."+COL_USER_PROFILE_ID+
+		" ORDER BY g."+COL_USER_GROUP_ID+" LIMIT :"+LIMIT_PARAM_NAME+
+		" OFFSET :"+OFFSET_PARAM_NAME;
 	
+	// the query above is an outer join. For non-individual groups there is no UserProfile and
+	// hence no etag.  The group is immutable and so it's Etag should always be 0.  The following
+	// is the default etag used in such a case.
+	public static final String DEFAULT_ETAG = "0";
+
 	private static final String SQL_COUNT_USER_GROUPS = "SELECT COUNT("+COL_USER_GROUP_ID+") FROM "+TABLE_USER_GROUP + " WHERE "+COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME;
 
 	private static final RowMapper<DBOUserGroup> userGroupRowMapper = (new DBOUserGroup()).getTableMapping();
@@ -135,6 +158,52 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		return dtos;
 	}
 
+
+
+	@Override
+	@Transactional(readOnly = true)
+	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies)
+			throws DatastoreException {
+		// get a page of user groups
+		List<MigratableObjectData> ods = null;
+		{
+			MapSqlParameterSource param = new MapSqlParameterSource();
+			param.addValue(OFFSET_PARAM_NAME, offset);		
+			param.addValue(LIMIT_PARAM_NAME, limit);		
+			ods = simpleJdbcTempalte.query(SELECT_ALL_PAGINATED_WITH_ETAG, new RowMapper<MigratableObjectData>() {
+
+				@Override
+				public MigratableObjectData mapRow(ResultSet rs, int rowNum)
+						throws SQLException {
+					// NOTE this is an outer join, so we have to handle the case in which there
+					// is no etag for the given user group
+					String ugId = rs.getString(COL_USER_GROUP_ID);
+					String etag = rs.getString(COL_USER_PROFILE_ETAG);
+					if (etag==null) etag = DEFAULT_ETAG;
+					MigratableObjectData od = new MigratableObjectData();
+					MigratableObjectDescriptor id = new MigratableObjectDescriptor();
+					id.setId(ugId);
+					id.setType(MigratableObjectType.PRINCIPAL);
+					od.setId(id);
+					od.setEtag(etag);
+					od.setDependencies(new HashSet<MigratableObjectDescriptor>()); // UserGroups have no dependencies
+					return od;
+				}
+			
+			}, param);
+		}
+		
+		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
+		queryResults.setResults(ods);
+		queryResults.setTotalNumberOfResults((int)getCount());
+		return queryResults;
+	}
+	
+	@Override
+	public long getCount()  throws DatastoreException {
+		return basicDao.getCount(DBOUserGroup.class);
+	}
+
 	@Override
 	public Collection<UserGroup> getAllExcept(boolean isIndividual, Collection<String> groupNamesToOmit) throws DatastoreException {
 		// the SQL will be invalid for an empty list, so we 'divert' that case:
@@ -152,7 +221,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		}
 		return dtos;
 	}
-
+	
 	@Override
 	public List<UserGroup> getInRange(long fromIncl, long toExcl,
 			boolean isIndividual) throws DatastoreException {
@@ -227,7 +296,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public String create(UserGroup dto) throws DatastoreException,
 			InvalidModelException {

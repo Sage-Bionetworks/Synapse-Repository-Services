@@ -143,7 +143,6 @@ public class SqlConstants {
 
 	public static final String TABLE_ACCESS_CONTROL_LIST = "ACL";
 	public static final String COL_ACL_ID				= "ID";
-	public static final String COL_ACL_OWNER_ID			= "NODE_OWNER";
 	public static final String ACL_OWNER_ID_COLUMN		= "OWNER_ID_COLUMN";
 	public static final String DDL_FILE_ACL				= "schema/ACL-ddl.sql";
 	
@@ -212,6 +211,9 @@ public class SqlConstants {
 	
 	public static final String AUTH_FILTER_ALIAS = "auth";
 	
+	// standard range parameters
+	public static final String OFFSET_PARAM_NAME = "OFFSET";
+	public static final String LIMIT_PARAM_NAME = "LIMIT";
 	
 	public static final String[] PRIMARY_FIELDS;
 	
