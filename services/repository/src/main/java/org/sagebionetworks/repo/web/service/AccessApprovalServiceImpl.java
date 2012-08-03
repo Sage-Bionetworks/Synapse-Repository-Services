@@ -25,7 +25,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
 import com.amazonaws.util.StringInputStream;
 
-@Controller
 public class AccessApprovalServiceImpl implements AccessApprovalService {
 
 	@Autowired

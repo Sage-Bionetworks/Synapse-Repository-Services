@@ -18,7 +18,6 @@ import org.springframework.stereotype.Controller;
  * @author deflaux
  * 
  */
-@Controller
 public class S3TokenServiceImpl implements S3TokenService {
 
 	@Autowired

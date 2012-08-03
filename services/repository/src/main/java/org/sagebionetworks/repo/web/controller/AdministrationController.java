@@ -1,31 +1,22 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.util.Set;
-
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.manager.StackStatusManager;
-import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
-import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.service.AdministrationService;
+import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -40,10 +31,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * 
  * This controller is used for Administration of Synapse.
- * 
- * 
  * 
  * @author John
  *
@@ -52,7 +40,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class AdministrationController extends BaseController {
 	
 	@Autowired
-	AdministrationService administrationService;
+	ServiceProvider serviceProvider;
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.GET_ALL_BACKUP_OBJECTS, method = RequestMethod.GET)
@@ -63,7 +51,7 @@ public class AdministrationController extends BaseController {
 			@RequestParam(value = UrlHelpers.INCLUDE_DEPENDENCIES_PARAM, required = false, defaultValue = "true") Boolean  includeDependencies
 
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return administrationService.getAllBackupObjects(userId, offset, limit, includeDependencies);
+		return serviceProvider.administrationService.getAllBackupObjects(userId, offset, limit, includeDependencies);
 	}
 	
 	
@@ -92,7 +80,8 @@ public class AdministrationController extends BaseController {
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		return administrationService.startBackup(userId, type, header, request);
+		
+		return serviceProvider.administrationService.startBackup(userId, type, header, request);
 	}
 	
 	/**
@@ -124,7 +113,8 @@ public class AdministrationController extends BaseController {
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		return administrationService.startRestore(userId, file, type);
+
+		return serviceProvider.administrationService.startRestore(file, userId, type, header, request);
 	}
 	
 	/**
@@ -148,10 +138,13 @@ public class AdministrationController extends BaseController {
 	public void deleteMigratableObject(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = UrlHelpers.MIGRATION_OBJECT_ID_PARAM, required=true) String objectId,
-			@RequestParam(value = UrlHelpers.MIGRATION_TYPE_PARAM, required=true) String type)
+			@RequestParam(value = UrlHelpers.MIGRATION_TYPE_PARAM, required=true) String type,
+			@RequestHeader HttpHeaders header,
+			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		administrationService.deleteMigratableObject(userId, objectId, type);
+
+		serviceProvider.administrationService.deleteMigratableObject(userId, objectId, type, header, request);
 	}
 	
 	/**
@@ -178,7 +171,8 @@ public class AdministrationController extends BaseController {
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		return administrationService.startSearchDocument(userId, header, request);
+		
+		return serviceProvider.administrationService.startSearchDocument(userId, header, request);
 	}
 	
 	/**
@@ -207,7 +201,8 @@ public class AdministrationController extends BaseController {
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		return administrationService.getStatus(userId, daemonId);
+
+		return serviceProvider.administrationService.getStatus(daemonId, userId, header, request);
 	}
 	
 	/**
@@ -235,7 +230,8 @@ public class AdministrationController extends BaseController {
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		administrationService.terminateDaemon(userId, daemonId);
+
+		serviceProvider.administrationService.terminateDaemon(daemonId, userId, header, request);
 	}
 	
 	
@@ -261,8 +257,8 @@ public class AdministrationController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) {
-		return administrationService.getStackStatus();
 
+		return serviceProvider.administrationService.getStackStatus(userId, header, request);
 	}
 	
 	/**
@@ -289,7 +285,7 @@ public class AdministrationController extends BaseController {
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, IOException {
 
-		return administrationService.updateStatusStackStatus(userId, header, request);
+		return serviceProvider.administrationService.updateStatusStackStatus(userId, header, request);
 	}
 
 }

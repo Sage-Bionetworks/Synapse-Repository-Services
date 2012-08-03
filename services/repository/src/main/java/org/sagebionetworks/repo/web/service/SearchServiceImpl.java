@@ -38,7 +38,6 @@ import org.springframework.web.servlet.ModelAndView;
  * @author deflaux
  * 
  */
-@Controller
 public class SearchServiceImpl implements SearchService {
 	private static final Logger log = Logger.getLogger(SearchServiceImpl.class
 			.getName());

@@ -20,7 +20,6 @@ import org.springframework.stereotype.Controller;
  * @author John
  *
  */
-@Controller
 public class ConceptServiceImpl implements ConceptService {
 	
 	@Autowired
