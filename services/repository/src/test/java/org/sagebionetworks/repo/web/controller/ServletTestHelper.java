@@ -17,6 +17,8 @@ import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.json.JSONException;
 import org.json.JSONObject;
+//import org.sagebionetworks.repo.model.ServiceConstants;
+//import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -51,6 +53,7 @@ import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.EntityService;
@@ -1867,10 +1870,12 @@ public class ServletTestHelper {
 	public static PaginatedResults<MigratableObjectData> getAllMigrationObjects(
 			HttpServlet dispatchServlet, long offset, long limit,
 			String userId) throws Exception {
+
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
+		
 		request.setRequestURI(UrlHelpers.GET_ALL_BACKUP_OBJECTS);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""+offset);
@@ -1885,5 +1890,23 @@ public class ServletTestHelper {
 				MigratableObjectData.class);
 	}
 
+	public VersionInfo getVersionInfo() throws ServletException, IOException {
+		VersionInfo vi;
+		
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		
+		request.setRequestURI(UrlHelpers.VERSIONINFO);
+		System.out.println(request.getRequestURL());
+		dispatchServlet.service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		vi = (VersionInfo) objectMapper.readValue(
+				response.getContentAsString(), VersionInfo.class);
+		return vi;
+	}
 
 }
