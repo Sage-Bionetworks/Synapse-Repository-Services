@@ -1489,7 +1489,18 @@ public class Synapse {
 	
 	public JSONObject putAuthEntity(String uri, JSONObject entity)
 			throws SynapseException {
-		return putSynapseEntity(authEndpoint, uri, entity);
+		if (null == authEndpoint) {
+			throw new IllegalArgumentException("must provide endpoint");
+		}
+		if (null == uri) {
+			throw new IllegalArgumentException("must provide uri");
+		}
+		if (null == entity) {
+			throw new IllegalArgumentException("must provide entity");
+		}
+
+		Map<String, String> requestHeaders = new HashMap<String, String>();
+		return putSynapseEntity(authEndpoint, uri, entity, requestHeaders);
 	}
 
 	/******************** Low Level APIs ********************/
