@@ -8,7 +8,7 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.DaemonStatusUtil;
-import org.sagebionetworks.repo.model.MigrationType;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -36,15 +36,15 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 	
 	Configuration configuration = null;
 	ClientFactory clientFactory = null;
-	Set<String> entites = null;
+	Set<String> entities = null;
 	BasicProgress progress = null;
-	MigrationType type = null;
+	MigratableObjectType type = null;
 
-	public CreateUpdateWorker(Configuration configuration, ClientFactory clientFactory, Set<String> entites, BasicProgress progress, MigrationType type) {
+	public CreateUpdateWorker(Configuration configuration, ClientFactory clientFactory, Set<String> entites, BasicProgress progress, MigratableObjectType type) {
 		super();
 		this.configuration = configuration;
 		this.clientFactory = clientFactory;
-		this.entites = entites;
+		this.entities = entites;
 		this.progress = progress;
 		this.type = type;
 	}
@@ -145,7 +145,7 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 			// First get a connection to the source
 			SynapseAdministration client = clientFactory.createNewSourceClient(configuration);
 			BackupSubmission sumbission = new BackupSubmission();
-			sumbission.setEntityIdsToBackup(this.entites);
+			sumbission.setEntityIdsToBackup(this.entities);
 			// Start a backup.
 			BackupRestoreStatus status = client.startBackupDaemon(sumbission, type);
 			// Wait for the backup to complete
@@ -161,12 +161,12 @@ public class CreateUpdateWorker implements Callable<WorkerResult> {
 			// Success
 			// set the progress to done.
 			progress.setDone();
-			return new WorkerResult(this.entites.size(), WorkerResult.JobStatus.SUCCEDED);
+			return new WorkerResult(this.entities.size(), WorkerResult.JobStatus.SUCCEEDED);
 		} catch (Exception e) {
 			// set the progress to done.
 			progress.setDone();
 			// Log any errors
-			log.error("CreateUpdateWorker Failed to run job: "+ entites.toString(), e);
+			log.error("CreateUpdateWorker Failed to run job: "+ entities.toString(), e);
 			return new WorkerResult(0, WorkerResult.JobStatus.FAILED);
 		}
 	}

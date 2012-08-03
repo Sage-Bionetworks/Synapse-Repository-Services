@@ -3,7 +3,7 @@ package org.sagebionetworks.tool.migration.job;
 public class WorkerResult {
 	
 	public enum JobStatus{
-		SUCCEDED,
+		SUCCEEDED,
 		FAILED,
 	}
 	

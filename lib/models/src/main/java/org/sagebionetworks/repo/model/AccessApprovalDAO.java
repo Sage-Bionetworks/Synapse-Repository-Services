@@ -28,6 +28,14 @@ public interface AccessApprovalDAO {
 	public AccessApproval get(String id) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Get all the access approvals related to the given access requirement.  This is used by the migrator.
+	 * @param accessRequirementId
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public List<AccessApproval> getForAccessRequirement(String accessRequirementId) throws DatastoreException;
+	
+	/**
 	 * 
 	 * @param accessRequirementIds
 	 * @param principalIds

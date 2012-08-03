@@ -75,9 +75,13 @@ public class DBOUserProfileDAOImplTest {
 		userProfile.setDisplayName("foo bar");
 		userProfile.setEtag("0");
 		
+		long initialCount = userProfileDAO.getCount();
 		// Create it
 		String id = userProfileDAO.create(userProfile, schema);
 		assertNotNull(id);
+		
+		assertEquals(1+initialCount, userProfileDAO.getCount());
+		
 		// Fetch it
 		UserProfile clone = userProfileDAO.get(id, schema);
 		assertNotNull(clone);
@@ -100,6 +104,8 @@ public class DBOUserProfileDAOImplTest {
 		}	
 		// Delete it
 		userProfileDAO.delete(id);
+		
+		assertEquals(initialCount, userProfileDAO.getCount());
 	}
 
 
