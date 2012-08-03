@@ -68,9 +68,17 @@ public class DMLUtils {
 	public static String createGetCountStatement(TableMapping mapping) {
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		StringBuilder main = new StringBuilder();
-		main.append("SELECT COUNT(*) FROM ");
+		main.append("SELECT COUNT("+getPrimaryFieldColumnName(mapping)+") FROM ");
 		main.append(mapping.getTableName());
 		return main.toString();		
+	}
+
+	public static String getPrimaryFieldColumnName(TableMapping mapping) {
+		for(int i=0; i<mapping.getFieldColumns().length; i++){
+			FieldColumn fc = mapping.getFieldColumns()[i];
+			if(fc.isPrimaryKey()) return fc.getColumnName();
+		}
+		throw new IllegalArgumentException("Table "+mapping.getTableName()+" has no primary key.");
 	}
 
 	/**

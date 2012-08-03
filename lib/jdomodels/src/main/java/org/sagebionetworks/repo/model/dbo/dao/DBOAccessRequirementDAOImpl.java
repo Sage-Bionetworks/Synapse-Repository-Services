@@ -189,7 +189,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 					od.setType(MigratableObjectType.ACCESSREQUIREMENT);
 					objectData.setId(od);
 					objectData.setEtag(etag);
-					objectData.setDependencies(new HashSet<MigratableObjectDescriptor>());
+					objectData.setDependencies(new HashSet<MigratableObjectDescriptor>(0));
 					return objectData;
 				}
 			
