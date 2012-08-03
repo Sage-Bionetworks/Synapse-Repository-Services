@@ -39,11 +39,13 @@ public class UrlHelpers {
 	private static final Logger log = Logger.getLogger(UrlHelpers.class
 			.getName());
 	
-	public static final String ACCESS 			= "/access";
+	public static final String ACCESS 				= "/access";
 	
-	public static final String PERMISSIONS 		= "/permissions";
+	public static final String PERMISSIONS 			= "/permissions";
 
 	public static final String ACCESS_TYPE_PARAM	= "accessType";
+	
+	public static final String BUNDLE				= "/bundle";
 
 	/**
 	 * URL prefix for all objects that are referenced by their ID.
@@ -130,6 +132,7 @@ public class UrlHelpers {
 	public static final String ENTITY_ID	= ENTITY+ID;
 	public static final String USER_PROFILE_ID		= USER_PROFILE+PROFILE_ID;
 	
+	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
 	
@@ -303,6 +306,21 @@ public class UrlHelpers {
 //		return type.getUrlPrefix();
 //	}
 
+	
+	/**
+	 * Helper function to create a relative URL for an entity's annotations
+	 * <p>
+	 * 
+	 * This includes not only the entity id but also the controller and servlet
+	 * portions of the path
+	 * 
+	 * @param request
+	 * @return the uri for this entity's annotations
+	 */
+	public static String makeEntityAnnotationsUri(String EntityId) {
+		return ENTITY + "/" + EntityId + ANNOTATIONS;
+	}
+	
 	/**
 	 * Helper function to create a relative URL for an entity's dependent
 	 * property

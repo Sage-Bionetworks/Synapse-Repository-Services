@@ -57,7 +57,7 @@ public class ControllerProfiler {
 	 * @param ProceedingJoinPoint that holds method invocation information
 	 * @return Object that represents method return information
 	 */
-	@Around("execution(* org.sagebionetworks.repo.web.controller.BasicEntityController.*(..))")
+	@Around("execution(* org.sagebionetworks.repo.web.controller.EntityController.*(..))")
 	public Object doBasicProfiling(ProceedingJoinPoint pjp) throws Throwable {
 		//do nothing if profiler is not on
 		if (!this.shouldProfile){
