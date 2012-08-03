@@ -557,7 +557,7 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		AccessControlList acl = permissionsManager.getACL(entityId, userInfo);
 		
-		acl.setUri(request.getRequestURI());
+		acl.setUri(UrlHelpers.makeEntityACLUri(entityId));
 
 		return acl;
 	}

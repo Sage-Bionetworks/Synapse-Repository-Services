@@ -22,39 +22,80 @@ public class EntityBundleTest {
 	private static final int NUM_PAGINATED_RESULTS = 5;
 	
 	private EntityBundle entityBundle;
-	private Project project;
-	private Study study;
-	private Folder folder;
-	private Annotations annotations;
-	private UserEntityPermissions permissions;
-	private EntityPath path;
-	private PaginatedResults<EntityHeader> referencedBy;
-	private Long childCount;
-	private AccessControlList acl;
-	private PaginatedResults<UserProfile> users;
-	private PaginatedResults<UserGroup> groups;
-	
-	private AutoGenFactory autoGenFactory = new AutoGenFactory();
 	
 	@Before
 	public void setUp() {
 		entityBundle = new EntityBundle();
+	}
+	
+	@Test
+	public void testAddProject() {
+		testAddEntity(new Project(), Project.class);
+	}
+	
+	@Test
+	public void testAddStudy() {
+		testAddEntity(new Study(), Study.class);
+	}
+	
+	@Test
+	public void testAddFolder() {
+		testAddEntity(new Folder(), Folder.class);
+	}
+	
+	@SuppressWarnings("rawtypes")
+	private void testAddEntity(Entity original, Class clazz){
+		entityBundle.setEntity(original);
+		Entity retrieved = entityBundle.getEntity();
+		assertNotNull("Entity was set / should not be null.", retrieved);
+		assertTrue("Entity type was '" + retrieved.getClass().getName() + "'; Expected '" 
+				+ clazz.getName(), retrieved.getClass().getName().equals(clazz.getName()));
+	}
+	
+	@Test
+	public void testAddAnnotations() {
+		Annotations annotations = new Annotations();
+		entityBundle.setAnnotations(annotations);
+		Annotations retrieved = entityBundle.getAnnotations();
+		assertNotNull("Annotations were set / should not be null", retrieved);
+		assertTrue("Set/Retrieved annotations do not match original", retrieved.equals(annotations));
+	}
+		
+	@Test
+	public void testJSONRoundTrip() throws Exception{
+		entityBundle = createDummyEntityBundle();
+		
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		joa = entityBundle.writeToJSONObject(joa);
+		String json = joa.toJSONString();
+		System.out.println(json);
+		assertNotNull(json);
+		
+		EntityBundle clone = new EntityBundle();
+		clone.initializeFromJSONObject(joa.createNew(json));
+		System.out.println(clone.toString());
+		assertEquals(entityBundle, clone);		
+	}
+	
+	/**
+	 * Create an EntityBundle filled with dummy data
+	 */
+	public static EntityBundle createDummyEntityBundle() {
+		AutoGenFactory autoGenFactory = new AutoGenFactory();
 		
 		// Entities
-		project = (Project) autoGenFactory.newInstance(Project.class.getName());
+		Project project = (Project) autoGenFactory.newInstance(Project.class.getName());
 		project.setName("Dummy Project");		
-		study = (Study) autoGenFactory.newInstance(Study.class.getName());
-		study.setName("Dummy Study");
-		folder = (Folder) autoGenFactory.newInstance(Folder.class.getName());
-		folder.setName("Dummy Folder");
 		
 		// Permissions
-		permissions = (UserEntityPermissions) autoGenFactory.newInstance(UserEntityPermissions.class.getName());
+		UserEntityPermissions permissions = (UserEntityPermissions) 
+				autoGenFactory.newInstance(UserEntityPermissions.class.getName());
 		permissions.setOwnerPrincipalId(123L);
 		permissions.setCanView(true);
 		
 		// Path
-		path = (EntityPath) autoGenFactory.newInstance(EntityPath.class.getName());
+		EntityPath path = (EntityPath) 
+				autoGenFactory.newInstance(EntityPath.class.getName());
 		List<EntityHeader> pathHeaders = new ArrayList<EntityHeader>();		
 		EntityHeader rootHeader = new EntityHeader();
 		rootHeader.setId("1");
@@ -71,15 +112,16 @@ public class EntityBundleTest {
 		path.setPath(pathHeaders);
 		
 		// Access Control List
-		acl = (AccessControlList) autoGenFactory.newInstance(AccessControlList.class.getName());
+		AccessControlList acl = (AccessControlList) 
+				autoGenFactory.newInstance(AccessControlList.class.getName());
 		acl.setCreatedBy("John Doe");
 		acl.setId("syn456");
 		
 		// Child Count
-		childCount = 12L;
+		Long childCount = 12L;
 		
 		// Annotations
-		annotations = new Annotations();
+		Annotations annotations = new Annotations();
 		annotations.addAnnotation("key1", "value1");
 		annotations.addAnnotation("key1", "value2");
 		annotations.addAnnotation("key2", "value3");
@@ -93,7 +135,8 @@ public class EntityBundleTest {
 			eh.setType("Folder");
 			rb.add(eh);
 		}
-		referencedBy = new PaginatedResults<EntityHeader>(
+		PaginatedResults<EntityHeader> referencedBy = 
+			new PaginatedResults<EntityHeader>(
 				"dummy_uri",
 				rb,
 				101,
@@ -110,7 +153,8 @@ public class EntityBundleTest {
 			up.setLastName("Last" + i);
 			us.add(up);
 		}
-		users = new PaginatedResults<UserProfile>(
+		PaginatedResults<UserProfile> users = 
+			new PaginatedResults<UserProfile>(
 				"dummy_uri",
 				us,
 				101,
@@ -127,7 +171,7 @@ public class EntityBundleTest {
 			ug.setName("name" + i);
 			gr.add(ug);
 		}
-		groups = new PaginatedResults<UserGroup>(
+		PaginatedResults<UserGroup> groups = new PaginatedResults<UserGroup>(
 				"dummy_uri",
 				gr,
 				101,
@@ -135,42 +179,8 @@ public class EntityBundleTest {
 				14,
 				"name",
 				true);
-	}
-	
-	@Test
-	public void testAddProject() {
-		testAddEntity(project, Project.class);
-	}
-	
-	@Test
-	public void testAddStudy() {
-		testAddEntity(study, Study.class);
-	}
-	
-	@Test
-	public void testAddFolder() {
-		testAddEntity(folder, Folder.class);
-	}
-	
-	@SuppressWarnings("rawtypes")
-	private void testAddEntity(Entity original, Class clazz){
-		entityBundle.setEntity(original);
-		Entity retrieved = entityBundle.getEntity();
-		assertNotNull("Entity was set / should not be null.", retrieved);
-		assertTrue("Entity type was '" + retrieved.getClass().getName() + "'; Expected '" 
-				+ clazz.getName(), retrieved.getClass().getName().equals(clazz.getName()));
-	}
-	
-	@Test
-	public void testAddAnnotations() {
-		entityBundle.setAnnotations(annotations);
-		Annotations retrieved = entityBundle.getAnnotations();
-		assertNotNull("Annotations were set / should not be null", retrieved);
-		assertTrue("Set/Retrieved annotations do not match original", retrieved.equals(annotations));
-	}
-		
-	@Test
-	public void testJSONRoundTrip() throws Exception{
+
+		EntityBundle entityBundle = new EntityBundle();
 		entityBundle.setEntity(project);
 		entityBundle.setPermissions(permissions);
 		entityBundle.setPath(path);
@@ -180,16 +190,7 @@ public class EntityBundleTest {
 		entityBundle.setUsers(users);
 		entityBundle.setGroups(groups);
 		
-		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
-		joa = entityBundle.writeToJSONObject(joa);
-		String json = joa.toJSONString();
-		System.out.println(json);
-		assertNotNull(json);
-		
-		EntityBundle clone = new EntityBundle();
-		clone.initializeFromJSONObject(joa.createNew(json));
-		System.out.println(clone.toString());
-		assertEquals(entityBundle, clone);		
+		return entityBundle;
 	}
 
 }
