@@ -50,7 +50,7 @@ public class UserProfileController extends BaseController {
 	UserProfile getMyOwnUserProfile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return serviceProvider.userProfileService.getMyOwnUserProfile(userId);
+		return serviceProvider.getUserProfileService().getMyOwnUserProfile(userId);
 	}
 
 	/**
@@ -66,7 +66,7 @@ public class UserProfileController extends BaseController {
 	UserProfile getUserProfileByOwnerId(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String profileId) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return serviceProvider.userProfileService.getUserProfileByOwnerId(userId, profileId);
+		return serviceProvider.getUserProfileService().getUserProfileByOwnerId(userId, profileId);
 	}
 
 	/**
@@ -86,7 +86,7 @@ public class UserProfileController extends BaseController {
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending
 			) throws DatastoreException, UnauthorizedException, NotFoundException {		
-		return serviceProvider.userProfileService.getUserProfilesPaginated(request, userId, offset, limit, sort, ascending);
+		return serviceProvider.getUserProfileService().getUserProfilesPaginated(request, userId, offset, limit, sort, ascending);
 	}
 
 	/**
@@ -106,7 +106,7 @@ public class UserProfileController extends BaseController {
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
-		return serviceProvider.userProfileService.updateUserProfile(userId, header, etag, request);
+		return serviceProvider.getUserProfileService().updateUserProfile(userId, header, etag, request);
 	}
 
 	/**
@@ -132,7 +132,7 @@ public class UserProfileController extends BaseController {
 			@PathVariable String profileId, @RequestBody S3AttachmentToken token,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
-		return serviceProvider.userProfileService.createUserProfileS3AttachmentToken(userId, profileId, token, request);
+		return serviceProvider.getUserProfileService().createUserProfileS3AttachmentToken(userId, profileId, token, request);
 	}
 	/**
 	 * Create a token used to upload an attachment.
@@ -156,7 +156,7 @@ public class UserProfileController extends BaseController {
 			@RequestBody PresignedUrl url,
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
-		return serviceProvider.userProfileService.getUserProfileAttachmentUrl(userId, profileId, url, request);
+		return serviceProvider.getUserProfileService().getUserProfileAttachmentUrl(userId, profileId, url, request);
 	}
 
 	

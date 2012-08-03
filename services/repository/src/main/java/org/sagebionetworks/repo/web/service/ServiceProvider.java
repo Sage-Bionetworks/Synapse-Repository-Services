@@ -11,24 +11,55 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class ServiceProvider {
 	
 	@Autowired
-	public AccessApprovalService accessApprovalService;
+	private AccessApprovalService accessApprovalService;
 	@Autowired
-	public AccessRequirementService accessRequirementService;
+	private AccessRequirementService accessRequirementService;
 	@Autowired
-	public AdministrationService administrationService;
+	private AdministrationService administrationService;
 	@Autowired
-	public ConceptService conceptService;
+	private ConceptService conceptService;
 	@Autowired
-	public EntityService entityService;
+	private EntityService entityService;
 	@Autowired
-	public EntityBundleService entityBundleService;
+	private EntityBundleService entityBundleService;
 	@Autowired
-	public S3TokenService s3TokenService;
+	private S3TokenService s3TokenService;
 	@Autowired
-	public SearchService searchService;
+	private SearchService searchService;
 	@Autowired
-	public UserGroupService userGroupService;
+	private UserGroupService userGroupService;
 	@Autowired
-	public UserProfileService userProfileService;
+	private UserProfileService userProfileService;
+	
+	public AccessApprovalService getAccessApprovalService() {
+		return accessApprovalService;
+	}
+	public AccessRequirementService getAccessRequirementService() {
+		return accessRequirementService;
+	}
+	public AdministrationService getAdministrationService() {
+		return administrationService;
+	}
+	public ConceptService getConceptService() {
+		return conceptService;
+	}
+	public EntityService getEntityService() {
+		return entityService;
+	}
+	public EntityBundleService getEntityBundleService() {
+		return entityBundleService;
+	}
+	public S3TokenService getS3TokenService() {
+		return s3TokenService;
+	}
+	public SearchService getSearchService() {
+		return searchService;
+	}
+	public UserGroupService getUserGroupService() {
+		return userGroupService;
+	}
+	public UserProfileService getUserProfileService() {
+		return userProfileService;
+	}
 	
 }

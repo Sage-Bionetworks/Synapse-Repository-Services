@@ -372,7 +372,12 @@ public class IT500SynapseJavaClient {
 				EntityBundle.USERS |
 				EntityBundle.GROUPS;
 		
+		long startTime = System.nanoTime();
 		EntityBundle entityBundle = synapse.getEntityBundle(project.getId(), allPartsMask);
+		long endTime = System.nanoTime();
+		long requestTime = (endTime - startTime) / 1000000;
+		System.out.println("Bundle request time was " + requestTime + " ms");
+		
 		
 		assertEquals("Invalid fetched Entity in the EntityBundle", 
 				synapse.getEntityById(project.getId()), entityBundle.getEntity());

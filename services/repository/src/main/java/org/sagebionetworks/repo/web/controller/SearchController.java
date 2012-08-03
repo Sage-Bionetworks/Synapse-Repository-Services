@@ -60,7 +60,7 @@ public class SearchController extends BaseController {
 			HttpServletRequest request) throws ClientProtocolException,
 			IOException, HttpClientHelperException,
 			DatastoreException, NotFoundException {
-		return serviceProvider.searchService.proxySearch(userId, searchQuery, request);
+		return serviceProvider.getSearchService().proxySearch(userId, searchQuery, request);
 	}
 
 	/**
@@ -83,6 +83,6 @@ public class SearchController extends BaseController {
 			HttpServletRequest request) throws ClientProtocolException,
 			IOException, HttpClientHelperException, JSONException,
 			DatastoreException, NotFoundException {
-		return serviceProvider.searchService.proxyRawSearch(userId, searchQuery, request);
+		return serviceProvider.getSearchService().proxyRawSearch(userId, searchQuery, request);
 	}
 }

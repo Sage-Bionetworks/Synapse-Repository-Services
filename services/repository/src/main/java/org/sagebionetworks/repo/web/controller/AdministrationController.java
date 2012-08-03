@@ -51,7 +51,7 @@ public class AdministrationController extends BaseController {
 			@RequestParam(value = UrlHelpers.INCLUDE_DEPENDENCIES_PARAM, required = false, defaultValue = "true") Boolean  includeDependencies
 
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return serviceProvider.administrationService.getAllBackupObjects(userId, offset, limit, includeDependencies);
+		return serviceProvider.getAdministrationService().getAllBackupObjects(userId, offset, limit, includeDependencies);
 	}
 	
 	
@@ -81,7 +81,7 @@ public class AdministrationController extends BaseController {
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 		
-		return serviceProvider.administrationService.startBackup(userId, type, header, request);
+		return serviceProvider.getAdministrationService().startBackup(userId, type, header, request);
 	}
 	
 	/**
@@ -114,7 +114,7 @@ public class AdministrationController extends BaseController {
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 
-		return serviceProvider.administrationService.startRestore(file, userId, type, header, request);
+		return serviceProvider.getAdministrationService().startRestore(file, userId, type, header, request);
 	}
 	
 	/**
@@ -144,7 +144,7 @@ public class AdministrationController extends BaseController {
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 
-		serviceProvider.administrationService.deleteMigratableObject(userId, objectId, type, header, request);
+		serviceProvider.getAdministrationService().deleteMigratableObject(userId, objectId, type, header, request);
 	}
 	
 	/**
@@ -172,7 +172,7 @@ public class AdministrationController extends BaseController {
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 		
-		return serviceProvider.administrationService.startSearchDocument(userId, header, request);
+		return serviceProvider.getAdministrationService().startSearchDocument(userId, header, request);
 	}
 	
 	/**
@@ -202,7 +202,7 @@ public class AdministrationController extends BaseController {
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 
-		return serviceProvider.administrationService.getStatus(daemonId, userId, header, request);
+		return serviceProvider.getAdministrationService().getStatus(daemonId, userId, header, request);
 	}
 	
 	/**
@@ -231,7 +231,7 @@ public class AdministrationController extends BaseController {
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 
-		serviceProvider.administrationService.terminateDaemon(daemonId, userId, header, request);
+		serviceProvider.getAdministrationService().terminateDaemon(daemonId, userId, header, request);
 	}
 	
 	
@@ -258,7 +258,7 @@ public class AdministrationController extends BaseController {
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) {
 
-		return serviceProvider.administrationService.getStackStatus(userId, header, request);
+		return serviceProvider.getAdministrationService().getStackStatus(userId, header, request);
 	}
 	
 	/**
@@ -285,7 +285,7 @@ public class AdministrationController extends BaseController {
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, IOException {
 
-		return serviceProvider.administrationService.updateStatusStackStatus(userId, header, request);
+		return serviceProvider.getAdministrationService().updateStatusStackStatus(userId, header, request);
 	}
 
 }

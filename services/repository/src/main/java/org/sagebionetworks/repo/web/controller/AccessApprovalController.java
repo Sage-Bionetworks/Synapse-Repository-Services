@@ -39,7 +39,7 @@ public class AccessApprovalController extends BaseController {
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException, InvalidModelException, IOException {
-		return serviceProvider.accessApprovalService.createAccessApproval(userId, header, request);
+		return serviceProvider.getAccessApprovalService().createAccessApproval(userId, header, request);
 	}
 	
 	public static AccessApproval instanceForType(String typeString) throws DatastoreException {
@@ -51,7 +51,7 @@ public class AccessApprovalController extends BaseController {
 	}
 
 	public AccessApproval deserialize(HttpServletRequest request, HttpHeaders header) throws DatastoreException, IOException {
-		return serviceProvider.accessApprovalService.deserialize(request, header);
+		return serviceProvider.getAccessApprovalService().deserialize(request, header);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -62,7 +62,7 @@ public class AccessApprovalController extends BaseController {
 			@PathVariable String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		return serviceProvider.accessApprovalService.getAccessApprovals(userId, entityId, request);
+		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, entityId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -70,7 +70,7 @@ public class AccessApprovalController extends BaseController {
 	public void deleteAccessApprovals(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String approvalId) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		serviceProvider.accessApprovalService.deleteAccessApprovals(userId, approvalId);
+		serviceProvider.getAccessApprovalService().deleteAccessApprovals(userId, approvalId);
 	}
 	
 }

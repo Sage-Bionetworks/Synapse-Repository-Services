@@ -48,7 +48,7 @@ public class QueryController extends BaseController {
 			@RequestParam(value = ServiceConstants.QUERY_PARAM, required = true) String query,
 			HttpServletRequest request) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException {
-		return serviceProvider.entityService.query(userId, query, request);
+		return serviceProvider.getEntityService().query(userId, query, request);
 	}
 	
 }

@@ -55,7 +55,7 @@ public class ConceptController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException {
-		return serviceProvider.conceptService.getConceptsForParent(id, prefixFilter, offset, limit, header, request);
+		return serviceProvider.getConceptService().getConceptsForParent(id, prefixFilter, offset, limit, header, request);
 	}
 	
 	
@@ -77,7 +77,7 @@ public class ConceptController extends BaseController {
 			@PathVariable String id, 
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException {
-		return serviceProvider.conceptService.getConcept(id, header, request);
+		return serviceProvider.getConceptService().getConcept(id, header, request);
 	}
 
 }

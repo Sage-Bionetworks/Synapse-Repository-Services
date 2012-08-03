@@ -56,6 +56,6 @@ public class S3TokenController extends BaseController {
 			@PathVariable String id, @RequestBody S3Token s3Token,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException, InvalidModelException {
-		return serviceProvider.s3TokenService.createEntityS3Token(userId, id, s3Token, request);
+		return serviceProvider.getS3TokenService().createEntityS3Token(userId, id, s3Token, request);
 	}
 }

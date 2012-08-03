@@ -60,7 +60,7 @@ public class EntityBundleController extends BaseController {
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending
 			)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return serviceProvider.entityBundleService.getEntityBundle(userId, id, mask, request, offset, limit, sort, ascending);
+		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, mask, request, offset, limit, sort, ascending);
 	}	
 
 }

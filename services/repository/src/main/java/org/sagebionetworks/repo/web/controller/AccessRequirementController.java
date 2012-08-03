@@ -38,11 +38,11 @@ public class AccessRequirementController extends BaseController {
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws Exception {
-		return serviceProvider.accessRequirementService.createAccessRequirement(userId, header, request);
+		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, header, request);
 	}
 	
 	public AccessRequirement deserialize(HttpServletRequest request, HttpHeaders header) throws DatastoreException, IOException {
-		return serviceProvider.accessRequirementService.deserialize(request, header);
+		return serviceProvider.getAccessRequirementService().deserialize(request, header);
 	}
 
 
@@ -55,7 +55,7 @@ public class AccessRequirementController extends BaseController {
 			@PathVariable String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		return serviceProvider.accessRequirementService.getUnfulfilledAccessRequirement(userId, entityId, request);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirement(userId, entityId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -67,7 +67,7 @@ public class AccessRequirementController extends BaseController {
 			@PathVariable String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		return serviceProvider.accessRequirementService.getAccessRequirements(userId, entityId, request);
+		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, entityId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -75,6 +75,6 @@ public class AccessRequirementController extends BaseController {
 	public void deleteAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String requirementId) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		serviceProvider.accessRequirementService.deleteAccessRequirements(userId, requirementId);
+		serviceProvider.getAccessRequirementService().deleteAccessRequirements(userId, requirementId);
 	}
 }
