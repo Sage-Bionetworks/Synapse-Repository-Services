@@ -30,6 +30,9 @@
 		class="org.sagebionetworks.repo.web.DeadlockWatcher" />
 
 	<!-- The Entity Service  -->
+	<bean id="administrationService"
+		class="org.sagebionetworks.repo.web.service.AdministrationServiceImpl" />
+
 	<bean id="entityService"
 		class="org.sagebionetworks.repo.web.service.EntityServiceImpl" />
 

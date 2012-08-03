@@ -46,6 +46,11 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	
 	@Autowired
 	ExecutorService backupDaemonThreadPool2;
+	
+	// for use by Spring
+	public void setBackupDriverMap(Map<String,GenericBackupDriver> map) {
+		this.backupDriverMap = map;
+	}
 
 	@Override
 	public BackupRestoreStatus startBackup(UserInfo username, Set<String> entitiesToBackup, MigratableObjectType migrationType) throws UnauthorizedException, DatastoreException {
