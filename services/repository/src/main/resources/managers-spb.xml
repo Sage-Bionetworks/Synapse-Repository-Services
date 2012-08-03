@@ -132,7 +132,7 @@
 		class="org.sagebionetworks.repo.manager.backup.SearchDocumentDriverImpl"
 		scope="singleton" />
 
-	<bean id="backupDriver"
+	<bean id="entityBackupDriver"
 		class="org.sagebionetworks.repo.manager.backup.NodeBackupDriverImpl"
 		scope="singleton" />
 
@@ -195,7 +195,22 @@
 
 	<bean id="backupDaemonLauncher"
 		class="org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncherImpl"
-		scope="singleton" />
+		scope="singleton" >
+		<!--  the keys in this map  match the enum MigratableObjectType -->
+		<property name="backupDriverMap">
+			<map>
+				<entry key="PRINCIPAL">
+					<ref bean="principalBackupDriver" />
+				</entry>
+				<entry key="ENTITY">
+					<ref bean="entityBackupDriver" />
+				</entry>
+				<entry key="ACCESSREQUIREMENT">
+					<ref bean="accessRequirementBackupDriver" />
+				</entry>
+			</map>
+		</property>
+	</bean>
 
 	<!-- Provides validation for all types -->
 	<bean id="allTypesValidator"

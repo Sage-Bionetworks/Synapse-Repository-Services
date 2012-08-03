@@ -186,7 +186,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 					id.setType(MigratableObjectType.PRINCIPAL);
 					od.setId(id);
 					od.setEtag(etag);
-					od.setDependencies(new HashSet<MigratableObjectDescriptor>()); // UserGroups have no dependencies
+					od.setDependencies(new HashSet<MigratableObjectDescriptor>(0)); // UserGroups have no dependencies
 					return od;
 				}
 			
