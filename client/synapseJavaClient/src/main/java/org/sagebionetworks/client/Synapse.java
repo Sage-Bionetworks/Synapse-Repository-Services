@@ -681,6 +681,19 @@ public class Synapse {
 		}
 	}
 
+	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(String entityId) throws SynapseException {
+		String uri = ACCESS_REQUIREMENT+"/"+entityId;
+		JSONObject jsonAccessRequirements = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
+		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
 	private static Class<AccessApproval> getAccessApprovalClassFromType(String s) {
 		try {
 			return (Class<AccessApproval>)Class.forName(s);
@@ -1665,8 +1678,6 @@ public class Synapse {
 
 			HttpResponse response = clientProvider.performRequest(requestUrl
 					.toString(), requestMethod, requestContent, requestHeaders);
-			String responseBody = (null != response.getEntity()) ? EntityUtils
-					.toString(response.getEntity()) : null;
 
 			if (requestProfile && !requestMethod.equals("DELETE")) {
 				Header header = response
@@ -1679,7 +1690,9 @@ public class Synapse {
 				profileData = null;
 			}
 
-			if (null != responseBody) {
+			String responseBody = (null != response.getEntity()) ? EntityUtils
+					.toString(response.getEntity()) : null;
+			if (null != responseBody && responseBody.length()>0) {
 				try {
 					results = new JSONObject(responseBody);
 				} catch (JSONException jsone) {
@@ -1782,7 +1795,12 @@ public class Synapse {
 			Class<? extends T> clazz) throws SynapseException,
 			JSONObjectAdapterException {
 		JSONObject jsonObject = getEntity(uri);
-		return EntityFactory.createEntityFromJSONObject(jsonObject, clazz);
+		try {
+			return EntityFactory.createEntityFromJSONObject(jsonObject, clazz);
+		} catch (Exception e) {
+			throw new SynapseException("Failed to create an Entity for <<"+jsonObject+">>", e);
+		}
+		
 	}
 	
 	public SearchResults search(SearchQuery searchQuery) throws SynapseException, UnsupportedEncodingException, JSONObjectAdapterException {

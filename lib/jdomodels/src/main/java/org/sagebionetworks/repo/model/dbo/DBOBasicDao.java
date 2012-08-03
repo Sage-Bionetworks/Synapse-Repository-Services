@@ -61,4 +61,6 @@ public interface DBOBasicDao {
 	 * @throws DatastoreException
 	 */
 	public <T extends DatabaseObject<T>> boolean deleteObjectById(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException;
+
+	public <T extends DatabaseObject<T>> long getCount(Class<? extends T> clazz) throws DatastoreException;
 }

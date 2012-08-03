@@ -7,7 +7,7 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
 
-import org.sagebionetworks.repo.model.MigrationType;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.tool.migration.ClientFactory;
 import org.sagebionetworks.tool.migration.Configuration;
 import org.sagebionetworks.tool.migration.Progress.AggregateProgress;
@@ -54,30 +54,30 @@ public class JobQueueWorker implements Callable<AggregateResult> {
 			// Setup progress for each job
 			BasicProgress progress = new BasicProgress();
 			progress.setCurrent(0);
-			progress.setTotal(job.getEntityIds().size());
+			progress.setTotal(job.getObjectIds().size());
 			this.progress.addProgresss(progress);
 			// Start the works
 			if (Type.CREATE == job.getJobType()	|| Type.UPDATE == job.getJobType()) {
 				// Create a works
-				CreateUpdateWorker worker = new CreateUpdateWorker(configuration, this.factory, job.getEntityIds(), progress, MigrationType.ENTITY);
+				CreateUpdateWorker worker = new CreateUpdateWorker(configuration, this.factory, job.getObjectIds(), progress, job.getObjectType());
 				// add this worker to the list
 				workerList.add(worker);
 			} else if (Type.DELETE == job.getJobType()) {
-				// Create a works
-				DeleteWorker worker = new DeleteWorker(configuration, this.factory, job.getEntityIds(), progress);
+				// Create a worker
+				DeleteWorker worker = new DeleteWorker(configuration, this.factory, job.getObjectIds(), job.getObjectType(), progress);
 				// add this worker to the list
 				workerList.add(worker);
 			} else if (Type.SEARCH_ADD == job.getJobType()) {
-				SearchDocumentAddWorker worker = new SearchDocumentAddWorker(configuration, this.factory, job.getEntityIds(), progress);
+				SearchDocumentAddWorker worker = new SearchDocumentAddWorker(configuration, this.factory, job.getObjectIds(), progress);
 				workerList.add(worker);
 			} else if (Type.SEARCH_DELETE == job.getJobType()) {
-				SearchDocumentDeleteWorker worker = new SearchDocumentDeleteWorker(configuration, this.factory, job.getEntityIds(), progress);
+				SearchDocumentDeleteWorker worker = new SearchDocumentDeleteWorker(configuration, this.factory, job.getObjectIds(), progress);
 				workerList.add(worker);
 			} else {
 				throw new IllegalArgumentException("Unknown job type: "	+ job.getJobType());
 			}
 			// Setup the total progress
-			total += job.getEntityIds().size();
+			total += job.getObjectIds().size();
 
 			// Yield between each job.
 			Thread.yield();

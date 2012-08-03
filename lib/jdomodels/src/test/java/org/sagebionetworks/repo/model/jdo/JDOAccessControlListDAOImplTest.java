@@ -15,6 +15,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.junit.After;
@@ -25,9 +26,14 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -61,12 +67,20 @@ public class JDOAccessControlListDAOImplTest {
 	private AccessControlList acl = null;
 	private UserGroup group = null;
 	private UserGroup group2 = null;
+	
+	private Long createdById = null;
+	private Long modifiedById = null;
+	
 	/**
 	 * @throws java.lang.Exception
 	 */
 	@Before
 	public void setUp() throws Exception {
-		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		assertNotNull(createdById);
+		// strictly speaking it's nonsensical for a group to be a 'modifier'.  we're just using it for testing purposes
+		modifiedById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false).getId());
+		assertNotNull(modifiedById);
 
 		// create a resource on which to apply permissions
 		node = new Node();
@@ -74,7 +88,7 @@ public class JDOAccessControlListDAOImplTest {
 		node.setCreatedOn(new Date());
 		node.setCreatedByPrincipalId(createdById);
 		node.setModifiedOn(new Date());
-		node.setModifiedByPrincipalId(createdById);
+		node.setModifiedByPrincipalId(modifiedById);
 		node.setNodeType(EntityType.project.name());
 		String nodeId = nodeDAO.createNew(node);
 		assertNotNull(nodeId);
@@ -143,6 +157,60 @@ public class JDOAccessControlListDAOImplTest {
 		this.acl=null;
 		this.group=null;
 		this.group2=null;
+	}
+	
+	@Test
+	public void testMigrationData() throws Exception {
+		// first check what happens if dependencies are NOT requested
+		QueryResults<MigratableObjectData> results = nodeDAO.getMigrationObjectData(0, 10000, false);
+		List<MigratableObjectData> ods = results.getResults();
+		assertEquals(ods.size(), results.getTotalNumberOfResults());
+		assertTrue(ods.size()>0);
+		boolean foundId = false;
+		for (MigratableObjectData od : ods) {
+			if (od.getId().getId().equals(node.getId())) {
+				foundId=true;
+			}
+			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
+			
+		}
+		assertTrue(foundId);
+		
+		// now query for objects WITH dependencies
+		results = nodeDAO.getMigrationObjectData(0, 10000, true);
+		ods = results.getResults();
+		assertEquals(ods.size(), results.getTotalNumberOfResults());
+		assertTrue(ods.size()>0);
+		foundId = false;
+		for (MigratableObjectData od : ods) {
+			if (od.getId().getId().equals(node.getId())) {
+				foundId=true;
+				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
+				assertEquals(" dependencies: "+deps.toString(), 3, deps.size());
+				
+				boolean foundCreator = false;
+				boolean foundModifier = false;
+				boolean foundAclGroup = false;
+				for (MigratableObjectDescriptor d : deps) {
+					if (createdById.toString().equals(d.getId())) {
+						foundCreator=true;
+						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
+					} else if (modifiedById.toString().equals(d.getId())) {
+						foundModifier=true;
+						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
+					} else if (group.getId().equals(d.getId())) {
+						foundAclGroup=true;
+						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
+					}
+				}
+				assertTrue(foundCreator);
+				assertTrue(foundModifier);
+				assertTrue(foundAclGroup);
+			}
+			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
+		}
+		assertTrue(foundId);
+		
 	}
 
 	/**

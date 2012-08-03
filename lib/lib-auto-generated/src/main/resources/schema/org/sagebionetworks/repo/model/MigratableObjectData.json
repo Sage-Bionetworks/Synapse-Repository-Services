@@ -1,0 +1,18 @@
+{
+ 	"properties":{
+         "id":{
+        	"type":"object",
+             "$ref":"org.sagebionetworks.repo.model.MigratableObjectDescriptor"
+         },
+         "etag":{
+        	"type":"string"
+         },
+ 		 "dependencies":{
+            "type":"array",
+            "uniqueItems":true,
+            "items":{
+           	  	"$ref":"org.sagebionetworks.repo.model.MigratableObjectDescriptor"
+            }
+ 		 }	
+	}	
+}
