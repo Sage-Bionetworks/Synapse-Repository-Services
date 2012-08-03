@@ -136,7 +136,7 @@ public class DMLUtilsTest {
 		String dml = DMLUtils.createGetCountStatement(mapping);
 		assertNotNull(dml);
 		System.out.println(dml);
-		assertEquals("SELECT COUNT(*) FROM SOME_TABLE", dml);
+		assertEquals("SELECT COUNT(ID) FROM SOME_TABLE", dml);
 	}
 	
 	@Test
