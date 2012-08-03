@@ -65,6 +65,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -115,6 +116,8 @@ public class Synapse {
 	protected static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled/";
 	
 	protected static final String ACCESS_APPROVAL = "/accessApproval";
+	
+	protected static final String VERSION_INFO = "/version";
 	
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
@@ -1888,4 +1891,17 @@ public class Synapse {
 		}
 		return ids;
 	}
+	
+	/**
+	 * @return version
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public VersionInfo getVersionInfo() throws SynapseException,
+			JSONObjectAdapterException {
+		JSONObject json = getEntity(VERSION_INFO);
+		return EntityFactory
+				.createEntityFromJSONObject(json, VersionInfo.class);
+	}
+
 }
