@@ -2,12 +2,8 @@ package org.sagebionetworks.tool.migration.gui.presenter;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.io.File;
-import java.util.Collection;
 import java.util.List;
 import java.util.Queue;
-import java.util.Set;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -17,32 +13,19 @@ import javax.swing.SwingUtilities;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.SynapseAdministration;
-import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.MigrationType;
-import org.sagebionetworks.repo.model.PrincipalBackup;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.DaemonStatus;
-import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.tool.migration.AllEntityDataWorker;
-import org.sagebionetworks.tool.migration.ClientFactory;
 import org.sagebionetworks.tool.migration.ClientFactoryImpl;
-import org.sagebionetworks.tool.migration.Configuration;
 import org.sagebionetworks.tool.migration.RepositoryMigrationDriver;
 import org.sagebionetworks.tool.migration.ResponseBundle;
 import org.sagebionetworks.tool.migration.SynapseConnectionInfo;
 import org.sagebionetworks.tool.migration.Progress.AggregateProgress;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
-import org.sagebionetworks.tool.migration.dao.EntityData;
-import org.sagebionetworks.tool.migration.dao.QueryRunner;
-import org.sagebionetworks.tool.migration.dao.QueryRunnerImpl;
+import org.sagebionetworks.tool.migration.dao.MigrationQueryRunner;
 import org.sagebionetworks.tool.migration.job.AggregateResult;
 import org.sagebionetworks.tool.migration.job.BuilderResponse;
-import org.sagebionetworks.tool.migration.job.CreateUpdateWorker;
 import org.sagebionetworks.tool.migration.job.Job;
-import org.sagebionetworks.tool.migration.job.WorkerResult;
 
 public class MigrationControlPresenter {
 	
@@ -182,8 +165,8 @@ public class MigrationControlPresenter {
 				BasicProgress progress = new BasicProgress();
 				progress.setCurrent(0);
 				progress.setTotal(0);
-				Synapse sourceClient = null;
-				Synapse destClient = null;
+				SynapseAdministration sourceClient = null;
+				SynapseAdministration destClient = null;
 				while(true){
 					try{
 						ClientFactoryImpl factory = new ClientFactoryImpl();
@@ -197,8 +180,8 @@ public class MigrationControlPresenter {
 						}
 						// Get the source and destination counts
 						// Create the query providers
-						QueryRunner sourceQueryRunner = new QueryRunnerImpl(sourceClient);
-						QueryRunner destQueryRunner = new QueryRunnerImpl(destClient);
+						MigrationQueryRunner sourceQueryRunner = new MigrationQueryRunner(sourceClient, /*queryForDependencies*/false);
+						MigrationQueryRunner destQueryRunner = new MigrationQueryRunner(destClient, /*queryForDependencies*/false);
 						long sourceTotal = sourceQueryRunner.getTotalEntityCount();
 						long destTotal = destQueryRunner.getTotalEntityCount();
 						// Update the progress
@@ -260,10 +243,10 @@ public class MigrationControlPresenter {
 						Thread.sleep(100);
 						// connect to both repositories
 						final ClientFactoryImpl factory = new ClientFactoryImpl();
-						Synapse sourceClient = factory.createNewConnection(sourceInfo);
+						SynapseAdministration sourceClient = factory.createNewConnection(sourceInfo);
 						// Give interrupt a chance.
 						Thread.sleep(100);
-						Synapse destClient = factory.createNewConnection(destInfo);
+						SynapseAdministration destClient = factory.createNewConnection(destInfo);
 						// Give interrupt a chance.
 						Thread.sleep(100);
 						// Phase one collect information from both threads.
@@ -271,16 +254,17 @@ public class MigrationControlPresenter {
 						BasicProgress sourceProgress = new BasicProgress();
 						BasicProgress destProgress = new BasicProgress();
 						// Create the query providers
-						QueryRunner sourceQueryRunner = new QueryRunnerImpl(sourceClient);
-						QueryRunner destQueryRunner = new QueryRunnerImpl(destClient);
-						AllEntityDataWorker sourceQueryWorker = new AllEntityDataWorker(sourceQueryRunner, sourceProgress);
+						MigrationQueryRunner sourceQueryRunner = new MigrationQueryRunner(sourceClient, /*queryForDependencies*/true);
+						MigrationQueryRunner destQueryRunner = new MigrationQueryRunner(destClient, /*queryForDependencies*/false);
+						AllEntityDataWorker<MigratableObjectData> sourceQueryWorker = new AllEntityDataWorker<MigratableObjectData>(sourceQueryRunner, sourceProgress);
+
 
 						// Stop work when interrupted.
 						if(Thread.interrupted()) return;
-						AllEntityDataWorker destQueryWorker = new AllEntityDataWorker(destQueryRunner, destProgress);
+						AllEntityDataWorker<MigratableObjectData> destQueryWorker = new AllEntityDataWorker<MigratableObjectData>(destQueryRunner, destProgress);
 						// Start both at the same time
-						Future<List<EntityData>> sourceFuture = threadPool.submit(sourceQueryWorker);
-						Future<List<EntityData>> destFuture = threadPool.submit(destQueryWorker);
+						Future<List<MigratableObjectData>> sourceFuture = threadPool.submit(sourceQueryWorker);
+						Future<List<MigratableObjectData>> destFuture = threadPool.submit(destQueryWorker);
 						// Give interrupt a chance.
 						Thread.sleep(100);
 						// Wait for both to finish
@@ -295,26 +279,11 @@ public class MigrationControlPresenter {
 						updateCollectProgress(sourceProgress, destProgress);
 						
 						// Get the results
-						List<EntityData> sourceData = sourceFuture.get();
-						List<EntityData> destData = destFuture.get();
+						List<MigratableObjectData> sourceData = sourceFuture.get();
+						List<MigratableObjectData> destData = destFuture.get();
 						// Give interrupt a chance.
 						Thread.sleep(100);
 						log.debug("Finished phase one.  Source entity count: "+sourceData.size()+". Destination entity Count: "+destData.size());
-						
-						// Start the migration of principals.
-						// Calculate the users and groups that need to be migrated.
-						Set<String> usersAndGroupsToMigrate = RepositoryMigrationDriver.calculateUserDelta(sourceClient, destClient);
-						// Skip this step if there no users or groups to migrate
-						if(usersAndGroupsToMigrate.size() > 0){
-							BasicProgress principalProgress = new BasicProgress();
-							Future<WorkerResult> future = RepositoryMigrationDriver.migratePrincipals(factory, threadPool, principalProgress, usersAndGroupsToMigrate);
-							while(!future.isDone()){
-								//log.info("Processing entities: "+consumingProgress.getCurrentStatus());
-								// Update the progress
-								updateCreationProgress(principalProgress, "Migrating all princiapls");
-								Thread.sleep(200);
-							}
-						}
 						
 						// Start phase 4
 						log.debug("Starting phase two: Calculating creates, updates, and deletes...");
@@ -323,7 +292,7 @@ public class MigrationControlPresenter {
 						BuilderResponse create = response.getCreateResponse();
 						BuilderResponse update = response.getUpdateResponse();
 						BuilderResponse delete = response.getDeleteResponse();
-						String prefix = "Creating: "+create.getSubmitedToQueue()+", Updating: "+update.getSubmitedToQueue()+", Deleting: "+delete.getSubmitedToQueue()+", Pending: "+create.getPendingDependancies()+".  ";
+						String prefix = "Creating: "+create.getSubmittedToQueue()+", Updating: "+update.getSubmittedToQueue()+", Deleting: "+delete.getSubmittedToQueue()+", Pending: "+create.getPendingDependencies()+".  ";
 						// Phase 5. Process all jobs on the queue.
 						log.debug("Starting phase three: Processing the job queue...");
 						AggregateProgress consumingProgress = new AggregateProgress();
@@ -363,65 +332,6 @@ public class MigrationControlPresenter {
 		
 	}
 	
-//	// this must be removed after 0.12->0.13 migration is complete!!!!!!!!
-//	private void migratePrincipals(SynapseConnectionInfo sourceConnInfo, SynapseConnectionInfo destConnInfo, ClientFactory clientFactory) {
-//		File file = null;
-//		try {
-//			PrincipalRetriever012 pr = new PrincipalRetriever012(sourceConnInfo.getAuthenticationEndPoint(), sourceConnInfo.getRepositoryEndPoint());
-//			CrowdAuthUtil.overrideStackConfig(sourceConnInfo.getCrowdEndpoint(), sourceConnInfo.getCrowdApplicationKey());
-//			pr.login(sourceConnInfo.getAdminUsername(), sourceConnInfo.getAdminPassword());
-//			// get all the principals
-//			Collection<PrincipalBackup> principalBackups = pr.getPrincipals();
-//			// write them to a file and move to the S3 bucket
-//			String iamId = sourceConnInfo.getStackIamId();
-//			String iamKey = sourceConnInfo.getStackIamKey();
-//			String bucket= sourceConnInfo.getSharedS3BackupBucket();
-//			file = File.createTempFile(REMOTE_PRINCIPALS_FILE_NAME_PREFIX, ".zip");
-//			PrincipalRetriever012.sendPrincipalBackupsToS3(principalBackups,
-//					 iamId,  iamKey,  bucket, file);
-//			// call destination-side service to restore entities
-//			SynapseAdministration destClient = new SynapseAdministration();
-//			destClient.setAuthEndpoint(destConnInfo.getAuthenticationEndPoint());
-//			destClient.setRepositoryEndpoint(destConnInfo.getRepositoryEndPoint());
-//			destClient.login(destConnInfo.getAdminUsername(), destConnInfo.getAdminPassword());
-//			RestoreSubmission submission = new RestoreSubmission();
-//			submission.setFileName(file.getName());
-//
-//			BackupRestoreStatus status = destClient.startRestoreDaemon(submission, MigrationType.PRINCIPAL);
-//			
-//			// wait for it to finish
-//			waitForDaemon(status.getId(), destClient, 120*1000L/* two minutes in milliseconds*/);
-//		} catch (Exception e) {
-//			if (e instanceof RuntimeException) throw (RuntimeException)e; else throw new RuntimeException(e);
-//		} finally {
-//			if (file!=null) file.delete();
-//		}
-//	}
-	
-//	// this must be removed after 0.12->0.13 migration is complete!!!!!!!!
-//	public BackupRestoreStatus waitForDaemon(String daemonId, SynapseAdministration client, long timeoutMilliseconds)
-//			throws SynapseException, JSONObjectAdapterException,
-//			InterruptedException {
-//		// Wait for the daemon to finish.
-//		long start = System.currentTimeMillis();
-//		while (true) {
-//			long now = System.currentTimeMillis();
-//			if(now-start > timeoutMilliseconds){
-//				throw new InterruptedException("Timed out waiting for the daemon to complete");
-//			}
-//			BackupRestoreStatus status = client.getDaemonStatus(daemonId);
-//			// Check to see if we failed.
-//			if(DaemonStatus.FAILED == status.getStatus()){
-//				throw new InterruptedException("Failed: "+status.getType()+" message:"+status.getErrorMessage());
-//			} else 	if (DaemonStatus.COMPLETED == status.getStatus()) {
-//				return status;
-//			}
-//
-//			// Wait.
-//			Thread.sleep(2000);
-//		}
-//	}
-
 	
 	private void stopMigration(){
 		// Terminate migration

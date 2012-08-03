@@ -11,7 +11,7 @@ import java.util.concurrent.ExecutorService;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.backup.NodeBackupDriver;
+import org.sagebionetworks.repo.manager.backup.GenericBackupDriver;
 import org.sagebionetworks.repo.manager.backup.Progress;
 import org.sagebionetworks.repo.manager.backup.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
@@ -44,7 +44,7 @@ public class BackupDaemon implements Runnable{
 	private static final String S3KEY_SEARCH_PREFIX = "Search/";
 
 	private BackupRestoreStatusDAO backupRestoreStatusDao;
-	private NodeBackupDriver backupDriver;
+	private GenericBackupDriver backupDriver;
 	private SearchDocumentDriver searchDocumentDriver;
 	private AmazonS3Client awsClient;
 	private String awsBucket;
@@ -73,9 +73,9 @@ public class BackupDaemon implements Runnable{
 	 * @param dao
 	 * @param driver
 	 */
-	BackupDaemon(BackupRestoreStatusDAO dao, NodeBackupDriver driver, SearchDocumentDriver searchDocumentDriver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2){
+	BackupDaemon(BackupRestoreStatusDAO dao, GenericBackupDriver driver, SearchDocumentDriver searchDocumentDriver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2){
 		if(dao == null) throw new IllegalArgumentException("BackupRestoreStatusDAO cannot be null");
-		if(driver == null) throw new IllegalArgumentException("NodeBackupDriver cannot be null");
+		if(driver == null) throw new IllegalArgumentException("GenericBackupDriver cannot be null");
 		if(client == null) throw new IllegalArgumentException("AmazonS3Client cannot be null");
 		if(bucket == null) throw new IllegalArgumentException("Bucket cannot be null");
 		if(threadPool == null) throw new IllegalArgumentException("Thread pool cannot be null");
@@ -93,7 +93,7 @@ public class BackupDaemon implements Runnable{
 	 * @param dao
 	 * @param driver
 	 */
-	BackupDaemon(BackupRestoreStatusDAO dao, NodeBackupDriver driver, SearchDocumentDriver searchDocumentDriver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2, Set<String> entitiesToBackup){
+	BackupDaemon(BackupRestoreStatusDAO dao, GenericBackupDriver driver, SearchDocumentDriver searchDocumentDriver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2, Set<String> entitiesToBackup){
 		this(dao, driver, searchDocumentDriver, client, bucket, threadPool, threadPool2);
 		this.entitiesToBackup = entitiesToBackup;
 	}

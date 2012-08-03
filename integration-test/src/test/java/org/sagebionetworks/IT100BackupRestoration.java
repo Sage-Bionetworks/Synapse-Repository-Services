@@ -9,6 +9,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -25,9 +26,16 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.MigrationType;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
+import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
@@ -114,7 +122,7 @@ public class IT100BackupRestoration {
 	public void createSnapshot() throws Exception {
 		// Start the daemon
 		BackupSubmission submission = new BackupSubmission();
-		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigrationType.ENTITY);
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.ENTITY);
 		assertNotNull(status);
 		assertNotNull(status.getStatus());
 		assertFalse(DaemonStatus.FAILED == status.getStatus());
@@ -175,7 +183,7 @@ public class IT100BackupRestoration {
 			// Start the daemon
 			RestoreSubmission submission = new RestoreSubmission();
 			submission.setFileName(PRINCIPALS_BACKUP_FILE_NAME);
-			BackupRestoreStatus status = synapse.startRestoreDaemon(submission, MigrationType.PRINCIPAL);
+			BackupRestoreStatus status = synapse.startRestoreDaemon(submission, MigratableObjectType.PRINCIPAL);
 
 			assertNotNull(status);
 			assertNotNull(status.getStatus());
@@ -204,7 +212,7 @@ public class IT100BackupRestoration {
 		// Start the daemon
 		RestoreSubmission submission = new RestoreSubmission();
 		submission.setFileName(BACKUP_FILE_NAME);
-		BackupRestoreStatus status = synapse.startRestoreDaemon(submission, MigrationType.ENTITY);
+		BackupRestoreStatus status = synapse.startRestoreDaemon(submission, MigratableObjectType.ENTITY);
 
 		assertNotNull(status);
 		assertNotNull(status.getStatus());
@@ -238,7 +246,7 @@ public class IT100BackupRestoration {
 		// Start the daemon
 		BackupSubmission submission = new BackupSubmission();
 		submission.setEntityIdsToBackup(synapse.getAllUserAndGroupIds());
-		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigrationType.PRINCIPAL);
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.PRINCIPAL);
 		assertNotNull(status);
 		assertNotNull(status.getStatus());
 		assertFalse(status.getErrorMessage(),DaemonStatus.FAILED == status.getStatus());
@@ -253,10 +261,87 @@ public class IT100BackupRestoration {
 		RestoreSubmission restoreSub = new RestoreSubmission();
 		String backupFileName = getFileNameFromUrl(status.getBackupUrl());
 		restoreSub.setFileName(backupFileName);
-		status = synapse.startRestoreDaemon(restoreSub, MigrationType.PRINCIPAL);
+		status = synapse.startRestoreDaemon(restoreSub, MigratableObjectType.PRINCIPAL);
 		// Wait for it to finish
 		status = waitForDaemon(status.getId());
 		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+	}
+	
+	/**
+	 * Test the complete round trip of Access Requirement/Approval migration.
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 * @throws InterruptedException 
+	 */
+	@Test
+	public void testAccessRequirementRoundTrip() throws Exception {
+		// first create a backup copy of all of the ARs
+		// Start the daemon
+		BackupSubmission submission = new BackupSubmission();
+		// Create an AR, AA and get its ID, then add it's ID here:
+		// Create an entity to which an AccessRequirement is added. We don't normally add ARs to projects, but it's convenient to do it here
+		Project project = new Project();
+		project.setDescription("foo");
+		project = synapse.createEntity(project);
+		assertNotNull(project);
+		toDelete.add(project);
+		// now create the access requirement
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setEntityIds(Arrays.asList(new String[]{project.getId()}));
+		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
+		ar.setTermsOfUse("foo");
+		ar = synapse.createAccessRequirement(ar);
+		assertNotNull(ar.getId());
+		
+		// now create an approval
+		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
+		UserProfile up = synapse.getMyProfile();
+		String userId = up.getOwnerId();
+		aa.setAccessorId(userId);
+		aa.setEntityType(TermsOfUseAccessApproval.class.getName());
+		aa.setRequirementId(ar.getId());
+		aa = synapse.createAccessApproval(aa);
+		
+		submission.setEntityIdsToBackup(new HashSet<String>(Arrays.asList(new String[]{ar.getId().toString()})));
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.ACCESSREQUIREMENT);
+		assertNotNull(status);
+		assertNotNull(status.getStatus());
+		assertFalse(status.getErrorMessage(),DaemonStatus.FAILED == status.getStatus());
+		assertTrue(DaemonType.BACKUP == status.getType());
+		String restoreId = status.getId();
+		assertNotNull(restoreId);
+		// Wait for it to finish
+		status = waitForDaemon(status.getId());
+		assertNotNull(status.getBackupUrl());
+		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+		
+		// delete the access requirement from the system
+		MigratableObjectDescriptor mod = new MigratableObjectDescriptor();
+		mod.setId(ar.getId().toString());
+		mod.setType(MigratableObjectType.ACCESSREQUIREMENT);
+		synapse.deleteObject(mod);
+		
+		// verify that it's deleted
+		VariableContentPaginatedResults<AccessRequirement>  vcprs = synapse.getAccessRequirements(project.getId());
+		assertEquals(0L, vcprs.getTotalNumberOfResults());
+		
+		// Now restore the access requirements from this backup file
+		RestoreSubmission restoreSub = new RestoreSubmission();
+		String backupFileName = getFileNameFromUrl(status.getBackupUrl());
+		restoreSub.setFileName(backupFileName);
+		status = synapse.startRestoreDaemon(restoreSub, MigratableObjectType.ACCESSREQUIREMENT);
+		// Wait for it to finish
+		status = waitForDaemon(status.getId());
+		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+		
+		// verify that it's restored
+		vcprs = synapse.getAccessRequirements(project.getId());
+		assertEquals(1L, vcprs.getTotalNumberOfResults());
+		
+		// now clean up the access requirement (cascading to the access approval)
+		synapse.deleteObject(mod);
+		
 	}
 	
 	@Test
@@ -308,7 +393,7 @@ public class IT100BackupRestoration {
 		set.add(project.getId());
 		submission.setEntityIdsToBackup(set);
 		
-		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigrationType.ENTITY);
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.ENTITY);
 		assertNotNull(status);
 		// Wait for the daemon to complete
 		status = waitForDaemon(status.getId());
@@ -324,7 +409,7 @@ public class IT100BackupRestoration {
 		// Now restore the single project
 		RestoreSubmission restore = new RestoreSubmission();
 		restore.setFileName(backupFileName);
-		status = synapse.startRestoreDaemon(restore, MigrationType.ENTITY);
+		status = synapse.startRestoreDaemon(restore, MigratableObjectType.ENTITY);
 		// Wait for the daemon to complete
 		status = waitForDaemon(status.getId());
 		// Now make sure we can get the project

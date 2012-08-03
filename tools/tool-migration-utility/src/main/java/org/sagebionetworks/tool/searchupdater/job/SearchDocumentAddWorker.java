@@ -162,7 +162,7 @@ public class SearchDocumentAddWorker implements Callable<WorkerResult> {
 			// set the progress to done.
 			progress.setDone();
 			return new WorkerResult(this.entities.size(),
-					WorkerResult.JobStatus.SUCCEDED);
+					WorkerResult.JobStatus.SUCCEEDED);
 
 		} catch (Exception e) {
 			// set the progress to done.
