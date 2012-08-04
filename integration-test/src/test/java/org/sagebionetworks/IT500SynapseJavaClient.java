@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -586,11 +587,32 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
+	public void testUserSessionData() throws Exception {
+		UserSessionData userSessionData = synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
+				StackConfiguration.getIntegrationTestUserOnePassword());
+		String sessionToken = userSessionData.getSessionToken();
+		assertNotNull("Failed to find session token", sessionToken);
+		Boolean isSso = userSessionData.getIsSSO();
+		assertFalse(isSso);
+		UserProfile integrationTestUserProfile = userSessionData.getProfile();
+		assertNotNull("Failed to get user profile from user session data", integrationTestUserProfile);
+		//and make sure crowd info has been copied to the profile
+		assertEquals("user name mismatch", integrationTestUserProfile.getUserName(), StackConfiguration.getIntegrationTestUserOneName());
+	}
+	
+	@Test
 	public void testRetrieveSynapseTOU() throws Exception {
 		String termsOfUse = synapse.getSynapseTermsOfUse();
 		assertNotNull(termsOfUse);
 		assertTrue(termsOfUse.length()>100);
 	}
+	
+	@Test
+	public void testRevalidateSession() throws Exception {
+		boolean isValid = synapse.revalidateSession();
+		assertTrue(isValid);
+	}
+	
 	
 	/**
 	 * Test that we can add an attachment to a project and then get it back.
