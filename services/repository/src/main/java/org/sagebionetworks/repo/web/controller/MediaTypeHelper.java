@@ -9,7 +9,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.http.MediaType;
 
-public class ControllerEntityClassHelper {
+public class MediaTypeHelper {
 	private static final List<MediaType> SUPPORTED_MEDIA_TYPES = Arrays.asList(new MediaType[] {
 			MediaType.APPLICATION_JSON,
 			});
@@ -26,6 +26,4 @@ public class ControllerEntityClassHelper {
 		JSONObjectAdapter jsonObjectAdapter = (new JSONObjectAdapterImpl()).createNew(httpRequestBody);
 		return EntityClassHelper.entityType(jsonObjectAdapter);
 	}
-
-
 }

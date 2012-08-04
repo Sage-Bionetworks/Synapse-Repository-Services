@@ -35,10 +35,6 @@ import org.springframework.dao.DeadlockLoserDataAccessException;
  * @param <T>
  *            the particular type of entity the controller is managing
  */
-/**
- * @author bkng
- *
- */
 public interface EntityService {
 
 	/**

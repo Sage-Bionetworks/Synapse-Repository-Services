@@ -27,6 +27,8 @@ public class EntityBundle implements JSONEntity {
 	public static int USERS					= 0x80;
 	public static int GROUPS				= 0x100;
 	
+	private static AutoGenFactory autoGenFactory = new AutoGenFactory();
+	
 	private static final String JSON_ENTITY = "entity";
 	private static final String JSON_ENTITY_TYPE = "entityType";
 	private static final String JSON_ANNOTATIONS = "annotations";
@@ -49,8 +51,6 @@ public class EntityBundle implements JSONEntity {
 	private PaginatedResults<UserProfile> users;
 	private PaginatedResults<UserGroup> groups;
 	
-	private AutoGenFactory agf;
-	
 	/**
 	 * Create a new EntityBundle
 	 */
@@ -72,37 +72,33 @@ public class EntityBundle implements JSONEntity {
 			JSONObjectAdapter toInitFrom) throws JSONObjectAdapterException {
 		if (toInitFrom == null) {
             throw new IllegalArgumentException("org.sagebionetworks.schema.adapter.JSONObjectAdapter cannot be null");
-        }
-		if (agf == null) {
-			agf = new AutoGenFactory();
-		}		
+        }	
 		if (toInitFrom.has(JSON_ENTITY)) {
 			entityType = toInitFrom.getString(JSON_ENTITY_TYPE);
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_ENTITY);
-			System.out.println(entityType);
-			entity = (Entity) agf.newInstance(entityType);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ENTITY);
+			entity = (Entity) autoGenFactory.newInstance(entityType);
 			entity.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_ANNOTATIONS)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_ANNOTATIONS);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ANNOTATIONS);
 			if (annotations == null)
 				annotations = new Annotations();
 			annotations.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_PERMISSIONS)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_PERMISSIONS);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_PERMISSIONS);
 			if (permissions == null)
-				permissions = (UserEntityPermissions) agf.newInstance(UserEntityPermissions.class.getName());
+				permissions = (UserEntityPermissions) autoGenFactory.newInstance(UserEntityPermissions.class.getName());
 			permissions.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_PATH)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_PATH);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_PATH);
 			if (path == null)
-				path = (EntityPath) agf.newInstance(EntityPath.class.getName());
+				path = (EntityPath) autoGenFactory.newInstance(EntityPath.class.getName());
 			path.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_REFERENCED_BY)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_REFERENCED_BY);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_REFERENCED_BY);
 			if (referencedBy == null)
 				referencedBy = new PaginatedResults<EntityHeader>(EntityHeader.class);
 			referencedBy.initializeFromJSONObject(joa);
@@ -111,19 +107,19 @@ public class EntityBundle implements JSONEntity {
 			childCount = toInitFrom.getLong(JSON_CHILD_COUNT);
 		}
 		if (toInitFrom.has(JSON_ACL)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_ACL);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ACL);
 			if (acl == null)
-				acl = (AccessControlList) agf.newInstance(AccessControlList.class.getName());
+				acl = (AccessControlList) autoGenFactory.newInstance(AccessControlList.class.getName());
 			acl.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_USERS)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_USERS);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_USERS);
 			if (users == null)
 				users = new PaginatedResults<UserProfile>(UserProfile.class);
 			users.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_GROUPS)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.get(JSON_GROUPS);
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_GROUPS);
 			if (groups == null)
 				groups = new PaginatedResults<UserGroup>(UserGroup.class);
 			groups.initializeFromJSONObject(joa);
@@ -139,7 +135,7 @@ public class EntityBundle implements JSONEntity {
 		}
 		if (entity != null) {
 			JSONObjectAdapter joa = writeTo.createNew();
-			entity.writeToJSONObject(joa).toJSONString();
+			entity.writeToJSONObject(joa);
 			writeTo.put(JSON_ENTITY, joa);
 			writeTo.put(JSON_ENTITY_TYPE, entityType);
 		}
@@ -190,10 +186,16 @@ public class EntityBundle implements JSONEntity {
 		return null;
 	}
 
+	/**
+	 * Get the Entity in this bundle.
+	 */
 	public Entity getEntity() {
 		return entity;
 	}
 
+	/**
+	 * Set the Entity in this bundle.
+	 */
 	public void setEntity(Entity entity) {
 		this.entity = entity;
 		String s = entity.getClass().toString();
@@ -201,66 +203,122 @@ public class EntityBundle implements JSONEntity {
 		entityType = s.substring(s.lastIndexOf(" ") + 1);
 	}
 
+	/**
+	 * Get the Annotations for the Entity in this bundle.
+	 */
 	public Annotations getAnnotations() {
 		return annotations;
 	}
 
+	/**
+	 * Set the Annotations for this bundle. Should correspond to the Entity in
+	 * the bundle.
+	 */
 	public void setAnnotations(Annotations annotations) {
 		this.annotations = annotations;
 	}
 
+	/**
+	 * Get the UserEntityPermissions in this bundle.
+	 */
 	public UserEntityPermissions getPermissions() {
 		return permissions;
 	}
 
+	/**
+	 * Set the UserEntityPermissions for this bundle. Should be the requesting
+	 * user's permissions on the Entity in the bundle.
+	 */
 	public void setPermissions(UserEntityPermissions permissions) {
 		this.permissions = permissions;
 	}
 
+	/**
+	 * Get the hierarchical path to the Entity in this bundle.
+	 */
 	public EntityPath getPath() {
 		return path;
 	}
 
+	/**
+	 * Set the Path for this bundle. Should point to the Entity in the bundle.
+	 */
 	public void setPath(EntityPath path) {
 		this.path = path;
 	}
 
+	/**
+	 * Get the collection of names of Entities which reference the Entity in 
+	 * this bundle.
+	 */
 	public PaginatedResults<EntityHeader> getReferencedBy() {
 		return referencedBy;
 	}
 
+	/**
+	 * Set the collection of names of referencing Entities in this bundle. 
+	 * Should contain all Entities which reference the Entity in this bundle.
+	 */
 	public void setReferencedBy(PaginatedResults<EntityHeader> referencedBy) {
 		this.referencedBy = referencedBy;
 	}
 
+	/**
+	 * Get the number of child Entities of the Entity in this bundle.
+	 */
 	public Long getChildCount() {
 		return childCount;
 	}
 
+	/**
+	 * Set the childCount in this bundle. Should equal the number of Entities
+	 * which have the Entity in this bundle as their direct parent.
+	 */
 	public void setChildCount(Long childCount) {
 		this.childCount = childCount;
 	}
 
+	/**
+	 * Get the AccessControlList for the Entity in this bundle.
+	 */
 	public AccessControlList getAccessControlList() {
 		return acl;
 	}
 
+	/**
+	 * Set the AccessControlList for this bundle. Should correspond to the
+	 * Entity in this bundle.
+	 */
 	public void setAccessControlList(AccessControlList acl) {
 		this.acl = acl;
 	}
 
+	/**
+	 * Get a collection all of the UserProfiles in the repository.
+	 */
 	public PaginatedResults<UserProfile> getUsers() {
 		return users;
 	}
 
+	/**
+	 * Set a collection of UserProfiles in this bundle. Should contain all 
+	 * UserProfiles in the repository.
+	 */
 	public void setUsers(PaginatedResults<UserProfile> users) {
 		this.users = users;
 	}
 
+	/**
+	 * Get a collection all of the UserGroups in the repository.
+	 */
 	public PaginatedResults<UserGroup> getGroups() {
 		return groups;
 	}
 
+	/**
+	 * Set a collection of UserGroups in this bundle. Should contain all 
+	 * UserGroups in the repository.
+	 */
 	public void setGroups(PaginatedResults<UserGroup> groups) {
 		this.groups = groups;
 	}
