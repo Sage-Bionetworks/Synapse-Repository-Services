@@ -8,7 +8,7 @@
        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
-	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
 	<import resource="classpath:concept-dao-beans.spb.xml" />
@@ -28,13 +28,38 @@
 	<!-- Make sure we can watch for deadlock on all methods of the Generic Entity Controller -->	
 	<bean id="deadlockWatcher"
 		class="org.sagebionetworks.repo.web.DeadlockWatcher" />
+		
+	<!-- The Service Provider  -->
+	<bean id="serviceProider"
+		class="org.sagebionetworks.repo.web.service.ServiceProvider" />
 
-	<!-- The Entity Service  -->
+	<!-- The AccessApproval Service  -->
+	<bean id="accessApprovalService"
+		class="org.sagebionetworks.repo.web.service.AccessApprovalServiceImpl" />
+	
+	<!-- The AccessRequirement Service  -->
+	<bean id="accessRequirementService"
+		class="org.sagebionetworks.repo.web.service.AccessRequirementServiceImpl" />
+		
+	<!-- The Administration Service  -->
 	<bean id="administrationService"
 		class="org.sagebionetworks.repo.web.service.AdministrationServiceImpl" />
+		
+	<!-- The Concept Service  -->
+	<bean id="conceptService"
+		class="org.sagebionetworks.repo.web.service.ConceptServiceImpl" />
 
+	<!-- The Entity Service  -->
 	<bean id="entityService"
 		class="org.sagebionetworks.repo.web.service.EntityServiceImpl" />
+		
+	<!-- The S3Token Service  -->
+	<bean id="s3TokenService"
+		class="org.sagebionetworks.repo.web.service.S3TokenServiceImpl" />
+		
+	<!-- The Search Service  -->
+	<bean id="searchService"
+		class="org.sagebionetworks.repo.web.service.SearchServiceImpl" />
 
 	<!-- The UserProfile Service -->
 	<bean id="userProfileService"
@@ -251,7 +276,7 @@
 	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.modelObjectType 
 		enum -->
 	<bean id="metadataProviderFactory"
-		class="org.sagebionetworks.repo.web.controller.MetadataProviderFactoryImpl"
+		class="org.sagebionetworks.repo.web.controller.metadata.MetadataProviderFactoryImpl"
 		scope="singleton">
 		<property name="metadataProviderMap">
 			<map>

@@ -40,15 +40,15 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.util.QueryTranslator;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.QueryUtils;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.controller.MetadataProviderFactory;
-import org.sagebionetworks.repo.web.controller.QueryTranslator;
 import org.sagebionetworks.repo.web.controller.metadata.AllTypesValidator;
 import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
 import org.sagebionetworks.repo.web.controller.metadata.EventType;
+import org.sagebionetworks.repo.web.controller.metadata.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
 import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -557,7 +557,7 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		AccessControlList acl = permissionsManager.getACL(entityId, userInfo);
 		
-		acl.setUri(request.getRequestURI());
+		acl.setUri(UrlHelpers.makeEntityACLUri(entityId));
 
 		return acl;
 	}

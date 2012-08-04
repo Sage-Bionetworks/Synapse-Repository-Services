@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.service.UserGroupService;
+import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class UserGroupController extends BaseController {
 
 	@Autowired
-	UserGroupService userGroupService;
+	ServiceProvider serviceProvider;
 
 	/**
 	 * Get the user-groups in the system
@@ -44,7 +44,7 @@ public class UserGroupController extends BaseController {
 			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return userGroupService.getUserGroups(request, userId, offset, limit, sort, ascending);
+		return serviceProvider.getUserGroupService().getUserGroups(request, userId, offset, limit, sort, ascending);
 		
 	}	
 	

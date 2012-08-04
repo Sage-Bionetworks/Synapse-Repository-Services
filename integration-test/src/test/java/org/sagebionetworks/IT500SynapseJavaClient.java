@@ -23,7 +23,8 @@ import org.apache.http.HttpException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.junit.AfterClass;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.LayerTypeNames;
@@ -49,6 +51,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -89,7 +92,10 @@ public class IT500SynapseJavaClient {
 				.getRepositoryServiceEndpoint());
 		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
-
+	}
+	
+	@Before
+	public void before() throws SynapseException {
 		project = synapse.createEntity(new Project());
 		dataset = new Study();
 		dataset.setParentId(project.getId());
@@ -104,8 +110,8 @@ public class IT500SynapseJavaClient {
 	 * @throws SynapseUserException
 	 * @throws SynapseServiceException
 	 */
-	@AfterClass
-	public static void afterClass() throws Exception {
+	@After
+	public void after() throws Exception {
 		if(null != project) {
 			synapse.deleteEntity(project);
 		}
@@ -198,11 +204,9 @@ public class IT500SynapseJavaClient {
 		aNewDataset.setParentId(project.getId());
 
 		aNewDataset = synapse.createEntity(aNewDataset);
-		Study updatedDataset = synapse.putEntity(aNewDataset);
-		
 		
 		// Get the project using just using its ID. This is useful for cases where you
-		//  do not know what you are getting until it arives.
+		//  do not know what you are getting until it arrives.
 		Project clone = (Project) synapse.getEntityById(project.getId());
 		assertNotNull(clone);
 		assertNotNull(clone.getEntityType());
@@ -341,6 +345,56 @@ public class IT500SynapseJavaClient {
 		Project fromGetById = (Project) synapse.getEntityById(createdProjectId);
 		assertEquals(createdProject, fromGetById);
 
+	}
+	
+	@Test
+	public void testJavaClientGetEntityBundle() throws SynapseException {
+		int offset = Integer.parseInt(ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW);
+		int limit = Integer.parseInt(ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM);
+		
+		Annotations annos = synapse.getAnnotations(project.getId());
+		annos.addAnnotation("doubleAnno", new Double(45.0001));
+		annos.addAnnotation("string", "A string");
+		annos = synapse.updateAnnotations(project.getId(), annos);
+		
+		AccessControlList acl = synapse.getACL(project.getId());
+		acl.setCreatedBy("John Doe");
+		acl.setId(project.getId());
+		synapse.updateACL(acl);
+			
+		int allPartsMask = EntityBundle.ENTITY |
+				EntityBundle.ANNOTATIONS |
+				EntityBundle.PERMISSIONS |
+				EntityBundle.ENTITY_PATH |
+				EntityBundle.ENTITY_REFERENCEDBY |
+				EntityBundle.CHILD_COUNT |
+				EntityBundle.ACL |
+				EntityBundle.USERS |
+				EntityBundle.GROUPS;
+		
+		long startTime = System.nanoTime();
+		EntityBundle entityBundle = synapse.getEntityBundle(project.getId(), allPartsMask);
+		long endTime = System.nanoTime();
+		long requestTime = (endTime - startTime) / 1000000;
+		System.out.println("Bundle request time was " + requestTime + " ms");
+		
+		
+		assertEquals("Invalid fetched Entity in the EntityBundle", 
+				synapse.getEntityById(project.getId()), entityBundle.getEntity());
+		assertEquals("Invalid fetched Annotations in the EntityBundle", 
+				synapse.getAnnotations(project.getId()), entityBundle.getAnnotations());
+		assertEquals("Invalid fetched EntityPath in the EntityBundle", 
+				synapse.getEntityPath(project.getId()), entityBundle.getPath());
+		assertEquals("Invalid fetched ReferencedBy in the EntityBundle", 
+				synapse.getEntityReferencedBy(project), entityBundle.getReferencedBy());
+		assertEquals("Invalid fetched ChildCount in the EntityBundle", 
+				synapse.getChildCount(project.getId()), entityBundle.getChildCount());
+		assertEquals("Invalid fetched ACL in the EntityBundle", 
+				synapse.getACL(project.getId()), entityBundle.getAccessControlList());
+		assertEquals("Invalid fetched Users in the EntityBundle", 
+				synapse.getUsers(offset, limit), entityBundle.getUsers());
+		assertEquals("Invalid fetched Groups in the EntityBundle", 
+				synapse.getGroups(offset, limit), entityBundle.getGroups());
 	}
 
 	/**
@@ -546,7 +600,7 @@ public class IT500SynapseJavaClient {
 	 * @throws SynapseException
 	 */
 	@Test
-	public void testAttachemtnsImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
+	public void testAttachmentsImageRoundTrip() throws IOException, JSONObjectAdapterException, SynapseException{
 		// First load an image from the classpath
 		String fileName = "images/IMAG0019.jpg";
 		URL url = IT500SynapseJavaClient.class.getClassLoader().getResource(fileName);

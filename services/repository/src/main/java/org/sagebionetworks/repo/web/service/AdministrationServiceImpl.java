@@ -9,7 +9,9 @@ import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.backup.migration.DependencyManager;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -26,7 +28,12 @@ import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 
-public class AdministrationServiceImpl implements AdministrationService {
+/**
+ * This controller is used for Administration of Synapse.
+ *
+ * @author John
+ */
+public class AdministrationServiceImpl implements AdministrationService  {
 	
 	@Autowired
 	private BackupDaemonLauncher backupDaemonLauncher;
@@ -43,8 +50,13 @@ public class AdministrationServiceImpl implements AdministrationService {
 	@Autowired
 	DependencyManager dependencyManager;
 	
-
-	public PaginatedResults<MigratableObjectData> getAllBackupObjects(String userId, Integer offset, Integer limit, Boolean includeDependencies) throws DatastoreException, NotFoundException, UnauthorizedException {
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getAllBackupObjects(java.lang.String, java.lang.Integer, java.lang.Integer, java.lang.Boolean)
+	 */
+	@Override
+	public PaginatedResults<MigratableObjectData> getAllBackupObjects(
+			String userId, Integer offset, Integer limit, Boolean  includeDependencies)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
 		QueryResults<MigratableObjectData> queryResults = dependencyManager.getAllObjects(offset, limit, includeDependencies);
@@ -52,10 +64,17 @@ public class AdministrationServiceImpl implements AdministrationService {
 		result.setResults(queryResults.getResults());
 		result.setTotalNumberOfResults(queryResults.getTotalNumberOfResults());
 		return result;
-		
 	}
 	
-	public BackupRestoreStatus startBackup(String userId, String type, HttpHeaders header, HttpServletRequest request) throws IOException, DatastoreException, NotFoundException, UnauthorizedException {
+	
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.AdministrationService#startBackup(java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
+	 */
+	@Override
+	public BackupRestoreStatus startBackup(String userId, String type, 
+			HttpHeaders header,	HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 		
 		// The BackupSubmission is optional.  When included we will only backup the entity Ids included.
 		// When the body is null all entities will be backed up.
@@ -71,7 +90,15 @@ public class AdministrationServiceImpl implements AdministrationService {
 		return backupDaemonLauncher.startBackup(userInfo, entityIdsToBackup, MigratableObjectType.valueOf(type));
 	}
 	
-	public BackupRestoreStatus startRestore(String userId, RestoreSubmission file, String type) throws DatastoreException, NotFoundException, UnauthorizedException {
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.AdministrationService#startRestore(org.sagebionetworks.repo.model.daemon.RestoreSubmission, java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
+	 */
+	@Override
+	public BackupRestoreStatus startRestore(RestoreSubmission file, 
+			String userId, String type, HttpHeaders header,	HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
+
 		if(file == null) throw new IllegalArgumentException("File cannot be null");
 		if(file.getFileName() == null) throw new IllegalArgumentException("File.getFileName cannot be null");
 		// Get the user
@@ -80,7 +107,14 @@ public class AdministrationServiceImpl implements AdministrationService {
 		return backupDaemonLauncher.startRestore(userInfo, file.getFileName(), MigratableObjectType.valueOf(type));
 	}
 	
-	public void deleteMigratableObject(String userId, String objectId, String type) throws UnauthorizedException, DatastoreException, NotFoundException {
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.AdministrationService#deleteMigratableObject(java.lang.String, java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
+	 */
+	@Override
+	public void deleteMigratableObject(String userId, String objectId, 
+			String type, HttpHeaders header,	HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -88,10 +122,17 @@ public class AdministrationServiceImpl implements AdministrationService {
 		mod.setId(objectId);
 		mod.setType(MigratableObjectType.valueOf(type));
 		// start a restore daemon
-		backupDaemonLauncher.delete(userInfo, mod);		
+		backupDaemonLauncher.delete(userInfo, mod);
 	}
-	 
-	public BackupRestoreStatus startSearchDocument(String userId, HttpHeaders header, HttpServletRequest request) throws UnauthorizedException, DatastoreException, IOException, NotFoundException {
+	
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.AdministrationService#startSearchDocument(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
+	 */
+	@Override
+	public BackupRestoreStatus startSearchDocument(String userId,
+			HttpHeaders header,	HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 		
 		// The BackupSubmission is optional.  When included we will only backup the entity Ids included.
 		// When the body is null all entities will be backed up.
@@ -104,40 +145,63 @@ public class AdministrationServiceImpl implements AdministrationService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// start a search document daemon
 		return backupDaemonLauncher.startSearchDocument(userInfo, entityIdsToBackup);
-		
 	}
 	
-	public BackupRestoreStatus getStatus(String userId, String daemonId) throws UnauthorizedException, DatastoreException, IOException, NotFoundException {
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStatus(java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
+	 */
+	@Override
+	public BackupRestoreStatus getStatus(String daemonId, String userId,
+			HttpHeaders header,	HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Get the status of this daemon
 		return backupDaemonLauncher.getStatus(userInfo, daemonId);
-		
 	}
 	
-	public void terminateDaemon(String userId, String daemonId) throws UnauthorizedException, DatastoreException, IOException, NotFoundException {
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.AdministrationService#terminateDaemon(java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
+	 */
+	@Override
+	public void terminateDaemon(String daemonId, String userId,
+			HttpHeaders header,	HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// Terminate the daemon
 		backupDaemonLauncher.terminate(userInfo, daemonId);
-		
 	}
 	
-	public StackStatus getStackStatus() {
+	
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
+	 */
+	@Override
+	public StackStatus getStackStatus(String userId, HttpHeaders header,
+			HttpServletRequest request) {
 
 		// Get the status of this daemon
-		return stackStatusManager.getCurrentStatus();		
+		return stackStatusManager.getCurrentStatus();
 	}
 	
-	public StackStatus updateStatusStackStatus(String userId, HttpHeaders header, HttpServletRequest request) throws UnauthorizedException, DatastoreException, IOException, NotFoundException {
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.AdministrationService#updateStatusStackStatus(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
+	 */
+	@Override
+	public StackStatus updateStatusStackStatus(String userId,
+			HttpHeaders header,	HttpServletRequest request) 
+			throws DatastoreException, NotFoundException, UnauthorizedException, IOException {
+
 		// Get the status of this daemon
 		StackStatus updatedValue = objectTypeSerializer.deserialize(request.getInputStream(), header, StackStatus.class, header.getContentType());
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return stackStatusManager.updateStatus(userInfo, updatedValue);		
+		return stackStatusManager.updateStatus(userInfo, updatedValue);
 	}
-
 
 }
