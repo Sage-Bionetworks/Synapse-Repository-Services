@@ -542,8 +542,6 @@ public class IT500SynapseJavaClient {
 		assertFalse(isSso);
 		UserProfile integrationTestUserProfile = userSessionData.getProfile();
 		assertNotNull("Failed to get user profile from user session data", integrationTestUserProfile);
-		//and make sure crowd info has been copied to the profile
-		assertEquals("user name mismatch", integrationTestUserProfile.getUserName(), StackConfiguration.getIntegrationTestUserOneName());
 	}
 	
 	@Test

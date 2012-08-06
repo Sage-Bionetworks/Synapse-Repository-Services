@@ -36,9 +36,6 @@ import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -48,6 +45,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.LocationData;
@@ -55,6 +53,8 @@ import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
@@ -75,8 +75,6 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
-
-import com.google.gwt.user.server.rpc.UnexpectedException;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -314,20 +312,7 @@ public class Synapse {
 				defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
 				requestProfile = reqPr;
 
-				String displayName = credentials.getString("displayName");
 				UserProfile profile = getMyProfile();
-				String fName = null;
-				String lName = null;
-				if (displayName != null) {
-					String[] firstLast = displayName.split(" ");
-					if (firstLast.length > 1) {
-						fName = firstLast[0];
-						//everything else can go in the last name
-						lName = displayName.substring(fName.length()+1).trim();
-					}
-				}
-				
-				fillInCrowdInfo(fName, lName, username, profile);
 				userData = new UserSessionData();
 				userData.setIsSSO(false);
 				userData.setSessionToken(sessionToken);
@@ -345,40 +330,21 @@ public class Synapse {
 	public UserSessionData getUserSessionData() throws SynapseException {
 		//get the UserSessionData if the session token is set
 		UserSessionData userData = null;
-		JSONObject credentials = null;
-		try {
-			credentials = getAuthEntity("/user");
-			String sessionToken = getCurrentSessionToken();
-			
-			UserProfile profile = getMyProfile();
-			String fName = credentials.getString("firstName");
-			String lName = credentials.getString("lastName");
-			String username = credentials.getString("email");
-			fillInCrowdInfo(fName, lName, username, profile);
-			userData = new UserSessionData();
-			userData.setIsSSO(false);
-			userData.setSessionToken(sessionToken);
-			userData.setProfile(profile);
-		} catch (JSONException e) {
-			throw new SynapseException(e);
-		}
+		String sessionToken = getCurrentSessionToken();
+		UserProfile profile = getMyProfile();
+		userData = new UserSessionData();
+		userData.setIsSSO(false);
+		userData.setSessionToken(sessionToken);
+		userData.setProfile(profile);
 		return userData;
 	}
 	
 	public boolean revalidateSession() throws SynapseException {
-		boolean isValid = false;
 		JSONObject sessionInfo = new JSONObject();
 		try {
 			sessionInfo.put("sessionToken", getCurrentSessionToken());
-			
 			try {
 				putAuthEntity("/session", sessionInfo);
-				isValid = true;
-			} catch (UnexpectedException ex) {
-				isValid = true;
-			} catch (NullPointerException nex) {
-				// TODO : change this to properly deal with a 204!!!
-				isValid = true;
 			} catch (SynapseForbiddenException e) {
 				//403 error
 				throw new SynapseTermsOfUseException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
@@ -387,21 +353,7 @@ public class Synapse {
 		} catch (JSONException e) {
 			throw new SynapseException(e);
 		}
-		return isValid;
-	}
-	
-	
-	private void fillInCrowdInfo(String fName, String lName, String email, UserProfile profile) {
-		profile.setUserName(email);
-		if (profile.getFirstName() == null || profile.getFirstName().length() == 0){
-			profile.setFirstName(fName);
-		}
-		if (profile.getLastName() == null || profile.getLastName().length() == 0){
-			profile.setLastName(lName);
-		}
-		if (profile.getEmail() == null || profile.getEmail().length() == 0){
-			profile.setEmail(email);
-		}
+		return true;
 	}
 	
 	/**
