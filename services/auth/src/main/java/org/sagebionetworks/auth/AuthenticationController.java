@@ -443,14 +443,11 @@ public class AuthenticationController extends BaseController {
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/apiPasswordEmail", method = RequestMethod.POST)
-	public void sendSetAPIPasswordEmail(@RequestBody User user) throws Exception {
-		String userId = null;
-		if (user.getEmail() != null && user.getEmail().length() > 0)
-			userId = user.getEmail();
-		else if (user.getSessionToken() != null && user.getSessionToken().length() > 0) {
-			userId = CrowdAuthUtil.revalidate(user.getSessionToken());
-		}
-		
+	public void sendSetAPIPasswordEmail(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+		if (userId == null)
+			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
+			
 		sendUserPasswordEmail(userId, PW_MODE.SET_API_PW);
 	}
 	
@@ -458,15 +455,12 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = "/userPassword", method = RequestMethod.POST)
 	public void setPassword(@RequestBody ChangeUserPassword changeUserPassword,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		if (changeUserPassword.getSessionToken() == null)
-			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-		String crowdUserId = CrowdAuthUtil.revalidate(changeUserPassword.getSessionToken());
-		if ((userId==null || !userId.equals(crowdUserId))) 
+		if (userId==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
 		if (changeUserPassword.getNewPassword()==null) 			
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "New password is required.", null);
 		User user = new User();
-		user.setEmail(crowdUserId);
+		user.setEmail(userId);
 		user.setPassword(changeUserPassword.getNewPassword());
 		CrowdAuthUtil.updatePassword(user);
 	}
