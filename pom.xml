@@ -8,6 +8,7 @@
 	<modelVersion>4.0.0</modelVersion>
 
 	<groupId>org.sagebionetworks</groupId>
+
 	<artifactId>platform</artifactId>
 	<!-- This is not the same as the application version. This is a constant. -->
 	<version>develop-SNAPSHOT</version>
