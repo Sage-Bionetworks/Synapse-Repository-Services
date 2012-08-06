@@ -319,7 +319,7 @@ public class Synapse {
 				userData.setProfile(profile);
 			} catch (SynapseForbiddenException e) {
 				//403 error
-				throw new SynapseTermsOfUseException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
+				throw new SynapseTermsOfUseException(e.getMessage());
 			}
 		} catch (JSONException e) {
 			throw new SynapseException(e);
@@ -347,7 +347,7 @@ public class Synapse {
 				putAuthEntity("/session", sessionInfo);
 			} catch (SynapseForbiddenException e) {
 				//403 error
-				throw new SynapseTermsOfUseException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
+				throw new SynapseTermsOfUseException(e.getMessage());
 			}
 			
 		} catch (JSONException e) {
