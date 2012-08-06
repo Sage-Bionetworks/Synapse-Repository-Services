@@ -30,7 +30,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.service.EntityService;
+import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,7 +57,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class EntityController extends BaseController{
 	
 	@Autowired
-	EntityService entityService;
+	ServiceProvider serviceProvider;
 
 	@Autowired
 	SchemaManager schemaManager;
@@ -83,7 +83,7 @@ public class EntityController extends BaseController{
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the entity.
-		Entity entity =  entityService.getEntity(userId, id, request);
+		Entity entity =  serviceProvider.getEntityService().getEntity(userId, id, request);
 		return entity;
 	}
 	
@@ -108,7 +108,7 @@ public class EntityController extends BaseController{
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Pass it along
-		return entityService.getEntityAnnotations(userId, id, request);
+		return serviceProvider.getEntityService().getEntityAnnotations(userId, id, request);
 	}
 	
 	
@@ -139,7 +139,7 @@ public class EntityController extends BaseController{
 			@RequestBody Annotations updatedAnnotations,
 			HttpServletRequest request) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		// Pass it along
-		return entityService.updateEntityAnnotations(userId, id, updatedAnnotations, request);
+		return serviceProvider.getEntityService().updateEntityAnnotations(userId, id, updatedAnnotations, request);
 	}
 	
 	/**
@@ -170,7 +170,7 @@ public class EntityController extends BaseController{
 		// Read the entity from the body
 		Entity entity =  JSONEntityHttpMessageConverter.readEntity(request.getReader());
 		// Now create the entity
-		Entity createdEntity = entityService.createEntity(userId, entity, request);
+		Entity createdEntity = serviceProvider.getEntityService().createEntity(userId, entity, request);
 		// Finally, add the type specific metadata.
 		return createdEntity;
 	}
@@ -231,7 +231,7 @@ public class EntityController extends BaseController{
 			entity.setEtag(etag.toString());
 		}
 		// validate the entity
-		entity = entityService.updateEntity(userId, entity, newVersion, request);
+		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersion, request);
 		// Return the result
 		return entity;
 	}
@@ -273,7 +273,7 @@ public class EntityController extends BaseController{
 			entity.setEtag(etag.toString());
 		}
 		// validate the entity
-		entity = entityService.updateEntity(userId, entity, false, request);
+		entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, request);
 		// Return the result
 		return entity;
 	}
@@ -297,7 +297,7 @@ public class EntityController extends BaseController{
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
 		// Pass it along
-		entityService.deleteEntity(userId, id);
+		serviceProvider.getEntityService().deleteEntity(userId, id);
 	}
 	
 		/**
@@ -322,7 +322,7 @@ public class EntityController extends BaseController{
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// Determine the object type from the url.
-		entityService.deleteEntityVersion(userId, id, versionNumber);
+		serviceProvider.getEntityService().deleteEntityVersion(userId, id, versionNumber);
 	}
 
 	/**
@@ -349,7 +349,7 @@ public class EntityController extends BaseController{
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the entity.
 		@SuppressWarnings("unchecked")
-		Entity updatedEntity = entityService.getEntityForVersion(userId, id, versionNumber, request);
+		Entity updatedEntity = serviceProvider.getEntityService().getEntityForVersion(userId, id, versionNumber, request);
 		// Return the results
 		return updatedEntity;
 	}
@@ -374,7 +374,7 @@ public class EntityController extends BaseController{
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the type of an entity by ID.
-		return entityService.getEntityHeader(userId, id);
+		return serviceProvider.getEntityService().getEntityHeader(userId, id);
 	}
 
     /**
@@ -406,7 +406,7 @@ public class EntityController extends BaseController{
             List<EntityHeader> entityHeaders = new ArrayList<EntityHeader>();
             for (String id : ids) {
                     // Get the type of an entity by ID.
-                    EntityHeader entityHeader = entityService.getEntityHeader(userId, id);
+                    EntityHeader entityHeader = serviceProvider.getEntityService().getEntityHeader(userId, id);
                     entityHeaders.add(entityHeader);
             }
 
@@ -423,7 +423,7 @@ public class EntityController extends BaseController{
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
 		// pass it along.
-		return entityService.getUserEntityPermissions(userId, id);
+		return serviceProvider.getEntityService().getUserEntityPermissions(userId, id);
 	}
 	/**
 	 * Get the headers for entities having references to an existing entity.
@@ -447,7 +447,7 @@ public class EntityController extends BaseController{
 			 HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
 		// Get the type of an entity by ID.
-		return entityService.getEntityReferences(userId, id, null, offset, limit, request);
+		return serviceProvider.getEntityService().getEntityReferences(userId, id, null, offset, limit, request);
 	}
 	
 	
@@ -474,7 +474,7 @@ public class EntityController extends BaseController{
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
 		// Get the type of an entity by ID.
-		return entityService.getEntityReferences(userId, id, versionNumber, offset, limit, request);
+		return serviceProvider.getEntityService().getEntityReferences(userId, id, versionNumber, offset, limit, request);
 	}
 	
 	/**
@@ -498,7 +498,7 @@ public class EntityController extends BaseController{
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Wrap it up and pass it along
-		List<EntityHeader> paths = entityService.getEntityPath(userId, id);
+		List<EntityHeader> paths = serviceProvider.getEntityService().getEntityPath(userId, id);
 		EntityPath entityPath = new EntityPath();
 		entityPath.setPath(paths);
 		return entityPath;
@@ -533,7 +533,7 @@ public class EntityController extends BaseController{
 		// pass it along.
 		// This is a fix for PLFM-410
 		newAcl.setId(id);
-		AccessControlList acl = entityService.createEntityACL(userId, newAcl, request);
+		AccessControlList acl = serviceProvider.getEntityService().createEntityACL(userId, newAcl, request);
 		return acl;
 	}
 	
@@ -556,7 +556,7 @@ public class EntityController extends BaseController{
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, ACLInheritanceException {
 		// pass it along.
-		return entityService.getEntityACL(id, userId, request);
+		return serviceProvider.getEntityService().getEntityACL(id, userId, request);
 	}
 	
 	/**
@@ -587,7 +587,7 @@ public class EntityController extends BaseController{
 		// This is a fix for PLFM-621
 		updatedACL.setId(id);
 		// pass it along.
-		return entityService.updateEntityACL(userId, updatedACL, request);
+		return serviceProvider.getEntityService().updateEntityACL(userId, updatedACL, request);
 	}
 	
 	/**
@@ -608,7 +608,7 @@ public class EntityController extends BaseController{
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// Determine the object type from the url.
-		entityService.deleteEntityACL(userId, id);
+		serviceProvider.getEntityService().deleteEntityACL(userId, id);
 	}
 	
 	/**
@@ -629,7 +629,7 @@ public class EntityController extends BaseController{
 			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false) String accessType,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
 		// pass it along.
-		return new BooleanResult(entityService.hasAccess(id, userId, request, accessType));
+		return new BooleanResult(serviceProvider.getEntityService().hasAccess(id, userId, request, accessType));
 	}
 
 	/**
@@ -652,7 +652,7 @@ public class EntityController extends BaseController{
 			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException, ACLInheritanceException {
 		if(id == null) throw new IllegalArgumentException("PathVariable ID cannot be null");
 		// pass it along.
-		return entityService.getEntityBenefactor(id, userId, request);
+		return serviceProvider.getEntityService().getEntityBenefactor(id, userId, request);
 	}
 	
 	/**
@@ -686,7 +686,7 @@ public class EntityController extends BaseController{
 
 		// Determine the object type from the url.
 		@SuppressWarnings("unchecked")
-		PaginatedResults<Versionable> results = entityService.getAllVerionsOfEntity(userId, offset, limit, id, request);
+		PaginatedResults<Versionable> results = serviceProvider.getEntityService().getAllVerionsOfEntity(userId, offset, limit, id, request);
 		// Return the result
 		return results;
 	}
@@ -714,7 +714,7 @@ public class EntityController extends BaseController{
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Pass it along
-		return entityService.getEntityAnnotationsForVersion(userId, id, versionNumber, request);
+		return serviceProvider.getEntityService().getEntityAnnotationsForVersion(userId, id, versionNumber, request);
 	}
 	
 	
@@ -808,7 +808,7 @@ public class EntityController extends BaseController{
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		// Pass it along
-		return entityService.createS3AttachmentToken(userId, id, token);
+		return serviceProvider.getEntityService().createS3AttachmentToken(userId, id, token);
 	}
 	
 
@@ -836,6 +836,6 @@ public class EntityController extends BaseController{
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		if(url == null) throw new IllegalArgumentException("A PresignedUrl must be provided");
 		// Pass it along.
-		return entityService.getAttachmentUrl(userId, id, url.getTokenID());
+		return serviceProvider.getEntityService().getAttachmentUrl(userId, id, url.getTokenID());
 	}
 }

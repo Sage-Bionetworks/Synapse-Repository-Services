@@ -23,10 +23,12 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -42,7 +44,7 @@ import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +65,10 @@ public class NodeDAOImplTest {
 
 	@Autowired
 	NodeInheritanceDAO nodeInheritanceDAO;
+	
+	@Autowired
+	AccessControlListDAO accessControlListDAO;
+	
 	@Autowired
 	private IdGenerator idGenerator;
 	
@@ -74,10 +80,15 @@ public class NodeDAOImplTest {
 	
 	
 	private Long creatorUserGroupId = null;	
+	private Long altUserGroupId = null;
 	@Before
 	public void before() throws Exception {
 		creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 		assertNotNull(creatorUserGroupId);
+		
+		altUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false).getId());
+		assertNotNull(altUserGroupId);
+		
 		assertNotNull(nodeDao);
 		assertNotNull(nodeInheritanceDAO);
 		toDelete = new ArrayList<String>();
@@ -99,6 +110,10 @@ public class NodeDAOImplTest {
 	
 	private Node privateCreateNew(String name) {
 		return NodeTestUtils.createNew(name, creatorUserGroupId);
+	}
+	
+	private Node privateCreateNewDistinctModifier(String name) {
+		return NodeTestUtils.createNew(name, creatorUserGroupId, altUserGroupId);
 	}
 	
 	/**
@@ -129,7 +144,7 @@ public class NodeDAOImplTest {
 	
 	@Test 
 	public void testCreateNode() throws Exception{
-		Node toCreate = privateCreateNew("firstNodeEver");
+		Node toCreate = privateCreateNewDistinctModifier("firstNodeEver");
 		toCreate.setVersionComment("This is the first version of the first node ever!");
 		toCreate.setVersionLabel("0.0.1");
 		long initialCount = nodeDao.getCount();
@@ -155,10 +170,10 @@ public class NodeDAOImplTest {
 		String benefactorId = nodeInheritanceDAO.getBenefactor(id);
 		assertEquals(id, benefactorId);
 		
-		checkMigrationDependenciesNoParent(id);
+		checkMigrationDependenciesNoParentDistinctModifier(id);
 	}
 	
-	public void checkMigrationDependenciesNoParent(String id) throws Exception {
+	public void checkMigrationDependenciesNoParentDistinctModifier(String id) throws Exception {
 		// first check what happens if dependencies are NOT requested
 		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
 		List<MigratableObjectData> ods = results.getResults();
@@ -185,11 +200,21 @@ public class NodeDAOImplTest {
 				foundId=true;
 				// since there's no parent or ACL, the only dependency is on the creator/modifier
 				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 1, deps.size());
-				MigratableObjectDescriptor creatorDescriptor = deps.iterator().next();
-				assertEquals(creatorUserGroupId.toString(), creatorDescriptor.getId());
-				assertEquals(MigratableObjectType.PRINCIPAL, creatorDescriptor.getType());
-				
+				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
+				boolean foundCreator = false;
+				boolean foundModifier = false;
+				for (MigratableObjectDescriptor mod : deps) {
+					if (mod.getId().equals(creatorUserGroupId.toString())) {
+						foundCreator = true;
+						assertEquals(MigratableObjectType.PRINCIPAL, mod.getType());
+					}
+					if (mod.getId().equals(altUserGroupId.toString())) {
+						foundModifier = true;
+						assertEquals(MigratableObjectType.PRINCIPAL, mod.getType());
+					}
+				}
+				assertTrue(foundCreator);
+				assertTrue(foundModifier);
 			}
 			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
 		}
@@ -274,13 +299,25 @@ public class NodeDAOImplTest {
 		assertNotNull(parentId);
 		toDelete.add(parentId);
 
+		// now add a certain group to the ACL of the parent
+		AccessControlList acl = new AccessControlList();
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})));
+		ra.setPrincipalId(altUserGroupId);
+		ras.add(ra);
+		acl.setResourceAccess(ras);
+		acl.setId(parentId);
+		acl.setCreationDate(new Date());
+		accessControlListDAO.create(acl);
+		
 		
 		//Now add an child
 		Node child = privateCreateNew("child");
 		child.setParentId(parentId);
 		String childId = nodeDao.createNew(child);
 		assertNotNull(childId);
-		toDelete.add(parentId);
+
 		Set<Node> children = nodeDao.getChildren(parentId);
 		assertNotNull(children);
 		assertEquals(1, children.size());
@@ -298,12 +335,33 @@ public class NodeDAOImplTest {
 		
 		checkMigrationDependenciesWithParent(childId, parentId);
 		
-		// Now delete the parent and confirm the child is gone too
+		// now add a grandchild
+		Node grandkid = privateCreateNew("grandchild");
+		grandkid.setParentId(childId);
+		String grandkidId = nodeDao.createNew(grandkid);
+		assertNotNull(grandkidId);
+
+		// This grandchild should be inheriting from its grandparent by default
+		String grandChildBenefactorId = nodeInheritanceDAO.getBenefactor(grandkidId);
+		assertEquals(parentId, grandChildBenefactorId);
+		
+		checkMigrationDependenciesWithGrandParent(grandkidId, childId, parentId);
+	
+		
+		// Now delete the parent and confirm the child,grandkid are gone too
 		nodeDao.delete(parentId);
 		// the child should no longer exist
 		try{
 			childLoaded = nodeDao.getNode(childId);
 			fail("The child should not exist after the parent was deleted");
+		}catch (NotFoundException e){
+			// expected.
+		}catch (JdoObjectRetrievalFailureException e){
+			System.out.println(e);
+		}
+		try{
+			nodeDao.getNode(grandkidId);
+			fail("The grandchild should not exist after the grandparent was deleted");
 		}catch (NotFoundException e){
 			// expected.
 		}catch (JdoObjectRetrievalFailureException e){
@@ -318,14 +376,19 @@ public class NodeDAOImplTest {
 		assertEquals(ods.size(), results.getTotalNumberOfResults());
 		assertTrue(ods.size()>0);
 		boolean foundId = false;
+		boolean foundParentId = false;
 		for (MigratableObjectData od : ods) {
 			if (od.getId().getId().equals(id)) {
 				foundId=true;
+			}
+			if (od.getId().getId().equals(parentId)) {
+				foundParentId=true;
 			}
 			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
 			
 		}
 		assertTrue(foundId);
+		assertTrue(foundParentId);
 		
 		// now query for objects WITH dependencies
 		results = nodeDao.getMigrationObjectData(0, 10000, true);
@@ -333,6 +396,7 @@ public class NodeDAOImplTest {
 		assertEquals(ods.size(), results.getTotalNumberOfResults());
 		assertTrue(ods.size()>0);
 		foundId = false;
+		foundParentId = false;
 		for (MigratableObjectData od : ods) {
 			if (od.getId().getId().equals(id)) {
 				foundId=true;
@@ -352,6 +416,63 @@ public class NodeDAOImplTest {
 				}
 				assertTrue(foundCreator);
 				assertTrue(foundParent);
+			}
+			if (od.getId().getId().equals(parentId)) {
+				foundParentId = true;
+				// dependencies are the creator/modifier and the parent/benefactor
+				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
+				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
+				boolean foundCreator = false;
+				boolean foundACLmember = false;
+				for (MigratableObjectDescriptor d : deps) {
+					if (creatorUserGroupId.toString().equals(d.getId())) {
+						foundCreator=true;
+						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
+					} else if (altUserGroupId.toString().equals(d.getId())) { // referenced in the ACL
+						foundACLmember=true;
+						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
+					}
+				}
+				assertTrue(foundCreator);
+				assertTrue(foundACLmember);
+			
+			}
+		}
+		assertTrue(foundId);
+		assertTrue(foundParentId);
+	}
+	
+	public void checkMigrationDependenciesWithGrandParent(String id, String parentId, String grandParentId) throws Exception {
+		// query for objects WITH dependencies
+		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, true);
+		List<MigratableObjectData> ods = results.getResults();
+		assertEquals(ods.size(), results.getTotalNumberOfResults());
+		assertTrue(ods.size()>0);
+		boolean foundId = false;
+		for (MigratableObjectData od : ods) {
+			if (od.getId().getId().equals(id)) {
+				foundId=true;
+				// dependencies are the creator/modifier, the parent and the grandparent/benefactor
+				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
+				assertEquals("id: "+id+" dependencies: "+deps.toString(), 3, deps.size());
+				boolean foundCreator = false;
+				boolean foundParent = false;
+				boolean foundBenefactor = false;
+				for (MigratableObjectDescriptor d : deps) {
+					if (creatorUserGroupId.toString().equals(d.getId())) {
+						foundCreator=true;
+						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
+					} else if (parentId.equals(d.getId())) {
+						foundParent=true;
+						assertEquals(MigratableObjectType.ENTITY, d.getType());
+					} else if (grandParentId.equals(d.getId())) {
+						foundBenefactor=true;
+						assertEquals(MigratableObjectType.ENTITY, d.getType());
+					}
+				}
+				assertTrue(foundCreator);
+				assertTrue(foundParent);
+				assertTrue(foundBenefactor);
 			}
 		}
 		assertTrue(foundId);
