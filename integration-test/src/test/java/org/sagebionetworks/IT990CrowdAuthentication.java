@@ -23,6 +23,7 @@ import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.model.UserSessionData;
 import org.springframework.http.HttpStatus;
 
 
@@ -33,7 +34,7 @@ import org.springframework.http.HttpStatus;
 public class IT990CrowdAuthentication {
 	private static Synapse synapse = null;
 	private static String authEndpoint = null;
-
+	private static String repoEndpoint = null;
 	/**
 	 * @throws Exception
 	 * 
@@ -42,9 +43,10 @@ public class IT990CrowdAuthentication {
 	public static void beforeClass() throws Exception {
 
 		authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
+		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
 		synapse = new Synapse();
 		synapse.setAuthEndpoint(authEndpoint);
-		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
+		synapse.setRepositoryEndpoint(repoEndpoint);
 		synapse.login(StackConfiguration.getIntegrationTestUserThreeName(),
 				StackConfiguration.getIntegrationTestUserThreePassword());
 	}
@@ -216,50 +218,6 @@ public class IT990CrowdAuthentication {
 	}
 	
 	@Test
-	public void testUpdateUser() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		synapse.login(username, StackConfiguration.getIntegrationTestUserThreePassword());
-		JSONObject user = synapse.getSynapseEntity(authEndpoint, "/user");
-		assertEquals(StackConfiguration.getIntegrationTestUserThreeEmail(), user.getString("email"));
-		try {
-			String origFname = user.getString("firstName");
-			String origLname = user.getString("lastName");
-			String origDisplayName = user.getString("displayName");
-			JSONObject newUser = new JSONObject();
-			newUser.put("email", StackConfiguration.getIntegrationTestUserThreeEmail());
-			newUser.put("firstName", "NEW "+origFname);
-			newUser.put("lastName", "NEW "+origLname);
-			newUser.put("displayName", "NEW "+origDisplayName);
-			synapse.putSynapseEntity(authEndpoint, "/user", newUser, new HashMap<String,String>());
-			JSONObject checkUser = synapse.getSynapseEntity(authEndpoint, "/user");
-			assertEquals("NEW "+origFname, checkUser.getString("firstName"));
-			assertEquals("NEW "+origLname, checkUser.getString("lastName"));
-			assertEquals("NEW "+origDisplayName, checkUser.getString("displayName"));
-		} finally {
-			// restore
-			synapse.putSynapseEntity(authEndpoint, "/user", user, new HashMap<String,String>());
-		}
-	}
-	
-	@Test(expected=SynapseBadRequestException.class)
-	public void testUpdateUserEmailShouldFail() throws Exception {
-		String username = StackConfiguration.getIntegrationTestUserThreeName();
-		synapse.login(username, StackConfiguration.getIntegrationTestUserThreePassword());
-		JSONObject user = synapse.getSynapseEntity(authEndpoint, "/user");
-		assertEquals(StackConfiguration.getIntegrationTestUserThreeEmail(), user.getString("email"));
-
-			String origFname = user.getString("firstName");
-			String origLname = user.getString("lastName");
-			String origDisplayName = user.getString("displayName");
-			JSONObject newUser = new JSONObject();
-			newUser.put("email", "invalid-email@sagebase.org");
-			newUser.put("firstName", origFname);
-			newUser.put("lastName", origLname);
-			newUser.put("displayName", origDisplayName);
-			synapse.putSynapseEntity(authEndpoint, "/user", newUser, new HashMap<String,String>());
-	}
-	
-	@Test
 	public void testCreateUserAndChangePassword() throws Exception {
 		String username = StackConfiguration.getIntegrationTestUserThreeName();
 		String password = StackConfiguration.getIntegrationTestUserThreePassword();
@@ -267,8 +225,7 @@ public class IT990CrowdAuthentication {
 
 		String testNewPassword = "newPassword";
 		JSONObject obj = new JSONObject();
-		obj.put("email", username);
-		obj.put("password", testNewPassword);
+		obj.put("newPassword", testNewPassword);
 		synapse.createAuthEntity("/userPassword", obj);
 		
 		// to check the password, we have to try to log-in:
@@ -279,8 +236,7 @@ public class IT990CrowdAuthentication {
 		
 		// restore original password
 		obj = new JSONObject();
-		obj.put("email", username);
-		obj.put("password", password);
+		obj.put("newPassword", password);
 		synapse.createAuthEntity("/userPassword", obj);
 		
 	}
