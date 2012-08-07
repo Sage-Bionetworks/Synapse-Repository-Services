@@ -39,9 +39,13 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -285,6 +289,18 @@ public class SynapseTest {
 	}
 	
 	@Test
+	public void testGetVersionInfo() throws Exception {
+		VersionInfo expectedVersion = new VersionInfo();
+		expectedVersion.setVersion("versionString");
+		String jsonString = EntityFactory.createJSONStringForEntity(expectedVersion);
+		StringEntity responseEntity = new StringEntity(jsonString);
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		VersionInfo vi = synapse.getVersionInfo();
+		assertNotNull(vi);
+		assertEquals(vi, expectedVersion);
+	};
+
+	@Test
 	public void testGetEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, SynapseException {
 		// Create an entity
 		Study s = EntityCreator.createNewDataset();
@@ -329,4 +345,5 @@ public class SynapseTest {
 		EntityPath path = eb2.getPath();
 		assertNull("Path was not requested, but was returned in bundle", path);
 	}
+
 }
