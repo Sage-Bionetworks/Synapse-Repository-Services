@@ -1866,29 +1866,9 @@ public class ServletTestHelper {
 			throw new ServletTestHelperException(response);
 		}
 	}
-
-	public VersionInfo getVersionInfo() throws ServletException, IOException {
-		VersionInfo vi;
-		
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("GET");
-		request.addHeader("Accept", "application/json");
-
-		request.setRequestURI(UrlHelpers.VERSIONINFO);
-		System.out.println(request.getRequestURL());
-		dispatchServlet.service(request, response);
-		if (response.getStatus() != HttpStatus.OK.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		vi = (VersionInfo) objectMapper.readValue(
-				response.getContentAsString(), VersionInfo.class);
-		return vi;
-	}
 	public static PaginatedResults<MigratableObjectData> getAllMigrationObjects(
 			HttpServlet dispatchServlet, long offset, long limit,
 			String userId) throws Exception {
-
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -1906,5 +1886,24 @@ public class ServletTestHelper {
 		}
 		return createPaginatedResultsFromJSON(response.getContentAsString(),
 				MigratableObjectData.class);
+	}
+
+	public VersionInfo getVersionInfo() throws ServletException, IOException {
+		VersionInfo vi;
+		
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		
+		request.setRequestURI(UrlHelpers.VERSIONINFO);
+		System.out.println(request.getRequestURL());
+		dispatchServlet.service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		vi = (VersionInfo) objectMapper.readValue(
+				response.getContentAsString(), VersionInfo.class);
+		return vi;
 	}
 }
