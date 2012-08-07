@@ -33,11 +33,9 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
+import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -47,6 +45,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.LocationData;
@@ -54,8 +53,11 @@ import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.S3Token;
+import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
@@ -65,6 +67,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -115,6 +118,8 @@ public class Synapse {
 	protected static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled";
 	
 	protected static final String ACCESS_APPROVAL = "/accessApproval";
+	
+	protected static final String VERSION_INFO = "/version";
 	
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
@@ -280,7 +285,7 @@ public class Synapse {
 	 * @param password
 	 * @throws SynapseException
 	 */
-	public void login(String username, String password) throws SynapseException {
+	public UserSessionData login(String username, String password) throws SynapseException {
 		/**
 		 * Log into Synapse
 		 * 
@@ -288,12 +293,13 @@ public class Synapse {
 		 * @param password
 		 * @throws SynapseException
 		 */
-		login(username, password, false);
+		return login(username, password, false);
 	}
 		
-	public void login(String username, String password, boolean explicitlyAcceptsTermsOfUse) throws SynapseException {
-		
+	public UserSessionData login(String username, String password, boolean explicitlyAcceptsTermsOfUse) throws SynapseException {
+		UserSessionData userData = null;
 			JSONObject loginRequest = new JSONObject();
+		JSONObject credentials = null;
 		try {
 			loginRequest.put("email", username);
 			loginRequest.put(PASSWORD_FIELD, password);
@@ -302,18 +308,57 @@ public class Synapse {
 			boolean reqPr = requestProfile;
 			requestProfile = false;
 
-			JSONObject credentials = createAuthEntity("/session", loginRequest);
+			try {
+				credentials = createAuthEntity("/session", loginRequest);
+				String sessionToken = credentials.getString(SESSION_TOKEN_HEADER);
+				defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
+				defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, sessionToken);
+				requestProfile = reqPr;
 
-			defaultGETDELETEHeaders.put(SESSION_TOKEN_HEADER, credentials
-					.getString(SESSION_TOKEN_HEADER));
-			defaultPOSTPUTHeaders.put(SESSION_TOKEN_HEADER, credentials
-					.getString(SESSION_TOKEN_HEADER));
-			requestProfile = reqPr;
+				UserProfile profile = getMyProfile();
+				userData = new UserSessionData();
+				userData.setIsSSO(false);
+				userData.setSessionToken(sessionToken);
+				userData.setProfile(profile);
+			} catch (SynapseForbiddenException e) {
+				//403 error
+				throw new SynapseTermsOfUseException(e.getMessage());
+			}
 		} catch (JSONException e) {
 			throw new SynapseException(e);
 		}
+		return userData;
 	}
 
+	public UserSessionData getUserSessionData() throws SynapseException {
+		//get the UserSessionData if the session token is set
+		UserSessionData userData = null;
+		String sessionToken = getCurrentSessionToken();
+		UserProfile profile = getMyProfile();
+		userData = new UserSessionData();
+		userData.setIsSSO(false);
+		userData.setSessionToken(sessionToken);
+		userData.setProfile(profile);
+		return userData;
+	}
+	
+	public boolean revalidateSession() throws SynapseException {
+		JSONObject sessionInfo = new JSONObject();
+		try {
+			sessionInfo.put("sessionToken", getCurrentSessionToken());
+			try {
+				putAuthEntity("/session", sessionInfo);
+			} catch (SynapseForbiddenException e) {
+				//403 error
+				throw new SynapseTermsOfUseException(e.getMessage());
+			}
+			
+		} catch (JSONException e) {
+			throw new SynapseException(e);
+		}
+		return true;
+	}
+	
 	/**
 	 * Authenticate the synapse client with an existing session token
 	 * 
@@ -1405,6 +1450,27 @@ public class Synapse {
 		return createSynapseEntity(authEndpoint, uri, entity);
 	}
 
+	public JSONObject getAuthEntity(String uri)
+			throws SynapseException {
+		return getSynapseEntity(authEndpoint, uri);
+	}
+	
+	public JSONObject putAuthEntity(String uri, JSONObject entity)
+			throws SynapseException {
+		if (null == authEndpoint) {
+			throw new IllegalArgumentException("must provide endpoint");
+		}
+		if (null == uri) {
+			throw new IllegalArgumentException("must provide uri");
+		}
+		if (null == entity) {
+			throw new IllegalArgumentException("must provide entity");
+		}
+
+		Map<String, String> requestHeaders = new HashMap<String, String>();
+		return putSynapseEntity(authEndpoint, uri, entity, requestHeaders);
+	}
+
 	/******************** Low Level APIs ********************/
 
 	/**
@@ -1888,4 +1954,17 @@ public class Synapse {
 		}
 		return ids;
 	}
+	
+	/**
+	 * @return version
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public VersionInfo getVersionInfo() throws SynapseException,
+			JSONObjectAdapterException {
+		JSONObject json = getEntity(VERSION_INFO);
+		return EntityFactory
+				.createEntityFromJSONObject(json, VersionInfo.class);
+	}
+
 }

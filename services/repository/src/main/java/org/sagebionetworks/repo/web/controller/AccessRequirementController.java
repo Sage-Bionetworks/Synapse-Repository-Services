@@ -4,20 +4,15 @@ import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.manager.AccessRequirementManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.util.ControllerUtil;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.schema.adapter.JSONEntity;
+import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -34,13 +29,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 public class AccessRequirementController extends BaseController {
 
 	@Autowired
-	AccessRequirementManager accessRequirementManager;
-	
-	@Autowired
-	UserManager userManager;
-
-	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;
+	ServiceProvider serviceProvider;
 
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT, method = RequestMethod.POST)
@@ -50,11 +39,10 @@ public class AccessRequirementController extends BaseController {
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws Exception {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		AccessRequirement accessRequirement = (AccessRequirement)ControllerEntityClassHelper.deserialize(request, header);
-		return accessRequirementManager.createAccessRequirement(userInfo, accessRequirement);
+		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, header, request);
 	}
 	
+
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, method = RequestMethod.GET)
@@ -65,20 +53,8 @@ public class AccessRequirementController extends BaseController {
 			@PathVariable(value = ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
 
-		QueryResults<AccessRequirement> results = 
-			accessRequirementManager.getUnmetAccessRequirements(userInfo, entityId);
-		
-		return new PaginatedResults<AccessRequirement>(
-				request.getServletPath()+UrlHelpers.ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID, 
-				results.getResults(),
-				(int)results.getTotalNumberOfResults(), 
-				1, 
-				(int)results.getTotalNumberOfResults(),
-				"", 
-				false);
-
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirement(userId, entityId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -90,20 +66,7 @@ public class AccessRequirementController extends BaseController {
 				@PathVariable(value = ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-
-		QueryResults<AccessRequirement> results = 
-			accessRequirementManager.getAccessRequirementsForEntity(userInfo, entityId);
-		
-		return new PaginatedResults<AccessRequirement>(
-				request.getServletPath()+UrlHelpers.ACCESS_REQUIREMENT, 
-				results.getResults(),
-				(int)results.getTotalNumberOfResults(), 
-				1, 
-				(int)results.getTotalNumberOfResults(),
-				"", 
-				false);
-
+		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, entityId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -111,13 +74,6 @@ public class AccessRequirementController extends BaseController {
 	public void deleteAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String requirementId) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-
-		accessRequirementManager.deleteAccessRequirement(userInfo, requirementId);
-
+		serviceProvider.getAccessRequirementService().deleteAccessRequirements(userId, requirementId);
 	}
-
-
-
-	
 }

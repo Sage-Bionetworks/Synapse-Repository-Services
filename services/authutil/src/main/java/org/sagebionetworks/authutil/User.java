@@ -10,6 +10,7 @@ public class User {
 	private String lastName;
 	private String displayName;
 	private Boolean acceptsTermsOfUse;
+	private String sessionToken;
 	
 	public User() {}
 	
@@ -52,7 +53,12 @@ public class User {
 	public void setLastName(String lastName) {
 		this.lastName = lastName;
 	}
-
+	public String getSessionToken() {
+		return sessionToken;
+	}
+	public void setSessionToken(String sessionToken) {
+		this.sessionToken = sessionToken;
+	}
 	/**
 	 * @return the acceptsTermsOfUse
 	 */
@@ -74,7 +80,7 @@ public class User {
 	public String toString() {
 		return "User [email=" + email + ", password=" + password
 				+ ", firstName=" + firstName + ", lastName=" + lastName
-				+ ", displayName=" + displayName + "]";
+				+ ", displayName=" + displayName + ", sessionToken=" + sessionToken + "]";
 	}
 
 	/* (non-Javadoc)

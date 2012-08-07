@@ -1,27 +1,21 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.io.IOException;
-import java.io.InputStream;
-
-import javax.servlet.http.HttpServletRequest;
 import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
 
+import java.io.IOException;
 
+import javax.servlet.http.HttpServletRequest;
 
-import org.sagebionetworks.repo.manager.AccessApprovalManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.util.ControllerUtil;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -34,20 +28,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
-import com.amazonaws.util.StringInputStream;
-
 @Controller
 public class AccessApprovalController extends BaseController {
-
-	@Autowired
-	AccessApprovalManager accessApprovalManager;
 	
 	@Autowired
-	UserManager userManager;
-
-	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;
-
+	ServiceProvider serviceProvider;
+	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL, method = RequestMethod.POST)
 	public @ResponseBody
@@ -56,17 +42,7 @@ public class AccessApprovalController extends BaseController {
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException, InvalidModelException, IOException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		AccessApproval accessApproval = (AccessApproval)ControllerEntityClassHelper.deserialize(request, header);
-		return accessApprovalManager.createAccessApproval(userInfo, accessApproval);
-	}
-	
-	public static AccessApproval instanceForType(String typeString) throws DatastoreException {
-		try {
-			return (AccessApproval)Class.forName(typeString).newInstance();
-		} catch (Exception e) {
-			throw new DatastoreException(e);
-		}
+		return serviceProvider.getAccessApprovalService().createAccessApproval(userId, header, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -77,20 +53,7 @@ public class AccessApprovalController extends BaseController {
 			@PathVariable(value= ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-
-		QueryResults<AccessApproval> results = 
-			accessApprovalManager.getAccessApprovalsForEntity(userInfo, entityId);
-		
-		return new PaginatedResults<AccessApproval>(
-				request.getServletPath()+UrlHelpers.ACCESS_APPROVAL, 
-				results.getResults(),
-				(int)results.getTotalNumberOfResults(), 
-				1, 
-				(int)results.getTotalNumberOfResults(),
-				"", 
-				false);
-
+		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, entityId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -98,10 +61,7 @@ public class AccessApprovalController extends BaseController {
 	public void deleteAccessApprovals(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String approvalId) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
-		UserInfo userInfo = userManager.getUserInfo(userId);
-
-		accessApprovalManager.deleteAccessApproval(userInfo, approvalId);
-
+		serviceProvider.getAccessApprovalService().deleteAccessApprovals(userId, approvalId);
 	}
 	
 }

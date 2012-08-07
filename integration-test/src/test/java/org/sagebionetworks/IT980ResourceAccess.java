@@ -32,6 +32,7 @@ public class IT980ResourceAccess {
 
 		authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
 		synapse = new Synapse();
+		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
 	}
 	
 	@Test
@@ -71,6 +72,7 @@ public class IT980ResourceAccess {
 		// get the session:  can be done by another user (e.g. some service account) 
 		Synapse secondUser = new Synapse();
 		secondUser.setAuthEndpoint(authEndpoint);
+		secondUser.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
 		secondUser.login(StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
 		JSONObject userData = secondUser.getSynapseEntity(authEndpoint, "/resourceSession/"+resourceAccessToken);

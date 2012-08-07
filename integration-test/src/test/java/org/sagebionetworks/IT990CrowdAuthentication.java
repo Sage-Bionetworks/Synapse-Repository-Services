@@ -44,6 +44,7 @@ public class IT990CrowdAuthentication {
 		authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
 		synapse = new Synapse();
 		synapse.setAuthEndpoint(authEndpoint);
+		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
 		synapse.login(StackConfiguration.getIntegrationTestUserThreeName(),
 				StackConfiguration.getIntegrationTestUserThreePassword());
 	}
@@ -60,7 +61,6 @@ public class IT990CrowdAuthentication {
 
 		JSONObject session = synapse.createAuthEntity("/session", loginRequest);
 		assertTrue(session.has(SESSION_TOKEN_LABEL));
-		assertEquals(StackConfiguration.getIntegrationTestUserThreeDisplayName(), session.getString("displayName"));
 	}
 	
 	@Test
@@ -73,7 +73,6 @@ public class IT990CrowdAuthentication {
 
 		JSONObject session = synapse.createAuthEntity("/session?acceptsTermsOfUse=true", loginRequest);
 		assertTrue(session.has(SESSION_TOKEN_LABEL));
-		assertEquals(StackConfiguration.getIntegrationTestUserThreeDisplayName(), session.getString("displayName"));
 	}
 	
 	@Test(expected = SynapseBadRequestException.class)

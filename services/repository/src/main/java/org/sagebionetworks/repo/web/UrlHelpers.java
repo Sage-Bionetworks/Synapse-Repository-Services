@@ -127,7 +127,7 @@ public class UrlHelpers {
 	public static final String ENTITY	 = PrefixConst.ENTITY;
 	public static final String USER_PROFILE  = PrefixConst.USER_PROFILE;
 	public static final String HEALTHCHECK = PrefixConst.HEALTHCHECK;
-	
+	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;	
 	/**
 	 * All of the base URLs for Synapse object batch requests
 	 */
@@ -333,8 +333,22 @@ public class UrlHelpers {
 	 * @param request
 	 * @return the uri for this entity's annotations
 	 */
-	public static String makeEntityAnnotationsUri(String EntityId) {
-		return ENTITY + "/" + EntityId + ANNOTATIONS;
+	public static String makeEntityAnnotationsUri(String entityId) {
+		return ENTITY + "/" + entityId + ANNOTATIONS;
+	}
+	
+	/**
+	 * Helper function to create a relative URL for an entity's ACL
+	 * <p>
+	 * 
+	 * This includes not only the entity id but also the controller and servlet
+	 * portions of the path
+	 * 
+	 * @param request
+	 * @return the uri for this entity's annotations
+	 */
+	public static String makeEntityACLUri(String entityId) {
+		return ENTITY + "/" + entityId + ACL;
 	}
 	
 	/**
