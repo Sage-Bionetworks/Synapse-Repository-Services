@@ -21,40 +21,81 @@ public class EntityBundleTest {
 	
 	private static final int NUM_PAGINATED_RESULTS = 5;
 	
-	private EntityBundle eb;
-	private Project project;
-	private Study study;
-	private Folder folder;
-	private Annotations annotations;
-	private UserEntityPermissions permissions;
-	private EntityPath path;
-	private PaginatedResults<EntityHeader> referencedBy;
-	private Long childCount;
-	private AccessControlList acl;
-	private PaginatedResults<UserProfile> users;
-	private PaginatedResults<UserGroup> groups;
-	
-	private AutoGenFactory agf = new AutoGenFactory();
+	private EntityBundle entityBundle;
 	
 	@Before
 	public void setUp() {
-		eb = new EntityBundle();
+		entityBundle = new EntityBundle();
+	}
+	
+	@Test
+	public void testAddProject() {
+		testAddEntity(new Project(), Project.class);
+	}
+	
+	@Test
+	public void testAddStudy() {
+		testAddEntity(new Study(), Study.class);
+	}
+	
+	@Test
+	public void testAddFolder() {
+		testAddEntity(new Folder(), Folder.class);
+	}
+	
+	@SuppressWarnings("rawtypes")
+	private void testAddEntity(Entity original, Class clazz){
+		entityBundle.setEntity(original);
+		Entity retrieved = entityBundle.getEntity();
+		assertNotNull("Entity was set / should not be null.", retrieved);
+		assertTrue("Entity type was '" + retrieved.getClass().getName() + "'; Expected '" 
+				+ clazz.getName(), retrieved.getClass().getName().equals(clazz.getName()));
+	}
+	
+	@Test
+	public void testAddAnnotations() {
+		Annotations annotations = new Annotations();
+		entityBundle.setAnnotations(annotations);
+		Annotations retrieved = entityBundle.getAnnotations();
+		assertNotNull("Annotations were set / should not be null", retrieved);
+		assertTrue("Set/Retrieved annotations do not match original", retrieved.equals(annotations));
+	}
+		
+	@Test
+	public void testJSONRoundTrip() throws Exception{
+		entityBundle = createDummyEntityBundle();
+		
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		joa = entityBundle.writeToJSONObject(joa);
+		String json = joa.toJSONString();
+		System.out.println(json);
+		assertNotNull(json);
+		
+		EntityBundle clone = new EntityBundle();
+		clone.initializeFromJSONObject(joa.createNew(json));
+		System.out.println(clone.toString());
+		assertEquals(entityBundle, clone);		
+	}
+	
+	/**
+	 * Create an EntityBundle filled with dummy data
+	 */
+	public static EntityBundle createDummyEntityBundle() {
+		AutoGenFactory autoGenFactory = new AutoGenFactory();
 		
 		// Entities
-		project = (Project) agf.newInstance(Project.class.getName());
+		Project project = (Project) autoGenFactory.newInstance(Project.class.getName());
 		project.setName("Dummy Project");		
-		study = (Study) agf.newInstance(Study.class.getName());
-		study.setName("Dummy Study");
-		folder = (Folder) agf.newInstance(Folder.class.getName());
-		folder.setName("Dummy Folder");
 		
 		// Permissions
-		permissions = (UserEntityPermissions) agf.newInstance(UserEntityPermissions.class.getName());
+		UserEntityPermissions permissions = (UserEntityPermissions) 
+				autoGenFactory.newInstance(UserEntityPermissions.class.getName());
 		permissions.setOwnerPrincipalId(123L);
 		permissions.setCanView(true);
 		
 		// Path
-		path = (EntityPath) agf.newInstance(EntityPath.class.getName());
+		EntityPath path = (EntityPath) 
+				autoGenFactory.newInstance(EntityPath.class.getName());
 		List<EntityHeader> pathHeaders = new ArrayList<EntityHeader>();		
 		EntityHeader rootHeader = new EntityHeader();
 		rootHeader.setId("1");
@@ -71,15 +112,16 @@ public class EntityBundleTest {
 		path.setPath(pathHeaders);
 		
 		// Access Control List
-		acl = (AccessControlList) agf.newInstance(AccessControlList.class.getName());
+		AccessControlList acl = (AccessControlList) 
+				autoGenFactory.newInstance(AccessControlList.class.getName());
 		acl.setCreatedBy("John Doe");
 		acl.setId("syn456");
 		
 		// Child Count
-		childCount = 12L;
+		Long childCount = 12L;
 		
 		// Annotations
-		annotations = new Annotations();
+		Annotations annotations = new Annotations();
 		annotations.addAnnotation("key1", "value1");
 		annotations.addAnnotation("key1", "value2");
 		annotations.addAnnotation("key2", "value3");
@@ -87,13 +129,14 @@ public class EntityBundleTest {
 		// Referencing Entities
 		List<EntityHeader> rb = new ArrayList<EntityHeader>(NUM_PAGINATED_RESULTS);
 		for (int i = 0; i < NUM_PAGINATED_RESULTS; i++) {
-			EntityHeader eh = (EntityHeader) agf.newInstance(EntityHeader.class.getName());
+			EntityHeader eh = (EntityHeader) autoGenFactory.newInstance(EntityHeader.class.getName());
 			eh.setId("syn" + i);
 			eh.setName("EntityHeader " + i);
 			eh.setType("Folder");
 			rb.add(eh);
 		}
-		referencedBy = new PaginatedResults<EntityHeader>(
+		PaginatedResults<EntityHeader> referencedBy = 
+			new PaginatedResults<EntityHeader>(
 				"dummy_uri",
 				rb,
 				101,
@@ -105,12 +148,13 @@ public class EntityBundleTest {
 		// Users
 		List<UserProfile> us = new ArrayList<UserProfile>(NUM_PAGINATED_RESULTS);
 		for (int i = 0; i < NUM_PAGINATED_RESULTS; i++) {
-			UserProfile up = (UserProfile) agf.newInstance(UserProfile.class.getName());
+			UserProfile up = (UserProfile) autoGenFactory.newInstance(UserProfile.class.getName());
 			up.setFirstName("First" + i);
 			up.setLastName("Last" + i);
 			us.add(up);
 		}
-		users = new PaginatedResults<UserProfile>(
+		PaginatedResults<UserProfile> users = 
+			new PaginatedResults<UserProfile>(
 				"dummy_uri",
 				us,
 				101,
@@ -122,12 +166,12 @@ public class EntityBundleTest {
 		// Groups
 		List<UserGroup> gr = new ArrayList<UserGroup>(NUM_PAGINATED_RESULTS);
 		for (int i = 0; i < NUM_PAGINATED_RESULTS; i++) {
-			UserGroup ug = (UserGroup) agf.newInstance(UserGroup.class.getName());
+			UserGroup ug = (UserGroup) autoGenFactory.newInstance(UserGroup.class.getName());
 			ug.setId("group" + i);
 			ug.setName("name" + i);
 			gr.add(ug);
 		}
-		groups = new PaginatedResults<UserGroup>(
+		PaginatedResults<UserGroup> groups = new PaginatedResults<UserGroup>(
 				"dummy_uri",
 				gr,
 				101,
@@ -135,61 +179,18 @@ public class EntityBundleTest {
 				14,
 				"name",
 				true);
-	}
-	
-	@Test
-	public void testAddProject() {
-		testAddEntity(project, Project.class);
-	}
-	
-	@Test
-	public void testAddStudy() {
-		testAddEntity(study, Study.class);
-	}
-	
-	@Test
-	public void testAddFolder() {
-		testAddEntity(folder, Folder.class);
-	}
-	
-	@SuppressWarnings("rawtypes")
-	private void testAddEntity(Entity original, Class clazz){
-		eb.setEntity(original);
-		Entity retrieved = eb.getEntity();
-		assertNotNull("Entity was set / should not be null.", retrieved);
-		assertTrue("Entity type was '" + retrieved.getClass().getName() + "'; Expected '" 
-				+ clazz.getName(), retrieved.getClass().getName().equals(clazz.getName()));
-	}
-	
-	@Test
-	public void testAddAnnotations() {
-		eb.setAnnotations(annotations);
-		Annotations retrieved = eb.getAnnotations();
-		assertNotNull("Annotations were set / should not be null", retrieved);
-		assertTrue("Set/Retrieved annotations do not match original", retrieved.equals(annotations));
-	}
+
+		EntityBundle entityBundle = new EntityBundle();
+		entityBundle.setEntity(project);
+		entityBundle.setPermissions(permissions);
+		entityBundle.setPath(path);
+		entityBundle.setReferencedBy(referencedBy);
+		entityBundle.setChildCount(childCount);
+		entityBundle.setAccessControlList(acl);
+		entityBundle.setUsers(users);
+		entityBundle.setGroups(groups);
 		
-	@Test
-	public void testJSONRoundTrip() throws Exception{
-		eb.setEntity(project);
-		eb.setPermissions(permissions);
-		eb.setPath(path);
-		eb.setReferencedBy(referencedBy);
-		eb.setChildCount(childCount);
-		eb.setAccessControlList(acl);
-		eb.setUsers(users);
-		eb.setGroups(groups);
-		
-		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
-		joa = eb.writeToJSONObject(joa);
-		String json = joa.toJSONString();
-		System.out.println(json);
-		assertNotNull(json);
-		
-		EntityBundle clone = new EntityBundle();
-		clone.initializeFromJSONObject(joa.createNew(json));
-		System.out.println(clone.toString());
-		assertEquals(eb, clone);		
+		return entityBundle;
 	}
 
 }

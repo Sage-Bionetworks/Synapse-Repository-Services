@@ -4,7 +4,6 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.when;
 
 import java.util.Date;
@@ -14,12 +13,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -32,11 +30,8 @@ import org.sagebionetworks.repo.util.LocationHelper;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpMethod;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.amazonaws.services.securitytoken.model.Credentials;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:manager-test-context.xml" })
@@ -79,8 +74,8 @@ public class UserProfileManagerImplTest {
 			if (userProfile==null) {
 				userProfile = new UserProfile();
 				userProfile.setOwnerId(individualGroup.getId());
-				userProfile.setUserName(TEST_USER_NAME);
 				userProfile.setDisplayName(TEST_USER_DISPLAY_NAME);
+				userProfile.setRStudioUrl("myPrivateRStudioUrl");
 				String id = userProfileDAO.create(userProfile, schema);
 				userProfile = userProfileDAO.get(id, schema);
 			}
@@ -122,7 +117,6 @@ public class UserProfileManagerImplTest {
 		// there will be missing fields, intentionally 'blanked out'
 		UserProfile upClone = userProfileManager.getUserProfile(userInfo, ownerId);
 		assertFalse(userProfile.equals(upClone));
-		assertNull(upClone.getUserName());
 		assertEquals(userProfile.getDisplayName(), upClone.getDisplayName());
 	}
 	
