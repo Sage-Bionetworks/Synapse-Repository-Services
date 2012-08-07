@@ -181,8 +181,7 @@ public class CrowdAuthUtil {
 					" but subsequentially could not retrieve attributes from server. \n");
 
 		}
-		String displayName = getFromXML("/user/display-name", sessionXML);
-		return new Session(token, displayName);
+		return new Session(token);
 	}
 	
 	public static String revalidate(String sessionToken) throws AuthenticationException, IOException, XPathExpressionException {
