@@ -1736,7 +1736,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ACCESS_REQUIREMENT + "/" + id);
+		request.setRequestURI("/entity/"+id+UrlHelpers.ACCESS_REQUIREMENT);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -1754,7 +1754,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ACCESS_REQUIREMENT_UNFULFILLED + "/" + id);
+		request.setRequestURI("/entity/"+id+"/accessRequirementUnfulfilled");
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -1822,7 +1822,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ACCESS_APPROVAL + "/" + id);
+		request.setRequestURI("/entity/"+id+UrlHelpers.ACCESS_APPROVAL);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());

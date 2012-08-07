@@ -3,10 +3,17 @@ package org.sagebionetworks.repo.web.controller;
 import java.util.Arrays;
 import java.util.List;
 
+import javax.servlet.http.HttpServletRequest;
+
+import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityClassHelper;
+import org.sagebionetworks.repo.util.ControllerUtil;
+import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 
 public class ControllerEntityClassHelper {
@@ -21,10 +28,20 @@ public class ControllerEntityClassHelper {
 		return false;
 	}
 	
-	public static String entityType(String httpRequestBody, MediaType mediaType) throws JSONObjectAdapterException {
+	public static JSONEntity deserialize(HttpServletRequest request, HttpHeaders header) throws DatastoreException {
+		try {
+			String requestBody = ControllerUtil.getRequestBodyAsString(request);
+			return ControllerEntityClassHelper.deserialize(requestBody, header.getContentType());
+		} catch (Exception e) {
+			throw new DatastoreException(e);
+		}
+	}
+
+	
+	public static JSONEntity deserialize(String httpRequestBody, MediaType mediaType) throws JSONObjectAdapterException {
 		if (!isSupported(mediaType)) throw new IllegalArgumentException("Unsupported media type: "+mediaType);
 		JSONObjectAdapter jsonObjectAdapter = (new JSONObjectAdapterImpl()).createNew(httpRequestBody);
-		return EntityClassHelper.entityType(jsonObjectAdapter);
+		return EntityClassHelper.deserialize(jsonObjectAdapter);
 	}
 
 
