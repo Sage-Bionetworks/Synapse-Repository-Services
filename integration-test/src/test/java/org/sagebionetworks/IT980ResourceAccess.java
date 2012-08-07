@@ -4,7 +4,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import java.net.URLEncoder;
-import java.util.logging.Logger;
 
 import org.json.JSONObject;
 import org.junit.BeforeClass;
@@ -19,6 +18,7 @@ import org.sagebionetworks.client.Synapse;
 public class IT980ResourceAccess {
 	private static Synapse synapse = null;
 	private static String authEndpoint = null;
+	private static String repoEndpoint = null;
 	
 	private static final String RESOURCE_NAME = "TestResource";
 	private static final String USER_DATA = "{\"foo\":\"bar\"}";
@@ -31,12 +31,14 @@ public class IT980ResourceAccess {
 	public static void beforeClass() throws Exception {
 
 		authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
+		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
 		synapse = new Synapse();
 	}
 	
 	@Test
 	public void testCreateResourceAccess() throws Exception {
 		synapse.setAuthEndpoint(authEndpoint);
+		synapse.setRepositoryEndpoint(repoEndpoint);
 		synapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
 				StackConfiguration.getIntegrationTestUserAdminPassword());
 		String resourceUserName = StackConfiguration.getIntegrationTestUserOneName();
@@ -51,6 +53,7 @@ public class IT980ResourceAccess {
 	@Test
 	public void testCreateAndGetResourceSession() throws Exception {
 		synapse.setAuthEndpoint(authEndpoint);
+		synapse.setRepositoryEndpoint(repoEndpoint);
 		// log in as admin
 		synapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
 				StackConfiguration.getIntegrationTestUserAdminPassword());
@@ -71,6 +74,7 @@ public class IT980ResourceAccess {
 		// get the session:  can be done by another user (e.g. some service account) 
 		Synapse secondUser = new Synapse();
 		secondUser.setAuthEndpoint(authEndpoint);
+		secondUser.setRepositoryEndpoint(repoEndpoint);
 		secondUser.login(StackConfiguration.getIntegrationTestUserTwoName(),
 				StackConfiguration.getIntegrationTestUserTwoPassword());
 		JSONObject userData = secondUser.getSynapseEntity(authEndpoint, "/resourceSession/"+resourceAccessToken);
