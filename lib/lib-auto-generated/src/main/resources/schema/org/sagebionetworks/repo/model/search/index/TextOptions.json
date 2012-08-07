@@ -1,0 +1,17 @@
+{
+	"description": "JSON schema AWS TextOptions",
+	"properties": {
+		"defaultValue": {
+			"type": "string",
+			"description": "The default value for a literal field."
+		},
+		"facetEnabled": {
+			"type": "boolean",
+			"description": "Specifies whether facets are enabled for this field."
+		},
+		"resultEnabled": {
+			"type": "boolean",
+			"description": "Specifies whether values of this field can be returned in search results and used for ranking."
+		}
+	}
+}
