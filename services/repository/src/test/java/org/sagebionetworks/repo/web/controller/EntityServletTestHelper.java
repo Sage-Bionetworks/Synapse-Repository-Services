@@ -196,6 +196,39 @@ public class EntityServletTestHelper {
 	}
 
 	/**
+	 * Get an entity bundle for a specific version using the ID and versionNumber.
+	 * @param id
+	 * @param versionNumber 
+	 * @param testUser1
+	 * @return
+	 * @throws IOException 
+	 * @throws ServletException 
+	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public EntityBundle getEntityBundleForVersion(String id, Long versionNumber, int mask, String username) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ENTITY+"/"+id+UrlHelpers.VERSION+"/"+versionNumber+UrlHelpers.BUNDLE);
+		request.setParameter("mask", "" + mask);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		return new EntityBundle(joa);
+	}
+
+	/**
 	 * Update an entity.
 	 * @param toUpdate
 	 * @param username

@@ -63,4 +63,36 @@ public class EntityBundleController extends BaseController {
 		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, mask, request, offset, limit, sort, ascending);
 	}	
 
+	/**
+	 * Get an entity at a specific version and its related data with a single GET. Note that childCount is
+	 * calculated in the QueryController.
+	 * 
+	 * @param userId -The user that is doing the get.
+	 * @param id - The ID of the entity to fetch.
+	 * @param versionNumber - The version of the entity to fetch
+	 * @param request
+	 * @return The requested Entity if it exists.
+	 * @throws NotFoundException - Thrown if the requested entity does not exist.
+	 * @throws DatastoreException - Thrown when an there is a server failure. 
+	 * @throws UnauthorizedException
+	 * @throws ACLInheritanceException 
+	 * @throws ParseException - Thrown if the childCount query failed
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_NUMBER_BUNDLE, method = RequestMethod.GET)
+	public @ResponseBody
+	EntityBundle getEntityBundle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			@PathVariable Long versionNumber,
+			@RequestParam int mask, HttpServletRequest request,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
+			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending
+			)
+			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
+		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, versionNumber, mask, request, offset, limit, sort, ascending);
+	}	
+
 }

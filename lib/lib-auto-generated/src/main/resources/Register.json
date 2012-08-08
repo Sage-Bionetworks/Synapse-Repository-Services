@@ -151,6 +151,16 @@
             "name":"robject",
             "entityType":"org.sagebionetworks.repo.model.RObject",
             "defaultParentPath":"/root"
+        },
+        {
+            "validParentTypes":[
+                "org.sagebionetworks.repo.model.Folder",
+                "org.sagebionetworks.repo.model.Project",
+                "org.sagebionetworks.repo.model.Study"
+            ],
+            "name":"snapshot",
+            "entityType":"org.sagebionetworks.repo.model.Snapshot",
+            "defaultParentPath":"/root"
         }
     ]
 }
