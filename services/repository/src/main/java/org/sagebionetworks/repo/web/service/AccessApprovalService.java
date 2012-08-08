@@ -21,9 +21,6 @@ public interface AccessApprovalService {
 			NotFoundException, ForbiddenException, InvalidModelException,
 			IOException;
 
-	public AccessApproval deserialize(HttpServletRequest request,
-			HttpHeaders header) throws DatastoreException, IOException;
-
 	public PaginatedResults<AccessApproval> getAccessApprovals(String userId,
 			String entityId, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException,

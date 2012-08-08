@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.util.ControllerUtil;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.controller.MediaTypeHelper;
+import org.sagebionetworks.repo.web.controller.ControllerEntityClassHelper;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -44,27 +44,11 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 			HttpServletRequest request) throws DatastoreException, UnauthorizedException, 
 			NotFoundException, ForbiddenException, InvalidModelException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		AccessApproval accessApproval = deserialize(request, header);
+		AccessApproval accessApproval = (AccessApproval)ControllerEntityClassHelper.deserialize(request, header);
 		return accessApprovalManager.createAccessApproval(userInfo, accessApproval);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.AccessApprovalService#deserialize(javax.servlet.http.HttpServletRequest, org.springframework.http.HttpHeaders)
-	 */
-	@Override
-	public AccessApproval deserialize(HttpServletRequest request, HttpHeaders header) throws DatastoreException, IOException {
-		try {
-			String requestBody = ControllerUtil.getRequestBodyAsString(request);
-			String type = MediaTypeHelper.entityType(requestBody, header.getContentType());
-			Class<? extends AccessApproval> clazz = (Class<? extends AccessApproval>)Class.forName(type);
-			// now we know the type so we can deserialize into the correct one
-			// need an input stream
-			InputStream sis = new StringInputStream(requestBody);
-			return (AccessApproval) objectTypeSerializer.deserialize(sis, header, clazz, header.getContentType());
-		} catch (Exception e) {
-			throw new DatastoreException(e);
-		}
-	}
+
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AccessApprovalService#getAccessApprovals(java.lang.String, java.lang.String, javax.servlet.http.HttpServletRequest)

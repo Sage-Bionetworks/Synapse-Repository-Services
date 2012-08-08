@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -58,4 +59,15 @@ public interface AccessRequirementDAO extends MigratableDAO {
 	 * @return all IDs in the system
 	 */
 	List<String> getIds();
+
+	/**
+	 * 
+	 * @param nodeId
+	 * @param principalId
+	 * @param accessType
+	 * @return the AccessRequirement IDs for the given node and given access type which are unmet for the given principal
+	 * @throws DatastoreException
+	 */
+	List<Long> unmetAccessRequirements(String nodeId, Collection<Long> principalId,
+			ACCESS_TYPE accessType) throws DatastoreException;
 }

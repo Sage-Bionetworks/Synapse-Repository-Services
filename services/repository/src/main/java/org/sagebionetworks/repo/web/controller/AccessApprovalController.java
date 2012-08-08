@@ -1,6 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
+import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
+
 import java.io.IOException;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -41,25 +44,13 @@ public class AccessApprovalController extends BaseController {
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException, InvalidModelException, IOException {
 		return serviceProvider.getAccessApprovalService().createAccessApproval(userId, header, request);
 	}
-	
-	public static AccessApproval instanceForType(String typeString) throws DatastoreException {
-		try {
-			return (AccessApproval)Class.forName(typeString).newInstance();
-		} catch (Exception e) {
-			throw new DatastoreException(e);
-		}
-	}
-
-	public AccessApproval deserialize(HttpServletRequest request, HttpHeaders header) throws DatastoreException, IOException {
-		return serviceProvider.getAccessApprovalService().deserialize(request, header);
-	}
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_ENTITY_ID, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<AccessApproval> getAccessApprovals(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String entityId,
+			@PathVariable(value= ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
 		return serviceProvider.getAccessApprovalService().getAccessApprovals(userId, entityId, request);

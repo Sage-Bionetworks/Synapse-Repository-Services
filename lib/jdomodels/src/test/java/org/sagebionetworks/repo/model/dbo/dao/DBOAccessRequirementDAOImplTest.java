@@ -93,7 +93,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setModifiedOn(new Date());
 		accessRequirement.setEtag("10");
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		accessRequirement.setEntityIds(Arrays.asList(new String[]{node.getId()}));
+		accessRequirement.setEntityIds(Arrays.asList(new String[]{node.getId(), node.getId()})); // test that repeated IDs doesn't break anything
 		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		return accessRequirement;
 	}

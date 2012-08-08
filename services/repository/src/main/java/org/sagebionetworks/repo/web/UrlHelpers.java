@@ -51,7 +51,8 @@ public class UrlHelpers {
 	 * URL prefix for all objects that are referenced by their ID.
 	 * 
 	 */
-	public static final String ID = "/{id}";
+	public static final String ID_PATH_VARIABLE = "id";
+	public static final String ID = "/{"+ID_PATH_VARIABLE+"}";
 	
 	/**
 	 * URL prefix for all objects that are referenced by their ID.
@@ -219,14 +220,13 @@ public class UrlHelpers {
 	public static final String USERGROUP = "/userGroup";
 	
 	public static final String ACCESS_REQUIREMENT = "/accessRequirement";
-	public static final String ACCESS_REQUIREMENT_WITH_ENTITY_ID = ACCESS_REQUIREMENT+"/{entityId}";
+	public static final String ACCESS_REQUIREMENT_WITH_ENTITY_ID = ENTITY_ID+ACCESS_REQUIREMENT;
 	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID = ACCESS_REQUIREMENT+"/{requirementId}";
 	
-	public static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled";
-	public static final String ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ACCESS_REQUIREMENT_UNFULFILLED+"/{entityId}";
+	public static final String ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ENTITY_ID+"/accessRequirementUnfulfilled";
 	
 	public static final String ACCESS_APPROVAL = "/accessApproval";
-	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ACCESS_APPROVAL+"/{entityId}";
+	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ENTITY_ID+ACCESS_APPROVAL;
 	public static final String ACCESS_APPROVAL_WITH_APPROVAL_ID = ACCESS_APPROVAL+"/{approvalId}";
 	
 	/**

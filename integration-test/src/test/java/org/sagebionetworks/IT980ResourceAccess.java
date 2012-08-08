@@ -33,6 +33,7 @@ public class IT980ResourceAccess {
 		authEndpoint = StackConfiguration.getAuthenticationServicePrivateEndpoint();
 		repoEndpoint = StackConfiguration.getRepositoryServiceEndpoint();
 		synapse = new Synapse();
+		synapse.setRepositoryEndpoint(StackConfiguration.getRepositoryServiceEndpoint());
 	}
 	
 	@Test
