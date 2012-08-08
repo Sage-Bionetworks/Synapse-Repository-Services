@@ -123,7 +123,7 @@ public class JSONEntityHttpMessageConverterTest {
 		assertEquals(entity, clone);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
+	@Test (expected=JSONObjectAdapterException.class)
 	public void testReadEntityNullType() throws JSONObjectAdapterException, IOException{
 		ExampleEntity entity = new ExampleEntity();
 		entity.setName("name");

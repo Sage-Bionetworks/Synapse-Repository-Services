@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessApproval;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
@@ -19,6 +18,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -30,28 +30,17 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	private AccessRequirementDAO accessRequirementDAO;
 	
 	@Autowired
-	private AuthorizationManager authorizationManager;
-	
-	@Autowired
 	private AccessApprovalDAO accessApprovalDAO;
 	
-	// this is the type of access the user needs to have on the owner Entity in order to be
-	// able to administer (create, update, delete) the AccessApproval of the Entity
-	public static final ACCESS_TYPE ADMINISTER_ACCESS_APPROVAL_ACCESS_TYPE = ACCESS_TYPE.CHANGE_PERMISSIONS;
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 	
 	// check an incoming object (i.e. during 'create' and 'update')
 	private void validateAccessApproval(UserInfo userInfo, AccessApproval a) throws 
 	InvalidModelException, UnauthorizedException, DatastoreException, NotFoundException {
-		if (a.getAccessorId()==null ||
-				a.getEntityType()==null || 
-				a.getRequirementId()==null ) throw new InvalidModelException();
-		
+		if (a.getAccessorId()==null || a.getEntityType()==null || a.getRequirementId()==null) throw new InvalidModelException();
+
 		if (!a.getEntityType().equals(a.getClass().getName())) throw new InvalidModelException("entity type differs from class");
-		
-		if (a instanceof TermsOfUseAccessApproval) {
-			if (!userInfo.isAdmin() && !userInfo.getIndividualGroup().getId().equals(a.getAccessorId()))
-				throw new UnauthorizedException("A user may not sign Terms of Use on another's behalf");
-		}
 		
 		// make sure the approval matches the requirement
 		AccessRequirement ar = accessRequirementDAO.get(a.getRequirementId().toString());
@@ -78,35 +67,19 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		a.setModifiedOn(now);
 	}
 
-	private List<String> getEntityIds(AccessApproval accessApproval) throws DatastoreException, NotFoundException {
-		String requirementId = accessApproval.getRequirementId().toString();
-		AccessRequirement accessRequirement = accessRequirementDAO.get(requirementId);
-		return accessRequirement.getEntityIds();		
-	}
-	
-	private void verifyAccess(UserInfo userInfo, AccessApproval accessApproval, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException, ForbiddenException {
-		List<String> entityIds = getEntityIds(accessApproval);
-		List<String> lackAccess = new ArrayList<String>();
-		for (String entityId : entityIds) {
-			if (!authorizationManager.canAccess(userInfo, entityId, accessType)) lackAccess.add(entityId);
-		}
-		if (!lackAccess.isEmpty()) {
-			throw new ForbiddenException("Based on your permission levels on these entities: "+lackAccess+
-					", you are forbidden from accessing the requested resource.");
-		}
-	}
-
 	@Override
 	public <T extends AccessApproval> T createAccessApproval(UserInfo userInfo, T accessApproval) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException,ForbiddenException {
+		
+		if (accessApproval instanceof TermsOfUseAccessApproval) {
+			// fill in the user's identity
+			accessApproval.setAccessorId(userInfo.getIndividualGroup().getId());
+		}
+		
 		validateAccessApproval(userInfo, accessApproval);
 
 		if ((accessApproval instanceof ACTAccessApproval)) {
-			verifyAccess(userInfo, accessApproval, ADMINISTER_ACCESS_APPROVAL_ACCESS_TYPE);
-		}
-		
-		if ((accessApproval instanceof TermsOfUseAccessApproval)) {
-			verifyAccess(userInfo, accessApproval, ACCESS_TYPE.READ);
+			ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 		}
 		
 		populateCreationFields(userInfo, accessApproval);
@@ -117,9 +90,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public QueryResults<AccessApproval> getAccessApprovalsForEntity(
 			UserInfo userInfo, String entityId) throws DatastoreException,
 			NotFoundException, ForbiddenException {
-		if (!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.READ)) {
-			throw new ForbiddenException("You are not allowed to access the requested resource.");
-		}
+		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 		List<AccessRequirement> ars = accessRequirementDAO.getForNode(entityId);
 		List<String> arIds = new ArrayList<String>();
 		for (AccessRequirement ar : ars) arIds.add(ar.getId().toString());
@@ -135,8 +106,14 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public <T extends AccessApproval> T  updateAccessApproval(UserInfo userInfo, T accessApproval) throws NotFoundException,
 			DatastoreException, UnauthorizedException,
 			ConflictingUpdateException, InvalidModelException, ForbiddenException {
+		
+		if (accessApproval instanceof TermsOfUseAccessApproval) {
+			// fill in the user's identity
+			accessApproval.setAccessorId(userInfo.getIndividualGroup().getId());
+		}
+		
 		validateAccessApproval(userInfo, accessApproval);
-		verifyAccess(userInfo, accessApproval, ADMINISTER_ACCESS_APPROVAL_ACCESS_TYPE);
+		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 		populateModifiedFields(userInfo, accessApproval);
 		return accessApprovalDAO.update(accessApproval);
 	}
@@ -145,7 +122,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	public void deleteAccessApproval(UserInfo userInfo, String accessApprovalId)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ForbiddenException {
 		AccessApproval accessApproval = accessApprovalDAO.get(accessApprovalId);
-		verifyAccess(userInfo, accessApproval, ADMINISTER_ACCESS_APPROVAL_ACCESS_TYPE);
+		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 		accessApprovalDAO.delete(accessApproval.getId().toString());
 	}
 

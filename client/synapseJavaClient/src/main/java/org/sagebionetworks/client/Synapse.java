@@ -115,7 +115,7 @@ public class Synapse {
 	
 	protected static final String ACCESS_REQUIREMENT = "/accessRequirement";
 	
-	protected static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled/";
+	protected static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled";
 	
 	protected static final String ACCESS_APPROVAL = "/accessApproval";
 	
@@ -714,7 +714,7 @@ public class Synapse {
 	}
 
 	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessReqAccessRequirements(String entityId) throws SynapseException {
-		String uri = ACCESS_REQUIREMENT_UNFULFILLED+entityId;
+		String uri = ENTITY+"/"+entityId+ACCESS_REQUIREMENT_UNFULFILLED;
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
 		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
@@ -727,7 +727,7 @@ public class Synapse {
 	}
 
 	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(String entityId) throws SynapseException {
-		String uri = ACCESS_REQUIREMENT+"/"+entityId;
+		String uri = ENTITY+"/"+entityId+ACCESS_REQUIREMENT;
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
 		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();

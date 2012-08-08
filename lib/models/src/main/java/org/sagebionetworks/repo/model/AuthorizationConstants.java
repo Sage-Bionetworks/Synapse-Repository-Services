@@ -64,6 +64,11 @@ public class AuthorizationConstants {
 	public static final String ADMIN_GROUP_NAME = "Administrators";
 	
 	/**
+	 * 
+	 */
+	public static final String ACCESS_AND_COMPLIANCE_TEAM_NAME = "Synpase ACT Team";
+	
+	/**
 	 * The reserved userId for an anonymous user.
 	 */
 	public static final String ANONYMOUS_USER_ID = "anonymous@sagebase.org";

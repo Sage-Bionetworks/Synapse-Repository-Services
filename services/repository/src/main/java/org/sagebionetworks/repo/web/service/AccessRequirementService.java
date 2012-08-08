@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.io.IOException;
-
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -16,9 +14,6 @@ public interface AccessRequirementService {
 
 	public AccessRequirement createAccessRequirement(String userId,
 			HttpHeaders header, HttpServletRequest request) throws Exception;
-
-	public AccessRequirement deserialize(HttpServletRequest request,
-			HttpHeaders header) throws DatastoreException, IOException;
 
 	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirement(
 			String userId, String entityId, HttpServletRequest request)

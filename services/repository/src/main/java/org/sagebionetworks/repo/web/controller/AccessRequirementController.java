@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.io.IOException;
+import static org.sagebionetworks.repo.web.UrlHelpers.ID_PATH_VARIABLE;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -41,9 +42,6 @@ public class AccessRequirementController extends BaseController {
 		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, header, request);
 	}
 	
-	public AccessRequirement deserialize(HttpServletRequest request, HttpHeaders header) throws DatastoreException, IOException {
-		return serviceProvider.getAccessRequirementService().deserialize(request, header);
-	}
 
 
 	@ResponseStatus(HttpStatus.OK)
@@ -52,9 +50,10 @@ public class AccessRequirementController extends BaseController {
 	PaginatedResults<AccessRequirement>
 	 getUnfulfilledAccessRequirement(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String entityId,
+			@PathVariable(value = ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
+
 		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirement(userId, entityId, request);
 	}
 
@@ -64,7 +63,7 @@ public class AccessRequirementController extends BaseController {
 	PaginatedResults<AccessRequirement>
 	 getAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String entityId,
+				@PathVariable(value = ID_PATH_VARIABLE) String entityId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
 		return serviceProvider.getAccessRequirementService().getAccessRequirements(userId, entityId, request);
