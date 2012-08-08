@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -68,6 +69,7 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
+import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -96,7 +98,8 @@ public class Synapse {
 	protected static final String PASSWORD_FIELD = "password";
 	
 	protected static final String QUERY_URI = "/query?query=";
-	protected static final String REPO_SUFFIX_PATH = "/path";
+	protected static final String REPO_SUFFIX_PATH = "/path";	
+	protected static final String REPO_SUFFIX_VERSION = "/version";
 	protected static final String ANNOTATION_URI_SUFFIX = "annotations";
 	protected static final String ADMIN = "/admin";
 	protected static final String STACK_STATUS = ADMIN + "/synapse/status";
@@ -457,7 +460,23 @@ public class Synapse {
 	public Entity getEntityById(String entityId) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
+		return getEntityByIdForVersion(entityId, null);
+	}
+		
+	/**
+	 * Get a specific version of an entity using its ID an version number.
+	 * @param entityId
+	 * @param versionNumber 
+	 * @return the entity
+	 * @throws SynapseException
+	 */
+	public Entity getEntityByIdForVersion(String entityId, Long versionNumber) throws SynapseException {
+		if (entityId == null)
+			throw new IllegalArgumentException("EntityId cannot be null");
 		String url = ENTITY_URI_PATH + "/" + entityId;
+		if(versionNumber != null) {
+			url += REPO_SUFFIX_VERSION + "/" + versionNumber;
+		}
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		// Get the type from the object
@@ -492,6 +511,75 @@ public class Synapse {
 			return eb;
 		} catch (JSONObjectAdapterException e1) {
 			throw new RuntimeException(e1);
+		}
+	}
+	
+	/**
+	 * Get a bundle of information about an entity in a single call.
+	 * 
+	 * @param entityId - the entity id to retrieve
+	 * @param versionNumber - the specific version to retrieve
+	 * @param partsMask
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public EntityBundle getEntityBundle(String entityId, Long versionNumber, int partsMask) throws SynapseException {
+		if (entityId == null)
+			throw new IllegalArgumentException("EntityId cannot be null");
+		if (versionNumber == null)
+			throw new IllegalArgumentException("versionNumber cannot be null");
+		String url = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION + "/" + versionNumber + ENTITY_BUNDLE_PATH + partsMask;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			EntityBundle eb = new EntityBundle();
+			eb.initializeFromJSONObject(adapter);
+			return eb;
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public PaginatedResults<EntityHeader> getEntityVersions(String entityId) throws SynapseException {
+		if (entityId == null)
+			throw new IllegalArgumentException("EntityId cannot be null");
+		String url = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION;				
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter results = new JSONObjectAdapterImpl(jsonObj);		
+		try {			
+			// TODO : transfer to a paginated list of entityheader. this code can go away with above service change
+			List<EntityHeader> headerList = new ArrayList<EntityHeader>();
+			if(results.has("results")) {
+				JSONArrayAdapter list = results.getJSONArray("results");
+				for(int i=0; i<list.length(); i++) {
+					JSONObjectAdapter entity = list.getJSONObject(i);
+					EntityHeader header = new EntityHeader();
+					header.setId(entity.getString("id"));
+					header.setName(entity.getString("name"));
+					header.setType(entity.getString("entityType"));
+					if(entity.has("versionNumber")) {
+						header.setVersionNumber(entity.getLong("versionNumber"));
+						header.setVersionLabel(entity.getString("versionLabel"));
+					} else {
+						header.setVersionNumber(new Long(1));
+						header.setVersionLabel("1");						
+					}
+					headerList.add(header);
+				}			
+			}
+
+			PaginatedResults<EntityHeader> versions = new PaginatedResults<EntityHeader>(EntityHeader.class);
+			versions.setTotalNumberOfResults(results.getInt("totalNumberOfResults"));			
+			versions.setResults(headerList);
+			return versions;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
 		}
 	}
 	
