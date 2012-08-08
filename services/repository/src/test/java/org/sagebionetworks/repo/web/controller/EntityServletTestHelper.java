@@ -71,14 +71,8 @@ public class EntityServletTestHelper {
 	 * @throws Exception
 	 */
 	public EntityServletTestHelper() throws Exception {
-		if(null == dispatcherServlet) {
-			MockServletConfig servletConfig = new MockServletConfig("repository");
-			servletConfig.addInitParameter("contextConfigLocation",
-			"classpath:test-context.xml");
-			dispatcherServlet = new DispatcherServlet();
-			dispatcherServlet.init(servletConfig);
-		}
-	}
+		dispatcherServlet = DispatchServletSingleton.getInstance();
+}
 	/**
 	 * Create an entity without an entity type.
 	 * 
