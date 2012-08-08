@@ -124,15 +124,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 
 	@BeforeClass
 	public static void beforeClass() throws ServletException {
-		// Setup the servlet once
-		// Create a Spring MVC DispatcherServlet so that we can test our URL
-		// mapping, request format, response format, and response status
-		// code.
-		MockServletConfig servletConfig = new MockServletConfig("repository");
-		servletConfig.addInitParameter("contextConfigLocation",	"classpath:test-context.xml");
-		dispatchServlet = new DispatcherServlet();
-		dispatchServlet.init(servletConfig);
-
+		dispatchServlet = DispatchServletSingleton.getInstance();
 	}
 	
 	@Test

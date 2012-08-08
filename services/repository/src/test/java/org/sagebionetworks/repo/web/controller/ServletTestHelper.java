@@ -106,13 +106,7 @@ public class ServletTestHelper {
 	 * @throws Exception
 	 */
 	public void setUp() throws Exception {
-		if(null == dispatchServlet) {
-			MockServletConfig servletConfig = new MockServletConfig("repository");
-			servletConfig.addInitParameter("contextConfigLocation",
-			"classpath:test-context.xml");
-			dispatchServlet = new DispatcherServlet();
-			dispatchServlet.init(servletConfig);
-		}
+		dispatchServlet = DispatchServletSingleton.getInstance();
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
 

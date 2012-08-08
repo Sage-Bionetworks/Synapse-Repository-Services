@@ -111,22 +111,7 @@ public class Helpers {
 	 */
 	public HttpServlet setUp() throws Exception {
 		servletPrefix = "";
-		// Create a Spring MVC DispatcherServlet so that we can test our URL
-		// mapping, request format, response format, and response status
-		// code.
-		if(null == servlet) {
-			MockServletConfig servletConfig = new MockServletConfig(
-			"repository");
-			servletConfig.addInitParameter("contextConfigLocation",
-			"classpath:test-context.xml");
-			servlet = new DispatcherServlet();
-			try {
-				servlet.init(servletConfig);
-			} catch (Exception e) {
-				e.printStackTrace();
-				throw e;
-			}
-		}
+		servlet = DispatchServletSingleton.getInstance();
 		useAdminUser();
 		testState = new LinkedList<TestStateItem>();
 
