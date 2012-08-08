@@ -26,6 +26,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class UserProfileManagerImpl implements UserProfileManager {
+	
 	@Autowired
 	private UserProfileDAO userProfileDAO;
 	@Autowired
@@ -81,6 +82,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		UserProfile anonymousUserProfile = new UserProfile();
 		anonymousUserProfile.setOwnerId(principleId);
 		anonymousUserProfile.setUserName(AuthorizationConstants.ANONYMOUS_USER_ID);
+		anonymousUserProfile.setEmail(AuthorizationConstants.ANONYMOUS_USER_ID);
 		anonymousUserProfile.setDisplayName(AuthorizationConstants.ANONYMOUS_USER_DISPLAY_NAME);
 		anonymousUserProfile.setFirstName(AuthorizationConstants.ANONYMOUS_USER_DISPLAY_NAME);
 		anonymousUserProfile.setLastName("");

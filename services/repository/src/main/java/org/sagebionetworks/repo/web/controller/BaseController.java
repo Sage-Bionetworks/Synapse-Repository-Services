@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.TypeMismatchException;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
@@ -90,6 +91,7 @@ import org.springframework.web.util.NestedServletException;
 
 public abstract class BaseController {
 
+	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavaiable, please try again later.";
 	private static final Logger log;
 
 	// this is one way to get stack traces from the server process when running
@@ -557,6 +559,22 @@ public abstract class BaseController {
 				"Consider specifically handling exceptions of type "
 						+ ex.getClass().getName());
 		return handleException(ex, request);
+	}
+	
+	/**
+	 * When we encounter deadlock we do not tell the users what the error was,
+	 * rather we tell them to try again later with a 503.
+	 * @param ex
+	 * @param request
+	 * @return
+	 */
+	@ExceptionHandler(DeadlockLoserDataAccessException.class)
+	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)
+	public @ResponseBody
+	ErrorResponse handleDeadlockExceptions(DeadlockLoserDataAccessException ex,
+			HttpServletRequest request) {
+		log.log(Level.SEVERE, "Handling " + request.toString(), ex);
+		return new ErrorResponse(SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER);
 	}
 
 	/**

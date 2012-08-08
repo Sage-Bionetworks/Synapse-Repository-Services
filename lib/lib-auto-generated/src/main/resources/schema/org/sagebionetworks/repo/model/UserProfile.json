@@ -54,6 +54,11 @@
 				}
 			]
 		},
+		"email": {
+			"type": "string",
+			"title": "Email",
+			"description": "User's current email address"
+		},
 		"userName": {
 			"type": "string",
 			"title": "User Name",

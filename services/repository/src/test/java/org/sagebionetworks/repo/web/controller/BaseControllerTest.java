@@ -2,11 +2,14 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 
+import java.sql.BatchUpdateException;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.http.conn.ConnectTimeoutException;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.ErrorResponse;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 /**
@@ -30,6 +33,14 @@ public class BaseControllerTest {
 		// timed out
 		ErrorResponse response = controller.handleException(ex, request);
 		assertEquals("search failed, try again", response.getReason());
+	}
+	
+	@Test
+	public void testDeadlockError(){
+		BasicEntityController controller = new BasicEntityController();
+		HttpServletRequest request = new MockHttpServletRequest();
+		ErrorResponse response = controller.handleDeadlockExceptions(new DeadlockLoserDataAccessException("Message", new BatchUpdateException()), request);
+		assertEquals(BaseController.SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER, response.getReason());
 	}
 
 }

@@ -82,7 +82,7 @@ public class SendMail {
     				"org.sagebionetworks.portal.endpoint="+System.getProperty("org.sagebionetworks.portal.endpoint"));
     	}
     	// fill in link, with token
-    	EmailUtils.sendMail(user.getEmail(), "reset Synapse password", msg);
+    	EmailUtils.sendMail(user.getEmail(), "Set Synapse password", msg);
     }
     
 }
