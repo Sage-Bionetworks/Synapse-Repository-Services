@@ -1,0 +1,21 @@
+{
+	"title": "User Group Header ResponsePage",
+	"description": "A single page of a users/groups info query response.",
+	"properties": {
+		"children": {
+			"type": "array",
+			"description": "The list of children that match the requested concept.",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.UserGroupHeader"
+			}
+		},
+		"prefixFilter": {
+			"type": "string",
+			"description": "The prefix filter used to generate this result."
+		},
+		"totalNumberOfResults": {
+			"type": "integer",
+			"description": "The total number of results."
+		}
+	}
+}
