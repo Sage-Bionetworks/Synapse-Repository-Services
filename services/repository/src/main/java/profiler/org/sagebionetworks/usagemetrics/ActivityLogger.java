@@ -1,10 +1,6 @@
 package profiler.org.sagebionetworks.usagemetrics;
 
-import static java.net.URLEncoder.encode;
-
 import java.io.UnsupportedEncodingException;
-import java.lang.annotation.Annotation;
-import java.lang.reflect.Method;
 import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
@@ -14,6 +10,7 @@ import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.sagebionetworks.logging.SynapseLoggingUtils;
 
 @Aspect
 public class ActivityLogger {
@@ -83,61 +80,18 @@ public class ActivityLogger {
 		String args;
 
 		try {
-			args = getArgs(declaringClass, signature, pjp.getArgs());
+			args = SynapseLoggingUtils.makeArgString(signature, pjp.getArgs());
 		} catch (UnsupportedEncodingException e) {
 			log.error("Could not properly encode arguments", e);
 			args = Arrays.toString(pjp.getArgs());
 		}
 
-
 		//converting from nanoseconds to milliseconds
 		long latencyMS = (end - start) / NANOSECOND_PER_MILLISECOND;
 
-		String toLog = String.format("%s/%s?latency=%d&%s",
-				declaringClass.getSimpleName(), methodName, latencyMS, args);
-
-		log.trace(toLog);
+		log.trace(SynapseLoggingUtils.makeLogString(declaringClass.getSimpleName(), methodName, latencyMS, args));
 
 		return result;
-	}
-
-	/**
-	 * Method for returning a coherent arg string from the relevant information.
-	 * @param declaringClass the class that declared the join point
-	 * @param sig method signature from the join point
-	 * @param args list of actual arguments to be passed to the join point
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 */
-	public String getArgs(Class<?> declaringClass, MethodSignature sig, Object[] args) throws UnsupportedEncodingException {
-		Method method = sig.getMethod();
-
-		if (method == null) {
-			return Arrays.toString(args);
-		}
-		String[] parameterNames = sig.getParameterNames();
-
-		String encoding = "UTF-8";
-
-		String argSep = "";
-
-		StringBuilder argString = new StringBuilder();
-
-		for (int i = 0; i < args.length; i++) {
-			argString.append(argSep);
-			argString.append(parameterNames[i]);
-
-			argString.append("=");
-			if (args[i] != null)
-				argString.append(encode(args[i].toString(), encoding));
-			else
-				argString.append(encode("null", encoding));
-
-			// Reset for next iteration
-			argSep = "&";
-		}
-
-		return argString.toString();
 	}
 
 }

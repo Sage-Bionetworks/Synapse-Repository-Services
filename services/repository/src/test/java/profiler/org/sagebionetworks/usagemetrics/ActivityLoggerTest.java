@@ -2,15 +2,13 @@ package profiler.org.sagebionetworks.usagemetrics;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -80,53 +78,6 @@ public class ActivityLoggerTest {
 	public void before() throws Exception {
 		mockLog = mock(Log.class);
 		ActivityLogger.setLog(mockLog);
-	}
-
-	@Test
-	public void testGetArgsNoMethod() throws Exception {
-		String simpleLog = doGetArgs(null, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES, SIMPLE_METHOD_ARGS);
-		assertEquals(Arrays.toString(SIMPLE_METHOD_ARGS), simpleLog);
-	}
-
-	@Test
-	public void testGetArgsNoArgs() throws Exception {
-		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES,
-				new Object[]{null, null});
-		assertEquals(String.format(ARG_FMT_STRING,
-				SIMPLE_METHOD_PARAM_NAMES[0], "null",
-				SIMPLE_METHOD_PARAM_NAMES[1], "null"), simpleLog);
-	}
-
-	@Test
-	public void testGetArgsEncoding() throws Exception {
-		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES, 
-				new Object[] {"{athing=another, two=2}", "?&= "});
-		String[] encoded = {"%7Bathing%3Danother%2C+two%3D2%7D", "%3F%26%3D+"};
-		System.out.println(simpleLog);
-		assertEquals(String.format(ARG_FMT_STRING,
-				SIMPLE_METHOD_PARAM_NAMES[0], encoded[0],
-				SIMPLE_METHOD_PARAM_NAMES[1], encoded[1]), simpleLog);
-	}
-
-	@Test
-	public void testGetArgs() throws Exception {
-		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES, SIMPLE_METHOD_ARGS);
-		assertEquals(SIMPLE_ARG_STRING, simpleLog);
-		String annotationsLog = doGetArgs(ANNOTATION_METHOD, ANNOTATION_METHOD_NAME, ANNOTATION_METHOD_PARAM_NAMES,
-				ANNOTATION_METHOD_ARG_TYPES, ANNOTATION_METHOD_ARGS);
-		assertEquals(ANNOTATION_ARG_STRING, annotationsLog);
-	}
-
-	private String doGetArgs(Method method, String methodName, String[] methodArgNames, Class<?>[] methodArgTypes, Object[] methodArgs)
-			throws NoSuchMethodException, UnsupportedEncodingException {
-		Class<? extends ActivityLoggerTestHelper> classTestClass = ActivityLoggerTestHelper.class;
-
-		MethodSignature mockSig = mock(MethodSignature.class);
-		when(mockSig.getName()).thenReturn(methodName);
-		when(mockSig.getParameterNames()).thenReturn(methodArgNames);
-		when(mockSig.getMethod()).thenReturn(method);
-
-		return activityLogger.getArgs(classTestClass, mockSig, methodArgs);
 	}
 
 	@Test
