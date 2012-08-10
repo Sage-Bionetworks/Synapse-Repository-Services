@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web;
+package org.sagebionetworks.repo.web.service;
 
 import java.util.Collection;
 import java.util.List;
@@ -17,20 +17,25 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.attachment.PresignedUrl;
+import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.query.BasicQuery;
+import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.controller.metadata.EventType;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 
 /**
- * Controller interface for all operations common to entities.
+ * Service interface for all operations common to entities.
  * 
  * @author deflaux
  * 
  * @param <T>
  *            the particular type of entity the controller is managing
  */
-public interface GenericEntityController {
+public interface EntityService {
 
 	/**
 	 * Get entities
@@ -529,4 +534,68 @@ public interface GenericEntityController {
 	 * @return
 	 */
 	public String throwDeadlockException(DeadlockLoserDataAccessException toThrow);
+	
+	/**
+	 * Create a S3 token for an entity attachment.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param token
+	 * @return
+	 * @throws InvalidModelException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 */
+	public S3AttachmentToken createS3AttachmentToken(String userId, String id,
+			S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException;
+
+	/**
+	 * Generate a presigned URL for an entity attachment.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param tokenID
+	 * @return
+	 * @throws InvalidModelException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public PresignedUrl getAttachmentUrl(String userId, String id,
+			String tokenID) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
+
+	/**
+	 * Perform a query.
+	 * 
+	 * @param userId
+	 * @param query
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws ParseException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	public QueryResults query(String userId, String query, HttpServletRequest request)
+			throws DatastoreException, ParseException, NotFoundException,
+			UnauthorizedException;
+
+	
+	/**
+	 * Get the number of children that this entity has.
+	 * 
+	 * @param userId
+	 * @param entityId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws ParseException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	public Long getChildCount(String userId, String entityId,
+			HttpServletRequest request) throws DatastoreException,
+			ParseException, NotFoundException, UnauthorizedException;
+	
 }

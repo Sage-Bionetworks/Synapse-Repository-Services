@@ -8,17 +8,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
-import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -28,16 +28,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Autowired
 	private AccessRequirementDAO accessRequirementDAO;
-	
-	@Autowired
-	private AuthorizationManager authorizationManager;
-	
+		
 	@Autowired
 	private AccessApprovalDAO accessApprovalDAO;
 	
-	// this is the type of access the user needs to have on the owner Entity in order to be
-	// able to administer (create, update, delete) the AccessRequirements of the Entity
-	public static final ACCESS_TYPE ADMINISTER_ACCESS_REQUIREMENTS_ACCESS_TYPE = ACCESS_TYPE.CHANGE_PERMISSIONS;
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 	
 	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
 		if (a.getEntityType()==null ||
@@ -63,38 +59,23 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		a.setModifiedOn(now);
 	}
 	
-	private void verifyAccess(UserInfo userInfo, AccessRequirement accessRequirement, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException, ForbiddenException {
-		List<String> entityIds = accessRequirement.getEntityIds();
-		List<String> lackAccess = new ArrayList<String>();
-		for (String entityId : entityIds) {
-			if (!authorizationManager.canAccess(userInfo, entityId, accessType)) lackAccess.add(entityId);
-		}
-		if (!lackAccess.isEmpty()) {
-			throw new ForbiddenException("Based on your permission levels on these entities: "+lackAccess+
-					", you are forbidden from accessing the requested resource.");
-		}
-	}
-
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ForbiddenException {
 		validateAccessRequirement(accessRequirement);
-		verifyAccess(userInfo, accessRequirement, ADMINISTER_ACCESS_REQUIREMENTS_ACCESS_TYPE);
+		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 		populateCreationFields(userInfo, accessRequirement);
 		return accessRequirementDAO.create(accessRequirement);
 	}
 
 	@Override
 	public QueryResults<AccessRequirement> getAccessRequirementsForEntity(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException, ForbiddenException {
-		if (!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.READ)) {
-			throw new ForbiddenException("You are not allowed to access the requested resource.");
-		}
 		List<AccessRequirement> ars = accessRequirementDAO.getForNode(entityId);
 		QueryResults<AccessRequirement> result = new QueryResults<AccessRequirement>(ars, ars.size());
 		return result;
 	}
 	
 	@Override
-	public QueryResults<AccessRequirement> getUnmetAccessRequirementIntern(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException {
+	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException {
 		List<AccessRequirement> ars = accessRequirementDAO.getForNode(entityId);
 		Map<String, AccessRequirement> arIds = new HashMap<String, AccessRequirement>();
 		for (AccessRequirement ar : ars) arIds.put(ar.getId().toString(), ar);
@@ -118,17 +99,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	}	
 
 	@Override
-	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException, ForbiddenException {
-		if (!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.READ)) {
-			throw new ForbiddenException("You are not allowed to access the requested resource.");
-		}
-		return getUnmetAccessRequirementIntern(userInfo, entityId);
-	}
-
-	@Override
 	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, ForbiddenException, DatastoreException {
 		validateAccessRequirement(accessRequirement);
-		verifyAccess(userInfo, accessRequirement, ADMINISTER_ACCESS_REQUIREMENTS_ACCESS_TYPE);
+		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 		populateModifiedFields(userInfo, accessRequirement);
 		return accessRequirementDAO.update(accessRequirement);
 	}
@@ -138,7 +111,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 			String accessRequirementId) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ForbiddenException {
 		AccessRequirement accessRequirement = accessRequirementDAO.get(accessRequirementId);
-		verifyAccess(userInfo, accessRequirement, ADMINISTER_ACCESS_REQUIREMENTS_ACCESS_TYPE);
+		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 	}
 }

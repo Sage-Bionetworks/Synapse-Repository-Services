@@ -1,16 +1,20 @@
 package org.sagebionetworks.repo.manager;
 
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
-import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.User;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -27,7 +31,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private AccessControlListDAO accessControlListDAO;
 	
 	@Autowired
-	private AccessRequirementManager  accessRequirementManager;
+	private AccessRequirementDAO  accessRequirementDAO;
 	
 	@Autowired
 	NodeQueryDao nodeQueryDao;
@@ -48,12 +52,12 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (userInfo.isAdmin()) return true;
 		if (!agreesToTermsOfUse(userInfo)) return false;
 		// if there are any unmet access requirements for Download, return false;
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirementIntern(userInfo, nodeId);
-		for (AccessRequirement ar : ars.getResults()) {
-			if (ACCESS_TYPE.DOWNLOAD.equals(ar.getAccessType())) return false;
+		Set<Long> principalIds = new HashSet<Long>();
+		for (UserGroup ug : userInfo.getGroups()) {
+			principalIds.add(Long.parseLong(ug.getId()));
 		}
-		
-		return true;
+		List<Long> accessRequirementIds = accessRequirementDAO.unmetAccessRequirements(nodeId, principalIds, ACCESS_TYPE.DOWNLOAD);
+		return accessRequirementIds.isEmpty();
 	}
 	
 	/**

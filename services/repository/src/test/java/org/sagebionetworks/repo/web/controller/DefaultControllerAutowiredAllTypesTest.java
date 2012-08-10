@@ -54,9 +54,9 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.web.GenericEntityController;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockServletConfig;
 import org.springframework.test.context.ContextConfiguration;
@@ -79,7 +79,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 
 	// Used for cleanup
 	@Autowired
-	GenericEntityController entityController;
+	EntityService entityController;
 	
 	@Autowired
 	public UserManager userManager;
@@ -124,15 +124,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 
 	@BeforeClass
 	public static void beforeClass() throws ServletException {
-		// Setup the servlet once
-		// Create a Spring MVC DispatcherServlet so that we can test our URL
-		// mapping, request format, response format, and response status
-		// code.
-		MockServletConfig servletConfig = new MockServletConfig("repository");
-		servletConfig.addInitParameter("contextConfigLocation",	"classpath:test-context.xml");
-		dispatchServlet = new DispatcherServlet();
-		dispatchServlet.init(servletConfig);
-
+		dispatchServlet = DispatchServletSingleton.getInstance();
 	}
 	
 	@Test

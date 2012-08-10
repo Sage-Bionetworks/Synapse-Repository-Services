@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,7 +32,7 @@ import org.springframework.dao.DeadlockLoserDataAccessException;
  * @author jmhill
  *
  */
-public class NodeBackupDriverImpl implements NodeBackupDriver {
+public class NodeBackupDriverImpl implements GenericBackupDriver {
 
 	private static final String REVISIONS_FOLDER = "revisions";
 
@@ -49,6 +50,8 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 	NodeSerializer nodeSerializer;
 	@Autowired
 	MigrationDriver migrationDriver;
+	@Autowired
+	NodeDAO nodeDao;
 
 
 	/**
@@ -375,5 +378,11 @@ public class NodeBackupDriverImpl implements NodeBackupDriver {
 			//Try once more.  If it fails again then the exception is thrown.
 			backupManager.createOrUpdateNodeWithRevisions(backup, revisions);
 		}
+	}
+
+	@Override
+	public void delete(String id) throws DatastoreException,
+			NotFoundException {
+		nodeDao.delete(id);
 	}
 }

@@ -40,7 +40,7 @@ public class PrincipalBackupDriverTest {
 	Map<String, UserProfile> dstProfiles;
 	
 	// implement get, getAll, update, create
-	private UserGroupDAO getUserGroupDAO(final Map<String, UserGroup> groups) {
+	private UserGroupDAO createUserGroupDAO(final Map<String, UserGroup> groups) {
 		return (UserGroupDAO)Proxy.newProxyInstance(PrincipalBackupDriverTest.class.getClassLoader(),
 				new Class<?>[]{UserGroupDAO.class},
                 new InvocationHandler() {
@@ -88,7 +88,7 @@ public class PrincipalBackupDriverTest {
 	}
 	
 	// implement get, update, create
-	private UserProfileDAO getUserProfileDAO(final Map<String, UserProfile> profiles) {
+	private UserProfileDAO createUserProfileDAO(final Map<String, UserProfile> profiles) {
 		return (UserProfileDAO)Proxy.newProxyInstance(PrincipalBackupDriverTest.class.getClassLoader(),
 				new Class<?>[]{UserProfileDAO.class},
                 new InvocationHandler() {
@@ -146,16 +146,16 @@ public class PrincipalBackupDriverTest {
 		srcProfiles = new HashMap<String, UserProfile>();
 		dstGroups = new HashMap<String, UserGroup>();
 		dstProfiles = new HashMap<String, UserProfile>();
-		UserGroupDAO srcGroupDAO = getUserGroupDAO(srcGroups);
+		UserGroupDAO srcGroupDAO = createUserGroupDAO(srcGroups);
 		UserGroup ug = createUserGroup(true);
 		srcGroupDAO.create(ug);
-		UserProfileDAO srcProfileDAO = getUserProfileDAO(srcProfiles);
+		UserProfileDAO srcProfileDAO = createUserProfileDAO(srcProfiles);
 		srcProfileDAO.create(createUserProfile(ug.getId()), null);
 		ug = createUserGroup(false);
 		srcGroupDAO.create(ug);
 		assertEquals(2, srcGroups.size());
-		UserGroupDAO dstGroupDAO = getUserGroupDAO(dstGroups);
-		UserProfileDAO dstProfileDAO = getUserProfileDAO(dstProfiles);
+		UserGroupDAO dstGroupDAO = createUserGroupDAO(dstGroups);
+		UserProfileDAO dstProfileDAO = createUserProfileDAO(dstProfiles);
 		sourceDriver = new PrincipalBackupDriver(srcGroupDAO, srcProfileDAO);
 		destinationDriver = new PrincipalBackupDriver(dstGroupDAO, dstProfileDAO);
 	}
@@ -168,6 +168,31 @@ public class PrincipalBackupDriverTest {
 			// Try to write to the temp file
 			Progress progress = new Progress();
 			sourceDriver.writeBackup(temp, progress, srcGroups.keySet());
+			System.out.println("Resulting file: "+temp.getAbsolutePath()+" with a size of: "+temp.length()+" bytes");
+			assertTrue(temp.length() > 10);
+			// They should start off as non equal
+			assertTrue(dstGroups.isEmpty());
+			assertTrue(dstProfiles.isEmpty());
+			// Now read push the backup
+			progress = new Progress();
+			destinationDriver.restoreFromBackup(temp, progress);
+			// At this point all of the data should have migrated from the source to the destination
+			assertEquals(srcGroups, dstGroups);
+			assertEquals(srcProfiles, dstProfiles);
+		}finally{
+			// Cleanup the file
+			temp.delete();
+		}
+	}
+	
+	@Test
+	public void testMigrateAll() throws IOException, DatastoreException, NotFoundException, InterruptedException{
+		// Create a temp file
+		File temp = File.createTempFile("PrincipalBackupDriverTest", ".zip");
+		try{
+			// Try to write to the temp file
+			Progress progress = new Progress();
+			sourceDriver.writeBackup(temp, progress, null/*null means migrate all */);
 			System.out.println("Resulting file: "+temp.getAbsolutePath()+" with a size of: "+temp.length()+" bytes");
 			assertTrue(temp.length() > 10);
 			// They should start off as non equal

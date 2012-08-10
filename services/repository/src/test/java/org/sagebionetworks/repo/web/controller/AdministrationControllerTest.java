@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
@@ -27,8 +28,10 @@ import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StackStatusDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -79,15 +82,7 @@ public class AdministrationControllerTest {
 	
 	@BeforeClass
 	public static void beforeClass() throws ServletException {
-		// Setup the servlet once
-		// Create a Spring MVC DispatcherServlet so that we can test our URL
-		// mapping, request format, response format, and response status
-		// code.
-		MockServletConfig servletConfig = new MockServletConfig("repository");
-		servletConfig.addInitParameter("contextConfigLocation",	"classpath:test-context.xml");
-		dispatchServlet = new DispatcherServlet();
-		dispatchServlet.init(servletConfig);
-
+		dispatchServlet = DispatchServletSingleton.getInstance();
 	}
 
 	@After
@@ -108,6 +103,17 @@ public class AdministrationControllerTest {
 				}
 			}
 		}
+	}
+	
+	@Test
+	public void testGetAllBackupObjects() throws Exception {
+		long offset = 0L;
+		long limit = 10L;
+		PaginatedResults<MigratableObjectData> migrationData = ServletTestHelper.getAllMigrationObjects(dispatchServlet, offset, limit, adminUserName);
+		assertTrue(migrationData.getResults().size()>0);
+		
+		offset = 100L;
+		migrationData = ServletTestHelper.getAllMigrationObjects(dispatchServlet, offset, limit, adminUserName);
 	}
 	
 	/**

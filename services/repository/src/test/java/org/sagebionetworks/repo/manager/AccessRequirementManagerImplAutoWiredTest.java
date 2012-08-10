@@ -38,7 +38,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	@Autowired
 	public AccessRequirementManager accessRequirementManager;
 	
-	private UserInfo userInfo;
+	private UserInfo adminUserInfo;
 	
 	private static final String TERMS_OF_USE = "my dog has fleas";
 
@@ -50,20 +50,20 @@ public class AccessRequirementManagerImplAutoWiredTest {
 
 	@Before
 	public void before() throws Exception{
-		userInfo = testUserProvider.getTestAdminUserInfo();
+		adminUserInfo = testUserProvider.getTestAdminUserInfo();
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
 		
 		Node rootProject = new Node();
 		rootProject.setName("root "+System.currentTimeMillis());
 		rootProject.setNodeType(EntityType.project.name());
-		String rootId = nodeManager.createNewNode(rootProject, userInfo);
+		String rootId = nodeManager.createNewNode(rootProject, adminUserInfo);
 		nodesToDelete.add(rootId); // the deletion of 'rootId' will cascade to its children
 		Node node = new Node();
 		node.setName("A");
 		node.setNodeType(EntityType.layer.name());
 		node.setParentId(rootId);
-		entityId = nodeManager.createNewNode(node, userInfo);
+		entityId = nodeManager.createNewNode(node, adminUserInfo);
 	}
 	
 	@After
@@ -71,7 +71,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		if(nodeManager != null && nodesToDelete != null){
 			for(String id: nodesToDelete){
 				try {
-					nodeManager.delete(userInfo, id);
+					nodeManager.delete(adminUserInfo, id);
 				} catch (Exception e) {
 					e.printStackTrace();
 				} 				
@@ -79,7 +79,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 		}
 		
 		if (ar!=null && ar.getId()!=null && accessRequirementManager!=null) {
-			accessRequirementManager.deleteAccessRequirement(userInfo, ar.getId().toString());
+			accessRequirementManager.deleteAccessRequirement(adminUserInfo, ar.getId().toString());
 		}
 	}
 	
@@ -95,7 +95,7 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	@Test
 	public void testCreateAccessRequirement() throws Exception {
 		ar = newAccessRequirement(entityId);
-		ar = accessRequirementManager.createAccessRequirement(userInfo, ar);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 		assertNotNull(ar.getCreatedBy());
 		assertNotNull(ar.getCreatedOn());
 		assertNotNull(ar.getEntityIds());
@@ -108,21 +108,21 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	public void testCreateAccessRequirementBadParam1() throws Exception {
 		ar = newAccessRequirement(entityId);
 		ar.setEntityIds(null);
-		ar = accessRequirementManager.createAccessRequirement(userInfo, ar);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 	}
 	
 	@Test(expected=InvalidModelException.class)
 	public void testCreateAccessRequirementBadParam2() throws Exception {
 		ar = newAccessRequirement(entityId);
 		ar.setEntityType(ACTAccessRequirement.class.getName());
-		ar = accessRequirementManager.createAccessRequirement(userInfo, ar);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 	}
 	
 	@Test(expected=InvalidModelException.class)
 	public void testCreateAccessRequirementBadParam3() throws Exception {
 		ar = newAccessRequirement(entityId);
 		ar.setAccessType(null);
-		ar = accessRequirementManager.createAccessRequirement(userInfo, ar);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 	}
 	
 	@Test(expected=ForbiddenException.class)
@@ -134,13 +134,13 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	@Test
 	public void testUpdateAccessRequirement() throws Exception {
 		ar = newAccessRequirement(entityId);
-		ar = accessRequirementManager.createAccessRequirement(userInfo, ar);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
 
 		// ensure that the 'modifiedOn' date is later
 		Thread.sleep(100L);
 		long arModifiedOn = ar.getModifiedOn().getTime();
 		ar.setEntityIds(new ArrayList<String>()); // change the entity id list
-		TermsOfUseAccessRequirement ar2 = accessRequirementManager.updateAccessRequirement(userInfo, ar);
+		TermsOfUseAccessRequirement ar2 = accessRequirementManager.updateAccessRequirement(adminUserInfo, ar);
 		assertTrue(ar2.getModifiedOn().getTime()-arModifiedOn>0);
 		assertTrue(ar2.getEntityIds().isEmpty());
 	}
@@ -148,8 +148,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	@Test
 	public void testGetAccessRequirements() throws Exception {
 		ar = newAccessRequirement(entityId);
-		ar = accessRequirementManager.createAccessRequirement(userInfo, ar);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForEntity(userInfo, entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForEntity(adminUserInfo, entityId);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 	}
@@ -157,8 +157,8 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	@Test
 	public void testGetUnmetAccessRequirements() throws Exception {
 		ar = newAccessRequirement(entityId);
-		ar = accessRequirementManager.createAccessRequirement(userInfo, ar);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(userInfo, entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, entityId);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 	}
@@ -166,10 +166,10 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	@Test
 	public void testDeleteAccessRequirements() throws Exception {
 		ar = newAccessRequirement(entityId);
-		ar = accessRequirementManager.createAccessRequirement(userInfo, ar);
-		accessRequirementManager.deleteAccessRequirement(userInfo, ar.getId().toString());
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		accessRequirementManager.deleteAccessRequirement(adminUserInfo, ar.getId().toString());
 		ar=null;
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForEntity(userInfo, entityId);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getAccessRequirementsForEntity(adminUserInfo, entityId);
 		assertEquals(0L, ars.getTotalNumberOfResults());
 		assertEquals(0, ars.getResults().size());
 	}

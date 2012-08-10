@@ -38,16 +38,16 @@ workDir = tempfile.gettempdir()
 # starting with sprint13, client and server versions can differ
 # in sprint13, server (repo/auth) is 1.0.0, client (portal) is 1.0.1
 # for now, call this script twice repo/auth@1.0.0 and portal@1.0.1
-version = '1.0.0'
+version = '1.5.1-4-g7320f5d'
 
 # Starting with sprint 13, we switch to release
 isSnapshot = False
 
-stacksToUpgrade = [PROD_A_CONFIG]
+stacksToUpgrade = [PROD_B_CONFIG]
 
 #
 #componentsToUpgrade = [AUTH_SERVICE_WAR, REPO_SERVICE_WAR, PORTAL_WAR]
-componentsToUpgrade = [AUTH_SERVICE_WAR, REPO_SERVICE_WAR]
+componentsToUpgrade = [REPO_SERVICE_WAR]
 
 
 update_environments = False # if false just create the beanstalk versions, if true also do update of running instance.
