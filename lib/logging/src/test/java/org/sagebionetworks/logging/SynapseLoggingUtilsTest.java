@@ -61,6 +61,12 @@ public class SynapseLoggingUtilsTest {
 		}
 	}
 
+	@Test(expected=IllegalArgumentException.class)
+	public void testParseSynapseEventFail() throws UnsupportedEncodingException {
+		String line = "Not a Synapse Event";
+		SynapseLoggingUtils.parseSynapseEvent(line);
+	}
+
 	@Test
 	public void testParseSynapseEvent() throws UnsupportedEncodingException {
 		String timeStamp = "2012-08-06 18:36:22,961";
