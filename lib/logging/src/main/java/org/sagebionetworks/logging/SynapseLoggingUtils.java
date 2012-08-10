@@ -6,6 +6,9 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -99,23 +102,32 @@ public class SynapseLoggingUtils {
 		}
 		String[] parameterNames = sig.getParameterNames();
 
-		String encoding = "UTF-8";
+		// Using LinkedHashMap makes the testing easier because we don't have to account for
+		// the normal unreliable ordering of hashmaps
+		Map<String, String> properties = new LinkedHashMap<String, String>();
 
+		for (int i = 0; i < args.length; i++) {
+			properties.put(parameterNames[i],
+					(args[i]!=null?args[i].toString():"null"));
+		}
+
+		return makeArgString(properties);
+	}
+
+	public static String makeArgString(Map<String, String> properties) throws UnsupportedEncodingException {
+		String encoding = "UTF-8";
 		String argSep = "";
 
 		StringBuilder argString = new StringBuilder();
-
-		for (int i = 0; i < args.length; i++) {
+		for (Entry<String, String> entry : properties.entrySet()) {
 			argString.append(argSep);
-			argString.append(parameterNames[i]);
-
+			argString.append(entry.getKey());
 			argString.append("=");
-			if (args[i] != null)
-				argString.append(URLEncoder.encode(args[i].toString(), encoding));
-			else
-				argString.append(URLEncoder.encode("null", encoding));
+			argString.append(URLEncoder.encode(entry.getValue().toString(), encoding));
 
-			// Set the argSep after the first time through
+			// Set the argSep after the first time through so that we
+			// separate all the pairs with it, but don't have a leading
+			// or trailing "&"
 			argSep = "&";
 		}
 
@@ -125,5 +137,10 @@ public class SynapseLoggingUtils {
 	public static String makeLogString(String simpleClassName, String methodName, long latencyMS, String args) {
 		return String.format("%s/%s?latency=%d&%s",
 				simpleClassName, methodName, latencyMS, args);
+	}
+
+	public static String makeLogString(SynapseEvent event) throws UnsupportedEncodingException {
+		return makeLogString(event.getController(), event.getMethodName(),
+				event.getLatency(), makeArgString(event.getProperties()));
 	}
 }
