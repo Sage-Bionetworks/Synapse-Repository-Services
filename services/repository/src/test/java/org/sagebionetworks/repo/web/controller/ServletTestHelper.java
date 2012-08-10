@@ -32,10 +32,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.MigrationType;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -51,9 +53,10 @@ import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.web.GenericEntityController;
+import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -85,7 +88,7 @@ public class ServletTestHelper {
 
 	@Autowired
 	// Used for cleanup
-	private GenericEntityController entityController;
+	private EntityService entityController;
 	@Autowired
 	private UserManager userManager;
 
@@ -103,13 +106,7 @@ public class ServletTestHelper {
 	 * @throws Exception
 	 */
 	public void setUp() throws Exception {
-		if(null == dispatchServlet) {
-			MockServletConfig servletConfig = new MockServletConfig("repository");
-			servletConfig.addInitParameter("contextConfigLocation",
-			"classpath:test-context.xml");
-			dispatchServlet = new DispatcherServlet();
-			dispatchServlet.init(servletConfig);
-		}
+		dispatchServlet = DispatchServletSingleton.getInstance();
 		assertNotNull(entityController);
 		toDelete = new ArrayList<String>();
 
@@ -1188,7 +1185,7 @@ public class ServletTestHelper {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY_BACKUP_DAMEON);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.setParameter(AuthorizationConstants.MIGRATION_TYPE_PARAM, MigrationType.ENTITY.name());
+		request.setParameter(UrlHelpers.MIGRATION_TYPE_PARAM, MigratableObjectType.ENTITY.name());
 		// Add a body if we were provided a list of entities.
 		if (submission != null) {
 			request.addHeader("Content-Type", "application/json; charset=UTF-8");
@@ -1313,7 +1310,7 @@ public class ServletTestHelper {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY_RESTORE_DAMEON);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, uesrId);
-		request.setParameter(AuthorizationConstants.MIGRATION_TYPE_PARAM, MigrationType.ENTITY.name());
+		request.setParameter(UrlHelpers.MIGRATION_TYPE_PARAM, MigratableObjectType.ENTITY.name());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, file);
@@ -1736,7 +1733,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ACCESS_REQUIREMENT + "/" + id);
+		request.setRequestURI("/entity/"+id+UrlHelpers.ACCESS_REQUIREMENT);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -1754,7 +1751,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ACCESS_REQUIREMENT_UNFULFILLED + "/" + id);
+		request.setRequestURI("/entity/"+id+"/accessRequirementUnfulfilled");
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -1822,7 +1819,7 @@ public class ServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ACCESS_APPROVAL + "/" + id);
+		request.setRequestURI("/entity/"+id+UrlHelpers.ACCESS_APPROVAL);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -1863,6 +1860,44 @@ public class ServletTestHelper {
 			throw new ServletTestHelperException(response);
 		}
 	}
+	public static PaginatedResults<MigratableObjectData> getAllMigrationObjects(
+			HttpServlet dispatchServlet, long offset, long limit,
+			String userId) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
 
+		request.setRequestURI(UrlHelpers.GET_ALL_BACKUP_OBJECTS);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""+offset);
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""+limit);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
 
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return createPaginatedResultsFromJSON(response.getContentAsString(),
+				MigratableObjectData.class);
+	}
+
+	public VersionInfo getVersionInfo() throws ServletException, IOException {
+		VersionInfo vi;
+		
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		
+		request.setRequestURI(UrlHelpers.VERSIONINFO);
+		System.out.println(request.getRequestURL());
+		dispatchServlet.service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		vi = (VersionInfo) objectMapper.readValue(
+				response.getContentAsString(), VersionInfo.class);
+		return vi;
+	}
 }

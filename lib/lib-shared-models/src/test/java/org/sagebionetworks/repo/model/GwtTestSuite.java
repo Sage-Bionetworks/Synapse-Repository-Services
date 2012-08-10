@@ -1,14 +1,14 @@
 package org.sagebionetworks.repo.model;
 
-import java.io.BufferedInputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.commons.codec.binary.Base64;
 import org.junit.Test;
 import org.sagebionetworks.gwt.client.schema.adapter.GwtAdapterFactory;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -24,6 +24,8 @@ import com.google.gwt.junit.client.GWTTestCase;
  *
  */
 public class GwtTestSuite extends GWTTestCase {
+	
+	private static final int NUM_PAGINATED_RESULTS = 5;
 
 	/**
 	 * Must refer to a valid module that sources this class.
@@ -45,7 +47,7 @@ public class GwtTestSuite extends GWTTestCase {
 	}
 	
 	@Test
-	public void testAnnotationsRoundTrip() throws JSONObjectAdapterException{
+	public void testAnnotationsRoundTrip() throws JSONObjectAdapterException {
 		Annotations annos = new Annotations();
 		annos.addAnnotation("string", "one");
 		annos.addAnnotation("string", "two");
@@ -59,12 +61,30 @@ public class GwtTestSuite extends GWTTestCase {
 		annos.writeToJSONObject(adapter);
 		String json = adapter.toJSONString();
 		adapter = factory.createNew(json);
+		
 		// Clone it
 		Annotations clone = new Annotations();
 		clone.initializeFromJSONObject(adapter);
-		assertEquals(annos, clone);
-		
+		assertEquals(annos, clone);		
 	}
+	
+	@Test
+	public void testEntityBundleRoundTrip() throws JSONObjectAdapterException {
+		EntityBundle entityBundle = EntityBundleTest.createDummyEntityBundle();
+		
+		// Write it to GWT
+		GwtAdapterFactory factory = new GwtAdapterFactory();
+		JSONObjectAdapter adapter = factory.createNew();
+		entityBundle.writeToJSONObject(adapter);
+		String json = adapter.toJSONString();
+		adapter = factory.createNew(json);
+		
+		// Clone it
+		EntityBundle clone = new EntityBundle();
+		clone.initializeFromJSONObject(adapter);
+		assertEquals(entityBundle, clone);		
+	}
+	
 	/**
 	 * Make sure we can load the register
 	 * @throws JSONObjectAdapterException 
@@ -83,14 +103,11 @@ public class GwtTestSuite extends GWTTestCase {
 		assertTrue(adapter.has("entityTypes"));
 		EntityRegistry registry = new EntityRegistry();
 		registry.initializeFromJSONObject(adapter);
-		
-	}
-	
+	}	
 	
 	@Test
 	public void serviceConstantsTest() throws JSONObjectAdapterException, UnsupportedEncodingException{
 		assertNotNull(ServiceConstants.DEFAULT_PAGINATION_OFFSET);
 	}
 	
-
 }

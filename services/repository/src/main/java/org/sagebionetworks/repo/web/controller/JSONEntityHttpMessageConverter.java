@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.controller;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -12,6 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityClassHelper;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -195,11 +195,8 @@ public class JSONEntityHttpMessageConverter implements
 	public static Entity createEntityFromeAdapter(JSONObjectAdapter adapter)
 			throws JSONObjectAdapterException {
 		// Get the entity type
-		if(!adapter.has("entityType")){
-			throw new IllegalArgumentException("Cannot determine the entity type.  The entityType property is null");
-		}
-		String typeClassName = adapter.getString("entityType");
-		if(typeClassName == null){
+		String typeClassName = EntityClassHelper.entityType(adapter);
+		if(typeClassName==null){
 			throw new IllegalArgumentException("Cannot determine the entity type.  The entityType property is null");
 		}
 		// Create a new instance using the full class name

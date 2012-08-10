@@ -60,7 +60,7 @@
 		},
 		"entityType": {
 			"type": "string",
-			"description": "The full class name of this entitiy.",
+			"description": "The full class name of this entity.",
 			"transient": true
 		}
 	}

@@ -64,6 +64,11 @@ public class AuthorizationConstants {
 	public static final String ADMIN_GROUP_NAME = "Administrators";
 	
 	/**
+	 * 
+	 */
+	public static final String ACCESS_AND_COMPLIANCE_TEAM_NAME = "Synpase ACT Team";
+	
+	/**
 	 * The reserved userId for an anonymous user.
 	 */
 	public static final String ANONYMOUS_USER_ID = "anonymous@sagebase.org";
@@ -94,12 +99,6 @@ public class AuthorizationConstants {
 	 */
 	public static final String USER_ID_PARAM = "userId";
 	
-	
-	/**
-	 * parameter used by migration services to describe the type of migration 
-	 * to be performed
-	 */
-	public static final String MIGRATION_TYPE_PARAM = "migrationType";
 	
 	/**
 	 * A reserved parameter name for passing in a user id (not necessarily the name of the requestor,

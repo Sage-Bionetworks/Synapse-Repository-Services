@@ -53,6 +53,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	 */
 	private Map<Class<? extends DatabaseObject>, String> insertMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> fetchMap = new HashMap<Class<? extends DatabaseObject>, String>();
+	private Map<Class<? extends DatabaseObject>, String> countMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> deleteMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	private Map<Class<? extends DatabaseObject>, String> updateMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	
@@ -75,6 +76,9 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 			// The get SQL
 			String getSQL = DMLUtils.createGetByIDStatement(mapping);
 			this.fetchMap.put(mapping.getDBOClass(), getSQL);
+			// The COUNT SQL
+			String countSQL = DMLUtils.createGetCountStatement(mapping);
+			this.countMap.put(mapping.getDBOClass(), countSQL);
 			// The delete SQL
 			String deleteSql = DMLUtils.createDeleteStatement(mapping);
 			deleteMap.put(mapping.getDBOClass(), deleteSql);
@@ -174,6 +178,17 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		}
 	}
 	
+	@Transactional(readOnly = true)
+	@Override
+	public <T extends DatabaseObject<T>> long getCount(Class<? extends T> clazz) throws DatastoreException {
+		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
+		@SuppressWarnings("unchecked")
+		TableMapping<T> mapping = classToMapping.get(clazz);
+		if(mapping == null) throw new IllegalArgumentException("Cannot find the mapping for Class: "+clazz+" The class must be added to the 'databaseObjectRegister'");
+		String countSql = getCountSQL(clazz);
+		return simpleJdbcTemplate.queryForLong(countSql);
+	}
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends DatabaseObject<T>> boolean deleteObjectById(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException {
@@ -205,6 +220,18 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		if(clazz == null) throw new IllegalArgumentException("The clazz cannot be null");
 		String sql = this.fetchMap.get(clazz);
 		if(sql == null) throw new IllegalArgumentException("Cannot find the get SQL for class: "+clazz+".  Please register this class by adding it to the 'databaseObjectRegister' bean");
+		return sql;
+	}
+	
+	/**
+	 * The count sql for a given class.
+	 * @param clazz
+	 * @return
+	 */
+	private String getCountSQL(Class<? extends DatabaseObject> clazz){
+		if(clazz == null) throw new IllegalArgumentException("The clazz cannot be null");
+		String sql = this.countMap.get(clazz);
+		if(sql == null) throw new IllegalArgumentException("Cannot find the COUNT SQL for class: "+clazz+".  Please register this class by adding it to the 'databaseObjectRegister' bean");
 		return sql;
 	}
 	

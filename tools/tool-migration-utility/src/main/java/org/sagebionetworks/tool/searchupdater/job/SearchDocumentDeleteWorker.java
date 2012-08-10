@@ -77,7 +77,7 @@ public class SearchDocumentDeleteWorker implements Callable<WorkerResult> {
 			Thread.sleep(1000);
 			progress.setDone();
 			return new WorkerResult(this.entities.size(),
-					WorkerResult.JobStatus.SUCCEDED);
+					WorkerResult.JobStatus.SUCCEEDED);
 		} catch (Exception e) {
 			// done
 			progress.setDone();

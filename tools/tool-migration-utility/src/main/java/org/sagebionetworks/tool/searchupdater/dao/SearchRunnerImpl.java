@@ -30,7 +30,7 @@ import org.sagebionetworks.utils.HttpClientHelperException;
  * @author deflaux
  * 
  */
-public class SearchRunnerImpl implements QueryRunner {
+public class SearchRunnerImpl implements QueryRunner<EntityData> {
 
 	private static final String SEARCH_TOTAL_ENTITY = "bq=created_on:0..&return-fields=id,etag";
 	private static final String SEARCH_TOTAL_ENTITY_COUNT = "bq=created_on:0..";
@@ -197,7 +197,7 @@ public class SearchRunnerImpl implements QueryRunner {
 	}
 
 	@Override
-	public List<EntityData> getAllAllChildrenOfEntity(String parentId)
+	public List<EntityData> getAllChildrenOfEntity(String parentId)
 			throws SynapseException, IllegalAccessException, JSONException,
 			InterruptedException {
 		throw new IllegalArgumentException("not implemented");

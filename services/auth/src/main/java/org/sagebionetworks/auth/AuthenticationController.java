@@ -32,6 +32,7 @@ import org.sagebionetworks.authutil.Session;
 import org.sagebionetworks.authutil.User;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.ChangeUserPassword;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -137,8 +138,6 @@ public class AuthenticationController extends BaseController {
 		return true;
 	}
 	
-	private static final String TERMS_OF_USE_ERROR_MESSAGE = "You need to sign the Synapse Terms of Use.   This may be done by logging in to Synapse on the Web.";
-	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/session", method = RequestMethod.POST)
 	public @ResponseBody
@@ -153,7 +152,7 @@ public class AuthenticationController extends BaseController {
 			if (session==null) { // not using cache or not found in cache
 				session = CrowdAuthUtil.authenticate(credentials, true);
 				if (!acceptsTermsOfUse(credentials.getEmail(), credentials.isAcceptsTermsOfUse()))
-					throw new ForbiddenException(TERMS_OF_USE_ERROR_MESSAGE);
+					throw new ForbiddenException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
 				if (cacheTimeout>0) {
 					sessionCache.put(credentials, session);
 				}
@@ -315,7 +314,7 @@ public class AuthenticationController extends BaseController {
 	public void revalidate(@RequestBody Session session) throws Exception {
 		String userId = CrowdAuthUtil.revalidate(session.getSessionToken());
 		if (!acceptsTermsOfUse(userId, false /*i.e. may have accepted TOU previously, but acceptance is not given in this request*/)) {
-			throw new ForbiddenException(TERMS_OF_USE_ERROR_MESSAGE);
+			throw new ForbiddenException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
 		}
 	}
 
@@ -395,21 +394,7 @@ public class AuthenticationController extends BaseController {
 		if (!isITU) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not allowed outside of integration testing.", null);
 		CrowdAuthUtil.deleteUser(userId);
 	}
-	
-	@ResponseStatus(HttpStatus.NO_CONTENT)
-	@RequestMapping(value = "/user", method = RequestMethod.PUT)
-	public void updateUser(@RequestBody User user,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		if (user.getEmail()==null) user.setEmail(userId);
-
-		if (userId==null) 
-				throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-		if (!userId.equals(user.getEmail())) 
-				throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Changing email address is not permitted.", null);
 		
-		CrowdAuthUtil.updateUser(user);
-	}
-	
 	static enum PW_MODE {
 		SET_PW,
 		RESET_PW,
@@ -458,19 +443,25 @@ public class AuthenticationController extends BaseController {
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/apiPasswordEmail", method = RequestMethod.POST)
-	public void sendSetAPIPasswordEmail(@RequestBody User user) throws Exception {
-		sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_API_PW);
+	public void sendSetAPIPasswordEmail(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+		if (userId == null)
+			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
+			
+		sendUserPasswordEmail(userId, PW_MODE.SET_API_PW);
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/userPassword", method = RequestMethod.POST)
-	public void setPassword(@RequestBody User user,
+	public void setPassword(@RequestBody ChangeUserPassword changeUserPassword,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
-		if ((userId==null || !userId.equals(user.getEmail()))) 
+		if (userId==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
-		if (user.getPassword()==null) 			
+		if (changeUserPassword.getNewPassword()==null) 			
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "New password is required.", null);
-
+		User user = new User();
+		user.setEmail(userId);
+		user.setPassword(changeUserPassword.getNewPassword());
 		CrowdAuthUtil.updatePassword(user);
 	}
 	
