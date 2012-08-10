@@ -18,6 +18,7 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -313,11 +314,12 @@ public class PrincipalBackupDriver implements GenericBackupDriver {
 	}
 	
 	public static boolean isBootstrappedPrincipal(String name) {
-			boolean foundit = false;
-			for (DEFAULT_GROUPS g : DEFAULT_GROUPS.values()) {
-				if (g.name().equals(name)) foundit=true;
-			}
-			return foundit;
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(name)) return true;
+		boolean foundit = false;
+		for (DEFAULT_GROUPS g : DEFAULT_GROUPS.values()) {
+			if (g.name().equals(name)) foundit=true;
+		}
+		return foundit;
 	}
 
 	@Override
