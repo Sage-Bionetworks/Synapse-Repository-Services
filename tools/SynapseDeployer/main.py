@@ -38,7 +38,7 @@ workDir = tempfile.gettempdir()
 # starting with sprint13, client and server versions can differ
 # in sprint13, server (repo/auth) is 1.0.0, client (portal) is 1.0.1
 # for now, call this script twice repo/auth@1.0.0 and portal@1.0.1
-version = '1.5.1-4-g7320f5d'
+version = '1.5.1-7-gc72a595'
 
 # Starting with sprint 13, we switch to release
 isSnapshot = False
