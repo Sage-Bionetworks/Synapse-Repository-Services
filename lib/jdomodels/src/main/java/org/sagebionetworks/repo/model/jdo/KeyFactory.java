@@ -28,6 +28,7 @@ public class KeyFactory {
 	 * @return a web-safe string representation of a key
 	 */
 	public static String keyToString(Long key) {
+		if (key==null) return null;
 		return SYNAPSE_ID_PREFIX + key.toString();
 	}
 
