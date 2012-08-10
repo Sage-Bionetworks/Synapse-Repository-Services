@@ -246,8 +246,11 @@ public class PrincipalBackupDriver implements GenericBackupDriver {
 				}
 				UserProfile srcUserProfile = pb.getUserProfile();
 				if (exists) {
-					srcUserProfile.setEtag(dstUserProfile.getEtag());
-					userProfileDAO.update(srcUserProfile, schema);
+					// is an update needed or are the profiles the same?  check the etags to answer
+					if (!srcUserProfile.getEtag().equals(dstUserProfile.getEtag())) {
+						srcUserProfile.setEtag(dstUserProfile.getEtag());
+						userProfileDAO.update(srcUserProfile, schema);
+					}
 				} else {
 					userProfileDAO.create(srcUserProfile, schema);
 				}
