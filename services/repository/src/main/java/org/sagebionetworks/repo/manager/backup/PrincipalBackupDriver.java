@@ -18,6 +18,7 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -287,21 +288,12 @@ public class PrincipalBackupDriver implements GenericBackupDriver {
 		String name = nameMatchingUserGroup.getName();
 		if (!name.equals(srcUserGroup.getName())) throw new IllegalStateException(name+" differs from "+srcUserGroup.getName());
 		
-		// The only time this should actually happen is when we are dealing with bootstrapped groups.
-		// If it happens elsewhere, give up and throw an exception.
-		if (!isBootstrappedPrincipal(name)) throw new IllegalStateException("Name collision found during migration of non-boostrapped principal: "+name);
-	
-		// change the name of the existing group
-		nameMatchingUserGroup.setName(nameMatchingUserGroup.getName()+"_"+System.currentTimeMillis());
-		userGroupDAO.update(nameMatchingUserGroup);
-		
-		// create the desired group under the desired ID
-		String id = userGroupDAO.create(srcUserGroup);
-		if (!id.equals(srcUserGroup.getId())) throw new IllegalStateException("srcUserGroup.getId()="+srcUserGroup.getId()+" id="+id);
-		
-		// address foreign key problems
-		backupManager.clearAllData();
-		progress.appendLog("Cleared data to remove foreign key constraints while migrating principals.");
+		// address foreign key problems:
+		// bootstrapped entities referred to bootstrapped users, so they have to be deleted
+		if (isBootstrappedPrincipal(name)) {
+			backupManager.clearAllData();
+			progress.appendLog("Cleared data to remove foreign key constraints while migrating principals.");
+		}
 		
 		// delete the original UserGroup
 		try {
@@ -310,14 +302,20 @@ public class PrincipalBackupDriver implements GenericBackupDriver {
 			progress.appendLog("Encountered exception deleting user group "+nameMatchingUserGroup.getId()+" "+nameMatchingUserGroup.getName());
 			progress.appendLog(e.getMessage());
 		}
+		
+		// create the desired group under the desired ID
+		String id = userGroupDAO.create(srcUserGroup);
+		if (!id.equals(srcUserGroup.getId())) throw new IllegalStateException("srcUserGroup.getId()="+srcUserGroup.getId()+" id="+id);
+		
 	}
 	
 	public static boolean isBootstrappedPrincipal(String name) {
-			boolean foundit = false;
-			for (DEFAULT_GROUPS g : DEFAULT_GROUPS.values()) {
-				if (g.name().equals(name)) foundit=true;
-			}
-			return foundit;
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(name)) return true;
+		boolean foundit = false;
+		for (DEFAULT_GROUPS g : DEFAULT_GROUPS.values()) {
+			if (g.name().equals(name)) foundit=true;
+		}
+		return foundit;
 	}
 
 	@Override
