@@ -59,6 +59,11 @@
 			"title": "Email",
 			"description": "User's current email address"
 		},
+		"userName": {
+			"type": "string",
+			"title": "User Name",
+			"description": "User Name, unique in the system and typically the user's email address"
+		},
 		"displayName": {
 			"type": "string",
 			"title": "Display Name",
