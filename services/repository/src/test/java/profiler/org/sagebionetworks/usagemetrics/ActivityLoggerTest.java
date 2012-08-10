@@ -19,6 +19,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.sagebionetworks.logging.SynapseEvent;
+import org.sagebionetworks.logging.SynapseLoggingUtils;
 import org.sagebionetworks.repo.web.controller.ActivityLoggerTestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -83,7 +85,7 @@ public class ActivityLoggerTest {
 	@Test
 	public void testDoBasicLogging() throws Throwable {
 		ProceedingJoinPoint mockPjp = mock(ProceedingJoinPoint.class);
-		MethodSignature mockSig = mock(MethodSignature.class, RETURNS_DEEP_STUBS);
+		MethodSignature mockSig = mock(MethodSignature.class);
 
 		when(mockPjp.getArgs()).thenReturn(ANNOTATION_METHOD_ARGS);
 		when(mockPjp.getSignature()).thenReturn(mockSig);
@@ -98,16 +100,11 @@ public class ActivityLoggerTest {
 		ArgumentCaptor<String> arg = ArgumentCaptor.forClass(String.class);
 		verify(mockLog).trace(arg.capture());
 
-		String[] methodAndArgs = arg.getValue().split("\\?");
-		String[] classAndMethod = methodAndArgs[0].split("/");
+		String val = String.format("2012-08-11 00:00:00,000 [TRACE] - %s", arg.getValue());
+		SynapseEvent synapseEvent = SynapseLoggingUtils.parseSynapseEvent(val);
 
-		String latencyArg = "latency=0&";
-		int indexOf = methodAndArgs[1].indexOf(latencyArg);
-
-		assertEquals(ANNOTATION_ARG_STRING, methodAndArgs[1].substring(indexOf + latencyArg.length()));
-
-		assertEquals(ActivityLoggerTestHelper.class.getSimpleName(), classAndMethod[0]);
-		assertEquals(classAndMethod[1], ANNOTATION_METHOD_NAME);
+		assertEquals(ActivityLoggerTestHelper.class.getSimpleName(), synapseEvent.getController());
+		assertEquals(ANNOTATION_METHOD_NAME, synapseEvent.getMethodName());
 	}
 
 	@Test
