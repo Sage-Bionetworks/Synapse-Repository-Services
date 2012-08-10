@@ -1,0 +1,34 @@
+{
+	"description": "This contains items from an rss feed, and meta data about the rss feed itself",
+	"properties": {
+		"title": {
+			"type": "string",
+			"description": "The title of this feed",
+			"title": "Title"
+		},
+		"uri": {
+			"type": "string",
+			"description": "The uri of this feed",
+			"title": "Uri"
+		},
+		"author": {
+			"type": "string",
+			"description": "The author of this feed",
+			"title": "Author"
+		},
+		"description": {
+			"description": "The description of this feed.",
+			"type": "string",
+			"title": "Description"
+		},
+		"entries": {
+			"type": "array",
+			"description": "The list of rss entries.",
+			"uniqueItems": false,
+			"contentEncoding": "binary",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.RSSEntry"
+			}
+		}
+	}
+}
