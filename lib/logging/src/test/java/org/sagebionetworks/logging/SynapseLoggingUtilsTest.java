@@ -61,21 +61,42 @@ public class SynapseLoggingUtilsTest {
 		}
 	}
 
+	private static final String VALID_DATE = "2012-08-06 18:36:22,961";
+	private static final String VALID_LEVEL = " [TRACE] - ";
+	private static final String VALID_CONTROLLER = "AFakeController/andFakeMethod";
+	private static final String VALID_PROPERTIES = "?fakeProp=true&testProp=%.-*_+abcABC123";
+
 	@Test(expected=IllegalArgumentException.class)
-	public void testParseSynapseEventFail() throws UnsupportedEncodingException {
+	public void testParseEventFailDate() throws UnsupportedEncodingException {
 		String line = "Not a Synapse Event";
 		SynapseLoggingUtils.parseSynapseEvent(line);
 	}
 
+	@Test(expected=IllegalArgumentException.class)
+	public void testParseEventFailLevel() throws UnsupportedEncodingException {
+		String line = VALID_DATE+VALID_LEVEL; 
+		SynapseLoggingUtils.parseSynapseEvent(line);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testParseEventFailController() throws UnsupportedEncodingException {
+		String line = VALID_DATE+VALID_LEVEL+VALID_CONTROLLER; 
+		SynapseLoggingUtils.parseSynapseEvent(line);
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testParseEventFailProperties() throws UnsupportedEncodingException {
+		String line = VALID_DATE+VALID_LEVEL+VALID_CONTROLLER+VALID_PROPERTIES; 
+		SynapseLoggingUtils.parseSynapseEvent(line);
+	}
+	
 	@Test
 	public void testParseSynapseEvent() throws UnsupportedEncodingException {
-		String timeStamp = "2012-08-06 18:36:22,961";
-
 		String controller = "AccessRequirementController";
 		String method = "getUnfulfilledAccessRequirement";
 
 		StringBuilder builder = new StringBuilder(String.format(
-				"%s [TRACE] - %s/%s?", timeStamp, controller, method));
+				"%s%s%s/%s?", VALID_DATE, VALID_LEVEL, controller, method));
 
 		String latencyLabel = "latency";
 		int latencyValue = 6;
@@ -98,7 +119,7 @@ public class SynapseLoggingUtilsTest {
 		SynapseEvent event = SynapseLoggingUtils.parseSynapseEvent(line);
 
 		DateTimeFormatter dateFormatter = SynapseLoggingUtils.DATE_FORMATTER;
-		DateTime time = dateFormatter.parseDateTime(timeStamp);
+		DateTime time = dateFormatter.parseDateTime(VALID_DATE);
 
 		assertEquals(time, event.getTimeStamp());
 		assertEquals(latencyValue, event.getLatency());

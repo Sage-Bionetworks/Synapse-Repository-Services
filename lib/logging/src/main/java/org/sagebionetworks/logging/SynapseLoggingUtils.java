@@ -17,28 +17,52 @@ import org.joda.time.format.DateTimeFormatter;
 
 public class SynapseLoggingUtils {
 
-	private static final String DATE_PATTERN = "^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})";
-	private static final String LEVEL_PATTERN = " \\[\\w+\\] - ";
-	private static final String CONTROLLER_METHOD_PATTERN = "(\\w+)/(\\w+)";
-	private static final String PROPERTIES_PATTERN = "\\?((?:\\w+=[\\w%.\\-*_+]+&?)+)$";
+	private static final Pattern DATE_PATTERN = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})");
+	private static final Pattern LEVEL_PATTERN = Pattern.compile(" \\[\\w+\\] - ");
+	private static final Pattern CONTROLLER_METHOD_PATTERN = Pattern.compile("(\\w+)/(\\w+)");
+	private static final Pattern PROPERTIES_PATTERN = Pattern.compile("\\?((?:\\w+=[\\w%.\\-*_+]+&?)+)$");
 
-	public static final Pattern LOGFILE_REGEX = Pattern.compile(DATE_PATTERN+LEVEL_PATTERN+CONTROLLER_METHOD_PATTERN+PROPERTIES_PATTERN);
 	public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss,SSS").withZone(DateTimeZone.UTC);
 
 	public static SynapseEvent parseSynapseEvent(String line) throws UnsupportedEncodingException {
-		Matcher matcher = LOGFILE_REGEX.matcher(line);
+		int lastEnd = 0;
 
 		DateTime timeStamp;
+		Matcher dateMatcher = DATE_PATTERN.matcher(line);
+
+		if (dateMatcher.find(lastEnd)) {
+			timeStamp = DATE_FORMATTER.parseDateTime(dateMatcher.group(1));
+			lastEnd = dateMatcher.end();
+		} else {
+			throw new IllegalArgumentException(
+					"Pattern incorrect: failed to find a date:\n\t"
+							+ line.substring(lastEnd));
+		}
+
+		Matcher levelMatcher = LEVEL_PATTERN.matcher(line);
+		if (!levelMatcher.find(lastEnd)) {
+			throw new IllegalArgumentException(
+					"Pattern incorrect: failed to find a log-level:\n\t"
+							+ line.substring(lastEnd));
+		}
+
+		Matcher controllerMatcher = CONTROLLER_METHOD_PATTERN.matcher(line);
 		String controller, methodName;
+		if (controllerMatcher.find(lastEnd)) {
+			controller = controllerMatcher.group(1);
+			methodName = controllerMatcher.group(2);
+			lastEnd = controllerMatcher.end();
+		} else {
+			throw new IllegalArgumentException(
+					"Pattern incorrect: failed to find controller/method-name:\n\t"
+							+ line.substring(lastEnd));
+		}
+
+		Matcher propMatcher = PROPERTIES_PATTERN.matcher(line);
 		int latency;
 		HashMap<String, String> properties;
-
-		if (matcher.matches()) {
-			timeStamp = DATE_FORMATTER.parseDateTime(matcher.group(1));
-			controller = matcher.group(2);
-			methodName = matcher.group(3);
-
-			String[] propertiesArray = matcher.group(4).split("&");
+		if (propMatcher.find()) {
+			String[] propertiesArray = propMatcher.group(1).split("&");
 			properties = new HashMap<String, String>();
 
 			for (String property : propertiesArray) {
@@ -52,8 +76,11 @@ public class SynapseLoggingUtils {
 				latency = -1;
 			}
 		} else {
-			throw new IllegalArgumentException("Line does not represent a SynapseEVent.");
+			throw new IllegalArgumentException(
+					"Pattern incorrect: failed to find a property string:\n\t"
+							+ line.substring(lastEnd));
 		}
+
 		return new SynapseEvent(timeStamp, controller, methodName, latency, properties);
 	}
 
