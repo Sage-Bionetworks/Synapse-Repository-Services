@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
  * 
  * @author deflaux
  */
+@Ignore
 public class IT510SynapseJavaClientSearchTest {
 
 	private static Synapse synapse = null;
