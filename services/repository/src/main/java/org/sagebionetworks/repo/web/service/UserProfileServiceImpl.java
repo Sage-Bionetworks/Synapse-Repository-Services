@@ -38,9 +38,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public UserProfile getMyOwnUserProfile(String userId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		// do not allow 'anonymous'
-		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId()))
-			throw new UnauthorizedException("Cannot retrieve user profile for anonymous user.");
 		return userProfileManager.getUserProfile(userInfo, userInfo.getIndividualGroup().getId());
 	}
 	
