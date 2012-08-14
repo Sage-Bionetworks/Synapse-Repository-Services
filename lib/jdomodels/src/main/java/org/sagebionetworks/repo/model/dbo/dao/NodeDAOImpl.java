@@ -201,6 +201,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		node.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
 
 		if(forceEtag){
+			if(dto.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
 			// See PLFM-845.  We need to be able to force the use of an eTag when created from a backup.
 			node.seteTag(KeyFactory.urlDecode(dto.getETag()));
 		}else{
