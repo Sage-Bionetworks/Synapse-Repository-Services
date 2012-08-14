@@ -268,8 +268,24 @@ public class EntityManagerImpl implements EntityManager {
 		if (updated == null)
 			throw new IllegalArgumentException("Annoations cannot be null");
 		// The user has updated the additional annotations.
-		nodeManager.updateAnnotations(userInfo, entityId, updated,
+		
+		Annotations updatedClone = new Annotations();
+		cloneAnnotations(updated, updatedClone);
+		// the following *changes* the passed annotations (specifically the etag) so we just pass a clone
+		nodeManager.updateAnnotations(userInfo, entityId, updatedClone,
 				NamedAnnotations.NAME_SPACE_ADDITIONAL);
+	}
+	
+	public static void cloneAnnotations(Annotations src, Annotations dst) {
+		dst.setBlobAnnotations(src.getBlobAnnotations());
+		dst.setCreationDate(src.getCreationDate());
+		dst.setDateAnnotations(src.getDateAnnotations());
+		dst.setDoubleAnnotations(src.getDoubleAnnotations());
+		dst.setEtag(src.getEtag());
+		dst.setId(src.getId());
+		dst.setLongAnnotations(src.getLongAnnotations());
+		dst.setStringAnnotations(src.getStringAnnotations());
+		dst.setUri(src.getUri());
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
