@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -65,7 +66,9 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 	@Autowired
 	private IdGenerator idGenerator;
-	
+	@Autowired
+	private ETagGenerator eTagGenerator;
+
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
 	
@@ -157,8 +160,8 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	
 		DBOAccessRequirement dbo = new DBOAccessRequirement();
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		if (dbo.geteTag()==null) dbo.seteTag(0L);
 		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId());
+		if (dbo.geteTag()==null) dbo.seteTag(eTagGenerator.generateETag(dbo));
 		dbo = basicDao.createNew(dbo);
 		populateNodeAccessRequirement(dbo.getId(), dto.getEntityIds());
 		T result = (T)AccessRequirementUtils.copyDboToDto(dbo, getEntities(dbo.getId()));
@@ -305,7 +308,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 					DBOAccessRequirement ar = new DBOAccessRequirement();
 					ar.setCreatedBy(rs.getLong(COL_ACCESS_REQUIREMENT_CREATED_BY));
 					ar.setCreatedOn(rs.getLong(COL_ACCESS_REQUIREMENT_CREATED_ON));	
-					ar.seteTag(rs.getLong(COL_ACCESS_REQUIREMENT_ETAG));
+					ar.seteTag(rs.getString(COL_ACCESS_REQUIREMENT_ETAG));
 					return ar;
 				}
 				
@@ -319,10 +322,10 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		DBOAccessRequirement dbo = ars.get(0);
 		// check dbo's etag against dto's etag
 		// if different rollback and throw a meaningful exception
-		if (!dbo.geteTag().equals(Long.parseLong(dto.getEtag())))
+		if (!dbo.geteTag().equals(dto.getEtag()))
 			throw new ConflictingUpdateException("Access Requirement was updated since you last fetched it, retrieve it again and reapply the update.");
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		dbo.seteTag(1L+dbo.geteTag());
+		dbo.seteTag(eTagGenerator.generateETag(dbo));
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user Access Requirement in database.");
 		updateNodeAccessRequirement(dbo.getId(), dto.getEntityIds());

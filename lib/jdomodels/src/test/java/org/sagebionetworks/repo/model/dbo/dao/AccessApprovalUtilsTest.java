@@ -39,16 +39,6 @@ public class AccessApprovalUtilsTest {
 		assertEquals(dto, dto2);
 	}
 
-	@Test(expected = NumberFormatException.class)
-	public void testInvalidEtag() throws Exception {
-		AccessApproval dto = createDTO();
-		dto.setEtag("not a number");
-		DBOAccessApproval dbo = new DBOAccessApproval();
-		String jsonString = (String) AccessApproval.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
-		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
-		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
-	}
-
 	@Test
 	public void testRoundtripWithNulls() throws Exception {
 		AccessApproval dto = createDTO();
@@ -60,7 +50,4 @@ public class AccessApprovalUtilsTest {
 		AccessApproval dto2 =  AccessApprovalUtils.copyDboToDto(dbo);
 		assertEquals(dto, dto2);
 	}
-
-
-
 }

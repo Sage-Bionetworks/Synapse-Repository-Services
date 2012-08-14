@@ -129,8 +129,8 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 	
 	private String getETag(String ownerString) throws DatastoreException{
 		Long owner = KeyFactory.stringToKey(ownerString);
-		Long etag = simpleJdbcTemplate.queryForLong(SELECT_OWNER_ETAG, owner);
-		return KeyFactory.keyToString(etag);
+		String eTag = simpleJdbcTemplate.queryForObject(SELECT_OWNER_ETAG, String.class, owner);
+		return eTag;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

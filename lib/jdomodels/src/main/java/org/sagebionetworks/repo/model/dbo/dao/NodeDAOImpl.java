@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.jdo;
+package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ACL_OWNER_ID_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN;
@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -59,12 +60,14 @@ import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDao;
-import org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeType;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.ObjectDescriptorUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -77,7 +80,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * This is a basic JDO implementation of the NodeDAO.
+ * This is a basic implementation of the NodeDAO.
  * 
  * @author jmhill
  *
@@ -130,6 +133,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	
 	@Autowired
 	private IdGenerator idGenerator;
+	@Autowired
+	private ETagGenerator eTagGenerator;
 	
 	@Autowired
 	DBOReferenceDao dboReferenceDao;
@@ -181,7 +186,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 		DBONode node = new DBONode();
 		node.setCurrentRevNumber(rev.getRevisionNumber());
-		JDONodeUtils.updateFromDto(dto, node, rev);
+		NodeUtils.updateFromDto(dto, node, rev);
 		// If an id was not provided then create one
 		if(node.getId() == null){
 			node.setId(idGenerator.generateNewId());
@@ -196,12 +201,12 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		node.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
 
 		if(forceEtag){
-			// See PLFM-845.  We need to be able to force the use of an eTag when created from a backup.
 			if(dto.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
-			node.seteTag(KeyFactory.stringToKey(dto.getETag()));
+			// See PLFM-845.  We need to be able to force the use of an eTag when created from a backup.
+			node.seteTag(KeyFactory.urlDecode(dto.getETag()));
 		}else{
-			// Start it with an eTag of zero
-			node.seteTag(new Long(0));
+			// Start it with a new e-tag
+			node.seteTag(eTagGenerator.generateETag(node));
 		}
 		// Set the parent and benefactor
 		if(dto.getParentId() != null){
@@ -282,7 +287,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			newVersion.setVersionLabel(KeyFactory.keyToString(newRev.getRevisionNumber()));
 		}
 		// Now update the new revision and node
-		JDONodeUtils.updateFromDto(newVersion, jdo, newRev);
+		NodeUtils.updateFromDto(newVersion, jdo, newRev);
 		// The new revision becomes the current version
 		jdo.setCurrentRevNumber(newRev.getRevisionNumber());
 		if(newVersion.getVersionLabel() == null) {
@@ -302,7 +307,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		DBONode jdo =  getNodeById(KeyFactory.stringToKey(id));
 		DBORevision rev  = getNodeRevisionById(jdo.getId(), jdo.getCurrentRevNumber());
-		return JDONodeUtils.copyFromJDO(jdo, rev);
+		return NodeUtils.copyFromJDO(jdo, rev);
 	}
 	
 	@Override
@@ -312,7 +317,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		Long nodeID = KeyFactory.stringToKey(id);
 		DBONode jdo =  getNodeById(nodeID);
 		DBORevision rev = getNodeRevisionById(nodeID, versionNumber);
-		return JDONodeUtils.copyFromJDO(jdo, rev);
+		return NodeUtils.copyFromJDO(jdo, rev);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -446,7 +451,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
-		annos.setEtag(jdo.geteTag().toString());
+		annos.setEtag(jdo.geteTag());
 		annos.setId(KeyFactory.keyToString(jdo.getId()));
 		annos.setCreationDate(new Date(jdo.getCreatedOn()));
 		return annos;
@@ -487,8 +492,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Transactional(readOnly = true)
 	@Override
 	public String peekCurrentEtag(String id) throws NotFoundException, DatastoreException {
-		long currentTag = simpleJdbcTemplate.queryForLong(SQL_ETAG_WITHOUT_LOCK, KeyFactory.stringToKey(id));
-		return Long.toString(currentTag);
+		String currentTag = simpleJdbcTemplate.queryForObject(SQL_ETAG_WITHOUT_LOCK, String.class, KeyFactory.stringToKey(id));
+		return currentTag;
 	}
 
 	/**
@@ -505,14 +510,13 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("bindId", longId);
 		// Check the eTags
-		long passedTag = KeyFactory.stringToKey(eTag);
-		long currentTag = simpleJdbcTemplate.queryForLong(SQL_ETAG_FOR_UPDATE, longId);
-		if(passedTag != currentTag){
+		String currentTag = simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, longId);
+		if(!currentTag.equals(eTag)){
 			throw new ConflictingUpdateException("Node: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
-		// Increment the eTag
-		currentTag++;
+		// Get a new e-tag
 		DBONode node = getNodeById(longId);
+		currentTag = eTagGenerator.generateETag(node);
 		node.seteTag(currentTag);
 		// Update the etag
 		int updated = simpleJdbcTemplate.update(UPDATE_ETAG_SQL, currentTag, longId);
@@ -544,12 +548,12 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		DBONode jdoToUpdate = getNodeById(nodeId);
 		DBORevision revToUpdate = getCurrentRevision(jdoToUpdate);
 		// Update is as simple as copying the values from the passed node.
-		JDONodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate);	
+		NodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate);	
 
 		// Should we force the update of the etag?
 		if(forceUseEtag){
 			if(updatedNode.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
-			jdoToUpdate.seteTag(KeyFactory.stringToKey(updatedNode.getETag()));
+			jdoToUpdate.seteTag(KeyFactory.urlDecode(updatedNode.getETag()));
 		}
 		// Update the node.
 		try{
@@ -570,7 +574,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(toReplace == null) throw new IllegalArgumentException("Node to update cannot be null");
 		Long nodeId = KeyFactory.stringToKey(toReplace.getId());
 		DBONode jdoToUpdate = getNodeById(nodeId);
-		JDONodeUtils.replaceFromDto(toReplace, jdoToUpdate);
+		NodeUtils.replaceFromDto(toReplace, jdoToUpdate);
 		// Delete all revisions.
 		simpleJdbcTemplate.update("DELETE FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ?", nodeId);
 		// Update the node.

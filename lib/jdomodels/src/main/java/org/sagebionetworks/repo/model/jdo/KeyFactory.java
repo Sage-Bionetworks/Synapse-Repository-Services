@@ -42,13 +42,26 @@ public class KeyFactory {
 	 */
 	public static Long stringToKey(String id) throws DatastoreException {
 		try {
+			String decodedId = urlDecode(id);
+			return new Long(decodedId);
+		} catch (NumberFormatException e) {
+			throw new DatastoreException(e);
+		}
+	}
+
+	/**
+	 * Decodes an application/x-www-form-urlencoded string encoded in UTF-8.
+	 *
+	 * @return the decoded key trimmed and in lower case
+	 * @throws DatastoreException
+	 */
+	public static String urlDecode(String id) throws DatastoreException {
+		try {
 			String decodedId = URLDecoder.decode(id, "UTF-8").trim().toLowerCase();
 			if (decodedId.startsWith(SYNAPSE_ID_PREFIX)) {
 				decodedId = decodedId.substring(SYNAPSE_ID_PREFIX.length());
 			}
-			return new Long(decodedId);
-		} catch (NumberFormatException e) {
-			throw new DatastoreException(e);
+			return decodedId;
 		} catch (UnsupportedEncodingException e) {
 			throw new DatastoreException(e);
 		}
