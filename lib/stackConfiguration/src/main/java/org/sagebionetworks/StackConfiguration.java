@@ -448,6 +448,13 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * Return the cron expression of when log sweeping should happen
+	 */
+	public String getLogSweeperCronExpression() {
+		return configuration.getProperty("org.sagebionetworks.logging.sweeper.crontrigger");
+	}
+
+	/**
 	 * @return whether the cloudWatch profiler should be on or off boolean. True
 	 *         means on, false means off.
 	 */
