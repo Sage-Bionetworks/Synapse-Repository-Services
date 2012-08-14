@@ -4,7 +4,7 @@ CREATE TABLE `JDONODE` (
   `CREATED_ON` bigint(20) NOT NULL,
   `CURRENT_REV_NUM` bigint(20) DEFAULT NULL,
   `DESCRIPTION` mediumblob DEFAULT NULL,
-  `ETAG` bigint(20) NOT NULL,
+  `ETAG` char(36) NOT NULL,
   `NAME` varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,
   `NODE_TYPE` smallint(6) NOT NULL,
   `PARENT_ID` bigint(20) DEFAULT NULL,

@@ -22,7 +22,7 @@
 	<bean id="referenceDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl"/>
 	<bean id="dboReferenceDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl"/>
 
-	<bean id="nodeDao" class="org.sagebionetworks.repo.model.jdo.NodeDAOImpl"
+	<bean id="nodeDao" class="org.sagebionetworks.repo.model.dbo.dao.NodeDAOImpl"
 		depends-on="idGenerator" />
 
 	<alias name="nodeDao" alias="nodeBackupDao"/>

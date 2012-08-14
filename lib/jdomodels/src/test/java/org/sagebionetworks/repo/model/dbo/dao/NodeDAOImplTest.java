@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.jdo;
+package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
@@ -22,6 +22,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -46,6 +47,8 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
@@ -71,6 +74,9 @@ public class NodeDAOImplTest {
 	
 	@Autowired
 	private IdGenerator idGenerator;
+	
+	@Autowired
+	private ETagGenerator eTagGenerator;
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -662,9 +668,7 @@ public class NodeDAOImplTest {
 		annos.addAnnotation("bigBlob", bigBlob);
 		annos.addAnnotation("dateKey", new Date(System.currentTimeMillis()));
 		// update the eTag
-		long currentETag = Long.parseLong(annos.getEtag());
-		currentETag++;
-		String newETagString = new Long(currentETag).toString();
+		String newETagString = eTagGenerator.generateETag(null);
 		annos.setEtag(newETagString);
 		// Update them
 		nodeDao.updateAnnotations(id, named);

@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.jdo;
+package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -17,8 +17,10 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dbo.dao.NodeUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -29,7 +31,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  *
  */@RunWith(SpringJUnit4ClassRunner.class)
  @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class JDONodeUtilsTest {
+public class NodeUtilsTest {
 	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
@@ -56,13 +58,13 @@ public class JDONodeUtilsTest {
 		// Now create a revision for this node
 		DBONode jdoNode = new DBONode();
 		DBORevision jdoRev = new DBORevision();
-		JDONodeUtils.updateFromDto(node, jdoNode, jdoRev);
+		NodeUtils.updateFromDto(node, jdoNode, jdoRev);
 		assertEquals("The user cannot change an eTag.", null, jdoNode.geteTag());
 		// Set it to make sure the copy works
-		jdoNode.seteTag(new Long(1013));
+		jdoNode.seteTag("1013");
 		
 		// Make a copy form the jdo
-		Node copy = JDONodeUtils.copyFromJDO(jdoNode, jdoRev);
+		Node copy = NodeUtils.copyFromJDO(jdoNode, jdoRev);
 		assertNotNull(copy);
 		// It should match
 		assertEquals(node, copy);
@@ -83,7 +85,7 @@ public class JDONodeUtilsTest {
 		rev.setModifiedBy(Long.parseLong(createdById));
 		rev.setModifiedOn(System.currentTimeMillis());
 		rev.setRevisionNumber(new Long(21));
-		Node dto = JDONodeUtils.copyFromJDO(child, rev);
+		Node dto = NodeUtils.copyFromJDO(child, rev);
 		assertNotNull(dto);
 		assertEquals(KeyFactory.keyToString(parent.getId()), dto.getParentId());
 		assertEquals(new Long(21), dto.getVersionNumber());
@@ -105,20 +107,20 @@ public class JDONodeUtilsTest {
 		// Now replace all node data
 		DBONode dboNode = new DBONode();
 		dboNode.setId(101L);
-		JDONodeUtils.replaceFromDto(node, dboNode);
+		NodeUtils.replaceFromDto(node, dboNode);
 		assertEquals("myName", dboNode.getName());
 		assertNotNull(dboNode.getDescription());
 		assertEquals("someDescription", new String(dboNode.getDescription(),"UTF-8"));
 		assertEquals(createdById, dboNode.getCreatedBy());
 		assertEquals(10000l, (long)dboNode.getCreatedOn());
 		assertEquals(2l, (long)dboNode.getCurrentRevNumber());
-		assertEquals(1013l, (long)dboNode.geteTag());
+		assertEquals("1013", dboNode.geteTag());
 		assertEquals(EntityType.project.getId(), (short)dboNode.getNodeType());
 		assertEquals(456l, (long)dboNode.getParentId());
 		
 		// Make sure parent ID can be null
 		node.setParentId(null);
-		JDONodeUtils.replaceFromDto(node, dboNode);
+		NodeUtils.replaceFromDto(node, dboNode);
 		assertEquals(null, dboNode.getParentId());
 		
 	}

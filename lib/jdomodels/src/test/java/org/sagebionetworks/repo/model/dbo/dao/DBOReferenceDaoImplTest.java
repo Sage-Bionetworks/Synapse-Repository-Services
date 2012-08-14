@@ -21,6 +21,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -57,7 +58,10 @@ public class DBOReferenceDaoImplTest {
 	
 	@Autowired
 	private IdGenerator idGenerator;
-	
+
+	@Autowired
+	private ETagGenerator eTagGenerator;
+
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
@@ -115,7 +119,7 @@ public class DBOReferenceDaoImplTest {
 			node.setCreatedOn(System.currentTimeMillis());
 			node.setCurrentRevNumber(null);
 			node.setDescription("A basic description".getBytes("UTF-8"));
-			node.seteTag(new Long(0));
+			node.seteTag(eTagGenerator.generateETag(node));
 			node.setName("DBOAnnotationsDaoImplTest.baseNode "+i);
 			node.setParentId(null);
 			node.setNodeType(EntityType.project.getId());

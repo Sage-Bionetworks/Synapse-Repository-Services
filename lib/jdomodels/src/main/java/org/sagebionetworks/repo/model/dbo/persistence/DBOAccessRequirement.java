@@ -19,6 +19,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 
+import org.sagebionetworks.ids.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -27,9 +28,9 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  * @author brucehoff
  *
  */
-public class DBOAccessRequirement implements DatabaseObject<DBOAccessRequirement> {
+public class DBOAccessRequirement implements DatabaseObject<DBOAccessRequirement>, TaggableEntity {
 	private Long id;
-	private Long eTag = 0L;
+	private String eTag;
 	private Long createdBy;
 	private long createdOn;
 	private Long modifiedBy;
@@ -59,7 +60,7 @@ public class DBOAccessRequirement implements DatabaseObject<DBOAccessRequirement
 			public DBOAccessRequirement mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOAccessRequirement ar = new DBOAccessRequirement();
 				ar.setId(rs.getLong(COL_ACCESS_REQUIREMENT_ID));
-				ar.seteTag(rs.getLong(COL_ACCESS_REQUIREMENT_ETAG));
+				ar.seteTag(rs.getString(COL_ACCESS_REQUIREMENT_ETAG));
 				ar.setCreatedBy(rs.getLong(COL_ACCESS_REQUIREMENT_CREATED_BY));
 				ar.setCreatedOn(rs.getLong(COL_ACCESS_REQUIREMENT_CREATED_ON));
 				ar.setModifiedBy(rs.getLong(COL_ACCESS_REQUIREMENT_MODIFIED_BY));
@@ -106,12 +107,12 @@ public class DBOAccessRequirement implements DatabaseObject<DBOAccessRequirement
 	}
 
 
-	public Long geteTag() {
+	public String geteTag() {
 		return eTag;
 	}
 
 
-	public void seteTag(Long eTag) {
+	public void seteTag(String eTag) {
 		this.eTag = eTag;
 	}
 

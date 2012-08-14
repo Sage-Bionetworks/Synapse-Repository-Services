@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -103,7 +104,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	// the query above is an outer join. For non-individual groups there is no UserProfile and
 	// hence no etag.  The group is immutable and so it's Etag should always be 0.  The following
 	// is the default etag used in such a case.
-	public static final String DEFAULT_ETAG = "0";
+	public static final String DEFAULT_ETAG = UuidETagGenerator.ZERO_E_TAG;
 
 	private static final String SQL_COUNT_USER_GROUPS = "SELECT COUNT("+COL_USER_GROUP_ID+") FROM "+TABLE_USER_GROUP + " WHERE "+COL_USER_GROUP_ID+"=:"+ID_PARAM_NAME;
 
