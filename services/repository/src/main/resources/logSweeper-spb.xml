@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<import resource="classpath:aws-spb.xml" />
+
+	<bean id="amazonS3Client" class="com.amazonaws.services.s3.AmazonS3Client">
+		<constructor-arg ref="awsCredentials" />
+	</bean>
+
+  <bean id="ec2IdProvider" class="org.sagebionetworks.sweeper.EC2IdProviderImpl" />
+
+	<bean id="logSweeper" class="org.sagebionetworks.sweeper.Sweeper"
+		destroy-method="sweepAllLogFiles">
+		<constructor-arg ref="amazonS3Client" />
+		<constructor-arg ref="ec2IdProvider" />
+		<constructor-arg>
+			<!-- The configuration list for the sweep job. Here's an example of a
+				blank bean to go in this set:
+				<bean class="org.sagebionetworks.sweeper.SweepConfiguration">
+					<constructor-arg index="0" value="" /> <! Base Directory
+					<constructor-arg index="1" value="" /> <! Base log file name
+					<constructor-arg index="2" value="" /> <! Regex to match the desired logs
+					<constructor-arg index="3" value="" /> <! Name of S3 Bucket to push to
+				</bean> -->
+			<set>
+				<bean class="org.sagebionetworks.sweeper.SweepConfiguration">
+					<!-- Base Directory -->
+					<constructor-arg index="0" value="logs/" />
+					<!-- Base Log File Name -->
+					<constructor-arg index="1" value="repo-activity.log" />
+					<!-- Regex to match the desired logs -->
+					<constructor-arg index="2"
+						value="repo-activity\\.\\d{4}-\\d{2}-\\d{2}-\\d{2}\\.gz" />
+					<!-- Name of S3 Bucket to push to -->
+					<constructor-arg index="3" value="logs.repo" />
+				</bean>
+			</set>
+		</constructor-arg>
+		<constructor-arg type="boolean" value="true" />
+	</bean>
+
+	<bean id="sweepingJob"
+		class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="logSweeper" />
+		<property name="targetMethod" value="sweepRolledLogFiles" />
+		<property name="concurrent" value="false" />
+	</bean>
+
+	<bean id="cronTrigger" class="org.springframework.scheduling.quartz.CronTriggerBean">
+		<property name="jobDetail" ref="sweepingJob" />
+		<property name="cronExpression" ref="stackConfiguration.logSweeperCronExpression" />
+	</bean>
+
+	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<ref bean="cronTrigger" />
+			</list>
+		</property>
+	</bean>
+</beans>
