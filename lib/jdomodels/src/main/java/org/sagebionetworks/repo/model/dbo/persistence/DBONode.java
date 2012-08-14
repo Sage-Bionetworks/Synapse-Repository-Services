@@ -17,6 +17,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 
+import org.sagebionetworks.ids.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -27,7 +28,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  * @author jmhill
  *
  */
-public class DBONode implements DatabaseObject<DBONode> {
+public class DBONode implements DatabaseObject<DBONode>, TaggableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_NODE_ID, true),
@@ -63,7 +64,7 @@ public class DBONode implements DatabaseObject<DBONode> {
 				if(blob != null){
 					node.setDescription(blob.getBytes(1, (int) blob.length()));
 				}
-				node.seteTag(rs.getLong(COL_NODE_ETAG));
+				node.seteTag(rs.getString(COL_NODE_ETAG));
 				node.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
 				node.setCreatedOn(rs.getLong(COL_NODE_CREATED_ON));
 				node.setNodeType(rs.getShort(COL_NODE_TYPE));
@@ -102,7 +103,7 @@ public class DBONode implements DatabaseObject<DBONode> {
 	private String name;
 	private Long currentRevNumber;
 	private byte[] description;
-	private Long eTag = null;
+	private String eTag;
 	private Long createdBy;
 	private Long createdOn;
 	private Short nodeType;	
@@ -138,10 +139,10 @@ public class DBONode implements DatabaseObject<DBONode> {
 	public void setDescription(byte[] description) {
 		this.description = description;
 	}
-	public Long geteTag() {
+	public String geteTag() {
 		return eTag;
 	}
-	public void seteTag(Long eTag) {
+	public void seteTag(String eTag) {
 		this.eTag = eTag;
 	}
 	public Long getCreatedBy() {

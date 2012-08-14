@@ -12,6 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -41,6 +42,8 @@ public class DBOAnnotationsDaoImplTest {
 	
 	@Autowired
 	private IdGenerator idGenerator;
+	@Autowired
+	private ETagGenerator eTagGenerator;
 	
 	List<Long> toDelete = null;
 	
@@ -70,7 +73,7 @@ public class DBOAnnotationsDaoImplTest {
 		node.setCreatedOn(System.currentTimeMillis());
 		node.setCurrentRevNumber(null);
 		node.setDescription("A basic description".getBytes("UTF-8"));
-		node.seteTag(new Long(0));
+		node.seteTag(eTagGenerator.generateETag(node));
 		node.setName("DBOAnnotationsDaoImplTest.baseNode");
 		node.setParentId(null);
 		node.setNodeType(EntityType.project.getId());

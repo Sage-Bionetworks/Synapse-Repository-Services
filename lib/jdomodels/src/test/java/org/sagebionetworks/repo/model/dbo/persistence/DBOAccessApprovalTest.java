@@ -109,7 +109,7 @@ public class DBOAccessApprovalTest {
 		accessApproval.setCreatedOn(System.currentTimeMillis());
 		accessApproval.setModifiedBy(Long.parseLong(principal.getId()));
 		accessApproval.setModifiedOn(System.currentTimeMillis());
-		accessApproval.seteTag(10L);
+		accessApproval.seteTag("10");
 		accessApproval.setAccessorId(Long.parseLong(principal.getId()));
 		accessApproval.setRequirementId(ar.getId());
 		accessApproval.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessApproval");

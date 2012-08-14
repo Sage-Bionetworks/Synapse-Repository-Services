@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.model.jdo;
+package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -12,6 +12,8 @@ import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 /**
  * Translates JDOs and DTOs.
@@ -19,7 +21,7 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
  * @author jmhill
  *
  */
-public class JDONodeUtils {
+class NodeUtils {
 	
 	// take backupnode and backuprevision, map to dbonode and dborevision
 
@@ -96,7 +98,7 @@ public class JDONodeUtils {
 			jdo.setCreatedOn(dto.getCreatedOn().getTime());
 		}
 		jdo.setCreatedBy(dto.getCreatedByPrincipalId());
-		jdo.seteTag(KeyFactory.stringToKey(dto.getETag()));
+		jdo.seteTag(KeyFactory.urlDecode(dto.getETag()));
 		jdo.setCurrentRevNumber(dto.getVersionNumber());
 		jdo.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
 		if(dto.getParentId() != null){
@@ -132,7 +134,7 @@ public class JDONodeUtils {
 			dto.setParentId(KeyFactory.keyToString(jdo.getParentId()));
 		}
 		if(jdo.geteTag() != null){
-			dto.setETag(jdo.geteTag().toString());
+			dto.setETag(jdo.geteTag());
 		}
 		if(jdo.getNodeType() != null){
 			dto.setNodeType(EntityType.getTypeForId(jdo.getNodeType()).name());

@@ -11,6 +11,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -38,6 +39,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Autowired
 	private DBOBasicDao basicDao;
+
+	@Autowired
+	private ETagGenerator eTagGenerator;
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
@@ -65,7 +69,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			InvalidModelException {
 		DBOUserProfile jdo = new DBOUserProfile();
 		UserProfileUtils.copyDtoToDbo(dto, jdo, schema);
-		if (jdo.geteTag()==null) jdo.seteTag(0L);
+		if (jdo.geteTag()==null) jdo.seteTag(eTagGenerator.generateETag(jdo));
 		jdo = basicDao.createNew(jdo);
 		return jdo.getOwnerId().toString();
 	}
@@ -124,10 +128,10 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		}
 		// check dbo's etag against dto's etag
 		// if different rollback and throw a meaningful exception
-		if (!dbo.geteTag().equals(Long.parseLong(dto.getEtag())))
+		if (!dbo.geteTag().equals(dto.getEtag()))
 			throw new ConflictingUpdateException("Use profile was updated since you last fetched it, retrieve it again and reapply the update.");
 		UserProfileUtils.copyDtoToDbo(dto, dbo, schema);
-		dbo.seteTag(1L+dbo.geteTag());
+		dbo.seteTag(eTagGenerator.generateETag(dbo));
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user profile in database.");
 		UserProfile resultantDto = new UserProfile();

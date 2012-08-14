@@ -30,7 +30,7 @@ public class JDONodeLockCheckerImpl implements JDONodeLockChecker {
 	private volatile boolean holdLock = true; 
 	private volatile boolean lockAcquired = false;
 	private volatile boolean failedDueToEtagConflict = false;
-	private volatile long etag = -1;
+	private volatile String etag = "etag";
 	private volatile long threadId = -1;
 	private volatile long nodeId = -1;
 
@@ -40,12 +40,12 @@ public class JDONodeLockCheckerImpl implements JDONodeLockChecker {
 		holdLock = true;
 		lockAcquired = false;
 		nodeId = KeyFactory.stringToKey(stringId);
-		etag = -1;
+		etag = "";
 		threadId = Thread.currentThread().getId();
 		printStatusToLog();
 		// Now try to acquire the lock
 		try {
-			etag = Long.parseLong(nodeDao.lockNodeAndIncrementEtag(stringId, currentETag));
+			etag = nodeDao.lockNodeAndIncrementEtag(stringId, currentETag);
 		} catch (ConflictingUpdateException e) {
 			// Failed to acquire the lock due to a conflict
 			failedDueToEtagConflict = true;

@@ -46,14 +46,6 @@ public class AccessRequirementUtilsTest {
 		assertEquals(dto, dto2);
 	}
 
-	@Test(expected = NumberFormatException.class)
-	public void testInvalidEtag() throws Exception {
-		AccessRequirement dto = createDTO();
-		dto.setEtag("not a number");
-		DBOAccessRequirement dbo = new DBOAccessRequirement();
-		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-	}
-
 	@Test
 	public void testRoundtripWithNulls() throws Exception {
 		AccessRequirement dto = createDTO();
@@ -67,7 +59,5 @@ public class AccessRequirementUtilsTest {
 		AccessRequirement dto2 = AccessRequirementUtils.copyDboToDto(dbo, nodeIds);
 		assertEquals(dto, dto2);
 	}
-
-
 
 }
