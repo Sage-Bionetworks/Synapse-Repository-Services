@@ -157,14 +157,13 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		return aclDAO.getForResource(benefactor);
 	}
 	
-	private void requireUser(UserInfo userInfo) throws UnauthorizedException {
-		if(userInfo.getUser().getUserId().equalsIgnoreCase(AuthorizationConstants.ANONYMOUS_USER_ID))
-			throw new UnauthorizedException("Anonymous user cannot retrieve group information.");
+	@Override
+	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException {
+		return getGroups();
 	}
 
 	@Override
-	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
-		requireUser(userInfo);
+	public Collection<UserGroup> getGroups() throws DatastoreException {
 		List<String> groupsToOmit = new ArrayList<String>();
 		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
 		return userGroupDAO.getAllExcept(false, groupsToOmit);
@@ -172,7 +171,6 @@ public class PermissionsManagerImpl implements PermissionsManager {
 
 	@Override
 	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException {
-		requireUser(userInfo);
 		List<String> groupsToOmit = new ArrayList<String>();
 		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
 		return userGroupDAO.getInRangeExcept(startIncl, endExcl, false, groupsToOmit);
