@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
@@ -1534,6 +1535,69 @@ public class ServletTestHelper {
 		request.setRequestURI(urlBuilder.toString());
 		// Add the header that indicates we want JSONP
 		request.addParameter(UrlHelpers.REQUEST_CALLBACK_JSONP, callbackName);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return response.getContentAsString();
+	}
+
+	/**
+	 * 
+	 * @param dispatchServlet
+	 * @param param
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String pefix, int limit, int offest)
+			throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.USER_GROUP_HEADERS);
+		if(pefix != null){
+			request.setParameter(UrlHelpers.PREFIX_FILTER, pefix);
+		}
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, "" + limit);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, "" + offest);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return (UserGroupHeaderResponsePage) objectMapper.readValue(response.getContentAsString(), UserGroupHeaderResponsePage.class);
+	}
+
+	/**
+	 * @param dispatchServlet
+	 * @param param
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public static String getUserGroupHeadersAsJSONP(String pefix, int limit, int offest, String callbackName)
+			throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.USER_GROUP_HEADERS);
+		StringBuilder urlBuilder = new StringBuilder();
+		urlBuilder.append(UrlHelpers.CONCEPT);
+		urlBuilder.append("/");
+		if(pefix != null){
+			request.setParameter(UrlHelpers.PREFIX_FILTER, pefix);
+		}
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, "" + limit);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, "" + offest);
+		request.setRequestURI(urlBuilder.toString());
+		
+		// Add the header that indicates we want JSONP
+		request.addParameter(UrlHelpers.REQUEST_CALLBACK_JSONP, callbackName);
+		
 		dispatchServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {

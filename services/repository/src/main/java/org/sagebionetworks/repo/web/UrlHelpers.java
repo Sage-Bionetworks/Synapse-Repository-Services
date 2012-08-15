@@ -269,6 +269,11 @@ public class UrlHelpers {
 	public static final String CONCEPT_ID_CHILDERN_TRANSITIVE	= CONCEPT_ID+CHILDERN_TRANSITIVE;
 	
 	/**
+	 * Public access for Synapse user and group info
+	 */
+	public static final String USER_GROUP_HEADERS = "/userGroupHeaders";
+	
+	/**
 	 * The name of the query parameter for a prefix filter.
 	 */
 	public static final String PREFIX_FILTER = "prefix";
