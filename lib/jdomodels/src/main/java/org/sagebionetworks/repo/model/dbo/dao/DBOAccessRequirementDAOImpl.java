@@ -290,13 +290,28 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		}
 		return dtos;
 	}
-	
-	
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends AccessRequirement> T update(T dto) throws DatastoreException,
 			InvalidModelException,NotFoundException, ConflictingUpdateException {
-		// LOCK the record
+		return update(dto, false);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public <T extends AccessRequirement> T updateFromBackup(T dto) throws DatastoreException,
+			InvalidModelException,NotFoundException, ConflictingUpdateException {
+		return update(dto, true);
+	}
+
+	/**
+	 * @param fromBackup Whether we are updating from backup.
+	 *                   Skip optimistic locking and accept the backup e-tag when restoring from backup.
+	 */
+	private <T extends AccessRequirement> T update(T dto, boolean fromBackup) throws DatastoreException,
+			InvalidModelException,NotFoundException, ConflictingUpdateException {
+
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_REQUIREMENT_ID, dto.getId());
 		List<DBOAccessRequirement> ars = null;
@@ -319,17 +334,27 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		if (ars.isEmpty()) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");			
 		}
+
 		DBOAccessRequirement dbo = ars.get(0);
-		// check dbo's etag against dto's etag
-		// if different rollback and throw a meaningful exception
-		if (!dbo.geteTag().equals(dto.getEtag()))
-			throw new ConflictingUpdateException("Access Requirement was updated since you last fetched it, retrieve it again and reapply the update.");
+		if (!fromBackup) {
+			// check dbo's etag against dto's etag
+			// if different rollback and throw a meaningful exception
+			if (!dbo.geteTag().equals(dto.getEtag())) {
+				throw new ConflictingUpdateException("Access Requirement was updated since you last fetched it, retrieve it again and reapply the update.");
+			}
+		}
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
-		dbo.seteTag(eTagGenerator.generateETag(dbo));
+		if (!fromBackup) {
+			// Update with a new e-tag; otherwise, the backup e-tag is used implicitly
+			dbo.seteTag(eTagGenerator.generateETag(dbo));
+		}
+
 		boolean success = basicDao.update(dbo);
+
 		if (!success) throw new DatastoreException("Unsuccessful updating user Access Requirement in database.");
 		updateNodeAccessRequirement(dbo.getId(), dto.getEntityIds());
 		T updatedAR = (T)AccessRequirementUtils.copyDboToDto(dbo, getEntities(dbo.getId()));
+
 		return updatedAR;
 	} // the 'commit' is implicit in returning from a method annotated 'Transactional'
 	

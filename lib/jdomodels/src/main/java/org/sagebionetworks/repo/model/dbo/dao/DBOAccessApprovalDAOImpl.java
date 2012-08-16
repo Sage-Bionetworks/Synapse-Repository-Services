@@ -123,9 +123,24 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends AccessApproval> T  update(T dto) throws DatastoreException,
-			InvalidModelException, NotFoundException,
-			ConflictingUpdateException {
-		// LOCK the record
+			InvalidModelException, NotFoundException, ConflictingUpdateException {
+		return update(dto, false);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public <T extends AccessApproval> T  updateFromBackup(T dto) throws DatastoreException,
+			InvalidModelException, NotFoundException, ConflictingUpdateException {
+		return update(dto, true);
+	}
+
+	/**
+	 * @param fromBackup Whether we are updating from backup.
+	 *                   Skip optimistic locking and accept the backup e-tag when restoring from backup.
+	 */
+	private <T extends AccessApproval> T  update(T dto, boolean fromBackup) throws DatastoreException,
+			InvalidModelException, NotFoundException, ConflictingUpdateException {
+
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ID, dto.getId());
 		List<DBOAccessApproval> aas = null;
@@ -147,23 +162,30 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		if (aas.isEmpty()) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");			
 		}
+
 		DBOAccessApproval dbo = aas.get(0);
-		// check dbo's etag against dto's etag
-		// if different rollback and throw a meaningful exception
-		if (!dbo.geteTag().equals(dto.getEtag()))
-			throw new ConflictingUpdateException("Access Approval was updated since you last fetched it, retrieve it again and reapply the update.");
+		if (!fromBackup) {
+			// check dbo's etag against dto's etag
+			// if different rollback and throw a meaningful exception
+			if (!dbo.geteTag().equals(dto.getEtag())) {
+				throw new ConflictingUpdateException("Access Approval was updated since you last fetched it, retrieve it again and reapply the update.");
+			}
+		}
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
-		dbo.seteTag(eTagGenerator.generateETag(dbo));
+		if (!fromBackup) {
+			// Update with a new e-tag; otherwise, the backup e-tag is used implicitly
+			dbo.seteTag(eTagGenerator.generateETag(dbo));
+		}
+
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user Access Approval in database.");
 
 		T resultantDto = (T)AccessApprovalUtils.copyDboToDto(dbo);
 
 		return resultantDto;
-	} // the 'commit' is implicit in returning from a method annotated 'Transactional'
+	}
 
 	private static final TableMapping<DBOAccessApproval> TABLE_MAPPING = (new DBOAccessApproval()).getTableMapping();
-
 
 	@Override
 	public List<AccessApproval> getForAccessRequirement(String accessRequirementId) throws DatastoreException {
@@ -180,6 +202,4 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		}
 		return dtos;
 	}
-	
-
 }

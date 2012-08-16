@@ -36,12 +36,21 @@ public interface AccessRequirementDAO extends MigratableDAO {
 	public List<AccessRequirement> getForNode(String nodeId) throws DatastoreException;
 	
 	/**
-	 * updates the 'shallow' properties of an object
-	 * 
+	 * Updates the 'shallow' properties of an object.
+	 *
 	 * @param dto
-	 * @throws DatastoreException 
+	 * @throws DatastoreException
 	 */
 	public <T extends AccessRequirement> T update(T accessRequirement) throws InvalidModelException,
+			NotFoundException, ConflictingUpdateException, DatastoreException;
+
+	/**
+	 * Updates the 'shallow' properties of an object from backup.
+	 *
+	 * @param dto
+	 * @throws DatastoreException
+	 */
+	public <T extends AccessRequirement> T updateFromBackup(T accessRequirement) throws InvalidModelException,
 			NotFoundException, ConflictingUpdateException, DatastoreException;
 
 	/**
