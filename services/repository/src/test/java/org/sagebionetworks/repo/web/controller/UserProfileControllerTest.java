@@ -56,7 +56,7 @@ public class UserProfileControllerTest {
 	
 	@Test
 	public void testGeUserGroupHeadersWithFilter() throws ServletException, IOException{
-		String prefix = "Be";
+		String prefix = "dev";
 		int limit = 10;
 		int offset = 0;
 		
