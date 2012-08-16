@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -59,7 +58,6 @@ public class AccessRequirementBackupDriver implements GenericBackupDriver {
 							+ destination.getAbsolutePath());
 
 		// get the UserGroups, UserProfiles for the given IDs
-		List<AccessRequirementBackup> backups = new ArrayList<AccessRequirementBackup>();
 		Set<String> arIds = null;
 		if (arsToBackup==null) {
 			// get all the ids in the system
@@ -67,9 +65,7 @@ public class AccessRequirementBackupDriver implements GenericBackupDriver {
 		} else {
 			arIds = new HashSet<String>(arsToBackup);
 		}
-				
-		long currentIndex = 0L;
-		
+
 		log.info("Starting a backup to file: " + destination.getAbsolutePath());
 		progress.appendLog("Starting a backup to file: " + destination.getAbsolutePath());
 		progress.setTotalCount(arIds.size());
@@ -157,7 +153,7 @@ public class AccessRequirementBackupDriver implements GenericBackupDriver {
 		return true;
 	}
 	
-	public void createOrUpdateAccessRequirementAndApprovals(AccessRequirementBackup backup) throws DatastoreException, NotFoundException, InvalidModelException, ConflictingUpdateException {
+	private void createOrUpdateAccessRequirementAndApprovals(AccessRequirementBackup backup) throws DatastoreException, NotFoundException, InvalidModelException, ConflictingUpdateException {
 		// create the access requirement
 		AccessRequirement ar = backup.getAccessRequirement();
 		AccessRequirement arFromSystem = null;
@@ -169,7 +165,10 @@ public class AccessRequirementBackupDriver implements GenericBackupDriver {
 		if (null==arFromSystem) {
 			ar = accessRequirementDAO.create(ar);
 		} else {
-			ar = accessRequirementDAO.update(ar);
+			// Update only when backup is different from the current system
+			if (!arFromSystem.getEtag().equals(ar.getEtag())) {
+				ar = accessRequirementDAO.updateFromBackup(ar);
+			}
 		}
 		
 		// create the access approvals
@@ -187,7 +186,10 @@ public class AccessRequirementBackupDriver implements GenericBackupDriver {
 			if (null==aaFromSystem) {
 				accessApprovalDAO.create(aa);
 			} else {
-				accessApprovalDAO.update(aa);
+				// Update only when backup is different from the current system
+				if (!arFromSystem.getEtag().equals(ar.getEtag())) {
+					accessApprovalDAO.updateFromBackup(aa);
+				}
 			}
 		}
 	}
