@@ -68,8 +68,13 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				throw e;
 			}
 		}
-		if ((mask & EntityBundle.ACL) > 0) {			
-			eb.setAccessControlList(serviceProvider.getEntityService().getEntityACL(entityId, userId, request));
+		if ((mask & EntityBundle.ACL) > 0) {
+			try {
+				eb.setAccessControlList(serviceProvider.getEntityService().getEntityACL(entityId, userId, request));
+			} catch (ACLInheritanceException e) {
+				// ACL is inherited from benefactor. Set ACL to null.
+				eb.setAccessControlList(null);
+			}
 		}
 		
 		// TODO : these do not belong in the entity bundle
