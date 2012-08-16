@@ -51,10 +51,9 @@ public interface UserProfileDAO {
 	 */
 	public long getCount() throws DatastoreException, NotFoundException;
 
-
 	/**
-	 * UserProfilehis updates the 'shallow' properties of an object
-	 * 
+	 * Updates the 'shallow' properties of an object.
+	 *
 	 * @param dto
 	 *            non-null id is required
 	 * @throws DatastoreException
@@ -62,6 +61,18 @@ public interface UserProfileDAO {
 	 * @throws NotFoundException
 	 */
 	public UserProfile update(UserProfile dto, ObjectSchema schema) throws DatastoreException, InvalidModelException,
+			NotFoundException, ConflictingUpdateException;
+
+	/**
+	 * Updates the 'shallow' properties of an object from backup.
+	 *
+	 * @param dto
+	 *            non-null id is required
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 */
+	public UserProfile updateFromBackup(UserProfile dto, ObjectSchema schema) throws DatastoreException, InvalidModelException,
 			NotFoundException, ConflictingUpdateException;
 
 	/**
@@ -73,6 +84,4 @@ public interface UserProfileDAO {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
-
-
 }

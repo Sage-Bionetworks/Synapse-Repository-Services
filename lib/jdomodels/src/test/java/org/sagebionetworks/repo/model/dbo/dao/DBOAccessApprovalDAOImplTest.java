@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -192,8 +191,7 @@ public class DBOAccessApprovalDAOImplTest {
 		clone = ars.iterator().next();
 		AccessApproval updatedAA = accessApprovalDAO.update(clone);
 		assertEquals(((TermsOfUseAccessApproval)clone).getEntityType(), ((TermsOfUseAccessApproval)updatedAA).getEntityType());
-
-		assertTrue("etags should be incremented after an update", !clone.getEtag().equals(updatedAA.getEtag()));
+		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedAA.getEtag()));
 
 		try {
 			accessApprovalDAO.update(clone);
@@ -201,11 +199,18 @@ public class DBOAccessApprovalDAOImplTest {
 		}
 		catch(ConflictingUpdateException e){
 			// We expected this exception
-		}	
-		
+		}
+
+		try {
+			// Update from a backup.
+			updatedAA = accessApprovalDAO.updateFromBackup(clone);
+			assertEquals(clone.getEtag(), updatedAA.getEtag());
+		}
+		catch(ConflictingUpdateException e) {
+			fail("Update from backup should not generate exception even if the e-tag is different.");
+		}
+
 		// Delete it
 		accessApprovalDAO.delete(id);
 	}
-
-
 }
