@@ -4,6 +4,9 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -14,6 +17,7 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.http.HttpHeaders;
 
 /**
@@ -137,6 +141,14 @@ public interface UserProfileService {
 	 * 
 	 * @return
 	 */
-	public Long millisSinceLastCacheUpdate();	
+	public Long millisSinceLastCacheUpdate();
+
+	public void setObjectTypeSerializer(ObjectTypeSerializer objectTypeSerializer);
+
+	public void setPermissionsManager(PermissionsManager permissionsManager);
+
+	public void setUserManager(UserManager userManager);
+
+	public void setUserProfileManager(UserProfileManager userProfileManager);	
 
 }
