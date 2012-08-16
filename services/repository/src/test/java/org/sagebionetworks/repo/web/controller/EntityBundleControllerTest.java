@@ -148,6 +148,35 @@ public class EntityBundleControllerTest {
 		PaginatedResults<UserGroup> ug = eb.getGroups();
 		assertNotNull("UserGroups was requested, but null in bundle", ug);
 	}
+	
+	@Test
+	public void testGetEntityBundleInheritedACL() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
+		// Create an entity
+		Project p = new Project();
+		p.setName("Dummy Project");
+		p.setEntityType(p.getClass().getName());
+		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		String id = p2.getId();
+		toDelete.add(id);
+		
+		Study s1 = new Study();
+		s1.setName("Dummy Study 1");
+		s1.setEntityType(s1.getClass().getName());
+		s1.setParentId(id);
+		s1 = (Study) entityServletHelper.createEntity(s1, TEST_USER1);
+		toDelete.add(s1.getId());
+		
+		// Get the bundle, verify contents
+		int mask =  EntityBundle.ENTITY | 
+					EntityBundle.ACL;
+		EntityBundle eb = entityServletHelper.getEntityBundle(s1.getId(), mask, TEST_USER1);
+		Study s2 = (Study) eb.getEntity();
+		assertTrue("Etags do not match.", s2.getEtag().equals(s1.getEtag()));
+		assertEquals(s1, s2);
+		
+		AccessControlList acl = eb.getAccessControlList();
+		assertNull("AccessControlList is inherited; should have been null in bundle.", acl);
+	}
 		
 	/**
 	 * Test that proper versions are returned
