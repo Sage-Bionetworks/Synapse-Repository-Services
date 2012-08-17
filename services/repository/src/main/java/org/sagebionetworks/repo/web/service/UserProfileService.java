@@ -124,7 +124,7 @@ public interface UserProfileService {
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(
 			String prefixFilter, Integer offset, Integer limit,
 			HttpHeaders header, HttpServletRequest request)
-			throws DatastoreException, NotFoundException, IOException;
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Populate a cache of headers for all Synapse users, to support fast
