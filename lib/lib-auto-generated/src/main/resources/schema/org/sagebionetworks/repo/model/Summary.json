@@ -1,6 +1,6 @@
 {
-    "title":"Snapshot",
-    "description":"JSON schema for Snapshot POJO",
+    "title":"Summary",
+    "description":"JSON schema for Summary POJO",
     "implements":[
         {
             "$ref":"org.sagebionetworks.repo.model.Versionable"
@@ -9,11 +9,11 @@
     "properties":{
         "groups":{
             "type":"array",
-            "description":"The list of SnapshotGroups for this snapshot.",
+            "description":"The list of EntityGroups for this snapshot.",
             "uniqueItems":false,
             "contentEncoding":"binary",
             "items":{
-                "$ref":"org.sagebionetworks.repo.model.SnapshotGroup"
+                "$ref":"org.sagebionetworks.repo.model.EntityGroup"
             }
         }
     }
