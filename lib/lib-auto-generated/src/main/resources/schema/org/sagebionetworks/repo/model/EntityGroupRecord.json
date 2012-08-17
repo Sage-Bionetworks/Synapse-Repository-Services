@@ -1,6 +1,6 @@
 {
-    "title":"Snapshot Group Record",
-    "description":"JSON schema for Snapshot Group Record POJO",
+    "title":"Entity Group Record",
+    "description":"JSON schema for Entity Group Record POJO",
     "properties":{
         "entityReference":{
             "type":"object",

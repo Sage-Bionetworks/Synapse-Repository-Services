@@ -1,6 +1,6 @@
 {
-    "title":"Snapshot Group",
-    "description":"JSON schema for a Snapshot Group POJO",
+    "title":"Entity Group",
+    "description":"JSON schema for an Entity Group POJO",
     "properties":{
         "name":{
             "type":"string",
@@ -14,10 +14,10 @@
         },
         "records":{
             "type":"array",
-            "description":"The set of SnapshotGroupRecords for this group.",
+            "description":"The set of EntityGroupRecords for this group.",
             "uniqueItems":false,
             "items":{
-                "$ref":"org.sagebionetworks.repo.model.SnapshotGroupRecord"
+                "$ref":"org.sagebionetworks.repo.model.EntityGroupRecord"
             }
         }
     }

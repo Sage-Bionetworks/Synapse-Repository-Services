@@ -158,8 +158,8 @@
                 "org.sagebionetworks.repo.model.Project",
                 "org.sagebionetworks.repo.model.Study"
             ],
-            "name":"snapshot",
-            "entityType":"org.sagebionetworks.repo.model.Snapshot",
+            "name":"summary",
+            "entityType":"org.sagebionetworks.repo.model.Summary",
             "defaultParentPath":"/root"
         }
     ]
