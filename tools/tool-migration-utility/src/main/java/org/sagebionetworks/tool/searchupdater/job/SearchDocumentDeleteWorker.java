@@ -61,7 +61,6 @@ public class SearchDocumentDeleteWorker implements Callable<WorkerResult> {
 				document.setType(DocumentTypeNames.delete);
 				document.setId(entityId);
 				document.setVersion(now.getMillis() / 1000);
-				document.setLang("en"); // TODO this should have been set via "default" in the schema for this
 				documentBatch.put(EntityFactory.createJSONObjectForEntity(document));
 			}
 

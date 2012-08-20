@@ -590,7 +590,7 @@ public class Synapse {
 			Iterator<String> it = adapter.keys();
 			while (it.hasNext()) {
 				String s = it.next();
-				System.out.println(s);
+				log.trace(s);
 			}
 			obj.initializeFromJSONObject(adapter);
 			return obj;
