@@ -66,7 +66,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		UserProfile userProfile = userProfileDAO.get(ownerId, schema);
-		userProfile.setUserName(userInfo.getUser().getUserId());
+		if (userInfo.getUser() != null)
+			userProfile.setUserName(userInfo.getUser().getUserId());
 		boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
 		if (!canSeePrivate) {
 			UserProfileManagerUtils.clearPrivateFields(userProfile);
