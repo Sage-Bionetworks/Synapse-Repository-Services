@@ -569,22 +569,22 @@ public class StackConfiguration {
 	
 	public static String getPortalLinkedInKey() {
 		return configuration
-				.getDecryptedProperty("org.sagebionetworks.portal.api.linkedin.key");
+				.getProperty("org.sagebionetworks.portal.api.linkedin.key");
 	}
 	
 	public static String getPortalLinkedInSecret() {
 		return configuration
-				.getDecryptedProperty("org.sagebionetworks.portal.api.linkedin.secret");
+				.getProperty("org.sagebionetworks.portal.api.linkedin.secret");
 	}
 
 	public static String getPortalGetSatisfactionKey() {
 		return configuration
-				.getDecryptedProperty("org.sagebionetworks.portal.api.getsatisfaction.key");
+				.getProperty("org.sagebionetworks.portal.api.getsatisfaction.key");
 	}
 	
 	public static String getPortalGetSatisfactionSecret() {
 		return configuration
-				.getDecryptedProperty("org.sagebionetworks.portal.api.getsatisfaction.secret");
+				.getProperty("org.sagebionetworks.portal.api.getsatisfaction.secret");
 	}
 	
 	/**
