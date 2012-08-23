@@ -1,14 +1,16 @@
 package org.sagebionetworks.repo.manager.backup.daemon;
 
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.backup.NodeBackupDriver;
+import org.sagebionetworks.repo.manager.backup.GenericBackupDriver;
 import org.sagebionetworks.repo.manager.backup.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.MigrationType;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -32,32 +34,35 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	
 	@Autowired
 	BackupRestoreStatusDAO backupRestoreStatusDao;
+	
 	@Autowired
-	NodeBackupDriver backupDriver;
-	@Autowired
-	NodeBackupDriver principalBackupDriver;
+	Map<String, GenericBackupDriver> backupDriverMap;
+	
 	@Autowired
 	SearchDocumentDriver searchDocumentDriver;
+	
 	@Autowired
 	ExecutorService backupDaemonThreadPool;
+	
 	@Autowired
 	ExecutorService backupDaemonThreadPool2;
+	
+	// for use by Spring
+	public void setBackupDriverMap(Map<String,GenericBackupDriver> map) {
+		this.backupDriverMap = map;
+	}
 
 	@Override
-	public BackupRestoreStatus startBackup(UserInfo username, Set<String> entitiesToBackup, MigrationType migrationType) throws UnauthorizedException, DatastoreException {
+	public BackupRestoreStatus startBackup(UserInfo username, Set<String> entitiesToBackup, MigratableObjectType migrationType) throws UnauthorizedException, DatastoreException {
 		UserInfo.validateUserInfo(username);
 		// Only an admin can start a backup Daemon
 		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a backup daemon");
 		
 		AmazonS3Client client = createNewAWSClient();
 		
-		NodeBackupDriver typeSpecificBackupDriver = null;
-		if (migrationType.equals(MigrationType.ENTITY)) {
-			typeSpecificBackupDriver = backupDriver;
-		} else if (migrationType.equals(MigrationType.PRINCIPAL)) {
-			typeSpecificBackupDriver = principalBackupDriver;
-		} else {
-			throw new IllegalArgumentException(migrationType.toString());
+		GenericBackupDriver typeSpecificBackupDriver = backupDriverMap.get(migrationType.name());
+		if (typeSpecificBackupDriver==null) {
+			throw new IllegalArgumentException("No backupDriver for "+migrationType.toString());
 		}
 		
 		// Create a new daemon and start it
@@ -75,29 +80,25 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		AmazonS3Client client = createNewAWSClient();
 
 		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, backupDriver, searchDocumentDriver, client, workflowBucket, backupDaemonThreadPool, backupDaemonThreadPool2, entityIds);
+		GenericBackupDriver entityBackupDriver = backupDriverMap.get(MigratableObjectType.ENTITY.name());
+		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, entityBackupDriver, searchDocumentDriver, client, workflowBucket, backupDaemonThreadPool, backupDaemonThreadPool2, entityIds);
 		// Start that bad boy up!
 		return daemon.startSearchDocument(username.getIndividualGroup().getId());
 	}
 	
 	@Override
-	public BackupRestoreStatus startRestore(UserInfo username, String fileName, MigrationType migrationType)	throws UnauthorizedException, DatastoreException {
+	public BackupRestoreStatus startRestore(UserInfo username, String fileName, MigratableObjectType migrationType)	throws UnauthorizedException, DatastoreException {
 		UserInfo.validateUserInfo(username);
 		// Only an admin can start a backup Daemon
 		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a restoration daemon");
 		
 		AmazonS3Client client = createNewAWSClient();
 		
-		NodeBackupDriver typeSpecificBackupDriver = null;
-		if (migrationType.equals(MigrationType.ENTITY)) {
-			typeSpecificBackupDriver = backupDriver;
-		} else if (migrationType.equals(MigrationType.PRINCIPAL)) {
-			typeSpecificBackupDriver = principalBackupDriver;
-		} else {
-			throw new IllegalArgumentException(migrationType.toString());
+		GenericBackupDriver typeSpecificBackupDriver = backupDriverMap.get(migrationType.name());
+		if (typeSpecificBackupDriver==null) {
+			throw new IllegalArgumentException("No backupDriver for "+migrationType.toString());
 		}
 		
-
 		// Create a new daemon and start it
 		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, typeSpecificBackupDriver, searchDocumentDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2);
 		return daemon.startRestore(username.getIndividualGroup().getId(), fileName);
@@ -135,6 +136,22 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		// Only an admin can stop deamon;
 		if(!user.isAdmin()) throw new UnauthorizedException("Must be an administrator to get the status of a backup/restore daemon");
 		return backupRestoreStatusDao.get(id);
+	}
+
+	@Override
+	public void delete(UserInfo user, MigratableObjectDescriptor mod)
+			throws UnauthorizedException, DatastoreException, NotFoundException {
+		UserInfo.validateUserInfo(user);
+		// Only an admin can stop deamon;
+		if(!user.isAdmin()) throw new UnauthorizedException("Must be an administrator to invoke the backup/restore daemon");
+		
+		MigratableObjectType migrationType = mod.getType();
+		GenericBackupDriver typeSpecificBackupDriver = backupDriverMap.get(migrationType.name());
+		if (typeSpecificBackupDriver==null) {
+			throw new IllegalArgumentException("No backupDriver for "+migrationType.toString());
+		}
+		typeSpecificBackupDriver.delete(mod.getId());
+	
 	}
 
 

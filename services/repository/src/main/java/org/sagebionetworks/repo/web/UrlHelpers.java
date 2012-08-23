@@ -39,17 +39,20 @@ public class UrlHelpers {
 	private static final Logger log = Logger.getLogger(UrlHelpers.class
 			.getName());
 	
-	public static final String ACCESS 			= "/access";
+	public static final String ACCESS 				= "/access";
 	
-	public static final String PERMISSIONS 		= "/permissions";
+	public static final String PERMISSIONS 			= "/permissions";
 
 	public static final String ACCESS_TYPE_PARAM	= "accessType";
+	
+	public static final String BUNDLE				= "/bundle";
 
 	/**
 	 * URL prefix for all objects that are referenced by their ID.
 	 * 
 	 */
-	public static final String ID = "/{id}";
+	public static final String ID_PATH_VARIABLE = "id";
+	public static final String ID = "/{"+ID_PATH_VARIABLE+"}";
 	
 	/**
 	 * URL prefix for all objects that are referenced by their ID.
@@ -109,14 +112,22 @@ public class UrlHelpers {
 	public static final String ATTACHMENT_S3_TOKEN = "/s3AttachmentToken";
 	
 	public static final String ATTACHMENT_URL = "/attachmentUrl";
+	
+	public static final String MIGRATION_OBJECT_ID_PARAM = "id";
 
+	/**
+	 * parameter used by migration services to describe the type of migration 
+	 * to be performed
+	 */
+	public static final String MIGRATION_TYPE_PARAM = "migrationType";
+	
 	/**
 	 * All of the base URLs for Synapse objects
 	 */
 	public static final String ENTITY	 = PrefixConst.ENTITY;
 	public static final String USER_PROFILE  = PrefixConst.USER_PROFILE;
 	public static final String HEALTHCHECK = PrefixConst.HEALTHCHECK;
-	
+	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;	
 	/**
 	 * All of the base URLs for Synapse object batch requests
 	 */
@@ -130,6 +141,7 @@ public class UrlHelpers {
 	public static final String ENTITY_ID	= ENTITY+ID;
 	public static final String USER_PROFILE_ID		= USER_PROFILE+PROFILE_ID;
 	
+	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
 	
@@ -187,6 +199,10 @@ public class UrlHelpers {
 	 */
 	public static final String ENTITY_VERSION_ANNOTATIONS =		ENTITY_VERSION_NUMBER+ANNOTATIONS;
 
+	/**
+	 * Get the bundle for a specific version of an entity
+	 */
+	public static final String ENTITY_VERSION_NUMBER_BUNDLE = ENTITY_VERSION_NUMBER+BUNDLE;
 
 	/**
 	 * URL path for query controller
@@ -208,14 +224,13 @@ public class UrlHelpers {
 	public static final String USERGROUP = "/userGroup";
 	
 	public static final String ACCESS_REQUIREMENT = "/accessRequirement";
-	public static final String ACCESS_REQUIREMENT_WITH_ENTITY_ID = ACCESS_REQUIREMENT+"/{entityId}";
+	public static final String ACCESS_REQUIREMENT_WITH_ENTITY_ID = ENTITY_ID+ACCESS_REQUIREMENT;
 	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID = ACCESS_REQUIREMENT+"/{requirementId}";
 	
-	public static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled";
-	public static final String ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ACCESS_REQUIREMENT_UNFULFILLED+"/{entityId}";
+	public static final String ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ENTITY_ID+"/accessRequirementUnfulfilled";
 	
 	public static final String ACCESS_APPROVAL = "/accessApproval";
-	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ACCESS_APPROVAL+"/{entityId}";
+	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ENTITY_ID+ACCESS_APPROVAL;
 	public static final String ACCESS_APPROVAL_WITH_APPROVAL_ID = ACCESS_APPROVAL+"/{approvalId}";
 	
 	/**
@@ -254,6 +269,11 @@ public class UrlHelpers {
 	public static final String CONCEPT_ID_CHILDERN_TRANSITIVE	= CONCEPT_ID+CHILDERN_TRANSITIVE;
 	
 	/**
+	 * Public access for Synapse user and group info
+	 */
+	public static final String USER_GROUP_HEADERS = "/userGroupHeaders";
+	
+	/**
 	 * The name of the query parameter for a prefix filter.
 	 */
 	public static final String PREFIX_FILTER = "prefix";
@@ -278,6 +298,14 @@ public class UrlHelpers {
 	 * The parameter for a resource name.
 	 */
 	public static final String RESOURCE_ID = "resourceId";
+	
+	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
+
+	/**
+	 * Used by AdministrationController service to say whether object dependencies should be calculated
+	 * when listing objects to back up.
+	 */
+	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
 
 	/**
 	 * This is a memoized cache for our URL regular expressions
@@ -303,6 +331,35 @@ public class UrlHelpers {
 //		return type.getUrlPrefix();
 //	}
 
+	
+	/**
+	 * Helper function to create a relative URL for an entity's annotations
+	 * <p>
+	 * 
+	 * This includes not only the entity id but also the controller and servlet
+	 * portions of the path
+	 * 
+	 * @param request
+	 * @return the uri for this entity's annotations
+	 */
+	public static String makeEntityAnnotationsUri(String entityId) {
+		return ENTITY + "/" + entityId + ANNOTATIONS;
+	}
+	
+	/**
+	 * Helper function to create a relative URL for an entity's ACL
+	 * <p>
+	 * 
+	 * This includes not only the entity id but also the controller and servlet
+	 * portions of the path
+	 * 
+	 * @param request
+	 * @return the uri for this entity's annotations
+	 */
+	public static String makeEntityACLUri(String entityId) {
+		return ENTITY + "/" + entityId + ACL;
+	}
+	
 	/**
 	 * Helper function to create a relative URL for an entity's dependent
 	 * property

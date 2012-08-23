@@ -1,36 +1,56 @@
 package org.sagebionetworks.client;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
 import static org.mockito.Mockito.when;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import javax.servlet.ServletException;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.entity.StringEntity;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Data;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
+import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.web.ForbiddenException;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.utils.HttpClientHelperException;
 
 /**
  * Unit test for Synapse.
@@ -58,6 +78,16 @@ public class SynapseTest {
 	@Test (expected=IllegalArgumentException.class)
 	public void testCreateNullEntity() throws Exception{
 		synapse.createEntity(null);
+	}
+	
+	@Test (expected=SynapseTermsOfUseException.class)
+	public void testTermsOfUseNotAccepted() throws Exception{
+		HttpClientHelperException simulatedHttpException = new HttpClientHelperException(){
+			public int getHttpStatus() {return 403;};
+		};
+		
+		when(mockProvider.performRequest(any(String.class),any(String.class),any(String.class),(Map<String,String>)anyObject())).thenThrow(simulatedHttpException);
+		synapse.login("username", "password", false);
 	}
 	
 	@Test
@@ -257,4 +287,63 @@ public class SynapseTest {
 		when(mockResponse.getEntity()).thenReturn(responseEntity);
 		synapse.createAccessApproval(aa);
 	}
+	
+	@Test
+	public void testGetVersionInfo() throws Exception {
+		VersionInfo expectedVersion = new VersionInfo();
+		expectedVersion.setVersion("versionString");
+		String jsonString = EntityFactory.createJSONStringForEntity(expectedVersion);
+		StringEntity responseEntity = new StringEntity(jsonString);
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		VersionInfo vi = synapse.getVersionInfo();
+		assertNotNull(vi);
+		assertEquals(vi, expectedVersion);
+	};
+
+	@Test
+	public void testGetEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, SynapseException {
+		// Create an entity
+		Study s = EntityCreator.createNewDataset();
+		
+		// Get/add/update annotations for this entity
+		Annotations a = new Annotations();
+		a.setEtag(s.getEtag());
+		a.addAnnotation("doubleAnno", new Double(45.0001));
+		a.addAnnotation("string", "A string");		
+		JSONObjectAdapter adapter0 = new JSONObjectAdapterImpl();
+		a.writeToJSONObject(adapter0);
+		
+		// We want the mock response to return JSON
+		StringEntity response = new StringEntity(adapter0.toJSONString());
+		when(mockResponse.getEntity()).thenReturn(response);
+		synapse.updateAnnotations(s.getId(), a);
+		
+		// Assemble the bundle
+		EntityBundle eb = new EntityBundle();
+		eb.setEntity(s);
+		eb.setAnnotations(a);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		eb.writeToJSONObject(adapter);
+		
+		// We want the mock response to return JSON
+		StringEntity responseEntity = new StringEntity(adapter.toJSONString());
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		
+		// Get the bundle, verify contents
+		int mask =  EntityBundle.ENTITY + EntityBundle.ANNOTATIONS;
+		EntityBundle eb2 = synapse.getEntityBundle(s.getId(), mask);
+		
+		Study s2 = (Study) eb2.getEntity();
+		assertEquals("Retrieved Entity in bundle does not match original one", s, s2);
+		
+		Annotations a2 = eb2.getAnnotations();
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a, a2);
+		
+		UserEntityPermissions uep = eb2.getPermissions();
+		assertNull("Permissions were not requested, but were returned in bundle", uep);
+		
+		EntityPath path = eb2.getPath();
+		assertNull("Path was not requested, but was returned in bundle", path);
+	}
+
 }

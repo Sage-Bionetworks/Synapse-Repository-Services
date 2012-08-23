@@ -9,6 +9,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
@@ -27,7 +28,7 @@ public class DeadlockWatcherTestAutoWire {
 	DeadlockWatcher deadlockWatcher;
 	
 	@Autowired
-	GenericEntityController entityController;
+	EntityService entityController;
 	
 	@Test
 	public void testDeadlock(){

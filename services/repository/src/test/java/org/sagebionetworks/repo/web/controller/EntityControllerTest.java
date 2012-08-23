@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -32,9 +31,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -47,7 +44,6 @@ public class EntityControllerTest {
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
 	
-
 	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
 	
 	private List<String> toDelete = null;
@@ -88,7 +84,7 @@ public class EntityControllerTest {
 		// Make sure we can update it
 		clone2.setName("My new name");
 		Project clone3 = (Project) entityServletHelper.updateEntity(clone2, TEST_USER1);
-		assertNotNull(clone3);
+		assertNotNull(clone3);		
 		assertEquals(clone2.getName(), clone3.getName());
 		// Should not match the original
 		assertFalse(p.getName().equals(clone3.getName()));
@@ -267,5 +263,5 @@ public class EntityControllerTest {
 		}
 		
 	}
-
+	
 }

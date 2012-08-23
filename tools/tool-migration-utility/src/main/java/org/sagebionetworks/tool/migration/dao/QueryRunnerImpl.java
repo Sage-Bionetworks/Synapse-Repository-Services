@@ -30,7 +30,7 @@ import org.sagebionetworks.tool.migration.Progress.BasicProgress;
  * @author jmhill
  *
  */
-public class QueryRunnerImpl implements QueryRunner {
+public class QueryRunnerImpl implements QueryRunner<EntityData> {
 	
 
 	public static final String SELECT_ENTITY_DATA = ENTITY_ID+", "+ENTITY_E_TAG+", "+ENTITY_PARENT_ID;
@@ -95,7 +95,7 @@ public class QueryRunnerImpl implements QueryRunner {
 	 */
 	private void recursiveAddAllChildren(List<EntityData> results, String parentId) throws SynapseException, JSONException, InterruptedException{
 		// First get all of the children for this parent
-		List<EntityData> allChildren = getAllAllChildrenOfEntity(parentId);
+		List<EntityData> allChildren = getAllChildrenOfEntity(parentId);
 		results.addAll(allChildren);
 		// Now add the children of the children
 		for(EntityData child: allChildren){
@@ -166,7 +166,7 @@ public class QueryRunnerImpl implements QueryRunner {
 	}
 
 	@Override
-	public List<EntityData> getAllAllChildrenOfEntity(String parentId) throws SynapseException, JSONException, InterruptedException {
+	public List<EntityData> getAllChildrenOfEntity(String parentId) throws SynapseException, JSONException, InterruptedException {
 		String rootQuery = QUERY_CHILDREN_OF_ENTITY1 + "\"" + parentId + "\"";
 		return queryForAllPages(rootQuery, ENTITY, MAX_PAGE_SIZE, null);
 	}
