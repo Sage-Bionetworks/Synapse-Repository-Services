@@ -326,6 +326,17 @@ public class EntityServiceImpl implements EntityService {
 			newParentPath = entityManager.getEntityPathAsAdmin(entity.getParentId());
 		}
 		EntityEvent event = new EntityEvent(eventType, newParentPath, userInfo);
+		
+		// If node has a non-root parent, validate that user has update access on the parent
+		if (newParentPath != null && newParentPath.size() > 1) {
+			EntityHeader newParentHeader = newParentPath.get(newParentPath.size() - 1);
+			try {
+				entityManager.validateUpdateAccess(userInfo, newParentHeader.getId());
+			} catch (Exception e) {
+				throw new UnauthorizedException("Insufficient priveliges for parent " + newParentHeader.getId());
+			}
+		}		
+		
 		// First apply validation that is common to all types.
 		allTypesValidator.validateEntity(entity, event);
 		// Now validate for a specific type.
