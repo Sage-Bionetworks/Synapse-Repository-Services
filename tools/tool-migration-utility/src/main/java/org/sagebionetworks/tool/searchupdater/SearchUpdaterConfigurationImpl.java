@@ -4,6 +4,10 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.sagebionetworks.TemplatedConfiguration;
 import org.sagebionetworks.TemplatedConfigurationImpl;
+import org.sagebionetworks.client.DataUploader;
+import org.sagebionetworks.client.DataUploaderMultipartImpl;
+import org.sagebionetworks.client.HttpClientProvider;
+import org.sagebionetworks.client.HttpClientProviderImpl;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.tool.migration.Configuration;
@@ -41,7 +45,11 @@ public class SearchUpdaterConfigurationImpl implements Configuration {
 	 * @throws SynapseException 
 	 */
 	public SynapseAdministration createSynapseClient() throws SynapseException {
-		SynapseAdministration synapse = new SynapseAdministration();
+		HttpClientProvider clientProvider = new HttpClientProviderImpl();
+		DataUploader dataUploader = new DataUploaderMultipartImpl();
+		SynapseAdministration synapse = new SynapseAdministration(clientProvider, dataUploader);
+		clientProvider.setGlobalConnectionTimeout((int)getWorkerTimeoutMs());
+		clientProvider.setGlobalSocketTimeout((int)getWorkerTimeoutMs());
 
 		synapse.setRepositoryEndpoint(getRepositoryServiceEndpoint());
 		synapse.setAuthEndpoint(getAuthenticationServicePrivateEndpoint());
