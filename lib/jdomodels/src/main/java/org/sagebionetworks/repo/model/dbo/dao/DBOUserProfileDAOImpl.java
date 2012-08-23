@@ -1,6 +1,3 @@
-/**
- * 
- */
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_USER_PROFILE_ID;
@@ -11,6 +8,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_
 import java.util.ArrayList;
 import java.util.List;
 
+import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -30,7 +28,6 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-
 /**
  * @author brucehoff
  *
@@ -38,6 +35,9 @@ import org.springframework.transaction.annotation.Transactional;
 public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Autowired
 	private DBOBasicDao basicDao;
+
+	@Autowired
+	private ETagGenerator eTagGenerator;
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
@@ -65,7 +65,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			InvalidModelException {
 		DBOUserProfile jdo = new DBOUserProfile();
 		UserProfileUtils.copyDtoToDbo(dto, jdo, schema);
-		if (jdo.geteTag()==null) jdo.seteTag(0L);
+		if (jdo.geteTag()==null) jdo.seteTag(eTagGenerator.generateETag(jdo));
 		jdo = basicDao.createNew(jdo);
 		return jdo.getOwnerId().toString();
 	}
@@ -111,9 +111,28 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public UserProfile update(UserProfile dto, ObjectSchema schema) throws DatastoreException,
-			InvalidModelException, NotFoundException,
-			ConflictingUpdateException {
-		// LOCK the record
+			InvalidModelException, NotFoundException, ConflictingUpdateException {
+		return update(dto, schema, false);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see org.sagebionetworks.repo.model.UserProfileDAO#update(UserProfile, ObjectSchema)
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public UserProfile updateFromBackup(UserProfile dto, ObjectSchema schema) throws DatastoreException,
+			InvalidModelException, NotFoundException, ConflictingUpdateException {
+		return update(dto, schema, true);
+	}
+
+	/**
+	 * @param fromBackup Whether we are updating from backup.
+	 *                   Skip optimistic locking and accept the backup e-tag when restoring from backup.
+	 */
+	private UserProfile update(UserProfile dto, ObjectSchema schema, boolean fromBackup) throws
+			DatastoreException, InvalidModelException, NotFoundException, ConflictingUpdateException {
+
 		DBOUserProfile dbo = null;
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, dto.getOwnerId());
@@ -122,23 +141,31 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		}catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
-		// check dbo's etag against dto's etag
-		// if different rollback and throw a meaningful exception
-		if (!dbo.geteTag().equals(Long.parseLong(dto.getEtag())))
-			throw new ConflictingUpdateException("Use profile was updated since you last fetched it, retrieve it again and reapply the update.");
+
+		if (!fromBackup) {
+			// check dbo's etag against dto's etag
+			// if different rollback and throw a meaningful exception
+			if (!dbo.geteTag().equals(dto.getEtag())) {
+				throw new ConflictingUpdateException("Use profile was updated since you last fetched it, retrieve it again and reapply the update.");
+			}
+		}
 		UserProfileUtils.copyDtoToDbo(dto, dbo, schema);
-		dbo.seteTag(1L+dbo.geteTag());
+		if (!fromBackup) {
+			// Update with a new e-tag; otherwise, the backup e-tag is used implicitly
+			dbo.seteTag(eTagGenerator.generateETag(dbo));
+		}
+
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user profile in database.");
+
 		UserProfile resultantDto = new UserProfile();
 		UserProfileUtils.copyDboToDto(dbo,  resultantDto, schema);
+
 		return resultantDto;
-	} // the 'commit' is implicit in returning from a method annotated 'Transactional'
+	}
 
 	private static final String SELECT_FOR_UPDATE_SQL = "select * from "+TABLE_USER_PROFILE+" where "+COL_USER_PROFILE_ID+
 			"=:"+DBOUserProfile.OWNER_ID_FIELD_NAME+" for update";
-	
-	private static final TableMapping<DBOUserProfile> TABLE_MAPPING = (new DBOUserProfile()).getTableMapping();
-	
 
+	private static final TableMapping<DBOUserProfile> TABLE_MAPPING = (new DBOUserProfile()).getTableMapping();
 }

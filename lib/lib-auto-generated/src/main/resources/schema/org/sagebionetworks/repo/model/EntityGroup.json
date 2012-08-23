@@ -1,0 +1,24 @@
+{
+    "title":"Entity Group",
+    "description":"JSON schema for an Entity Group POJO",
+    "properties":{
+        "name":{
+            "type":"string",
+            "description":"The name of this entity",
+            "title":"Name"
+        },
+        "description":{
+            "description":"The description of this entity.",
+            "type":"string",
+            "title":"Description"
+        },
+        "records":{
+            "type":"array",
+            "description":"The set of EntityGroupRecords for this group.",
+            "uniqueItems":false,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.EntityGroupRecord"
+            }
+        }
+    }
+}

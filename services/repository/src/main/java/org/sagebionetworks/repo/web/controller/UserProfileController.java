@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -159,5 +160,29 @@ public class UserProfileController extends BaseController {
 		return serviceProvider.getUserProfileService().getUserProfileAttachmentUrl(userId, profileId, url, request);
 	}
 
+	/**
+	 * Get the users and groups whose names have a given prefix.
+	 * 
+	 * @param prefixFilter
+	 * @param offset
+	 * @param limit
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.USER_GROUP_HEADERS, method = RequestMethod.GET)
+	public @ResponseBody
+	UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(
+			@RequestParam(value = UrlHelpers.PREFIX_FILTER, required = false) String prefixFilter,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestHeader HttpHeaders header,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException {
+		return serviceProvider.getUserProfileService().getUserGroupHeadersByPrefix(prefixFilter, offset, limit, header, request);
+	}
 	
 }

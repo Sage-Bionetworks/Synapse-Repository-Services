@@ -97,6 +97,7 @@ public class DBOUserGroupDAOImplTest {
 		
 		UserProfile up = new UserProfile();
 		up.setOwnerId(onerId);
+		up.setEtag("some tag");
 		String jsonString = (String) UserProfile.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
 		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
 		String upId = userProfileDAO.create(up, schema); // this will be deleted via cascade when the user-group is deleted

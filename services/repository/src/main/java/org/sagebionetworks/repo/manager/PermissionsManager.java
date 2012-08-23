@@ -80,12 +80,23 @@ public interface PermissionsManager {
 	// to which resource access permission may be granted
 	
 	/**
+	 * Get all non-individual user groups, including Public.
 	 * 
-	 * get all non-individual user groups, including Public
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public Collection<UserGroup> getGroups() throws DatastoreException;
+
+	/**
+	 * Get all non-individual user groups, including Public. Deprecated, since userInfo is
+	 * not required to fetch groups.
+	 * 
 	 * @throws DatastoreException 
 	 * 
 	 **/
-	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException, UnauthorizedException;
+	@Deprecated
+	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException;
 	
 	/**
 	 * get non-individual user groups (including Public) in range

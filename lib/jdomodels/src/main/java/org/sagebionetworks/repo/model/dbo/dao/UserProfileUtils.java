@@ -13,11 +13,7 @@ public class UserProfileUtils {
 		} else {
 			dbo.setOwnerId(Long.parseLong(dto.getOwnerId()));
 		}
-		if (dto.getEtag()==null) {
-			dbo.seteTag(null);
-		} else {
-			dbo.seteTag(Long.parseLong(dto.getEtag()));
-		}
+		dbo.seteTag(dto.getEtag());
 		dbo.setProperties(SchemaSerializationUtils.mapDtoFieldsToAnnotations(dto, schema));
 	}
 	
@@ -28,12 +24,6 @@ public class UserProfileUtils {
 		} else {
 			dto.setOwnerId(dbo.getOwnerId().toString());
 		}
-		if (dbo.geteTag()==null) {
-			dto.setEtag(null);
-		} else {
-			dto.setEtag(""+dbo.geteTag());
-		}
+		dto.setEtag(dbo.geteTag());
 	}
-	
-
 }

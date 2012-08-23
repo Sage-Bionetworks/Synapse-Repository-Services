@@ -27,12 +27,12 @@ public interface JDOBase {
 	/**
 	 * set the etag, indicating the the peristant object has changed
 	 */
-	public void setEtag(Long etag);
+	public void setEtag(String etag);
 	
 	/**
 	 * get the etag
 	 */
-	public Long getEtag();
+	public String getEtag();
 
 	/**
 	 * 

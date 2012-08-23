@@ -40,21 +40,6 @@ public class UserProfileUtilsTest {
 		assertEquals(dto, dto2);
 	}
 
-	@Test(expected = NumberFormatException.class)
-	public void testInvalidEtag() throws Exception {
-		UserProfile dto = new UserProfile();
-		dto.setOwnerId("101");
-		dto.setFirstName("foo");
-		dto.setLastName("bar");
-		dto.setRStudioUrl("http://rstudio.com");
-		dto.setDisplayName("foo bar");
-		dto.setEtag("not a number");
-		DBOUserProfile dbo = new DBOUserProfile();
-		String jsonString = (String) UserProfile.class.getField(JSONEntity.EFFECTIVE_SCHEMA).get(null);
-		ObjectSchema schema = new ObjectSchema(new JSONObjectAdapterImpl(jsonString));
-		UserProfileUtils.copyDtoToDbo(dto, dbo, schema);
-	}
-
 	@Test
 	public void testRoundtripWithNulls() throws Exception {
 		UserProfile dto = new UserProfile();

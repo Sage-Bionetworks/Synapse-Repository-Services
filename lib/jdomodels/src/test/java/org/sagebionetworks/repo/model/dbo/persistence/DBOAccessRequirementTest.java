@@ -94,7 +94,7 @@ public class DBOAccessRequirementTest {
 		accessRequirement.setCreatedOn(System.currentTimeMillis());
 		accessRequirement.setModifiedBy(Long.parseLong(principal.getId()));
 		accessRequirement.setModifiedOn(System.currentTimeMillis());
-		accessRequirement.seteTag(10L);
+		accessRequirement.seteTag("10");
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD.toString());
 		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setSerializedEntity(serializedEntity);

@@ -236,23 +236,22 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(annos);
 		assertNotNull(annos.getEtag());
 		String eTagBeforeUpdate = annos.getEtag();
-		long before = Long.parseLong(eTagBeforeUpdate);
-		String expectedEtagAfterUpdate = new Long(++before).toString();
 		// Add some values
 		annos.addAnnotation("longKey", new Long(1));
 		// Now update the node
 		Annotations updated = nodeManager.updateAnnotations(userInfo,id, annos, NamedAnnotations.NAME_SPACE_ADDITIONAL);
 		assertNotNull(updated);
-		assertEquals(expectedEtagAfterUpdate, updated.getEtag());
+		assertNotNull(updated.getEtag());
+		assertFalse(updated.getEtag().equals(eTagBeforeUpdate));
 		NamedAnnotations namedCopy = nodeManager.getAnnotations(userInfo, id);
 		Annotations copy = namedCopy.getAdditionalAnnotations();
 		assertEquals(updated,copy);
 		// Make sure the eTag has changed
-		assertEquals(expectedEtagAfterUpdate, copy.getEtag());
+		assertEquals(updated.getEtag(), copy.getEtag());
 		Node nodeCopy = nodeManager.get(userInfo, id);
 		assertNotNull(nodeCopy);
 		assertNotNull(nodeCopy.getETag());
-		assertEquals(expectedEtagAfterUpdate, nodeCopy.getETag().toString());
+		assertEquals(updated.getEtag(), nodeCopy.getETag());
 	}
 	
 	@Test (expected=ConflictingUpdateException.class)
@@ -316,7 +315,6 @@ public class NodeManagerImplAutoWiredTest {
 		updatedNode.setVersionComment("This comment should never get applied because we did not change the version label");
 		annosToUpdate.addAnnotation("longKey", new Long(12));
 		String eTagBeforeUpdate = updatedNode.getETag();
-		String eTagAfterUpdate = new Long(Long.parseLong(eTagBeforeUpdate) + 1).toString();
 		// Now try the update
 		try{
 			nodeManager.update(userInfo, updatedNode, namedToUpdate, true);
@@ -344,7 +342,8 @@ public class NodeManagerImplAutoWiredTest {
 		annosToUpdate.addAnnotation("stringKey", valueOnSecondVersion);
 		Node afterUpdate = nodeManager.update(userInfo, updatedNode, namedToUpdate, true);
 		assertNotNull(afterUpdate);
-		assertEquals("The etag should have been incremented after an update.",eTagAfterUpdate, afterUpdate.getETag());
+		assertNotNull(afterUpdate.getETag());
+		assertFalse("The etag should have been different after an update.", afterUpdate.getETag().equals(eTagBeforeUpdate));
 		
 		// Now check that the update went through
 		Node currentNode = nodeManager.get(userInfo, id);
@@ -420,13 +419,13 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(beforeDelete);
 		assertNotNull(beforeDelete.getETag());
 		String eTagBeforeDelete = beforeDelete.getETag();
-		String eTagAfterDelete = new Long(Long.parseLong(eTagBeforeDelete)+1).toString();
 		// Now delete the current version
 		nodeManager.deleteVersion(userInfo, id, new Long(1));
 		// Make sure 
 		Node afterDelete = nodeManager.get(userInfo, id);
 		assertNotNull(afterDelete);
-		assertEquals("Deleting a version failed to increment the eTag",eTagAfterDelete, afterDelete.getETag());
+		assertNotNull(afterDelete.getETag());
+		assertFalse("Deleting a version failed to increment the eTag", afterDelete.getETag().equals(eTagBeforeDelete));
 	}
 
 	/**

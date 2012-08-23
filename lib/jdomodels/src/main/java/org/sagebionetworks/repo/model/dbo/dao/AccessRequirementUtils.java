@@ -13,22 +13,14 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 
 public class AccessRequirementUtils {
-	
+
 	// the convention is that the individual fields take precedence
 	// over the serialized objects.  When restoring the dto we first deserialize
 	// the 'blob' and then populate the individual fields
-	
-	public static void copyDtoToDbo(AccessRequirement dto, DBOAccessRequirement dbo) throws DatastoreException{
-		if (dto.getId()==null) {
-			dbo.setId(null);
-		} else {
-			dbo.setId(dto.getId());
-		}
-		if (dto.getEtag()==null) {
-			dbo.seteTag(null);
-		} else {
-			dbo.seteTag(Long.parseLong(dto.getEtag()));
-		}
+
+	public static void copyDtoToDbo(AccessRequirement dto, DBOAccessRequirement dbo) throws DatastoreException {
+		dbo.setId(dto.getId());
+		dbo.seteTag(dto.getEtag());
 		if (dto.getCreatedBy()!=null) dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		if (dto.getCreatedBy()!=null) dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
@@ -37,19 +29,11 @@ public class AccessRequirementUtils {
 		dbo.setEntityType(dto.getEntityType());
 		copyToSerializedField(dto, dbo);
 	}
-	
+
 	public static AccessRequirement copyDboToDto(DBOAccessRequirement dbo, List<Long> entities) throws DatastoreException {
 		AccessRequirement dto = copyFromSerializedField(dbo);
-		if (dbo.getId()==null) {
-			dto.setId(null);
-		} else {
-			dto.setId(dbo.getId());
-		}
-		if (dbo.geteTag()==null) {
-			dto.setEtag(null);
-		} else {
-			dto.setEtag(""+dbo.geteTag());
-		}
+		dto.setId(dbo.getId());
+		dto.setEtag(dbo.geteTag());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setModifiedBy(dbo.getModifiedBy().toString());
@@ -61,8 +45,7 @@ public class AccessRequirementUtils {
 		dto.setEntityType(dbo.getEntityType());
 		return dto;
 	}
-	
-	
+
 	public static void copyToSerializedField(AccessRequirement dto, DBOAccessRequirement dbo) throws DatastoreException {
 		try {
 			dbo.setSerializedEntity(JDOSecondaryPropertyUtils.compressObject(dto));
@@ -78,6 +61,4 @@ public class AccessRequirementUtils {
 			throw new DatastoreException(e);
 		}
 	}
-	
-
 }
