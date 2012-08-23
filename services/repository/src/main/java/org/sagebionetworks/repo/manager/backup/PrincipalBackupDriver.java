@@ -325,11 +325,8 @@ public class PrincipalBackupDriver implements GenericBackupDriver {
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		UserGroup ug = userGroupDAO.get(id);
 		String name = ug.getName();
-		// The only time this should actually happen is when we are dealing with bootstrapped groups.
-		// If it happens elsewhere, give up and throw an exception.
-		if (!isBootstrappedPrincipal(name)) throw new IllegalStateException("Cannot delete "+name);
-		
-		deleteUserGroup(ug);
+		// we apply the heuristic of simply disabling principal deletion:
+		log.warn("Deletion of "+name+" id: "+id+" requested but skipped.");
 	}
 
 

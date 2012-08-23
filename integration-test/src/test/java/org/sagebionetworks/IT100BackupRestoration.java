@@ -236,6 +236,9 @@ public class IT100BackupRestoration {
 	
 	/**
 	 * Test the complete round trip of user migration.
+	 * Modified to test PLFM-1425:
+	 * - after back up, modify my own user profile
+	 * - after restoration, check that old user profile has been restored
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 * @throws InterruptedException 
@@ -245,7 +248,16 @@ public class IT100BackupRestoration {
 		// first create a backup copy of all of the users
 		// Start the daemon
 		BackupSubmission submission = new BackupSubmission();
-		submission.setEntityIdsToBackup(synapse.getAllUserAndGroupIds());
+		Set<String> allPrincipalIds = synapse.getAllUserAndGroupIds();
+		
+		UserProfile myUserProfile = synapse.getMyProfile();
+		assertTrue(allPrincipalIds.contains(myUserProfile.getOwnerId()));
+		// generate a unique string
+		String myCompany = "MyCompany";
+		myUserProfile.setCompany(myCompany);
+		synapse.updateMyProfile(myUserProfile);
+		
+		submission.setEntityIdsToBackup(allPrincipalIds);
 		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.PRINCIPAL);
 		assertNotNull(status);
 		assertNotNull(status.getStatus());
@@ -257,6 +269,13 @@ public class IT100BackupRestoration {
 		status = waitForDaemon(status.getId());
 		assertNotNull(status.getBackupUrl());
 		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+		
+		myUserProfile = synapse.getMyProfile();
+		// generate a unique string
+		String newCompany = "MyCompany-"+System.currentTimeMillis();
+		myUserProfile.setCompany(newCompany);
+		synapse.updateMyProfile(myUserProfile);
+		
 		// Now restore the users from this backup file
 		RestoreSubmission restoreSub = new RestoreSubmission();
 		String backupFileName = getFileNameFromUrl(status.getBackupUrl());
@@ -265,6 +284,10 @@ public class IT100BackupRestoration {
 		// Wait for it to finish
 		status = waitForDaemon(status.getId());
 		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+		
+		// after restoration, user profile should be restored to original value
+		myUserProfile = synapse.getMyProfile();
+		assertEquals(myCompany, myUserProfile.getCompany());
 	}
 	
 	/**
