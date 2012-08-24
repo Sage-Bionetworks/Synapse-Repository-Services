@@ -43,21 +43,24 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 			parentType = EntityType.getEntityType(parentHeader.getType());
 		}
 		
-		// Check if the parent entity is root
-		boolean isParentRoot;
-		try {
-			isParentRoot = nodeDAO.isNodeRoot(entity.getParentId());
-		} catch (NotFoundException e) {
-			throw new InvalidModelException(PARENT_RETRIEVAL_ERROR);
-		} catch (DatastoreException e) {
-			throw new InvalidModelException(PARENT_RETRIEVAL_ERROR);
-		}
-		
-		// If entity has a parent other than the root entity, validate the parent type
-		if (!isParentRoot) {		
-			// Note: Null parent type is valid for some object types.
-			if(!objectType.isValidParentType(parentType)){
-				throw new IllegalArgumentException("Entity type: "+objectType.getEntityType()+" cannot have a parent of type: "+parentType.getEntityType());
+		// Does entity have a parent?
+		if (entity.getParentId() != null) {
+			// Check if the parent entity is root
+			boolean isParentRoot;			
+			try {
+				isParentRoot = nodeDAO.isNodeRoot(entity.getParentId());
+			} catch (NotFoundException e) {
+				throw new InvalidModelException(PARENT_RETRIEVAL_ERROR);
+			} catch (DatastoreException e) {
+				throw new InvalidModelException(PARENT_RETRIEVAL_ERROR);
+			}				
+			
+			// If entity has a parent other than the root entity, validate the parent type
+			if (!isParentRoot) {		
+				// Note: Null parent type is valid for some object types.
+				if(!objectType.isValidParentType(parentType)){
+					throw new IllegalArgumentException("Entity type: "+objectType.getEntityType()+" cannot have a parent of type: "+parentType.getEntityType());
+				}
 			}
 		}
 		
@@ -82,5 +85,10 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 				}
 			}
 		}
+	}
+	
+	@Override
+	public void setNodeDAO(NodeDAO nodeDAO) {
+		this.nodeDAO = nodeDAO;
 	}
 }
