@@ -1047,6 +1047,13 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	}
 
 	@Override
+	public boolean isNodeRoot(String nodeId) throws NotFoundException, DatastoreException {
+	    ParentTypeName ptn = getParentTypeName(KeyFactory.stringToKey(nodeId));
+	    // It the parentId == null then this is root.
+	    return ptn.parentId == null && "root".equals(ptn.name);
+	}
+
+	@Override
     public boolean isNodesParentRoot(String nodeId) throws NotFoundException, DatastoreException {
         ParentTypeName ptn = getParentTypeName(KeyFactory.stringToKey(nodeId));
         // It the parentId == null then this is root.

@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.StackStatusDao;
+import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
@@ -141,9 +142,9 @@ public class StackStatusInterceptorTest {
 	public void testPostWithReadWrite() throws Exception {
 		// We should be able to get when the status is read-write
 		assertEquals(StatusEnum.READ_WRITE, stackStatusDao.getCurrentStatus());
-		Project child = new Project();
+		Study child = new Study();
 		child.setParentId(sampleProject.getId());
-		Project fetched = ServletTestHelper.createEntity(dispatchServlet, child, userName);
+		Study fetched = ServletTestHelper.createEntity(dispatchServlet, child, userName);
 		assertNotNull(fetched);
 	}
 	
