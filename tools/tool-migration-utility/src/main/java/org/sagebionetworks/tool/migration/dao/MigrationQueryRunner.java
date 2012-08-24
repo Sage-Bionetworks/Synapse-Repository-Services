@@ -8,6 +8,7 @@ import java.util.List;
 import org.json.JSONException;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -25,7 +26,8 @@ public class MigrationQueryRunner implements QueryRunner<MigratableObjectData> {
 		this.queryForDependencies = queryForDependencies;
 	}
 	
-	public static final long PAGE_SIZE = 100L;
+	public static final long PAGE_SIZE = 1000L; // was 100
+	public static final int MAX_RETRIES = 3;
 	
 	@Override
 	public List<MigratableObjectData> getAllEntityData(BasicProgress progress)
@@ -45,7 +47,20 @@ public class MigrationQueryRunner implements QueryRunner<MigratableObjectData> {
 		}
 		// Get as many pages as needed
 		while((offset = getNextOffset(offset, PAGE_SIZE, totalCount)) > 0l){
-			page = client.getAllMigratableObjectsPaginated(offset, PAGE_SIZE, queryForDependencies);
+			int retryCount = 0;
+			while (retryCount<MAX_RETRIES) {
+				try {
+					page = client.getAllMigratableObjectsPaginated(offset, PAGE_SIZE, queryForDependencies);
+					break;
+				} catch (SynapseServiceException e) {
+					// will retry, unless we've hit the retry limit
+					if (retryCount>=MAX_RETRIES-1) {
+						throw e;
+					}
+				}
+				Thread.sleep(1000L);
+				retryCount++;
+			}
 			if(progress != null){
 				// Add this count to the current progress.
 				progress.setCurrent(progress.getCurrent() + page.getResults().size());
