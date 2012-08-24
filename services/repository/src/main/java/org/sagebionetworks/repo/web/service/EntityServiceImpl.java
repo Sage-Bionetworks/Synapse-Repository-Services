@@ -333,7 +333,7 @@ public class EntityServiceImpl implements EntityService {
 			try {
 				entityManager.validateUpdateAccess(userInfo, newParentHeader.getId());
 			} catch (Exception e) {
-				throw new UnauthorizedException("Insufficient priveliges for parent " + newParentHeader.getId());
+				throw new UnauthorizedException("Insufficient privileges for parent " + newParentHeader.getId());
 			}
 		}		
 		

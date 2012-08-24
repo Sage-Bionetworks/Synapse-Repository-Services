@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class AllTypesValidatorImpl implements AllTypesValidator{
 	
+	private static final String PARENT_RETRIEVAL_ERROR = "Parent entity could not be resolved";
 	@Autowired
 	AttachmentManager attachmentManager;
 	@Autowired
@@ -46,8 +47,10 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 		boolean isParentRoot;
 		try {
 			isParentRoot = nodeDAO.isNodeRoot(entity.getParentId());
-		} catch (Exception e) {
-			isParentRoot = false;
+		} catch (NotFoundException e) {
+			throw new InvalidModelException(PARENT_RETRIEVAL_ERROR);
+		} catch (DatastoreException e) {
+			throw new InvalidModelException(PARENT_RETRIEVAL_ERROR);
 		}
 		
 		// If entity has a parent other than the root entity, validate the parent type
