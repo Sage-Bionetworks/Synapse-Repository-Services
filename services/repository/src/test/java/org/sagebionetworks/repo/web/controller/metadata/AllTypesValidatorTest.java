@@ -1,11 +1,14 @@
 package org.sagebionetworks.repo.web.controller.metadata;
 
+import static org.mockito.Mockito.*;
+
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
+
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
@@ -25,16 +28,22 @@ public class AllTypesValidatorTest {
 
 	@Autowired
 	AllTypesValidator allTypesValidator;
+	NodeDAO mockNodeDAO;
+	
+	@Before
+	public void setUp() {
+		mockNodeDAO = mock(NodeDAO.class);
+	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testNullEntity() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
-		EntityEvent mockEvent = Mockito.mock(EntityEvent.class);
+		EntityEvent mockEvent = mock(EntityEvent.class);
 		allTypesValidator.validateEntity(null, mockEvent);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testNullEvent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
-		Study mockDataset =  Mockito.mock(Study.class);
+		Study mockDataset =  mock(Study.class);
 		allTypesValidator.validateEntity(mockDataset, null);
 	}
 	
@@ -52,6 +61,9 @@ public class AllTypesValidatorTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testProjectWithProjectParent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
+		when(mockNodeDAO.isNodeRoot(eq("123"))).thenReturn(false);
+		allTypesValidator.setNodeDAO(mockNodeDAO);
+		
 		String parentId = "123";
 		String childId = "456";
 		// This is our parent header
@@ -71,6 +83,9 @@ public class AllTypesValidatorTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testProjectWithDatasetParent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
+		when(mockNodeDAO.isNodeRoot(eq("123"))).thenReturn(false);
+		allTypesValidator.setNodeDAO(mockNodeDAO);
+		
 		String parentId = "123";
 		String childId = "456";
 		// This is our parent header
