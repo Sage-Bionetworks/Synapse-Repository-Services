@@ -53,7 +53,10 @@ public class MigrationQueryRunner implements QueryRunner<MigratableObjectData> {
 					page = client.getAllMigratableObjectsPaginated(offset, PAGE_SIZE, queryForDependencies);
 					break;
 				} catch (SynapseServiceException e) {
-					// will retry
+					// will retry, unless we've hit the retry limit
+					if (retryCount>=MAX_RETRIES-1) {
+						throw e;
+					}
 				}
 				Thread.sleep(1000L);
 				retryCount++;
