@@ -138,7 +138,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Override
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix,
 			Integer offset, Integer limit, HttpHeaders header, HttpServletRequest request) 
-					throws DatastoreException, NotFoundException, IOException {
+					throws DatastoreException, NotFoundException {
 		if (userGroupHeadersCache == null || userGroupHeadersCache.size() == 0)
 			refreshCache();
 		

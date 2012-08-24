@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +21,11 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class AllTypesValidatorImpl implements AllTypesValidator{
 	
+	private static final String PARENT_RETRIEVAL_ERROR = "Parent entity could not be resolved";
 	@Autowired
 	AttachmentManager attachmentManager;
+	@Autowired
+	NodeDAO nodeDAO;
 
 	@Override
 	public void validateEntity(Entity entity, EntityEvent event)throws InvalidModelException {
@@ -38,10 +42,25 @@ public class AllTypesValidatorImpl implements AllTypesValidator{
 			// Get the type for this parent.
 			parentType = EntityType.getEntityType(parentHeader.getType());
 		}
-		// Note: Null parent type is valid for some object types.
-		if(!objectType.isValidParentType(parentType)){
-			throw new IllegalArgumentException("Entity type: "+objectType.getEntityType()+" cannot have a parent of type: "+parentType.getEntityType());
+		
+		// Check if the parent entity is root
+		boolean isParentRoot;
+		try {
+			isParentRoot = nodeDAO.isNodeRoot(entity.getParentId());
+		} catch (NotFoundException e) {
+			throw new InvalidModelException(PARENT_RETRIEVAL_ERROR);
+		} catch (DatastoreException e) {
+			throw new InvalidModelException(PARENT_RETRIEVAL_ERROR);
 		}
+		
+		// If entity has a parent other than the root entity, validate the parent type
+		if (!isParentRoot) {		
+			// Note: Null parent type is valid for some object types.
+			if(!objectType.isValidParentType(parentType)){
+				throw new IllegalArgumentException("Entity type: "+objectType.getEntityType()+" cannot have a parent of type: "+parentType.getEntityType());
+			}
+		}
+		
 		// Is this a create or update?
 		if(EventType.CREATE == event.getType() || EventType.UPDATE == event.getType()){
 			// Verify that path is acyclic

@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -279,6 +278,17 @@ public interface NodeDAO extends MigratableDAO {
 	 */
 	public List<Short> getAllNodeTypesForAlias(String alias);
 	
+	/**
+	 * returns true iff the given node is root
+	 * 
+	 * @param nodeId
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public boolean isNodeRoot(String nodeId) throws NotFoundException,
+	DatastoreException;
+
 	/**
 	 * returns true iff the parent of the given node is root
 	 * 
