@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LocationData;
@@ -332,19 +333,19 @@ public class IT500SynapseJavaClient {
 	 */
 	@Test
 	public void testJavaClientCreateEntity() throws Exception {
-		Project newProject = new Project();
-		newProject.setParentId(project.getId());
-		Project createdProject = synapse.createEntity(newProject);
-		assertNotNull(createdProject);
-		assertNotNull(createdProject.getId());
-		assertNotNull(createdProject.getUri());
+		Study study = new Study();
+		study.setParentId(project.getId());
+		Study createdStudy = synapse.createEntity(study);
+		assertNotNull(createdStudy);
+		assertNotNull(createdStudy.getId());
+		assertNotNull(createdStudy.getUri());
 
-		String createdProjectId = createdProject.getId();
-		Project fromGet = synapse.getEntity(createdProjectId, Project.class);
-		assertEquals(createdProject, fromGet);
+		String createdProjectId = createdStudy.getId();
+		Study fromGet = synapse.getEntity(createdProjectId, Study.class);
+		assertEquals(createdStudy, fromGet);
 
-		Project fromGetById = (Project) synapse.getEntityById(createdProjectId);
-		assertEquals(createdProject, fromGetById);
+		Study fromGetById = (Study) synapse.getEntityById(createdProjectId);
+		assertEquals(createdStudy, fromGetById);
 
 	}
 	
@@ -745,7 +746,7 @@ public class IT500SynapseJavaClient {
 		// Start with no children.
 
 		// Add a child.
-		Project child = new Project();
+		Folder child = new Folder();
 		child.setName("childFolder");
 		child.setParentId(project.getId());
 		child = synapse.createEntity(child);
@@ -757,7 +758,7 @@ public class IT500SynapseJavaClient {
 		Long count = synapse.getChildCount(child.getId());
 		assertEquals(new Long(0), count);
 		// Now add a child
-		Project grandChild = new Project();
+		Study grandChild = new Study();
 		grandChild.setName("childFolder");
 		grandChild.setParentId(child.getId());
 		grandChild = synapse.createEntity(grandChild);

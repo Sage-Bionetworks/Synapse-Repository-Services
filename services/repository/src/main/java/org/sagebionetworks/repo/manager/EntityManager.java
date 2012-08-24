@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -270,4 +269,26 @@ public interface EntityManager {
 	 * @throws InvalidModelException
 	 */
 	public PresignedUrl getAttachmentUrl(String userId, String entityId,String tokenId) throws NotFoundException,	DatastoreException, UnauthorizedException, InvalidModelException;
+
+	/**
+	 * Validate that the user has read access.
+	 * 
+	 * @param userId
+	 * @param entityId
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
+	public void validateReadAccess(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException, UnauthorizedException;
+	
+	/**
+	 * Dev Note: since the user has update permission, we do not need to check
+	 * whether they have signed the use agreement, also this is just for uploads
+	 * 
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public void validateUpdateAccess(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException, UnauthorizedException;
+
 }

@@ -1691,6 +1691,37 @@ public class NodeDAOImplTest {
 		assertEquals(new Short(EntityType.layer.getId()), ids.get(0));
 		
 	}
+	
+	/**
+	 * Tests isNodeRoot()
+	 * @throws Exception
+	 */
+	@Test
+	public void testIsNodeRoot() throws Exception {
+		//make root node
+		Node node = privateCreateNew("root");
+		node.setNodeType(EntityType.project.name());
+		String parentId = nodeDao.createNew(node);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		assertTrue(nodeDao.isNodeRoot(parentId));
+		
+		//add a child to the root	
+		node = privateCreateNew("child1");
+		node.setNodeType(EntityType.dataset.name());
+		node.setParentId(parentId);
+		String child1Id = nodeDao.createNew(node);
+		toDelete.add(child1Id);
+		assertFalse(nodeDao.isNodeRoot(child1Id));
+		
+		// Now get child's parentId
+		node = privateCreateNew("grandchild");
+		node.setNodeType(EntityType.layer.name());
+		node.setParentId(child1Id);
+		String grandkidId = nodeDao.createNew(node);
+		toDelete.add(grandkidId);
+		assertFalse(nodeDao.isNodeRoot(grandkidId));
+	}
 
 	/**
 	 * Tests isNodesParentRoot()

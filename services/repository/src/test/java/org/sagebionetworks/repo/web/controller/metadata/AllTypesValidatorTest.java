@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -49,7 +50,7 @@ public class AllTypesValidatorTest {
 		allTypesValidator.validateEntity(project, new EntityEvent(EventType.CREATE, new ArrayList<EntityHeader>(), null));
 	}
 	
-	@Test
+	@Test (expected=IllegalArgumentException.class)
 	public void testProjectWithProjectParent() throws InvalidModelException, NotFoundException, DatastoreException, UnauthorizedException{
 		String parentId = "123";
 		String childId = "456";
