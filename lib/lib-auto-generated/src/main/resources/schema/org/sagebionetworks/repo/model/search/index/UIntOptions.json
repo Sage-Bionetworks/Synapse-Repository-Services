@@ -1,0 +1,9 @@
+{
+	"description": "JSON schema AWS UIntOptions",
+	"properties": {
+		"defaultValue": {
+			"type": "integer",
+			"description": "The default value for an unsigned integer field."
+		}
+	}
+}
