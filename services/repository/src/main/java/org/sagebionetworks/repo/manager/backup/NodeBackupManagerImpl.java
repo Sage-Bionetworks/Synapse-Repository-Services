@@ -2,11 +2,9 @@ package org.sagebionetworks.repo.manager.backup;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -18,15 +16,12 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.SchemaCache;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.util.UserGroupUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -134,7 +129,18 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 				// Update the node
 				nodeDao.updateNodeFromBackup(backup.getNode());
 				if (backup.getAcl() != null) {
-					aclDAO.update(backup.getAcl());
+					boolean destHasAcl = false;
+					try {
+						aclDAO.getForResource(backup.getNode().getId());
+						destHasAcl = true;
+					} catch (NotFoundException e) {
+						destHasAcl = false;
+					}
+					if (destHasAcl) {
+						aclDAO.update(backup.getAcl());
+					} else {
+						aclDAO.create(backup.getAcl());
+					}
 				}
 			} else {
 				// Update the node
