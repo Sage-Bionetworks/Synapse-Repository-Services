@@ -109,6 +109,7 @@ public class Synapse {
 
 	protected static final String ENTITY_URI_PATH = "/entity";
 	protected static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
+	protected static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
 	protected static final String ENTITY_BUNDLE_PATH = "/bundle?mask=";
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 
@@ -636,9 +637,22 @@ public class Synapse {
 		return initializeFromJSONObject(json, UserProfile.class);
 	}
 	
+	/**
+	 * Update an ACL. Default to non-recursive application.
+	 */
 	public AccessControlList updateACL(AccessControlList acl) throws SynapseException {
+		return updateACL(acl, false);
+	}
+	
+	/**
+	 * Update an entity's ACL. If 'recursive' is set to true, then any child 
+	 * ACLs will be deleted, such that all child entities inherit this ACL. 
+	 */
+	public AccessControlList updateACL(AccessControlList acl, boolean recursive) throws SynapseException {
 		String entityId = acl.getId();
 		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX;
+		if (recursive)
+			uri += ENTITY_ACL_RECURSIVE_SUFFIX;
 		try {
 			JSONObject jsonAcl = EntityFactory.createJSONObjectForEntity(acl);
 			jsonAcl = putEntity(uri, jsonAcl);
@@ -646,7 +660,6 @@ public class Synapse {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
-		
 	}
 	
 	public void deleteACL(String entityId) throws SynapseException {

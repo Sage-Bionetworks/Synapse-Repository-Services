@@ -196,6 +196,46 @@ public class IT500SynapseJavaClient {
 		// now push it, should get a SynapseBadRequestException
 		synapse.updateACL(acl);
 	}
+	
+	@Test
+	public void testUpdateACLRecursive() throws Exception {
+		// retrieve parent acl
+		AccessControlList parentAcl = synapse.getACL(project.getId());
+
+		// retrieve child acl - should get parent's
+		AccessControlList childAcl;
+		try {
+			childAcl = synapse.getACL(dataset.getId());
+			fail("Child has ACL, but should inherit from parent");
+		} catch (SynapseException e) {}		
+		
+		// assign new ACL to child
+		childAcl = new AccessControlList();
+		childAcl.setId(dataset.getId());
+		childAcl = synapse.createACL(childAcl);
+		
+		// retrieve child acl - should get child's
+		AccessControlList returnedAcl = synapse.getACL(dataset.getId());
+		returnedAcl.setUri(childAcl.getUri()); // uris don't match...?
+		assertEquals("Child ACL not set properly", childAcl, returnedAcl);
+		assertFalse("Child ACL should not match parent ACL", parentAcl.equals(returnedAcl));
+				
+		// apply parent ACL non-recursively
+		parentAcl = synapse.updateACL(parentAcl, false);
+		// child ACL should still be intact
+		returnedAcl = synapse.getACL(dataset.getId());
+		returnedAcl.setUri(childAcl.getUri()); // uris don't match...?
+		assertEquals("Child ACL not set properly", childAcl, returnedAcl);
+		assertFalse("Child ACL should not match parent ACL", parentAcl.equals(returnedAcl));
+		
+		// apply parent ACL recursively
+		parentAcl = synapse.updateACL(parentAcl, true);
+		// child ACL should have been deleted
+		try {
+			childAcl = synapse.getACL(dataset.getId());
+			fail("Child has ACL, but should inherit from parent");
+		} catch (SynapseException e) {}		
+	}
 
 	/**
 	 * @throws Exception
