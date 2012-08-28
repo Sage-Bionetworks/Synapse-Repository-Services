@@ -128,18 +128,24 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 			if (nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeId))) {
 				// Update the node
 				nodeDao.updateNodeFromBackup(backup.getNode());
+				boolean destHasAcl = false;
+				try {
+					aclDAO.getForResource(backup.getNode().getId());
+					destHasAcl = true;
+				} catch (NotFoundException e) {
+					destHasAcl = false;
+				}
 				if (backup.getAcl() != null) {
-					boolean destHasAcl = false;
-					try {
-						aclDAO.getForResource(backup.getNode().getId());
-						destHasAcl = true;
-					} catch (NotFoundException e) {
-						destHasAcl = false;
-					}
 					if (destHasAcl) {
 						aclDAO.update(backup.getAcl());
 					} else {
 						aclDAO.create(backup.getAcl());
+					}
+				} else {
+					if (destHasAcl) {
+						aclDAO.delete(backup.getNode().getId());
+					} else {
+						// neither source nor dest has an ACL, so there's nothing to do
 					}
 				}
 			} else {

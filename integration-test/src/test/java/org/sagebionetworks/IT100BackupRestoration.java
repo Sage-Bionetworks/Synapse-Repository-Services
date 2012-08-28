@@ -447,7 +447,7 @@ public class IT100BackupRestoration {
 	}
 	
 	@Test
-	public void testPLFM1464() throws Exception{
+	public void testPLFM1464AddACL() throws Exception{
 		// Create a project
 		Project project = new Project();
 		project = synapse.createEntity(project);
@@ -510,6 +510,75 @@ public class IT100BackupRestoration {
 		
 		// make sure we can see the child object's ACL
 		synapse.getACL(data.getId()); // should not generate a SynapseNotFoundException
+	}
+	
+	@Test
+	public void testPLFM1464DeleteACL() throws Exception{
+		// Create a project
+		Project project = new Project();
+		project = synapse.createEntity(project);
+		assertNotNull(project);
+		toDelete.add(project);
+		
+		// create a child object for this project
+		Data data = new Data();
+		data.setParentId(project.getId());
+		data = synapse.createEntity(data);
+		
+		// Now make a backup copy of this entity
+		BackupSubmission submission = new BackupSubmission();
+		Set<String> set = new HashSet<String>();
+		set.add(project.getId());
+		set.add(data.getId());
+		submission.setEntityIdsToBackup(set);
+		
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.ENTITY);
+		assertNotNull(status);
+		// Wait for the daemon to complete
+		status = waitForDaemon(status.getId());
+		assertNotNull(status.getBackupUrl());
+		String backupFileName = getFileNameFromUrl(status.getBackupUrl());
+		// extract the file name
+		
+		try {
+			synapse.getACL(data.getId());
+			fail("exception expected");
+		} catch (SynapseNotFoundException e) {
+			// as expected
+		}
+		
+		// give the child its own ACL
+		AccessControlList acl = new AccessControlList();
+		acl.setId(data.getId());
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		String myPrincipalId = synapse.getMyProfile().getOwnerId();
+		ra.setPrincipalId(Long.parseLong(myPrincipalId));
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})));
+		ras.add(ra);
+		acl.setResourceAccess(ras);
+		acl = synapse.createACL(acl);
+		
+		synapse.getACL(data.getId()); // should not generate a SynapseNotFoundException
+
+		// Now restore the single project
+		RestoreSubmission restore = new RestoreSubmission();
+		restore.setFileName(backupFileName);
+		status = synapse.startRestoreDaemon(restore, MigratableObjectType.ENTITY);
+		// Wait for the daemon to complete
+		status = waitForDaemon(status.getId());
+		// Now make sure we can get the project
+		project = synapse.getEntity(project.getId(), Project.class);
+		assertNotNull(project);
+		
+		// child should not have an ACL
+		try {
+			synapse.getACL(data.getId());
+			fail("exception expected");
+		} catch (SynapseNotFoundException e) {
+			// as expected
+		}
+		
 	}
 	
 	@Test
