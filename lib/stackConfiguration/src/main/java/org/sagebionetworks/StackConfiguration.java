@@ -574,7 +574,7 @@ public class StackConfiguration {
 	
 	public static String getPortalLinkedInSecret() {
 		return configuration
-				.getProperty("org.sagebionetworks.portal.api.linkedin.secret");
+				.getDecryptedProperty("org.sagebionetworks.portal.api.linkedin.secret");
 	}
 
 	public static String getPortalGetSatisfactionKey() {
@@ -584,7 +584,7 @@ public class StackConfiguration {
 	
 	public static String getPortalGetSatisfactionSecret() {
 		return configuration
-				.getProperty("org.sagebionetworks.portal.api.getsatisfaction.secret");
+				.getDecryptedProperty("org.sagebionetworks.portal.api.getsatisfaction.secret");
 	}
 	
 	/**
