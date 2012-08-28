@@ -407,19 +407,20 @@ public interface EntityService {
 	throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException;
 	
 	/**
-	 * Update an entity ACL.
+	 * Update an entity ACL. If 'recursive' is true, then the ACL will be applied
+	 * to all child entities via inheritance.
 	 * @param userId
 	 * @param updated
+	 * @param recursive
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 * @throws UnauthorizedException 
 	 * @throws InvalidModelException 
 	 */
-	public AccessControlList updateEntityACL(String userId, AccessControlList updated, HttpServletRequest request) throws 
+	public AccessControlList updateEntityACL(String userId, AccessControlList updated, String recursive, HttpServletRequest request) throws 
 		DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException;
 	
-
 	/**
 	 * Delete a specific entity
 	 * <p>
@@ -431,10 +432,9 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException 
 	 */
-	public  void deleteEntityACL(String userId, String id)
+	public void deleteEntityACL(String userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
-	
 	/**
 	 * Execute a query and include the annotations for each entity.
 	 * @param <T>

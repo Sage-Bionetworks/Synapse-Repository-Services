@@ -578,6 +578,7 @@ public class EntityController extends BaseController{
 	AccessControlList updateEntityAcl(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = UrlHelpers.RECURSIVE, defaultValue = "false") String recursive,
 			@RequestBody AccessControlList updatedACL,
 			HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		if(updatedACL == null) throw new IllegalArgumentException("ACL cannot be null");
@@ -587,7 +588,7 @@ public class EntityController extends BaseController{
 		// This is a fix for PLFM-621
 		updatedACL.setId(id);
 		// pass it along.
-		return serviceProvider.getEntityService().updateEntityACL(userId, updatedACL, request);
+		return serviceProvider.getEntityService().updateEntityACL(userId, updatedACL, recursive, request);
 	}
 	
 	/**
