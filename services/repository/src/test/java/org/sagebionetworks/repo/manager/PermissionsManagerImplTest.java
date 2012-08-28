@@ -51,8 +51,10 @@ public class PermissionsManagerImplTest {
 	PermissionsManager permissionsManager;
 		
 	private Collection<Node> nodeList = new ArrayList<Node>();
-	private Node node = null;
+	private Node parentNode = null;
 	private Node childNode = null;
+	private Node grandchildNode0 = null;
+	private Node grandchildNode1 = null;
 	private UserInfo userInfo = null;
 	
 	private static final String TEST_USER = "test-user";
@@ -83,10 +85,12 @@ public class PermissionsManagerImplTest {
 	@Before
 	public void setUp() throws Exception {
 		// create a resource
-		node = createNode("foo", 1L, 2L, null);
-		nodeList.add(node);
+		parentNode = createNode("foo", 1L, 2L, null);
+		nodeList.add(parentNode);
 				
-		childNode = createNode("foo2", 3L, 4L, node.getId());
+		childNode = createNode("foo2", 3L, 4L, parentNode.getId());
+		grandchildNode0 = createNode("foo3", 5L, 6L, childNode.getId());
+		grandchildNode1 = createNode("foo4", 7L, 8L, childNode.getId());
 		
 		// userInfo
 		userManager.setUserDAO(new TestUserDAO()); // could use Mockito here
@@ -100,7 +104,7 @@ public class PermissionsManagerImplTest {
 	public void tearDown() throws Exception {
 		UserInfo adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		for (Node n : nodeList) nodeManager.delete(adminUser, n.getId());
-		this.node=null;
+		this.parentNode=null;
 		if(userManager != null && usersToDelete != null){
 			for(String idToDelete: usersToDelete){
 				userManager.deleteUser(idToDelete);
@@ -112,9 +116,9 @@ public class PermissionsManagerImplTest {
 	public void testGetACL() throws Exception {
 		// retrieve parent acl
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
+		AccessControlList acl = permissionsManager.getACL(parentNode.getId(), adminInfo);
 		assertNotNull(acl);
-		assertEquals(node.getId(), acl.getId());
+		assertEquals(parentNode.getId(), acl.getId());
 		for (ResourceAccess ra : acl.getResourceAccess()) {
 			// ra should have pId but not 'groupName' which is deprecated
 			assertNull(ra.getGroupName());
@@ -126,7 +130,7 @@ public class PermissionsManagerImplTest {
 			fail("Get ACL on a node that inherits it permission should throw an exception");
 		}catch (ACLInheritanceException e){
 			// The exception should tell us the benefactor
-			assertEquals(node.getId(), e.getBenefactorId());
+			assertEquals(parentNode.getId(), e.getBenefactorId());
 		}
 
 	}
@@ -139,7 +143,7 @@ public class PermissionsManagerImplTest {
 	@Test
 	public void testUpdateACL() throws Exception {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
+		AccessControlList acl = permissionsManager.getACL(parentNode.getId(), adminInfo);
 		assertEquals(1, acl.getResourceAccess().size());
 		// Check the etag before
 		String etagBefore = acl.getEtag();
@@ -151,7 +155,7 @@ public class PermissionsManagerImplTest {
 		assertFalse(etagBefore.equals(acl.getEtag()));
 		
 		// now get it again and see that the permission is there
-		acl = permissionsManager.getACL(node.getId(), userInfo);
+		acl = permissionsManager.getACL(parentNode.getId(), userInfo);
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		assertEquals(2, ras.size());
 		Iterator<ResourceAccess> it = ras.iterator();
@@ -171,7 +175,7 @@ public class PermissionsManagerImplTest {
 	@Test (expected=ConflictingUpdateException.class)
 	public void testConcurrentUpdate() throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException, ACLInheritanceException{
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
+		AccessControlList acl = permissionsManager.getACL(parentNode.getId(), adminInfo);
 		assertEquals(1, acl.getResourceAccess().size());
 		// Change the etag so that it does not match the current value
 		acl.setEtag(acl.getEtag()+"1");
@@ -182,11 +186,11 @@ public class PermissionsManagerImplTest {
 	// check that you get an exception if...
 	public void testUpdateInvalidACL() throws Exception {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
+		AccessControlList acl = permissionsManager.getACL(parentNode.getId(), adminInfo);
 		assertEquals(1, acl.getResourceAccess().size());
 		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
 		acl = permissionsManager.updateACL(acl, adminInfo);
-		acl.setId(node.getId());
+		acl.setId(parentNode.getId());
 		// ...group id is null...
 		ResourceAccess ra = new ResourceAccess();
 		ra.setPrincipalId(null);
@@ -226,7 +230,7 @@ public class PermissionsManagerImplTest {
 	@Test
 	public void testOverrideInheritanceEdgeCases() throws Exception {
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		AccessControlList acl = permissionsManager.getACL(node.getId(), adminInfo);
+		AccessControlList acl = permissionsManager.getACL(parentNode.getId(), adminInfo);
 		// should get exception if object already has an acl
 		try {
 			permissionsManager.overrideInheritance(acl, adminInfo);
@@ -266,8 +270,8 @@ public class PermissionsManagerImplTest {
 		AccessControlList results = permissionsManager.restoreInheritance(childNode.getId(), adminInfo);
 		assertNotNull(results);
 		assertNotNull(results.getEtag());
-		assertNotNull(node.getId(), results.getId());
-		assertNotNull(node.getETag(), results.getEtag());
+		assertNotNull(parentNode.getId(), results.getId());
+		assertNotNull(parentNode.getETag(), results.getEtag());
 		childNode = nodeManager.get(adminInfo, childNode.getId());
 		assertFalse("The etag of the child node should have changed", eTagBefore.equals(childNode.getETag()));
 		// call 'getACL' on the resource.  The returned ACL should specify parent as the ACL owner
@@ -276,7 +280,7 @@ public class PermissionsManagerImplTest {
 			fail("Should not have been able to get the ACL for a node that inherits");
 		}catch (ACLInheritanceException e){
 			// Get the parent ACL
-			assertEquals(node.getId(), e.getBenefactorId());
+			assertEquals(parentNode.getId(), e.getBenefactorId());
 		}
 	}
 
@@ -311,4 +315,107 @@ public class PermissionsManagerImplTest {
 		
 	}
 
+	@Test
+	public void testApplyInheritanceToChildren() throws Exception {
+		// retrieve parent acl
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		AccessControlList parentAcl = permissionsManager.getACL(parentNode.getId(), adminInfo);
+		assertNotNull(parentAcl);
+		assertEquals(parentNode.getId(), parentAcl.getId());
+
+		// retrieve child acl - should get parent's
+		verifyInheritedAcl(childNode, parentNode.getId(), adminInfo);
+		
+		// assign new ACL to child
+		AccessControlList childAcl = new AccessControlList();
+		childAcl.setId(childNode.getId());
+		String eTagBefore = childNode.getETag();
+		assertNotNull(eTagBefore);
+		permissionsManager.overrideInheritance(childAcl, adminInfo);
+		
+		// assign new ACL to grandchild0
+		AccessControlList grandchild0Acl = new AccessControlList();
+		grandchild0Acl.setId(grandchildNode0.getId());
+		eTagBefore = grandchildNode0.getETag();
+		assertNotNull(eTagBefore);
+		permissionsManager.overrideInheritance(grandchild0Acl, adminInfo);
+		
+		// retrieve child acl - should get child's
+		AccessControlList returnedAcl = permissionsManager.getACL(childNode.getId(), adminInfo);
+		assertEquals("Child ACL not set properly", childAcl, returnedAcl);
+		assertFalse("Child ACL should not match parent ACL", parentAcl.equals(returnedAcl));
+		
+		// retrieve grandchild0 acl - should get grandchild0's
+		returnedAcl = permissionsManager.getACL(grandchildNode0.getId(), adminInfo);
+		assertEquals("Grandchild ACL not set properly", grandchild0Acl, returnedAcl);
+		assertFalse("Grandchild ACL should not match child ACL", childAcl.equals(returnedAcl));
+		assertFalse("Grandchild ACL should not match parent ACL", parentAcl.equals(returnedAcl));
+		
+		// retrieve grandchild1 acl - should get child's
+		verifyInheritedAcl(grandchildNode1, childNode.getId(), adminInfo);
+		
+		// apply inheritance to children
+		permissionsManager.applyInheritanceToChildren(parentNode.getId(), adminInfo);
+		
+		// retrieve all descendant acls - should get parent's
+		verifyInheritedAcl(childNode, parentNode.getId(), adminInfo);
+		verifyInheritedAcl(grandchildNode0, parentNode.getId(), adminInfo);
+		verifyInheritedAcl(grandchildNode1, parentNode.getId(), adminInfo);
+	}
+	
+	@Test
+	public void testApplyInheritanceToChildrenNotAuthorized() throws Exception {
+		// retrieve parent acl
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		AccessControlList parentAcl = permissionsManager.getACL(parentNode.getId(), adminInfo);
+		assertNotNull(parentAcl);
+		assertEquals(parentNode.getId(), parentAcl.getId());
+		
+		// assign new ACL to child
+		AccessControlList childAcl = new AccessControlList();
+		childAcl.setId(childNode.getId());
+		String eTagBefore = childNode.getETag();
+		assertNotNull(eTagBefore);
+		permissionsManager.overrideInheritance(childAcl, adminInfo);
+		
+		// assign new ACL to grandchild0
+		AccessControlList grandchild0Acl = new AccessControlList();
+		grandchild0Acl.setId(grandchildNode0.getId());
+		eTagBefore = grandchildNode0.getETag();
+		assertNotNull(eTagBefore);
+		permissionsManager.overrideInheritance(grandchild0Acl, adminInfo);
+		
+		// authorize test user to change permissions of parent and child nodes
+		parentAcl = AuthorizationHelper.addToACL(parentAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
+		parentAcl = permissionsManager.updateACL(parentAcl, adminInfo);
+		childAcl = AuthorizationHelper.addToACL(childAcl, userInfo.getIndividualGroup(), ACCESS_TYPE.CHANGE_PERMISSIONS);
+		childAcl = permissionsManager.updateACL(childAcl, adminInfo);
+		
+		// apply inheritance to children as test user
+		permissionsManager.applyInheritanceToChildren(parentNode.getId(), userInfo);
+		
+		// retrieve child and grandchild1 acls - should get parent's (authorized to change permissions)
+		verifyInheritedAcl(childNode, parentNode.getId(), adminInfo);
+		verifyInheritedAcl(grandchildNode1, parentNode.getId(), adminInfo);
+		
+		// retrieve grandchild0 acl - should get grandchild0's (not authorized to change permissions)
+		try {
+			AccessControlList returnedAcl = permissionsManager.getACL(grandchildNode0.getId(), adminInfo);
+			assertEquals("Grandchild ACL not set properly", grandchild0Acl, returnedAcl);
+		} catch (ACLInheritanceException e) {
+			fail("Grandchild ACL was overwritten without authorization");
+		}
+		
+	}
+	
+	private void verifyInheritedAcl(Node node, String expectedBenefactorId,  UserInfo userInfo) 
+			throws NotFoundException, DatastoreException {
+		try {
+			permissionsManager.getACL(node.getId(), userInfo);
+			fail("Node should be inheriting ACL, but it has its own local ACL.");
+		} catch (ACLInheritanceException e){
+			// The exception should tell us the benefactor
+			assertEquals(expectedBenefactorId, e.getBenefactorId());
+		}	
+	}
 }
