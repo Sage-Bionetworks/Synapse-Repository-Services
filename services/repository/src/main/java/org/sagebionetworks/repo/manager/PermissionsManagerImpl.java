@@ -177,8 +177,8 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	}
 	
 	private void applyInheritanceToChildrenHelper(String parentId, UserInfo userInfo) throws NotFoundException, DatastoreException, ConflictingUpdateException {
-		// Get all of the child nodes
-		Set<String> children = nodeDao.getChildrenIds(parentId);
+		// Get all of the child nodes, sorted by id (to prevent deadlock)
+		List<String> children = nodeDao.getChildrenIdsAsList(parentId);
 		
 		// Update each node
 		for(String idToChange: children) {
