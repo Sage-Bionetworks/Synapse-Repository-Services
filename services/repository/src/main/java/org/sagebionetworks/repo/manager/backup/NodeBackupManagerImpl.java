@@ -121,6 +121,10 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 		if(backup.getNode() == null) throw new IllegalArgumentException("NodeBackup.node cannot be null");
 		if(backup.getNode().getId() == null) throw new IllegalArgumentException("NodeBackup.node.id cannot be null");
 		if(backup.getBenefactor() == null) throw new IllegalArgumentException("NodeBackup.benefactor cannot be null");
+		if(backup.getBenefactor().equals(backup.getNode().getId()) && backup.getAcl()==null) 
+			throw new IllegalArgumentException("Node is it's own permissions benefactor but ACL is missing");
+		if(!backup.getBenefactor().equals(backup.getNode().getId()) && backup.getAcl()!=null) 
+			throw new IllegalArgumentException("Node is NOT it's own permissions benefactor, yet it has an ACL");
 		String nodeId = backup.getNode().getId();
 		// Does this node already exist
 		try {
