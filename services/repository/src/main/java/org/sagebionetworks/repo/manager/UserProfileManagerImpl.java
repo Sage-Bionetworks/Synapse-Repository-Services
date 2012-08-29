@@ -12,11 +12,14 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.util.StringUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +30,8 @@ import org.springframework.beans.factory.annotation.Autowired;
  */
 public class UserProfileManagerImpl implements UserProfileManager {
 	
+	@Autowired
+	private UserGroupDAO userGroupDAO;
 	@Autowired
 	private UserProfileDAO userProfileDAO;
 	@Autowired
@@ -49,12 +54,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		this.s3TokenManager = s3TokenManager;
 	}
 
-	/***
-	 *
-	 * This method retrieves the JDO from the object ID and transfers it to the DTO, filtering
-	 * out private fields if the 'userInfo' is not for the object owner or an admin 
-	 *
-	 */
 	@Override
 	public UserProfile getUserProfile(UserInfo userInfo, String ownerId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -66,11 +65,17 @@ public class UserProfileManagerImpl implements UserProfileManager {
 
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		UserProfile userProfile = userProfileDAO.get(ownerId, schema);
-		if (userInfo.getUser() != null)
+		UserGroup userGroup = userGroupDAO.get(ownerId);
+		if (userInfo.getUser() != null) {
 			userProfile.setUserName(userInfo.getUser().getUserId());
+			if (userGroup != null)
+				userProfile.setEmail(userGroup.getName());
+		}
 		boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
 		if (!canSeePrivate) {
 			UserProfileManagerUtils.clearPrivateFields(userProfile);
+			if (userGroup != null)
+				userProfile.setEmail(StringUtil.obfuscateEmailAddress(userGroup.getName()));
 		}
 		return userProfile;
 	}
@@ -89,34 +94,32 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		anonymousUserProfile.setLastName("");
 		return anonymousUserProfile;
 	}
-
-	/**
-	 * Get the public profiles of the users in the system, paginated
-	 * 
-	 * @param userInfo
-	 * @param startIncl
-	 * @param endExcl
-	 * @param sort
-	 * @param ascending
-	 * @return
-	 */
+	
 	@Override
-	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
+	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl, boolean includeEmail) throws DatastoreException, NotFoundException{
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl, schema);
 		long totalNumberOfResults = userProfileDAO.getCount();
-		for (UserProfile userProfile : userProfiles) {
+		for (UserProfile userProfile : userProfiles) {			
 			UserProfileManagerUtils.clearPrivateFields(userProfile);
+			if (includeEmail) {
+				UserGroup userGroup = userGroupDAO.get(userProfile.getOwnerId());
+				if (userGroup != null)
+					userProfile.setEmail(StringUtil.obfuscateEmailAddress(userGroup.getName()));
+			}
 		}
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);
 		return result;
 	}
 	
+	@Override
+	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException{
+		return getInRange(userInfo, startIncl, endExcl, false);
+	}
+	
 
 	/**
-	 * 
 	 * This method is only available to the object owner or an admin
-	 * 
 	 */
 	@Override
 	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated)
@@ -130,7 +133,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		attachmentManager.checkAttachmentsForPreviews(updated);
 		return userProfileDAO.update(updated, schema);
 	}
-
 
 	@Override
 	public S3AttachmentToken createS3UserProfileAttachmentToken(
