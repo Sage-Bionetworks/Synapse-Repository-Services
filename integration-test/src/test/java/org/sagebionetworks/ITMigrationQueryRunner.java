@@ -15,6 +15,7 @@ import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.tool.migration.Constants;
 import org.sagebionetworks.tool.migration.dao.EntityData;
@@ -87,7 +88,7 @@ public class ITMigrationQueryRunner {
 		QueryRunnerImpl queryRunner = new QueryRunnerImpl(synapse);
 		List<EntityData> expectedList = new ArrayList<EntityData>();
 		for(int i=0; i<children; i++){
-			Project child = new Project();
+			Folder child = new Folder();
 			child.setParentId(parent.getId());
 			child = synapse.createEntity(child);
 			// PLFM-1122: synapse prefix will be stripped by QueryRunner, preporcess expected result
@@ -121,25 +122,25 @@ public class ITMigrationQueryRunner {
 		assertNotNull(root);
 		expectedOrder.add(root);
 		// Now add a child
-		Project testRoot = new Project();
-		testRoot.setParentId(root.getEntityId());
-		testRoot = synapse.createEntity(testRoot);
+		Project parentProject = new Project();
+		parentProject.setParentId(root.getEntityId());
+		parentProject = synapse.createEntity(parentProject);
 		// PLFM-1122
-		EntityData e = new EntityData(testRoot.getId(), testRoot.getEtag(), testRoot.getParentId());
+		EntityData e = new EntityData(parentProject.getId(), parentProject.getEtag(), parentProject.getParentId());
 		queryRunner.preProcessEntityData(e);
 		expectedOrder.add(e);
 		// We want to delete this node
-		toDelete.add(testRoot);
+		toDelete.add(parentProject);
 		// Now add some grand children
-		Project child = new Project();
-		child.setParentId(testRoot.getId());
-		child = synapse.createEntity(child);
-		e = new EntityData(child.getId(), child.getEtag(), child.getParentId());
+		Folder childFolder = new Folder();
+		childFolder.setParentId(parentProject.getId());
+		childFolder = synapse.createEntity(childFolder);
+		e = new EntityData(childFolder.getId(), childFolder.getEtag(), childFolder.getParentId());
 		queryRunner.preProcessEntityData(e);
 		expectedOrder.add(e);
 		// add one more level
-		Project grandChild = new Project();
-		grandChild.setParentId(child.getId());
+		Folder grandChild = new Folder();
+		grandChild.setParentId(childFolder.getId());
 		grandChild = synapse.createEntity(grandChild);
 		e = new EntityData(grandChild.getId(), grandChild.getEtag(), grandChild.getParentId());
 		queryRunner.preProcessEntityData(e);
@@ -162,10 +163,10 @@ public class ITMigrationQueryRunner {
 			if(entity.getEntityId().equals(root.getEntityId())){
 				rootIndex = i;
 				continue;
-			}else if(entity.getEntityId().equals(testRoot.getId())){
+			}else if(entity.getEntityId().equals(parentProject.getId())){
 				testRooIndex = i;
 				continue;
-			}else if(entity.getEntityId().equals(child.getId())){
+			}else if(entity.getEntityId().equals(childFolder.getId())){
 				childIndex = i;
 				continue;
 			}else if(entity.getEntityId().equals(grandChild.getId())){

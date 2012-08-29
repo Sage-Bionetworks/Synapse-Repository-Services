@@ -2,11 +2,9 @@ package org.sagebionetworks.repo.manager.backup;
 
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -18,15 +16,12 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.SchemaCache;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
-import org.sagebionetworks.repo.model.util.UserGroupUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -126,6 +121,10 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 		if(backup.getNode() == null) throw new IllegalArgumentException("NodeBackup.node cannot be null");
 		if(backup.getNode().getId() == null) throw new IllegalArgumentException("NodeBackup.node.id cannot be null");
 		if(backup.getBenefactor() == null) throw new IllegalArgumentException("NodeBackup.benefactor cannot be null");
+		if(backup.getBenefactor().equals(backup.getNode().getId()) && backup.getAcl()==null) 
+			throw new IllegalArgumentException("Node is it's own permissions benefactor but ACL is missing");
+		if(!backup.getBenefactor().equals(backup.getNode().getId()) && backup.getAcl()!=null) 
+			throw new IllegalArgumentException("Node is NOT it's own permissions benefactor, yet it has an ACL");
 		String nodeId = backup.getNode().getId();
 		// Does this node already exist
 		try {
@@ -133,8 +132,25 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 			if (nodeDao.doesNodeExist(KeyFactory.stringToKey(nodeId))) {
 				// Update the node
 				nodeDao.updateNodeFromBackup(backup.getNode());
+				boolean destHasAcl = false;
+				try {
+					aclDAO.getForResource(backup.getNode().getId());
+					destHasAcl = true;
+				} catch (NotFoundException e) {
+					destHasAcl = false;
+				}
 				if (backup.getAcl() != null) {
-					aclDAO.update(backup.getAcl());
+					if (destHasAcl) {
+						aclDAO.update(backup.getAcl());
+					} else {
+						aclDAO.create(backup.getAcl());
+					}
+				} else {
+					if (destHasAcl) {
+						aclDAO.delete(backup.getNode().getId());
+					} else {
+						// neither source nor dest has an ACL, so there's nothing to do
+					}
 				}
 			} else {
 				// Update the node

@@ -37,15 +37,15 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
 public class DBOAccessRequirementDAOImplTest {
 
-	@Autowired 
+	@Autowired
 	UserGroupDAO userGroupDAO;
-	
+
 	@Autowired
 	AccessRequirementDAO accessRequirementDAO;
-		
+
 	@Autowired
 	NodeDAO nodeDAO;
-	
+
 	private static final String TEST_USER_NAME = "test-user";
 	
 	private UserGroup individualGroup = null;
@@ -93,7 +93,7 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setModifiedOn(new Date());
 		accessRequirement.setEtag("10");
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		accessRequirement.setEntityIds(Arrays.asList(new String[]{node.getId()}));
+		accessRequirement.setEntityIds(Arrays.asList(new String[]{node.getId(), node.getId()})); // test that repeated IDs doesn't break anything
 		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		return accessRequirement;
 	}
@@ -130,7 +130,7 @@ public class DBOAccessRequirementDAOImplTest {
 		AccessRequirement updatedAR = accessRequirementDAO.update(clone);
 		assertEquals(clone.getAccessType(), updatedAR.getAccessType());
 
-		assertTrue("etags should be incremented after an update", !clone.getEtag().equals(updatedAR.getEtag()));
+		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedAR.getEtag()));
 
 		try {
 			((TermsOfUseAccessRequirement)clone).setTermsOfUse("bar");
@@ -139,8 +139,17 @@ public class DBOAccessRequirementDAOImplTest {
 		}
 		catch(ConflictingUpdateException e){
 			// We expected this exception
-		}	
-		
+		}
+
+		try {
+			// Update from a backup.
+			updatedAR = accessRequirementDAO.updateFromBackup(clone);
+			assertEquals(clone.getEtag(), updatedAR.getEtag());
+		}
+		catch(ConflictingUpdateException e) {
+			fail("Update from backup should not generate exception even if the e-tag is different.");
+		}
+
 		QueryResults<MigratableObjectData> migrationData = accessRequirementDAO.getMigrationObjectData(0, 10000, true);
 		
 		List<MigratableObjectData> results = migrationData.getResults();
@@ -169,12 +178,10 @@ public class DBOAccessRequirementDAOImplTest {
 			}
 		}
 		assertTrue(foundAr);
-				
+
 		// Delete it
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
 
 		assertEquals(initialCount, accessRequirementDAO.getCount());
 	}
-
-
 }

@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LocationData;
@@ -195,6 +196,46 @@ public class IT500SynapseJavaClient {
 		// now push it, should get a SynapseBadRequestException
 		synapse.updateACL(acl);
 	}
+	
+	@Test
+	public void testUpdateACLRecursive() throws Exception {
+		// retrieve parent acl
+		AccessControlList parentAcl = synapse.getACL(project.getId());
+
+		// retrieve child acl - should get parent's
+		AccessControlList childAcl;
+		try {
+			childAcl = synapse.getACL(dataset.getId());
+			fail("Child has ACL, but should inherit from parent");
+		} catch (SynapseException e) {}		
+		
+		// assign new ACL to child
+		childAcl = new AccessControlList();
+		childAcl.setId(dataset.getId());
+		childAcl = synapse.createACL(childAcl);
+		
+		// retrieve child acl - should get child's
+		AccessControlList returnedAcl = synapse.getACL(dataset.getId());
+		returnedAcl.setUri(childAcl.getUri()); // uris don't match...?
+		assertEquals("Child ACL not set properly", childAcl, returnedAcl);
+		assertFalse("Child ACL should not match parent ACL", parentAcl.equals(returnedAcl));
+				
+		// apply parent ACL non-recursively
+		parentAcl = synapse.updateACL(parentAcl, false);
+		// child ACL should still be intact
+		returnedAcl = synapse.getACL(dataset.getId());
+		returnedAcl.setUri(childAcl.getUri()); // uris don't match...?
+		assertEquals("Child ACL not set properly", childAcl, returnedAcl);
+		assertFalse("Child ACL should not match parent ACL", parentAcl.equals(returnedAcl));
+		
+		// apply parent ACL recursively
+		parentAcl = synapse.updateACL(parentAcl, true);
+		// child ACL should have been deleted
+		try {
+			childAcl = synapse.getACL(dataset.getId());
+			fail("Child has ACL, but should inherit from parent");
+		} catch (SynapseException e) {}		
+	}
 
 	/**
 	 * @throws Exception
@@ -332,19 +373,19 @@ public class IT500SynapseJavaClient {
 	 */
 	@Test
 	public void testJavaClientCreateEntity() throws Exception {
-		Project newProject = new Project();
-		newProject.setParentId(project.getId());
-		Project createdProject = synapse.createEntity(newProject);
-		assertNotNull(createdProject);
-		assertNotNull(createdProject.getId());
-		assertNotNull(createdProject.getUri());
+		Study study = new Study();
+		study.setParentId(project.getId());
+		Study createdStudy = synapse.createEntity(study);
+		assertNotNull(createdStudy);
+		assertNotNull(createdStudy.getId());
+		assertNotNull(createdStudy.getUri());
 
-		String createdProjectId = createdProject.getId();
-		Project fromGet = synapse.getEntity(createdProjectId, Project.class);
-		assertEquals(createdProject, fromGet);
+		String createdProjectId = createdStudy.getId();
+		Study fromGet = synapse.getEntity(createdProjectId, Study.class);
+		assertEquals(createdStudy, fromGet);
 
-		Project fromGetById = (Project) synapse.getEntityById(createdProjectId);
-		assertEquals(createdProject, fromGetById);
+		Study fromGetById = (Study) synapse.getEntityById(createdProjectId);
+		assertEquals(createdStudy, fromGetById);
 
 	}
 	
@@ -745,7 +786,7 @@ public class IT500SynapseJavaClient {
 		// Start with no children.
 
 		// Add a child.
-		Project child = new Project();
+		Folder child = new Folder();
 		child.setName("childFolder");
 		child.setParentId(project.getId());
 		child = synapse.createEntity(child);
@@ -757,7 +798,7 @@ public class IT500SynapseJavaClient {
 		Long count = synapse.getChildCount(child.getId());
 		assertEquals(new Long(0), count);
 		// Now add a child
-		Project grandChild = new Project();
+		Study grandChild = new Study();
 		grandChild.setName("childFolder");
 		grandChild.setParentId(child.getId());
 		grandChild = synapse.createEntity(grandChild);

@@ -4,15 +4,20 @@ import java.io.IOException;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.http.HttpHeaders;
 
 /**
@@ -102,7 +107,48 @@ public interface UserProfileService {
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException;
 
-	
-	
+	/**
+	 * Get headers for users whose names begin with the supplied prefix.
+	 * 
+	 * @param id
+	 * @param prefixFilter
+	 * @param offset
+	 * @param limit
+	 * @param header
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(
+			String prefixFilter, Integer offset, Integer limit,
+			HttpHeaders header, HttpServletRequest request)
+			throws DatastoreException, NotFoundException;
+
+	/**
+	 * Populate a cache of headers for all Synapse users, to support fast
+	 * prefix matching by user name.
+	 * 
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public void refreshCache() throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the time (in milliseconds) since the user/group header cache was last
+	 * updated. Returns null if the cache has not yet been populated.
+	 * 
+	 * @return
+	 */
+	public Long millisSinceLastCacheUpdate();
+
+	public void setObjectTypeSerializer(ObjectTypeSerializer objectTypeSerializer);
+
+	public void setPermissionsManager(PermissionsManager permissionsManager);
+
+	public void setUserManager(UserManager userManager);
+
+	public void setUserProfileManager(UserProfileManager userProfileManager);	
 
 }

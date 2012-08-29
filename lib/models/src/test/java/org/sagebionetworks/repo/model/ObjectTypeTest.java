@@ -37,7 +37,7 @@ public class ObjectTypeTest {
 	
 	@Test
 	public void testProjectValidParent(){
-		EntityType[] expectedValid = new EntityType[]{EntityType.project, null, EntityType.folder};
+		EntityType[] expectedValid = new EntityType[]{null};
 		testValidParents(expectedValid, EntityType.project);
 	}
 	

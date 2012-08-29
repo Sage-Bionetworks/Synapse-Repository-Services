@@ -326,6 +326,17 @@ public class EntityServiceImpl implements EntityService {
 			newParentPath = entityManager.getEntityPathAsAdmin(entity.getParentId());
 		}
 		EntityEvent event = new EntityEvent(eventType, newParentPath, userInfo);
+		
+		// If node has a non-root parent, validate that user has update access on the parent
+		if (newParentPath != null && newParentPath.size() > 1) {
+			EntityHeader newParentHeader = newParentPath.get(newParentPath.size() - 1);
+			try {
+				entityManager.validateUpdateAccess(userInfo, newParentHeader.getId());
+			} catch (Exception e) {
+				throw new UnauthorizedException("Insufficient privileges for parent " + newParentHeader.getId());
+			}
+		}		
+		
 		// First apply validation that is common to all types.
 		allTypesValidator.validateEntity(entity, event);
 		// Now validate for a specific type.
@@ -565,32 +576,22 @@ public class EntityServiceImpl implements EntityService {
 
 	@Override
 	public AccessControlList updateEntityACL(String userId,
-			AccessControlList updated, HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
+			AccessControlList updated, String recursive, HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		// Resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		AccessControlList acl = permissionsManager.updateACL(updated, userInfo);
+		if (recursive.equalsIgnoreCase("true"))
+			permissionsManager.applyInheritanceToChildren(updated.getId(), userInfo);
 		acl.setUri(request.getRequestURI());
 		return acl;
 	}
 
-	/**
-	 * Delete a specific entity
-	 * <p>
-	 * 
-	 * @param userId
-	 * @param id the id of the node whose inheritance is to be restored
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws ConflictingUpdateException 
-	 */
 	@Override
-	public  void deleteEntityACL(String userId, String id)
+	public void deleteEntityACL(String userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		permissionsManager.restoreInheritance(id, userInfo);
 	}
-
 
 	/**
 	 * determine whether a user has the given access type for a given entity

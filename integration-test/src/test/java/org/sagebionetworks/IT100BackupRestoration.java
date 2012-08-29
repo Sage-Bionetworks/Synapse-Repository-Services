@@ -3,7 +3,9 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,12 +28,16 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -236,6 +242,9 @@ public class IT100BackupRestoration {
 	
 	/**
 	 * Test the complete round trip of user migration.
+	 * Modified to test PLFM-1425:
+	 * - after back up, modify my own user profile
+	 * - after restoration, check that old user profile has been restored
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 * @throws InterruptedException 
@@ -245,7 +254,16 @@ public class IT100BackupRestoration {
 		// first create a backup copy of all of the users
 		// Start the daemon
 		BackupSubmission submission = new BackupSubmission();
-		submission.setEntityIdsToBackup(synapse.getAllUserAndGroupIds());
+		Set<String> allPrincipalIds = synapse.getAllUserAndGroupIds();
+		
+		UserProfile myUserProfile = synapse.getMyProfile();
+		assertTrue(allPrincipalIds.contains(myUserProfile.getOwnerId()));
+		// generate a unique string
+		String myCompany = "MyCompany";
+		myUserProfile.setCompany(myCompany);
+		synapse.updateMyProfile(myUserProfile);
+		
+		submission.setEntityIdsToBackup(allPrincipalIds);
 		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.PRINCIPAL);
 		assertNotNull(status);
 		assertNotNull(status.getStatus());
@@ -257,6 +275,13 @@ public class IT100BackupRestoration {
 		status = waitForDaemon(status.getId());
 		assertNotNull(status.getBackupUrl());
 		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+		
+		myUserProfile = synapse.getMyProfile();
+		// generate a unique string
+		String newCompany = "MyCompany-"+System.currentTimeMillis();
+		myUserProfile.setCompany(newCompany);
+		synapse.updateMyProfile(myUserProfile);
+		
 		// Now restore the users from this backup file
 		RestoreSubmission restoreSub = new RestoreSubmission();
 		String backupFileName = getFileNameFromUrl(status.getBackupUrl());
@@ -265,6 +290,10 @@ public class IT100BackupRestoration {
 		// Wait for it to finish
 		status = waitForDaemon(status.getId());
 		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+		
+		// after restoration, user profile should be restored to original value
+		myUserProfile = synapse.getMyProfile();
+		assertEquals(myCompany, myUserProfile.getCompany());
 	}
 	
 	/**
@@ -415,6 +444,141 @@ public class IT100BackupRestoration {
 		// Now make sure we can get the project
 		project = synapse.getEntity(projectId, Project.class);
 		assertNotNull(project);
+	}
+	
+	@Test
+	public void testPLFM1464AddACL() throws Exception{
+		// Create a project
+		Project project = new Project();
+		project = synapse.createEntity(project);
+		assertNotNull(project);
+		toDelete.add(project);
+		
+		// create a child object for this project
+		Data data = new Data();
+		data.setParentId(project.getId());
+		data = synapse.createEntity(data);
+		
+		// give the child its own ACL
+		AccessControlList acl = new AccessControlList();
+		acl.setId(data.getId());
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		String myPrincipalId = synapse.getMyProfile().getOwnerId();
+		ra.setPrincipalId(Long.parseLong(myPrincipalId));
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})));
+		ras.add(ra);
+		acl.setResourceAccess(ras);
+		acl = synapse.createACL(acl);
+		
+		// Now make a backup copy of this entity
+		BackupSubmission submission = new BackupSubmission();
+		Set<String> set = new HashSet<String>();
+		set.add(project.getId());
+		set.add(data.getId());
+		submission.setEntityIdsToBackup(set);
+		
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.ENTITY);
+		assertNotNull(status);
+		// Wait for the daemon to complete
+		status = waitForDaemon(status.getId());
+		assertNotNull(status.getBackupUrl());
+		String backupFileName = getFileNameFromUrl(status.getBackupUrl());
+		// extract the file name
+		
+		synapse.getACL(data.getId()); // should not generate a SynapseNotFoundException
+
+		// delete the ACL
+		synapse.deleteACL(data.getId());
+		
+		try {
+			synapse.getACL(data.getId());
+			fail("exception expected");
+		} catch (SynapseNotFoundException e) {
+			// as expected
+		}
+		
+		// Now restore the single project
+		RestoreSubmission restore = new RestoreSubmission();
+		restore.setFileName(backupFileName);
+		status = synapse.startRestoreDaemon(restore, MigratableObjectType.ENTITY);
+		// Wait for the daemon to complete
+		status = waitForDaemon(status.getId());
+		// Now make sure we can get the project
+		project = synapse.getEntity(project.getId(), Project.class);
+		assertNotNull(project);
+		
+		// make sure we can see the child object's ACL
+		synapse.getACL(data.getId()); // should not generate a SynapseNotFoundException
+	}
+	
+	@Test
+	public void testPLFM1464DeleteACL() throws Exception{
+		// Create a project
+		Project project = new Project();
+		project = synapse.createEntity(project);
+		assertNotNull(project);
+		toDelete.add(project);
+		
+		// create a child object for this project
+		Data data = new Data();
+		data.setParentId(project.getId());
+		data = synapse.createEntity(data);
+		
+		// Now make a backup copy of this entity
+		BackupSubmission submission = new BackupSubmission();
+		Set<String> set = new HashSet<String>();
+		set.add(project.getId());
+		set.add(data.getId());
+		submission.setEntityIdsToBackup(set);
+		
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.ENTITY);
+		assertNotNull(status);
+		// Wait for the daemon to complete
+		status = waitForDaemon(status.getId());
+		assertNotNull(status.getBackupUrl());
+		String backupFileName = getFileNameFromUrl(status.getBackupUrl());
+		// extract the file name
+		
+		try {
+			synapse.getACL(data.getId());
+			fail("exception expected");
+		} catch (SynapseNotFoundException e) {
+			// as expected
+		}
+		
+		// give the child its own ACL
+		AccessControlList acl = new AccessControlList();
+		acl.setId(data.getId());
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ResourceAccess ra = new ResourceAccess();
+		String myPrincipalId = synapse.getMyProfile().getOwnerId();
+		ra.setPrincipalId(Long.parseLong(myPrincipalId));
+		ra.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(new ACCESS_TYPE[]{ACCESS_TYPE.READ})));
+		ras.add(ra);
+		acl.setResourceAccess(ras);
+		acl = synapse.createACL(acl);
+		
+		synapse.getACL(data.getId()); // should not generate a SynapseNotFoundException
+
+		// Now restore the single project
+		RestoreSubmission restore = new RestoreSubmission();
+		restore.setFileName(backupFileName);
+		status = synapse.startRestoreDaemon(restore, MigratableObjectType.ENTITY);
+		// Wait for the daemon to complete
+		status = waitForDaemon(status.getId());
+		// Now make sure we can get the project
+		project = synapse.getEntity(project.getId(), Project.class);
+		assertNotNull(project);
+		
+		// child should not have an ACL
+		try {
+			synapse.getACL(data.getId());
+			fail("exception expected");
+		} catch (SynapseNotFoundException e) {
+			// as expected
+		}
+		
 	}
 	
 	@Test

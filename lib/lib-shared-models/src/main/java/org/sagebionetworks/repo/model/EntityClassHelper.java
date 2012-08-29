@@ -17,7 +17,7 @@ public class EntityClassHelper {
 		String entityType = entityType(jsonObjectAdapter);
 		JSONEntity newInstance = (JSONEntity)autoGenFactory.newInstance(entityType);
 		newInstance.initializeFromJSONObject(jsonObjectAdapter);
-		return (JSONEntity)newInstance;
+		return newInstance;
 	}
 	
 }

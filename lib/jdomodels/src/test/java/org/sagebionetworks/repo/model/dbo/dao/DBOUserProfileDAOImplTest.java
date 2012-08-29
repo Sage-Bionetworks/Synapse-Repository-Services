@@ -11,6 +11,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -73,7 +74,7 @@ public class DBOUserProfileDAOImplTest {
 		userProfile.setLastName("bar");
 		userProfile.setRStudioUrl("http://rstudio.com");
 		userProfile.setDisplayName("foo bar");
-		userProfile.setEtag("0");
+		userProfile.setEtag(UuidETagGenerator.ZERO_E_TAG);
 		
 		long initialCount = userProfileDAO.getCount();
 		// Create it
@@ -87,26 +88,33 @@ public class DBOUserProfileDAOImplTest {
 		assertNotNull(clone);
 		assertEquals(userProfile, clone);
 
-		// update it
+		// Update it
 		clone.setDisplayName("Mr. Foo Bar");
 		UserProfile updatedProfile = userProfileDAO.update(clone, schema);
 		assertEquals(clone.getDisplayName(), updatedProfile.getDisplayName());
-
-		assertTrue("etags should be incremented after an update", !clone.getEtag().equals(updatedProfile.getEtag()));
+		assertTrue("etags should be different after an update", !clone.getEtag().equals(updatedProfile.getEtag()));
 
 		try {
 			clone.setDisplayName("This Should Fail");
 			userProfileDAO.update(clone, schema);
 			fail("conflicting update exception not thrown");
 		}
-		catch(ConflictingUpdateException e){
+		catch(ConflictingUpdateException e) {
 			// We expected this exception
-		}	
+		}
+
+		try {
+			// Update from a backup.
+			updatedProfile = userProfileDAO.updateFromBackup(clone, schema);
+			assertEquals(clone.getEtag(), updatedProfile.getEtag());
+		}
+		catch(ConflictingUpdateException e) {
+			fail("Update from backup should not generate exception even if the e-tag is different.");
+		}
+
 		// Delete it
 		userProfileDAO.delete(id);
-		
+
 		assertEquals(initialCount, userProfileDAO.getCount());
 	}
-
-
 }

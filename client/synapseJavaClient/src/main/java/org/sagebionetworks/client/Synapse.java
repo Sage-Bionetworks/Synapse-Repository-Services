@@ -59,6 +59,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -67,6 +68,8 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
+import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -95,7 +98,8 @@ public class Synapse {
 	protected static final String PASSWORD_FIELD = "password";
 	
 	protected static final String QUERY_URI = "/query?query=";
-	protected static final String REPO_SUFFIX_PATH = "/path";
+	protected static final String REPO_SUFFIX_PATH = "/path";	
+	protected static final String REPO_SUFFIX_VERSION = "/version";
 	protected static final String ANNOTATION_URI_SUFFIX = "annotations";
 	protected static final String ADMIN = "/admin";
 	protected static final String STACK_STATUS = ADMIN + "/synapse/status";
@@ -105,6 +109,7 @@ public class Synapse {
 
 	protected static final String ENTITY_URI_PATH = "/entity";
 	protected static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
+	protected static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
 	protected static final String ENTITY_BUNDLE_PATH = "/bundle?mask=";
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 
@@ -114,9 +119,11 @@ public class Synapse {
 	
 	protected static final String ACCESS_REQUIREMENT = "/accessRequirement";
 	
-	protected static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled/";
+	protected static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled";
 	
 	protected static final String ACCESS_APPROVAL = "/accessApproval";
+	
+	protected static final String VERSION_INFO = "/version";
 	
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
@@ -454,7 +461,23 @@ public class Synapse {
 	public Entity getEntityById(String entityId) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
+		return getEntityByIdForVersion(entityId, null);
+	}
+		
+	/**
+	 * Get a specific version of an entity using its ID an version number.
+	 * @param entityId
+	 * @param versionNumber 
+	 * @return the entity
+	 * @throws SynapseException
+	 */
+	public Entity getEntityByIdForVersion(String entityId, Long versionNumber) throws SynapseException {
+		if (entityId == null)
+			throw new IllegalArgumentException("EntityId cannot be null");
 		String url = ENTITY_URI_PATH + "/" + entityId;
+		if(versionNumber != null) {
+			url += REPO_SUFFIX_VERSION + "/" + versionNumber;
+		}
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		// Get the type from the object
@@ -492,6 +515,75 @@ public class Synapse {
 		}
 	}
 	
+	/**
+	 * Get a bundle of information about an entity in a single call.
+	 * 
+	 * @param entityId - the entity id to retrieve
+	 * @param versionNumber - the specific version to retrieve
+	 * @param partsMask
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public EntityBundle getEntityBundle(String entityId, Long versionNumber, int partsMask) throws SynapseException {
+		if (entityId == null)
+			throw new IllegalArgumentException("EntityId cannot be null");
+		if (versionNumber == null)
+			throw new IllegalArgumentException("versionNumber cannot be null");
+		String url = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION + "/" + versionNumber + ENTITY_BUNDLE_PATH + partsMask;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			EntityBundle eb = new EntityBundle();
+			eb.initializeFromJSONObject(adapter);
+			return eb;
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+	
+	/**
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public PaginatedResults<EntityHeader> getEntityVersions(String entityId) throws SynapseException {
+		if (entityId == null)
+			throw new IllegalArgumentException("EntityId cannot be null");
+		String url = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION;				
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter results = new JSONObjectAdapterImpl(jsonObj);		
+		try {			
+			// TODO : transfer to a paginated list of entityheader. this code can go away with above service change
+			List<EntityHeader> headerList = new ArrayList<EntityHeader>();
+			if(results.has("results")) {
+				JSONArrayAdapter list = results.getJSONArray("results");
+				for(int i=0; i<list.length(); i++) {
+					JSONObjectAdapter entity = list.getJSONObject(i);
+					EntityHeader header = new EntityHeader();
+					header.setId(entity.getString("id"));
+					header.setName(entity.getString("name"));
+					header.setType(entity.getString("entityType"));
+					if(entity.has("versionNumber")) {
+						header.setVersionNumber(entity.getLong("versionNumber"));
+						header.setVersionLabel(entity.getString("versionLabel"));
+					} else {
+						header.setVersionNumber(new Long(1));
+						header.setVersionLabel("1");						
+					}
+					headerList.add(header);
+				}			
+			}
+
+			PaginatedResults<EntityHeader> versions = new PaginatedResults<EntityHeader>(EntityHeader.class);
+			versions.setTotalNumberOfResults(results.getInt("totalNumberOfResults"));			
+			versions.setResults(headerList);
+			return versions;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
 	public static <T extends JSONEntity> T initializeFromJSONObject(JSONObject o, Class<T> clazz) throws SynapseException {
 		try {
 			T obj = clazz.newInstance();
@@ -499,7 +591,7 @@ public class Synapse {
 			Iterator<String> it = adapter.keys();
 			while (it.hasNext()) {
 				String s = it.next();
-				System.out.println(s);
+				log.trace(s);
 			}
 			obj.initializeFromJSONObject(adapter);
 			return obj;
@@ -545,9 +637,22 @@ public class Synapse {
 		return initializeFromJSONObject(json, UserProfile.class);
 	}
 	
+	/**
+	 * Update an ACL. Default to non-recursive application.
+	 */
 	public AccessControlList updateACL(AccessControlList acl) throws SynapseException {
+		return updateACL(acl, false);
+	}
+	
+	/**
+	 * Update an entity's ACL. If 'recursive' is set to true, then any child 
+	 * ACLs will be deleted, such that all child entities inherit this ACL. 
+	 */
+	public AccessControlList updateACL(AccessControlList acl, boolean recursive) throws SynapseException {
 		String entityId = acl.getId();
 		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX;
+		if (recursive)
+			uri += ENTITY_ACL_RECURSIVE_SUFFIX;
 		try {
 			JSONObject jsonAcl = EntityFactory.createJSONObjectForEntity(acl);
 			jsonAcl = putEntity(uri, jsonAcl);
@@ -555,7 +660,6 @@ public class Synapse {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
-		
 	}
 	
 	public void deleteACL(String entityId) throws SynapseException {
@@ -711,7 +815,7 @@ public class Synapse {
 	}
 
 	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessReqAccessRequirements(String entityId) throws SynapseException {
-		String uri = ACCESS_REQUIREMENT_UNFULFILLED+entityId;
+		String uri = ENTITY+"/"+entityId+ACCESS_REQUIREMENT_UNFULFILLED;
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
 		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
@@ -724,7 +828,7 @@ public class Synapse {
 	}
 
 	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements(String entityId) throws SynapseException {
-		String uri = ACCESS_REQUIREMENT+"/"+entityId;
+		String uri = ENTITY+"/"+entityId+ACCESS_REQUIREMENT;
 		JSONObject jsonAccessRequirements = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonAccessRequirements);
 		VariableContentPaginatedResults<AccessRequirement> results = new VariableContentPaginatedResults<AccessRequirement>();
@@ -1951,4 +2055,17 @@ public class Synapse {
 		}
 		return ids;
 	}
+	
+	/**
+	 * @return version
+	 * @throws SynapseException
+	 * @throws JSONObjectAdapterException
+	 */
+	public VersionInfo getVersionInfo() throws SynapseException,
+			JSONObjectAdapterException {
+		JSONObject json = getEntity(VERSION_INFO);
+		return EntityFactory
+				.createEntityFromJSONObject(json, VersionInfo.class);
+	}
+
 }

@@ -1,6 +1,7 @@
-/logs
-/target
-/.settings
-/.project
-/.pydevproject
+logs/
+target/
+.classpath
+.settings
+.project
+.pydevproject
 .DS_Store

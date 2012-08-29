@@ -76,16 +76,41 @@ public interface PermissionsManager {
 	 */
 	public AccessControlList restoreInheritance(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
+	/**
+	 * Apply the ACL of the specified resourceId to all of its child resources.
+	 * Any child-defined ACLs will be deleted.
+	 * 
+	 * @param rId
+	 * @param userInfo
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException
+	 */
+	public AccessControlList applyInheritanceToChildren(String rId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
+
 	// the following methods provide the groups
 	// to which resource access permission may be granted
 	
 	/**
+	 * Get all non-individual user groups, including Public.
 	 * 
-	 * get all non-individual user groups, including Public
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public Collection<UserGroup> getGroups() throws DatastoreException;
+
+	/**
+	 * Get all non-individual user groups, including Public. Deprecated, since userInfo is
+	 * not required to fetch groups.
+	 * 
 	 * @throws DatastoreException 
 	 * 
 	 **/
-	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException, UnauthorizedException;
+	@Deprecated
+	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException;
 	
 	/**
 	 * get non-individual user groups (including Public) in range

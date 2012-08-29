@@ -1,17 +1,20 @@
-/**
- * 
- */
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ACCESSOR_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -38,21 +41,30 @@ import org.springframework.transaction.annotation.Transactional;
 public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	@Autowired
 	private DBOBasicDao basicDao;
-	
+
 	@Autowired
 	private IdGenerator idGenerator;
-	
+	@Autowired
+	private ETagGenerator eTagGenerator;
+
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
 	
 	private static final String SELECT_FOR_REQUIREMENT_SQL = 
 		"SELECT * FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
-		COL_ACCESS_APPROVAL_REQUIREMENT_ID+" = "+COL_ACCESS_APPROVAL_REQUIREMENT_ID;
+		COL_ACCESS_APPROVAL_REQUIREMENT_ID+"=:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID;
 
 	private static final String SELECT_FOR_REQUIREMENT_AND_PRINCIPAL_SQL = 
 		"SELECT * FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
 		COL_ACCESS_APPROVAL_REQUIREMENT_ID+" IN (:"+COL_ACCESS_APPROVAL_REQUIREMENT_ID+
 		") AND "+COL_ACCESS_APPROVAL_ACCESSOR_ID+" IN (:"+COL_ACCESS_APPROVAL_ACCESSOR_ID+")";
+
+	private static final String SELECT_FOR_UPDATE_SQL = "select "+
+	COL_ACCESS_APPROVAL_CREATED_BY+", "+
+	COL_ACCESS_APPROVAL_CREATED_ON+", "+
+	COL_ACCESS_APPROVAL_ETAG+
+	" from "+TABLE_ACCESS_APPROVAL+" where "+COL_ACCESS_APPROVAL_ID+
+	"=:"+COL_ACCESS_APPROVAL_ID+" for update";
 
 	private static final RowMapper<DBOAccessApproval> rowMapper = (new DBOAccessApproval()).getTableMapping();
 
@@ -71,8 +83,8 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			InvalidModelException {
 		DBOAccessApproval dbo = new DBOAccessApproval();
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
-		if (dbo.geteTag()==null) dbo.seteTag(0L);
 		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId());
+		if (dbo.geteTag()==null) dbo.seteTag(eTagGenerator.generateETag(dbo));
 		dbo = basicDao.createNew(dbo);
 		T result = (T)AccessApprovalUtils.copyDboToDto(dbo);
 		return result;
@@ -111,36 +123,69 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends AccessApproval> T  update(T dto) throws DatastoreException,
-			InvalidModelException, NotFoundException,
-			ConflictingUpdateException {
-		// LOCK the record
-		DBOAccessApproval dbo = null;
+			InvalidModelException, NotFoundException, ConflictingUpdateException {
+		return update(dto, false);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public <T extends AccessApproval> T  updateFromBackup(T dto) throws DatastoreException,
+			InvalidModelException, NotFoundException, ConflictingUpdateException {
+		return update(dto, true);
+	}
+
+	/**
+	 * @param fromBackup Whether we are updating from backup.
+	 *                   Skip optimistic locking and accept the backup e-tag when restoring from backup.
+	 */
+	private <T extends AccessApproval> T  update(T dto, boolean fromBackup) throws DatastoreException,
+			InvalidModelException, NotFoundException, ConflictingUpdateException {
+
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ID, dto.getId());
+		List<DBOAccessApproval> aas = null;
 		try{
-			dbo = simpleJdbcTempalte.queryForObject(SELECT_FOR_UPDATE_SQL, TABLE_MAPPING, param);
+			aas = simpleJdbcTempalte.query(SELECT_FOR_UPDATE_SQL, new RowMapper<DBOAccessApproval>(){
+				@Override
+				public DBOAccessApproval mapRow(ResultSet rs, int rowNum)
+						throws SQLException {
+					DBOAccessApproval aa = new DBOAccessApproval();
+					aa.setCreatedOn(rs.getLong(COL_ACCESS_APPROVAL_CREATED_ON));
+					aa.setCreatedBy(rs.getLong(COL_ACCESS_APPROVAL_CREATED_BY));
+					aa.seteTag(rs.getString(COL_ACCESS_APPROVAL_ETAG));
+					return aa;
+				}
+			}, param);
 		}catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}
-		// check dbo's etag against dto's etag
-		// if different rollback and throw a meaningful exception
-		if (!dbo.geteTag().equals(Long.parseLong(dto.getEtag())))
-			throw new ConflictingUpdateException("Access Approval was updated since you last fetched it, retrieve it again and reapply the update.");
+		if (aas.isEmpty()) {
+			throw new NotFoundException("The resource you are attempting to access cannot be found");			
+		}
+
+		DBOAccessApproval dbo = aas.get(0);
+		if (!fromBackup) {
+			// check dbo's etag against dto's etag
+			// if different rollback and throw a meaningful exception
+			if (!dbo.geteTag().equals(dto.getEtag())) {
+				throw new ConflictingUpdateException("Access Approval was updated since you last fetched it, retrieve it again and reapply the update.");
+			}
+		}
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
-		dbo.seteTag(1L+dbo.geteTag());
+		if (!fromBackup) {
+			// Update with a new e-tag; otherwise, the backup e-tag is used implicitly
+			dbo.seteTag(eTagGenerator.generateETag(dbo));
+		}
+
 		boolean success = basicDao.update(dbo);
 		if (!success) throw new DatastoreException("Unsuccessful updating user Access Approval in database.");
 
 		T resultantDto = (T)AccessApprovalUtils.copyDboToDto(dbo);
 
 		return resultantDto;
-	} // the 'commit' is implicit in returning from a method annotated 'Transactional'
+	}
 
-	private static final String SELECT_FOR_UPDATE_SQL = "select * from "+TABLE_ACCESS_APPROVAL+" where "+COL_ACCESS_APPROVAL_ID+
-			"=:"+COL_ACCESS_APPROVAL_ID+" for update";
-	
 	private static final TableMapping<DBOAccessApproval> TABLE_MAPPING = (new DBOAccessApproval()).getTableMapping();
-
 
 	@Override
 	public List<AccessApproval> getForAccessRequirement(String accessRequirementId) throws DatastoreException {
@@ -157,6 +202,4 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		}
 		return dtos;
 	}
-	
-
 }

@@ -70,7 +70,7 @@ public class DBOUserProfileTest {
 		// Create a new type
 		DBOUserProfile userProfile = new DBOUserProfile();
 		userProfile.setOwnerId(Long.parseLong(individualGroup.getId()));
-		userProfile.seteTag(10L);
+		userProfile.seteTag("10");
 		userProfile.setProperties("My dog has fleas.".getBytes());
 		
 		// Create it

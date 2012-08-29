@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -35,12 +36,21 @@ public interface AccessRequirementDAO extends MigratableDAO {
 	public List<AccessRequirement> getForNode(String nodeId) throws DatastoreException;
 	
 	/**
-	 * updates the 'shallow' properties of an object
-	 * 
+	 * Updates the 'shallow' properties of an object.
+	 *
 	 * @param dto
-	 * @throws DatastoreException 
+	 * @throws DatastoreException
 	 */
 	public <T extends AccessRequirement> T update(T accessRequirement) throws InvalidModelException,
+			NotFoundException, ConflictingUpdateException, DatastoreException;
+
+	/**
+	 * Updates the 'shallow' properties of an object from backup.
+	 *
+	 * @param dto
+	 * @throws DatastoreException
+	 */
+	public <T extends AccessRequirement> T updateFromBackup(T accessRequirement) throws InvalidModelException,
 			NotFoundException, ConflictingUpdateException, DatastoreException;
 
 	/**
@@ -58,4 +68,15 @@ public interface AccessRequirementDAO extends MigratableDAO {
 	 * @return all IDs in the system
 	 */
 	List<String> getIds();
+
+	/**
+	 * 
+	 * @param nodeId
+	 * @param principalId
+	 * @param accessType
+	 * @return the AccessRequirement IDs for the given node and given access type which are unmet for the given principal
+	 * @throws DatastoreException
+	 */
+	List<Long> unmetAccessRequirements(String nodeId, Collection<Long> principalId,
+			ACCESS_TYPE accessType) throws DatastoreException;
 }

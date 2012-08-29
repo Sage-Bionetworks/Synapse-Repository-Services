@@ -1,0 +1,30 @@
+{
+	"description": "This contains items from an rss feed, and meta data about the rss feed itself",
+	"properties": {
+		"title": {
+			"type": "string",
+			"description": "The title of this entry",
+			"title": "Title"
+		},
+		"date": {
+			"type": "string",
+			"description": "The date this entry was published",
+			"title": "Uri"
+		},
+		"author": {
+			"type": "string",
+			"description": "The author of this entry",
+			"title": "Author"
+		},
+		"content": {
+			"description": "The content of this entry.",
+			"type": "string",
+			"title": "Description"
+		},
+		"link": {
+			"description": "The link to this entry.",
+			"type": "string",
+			"title": "Link"
+		}
+	}
+}

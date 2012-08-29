@@ -13,6 +13,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 
+import org.sagebionetworks.ids.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -21,10 +22,10 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  * @author brucehoff
  *
  */
-public class DBOUserProfile implements DatabaseObject<DBOUserProfile> {
+public class DBOUserProfile implements DatabaseObject<DBOUserProfile>, TaggableEntity {
 	private Long ownerId;
 	private byte[] properties;
-	private Long eTag = 0L;
+	private String eTag;
 	
 	public static final String OWNER_ID_FIELD_NAME = "ownerId";
 
@@ -47,7 +48,7 @@ public class DBOUserProfile implements DatabaseObject<DBOUserProfile> {
 				if(blob != null){
 					up.setProperties(blob.getBytes(1, (int) blob.length()));
 				}
-				up.seteTag(rs.getLong(COL_USER_PROFILE_ETAG));
+				up.seteTag(rs.getString(COL_USER_PROFILE_ETAG));
 				return up;
 			}
 
@@ -92,7 +93,7 @@ public class DBOUserProfile implements DatabaseObject<DBOUserProfile> {
 	/**
 	 * @return the eTag
 	 */
-	public Long geteTag() {
+	public String geteTag() {
 		return eTag;
 	}
 
@@ -100,7 +101,7 @@ public class DBOUserProfile implements DatabaseObject<DBOUserProfile> {
 	/**
 	 * @param eTag the eTag to set
 	 */
-	public void seteTag(Long eTag) {
+	public void seteTag(String eTag) {
 		this.eTag = eTag;
 	}
 

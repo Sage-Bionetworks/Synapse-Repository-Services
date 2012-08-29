@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -155,16 +156,62 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		benefactor = nodeInheritanceManager.getBenefactor(rId);
 		
 		return aclDAO.getForResource(benefactor);
+	}	
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public AccessControlList applyInheritanceToChildren(String parentId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
+		// check permissions of user to change permissions for the resource
+		if (!authorizationManager.canAccess(userInfo, parentId, ACCESS_TYPE.CHANGE_PERMISSIONS)) {
+			throw new UnauthorizedException("Not authorized.");
+		}
+		
+		// Before we can update the ACL we must grab the lock on the node.
+		Node node = nodeDao.getNode(parentId);
+		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+
+		applyInheritanceToChildrenHelper(parentId, userInfo);
+
+		// return governing parent ACL
+		return aclDAO.getForResource(nodeInheritanceManager.getBenefactor(parentId));
 	}
 	
-	private void requireUser(UserInfo userInfo) throws UnauthorizedException {
-		if(userInfo.getUser().getUserId().equalsIgnoreCase(AuthorizationConstants.ANONYMOUS_USER_ID))
-			throw new UnauthorizedException("Anonymous user cannot retrieve group information.");
+	private void applyInheritanceToChildrenHelper(String parentId, UserInfo userInfo) throws NotFoundException, DatastoreException, ConflictingUpdateException {
+		// Get all of the child nodes, sorted by id (to prevent deadlock)
+		List<String> children = nodeDao.getChildrenIdsAsList(parentId);
+		
+		// Update each node
+		for(String idToChange: children) {
+			String benefactorId = nodeInheritanceManager.getBenefactor(parentId);
+			
+			// must be authorized to modify permissions
+			if (authorizationManager.canAccess(userInfo, idToChange, ACCESS_TYPE.CHANGE_PERMISSIONS)) {
+				// delete child ACL, if present
+				if (isOwnBenefactor(idToChange)) {
+					// Before we can update the ACL we must grab the lock on the node.
+					Node node = nodeDao.getNode(idToChange);
+					nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+					
+					// delete ACL
+					AccessControlList acl = aclDAO.getForResource(idToChange);
+					aclDAO.delete(acl.getId());
+				}								
+				// set benefactor ACL
+				nodeInheritanceManager.addBeneficiary(idToChange, benefactorId);
+				
+				// recursively apply to children
+				applyInheritanceToChildrenHelper(idToChange, userInfo);
+			}
+		}
+	}
+	
+	@Override
+	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException {
+		return getGroups();
 	}
 
 	@Override
-	public Collection<UserGroup> getGroups(UserInfo userInfo) throws DatastoreException, UnauthorizedException {
-		requireUser(userInfo);
+	public Collection<UserGroup> getGroups() throws DatastoreException {
 		List<String> groupsToOmit = new ArrayList<String>();
 		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
 		return userGroupDAO.getAllExcept(false, groupsToOmit);
@@ -172,7 +219,6 @@ public class PermissionsManagerImpl implements PermissionsManager {
 
 	@Override
 	public List<UserGroup> getGroupsInRange(UserInfo userInfo, long startIncl, long endExcl, String sort, boolean ascending) throws DatastoreException, UnauthorizedException {
-		requireUser(userInfo);
 		List<String> groupsToOmit = new ArrayList<String>();
 		groupsToOmit.add(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME);
 		return userGroupDAO.getInRangeExcept(startIncl, endExcl, false, groupsToOmit);
@@ -206,5 +252,16 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		return authorizationManager.getUserPermissionsForEntity(userInfo, entityId);
 	}
 
+	/**
+	 * Is a node its own benefactor? In other words, does a node have a locally-
+	 * defined ACL?
+	 */
+	private boolean isOwnBenefactor(String rId) {
+		try {
+			return nodeInheritanceManager.getBenefactor(rId).equals(rId);
+		} catch (Exception e) {
+			return false;
+		}
+	}
 	
 }

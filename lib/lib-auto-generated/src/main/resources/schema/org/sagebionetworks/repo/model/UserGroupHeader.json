@@ -1,0 +1,69 @@
+{
+	"title": "User Group Header",
+	"description": "JSON schema for UserHeader POJO",
+	"properties": {
+		"ownerId": {
+			"type": "string",
+			"description": "A foreign key to the ID of the 'principal' object for the user.",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
+		},
+		"firstName": {
+			"type": "string",
+			"title": "First Name",
+			"description": "First Name",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
+		},
+		"lastName": {
+			"type": "string",
+			"title": "Last Name",
+			"description": "Last Name",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
+		},
+		"email": {
+			"type": "string",
+			"title": "Email",
+			"description": "User's current email address"
+		},
+		"displayName": {
+			"type": "string",
+			"title": "Display Name",
+			"description": "Display Name, typically the first name followed by the last name",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
+		},
+		"pic": {
+			"type": "object",
+			"description": "picture attachment",
+			"$ref": "org.sagebionetworks.repo.model.attachment.AttachmentData",
+			"links": [
+				{
+					"rel": "describedby",
+					"href": "http://synapse.sagebase.org/access/public"
+				}
+			]
+		},
+		"isIndividual": {
+			"type": "boolean",
+			"description": "True if this is a user, false if it is a group"
+		}
+	}
+}

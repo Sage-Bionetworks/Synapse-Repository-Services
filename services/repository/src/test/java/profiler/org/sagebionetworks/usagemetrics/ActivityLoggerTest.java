@@ -2,15 +2,12 @@ package profiler.org.sagebionetworks.usagemetrics;
 
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
 import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
-import java.util.Arrays;
 
 import org.apache.commons.logging.Log;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -21,6 +18,8 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.sagebionetworks.logging.SynapseEvent;
+import org.sagebionetworks.logging.SynapseLoggingUtils;
 import org.sagebionetworks.repo.web.controller.ActivityLoggerTestHelper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -83,56 +82,9 @@ public class ActivityLoggerTest {
 	}
 
 	@Test
-	public void testGetArgsNoMethod() throws Exception {
-		String simpleLog = doGetArgs(null, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES, SIMPLE_METHOD_ARGS);
-		assertEquals(Arrays.toString(SIMPLE_METHOD_ARGS), simpleLog);
-	}
-
-	@Test
-	public void testGetArgsNoArgs() throws Exception {
-		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES,
-				new Object[]{null, null});
-		assertEquals(String.format(ARG_FMT_STRING,
-				SIMPLE_METHOD_PARAM_NAMES[0], "null",
-				SIMPLE_METHOD_PARAM_NAMES[1], "null"), simpleLog);
-	}
-
-	@Test
-	public void testGetArgsEncoding() throws Exception {
-		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES, 
-				new Object[] {"{athing=another, two=2}", "?&= "});
-		String[] encoded = {"%7Bathing%3Danother%2C+two%3D2%7D", "%3F%26%3D+"};
-		System.out.println(simpleLog);
-		assertEquals(String.format(ARG_FMT_STRING,
-				SIMPLE_METHOD_PARAM_NAMES[0], encoded[0],
-				SIMPLE_METHOD_PARAM_NAMES[1], encoded[1]), simpleLog);
-	}
-
-	@Test
-	public void testGetArgs() throws Exception {
-		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES, SIMPLE_METHOD_ARGS);
-		assertEquals(SIMPLE_ARG_STRING, simpleLog);
-		String annotationsLog = doGetArgs(ANNOTATION_METHOD, ANNOTATION_METHOD_NAME, ANNOTATION_METHOD_PARAM_NAMES,
-				ANNOTATION_METHOD_ARG_TYPES, ANNOTATION_METHOD_ARGS);
-		assertEquals(ANNOTATION_ARG_STRING, annotationsLog);
-	}
-
-	private String doGetArgs(Method method, String methodName, String[] methodArgNames, Class<?>[] methodArgTypes, Object[] methodArgs)
-			throws NoSuchMethodException, UnsupportedEncodingException {
-		Class<? extends ActivityLoggerTestHelper> classTestClass = ActivityLoggerTestHelper.class;
-
-		MethodSignature mockSig = mock(MethodSignature.class);
-		when(mockSig.getName()).thenReturn(methodName);
-		when(mockSig.getParameterNames()).thenReturn(methodArgNames);
-		when(mockSig.getMethod()).thenReturn(method);
-
-		return activityLogger.getArgs(classTestClass, mockSig, methodArgs);
-	}
-
-	@Test
 	public void testDoBasicLogging() throws Throwable {
 		ProceedingJoinPoint mockPjp = mock(ProceedingJoinPoint.class);
-		MethodSignature mockSig = mock(MethodSignature.class, RETURNS_DEEP_STUBS);
+		MethodSignature mockSig = mock(MethodSignature.class);
 
 		when(mockPjp.getArgs()).thenReturn(ANNOTATION_METHOD_ARGS);
 		when(mockPjp.getSignature()).thenReturn(mockSig);
@@ -147,16 +99,11 @@ public class ActivityLoggerTest {
 		ArgumentCaptor<String> arg = ArgumentCaptor.forClass(String.class);
 		verify(mockLog).trace(arg.capture());
 
-		String[] methodAndArgs = arg.getValue().split("\\?");
-		String[] classAndMethod = methodAndArgs[0].split("/");
+		String val = String.format("2012-08-11 00:00:00,000 [TRACE] - %s", arg.getValue());
+		SynapseEvent synapseEvent = SynapseLoggingUtils.parseSynapseEvent(val);
 
-		String latencyArg = "latency=0&";
-		int indexOf = methodAndArgs[1].indexOf(latencyArg);
-
-		assertEquals(ANNOTATION_ARG_STRING, methodAndArgs[1].substring(indexOf + latencyArg.length()));
-
-		assertEquals(ActivityLoggerTestHelper.class.getSimpleName(), classAndMethod[0]);
-		assertEquals(classAndMethod[1], ANNOTATION_METHOD_NAME);
+		assertEquals(ActivityLoggerTestHelper.class.getSimpleName(), synapseEvent.getController());
+		assertEquals(ANNOTATION_METHOD_NAME, synapseEvent.getMethodName());
 	}
 
 	@Test

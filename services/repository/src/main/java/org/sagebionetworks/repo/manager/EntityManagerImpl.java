@@ -268,8 +268,24 @@ public class EntityManagerImpl implements EntityManager {
 		if (updated == null)
 			throw new IllegalArgumentException("Annoations cannot be null");
 		// The user has updated the additional annotations.
-		nodeManager.updateAnnotations(userInfo, entityId, updated,
+		
+		Annotations updatedClone = new Annotations();
+		cloneAnnotations(updated, updatedClone);
+		// the following *changes* the passed annotations (specifically the etag) so we just pass a clone
+		nodeManager.updateAnnotations(userInfo, entityId, updatedClone,
 				NamedAnnotations.NAME_SPACE_ADDITIONAL);
+	}
+	
+	public static void cloneAnnotations(Annotations src, Annotations dst) {
+		dst.setBlobAnnotations(src.getBlobAnnotations());
+		dst.setCreationDate(src.getCreationDate());
+		dst.setDateAnnotations(src.getDateAnnotations());
+		dst.setDoubleAnnotations(src.getDoubleAnnotations());
+		dst.setEtag(src.getEtag());
+		dst.setId(src.getId());
+		dst.setLongAnnotations(src.getLongAnnotations());
+		dst.setStringAnnotations(src.getStringAnnotations());
+		dst.setUri(src.getUri());
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -494,16 +510,8 @@ public class EntityManagerImpl implements EntityManager {
 		return s3TokenManager.getAttachmentUrl(userId, entityId, tokenId);
 	}
 	
-	/**
-	 * Validate that the user has read access.
-	 * 
-	 * @param userId
-	 * @param entityId
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
-	void validateReadAccess(UserInfo userInfo, String entityId)
+	@Override
+	public void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!permissionsManager.hasAccess(entityId,
 				ACCESS_TYPE.READ, userInfo)) {
@@ -513,15 +521,8 @@ public class EntityManagerImpl implements EntityManager {
 		}
 	}
 	
-	/**
-	 * Dev Note: since the user has update permission, we do not need to check
-	 * whether they have signed the use agreement, also this is just for uploads
-	 * 
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	void validateUpdateAccess(UserInfo userInfo, String entityId)
+	@Override
+	public void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!permissionsManager.hasAccess(entityId,
 				ACCESS_TYPE.UPDATE, userInfo)) {

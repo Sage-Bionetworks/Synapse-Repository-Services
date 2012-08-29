@@ -51,7 +51,8 @@ public class UrlHelpers {
 	 * URL prefix for all objects that are referenced by their ID.
 	 * 
 	 */
-	public static final String ID = "/{id}";
+	public static final String ID_PATH_VARIABLE = "id";
+	public static final String ID = "/{"+ID_PATH_VARIABLE+"}";
 	
 	/**
 	 * URL prefix for all objects that are referenced by their ID.
@@ -73,6 +74,11 @@ public class UrlHelpers {
 	public static final String ACL = "/acl";
 	
 	public static final String BENEFACTOR = "/benefactor";
+	
+	/**
+	 * The request parameter to enforce ACL inheritance of child nodes.
+	 */
+	public static final String RECURSIVE = "recursive";
 	
 	/**
 	 * URL suffix for entity annotations
@@ -126,7 +132,7 @@ public class UrlHelpers {
 	public static final String ENTITY	 = PrefixConst.ENTITY;
 	public static final String USER_PROFILE  = PrefixConst.USER_PROFILE;
 	public static final String HEALTHCHECK = PrefixConst.HEALTHCHECK;
-	
+	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;	
 	/**
 	 * All of the base URLs for Synapse object batch requests
 	 */
@@ -198,6 +204,10 @@ public class UrlHelpers {
 	 */
 	public static final String ENTITY_VERSION_ANNOTATIONS =		ENTITY_VERSION_NUMBER+ANNOTATIONS;
 
+	/**
+	 * Get the bundle for a specific version of an entity
+	 */
+	public static final String ENTITY_VERSION_NUMBER_BUNDLE = ENTITY_VERSION_NUMBER+BUNDLE;
 
 	/**
 	 * URL path for query controller
@@ -219,14 +229,13 @@ public class UrlHelpers {
 	public static final String USERGROUP = "/userGroup";
 	
 	public static final String ACCESS_REQUIREMENT = "/accessRequirement";
-	public static final String ACCESS_REQUIREMENT_WITH_ENTITY_ID = ACCESS_REQUIREMENT+"/{entityId}";
+	public static final String ACCESS_REQUIREMENT_WITH_ENTITY_ID = ENTITY_ID+ACCESS_REQUIREMENT;
 	public static final String ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID = ACCESS_REQUIREMENT+"/{requirementId}";
 	
-	public static final String ACCESS_REQUIREMENT_UNFULFILLED = "/accessRequirementUnfulfilled";
-	public static final String ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ACCESS_REQUIREMENT_UNFULFILLED+"/{entityId}";
+	public static final String ACCESS_REQUIREMENT_UNFULFILLED_WITH_ID = ENTITY_ID+"/accessRequirementUnfulfilled";
 	
 	public static final String ACCESS_APPROVAL = "/accessApproval";
-	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ACCESS_APPROVAL+"/{entityId}";
+	public static final String ACCESS_APPROVAL_WITH_ENTITY_ID = ENTITY_ID+ACCESS_APPROVAL;
 	public static final String ACCESS_APPROVAL_WITH_APPROVAL_ID = ACCESS_APPROVAL+"/{approvalId}";
 	
 	/**
@@ -263,6 +272,11 @@ public class UrlHelpers {
 	public static final String CONCEPT_ID	= CONCEPT+ID;
 	public static final String CHILDERN_TRANSITIVE = "/childrenTransitive";
 	public static final String CONCEPT_ID_CHILDERN_TRANSITIVE	= CONCEPT_ID+CHILDERN_TRANSITIVE;
+	
+	/**
+	 * Public access for Synapse user and group info
+	 */
+	public static final String USER_GROUP_HEADERS = "/userGroupHeaders";
 	
 	/**
 	 * The name of the query parameter for a prefix filter.
