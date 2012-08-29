@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -155,6 +156,53 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		benefactor = nodeInheritanceManager.getBenefactor(rId);
 		
 		return aclDAO.getForResource(benefactor);
+	}	
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public AccessControlList applyInheritanceToChildren(String parentId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
+		// check permissions of user to change permissions for the resource
+		if (!authorizationManager.canAccess(userInfo, parentId, ACCESS_TYPE.CHANGE_PERMISSIONS)) {
+			throw new UnauthorizedException("Not authorized.");
+		}
+		
+		// Before we can update the ACL we must grab the lock on the node.
+		Node node = nodeDao.getNode(parentId);
+		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+
+		applyInheritanceToChildrenHelper(parentId, userInfo);
+
+		// return governing parent ACL
+		return aclDAO.getForResource(nodeInheritanceManager.getBenefactor(parentId));
+	}
+	
+	private void applyInheritanceToChildrenHelper(String parentId, UserInfo userInfo) throws NotFoundException, DatastoreException, ConflictingUpdateException {
+		// Get all of the child nodes, sorted by id (to prevent deadlock)
+		List<String> children = nodeDao.getChildrenIdsAsList(parentId);
+		
+		// Update each node
+		for(String idToChange: children) {
+			String benefactorId = nodeInheritanceManager.getBenefactor(parentId);
+			
+			// must be authorized to modify permissions
+			if (authorizationManager.canAccess(userInfo, idToChange, ACCESS_TYPE.CHANGE_PERMISSIONS)) {
+				// delete child ACL, if present
+				if (isOwnBenefactor(idToChange)) {
+					// Before we can update the ACL we must grab the lock on the node.
+					Node node = nodeDao.getNode(idToChange);
+					nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+					
+					// delete ACL
+					AccessControlList acl = aclDAO.getForResource(idToChange);
+					aclDAO.delete(acl.getId());
+				}								
+				// set benefactor ACL
+				nodeInheritanceManager.addBeneficiary(idToChange, benefactorId);
+				
+				// recursively apply to children
+				applyInheritanceToChildrenHelper(idToChange, userInfo);
+			}
+		}
 	}
 	
 	@Override
@@ -204,5 +252,16 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		return authorizationManager.getUserPermissionsForEntity(userInfo, entityId);
 	}
 
+	/**
+	 * Is a node its own benefactor? In other words, does a node have a locally-
+	 * defined ACL?
+	 */
+	private boolean isOwnBenefactor(String rId) {
+		try {
+			return nodeInheritanceManager.getBenefactor(rId).equals(rId);
+		} catch (Exception e) {
+			return false;
+		}
+	}
 	
 }

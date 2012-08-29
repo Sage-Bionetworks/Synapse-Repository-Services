@@ -76,6 +76,20 @@ public interface PermissionsManager {
 	 */
 	public AccessControlList restoreInheritance(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
+	/**
+	 * Apply the ACL of the specified resourceId to all of its child resources.
+	 * Any child-defined ACLs will be deleted.
+	 * 
+	 * @param rId
+	 * @param userInfo
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException
+	 */
+	public AccessControlList applyInheritanceToChildren(String rId, UserInfo userInfo) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
+
 	// the following methods provide the groups
 	// to which resource access permission may be granted
 	
