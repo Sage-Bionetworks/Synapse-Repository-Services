@@ -2,10 +2,10 @@ package org.sagebionetworks.sweeper.log4j;
 
 import java.io.File;
 import java.lang.reflect.Field;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Arrays;
 
 import org.apache.log4j.Appender;
+import org.apache.log4j.rolling.RollingPolicy;
 import org.apache.log4j.rolling.RollingPolicyBase;
 import org.apache.log4j.rolling.RolloverDescription;
 import org.apache.log4j.rolling.RolloverDescriptionImpl;
@@ -205,32 +205,23 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 
 	private String getDestinationField(Action compressAction,
 			Class<?> clazz) {
+		Field field;
 
-		Field[] declaredFields = clazz.getDeclaredFields();
-		for (Field field : declaredFields) {
-			if (field.getName().equals("destination")) {
-				try {
-					Object object = field.get(compressAction);
-					if (object instanceof String)
-						return (String) object;
-
-				} catch (IllegalArgumentException e) {
-				} catch (IllegalAccessException e) {
-				}
-			}
-		}
-		/* Field field;
 		try {
 			field = clazz.getDeclaredField("destination");
 			field.setAccessible(true);
 			Object object = field.get(compressAction);
-			if (object instanceof String) {
-				return (String) object;
+			if (object instanceof File) {
+				return ((File) object).getName();
 			}
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		} */
+				if (e instanceof NoSuchFieldException ||
+					 e instanceof SecurityException) {
+					// ignore
+				} else {
+					throw new RuntimeException(e);
+				}
+		}
 		return null;
 	}
 
