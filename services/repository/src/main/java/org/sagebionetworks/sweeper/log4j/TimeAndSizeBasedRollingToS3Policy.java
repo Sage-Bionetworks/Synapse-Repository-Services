@@ -19,9 +19,7 @@ import org.apache.log4j.rolling.helper.GZCompressAction;
 import org.apache.log4j.rolling.helper.ZipCompressAction;
 import org.apache.log4j.spi.LoggingEvent;
 
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
 
 /**
  * <code>TimeAndSizeBasedRollingToS3Policy</code> is a composite
@@ -56,9 +54,11 @@ import com.amazonaws.services.s3.AmazonS3Client;
 public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 		implements TriggeringPolicy {
 
-	private TimeBasedRollingPolicy timePolicy = new TimeBasedRollingPolicy();
+	private AmazonS3Provider s3Provider = new AmazonS3ProviderImpl();
 
-	private SizeBasedTriggeringPolicy sizePolicy = new SizeBasedTriggeringPolicy();
+	private RollingPolicy rollingPolicy = new TimeBasedRollingPolicy();
+
+	private TriggeringPolicy triggeringPolicy = new SizeBasedTriggeringPolicy();
 
 	private String s3BucketName = null;
 
@@ -73,11 +73,11 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 	private StackConfigAccess stackConfigAccess = null;
 
 	public void setMaxFileSize(long l) {
-		sizePolicy.setMaxFileSize(l);
+		((SizeBasedTriggeringPolicy) triggeringPolicy).setMaxFileSize(l);
 	}
 
 	public long getMaxFileSize() {
-		return sizePolicy.getMaxFileSize();
+		return ((SizeBasedTriggeringPolicy) triggeringPolicy).getMaxFileSize();
 	}
 
 	/**
@@ -87,7 +87,7 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 	 */
 	@Override
 	public void setFileNamePattern(String fnp) {
-		timePolicy.setFileNamePattern(fnp);
+		((RollingPolicyBase) rollingPolicy).setFileNamePattern(fnp);
 	}
 
 	/**
@@ -97,7 +97,7 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 	 */
 	@Override
 	public String getFileNamePattern() {
-		return timePolicy.getFileNamePattern();
+		return ((RollingPolicyBase) rollingPolicy).getFileNamePattern();
 	}
 
 	/**
@@ -109,7 +109,7 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 	@Override
 	public void setActiveFileName(String afn) {
 		activeFileName = afn;
-		timePolicy.setActiveFileName(afn);
+		((RollingPolicyBase) rollingPolicy).setActiveFileName(afn);
 	}
 
 	/**
@@ -126,27 +126,37 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 		this.stackConfigAccess = new StackConfigAccessImpl();
 	}
 
-	public TimeAndSizeBasedRollingToS3Policy(StackConfigAccess stackConfigAccess) {
+	public TimeAndSizeBasedRollingToS3Policy(
+				AmazonS3Provider s3Provider,
+				StackConfigAccess stackConfigAccess,
+				RollingPolicy timePolicy,
+				TriggeringPolicy sizePolicy) {
+		this.s3Provider = s3Provider;
 		this.stackConfigAccess = stackConfigAccess;
+		this.rollingPolicy = timePolicy;
+		this.triggeringPolicy = sizePolicy;
 	}
 
 	@Override
 	public void activateOptions() {
-		timePolicy.activateOptions();
-		sizePolicy.activateOptions();
+		rollingPolicy.activateOptions();
+		triggeringPolicy.activateOptions();
 		getS3Configuration();
 	}
 
 	@Override
 	public RolloverDescription initialize(String file, boolean append)
 			throws SecurityException {
-		return timePolicy.initialize(file, append);
+		return rollingPolicy.initialize(file, append);
 	}
 
 	@Override
 	public RolloverDescription rollover(String activeFile)
 			throws SecurityException {
-		RolloverDescription rollover = timePolicy.rollover(activeFile);
+		RolloverDescription rollover = rollingPolicy.rollover(activeFile);
+
+		if (rollover == null)
+			return null;
 
 		String targetFileName = discoverTargetFileName(rollover, activeFile);
 
@@ -156,12 +166,19 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 	@Override
 	public boolean isTriggeringEvent(Appender appender, LoggingEvent event,
 			String filename, long fileLength) {
-		return timePolicy.isTriggeringEvent(appender, event, filename, fileLength)
-				|| sizePolicy.isTriggeringEvent(appender, event, filename, fileLength);
+		if (rollingPolicy instanceof TriggeringPolicy) {
+			return ((TriggeringPolicy) rollingPolicy).isTriggeringEvent(appender, event, filename, fileLength)
+				|| triggeringPolicy.isTriggeringEvent(appender, event, filename, fileLength);
+		} else {
+			return triggeringPolicy.isTriggeringEvent(appender, event, filename, fileLength);
+		}
 	}
 
-	private String discoverTargetFileName(RolloverDescription rollover,
+	String discoverTargetFileName(RolloverDescription rollover,
 			String currentActiveFile) {
+		if (rollover == null)
+			throw new IllegalArgumentException("rollover");
+
 		Action synchronous = rollover.getSynchronous();
 		Action asynchronous = rollover.getAsynchronous();
 
@@ -188,7 +205,7 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 		}
 	}
 
-	private String extractFileName(Action action) {
+	String extractFileName(Action action) {
 		Class<?> clazz;
 
 		if (action instanceof GZCompressAction)
@@ -203,7 +220,7 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 		return getDestinationField(action, clazz);
 	}
 
-	private String getDestinationField(Action compressAction,
+	String getDestinationField(Action compressAction,
 			Class<?> clazz) {
 		Field field;
 
@@ -225,7 +242,10 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 		return null;
 	}
 
-	private RolloverDescription addSweepAction(RolloverDescription rollover, String targetFileName) {
+	RolloverDescription addSweepAction(RolloverDescription rollover, String targetFileName) {
+		if (targetFileName == null)
+			return rollover;
+
 		Action compressAction = rollover.getAsynchronous();
 		Action compressAndSweep = makeCompressAndSweepAction(compressAction, targetFileName);
 
@@ -237,28 +257,26 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 		return rollover;
 	}
 
-	private Action makeCompressAndSweepAction(Action compressAction,
+	Action makeCompressAndSweepAction(Action compressAction,
 			String targetFileName) {
 		if (!sweeping)
 			return compressAction;
 
-		AmazonS3 s3Client = new AmazonS3Client(new BasicAWSCredentials(awsAccessKeyId, awsAccessSecretKey));
+		AmazonS3 s3Client = s3Provider.getS3Client(awsAccessKeyId, awsAccessSecretKey);
 		SweepAction sweepAction = new SweepAction(new File(targetFileName), s3BucketName, s3Client, deleteAfterSweeping);
 
 		if (compressAction == null)
 			return sweepAction;
 
-		List<Action> actions = new ArrayList<Action>();
-		actions.add(compressAction);
-		actions.add(sweepAction);
-
-		return new CompositeAction(actions, true);
+		return new CompositeAction(Arrays.asList(new Action[]{compressAction, sweepAction}), true);
 	}
 
 	private void getS3Configuration() {
 		this.awsAccessKeyId = stackConfigAccess.getIAMUserId();
 		this.awsAccessSecretKey = stackConfigAccess.getIAMUserKey();
-		this.sweeping = stackConfigAccess.getLogSweepingEnabled();
 		this.s3BucketName = stackConfigAccess.getS3LogBucket();
+
+		this.deleteAfterSweeping = stackConfigAccess.getDeletAfterSweepingEnabled();
+		this.sweeping = stackConfigAccess.getLogSweepingEnabled();
 	}
 }
