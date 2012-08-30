@@ -105,6 +105,7 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 	 *
 	 * @param afn active file name.
 	 */
+	@SuppressWarnings("deprecation")
 	@Override
 	public void setActiveFileName(String afn) {
 		activeFileName = afn;
@@ -160,7 +161,7 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 	}
 
 	private String discoverTargetFileName(RolloverDescription rollover,
-			String activeFile) {
+			String currentActiveFile) {
 		Action synchronous = rollover.getSynchronous();
 		Action asynchronous = rollover.getAsynchronous();
 
@@ -168,7 +169,7 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 		// is the currentActiveFile
 		if (synchronous == null &&
 				asynchronous == null) {
-			return activeFile;
+			return currentActiveFile;
 
 		// Rename action only, extract filename from synchronous action
 		} else if (synchronous != null  &&
@@ -204,7 +205,21 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 
 	private String getDestinationField(Action compressAction,
 			Class<?> clazz) {
-		Field field;
+
+		Field[] declaredFields = clazz.getDeclaredFields();
+		for (Field field : declaredFields) {
+			if (field.getName().equals("destination")) {
+				try {
+					Object object = field.get(compressAction);
+					if (object instanceof String)
+						return (String) object;
+
+				} catch (IllegalArgumentException e) {
+				} catch (IllegalAccessException e) {
+				}
+			}
+		}
+		/* Field field;
 		try {
 			field = clazz.getDeclaredField("destination");
 			field.setAccessible(true);
@@ -215,7 +230,7 @@ public final class TimeAndSizeBasedRollingToS3Policy extends RollingPolicyBase
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
-		}
+		} */
 		return null;
 	}
 
