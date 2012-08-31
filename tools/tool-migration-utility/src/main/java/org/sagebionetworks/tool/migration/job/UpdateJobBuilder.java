@@ -41,6 +41,15 @@ public class UpdateJobBuilder implements Callable<BuilderResponse> {
 		this.queue = queue;
 		this.batchSize = batchSize;
 	}
+	
+	
+	private static boolean etagsDiffer(String sourceEtag, String destEtag) {
+		if (sourceEtag.equals(destEtag)) return false;
+		// 0 while dest etag is 00000000-0000-0000-0000-000000000000
+		// one-off for release-1.6
+		if (sourceEtag.equals("0") && destEtag.equals("00000000-0000-0000-0000-000000000000")) return false;
+		return true;
+	}
 
 	@Override
 	public BuilderResponse call() throws Exception {
@@ -53,10 +62,12 @@ public class UpdateJobBuilder implements Callable<BuilderResponse> {
 			MigratableObjectData destObject = destMap.get(source.getId());
 			if(destObject != null){
 				// Do the eTags match?
-				if(!source.getEtag().equals(destObject.getEtag())
+				if(     etagsDiffer(source.getEtag(), destObject.getEtag())
 						// also check dependencies
 						&& JobUtil.dependenciesFulfilled(source, destMap.keySet())
 				) {
+					System.out.println("UpdateJobBuilder: Need to update "+source.getId()+" source etag is "+source.getEtag()+
+							" while dest etag is "+destObject.getEtag());
 					// Tags do not match. New dependencies are in place.  Let's migrate it!
 					MigratableObjectType objectType = source.getId().getType();
 					Set<String> batchToUpdate = batchesToUpdate.get(objectType);
