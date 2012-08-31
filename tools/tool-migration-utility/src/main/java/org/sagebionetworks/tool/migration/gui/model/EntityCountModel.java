@@ -6,6 +6,7 @@ import java.util.Map;
 import javax.swing.table.AbstractTableModel;
 
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 
 /**
  * Table model for Entity Counts.
@@ -18,32 +19,44 @@ public class EntityCountModel extends AbstractTableModel {
 	
 	private static final String LONG_WITH_COMMA_FORMAT = "%1$,d";
 	private static final String COUNT = "Count";
-	private static final String ENTITY_TYPE = "Entity Type";
-	private Map<String,String> map = new HashMap<String, String>();
+	private static final String OBJECT_TYPE = "Object Type";
+	private Map<Integer,String> map = new HashMap<Integer, String>();
+	private Map<String,Integer> rowIndex = new HashMap<String, Integer>();
+	private Map<Integer,String> reverseRowIndex = new HashMap<Integer,String>();
 	
 	public EntityCountModel(){
-		// Populate the values with zeros
-		for(EntityType type: EntityType.values()){
-			map.put(type.name(), "unknown");
+		int i=0;
+		for (EntityType entityType : EntityType.values()) {
+			rowIndex.put(entityType.name(), i);
+			reverseRowIndex.put(i, entityType.name());
+			map.put(i, "unknown");
+			i++;
+		}
+		for (MigratableObjectType objType : MigratableObjectType.values()) {
+			if (objType.equals(MigratableObjectType.ENTITY)) {
+				// skip it
+			} else {
+				rowIndex.put(objType.name(), i);
+				reverseRowIndex.put(i, objType.name());
+				map.put(i, "unknown");
+				i++;
+			}
 		}
 	}
 	
 	/**
 	 * Set the count
-	 * @param type
+	 * @param objType ENTITY, PRINCIPAL, etc.
+	 * @param entityType if objType==ENTITY, this is the sub-type, else null
 	 * @param count
 	 */
-	public void setValue(EntityType type, long count){
-		map.put(type.name(), String.format(LONG_WITH_COMMA_FORMAT, count));
-		int rowIndex = 0;
-		for(int i=0; i< EntityType.values().length; i++){
-			if(type == EntityType.values()[i]){
-				rowIndex = i;
-				break;
-			}
-		}
+	public void setValue(MigratableObjectType objType, EntityType entityType, long count){
+		String typeName = objType.name();
+		if (objType.equals(MigratableObjectType.ENTITY)) typeName=entityType.name();
+		int r = rowIndex.get(typeName);
+		map.put(r, String.format(LONG_WITH_COMMA_FORMAT, count));
 		// Fire the change.
-		fireTableCellUpdated(rowIndex, 1);
+		fireTableCellUpdated(r, 1);
 	}
 
 
@@ -59,15 +72,14 @@ public class EntityCountModel extends AbstractTableModel {
 
 	@Override
 	public Object getValueAt(int rowIndex, int columnIndex) {
-		String key = EntityType.values()[rowIndex].name();
-		if(columnIndex == 0) return key;
-		else return map.get(key);
+		if(columnIndex == 0) return reverseRowIndex.get(rowIndex);
+		else return map.get(rowIndex);
 	}
 
 
 	@Override
 	public String getColumnName(int column) {
-		if(column == 0) return ENTITY_TYPE;
+		if(column == 0) return OBJECT_TYPE;
 		else return COUNT;
 	}
 
