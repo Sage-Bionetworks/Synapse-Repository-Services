@@ -29,7 +29,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	public static final String GET_LAST_ID_SQL = "SELECT LAST_INSERT_ID()";
 	
 	@Autowired
-	DDLUtils ddlUtils;
+	private DDLUtils ddlUtils;
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -37,7 +37,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	/**
 	 * Injected via Spring
 	 */
-	List<DatabaseObject> databaseObjectRegister;
+	private List<DatabaseObject> databaseObjectRegister;
 	
 	
 	/**
@@ -58,7 +58,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	private Map<Class<? extends DatabaseObject>, String> updateMap = new HashMap<Class<? extends DatabaseObject>, String>();
 	
 	/**
-	 * We cache the mapping for each objec type.
+	 * We cache the mapping for each object type.
 	 */
 	private Map<Class<? extends DatabaseObject>, TableMapping> classToMapping = new HashMap<Class<? extends DatabaseObject>, TableMapping>();
 

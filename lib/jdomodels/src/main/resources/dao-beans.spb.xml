@@ -7,7 +7,7 @@
        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
 
-	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
 	<!-- Import the stack configuration -->
@@ -48,6 +48,10 @@
 		
 	<bean id="accessControlListDAO"
 		class="org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl"
+		scope="singleton" />
+
+	<bean id="storageLocationDAO"
+		class="org.sagebionetworks.repo.model.dbo.dao.StorageLocationDAOImpl"
 		scope="singleton" />
 
 	<bean id="entityBootstrapper"
