@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.util.StringUtil;
@@ -72,11 +73,14 @@ public class UserProfileManagerImpl implements UserProfileManager {
 				userProfile.setEmail(userGroup.getName());
 		}
 		boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
+		// TODO: Remove this tempfix
+		AttachmentData pic = userProfile.getPic(); // Tempfix for PLFM-1475 (8/31/12)
 		if (!canSeePrivate) {
 			UserProfileManagerUtils.clearPrivateFields(userProfile);
 			if (userGroup != null)
 				userProfile.setEmail(StringUtil.obfuscateEmailAddress(userGroup.getName()));
 		}
+		userProfile.setPic(pic); // Tempfix for PLFM-1475 (8/31/12)
 		return userProfile;
 	}
 
@@ -100,8 +104,11 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl, schema);
 		long totalNumberOfResults = userProfileDAO.getCount();
-		for (UserProfile userProfile : userProfiles) {			
+		for (UserProfile userProfile : userProfiles) {
+			// TODO: Remove this tempfix
+			AttachmentData pic = userProfile.getPic(); // Tempfix for PLFM-1475 (8/31/12)
 			UserProfileManagerUtils.clearPrivateFields(userProfile);
+			userProfile.setPic(pic); // Tempfix for PLFM-1475 (8/31/12)
 			if (includeEmail) {
 				UserGroup userGroup = userGroupDAO.get(userProfile.getOwnerId());
 				if (userGroup != null)
