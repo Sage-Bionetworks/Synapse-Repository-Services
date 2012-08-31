@@ -448,6 +448,14 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * Return whether log sweeping should be enabled for this stack
+	 */
+	public static boolean getLogSweepingEnabled() {
+		return Boolean.parseBoolean(configuration
+					.getProperty("org.sagebionetworks.logging.sweeper.enabled"));
+	}
+
+	/**
 	 * @return whether the cloudWatch profiler should be on or off boolean. True
 	 *         means on, false means off.
 	 */
