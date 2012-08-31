@@ -57,6 +57,7 @@ public class UpdateJobBuilder implements Callable<BuilderResponse> {
 						// also check dependencies
 						&& JobUtil.dependenciesFulfilled(source, destMap.keySet())
 				) {
+					System.out.println("UpdateJobBuilder: Need to update "+source.getId());
 					// Tags do not match. New dependencies are in place.  Let's migrate it!
 					MigratableObjectType objectType = source.getId().getType();
 					Set<String> batchToUpdate = batchesToUpdate.get(objectType);

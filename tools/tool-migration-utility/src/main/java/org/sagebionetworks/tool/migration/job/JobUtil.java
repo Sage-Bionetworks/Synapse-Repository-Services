@@ -34,10 +34,12 @@ public class JobUtil {
 		Map<MigratableObjectDescriptor, MigratableObjectData> map = new HashMap<MigratableObjectDescriptor, MigratableObjectData>();
 		Map<MigratableObjectType,Integer> mapStats = new HashMap<MigratableObjectType,Integer>();
 		for(MigratableObjectData entity: list) {
+			if (!map.containsKey(entity.getId())) { // only count entities once
+				Integer typeCount = mapStats.get(entity.getId().getType());
+				if (typeCount==null) typeCount=1; else typeCount++;
+				mapStats.put(entity.getId().getType(), typeCount);
+			}
 			map.put(entity.getId(), entity);
-			Integer typeCount = mapStats.get(entity.getId().getType());
-			if (typeCount==null) typeCount=1; else typeCount++;
-			mapStats.put(entity.getId().getType(), typeCount);
 		}
 		System.out.println("Migratable list count by type: "+mapStats);
 		return map;
