@@ -248,8 +248,7 @@ public class PrincipalBackupDriver implements GenericBackupDriver {
 				if (exists) {
 					// is an update needed or are the profiles the same?  check the etags to answer
 					if (!srcUserProfile.getEtag().equals(dstUserProfile.getEtag())) {
-						srcUserProfile.setEtag(dstUserProfile.getEtag());
-						userProfileDAO.update(srcUserProfile, schema);
+						userProfileDAO.updateFromBackup(srcUserProfile, schema);
 					}
 				} else {
 					userProfileDAO.create(srcUserProfile, schema);
@@ -325,11 +324,8 @@ public class PrincipalBackupDriver implements GenericBackupDriver {
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		UserGroup ug = userGroupDAO.get(id);
 		String name = ug.getName();
-		// The only time this should actually happen is when we are dealing with bootstrapped groups.
-		// If it happens elsewhere, give up and throw an exception.
-		if (!isBootstrappedPrincipal(name)) throw new IllegalStateException("Cannot delete "+name);
-		
-		deleteUserGroup(ug);
+		// we apply the heuristic of simply disabling principal deletion:
+		log.warn("Deletion of "+name+" id: "+id+" requested but skipped.");
 	}
 
 

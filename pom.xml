@@ -98,9 +98,8 @@
 				<version>1.2.17</version>
 			</dependency>
 
-			<!-- The log4j extras provide more thread safe appenders than
-					the main log4j.  Used in the ActivityLogger, and also by
-					the other profilers. -->
+			<!-- The log4j extras provide more thread safe appenders than the main 
+				log4j. Used in the ActivityLogger, and also by the other profilers. -->
 			<dependency>
 				<groupId>log4j</groupId>
 				<artifactId>apache-log4j-extras</artifactId>
@@ -391,6 +390,12 @@
 			</dependency>
 
 			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-logging</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
 				<groupId>com.google.gwt</groupId>
 				<artifactId>gwt-servlet</artifactId>
 				<version>${gwtVersion}</version>
@@ -421,7 +426,7 @@
 	<build>
 		<pluginManagement>
 			<plugins>
-				<!-- Tell the eclipse m2e plugin to execute these lifecycle mappings
+				<!-- Tell the eclipse m2e plugin to execute these lifecycle mappings 
 					See: http://wiki.eclipse.org/M2E_plugin_execution_not_covered -->
 				<plugin>
 					<groupId>org.eclipse.m2e</groupId>
@@ -430,6 +435,19 @@
 					<configuration>
 						<lifecycleMappingMetadata>
 							<pluginExecutions>
+								<pluginExecution>
+									<pluginExecutionFilter>
+										<groupId>org.codehaus.mojo</groupId>
+										<artifactId>javacc-maven-plugin</artifactId>
+										<versionRange>[0,)</versionRange>
+										<goals>
+											<goal>jjtree-javacc</goal>
+										</goals>
+									</pluginExecutionFilter>
+									<action>
+										<execute />
+									</action>
+								</pluginExecution>
 								<pluginExecution>
 									<pluginExecutionFilter>
 										<groupId>org.sagebionetworks</groupId>
@@ -568,11 +586,11 @@
 	</build>
 
 	<!-- Specify hard-coded project properties that should be shared here -->
-	<!-- Note, do not put in custom developer configuration that should not
+	<!-- Note, do not put in custom developer configuration that should not 
 		be shared, esp passwords. Those go in settings.xml -->
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading
+		<!-- This is just for "eclipse:eclipse" goal to always attempt downloading 
 			sources -->
 		<downloadSources>true</downloadSources>
 		<gwtVersion>2.4.0</gwtVersion>

@@ -20,6 +20,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 
+import org.sagebionetworks.ids.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -28,9 +29,9 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  * @author brucehoff
  *
  */
-public class DBOAccessApproval implements DatabaseObject<DBOAccessApproval> {
+public class DBOAccessApproval implements DatabaseObject<DBOAccessApproval>, TaggableEntity {
 	private Long id;
-	private Long eTag = 0L;
+	private String eTag;
 	private Long createdBy;
 	private long createdOn;
 	private Long modifiedBy;
@@ -62,7 +63,7 @@ public class DBOAccessApproval implements DatabaseObject<DBOAccessApproval> {
 			public DBOAccessApproval mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOAccessApproval aa = new DBOAccessApproval();
 				aa.setId(rs.getLong(COL_ACCESS_APPROVAL_ID));
-				aa.seteTag(rs.getLong(COL_ACCESS_APPROVAL_ETAG));
+				aa.seteTag(rs.getString(COL_ACCESS_APPROVAL_ETAG));
 				aa.setCreatedBy(rs.getLong(COL_ACCESS_APPROVAL_CREATED_BY));
 				aa.setCreatedOn(rs.getLong(COL_ACCESS_APPROVAL_CREATED_ON));
 				aa.setModifiedBy(rs.getLong(COL_ACCESS_APPROVAL_MODIFIED_BY));
@@ -110,12 +111,12 @@ public class DBOAccessApproval implements DatabaseObject<DBOAccessApproval> {
 	}
 
 
-	public Long geteTag() {
+	public String geteTag() {
 		return eTag;
 	}
 
 
-	public void seteTag(Long eTag) {
+	public void seteTag(String eTag) {
 		this.eTag = eTag;
 	}
 
