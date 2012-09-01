@@ -1,20 +1,12 @@
 package org.sagebionetworks.sweeper.log4j;
 
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.RETURNS_DEEP_STUBS;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 
-import java.io.File;
-import java.util.ArrayList;
-
-import org.apache.log4j.rolling.RollingPolicy;
-import org.apache.log4j.rolling.RollingPolicyBase;
 import org.apache.log4j.rolling.RolloverDescription;
-import org.apache.log4j.rolling.TriggeringPolicy;
-import org.apache.log4j.rolling.helper.Action;
-import org.apache.log4j.rolling.helper.CompositeAction;
-import org.apache.log4j.rolling.helper.FileRenameAction;
-import org.apache.log4j.rolling.helper.GZCompressAction;
-import org.apache.log4j.rolling.helper.ZipCompressAction;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -34,36 +26,30 @@ public class TimeBasedRollingToS3PolicyTest {
 
 	@Test
 	public void testActivateOptions() {
+		// TODO - actually add setting of options
+		//  also, need tests that verify that exceptions
+		//  are thrown when options aren't properly set
 		testingPolicy.activateOptions();
 		verify(mockStackAccess).getIAMUserId();
 		verify(mockStackAccess).getIAMUserKey();
 		verify(mockStackAccess).getLogSweepingEnabled();
+		verify(mockStackAccess).getDeletAfterSweepingEnabled();
 		verify(mockStackAccess).getS3LogBucket();
 	}
 
 	@Test
 	public void testInitialize() {
-		testingPolicy.initialize("", true);
+		String currentActiveFile = "arbitraryFileName";
+		RolloverDescription initialize = testingPolicy.initialize(currentActiveFile, true);
 
+		assertEquals(currentActiveFile, initialize.getActiveFileName());
+		assertNull(initialize.getSynchronous());
+		assertNull(initialize.getAsynchronous());
 	}
 
 	@Test
 	public void testIsTriggeringEvent() {
 		testingPolicy.isTriggeringEvent(null, null, null, 0);
-	}
-
-	@Test
-	public void testIsTriggeringEventNullRoller() {
-		testingPolicy = new TimeBasedRollingToS3Policy(mockS3Provider, mockStackAccess);
-		testingPolicy.isTriggeringEvent(null, null, null, 0);
-
-	}
-
-	@Test(expected=NullPointerException.class)
-	public void testIsTriggeringEventNullTrigger() {
-		testingPolicy = new TimeBasedRollingToS3Policy(mockS3Provider, mockStackAccess);
-		testingPolicy.isTriggeringEvent(null, null, null, 0);
-
 	}
 
 }
