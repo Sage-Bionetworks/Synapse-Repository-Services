@@ -25,7 +25,8 @@ public interface UserProfileManager {
 	public UserProfile getUserProfile(UserInfo userInfo, String ownerid) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
-	 * Get the public profiles of the users in the system, paginated
+	 * Get the public profiles of the users in the system, paginated. Default to
+	 * not include e-mail addresses.
 	 * 
 	 * @param userInfo
 	 * @param startIncl
@@ -36,6 +37,19 @@ public interface UserProfileManager {
 	 */
 	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl) throws DatastoreException, NotFoundException;
 	
+	/**
+	 * Get the public profiles of the users in the system, paginated.
+	 * 
+	 * @param userInfo
+	 * @param startIncl
+	 * @param endExcl
+	 * @param includeEmail
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public QueryResults<UserProfile> getInRange(UserInfo userInfo, long startIncl, long endExcl, boolean includeEmail) throws DatastoreException, NotFoundException;
+
 	/**
 	 * Update a UserProfile.
 	 * @param userInfo
