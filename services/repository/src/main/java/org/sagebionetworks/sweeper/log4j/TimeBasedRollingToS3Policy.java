@@ -1,3 +1,20 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package org.sagebionetworks.sweeper.log4j;
 
 import java.io.File;
@@ -37,7 +54,11 @@ import org.apache.log4j.spi.LoggingEvent;
  * time pattern is omitted, then the default pattern of "yyyy-MM-dd" is assumed.
  * For examples, please see TimeBasedRollingPolicy.
  *
+ * With many thanks to Ceki G&uuml;lc&uuml; and Curt Arnold for their stellar work on
+ * TimeBasedRollingPolicy.
+ *
  * @author Geoff Shannon
+ *
  */
 public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 		implements TriggeringPolicy {
@@ -81,6 +102,12 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 
 	@Override
 	public void activateOptions() {
+
+		String fileNamePattern = getFileNamePattern();
+
+		if (fileNamePattern != null && fileNamePattern.endsWith(".gz"))
+			setFileNamePattern(fileNamePattern.substring(0, fileNamePattern.length() - 3));
+
 		super.activateOptions();
 
 		if (activeFileName == null) {
@@ -91,7 +118,7 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 
 		if (dtc == null) {
 			throw new IllegalStateException("FileNamePattern ["
-					+ getFileNamePattern()
+					+ fileNamePattern
 					+ "] does not contain a valid date format specifier");
 		}
 
@@ -102,7 +129,8 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 
 		// this should look something like this: 1c142524-db86-437d-9f0b-56363a7e3f90
 		// since the limit for s3 keys is 1024 bytes, there should be no problems
-		instanceId = java.util.UUID.randomUUID().toString();
+		if (instanceId == null)
+			instanceId = java.util.UUID.randomUUID().toString();
 
 		getS3Configuration();
 	}
@@ -155,10 +183,10 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 											 new File(lastFileName), true);
 
 		compressAction = new GZCompressAction(new File(lastFileName),
-											   new File(lastFileName), true);
+											   new File(lastFileName+".gz"), true);
 
 		if (sweeping) {
-			Action sweepAction = new SweepAction(new File(lastFileName),
+			Action sweepAction = new SweepAction(new File(lastFileName+".gz"),
 												  instanceId,
 												  s3BucketName,
 												  s3Provider.getS3Client(awsAccessKeyId,
