@@ -67,7 +67,6 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 
 	private String lastFileName;
 
-
 	public TimeBasedRollingToS3Policy() {
 		this.stackConfigAccess = new StackConfigAccessImpl();
 		this.s3Provider = new AmazonS3ProviderImpl();
@@ -100,6 +99,10 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 		StringBuffer buf = new StringBuffer();
 		formatFileName(new Date(n), buf);
 		lastFileName = buf.toString();
+
+		// this should look something like this: 1c142524-db86-437d-9f0b-56363a7e3f90
+		// since the limit for s3 keys is 1024 bytes, there should be no problems
+		instanceId = java.util.UUID.randomUUID().toString();
 
 		getS3Configuration();
 	}
@@ -156,6 +159,7 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 
 		if (sweeping) {
 			Action sweepAction = new SweepAction(new File(lastFileName),
+												  instanceId,
 												  s3BucketName,
 												  s3Provider.getS3Client(awsAccessKeyId,
 														  				 awsAccessSecretKey),
