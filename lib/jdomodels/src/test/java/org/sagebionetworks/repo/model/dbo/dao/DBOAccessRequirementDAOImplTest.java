@@ -50,7 +50,9 @@ public class DBOAccessRequirementDAOImplTest {
 	
 	private UserGroup individualGroup = null;
 	private Node node = null;
+	private Node node2 = null;
 	private TermsOfUseAccessRequirement accessRequirement = null;
+	private TermsOfUseAccessRequirement accessRequirement2 = null;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -66,6 +68,10 @@ public class DBOAccessRequirementDAOImplTest {
 			node = NodeTestUtils.createNew("foo", Long.parseLong(individualGroup.getId()));
 			node.setId( nodeDAO.createNew(node) );
 		};
+		if (node2==null) {
+			node2 = NodeTestUtils.createNew("bar", Long.parseLong(individualGroup.getId()));
+			node2.setId( nodeDAO.createNew(node2) );
+		};
 
 	}
 		
@@ -75,9 +81,16 @@ public class DBOAccessRequirementDAOImplTest {
 		if (accessRequirement!=null && accessRequirement.getId()!=null) {
 			accessRequirementDAO.delete(accessRequirement.getId().toString());
 		}
+		if (accessRequirement2!=null && accessRequirement2.getId()!=null) {
+			accessRequirementDAO.delete(accessRequirement2.getId().toString());
+		}
 		if (node!=null && nodeDAO!=null) {
 			nodeDAO.delete(node.getId());
 			node = null;
+		}
+		if (node2!=null && nodeDAO!=null) {
+			nodeDAO.delete(node2.getId());
+			node2 = null;
 		}
 		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
 		if (individualGroup != null) {
@@ -104,6 +117,8 @@ public class DBOAccessRequirementDAOImplTest {
 	public void testCRUD() throws Exception{
 		// Create a new object
 		accessRequirement = newAccessRequirement(individualGroup, node);
+		// PLFM-1477, we have to check that retrieval works when there is another access requirement
+		accessRequirement2 = newAccessRequirement(individualGroup, node2);
 		
 		long initialCount = accessRequirementDAO.getCount();
 		
@@ -115,6 +130,8 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(1+initialCount, accessRequirementDAO.getCount());
 		
 		// Fetch it
+		// PLFM-1477, we have to check that retrieval works when there is another access requirement
+		accessRequirement2 = accessRequirementDAO.create(accessRequirement2);		
 		AccessRequirement clone = accessRequirementDAO.get(accessRequirement.getId().toString());
 		assertNotNull(clone);
 		assertEquals(accessRequirement, clone);
@@ -153,7 +170,7 @@ public class DBOAccessRequirementDAOImplTest {
 		QueryResults<MigratableObjectData> migrationData = accessRequirementDAO.getMigrationObjectData(0, 10000, true);
 		
 		List<MigratableObjectData> results = migrationData.getResults();
-		assertEquals(1+initialCount, results.size());
+		assertEquals(1+1+initialCount, results.size()); // "+1" for extra AR added to test PLFM-1477
 		assertEquals(migrationData.getTotalNumberOfResults(), results.size());
 		
 		boolean foundAr = false;
@@ -181,6 +198,7 @@ public class DBOAccessRequirementDAOImplTest {
 
 		// Delete it
 		accessRequirementDAO.delete(accessRequirement.getId().toString());
+		accessRequirementDAO.delete(accessRequirement2.getId().toString());
 
 		assertEquals(initialCount, accessRequirementDAO.getCount());
 	}
