@@ -29,7 +29,7 @@ public class TimeBasedRollingToS3PolicyTest {
 		mockS3Provider = mock(AmazonS3.class);
 		mockStackAccess = mock(StackConfigAccess.class);
 
-		testingPolicy = new TimeBasedRollingToS3Policy(mockS3Provider, mockStackAccess);
+		testingPolicy = new TimeBasedRollingToS3Policy(1, mockS3Provider, mockStackAccess);
 	}
 
 	@Test(expected=IllegalStateException.class)
