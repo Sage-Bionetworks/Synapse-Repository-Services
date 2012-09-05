@@ -67,13 +67,17 @@ import com.amazonaws.services.s3.AmazonS3Client;
 public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 		implements TriggeringPolicy {
 
+	// this should look something like this: 1c142524-db86-437d-9f0b-56363a7e3f90
+	// since the limit for s3 keys is 1024 bytes, there should be no problems
+	private static final String JVM_INSTANCE_ID = java.util.UUID.randomUUID().toString();
+
 	private final String AFN_NOT_SET = "The ActiveFileName option must be set before using "+this.getClass().getSimpleName();;
 
 	private StackConfigAccess stackConfigAccess;
 
 	private AmazonS3 s3Client;
 
-	private String instanceId;
+	private String stackInstancePath = null;
 
 	private String s3BucketName = null;
 
@@ -130,11 +134,6 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 		formatFileName(new Date(n), buf);
 		lastFileName = buf.toString();
 
-		// this should look something like this: 1c142524-db86-437d-9f0b-56363a7e3f90
-		// since the limit for s3 keys is 1024 bytes, there should be no problems
-		if (instanceId == null)
-			instanceId = java.util.UUID.randomUUID().toString();
-
 		getS3Configuration();
 	}
 
@@ -183,7 +182,7 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 
 		if (sweeping) {
 			Action sweepAction = new SweepAction(new File(lastFileName+".gz"),
-												  instanceId,
+												  stackInstancePath,
 												  s3BucketName,
 												  s3Client,
 												  this.deleteAfterSweeping);
@@ -215,7 +214,19 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 		this.deleteAfterSweeping = stackConfigAccess.getDeleteAfterSweepingEnabled();
 		this.sweeping = stackConfigAccess.getLogSweepingEnabled();
 
+		setStackInstancePath(stackConfigAccess.getStack(), stackConfigAccess.getStackInstance());
+
 		if (s3Client == null)
 			this.s3Client = new AmazonS3Client(new BasicAWSCredentials(awsAccessKeyId, awsAccessSecretKey));
+	}
+
+	private void setStackInstancePath(String stack, String stackInstance) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(stack);
+		sb.append("/");
+		sb.append(stackInstance);
+		sb.append("/");
+		sb.append(JVM_INSTANCE_ID);
+		this.stackInstancePath = sb.toString();
 	}
 }

@@ -448,27 +448,31 @@ public class StackConfiguration {
 	}
 
 	/**
-	 * Return whether log sweeping should be enabled for this stack
+	 * @return whether log sweeping should be enabled for this stack
 	 */
 	public static boolean getLogSweepingEnabled() {
 		return Boolean.parseBoolean(configuration
 					.getProperty("org.sagebionetworks.logging.sweeper.enabled"));
 	}
 
+	/**
+	 * @return whether the log files should be deleted after they are successfully
+	 * pushed to S3
+	 */
 	public static boolean getDeleteAfterSweepingEnabled() {
 		return Boolean.parseBoolean(configuration
 					.getProperty("org.sagebionetworks.logging.sweeper.delete.enabled"));
 	}
 
+	/**
+	 * @return the name of the S3 Bucket where logs are stored
+	 * each stack (dev, staging, prod) and each instance of each stack
+	 * will have it's own subfolder in this bucket
+	 */
 	public static String getS3LogBucket() {
-		StringBuilder sb = new StringBuilder();
-		sb.append(StackConfiguration.getStack());
-		sb.append("-");
-		sb.append(StackConfiguration.getStackInstance());
-		sb.append(".");
-		sb.append(configuration.getProperty("org.sagebionetworks.logging.sweeper.bucket"));
-		return sb.toString();
+		return configuration.getProperty("org.sagebionetworks.logging.sweeper.bucket");
 	}
+
 	/**
 	 * @return whether the cloudWatch profiler should be on or off boolean. True
 	 *         means on, false means off.

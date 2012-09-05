@@ -11,4 +11,8 @@ public interface StackConfigAccess {
 	public boolean getLogSweepingEnabled();
 
 	public boolean getDeleteAfterSweepingEnabled();
+
+	public String getStackInstance();
+
+	public String getStack();
 }
