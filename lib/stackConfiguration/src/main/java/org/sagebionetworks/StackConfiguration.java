@@ -448,6 +448,28 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * Return whether log sweeping should be enabled for this stack
+	 */
+	public static boolean getLogSweepingEnabled() {
+		return Boolean.parseBoolean(configuration
+					.getProperty("org.sagebionetworks.logging.sweeper.enabled"));
+	}
+
+	public static boolean getDeleteAfterSweepingEnabled() {
+		return Boolean.parseBoolean(configuration
+					.getProperty("org.sagebionetworks.logging.sweeper.delete.enabled"));
+	}
+
+	public static String getS3LogBucket() {
+		StringBuilder sb = new StringBuilder();
+		sb.append(StackConfiguration.getStack());
+		sb.append("-");
+		sb.append(StackConfiguration.getStackInstance());
+		sb.append(".");
+		sb.append(configuration.getProperty("org.sagebionetworks.logging.sweeper.bucket"));
+		return sb.toString();
+	}
+	/**
 	 * @return whether the cloudWatch profiler should be on or off boolean. True
 	 *         means on, false means off.
 	 */
@@ -574,7 +596,7 @@ public class StackConfiguration {
 	
 	public static String getPortalLinkedInSecret() {
 		return configuration
-				.getProperty("org.sagebionetworks.portal.api.linkedin.secret");
+				.getDecryptedProperty("org.sagebionetworks.portal.api.linkedin.secret");
 	}
 
 	public static String getPortalGetSatisfactionKey() {
@@ -584,7 +606,7 @@ public class StackConfiguration {
 	
 	public static String getPortalGetSatisfactionSecret() {
 		return configuration
-				.getProperty("org.sagebionetworks.portal.api.getsatisfaction.secret");
+				.getDecryptedProperty("org.sagebionetworks.portal.api.getsatisfaction.secret");
 	}
 	
 	/**

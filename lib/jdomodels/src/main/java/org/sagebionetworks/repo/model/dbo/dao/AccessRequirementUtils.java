@@ -22,7 +22,7 @@ public class AccessRequirementUtils {
 		dbo.setId(dto.getId());
 		dbo.seteTag(dto.getEtag());
 		if (dto.getCreatedBy()!=null) dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
-		if (dto.getCreatedBy()!=null) dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		if (dto.getCreatedOn()!=null) dbo.setCreatedOn(dto.getCreatedOn().getTime());
 		dbo.setModifiedBy(Long.parseLong(dto.getModifiedBy()));
 		dbo.setModifiedOn(dto.getModifiedOn().getTime());
 		dbo.setAccessType(dto.getAccessType().name());

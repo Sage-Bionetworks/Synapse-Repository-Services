@@ -29,6 +29,11 @@ public class SearchUtil {
 			q = null;
 		}		
 
+		// clean up empty q
+		if(q != null && q.size() == 1 && "".equals(q.get(0))) {
+			q = null;
+		}		
+		
 		// test for minimum search requirements
 		if (!(q != null && q.size() > 0) && !(bq != null && bq.size() > 0)) {
 			throw new InvalidArgumentException(
