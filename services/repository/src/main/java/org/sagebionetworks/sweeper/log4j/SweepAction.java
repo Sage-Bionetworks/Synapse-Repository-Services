@@ -14,7 +14,7 @@ public class SweepAction extends ActionBase {
 
 	private File file;
 
-	private String instanceId;
+	private String stackInstancePath;
 
 	private String s3BucketName;
 
@@ -36,10 +36,10 @@ public class SweepAction extends ActionBase {
 		return deleteSource;
 	}
 
-	public SweepAction(File file, String instanceId, String s3BucketName, AmazonS3 s3Client, boolean deleteSource) {
+	public SweepAction(File file, String stackInstancePath, String s3BucketName, AmazonS3 s3Client, boolean deleteSource) {
 		if (file == null)
 			throw new NullPointerException("fileName");
-		if (instanceId == null)
+		if (stackInstancePath == null)
 			throw new NullPointerException("instanceId");
 		if (s3BucketName == null)
 			throw new NullPointerException("s3BucketName");
@@ -47,7 +47,7 @@ public class SweepAction extends ActionBase {
 			throw new NullPointerException("s3Client");
 
 		this.file = file;
-		this.instanceId = instanceId;
+		this.stackInstancePath = stackInstancePath;
 		this.s3BucketName = s3BucketName;
 		this.s3Client = s3Client;
 		this.deleteSource = deleteSource;
@@ -58,7 +58,7 @@ public class SweepAction extends ActionBase {
 		if (!file.exists())
 			return false;
 
-		StringBuilder key = new StringBuilder(instanceId);
+		StringBuilder key = new StringBuilder(stackInstancePath);
 		key.append("/");
 		key.append(file.getName());
 
