@@ -73,9 +73,14 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 	 */
 	private long INTERVAL_BETWEEN_CHECKS = 30;
 
-	// this should look something like this: 1c142524-db86-437d-9f0b-56363a7e3f90
-	// since the limit for s3 keys is 1024 bytes, there should be no problems
-	private static final String JVM_INSTANCE_ID = java.util.UUID.randomUUID().toString();
+	/**
+	 * This variable will either hold an EC2 Instance id (if the jvm is on an ec2 instance)
+	 * or a random UUID.  The cost for getting the EC2 id is about 70 milliseconds if it succeeds,
+	 * and 3000 milliseconds if it fails.  The EC2 id should look like this: ccf831b6
+	 * The UUID should look something like this: 1c142524-db86-437d-9f0b-56363a7e3f90
+	 * Since the limit for s3 keys is 1024 bytes, there should be no problems with either approach
+	 */
+	private static final String JVM_INSTANCE_ID = EC2IdProvider.getId();
 
 	private final String AFN_NOT_SET = "The ActiveFileName option must be set before using "+this.getClass().getSimpleName();;
 
