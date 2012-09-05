@@ -67,6 +67,12 @@ import com.amazonaws.services.s3.AmazonS3Client;
 public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 		implements TriggeringPolicy {
 
+	/**
+	 * The time in seconds that will elapse by default before we make another
+	 * check to see if logging should occur.
+	 */
+	private final long INTERVAL_BETWEEN_CHECKS = 30;
+
 	// this should look something like this: 1c142524-db86-437d-9f0b-56363a7e3f90
 	// since the limit for s3 keys is 1024 bytes, there should be no problems
 	private static final String JVM_INSTANCE_ID = java.util.UUID.randomUUID().toString();
@@ -141,7 +147,7 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 	public RolloverDescription initialize(String currentActiveFile, boolean append)
 			throws SecurityException {
 		long n = System.currentTimeMillis();
-		nextCheck = ((n / 1000) + 1) * 1000;
+		nextCheck = getNextCheckTime(n);
 
 		StringBuffer buf = new StringBuffer();
 		formatFileName(new Date(n), buf);
@@ -155,7 +161,7 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 	public RolloverDescription rollover(String currentActiveFile)
 			throws SecurityException {
 		long n = System.currentTimeMillis();
-		nextCheck = ((n / 1000) + 1) * 1000;
+		nextCheck = getNextCheckTime(n);
 
 		StringBuffer buf = new StringBuffer();
 		formatFileName(new Date(n), buf);
@@ -228,5 +234,9 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 		sb.append("/");
 		sb.append(JVM_INSTANCE_ID);
 		this.stackInstancePath = sb.toString();
+	}
+
+	private long getNextCheckTime(long n) {
+		return ((n / 1000) + this.INTERVAL_BETWEEN_CHECKS) * 1000;
 	}
 }
