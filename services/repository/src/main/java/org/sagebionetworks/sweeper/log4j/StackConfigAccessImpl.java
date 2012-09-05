@@ -5,6 +5,17 @@ import org.sagebionetworks.StackConfiguration;
 public class StackConfigAccessImpl implements StackConfigAccess {
 
 	@Override
+	public String getStack() {
+		return StackConfiguration.getStack();
+	}
+
+
+	@Override
+	public String getStackInstance() {
+		return StackConfiguration.getStackInstance();
+	}
+
+	@Override
 	public String getIAMUserId() {
 		return StackConfiguration.getIAMUserId();
 	}
