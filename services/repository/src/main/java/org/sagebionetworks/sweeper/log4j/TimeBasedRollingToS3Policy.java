@@ -144,16 +144,9 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 		StringBuffer buf = new StringBuffer();
 		formatFileName(new Date(n), buf);
 		lastFileName = buf.toString();
-
-		if (activeFileName != null) {
-			return new RolloverDescriptionImpl(activeFileName, append, null,
-					null);
-		} else if (currentActiveFile != null) {
-			return new RolloverDescriptionImpl(currentActiveFile, append, null,
-					null);
-		} else {
-			return new RolloverDescriptionImpl(lastFileName, append, null, null);
-		}
+		// this is okay because if activeFileName is null, the setup contract has been
+		// violated somehow
+		return new RolloverDescriptionImpl(activeFileName, append, null, null);
 	}
 
 	@Override
@@ -207,6 +200,8 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 	@Override
 	public boolean isTriggeringEvent(Appender appender, LoggingEvent event,
 			String filename, long fileLength) {
+				// basically, we check every second.  This is a dummy check to 
+				// route to the actual check down by rollover
 				return System.currentTimeMillis() >= nextCheck;
 	}
 

@@ -94,16 +94,19 @@ public class SweepActionTest {
 	@Test
 	public void testExecuteNoDelete() throws IOException {
 		File mockFile = mock(File.class);
+		when(mockFile.getName()).thenReturn("");
 		SweepAction sweepAction = new SweepAction(mockFile, "", "", mockS3Client, false);
 
 		when(mockFile.exists()).thenReturn(true);
 		sweepAction.execute();
 		verify(mockFile, times(0)).delete();
+		verify(mockS3Client).putObject("", "/", mockFile);
 	}
 
 	@Test
 	public void testExecuteDelete() throws IOException {
 		File mockFile = mock(File.class);
+		when(mockFile.getName()).thenReturn("");
 		SweepAction sweepAction = new SweepAction(mockFile, "", "", mockS3Client, true);
 
 		when(mockFile.exists()).thenReturn(true);
@@ -111,5 +114,6 @@ public class SweepActionTest {
 		assertTrue(execute);
 
 		verify(mockFile, times(1)).delete();
+		verify(mockS3Client).putObject("", "/", mockFile);
 	}
 }

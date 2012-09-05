@@ -50,7 +50,7 @@ public class TimeBasedRollingToS3PolicyTest {
 
 	@Test
 	public void testActivateOptions() {
-		activateOptions();
+		setDefaultPolicyOptions();
 		verify(mockStackAccess).getIAMUserId();
 		verify(mockStackAccess).getIAMUserKey();
 		verify(mockStackAccess).getLogSweepingEnabled();
@@ -61,7 +61,7 @@ public class TimeBasedRollingToS3PolicyTest {
 	@Test
 	public void testInitialize() {
 		setupStackConfigDefaults(true, false, TEST_BUCKET);
-		activateOptions();
+		setDefaultPolicyOptions();
 		RolloverDescription initialize = testingPolicy.initialize(TEST_AFN, true);
 		assertNotNull("initialize should not be null", initialize);
 		assertEquals(TEST_AFN, initialize.getActiveFileName());
@@ -72,7 +72,7 @@ public class TimeBasedRollingToS3PolicyTest {
 	@Test
 	public void testRolloverTooSoon() {
 		setupStackConfigDefaults(true, false, TEST_BUCKET);
-		activateOptions();
+		setDefaultPolicyOptions();
 		RolloverDescription initialize = testingPolicy.initialize(TEST_AFN, true);
 		RolloverDescription rollover = testingPolicy.rollover(TEST_AFN);
 		assertNotNull("initialize should not be null", initialize);
@@ -108,7 +108,7 @@ public class TimeBasedRollingToS3PolicyTest {
 	}
 
 	private RolloverDescription doRolloverTest() throws InterruptedException {
-		activateOptions();
+		setDefaultPolicyOptions();
 		RolloverDescription initialize = testingPolicy.initialize(TEST_AFN, true);
 		Thread.sleep(1000);
 		RolloverDescription rollover = testingPolicy.rollover(TEST_AFN);
@@ -125,7 +125,7 @@ public class TimeBasedRollingToS3PolicyTest {
 	}
 
 	@SuppressWarnings("deprecation")
-	private void activateOptions() {
+	private void setDefaultPolicyOptions() {
 		testingPolicy.setActiveFileName(TEST_AFN);
 		testingPolicy.setFileNamePattern(TEST_FNP);
 		testingPolicy.activateOptions();
