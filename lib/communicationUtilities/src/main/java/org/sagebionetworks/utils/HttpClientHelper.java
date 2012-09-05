@@ -75,36 +75,7 @@ public class HttpClientHelper {
 	 */
 	public static HttpClient createNewClient(boolean verifySSLCertificates) {
 		try {
-			SSLContext ctx = null;
-			X509HostnameVerifier hostNameVarifier = null;
-			// Should certificates be checked.
-			if (verifySSLCertificates) {
-				ctx = createSecureSSLContext();
-				hostNameVarifier = SSLSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER;
-			} else {
-				// This will allow any certificate.
-				ctx = createEasySSLContext();
-				hostNameVarifier = new AcceptAnyHostName();
-			}
-
-			SchemeSocketFactory ssf = new SSLSocketFactory(ctx,
-					hostNameVarifier);
-
-			SchemeRegistry schemeRegistry = new SchemeRegistry();
-			schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory
-					.getSocketFactory()));
-			schemeRegistry.register(new Scheme("https", 443, ssf));
-			// schemeRegistry.register(new Scheme("https", 8443, ssf));
-
-			// TODO its unclear how to set a default for the timeout in
-			// milliseconds
-			// used when retrieving an
-			// instance of ManagedClientConnection from the
-			// ClientConnectionManager
-			// since parameters are now deprecated for connection managers.
-			ThreadSafeClientConnManager connectionManager = new ThreadSafeClientConnManager(
-					schemeRegistry);
-
+			ThreadSafeClientConnManager connectionManager = createClientConnectionManager(verifySSLCertificates);
 			HttpParams clientParams = new BasicHttpParams();
 			clientParams.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT,
 					DEFAULT_CONNECT_TIMEOUT_MSEC);
@@ -123,6 +94,51 @@ public class HttpClientHelper {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	/**
+	 * @param verifySSLCertificates
+	 * @return
+	 * @throws NoSuchAlgorithmException
+	 * @throws KeyStoreException
+	 * @throws CertificateException
+	 * @throws IOException
+	 * @throws KeyManagementException
+	 */
+	public static ThreadSafeClientConnManager createClientConnectionManager(
+			boolean verifySSLCertificates) throws NoSuchAlgorithmException,
+			KeyStoreException, CertificateException, IOException,
+			KeyManagementException {
+		SSLContext ctx = null;
+		X509HostnameVerifier hostNameVarifier = null;
+		// Should certificates be checked.
+		if (verifySSLCertificates) {
+			ctx = createSecureSSLContext();
+			hostNameVarifier = SSLSocketFactory.BROWSER_COMPATIBLE_HOSTNAME_VERIFIER;
+		} else {
+			// This will allow any certificate.
+			ctx = createEasySSLContext();
+			hostNameVarifier = new AcceptAnyHostName();
+		}
+
+		SchemeSocketFactory ssf = new SSLSocketFactory(ctx,
+				hostNameVarifier);
+
+		SchemeRegistry schemeRegistry = new SchemeRegistry();
+		schemeRegistry.register(new Scheme("http", 80, PlainSocketFactory
+				.getSocketFactory()));
+		schemeRegistry.register(new Scheme("https", 443, ssf));
+		// schemeRegistry.register(new Scheme("https", 8443, ssf));
+
+		// TODO its unclear how to set a default for the timeout in
+		// milliseconds
+		// used when retrieving an
+		// instance of ManagedClientConnection from the
+		// ClientConnectionManager
+		// since parameters are now deprecated for connection managers.
+		ThreadSafeClientConnManager connectionManager = new ThreadSafeClientConnManager(
+				schemeRegistry);
+		return connectionManager;
 	}
 
 	/**

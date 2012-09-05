@@ -86,7 +86,6 @@
 			<artifactId>lib-auto-generated</artifactId>
 		</dependency>
 
-
 		<!-- This must remain at the test scope! It uses GWT non-compatible dependencies
 			and cannot be used in a GWT client! -->
 		<dependency>

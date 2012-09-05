@@ -1,9 +1,0 @@
-{
-	"description": "JSON schema for a AWS access statement",
-	"properties": {
-		"IpAddress": {
-			"type": "object",
-			"$ref": "org.sagebionetworks.repo.model.search.AwsAccessSourceIp"
-		}
-	}
-}
