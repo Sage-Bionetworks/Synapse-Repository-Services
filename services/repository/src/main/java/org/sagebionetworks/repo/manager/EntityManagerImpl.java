@@ -449,6 +449,7 @@ public class EntityManagerImpl implements EntityManager {
 			String entityId, Integer versionNumber, Integer offset,
 			Integer limit) throws NotFoundException, DatastoreException {
 		// pass through
+
 		EntityHeaderQueryResults results = nodeManager.getEntityReferences(
 				userInfo, entityId, versionNumber, offset, limit);
 		// Note: This is a hack that we currently depend on for Mike's demo.
@@ -468,6 +469,7 @@ public class EntityManagerImpl implements EntityManager {
 		// Reference derivedFrom
 		// This propery will then point to the original dataset. At that point
 		// this method will work without this hack!
+
 		if (results != null && results.getEntityHeaders() != null) {
 			List<EntityHeader> list = results.getEntityHeaders();
 			for (int i = 0; i < list.size(); i++) {

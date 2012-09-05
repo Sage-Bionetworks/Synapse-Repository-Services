@@ -28,12 +28,15 @@ public class StringEncrypter {
 	// args[1] encoding key
 	// prints out encoded string
 	public static void main(String[] args) {
-		if (args.length!=2) {
-			System.out.println("Usage: StringEncrypter <plaintext> <encodingkey>");
+		if (args.length<2) {
+			System.out.println("Usage: StringEncrypter <plaintext> <encodingkey(s)>");
 			System.exit(0);
 		}
-		StringEncrypter se = new StringEncrypter(args[1]);
-		System.out.println(args[0]+" -> "+se.encrypt(args[0]));
+		for (int i = 1; i < args.length; i++) {
+			StringEncrypter se = new StringEncrypter(args[i]);	
+			System.out.println(args[0]+" -> "+se.encrypt(args[0]) + " (for encryption key " + args[i] + ")");
+		}
+
 	}
 
 	public StringEncrypter(String encryptionKey ) {
