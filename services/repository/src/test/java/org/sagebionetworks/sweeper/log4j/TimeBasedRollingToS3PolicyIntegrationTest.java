@@ -47,14 +47,14 @@ public class TimeBasedRollingToS3PolicyIntegrationTest {
 
 		String datePattern = "yyyy-MM-dd_HH_mm_ss";
 
-		AmazonS3Provider mockS3Provider = Mockito.mock(AmazonS3Provider.class, Mockito.RETURNS_DEEP_STUBS);
+		AmazonS3 mockS3 = Mockito.mock(AmazonS3.class);
 		StackConfigAccess mockStackAccess = Mockito.mock(StackConfigAccess.class);
 
 		Mockito.when(mockStackAccess.getDeleteAfterSweepingEnabled()).thenReturn(false);
 		Mockito.when(mockStackAccess.getLogSweepingEnabled()).thenReturn(false);
 		Mockito.when(mockStackAccess.getS3LogBucket()).thenReturn("log-test-bucket");
 
-		TimeBasedRollingToS3Policy tbrp = new TimeBasedRollingToS3Policy(mockS3Provider, mockStackAccess);
+		TimeBasedRollingToS3Policy tbrp = new TimeBasedRollingToS3Policy(mockS3, mockStackAccess);
 		tbrp.setFileNamePattern("test6-%d{" + datePattern + "}.gz");
 		tbrp.setActiveFileName("test6.log");
 		rfa.setFile("test6.log");

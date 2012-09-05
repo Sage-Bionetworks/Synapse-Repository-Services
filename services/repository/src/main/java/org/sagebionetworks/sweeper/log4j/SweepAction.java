@@ -24,32 +24,16 @@ public class SweepAction extends ActionBase {
 		return s3Client;
 	}
 
-	public void setS3Client(AmazonS3 s3Client) {
-		this.s3Client = s3Client;
-	}
-
 	public File getFile() {
 		return file;
-	}
-
-	public void setFile(File file) {
-		this.file = file;
 	}
 
 	public String getS3BucketName() {
 		return s3BucketName;
 	}
 
-	public void setS3BucketName(String s3BucketName) {
-		this.s3BucketName = s3BucketName;
-	}
-
 	public boolean isDeleteSource() {
 		return deleteSource;
-	}
-
-	public void setDeleteSource(boolean deleteSource) {
-		this.deleteSource = deleteSource;
 	}
 
 	public SweepAction(File file, String instanceId, String s3BucketName, AmazonS3 s3Client, boolean deleteSource) {

@@ -12,6 +12,8 @@ import org.apache.log4j.rolling.helper.GZCompressAction;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.amazonaws.services.s3.AmazonS3;
+
 public class TimeBasedRollingToS3PolicyTest {
 
 	private static final String TEST_FNP = "test-%d{yyyy-MM-ddTHH:mm:ss}.gz";
@@ -20,11 +22,11 @@ public class TimeBasedRollingToS3PolicyTest {
 
 	private StackConfigAccess mockStackAccess;
 	private TimeBasedRollingToS3Policy testingPolicy;
-	private AmazonS3Provider mockS3Provider;
+	private AmazonS3 mockS3Provider;
 
 	@Before
 	public void setup() {
-		mockS3Provider = mock(AmazonS3Provider.class, RETURNS_DEEP_STUBS);
+		mockS3Provider = mock(AmazonS3.class);
 		mockStackAccess = mock(StackConfigAccess.class);
 
 		testingPolicy = new TimeBasedRollingToS3Policy(mockS3Provider, mockStackAccess);

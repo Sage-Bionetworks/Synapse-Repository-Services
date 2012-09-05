@@ -34,6 +34,10 @@ import org.apache.log4j.rolling.helper.FileRenameAction;
 import org.apache.log4j.rolling.helper.GZCompressAction;
 import org.apache.log4j.spi.LoggingEvent;
 
+import com.amazonaws.auth.BasicAWSCredentials;
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
+
 /**
  * <code>TimeBasedRollingToS3Policy</code> is a composite
  * Rolling/Triggering Policy that performs similar work to
@@ -67,7 +71,7 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 
 	private StackConfigAccess stackConfigAccess;
 
-	private AmazonS3Provider s3Provider;
+	private AmazonS3 s3Client;
 
 	private String instanceId;
 
@@ -90,13 +94,12 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 
 	public TimeBasedRollingToS3Policy() {
 		this.stackConfigAccess = new StackConfigAccessImpl();
-		this.s3Provider = new AmazonS3ProviderImpl();
 	}
 
 	public TimeBasedRollingToS3Policy(
-				AmazonS3Provider s3Provider,
+				AmazonS3 s3Client,
 				StackConfigAccess stackConfigAccess) {
-		this.s3Provider = s3Provider;
+		this.s3Client = s3Client;
 		this.stackConfigAccess = stackConfigAccess;
 	}
 
@@ -182,8 +185,7 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 			Action sweepAction = new SweepAction(new File(lastFileName+".gz"),
 												  instanceId,
 												  s3BucketName,
-												  s3Provider.getS3Client(awsAccessKeyId,
-														  				 awsAccessSecretKey),
+												  s3Client,
 												  this.deleteAfterSweeping);
 			asyncAction = new CompositeAction(Arrays.asList(new Action[]{compressAction, sweepAction}), true);
 		} else {
@@ -200,7 +202,7 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 	@Override
 	public boolean isTriggeringEvent(Appender appender, LoggingEvent event,
 			String filename, long fileLength) {
-				// basically, we check every second.  This is a dummy check to 
+				// basically, we check every second.  This is a dummy check to
 				// route to the actual check down by rollover
 				return System.currentTimeMillis() >= nextCheck;
 	}
@@ -212,5 +214,8 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 
 		this.deleteAfterSweeping = stackConfigAccess.getDeleteAfterSweepingEnabled();
 		this.sweeping = stackConfigAccess.getLogSweepingEnabled();
+
+		if (s3Client == null)
+			this.s3Client = new AmazonS3Client(new BasicAWSCredentials(awsAccessKeyId, awsAccessSecretKey));
 	}
 }
