@@ -71,7 +71,7 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 	 * The time in seconds that will elapse by default before we make another
 	 * check to see if logging should occur.
 	 */
-	private final long INTERVAL_BETWEEN_CHECKS = 30;
+	private long INTERVAL_BETWEEN_CHECKS = 30;
 
 	// this should look something like this: 1c142524-db86-437d-9f0b-56363a7e3f90
 	// since the limit for s3 keys is 1024 bytes, there should be no problems
@@ -107,8 +107,10 @@ public final class TimeBasedRollingToS3Policy extends RollingPolicyBase
 	}
 
 	public TimeBasedRollingToS3Policy(
+				long intervalBetweenChecks,
 				AmazonS3 s3Client,
 				StackConfigAccess stackConfigAccess) {
+		this.INTERVAL_BETWEEN_CHECKS = intervalBetweenChecks;
 		this.s3Client = s3Client;
 		this.stackConfigAccess = stackConfigAccess;
 	}
