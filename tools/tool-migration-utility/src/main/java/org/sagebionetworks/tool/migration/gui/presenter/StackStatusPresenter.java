@@ -10,10 +10,9 @@ import javax.swing.SwingUtilities;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdministration;
-import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.migration.ClientFactoryImpl;
 import org.sagebionetworks.tool.migration.SynapseConnectionInfo;
 import org.sagebionetworks.tool.migration.dao.QueryRunner;
@@ -98,7 +97,7 @@ public class StackStatusPresenter implements Runnable{
 		 * @param type
 		 * @param count
 		 */
-		public void setEntityTypeCount(EntityType type, long count);
+		public void setEntityTypeCount(MigratableObjectType objType, EntityType type, long count);
 		
 		/**
 		 * Listener for the start button.
@@ -184,8 +183,10 @@ public class StackStatusPresenter implements Runnable{
 					// Make some progress
 					setProgressValue(current++, "Querying for "+type.name()+" count...");
 					long count = queryRunner.getCountForType(type);
-					setCountForEntity(type, count);
+					setCountForEntity(MigratableObjectType.ENTITY, type, count);
 				}
+				
+				// now get the other types...
 				
 				// Make some progress
 				setProgressValue(current++, "Querying for total entity count...");
@@ -274,11 +275,11 @@ public class StackStatusPresenter implements Runnable{
 		});
 	}
 	
-	private void setCountForEntity(final EntityType type, final long count) {
+	private void setCountForEntity(final MigratableObjectType objType, final EntityType entityType, final long count) {
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
-				view.setEntityTypeCount(type, count);
+				view.setEntityTypeCount(objType, entityType, count);
 			}
 		});
 	}
