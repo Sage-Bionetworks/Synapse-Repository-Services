@@ -54,7 +54,7 @@ public class TimeBasedRollingToS3PolicyIntegrationTest {
 		Mockito.when(mockStackAccess.getLogSweepingEnabled()).thenReturn(false);
 		Mockito.when(mockStackAccess.getS3LogBucket()).thenReturn("log-test-bucket");
 
-		TimeBasedRollingToS3Policy tbrp = new TimeBasedRollingToS3Policy(mockS3, mockStackAccess);
+		TimeBasedRollingToS3Policy tbrp = new TimeBasedRollingToS3Policy(1, mockS3, mockStackAccess);
 		tbrp.setFileNamePattern("test6-%d{" + datePattern + "}.gz");
 		tbrp.setActiveFileName("test6.log");
 		rfa.setFile("test6.log");
