@@ -45,7 +45,8 @@
 	<tx:annotation-driven transaction-manager="txManager" />
 
 	<!-- Transaction Manager for PMF -->
-	<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+	<bean id="txManager"
+		class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
 		<property name="dataSource" ref="dataSourcePool" />
 	</bean>
 

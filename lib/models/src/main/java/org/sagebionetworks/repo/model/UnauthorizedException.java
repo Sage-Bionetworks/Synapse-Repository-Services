@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model;
 
-public class UnauthorizedException extends Exception {
+public class UnauthorizedException extends RuntimeException {
 
 	private static final long serialVersionUID = 1130258734762622224L;
 

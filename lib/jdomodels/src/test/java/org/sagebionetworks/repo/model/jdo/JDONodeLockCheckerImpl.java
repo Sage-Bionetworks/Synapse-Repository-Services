@@ -33,6 +33,7 @@ public class JDONodeLockCheckerImpl implements JDONodeLockChecker {
 	private volatile String etag = "etag";
 	private volatile long threadId = -1;
 	private volatile long nodeId = -1;
+	private volatile DatastoreException toThrow = null;
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
@@ -56,6 +57,10 @@ public class JDONodeLockCheckerImpl implements JDONodeLockChecker {
 		lockAcquired = true;
 		// Now hold the lock until told to release it
 		while(holdLock){
+			if(toThrow != null) {
+				throw toThrow;
+//				throw new RuntimeException(toThrow);
+			};
 			printStatusToLog();
 			Thread.sleep(500);
 		}
@@ -76,12 +81,23 @@ public class JDONodeLockCheckerImpl implements JDONodeLockChecker {
 	
 	
 	private void printStatusToLog(){
-		log.info("Status: Thread ID: "+threadId+" acquired-lock: "+lockAcquired+" on Node: "+nodeId+", current eTag: "+etag+"");
+		log.info("Status: Thread ID: "+threadId+" acquired-lock: "+lockAcquired+" on Node: "+nodeId+", current eTag: "+etag+" holdlock: "+holdLock);
 	}
 
 	@Override
 	public boolean failedDueToConflict() {
 		return failedDueToEtagConflict;
 	}
+
+	@Override
+	public String getEtag() {
+		return etag;
+	}
+
+	@Override
+	public void throwException(DatastoreException toThrow) {
+		this.toThrow = toThrow;
+	}
+	
 
 }

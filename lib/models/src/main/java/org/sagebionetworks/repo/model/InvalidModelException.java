@@ -7,7 +7,7 @@ package org.sagebionetworks.repo.model;
  * @author deflaux
  * 
  */
-public class InvalidModelException extends Exception {
+public class InvalidModelException extends RuntimeException {
 
 	/**
      * 

@@ -13,9 +13,12 @@
 	<!-- Import the stack configuration -->
 	<import resource="dbo-beans.spb.xml" />
 	<import resource="bootstrap-entites-spb.xml" />
-
+	
 	<!-- Depends on ID-generator. -->
 	<import resource="id-generator.spb.xml" />
+	
+	<!-- Transactional Messenger -->
+	<bean id="transactionalMessenger" class="org.sagebionetworks.repo.model.message.TransactionalMessengerImpl"/>
 	
 	<bean id="dboAnnotationsDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDaoImpl"/>
 	
