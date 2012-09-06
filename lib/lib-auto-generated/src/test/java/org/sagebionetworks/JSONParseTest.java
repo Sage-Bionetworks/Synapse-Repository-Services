@@ -28,7 +28,7 @@ public class JSONParseTest {
 		    File file = (File) itr.next();		    
 		    try {
 		    	String jstr = readFileToString(file.getAbsolutePath());
-				assertTrue(JSONValidator.isValidJSON(jstr));
+				JSONValidator.validateJSON(jstr);
 		    } catch (JsonParseException jpe) {
 		    	fail("Parse failed on file '" + file.getName() + "'\n" + jpe.getMessage());
 		    }
