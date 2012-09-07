@@ -59,7 +59,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -1258,6 +1257,31 @@ public class Synapse {
 	}
 	
 	/**
+	 * Dev Note: this implementation allows only one location per Locationable,
+	 * ultimately we plan to support multiple locations (e.g., a copy in
+	 * GoogleStorage, S3, and on a local server), but we'll save that work for
+	 * later
+	 * 
+	 * @param locationable
+	 * @param externalUrl
+	 * @return the updated locationable
+	 * @throws SynapseException
+	 */
+	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
+			String externalUrl) throws SynapseException {
+		// set the upload location in the locationable so that Synapse
+		// is aware of the new data
+		LocationData location = new LocationData();
+		location.setPath(externalUrl);
+		location.setType(LocationTypeNames.external);
+		locationable.setMd5(null);
+		List<LocationData> locations = new ArrayList<LocationData>();
+		locations.add(location);
+		locationable.setLocations(locations);
+		return putEntity(locationable);
+	}
+	
+	/**
 	 * This version will use the file name for the file name.
 	 * @param entityId
 	 * @param dataFile
@@ -1475,7 +1499,6 @@ public class Synapse {
 		//Now download the file
 		downloadFromSynapse(url, null, destFile);
 	}
-	
 	
 	/**
 	 * Downlaod a preview to the passed file.
