@@ -482,7 +482,7 @@ public class IT500SynapseJavaClient {
 		// TODO test auto versioning
 		
 	}
-
+	
 	/**
 	 * @throws Exception
 	 */
@@ -513,7 +513,45 @@ public class IT500SynapseJavaClient {
 		assertEquals(externalUrlFileSizeBytes, downloadedLayer.length());
 
 	}
+	
+	/**
+	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
+	 * @throws Exception
+	 */
+	@Test
+	@Ignore // This test has the same potential instability issue as testJavaDownloadExternalLayer(). Useful test to run locally
+	public void testJavaClientUpdateExternalLocation() throws Exception {
+			// Use a url that we expect to be available and whose contents we don't
+		// expect to change
+		String externalUrl = "http://www.sagebase.org/favicon";
+		int externalUrlFileSizeBytes = 1150;
+
+		List<LocationData> locations = new ArrayList<LocationData>();
 		
+		Data layer = new Data();
+		layer.setType(LayerTypeNames.M);
+		layer.setLocations(locations);
+		layer.setParentId(dataset.getId());
+		layer = synapse.createEntity(layer);
+
+		//update the locations
+		layer = (Data)synapse.updateExternalLocationableToSynapse(layer, externalUrl);
+		locations = layer.getLocations();
+		
+		assertEquals(1, locations.size());
+		LocationData location = locations.get(0);
+		assertEquals(LocationTypeNames.external, location.getType());
+		assertNotNull(location.getPath());
+		//test location url
+		assertEquals(location.getPath(), externalUrl);
+		//md5 is not calculated, should not be set
+		//assertEquals(layer.getMd5(), externalUrlMD5);
+		assertTrue(layer.getMd5() == null || layer.getMd5().length() == 0);
+		
+		File downloadedLayer = synapse.downloadLocationableFromSynapse(layer);
+		assertEquals(externalUrlFileSizeBytes, downloadedLayer.length());
+	}
+	
 	@Test
 	public void testGetUsers() throws Exception {
 		UserProfile myProfile = synapse.getMyProfile();
