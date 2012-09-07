@@ -48,6 +48,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -59,6 +60,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.StorageLocations;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeType;
@@ -69,6 +71,7 @@ import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.ObjectDescriptorUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -87,7 +90,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Transactional(readOnly = true)
 public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
-	
+
 	private static final String SQL_SELECT_TYPE_FOR_ALIAS = "SELECT DISTINCT "+COL_OWNER_TYPE+" FROM "+TABLE_NODE_TYPE_ALIAS+" WHERE "+COL_NODE_TYPE_ALIAS+" = ?";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
@@ -95,15 +98,14 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String SQL_COUNT_STRING_ANNOTATIONS_FOR_NODE = "SELECT COUNT("+ANNOTATION_OWNER_ID_COLUMN+") FROM "+TABLE_STRING_ANNOTATIONS+" WHERE "+ANNOTATION_OWNER_ID_COLUMN+" = ? AND "+ANNOTATION_ATTRIBUTE_COLUMN+" = ?";
-		
-	
+
 	// get all ids, paginated
 	private static final String SQL_GET_NODES_PAGINATED =
 		"SELECT n."+COL_NODE_ID+", n."+COL_NODE_ETAG+
 		" FROM "+TABLE_NODE+" n "+
 		" ORDER BY n."+COL_NODE_ID+
 		" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-	
+
 	// select n.id, n.created_by, n.etag, n.parent_id, n.benefactor_id, r.modified_by
 	// from jdonode n, jdorevison r
 	// where n.id=r.owner_node_id order by n.id limit L offset O
@@ -113,7 +115,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			" FROM "+TABLE_NODE+" n, "+TABLE_REVISION+" r "+
 			" WHERE n."+COL_NODE_ID+"=r."+COL_REVISION_OWNER_NODE+" ORDER BY n."+COL_NODE_ID+
 			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-	
+
 	// find the principal dependencies created by the ACLs on auth benefactor nodes
 	// Note, we identify the benefactor nodes by the fact that they are their own benefactor
 	// below 'LIST' is the list of ids returned by the paginated query above
@@ -126,23 +128,25 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		" FROM "+TABLE_NODE+" n, "+TABLE_ACCESS_CONTROL_LIST+" acl, "+TABLE_RESOURCE_ACCESS+" ra "+
 		" WHERE n."+COL_NODE_ID+"=acl."+ACL_OWNER_ID_COLUMN+" and ra."+COL_RESOURCE_ACCESS_OWNER+"=acl."+ACL_OWNER_ID_COLUMN+
 		" AND n."+COL_NODE_ID+"=n."+COL_NODE_BENEFACTOR_ID+" AND n."+COL_NODE_ID+" in (:"+COL_NODE_ID+")";
-	
+
 	// This is better suited for simple JDBC query.
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
-	
+
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
 	private ETagGenerator eTagGenerator;
-	
+
 	@Autowired
-	DBOReferenceDao dboReferenceDao;
+	private DBOBasicDao dboBasicDao;
 	@Autowired
-	DBOBasicDao dboBasicDao;
+	private DBOReferenceDao dboReferenceDao;
 	@Autowired
-	DBOAnnotationsDao dboAnnotationsDao;
-	
+	private DBOAnnotationsDao dboAnnotationsDao;
+	@Autowired
+	private StorageLocationDAO storageLocationDao;
+
 	private static String BIND_ID_KEY = "bindId";
 	private static String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE ID = ?";
 	private static String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";
@@ -356,8 +360,9 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @param rev
 	 * @throws DatastoreException
 	 */
-	public void replaceAnnotationsAndReferencesIfCurrent(Long currentRev, DBORevision rev) throws DatastoreException {
+	private void replaceAnnotationsAndReferencesIfCurrent(Long currentRev, DBORevision rev) throws DatastoreException {
 		if(currentRev.equals(rev.getRevisionNumber())){
+
 			// Update the references
 			try {
 				if(rev.getReferences() != null){
@@ -369,14 +374,21 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			} catch (IOException e) {
 				throw new DatastoreException(e);
 			}
-			// Update the annotations
+
+			// Update the annotations and the location data
 			try {
-				NamedAnnotations nammedAnnos = JDOSecondaryPropertyUtils.decompressedAnnotations(rev.getAnnotations());
-				Annotations forDb = prepareAnnotationsForDBReplacement(nammedAnnos, KeyFactory.keyToString(rev.getOwner()));
+				final NamedAnnotations namedAnnos = JDOSecondaryPropertyUtils.decompressedAnnotations(rev.getAnnotations());
+				final Long node = rev.getOwner();
+				final Long user = rev.getModifiedBy();
+				StorageLocations sl = JDOSecondaryPropertyUtils.getStorageLocations(namedAnnos, node, user);
+				storageLocationDao.replaceLocationData(sl);
+				Annotations forDb = prepareAnnotationsForDBReplacement(namedAnnos, KeyFactory.keyToString(node));
 				dboAnnotationsDao.replaceAnnotations(forDb);
 			} catch (IOException e) {
 				throw new DatastoreException(e);
-			}			
+			} catch (JSONObjectAdapterException e) {
+				throw new DatastoreException(e);
+			}
 		}
 	}
 	
