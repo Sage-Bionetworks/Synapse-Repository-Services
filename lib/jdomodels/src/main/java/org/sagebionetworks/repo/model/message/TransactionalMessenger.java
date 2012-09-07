@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.message;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 
 /**
@@ -30,5 +32,11 @@ public interface TransactionalMessenger {
 	 * @return true if observer was registered.
 	 */
 	public boolean removeObserver(TransactionalMessengerObserver observer);
+	
+	/**
+	 * Get an immutable list of all TransactionalMessengerObservers
+	 * @return
+	 */
+	public List<TransactionalMessengerObserver> getAllObservers();
 
 }

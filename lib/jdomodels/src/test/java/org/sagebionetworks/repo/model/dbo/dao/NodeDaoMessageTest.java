@@ -214,7 +214,7 @@ public class NodeDaoMessageTest {
 	}
 	
 	@Test
-	public void testDelete(){
+	public void testDelete() throws DatastoreException, InvalidModelException, NotFoundException{
 		// Make sure a delete message is sent.
 		// When we create a node a create message should get fired
 		Node node = NodeTestUtils.createNew("createTest", creatorUserGroupId);

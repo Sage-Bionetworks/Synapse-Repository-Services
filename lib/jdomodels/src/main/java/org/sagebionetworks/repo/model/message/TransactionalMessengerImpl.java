@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.message;
 
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -134,6 +135,12 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	public boolean removeObserver(TransactionalMessengerObserver observer){
 		// remove from the list
 		return observers.remove(observer);
+	}
+
+	@Override
+	public List<TransactionalMessengerObserver> getAllObservers() {
+		// Return a copy of the list.
+		return new LinkedList<TransactionalMessengerObserver>(observers);
 	}
 
 }
