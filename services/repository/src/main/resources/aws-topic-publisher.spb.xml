@@ -8,19 +8,42 @@
        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
-	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
+	<!-- Turn on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
 	<!-- Information need to connect to AWS -->
 	<import resource="aws-spb.xml" />
 	<import resource="dao-beans.spb.xml" />
 
-	<!-- Create the AWS search client using the current credentials. Prototype because we want a new one for each bean-->
-	<bean id="awsSNSClient"	class="com.amazonaws.services.sns.AmazonSNSClient" scope="prototype">
+	<!-- Create the AWS search client using the current credentials. Prototype 
+		because we want a new one for each bean -->
+	<bean id="awsSNSClient" class="com.amazonaws.services.sns.AmazonSNSClient"
+		scope="prototype">
 		<constructor-arg ref="awsCredentials" />
 	</bean>
 
 	<!-- The RepositoryMessagePublisher publish repository change messages to an AWS topic -->
-	<bean id="messagePublisher" class="org.sagebionetworks.repo.manager.message.RepositoryMessagePublisherImpl"	init-method="initialize" />
+	<bean id="messagePublisher"
+		class="org.sagebionetworks.repo.manager.message.RepositoryMessagePublisherImpl"
+		init-method="initialize" />
+
+	<!-- This timer is used to fire publish events.  This is where messages get published to the AWS topic -->
+	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+		<property name="triggers">
+			<list>
+				<bean class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+					<property name="jobDetail">
+						<bean
+							class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+							<property name="targetObject" ref="messagePublisher" />
+							<property name="targetMethod" value="timerFired" />
+						</bean>
+					</property>
+					<property name="startDelay" value="0" />
+					<property name="repeatInterval" value="100" />
+				</bean>
+			</list>
+		</property>
+	</bean>
 
 </beans>

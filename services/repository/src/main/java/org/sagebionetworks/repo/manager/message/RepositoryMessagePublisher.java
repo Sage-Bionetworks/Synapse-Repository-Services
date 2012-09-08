@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.manager.message;
 
 import org.sagebionetworks.repo.model.message.TransactionalMessengerObserver;
 
+import com.amazonaws.services.sns.AmazonSNSClient;
+
 /**
  * This object will observe the TransactionalMessenger and sent those messages to an AWS topic.
  * This is the mechanism we are using to notify listeners to changes that occur in Synapse.
@@ -24,4 +26,16 @@ public interface RepositoryMessagePublisher extends TransactionalMessengerObserv
 	 * @return
 	 */
 	public String getTopicArn();
+	
+	/**
+	 * Used by tests to inject a mock client.
+	 * @param awsSNSClient
+	 */
+	public void setAwsSNSClient(AmazonSNSClient awsSNSClient);
+	
+	
+	/**
+	 * Quartz will fire this method on a timer.  This is where we actually publish the data. 
+	 */
+	public void timerFired();
 }
