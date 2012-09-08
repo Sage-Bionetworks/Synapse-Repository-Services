@@ -59,7 +59,7 @@ public class HttpClientHelper {
 	public static final int MAX_ALLOWED_DOWNLOAD_TO_STRING_LENGTH = 1024 * 1024;
 
 	private static final int DEFAULT_CONNECT_TIMEOUT_MSEC = 500;
-	private static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 2000;
+	private static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 20000;
 
 	// Note: Having this 'password' in plaintext is OK because (1) it's a well
 	// known default for key stores,

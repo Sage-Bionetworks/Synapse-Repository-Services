@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.jdo;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -15,14 +16,19 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.StorageLocations;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * Basic test for converting between JDOs and DTOs.
@@ -160,14 +166,47 @@ public class JDOSecondaryPropertyUtilsTest {
 		assertEquals(new Long(999), longValues.get(0));
 
 	}
-	
+
+	@Test
+	public void testGetStorageLocations() throws JSONObjectAdapterException, IOException {
+		byte[] bytes = loadFileAsBytes("annotations_blob_syn313805");
+		NamedAnnotations namedAnnos = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
+		StorageLocations sl = JDOSecondaryPropertyUtils.getStorageLocations(namedAnnos, 111L, 333L);
+		assertEquals(111L, sl.getNodeId().longValue());
+		assertEquals(333L, sl.getUserId().longValue());
+		assertEquals(0, sl.getLocations().size());
+		assertEquals(2, sl.getAttachments().size());
+		assertEquals("application/pdf", sl.getAttachments().get(0).getContentType());
+		assertEquals("9a1e40545fe47f40bd2ede38b6623620", sl.getAttachments().get(0).getMd5());
+		assertEquals("673014/Protecting-Human-Subject-Research-Participants.pdf", sl.getAttachments().get(0).getTokenId());
+		assertNull(sl.getAttachments().get(0).getUrl());
+		assertEquals("image/png", sl.getAttachments().get(1).getContentType());
+		assertEquals("34fbabc6cf229cba16a900e8f54e6402", sl.getAttachments().get(1).getMd5());
+		assertEquals("1047896/China.png", sl.getAttachments().get(1).getTokenId());
+		assertNull(sl.getAttachments().get(1).getUrl());
+		bytes = loadFileAsBytes("annotations_blob_syn464184");
+		namedAnnos = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
+		sl = JDOSecondaryPropertyUtils.getStorageLocations(namedAnnos, 111L, 333L);
+		assertEquals(111L, sl.getNodeId().longValue());
+		assertEquals(333L, sl.getUserId().longValue());
+		assertEquals(0, sl.getAttachments().size());
+		assertEquals(1, sl.getLocations().size());
+		assertEquals("/464184/1048109/Chile.png", sl.getLocations().get(0).getPath());
+		assertEquals(LocationTypeNames.awss3, sl.getLocations().get(0).getType());
+		Map<String, List<String>> annos = sl.getStrAnnotations();
+		assertNotNull(annos.get("md5"));
+		assertEquals("d95da947125d54dc90b1dc7f4665bdb6", annos.get("md5").get(0));
+		assertNotNull(annos.get("contentType"));
+		assertEquals("image/png", annos.get("contentType").get(0));
+	}
+
 	/**
 	 * Helper to load a file into a byte[]
 	 * @param fileName
 	 * @return
 	 * @throws IOException
 	 */
-	public static byte[] loadFileAsBytes(String fileName) throws IOException{
+	private static byte[] loadFileAsBytes(String fileName) throws IOException{
 		// First get the input stream from the class loader
 		InputStream in = JDOSecondaryPropertyUtilsTest.class.getClassLoader().getResourceAsStream(fileName);
 		assertNotNull("Failed to find:"+fileName+" on the classpath", in);
