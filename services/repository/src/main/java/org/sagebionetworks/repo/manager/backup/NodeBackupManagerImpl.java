@@ -16,18 +16,14 @@ import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-
 
 /**
  * The class acts as the source and destination for backups and restoration.
@@ -37,27 +33,23 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Transactional(readOnly = true)
 public class NodeBackupManagerImpl implements NodeBackupManager {
-	
-	@Autowired
-	NodeDAO nodeDao;
-	
-	@Autowired
-	NodeBackupDAO nodeBackupDao;
+
+	@Autowired NodeDAO nodeDao;
 
 	@Autowired
-	AccessControlListDAO aclDAO;
-	
+	private NodeBackupDAO nodeBackupDao;
+
 	@Autowired
-	UserGroupDAO userGroupDAO;
-	
+	private AccessControlListDAO aclDAO;
+
 	@Autowired
-	UserProfileDAO userProfileDAO;
-	
+	private UserGroupDAO userGroupDAO;
+
+	@Autowired
+	private UserProfileDAO userProfileDAO;
+
 	@Autowired
 	private NodeInheritanceDAO inheritanceDAO;
-	
-	private static final ObjectSchema userProfileSchema = SchemaCache.getSchema(UserProfile.class);
-
 
 	@Transactional(readOnly = true)
 	@Override

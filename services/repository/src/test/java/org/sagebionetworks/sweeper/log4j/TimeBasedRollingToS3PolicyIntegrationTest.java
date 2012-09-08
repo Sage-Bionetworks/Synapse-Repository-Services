@@ -2,6 +2,7 @@ package org.sagebionetworks.sweeper.log4j;
 
 import static org.junit.Assert.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -54,7 +55,7 @@ public class TimeBasedRollingToS3PolicyIntegrationTest {
 		Mockito.when(mockStackAccess.getLogSweepingEnabled()).thenReturn(false);
 		Mockito.when(mockStackAccess.getS3LogBucket()).thenReturn("log-test-bucket");
 
-		TimeBasedRollingToS3Policy tbrp = new TimeBasedRollingToS3Policy(mockS3, mockStackAccess);
+		TimeBasedRollingToS3Policy tbrp = new TimeBasedRollingToS3Policy(1, mockS3, mockStackAccess);
 		tbrp.setFileNamePattern("test6-%d{" + datePattern + "}.gz");
 		tbrp.setActiveFileName("test6.log");
 		rfa.setFile("test6.log");
@@ -93,6 +94,12 @@ public class TimeBasedRollingToS3PolicyIntegrationTest {
 		}
 
 		assertTrue(compare(filenames[3], "tbrts3-test.3"));
+
+		for (String filename : filenames) {
+			File file = new File(filename);
+			if (file.exists())
+				file.delete();
+		}
 	}
 
 	void delayUntilNextSecond(int millis) {
