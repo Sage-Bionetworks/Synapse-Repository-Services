@@ -156,7 +156,22 @@
 				<artifactId>org.springframework.web</artifactId>
 				<version>${org.springframework.version}</version>
 			</dependency>
+			<!-- This was being pulled in as a child dependency of the springframework 
+				but the tomcat plugin needs this to be in scope "provided" -->
+			<dependency>
+				<groupId>javax.servlet</groupId>
+				<artifactId>com.springsource.javax.servlet</artifactId>
+				<version>2.5.0</version>
+				<scope>provided</scope>
+			</dependency>
 
+			<!-- In a tomcat container, such as Elastic Beanstalk, you have to include 
+				jstl.jar manually, hence this entry. -->
+			<dependency>
+				<groupId>javax.servlet</groupId>
+				<artifactId>jstl</artifactId>
+				<version>1.2</version>
+			</dependency>
 			<dependency>
 				<groupId>org.springframework</groupId>
 				<artifactId>spring-test</artifactId>
