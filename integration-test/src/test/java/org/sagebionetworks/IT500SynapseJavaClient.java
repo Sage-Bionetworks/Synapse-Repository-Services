@@ -552,6 +552,75 @@ public class IT500SynapseJavaClient {
 		assertEquals(externalUrlFileSizeBytes, downloadedLayer.length());
 	}
 	
+	/**
+	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
+	 * @throws Exception
+	 */
+	@Test
+	public void testJavaClientUpdateExternalLocationWithoutDownload() throws Exception {
+			// Use a url that we expect to be available and whose contents we don't
+		// expect to change
+		String externalUrl = "http://www.sagebase.org/favicon";
+		String externalUrlMD5 = "8f8e272d7fdb2fc6c19d57d00330c397";
+		//int externalUrlFileSizeBytes = 1150;
+
+		List<LocationData> locations = new ArrayList<LocationData>();
+		
+		Data layer = new Data();
+		layer.setType(LayerTypeNames.M);
+		layer.setLocations(locations);
+		layer.setParentId(dataset.getId());
+		layer = synapse.createEntity(layer);
+
+		//update the locations
+		layer = (Data)synapse.updateExternalLocationableToSynapse(layer, externalUrl, externalUrlMD5);
+		locations = layer.getLocations();
+		
+		assertEquals(1, locations.size());
+		LocationData location = locations.get(0);
+		assertEquals(LocationTypeNames.external, location.getType());
+		assertNotNull(location.getPath());
+		//test location url
+		assertEquals(location.getPath(), externalUrl);
+		assertEquals(layer.getMd5(), externalUrlMD5);
+
+		//also verify all is well when we don't set the md5 for external
+		layer = (Data)synapse.updateExternalLocationableToSynapse(layer, externalUrl);
+		locations = layer.getLocations();
+		
+		assertEquals(1, locations.size());
+		location = locations.get(0);
+		assertEquals(LocationTypeNames.external, location.getType());
+		assertNotNull(location.getPath());
+		//test location url
+		assertEquals(location.getPath(), externalUrl);
+		assertNull(layer.getMd5());
+		
+	}
+	
+	/**
+	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
+	 * @throws Exception
+	 */
+	@Test(expected=SynapseBadRequestException.class)
+	public void testJavaClientUpdateMissingMd5() throws Exception {
+		List<LocationData> locations = new ArrayList<LocationData>();
+		
+		LocationData fakeAwsLocation = new LocationData();
+		fakeAwsLocation.setPath("fakeawslocation");
+		fakeAwsLocation.setType(LocationTypeNames.awss3);
+		locations.add(fakeAwsLocation);
+
+		Data layer = new Data();
+		layer.setType(LayerTypeNames.M);
+		//md5 not set
+		layer.setParentId(dataset.getId());
+		layer.setLocations(locations);
+		//should fail (due to missing md5)
+		layer = synapse.createEntity(layer);
+	}
+
+	
 	@Test
 	public void testGetUsers() throws Exception {
 		UserProfile myProfile = synapse.getMyProfile();

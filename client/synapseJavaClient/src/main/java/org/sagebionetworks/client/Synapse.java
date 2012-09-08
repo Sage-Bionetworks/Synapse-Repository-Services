@@ -1256,12 +1256,10 @@ public class Synapse {
 		return putEntity(locationable);
 	}
 	
+	
+
 	/**
-	 * Dev Note: this implementation allows only one location per Locationable,
-	 * ultimately we plan to support multiple locations (e.g., a copy in
-	 * GoogleStorage, S3, and on a local server), but we'll save that work for
-	 * later
-	 * 
+	 * Update the locationable to point to the given external url
 	 * @param locationable
 	 * @param externalUrl
 	 * @return the updated locationable
@@ -1269,12 +1267,25 @@ public class Synapse {
 	 */
 	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
 			String externalUrl) throws SynapseException {
+		return updateExternalLocationableToSynapse(locationable, externalUrl, null);
+	}
+	
+	/**
+	 * Update the locationable to point to the given external url
+	 * @param locationable
+	 * @param externalUrl
+	 * @param md5 the calculated md5 checksum for the file referenced by the external url
+	 * @return the updated locationable
+	 * @throws SynapseException
+	 */
+	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
+			String externalUrl, String md5) throws SynapseException {
 		// set the upload location in the locationable so that Synapse
 		// is aware of the new data
 		LocationData location = new LocationData();
 		location.setPath(externalUrl);
 		location.setType(LocationTypeNames.external);
-		locationable.setMd5(null);
+		locationable.setMd5(md5);
 		List<LocationData> locations = new ArrayList<LocationData>();
 		locations.add(location);
 		locationable.setLocations(locations);

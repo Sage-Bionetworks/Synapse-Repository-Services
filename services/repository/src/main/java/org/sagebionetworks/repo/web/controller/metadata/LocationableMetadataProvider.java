@@ -85,16 +85,15 @@ public class LocationableMetadataProvider implements
 				throw new InvalidModelException("path cannot be null");
 			}
 			
-			//md5 checks (if not external)
-			if (!location.getType().equals(LocationTypeNames.external)){
-				if (null == locationable.getMd5()) {
-					throw new InvalidModelException("md5 cannot be null");
-				}
-				if (!MD5_REGEX.matcher(locationable.getMd5()).matches()) {
-					throw new InvalidModelException(
-							"md5sum is malformed, it must be a 32 digit hexadecimal string");
-				}	
+			//fail if md5 is null (if it's not a link to an external file)
+			if (null == locationable.getMd5() && !location.getType().equals(LocationTypeNames.external)) {
+				throw new InvalidModelException("md5 cannot be null");
 			}
+			//also fail if the md5 is set (not null) and it doesn't match the md5 regular expression
+			if (null != locationable.getMd5() && !MD5_REGEX.matcher(locationable.getMd5()).matches()) {
+				throw new InvalidModelException(
+						"md5sum is malformed, it must be a 32 digit hexadecimal string");
+			}	
 			
 			if (null == locationable.getContentType()) {
 				// We expect that users typically will not provide a mime
