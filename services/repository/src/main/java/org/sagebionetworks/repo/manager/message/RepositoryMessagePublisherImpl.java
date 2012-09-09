@@ -29,8 +29,6 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	
 	static private Log log = LogFactory.getLog(RepositoryMessagePublisherImpl.class);
 	
-	public static final String TOPIC_NAME_TEMPLATE = "%1$s-%2$s-repo-changes";
-	
 	@Autowired
 	TransactionalMessenger transactionalMessanger;
 	
@@ -84,7 +82,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	
 	@Override
 	public String getTopicName(){
-		return String.format(TOPIC_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
+		return StackConfiguration.getRepositoryChangeTopicName();
 	}
 
 

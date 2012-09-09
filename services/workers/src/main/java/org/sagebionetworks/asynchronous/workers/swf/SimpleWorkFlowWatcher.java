@@ -83,6 +83,8 @@ public class SimpleWorkFlowWatcher {
 		// this loop should run for the life of the application.
 		while(true){
 			kickOffAllTasks(deciderList, futureMap);
+			// Let other threads run
+			Thread.yield();
 		}
 	}
 
