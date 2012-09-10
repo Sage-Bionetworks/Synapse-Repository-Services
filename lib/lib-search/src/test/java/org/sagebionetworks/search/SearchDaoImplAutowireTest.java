@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.http.client.ClientProtocolException;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.search.Document;
@@ -34,6 +35,7 @@ import com.amazonaws.services.cloudsearch.model.OptionState;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:search-beans.spb.xml" })
+@Ignore // Turned off until the dao is turned on.
 public class SearchDaoImplAutowireTest {
 	
 	@Autowired

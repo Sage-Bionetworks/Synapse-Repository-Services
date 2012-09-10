@@ -5,10 +5,12 @@ import static org.junit.Assert.*;
 import java.io.IOException;
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.amazonaws.services.cloudsearch.model.IndexField;
 
+@Ignore // Turned off until the dao is turned on.
 public class SearchSchemaLoaderTest {
 	
 	@Test

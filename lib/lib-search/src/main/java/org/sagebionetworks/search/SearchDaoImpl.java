@@ -93,38 +93,44 @@ public class SearchDaoImpl implements SearchDao {
 	CloudSearchClient cloudHttpClient;
 
 	/**
+	 * This feature is currently turned off.
+	 */
+	boolean featureEnabled = false;
+	/**
 	 * Spring will call this method when the bean is first initialize.
 	 * @throws InterruptedException 
 	 * @throws UnknownHostException 
 	 */
 	public void initialize() throws InterruptedException, UnknownHostException {
-		log.info("initialize...");
-		long start = System.currentTimeMillis();
-		// Do we have a search index?
-		String domainName = getSearchDomainName();
-		log.info("Search domain name: "+domainName);
-		// If the domain is currently processing then wait for it.
-		// Note: We need to wait when the search domain is deleted before we can re-create it.
-		waitForDomainProcessing(domainName);
-		// Create the domain it it does not already exist.
-		createDomainIfNeeded(domainName);
-		// Set the policy.
-		setPolicyIfNeeded(domainName);
-		// Define the schema
-		defineAndValidateSchema(domainName);
-		// Run indexing if needed
-		runIndexIfNeeded(domainName);
-		// Now wait for the domain if needed
-		waitForDomainProcessing(domainName);
-		long elapse = System.currentTimeMillis()-start;
-		log.info(String.format("Finished initializing search index: Elapse time: %1$tM:%1$tS:%1$tL (Min:Sec:MS)", elapse));
-		// create the cloud search client
-		DomainStatus status = getDomainStatus();
-		String searchEndPoint = String.format(SEARCH_ENDPOINT_TEMPALTE, status.getSearchService().getEndpoint());
-		log.info("Search endpoint: "+searchEndPoint);
-		String documentEndPoint = String.format(DOCUMENT_ENDPOINT_TEMPALTE, status.getDocService().getEndpoint());
-		log.info("Document endpoint: "+documentEndPoint);
-		cloudHttpClient = new CloudSearchClient(httpClient, searchEndPoint, documentEndPoint);
+		if(featureEnabled){
+			log.info("initialize...");
+			long start = System.currentTimeMillis();
+			// Do we have a search index?
+			String domainName = getSearchDomainName();
+			log.info("Search domain name: "+domainName);
+			// If the domain is currently processing then wait for it.
+			// Note: We need to wait when the search domain is deleted before we can re-create it.
+			waitForDomainProcessing(domainName);
+			// Create the domain it it does not already exist.
+			createDomainIfNeeded(domainName);
+			// Set the policy.
+			setPolicyIfNeeded(domainName);
+			// Define the schema
+			defineAndValidateSchema(domainName);
+			// Run indexing if needed
+			runIndexIfNeeded(domainName);
+			// Now wait for the domain if needed
+			waitForDomainProcessing(domainName);
+			long elapse = System.currentTimeMillis()-start;
+			log.info(String.format("Finished initializing search index: Elapse time: %1$tM:%1$tS:%1$tL (Min:Sec:MS)", elapse));
+			// create the cloud search client
+			DomainStatus status = getDomainStatus();
+			String searchEndPoint = String.format(SEARCH_ENDPOINT_TEMPALTE, status.getSearchService().getEndpoint());
+			log.info("Search endpoint: "+searchEndPoint);
+			String documentEndPoint = String.format(DOCUMENT_ENDPOINT_TEMPALTE, status.getDocService().getEndpoint());
+			log.info("Document endpoint: "+documentEndPoint);
+			cloudHttpClient = new CloudSearchClient(httpClient, searchEndPoint, documentEndPoint);
+		}
 	}
 
 	/**
