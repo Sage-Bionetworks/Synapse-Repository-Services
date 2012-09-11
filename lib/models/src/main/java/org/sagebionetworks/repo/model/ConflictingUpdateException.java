@@ -8,7 +8,7 @@ package org.sagebionetworks.repo.model;
  * 
  * @author deflaux
  */
-public class ConflictingUpdateException extends Exception {
+public class ConflictingUpdateException extends RuntimeException {
 
 	private static final long serialVersionUID = 1L;
 

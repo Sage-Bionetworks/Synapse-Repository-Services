@@ -1,0 +1,34 @@
+{
+	"title": "ChangeMessage",
+	"description": "JSON schema for a change message",
+	"properties": {
+		"objectId": {
+			"type": "string",
+			"description":"The unique identifier of the object that changed"
+		},
+		"objectEtag": {
+			"type": "string",
+			"description":"The new Etag of the changed object"
+		},
+		"objectType": {
+			"type": "string",
+			"description": "The type of the object that changed",
+			"name": "ObjectType",
+			"id": "org.sagebionetworks.repo.model.message.ObjectType",
+			"enum": [
+				"ENTITY"
+			]
+		},
+		"changeType": {
+			"type": "string",
+			"description": "The type of change that occurred",
+			"name": "ChangeType",
+			"id": "org.sagebionetworks.repo.model.message.ChangeType",
+			"enum": [
+				"CREATE",
+				"UPDATE",
+				"DELETE"
+			]
+		}
+	}
+}
