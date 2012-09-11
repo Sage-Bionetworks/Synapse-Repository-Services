@@ -1,0 +1,30 @@
+{
+   "Statement":[
+      {
+         "Effect":"Allow",
+         "Action":"*",
+         "Resource":"*",
+         "Condition":{
+            "IpAddress":{
+               "aws:SourceIp":[
+                  "0.0.0.0/0",
+                  "140.107.0.0/16"
+               ]
+            }
+         }
+      },
+      {
+         "Effect":"Allow",
+         "Action":"*",
+         "Resource":"*",
+         "Condition":{
+            "IpAddress":{
+               "aws:SourceIp":[
+                  "140.107.0.0/16",
+                  "50.17.192.58/32"
+               ]
+            }
+         }
+      }
+   ]
+}

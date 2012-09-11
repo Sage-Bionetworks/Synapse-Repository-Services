@@ -297,8 +297,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	static byte[] cleanSearchDocument(Document document)
 			throws UnsupportedEncodingException, JSONObjectAdapterException {
-		String serializedDocument = EntityFactory
-				.createJSONStringForEntity(document);
+		String serializedDocument = EntityFactory.createJSONStringForEntity(document);
 
 		// AwesomeSearch pukes on control characters. Some descriptions have
 		// control characters in them for some reason, in any case, just get rid
@@ -306,8 +305,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		String cleanedDocument = serializedDocument.replaceAll("\\p{Cc}", "");
 
 		// Get rid of escaped control characters too
-		cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]",
-				"");
+		cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]","");
 
 		// AwesomeSearch expects UTF-8
 		return cleanedDocument.getBytes("UTF-8");

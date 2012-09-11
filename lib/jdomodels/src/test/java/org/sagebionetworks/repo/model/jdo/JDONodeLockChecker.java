@@ -19,5 +19,17 @@ public interface JDONodeLockChecker {
 	public boolean isLockAcquired();
 	
 	public boolean failedDueToConflict();
+	
+	/**
+	 * Get the new etag.
+	 * @return
+	 */
+	public String getEtag();
+	
+	/**
+	 * Throw an exception while waiting for a lock
+	 * @param toThrow
+	 */
+	public void throwException(DatastoreException toThrow);
 
 }

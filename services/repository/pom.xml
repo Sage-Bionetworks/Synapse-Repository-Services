@@ -26,6 +26,12 @@
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-jdomodels</artifactId>
 		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-search</artifactId>
+		</dependency>
+
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-concepts</artifactId>
@@ -50,21 +56,19 @@
 			<artifactId>lib-logging</artifactId>
 		</dependency>
 
-		<!-- This was being pulled in as a child dependency of the springframework
+		<!-- This was being pulled in as a child dependency of the springframework 
 			but the tomcat plugin needs this to be in scope "provided" -->
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>com.springsource.javax.servlet</artifactId>
-			<version>2.5.0</version>
 			<scope>provided</scope>
 		</dependency>
 
-		<!-- In a tomcat container, such as Elastic Beanstalk, you have to include
+		<!-- In a tomcat container, such as Elastic Beanstalk, you have to include 
 			jstl.jar manually, hence this entry. -->
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>jstl</artifactId>
-			<version>1.2</version>
 		</dependency>
 
 		<!-- ATOM -->
@@ -106,13 +110,11 @@
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
-      <version>1.2.17</version>
 		</dependency>
 
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>apache-log4j-extras</artifactId>
-			<version>1.1</version>
 		</dependency>
 
 		<dependency>
@@ -151,18 +153,19 @@
 		</dependency>
 
 
-		<!-- We use this to  -->
+		<!-- We use this to -->
 		<dependency>
 			<groupId>org.imgscalr</groupId>
 			<artifactId>imgscalr-lib</artifactId>
 		</dependency>
-		
+
 		<!-- Trie library -->
 		<dependency>
-		    <groupId>org.ardverk</groupId>
-		    <artifactId>patricia-trie</artifactId>
-	    <version>0.6</version>
-</dependency>
+			<groupId>org.ardverk</groupId>
+			<artifactId>patricia-trie</artifactId>
+			<version>0.6</version>
+		</dependency>
+
 
 	</dependencies>
 
@@ -173,7 +176,7 @@
 				<filtering>true</filtering>
 			</resource>
 		</resources>
-	
+
 
 		<plugins>
 			<!-- Make a WAR file -->
@@ -190,7 +193,7 @@
 				</configuration>
 			</plugin>
 
-			<!-- This allows use to run the servlet container from maven via mvn tomcat:run
+			<!-- This allows use to run the servlet container from maven via mvn tomcat:run 
 				or deploy to a local tomcat via tomcat:deploy -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
@@ -228,8 +231,8 @@
 				</configuration>
 			</plugin>
 
-			<!-- Added this path to the test classpath so that we do not need to copy
-				and paste our servlet config into a separate file even though we want the
+			<!-- Added this path to the test classpath so that we do not need to copy 
+				and paste our servlet config into a separate file even though we want the 
 				exact same config for testing -->
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>

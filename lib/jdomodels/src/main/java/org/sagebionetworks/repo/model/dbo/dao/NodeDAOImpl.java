@@ -70,6 +70,10 @@ import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.ObjectDescriptorUtils;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.InitializingBean;
@@ -138,6 +142,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Autowired
 	private ETagGenerator eTagGenerator;
 
+	@Autowired
+	private TransactionalMessenger transactionalMessanger;
 	@Autowired
 	private DBOBasicDao dboBasicDao;
 	@Autowired
@@ -243,6 +249,15 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(dto.getReferences() != null){
 			dboReferenceDao.replaceReferences(node.getId(), dto.getReferences());
 		}
+		
+		// Send a message that an entity was created
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.CREATE);
+		message.setObjectType(ObjectType.ENTITY);
+		message.setObjectId(KeyFactory.keyToString(node.getId()));
+		message.setObjectEtag(node.geteTag());
+		transactionalMessanger.sendMessageAfterCommit(message);
+		
 		return KeyFactory.keyToString(node.getId());
 	}
 
@@ -329,6 +344,13 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	public boolean delete(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
 		MapSqlParameterSource prams = getNodeParameters(KeyFactory.stringToKey(id));
+		// Send a message that the entity was deleted
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.DELETE);
+		message.setObjectType(ObjectType.ENTITY);
+		message.setObjectId(id);
+		transactionalMessanger.sendMessageAfterCommit(message);
+		
 		return dboBasicDao.deleteObjectById(DBONode.class, prams);
 	}
 	
@@ -533,6 +555,15 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		// Update the etag
 		int updated = simpleJdbcTemplate.update(UPDATE_ETAG_SQL, currentTag, longId);
 		if(updated != 1) throw new ConflictingUpdateException("Failed to lock Node: "+longId);
+		
+		// Send a message that an entity was updated
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(ChangeType.UPDATE);
+		message.setObjectType(ObjectType.ENTITY);
+		message.setObjectId(id);
+		message.setObjectEtag(currentTag);
+		transactionalMessanger.sendMessageAfterCommit(message);
+		
 		// Return the new tag
 		return String.valueOf(currentTag);
 	}

@@ -29,6 +29,9 @@
         
     <!-- Provides users for testing. -->
     <bean id="testUserProvider" class="org.sagebionetworks.repo.web.util.UserProviderImpl" scope="singleton"/>
-        
-
+    
+    <!--  We do not want to publish to the repository change topic while running test so we mock the AmazonSNSClient -->
+    <bean id="awsSNSClient" class="org.mockito.Mockito" factory-method="mock">  
+        <constructor-arg value="com.amazonaws.services.sns.AmazonSNSClient" />  
+    </bean>  
 </beans>

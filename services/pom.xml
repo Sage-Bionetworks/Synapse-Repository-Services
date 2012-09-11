@@ -17,6 +17,7 @@
     <module>authutil</module>
     <module>repository</module>
     <module>auth</module>
+    <module>workers</module>
   </modules>
 
 </project>
