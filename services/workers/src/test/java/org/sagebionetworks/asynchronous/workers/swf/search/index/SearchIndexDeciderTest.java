@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import static org.junit.Assert.*;
@@ -29,6 +30,7 @@ import com.amazonaws.services.simpleworkflow.model.WorkflowExecution;
  * @author jmhill
  *
  */
+@Ignore
 public class SearchIndexDeciderTest {
 	
 	private AmazonSimpleWorkflowClient mockClient;
