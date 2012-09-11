@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.jdo;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.sagebionetworks.repo.model.util.ModelConstants;
 import org.sagebionetworks.repo.model.InvalidModelException;
 
 /**
@@ -12,10 +13,12 @@ import org.sagebionetworks.repo.model.InvalidModelException;
  * 
  */
 public class EntityNameValidation {
+	
+
 
 	// match one or more whitespace characters
 	private static final Pattern ALLOWABLE_CHARS = Pattern
-			.compile("^[a-z,A-Z,0-9,_,., ,\\-,\\+,(,)]+");
+			.compile(ModelConstants.VALID_ENTITY_NAME_REGEX);
 
 	/**
 	 * Validate the name
