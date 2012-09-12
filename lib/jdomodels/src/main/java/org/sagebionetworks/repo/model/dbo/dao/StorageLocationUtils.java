@@ -91,8 +91,8 @@ public class StorageLocationUtils {
 			dboList.add(dbo);
 		}
 
-		// Update content from S3
-		setContent(nodeId, dboList, s3Client);
+		// Update content from Amazon S3
+		updateContent(nodeId, dboList, s3Client);
 
 		return dboList;
 	}
@@ -106,7 +106,7 @@ public class StorageLocationUtils {
 	 *
 	 * @throws AmazonClientException  When the AWS S3 client encounters an internal error
 	 */
-	private static void setContent(Long nodeId,
+	private static void updateContent(Long nodeId,
 			List<DBOStorageLocation> dboList, AmazonS3 s3Client) {
 
 		// Gather the list of all the storage locations under this node
