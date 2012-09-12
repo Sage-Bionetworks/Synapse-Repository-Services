@@ -53,9 +53,19 @@
 		class="org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl"
 		scope="singleton" />
 
+	<bean id="accessKey" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserId"/>
+	<bean id="secretKey" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserKey"/>
+	<bean id="awsCredentials" class="com.amazonaws.auth.BasicAWSCredentials">
+		<constructor-arg index="0" ref="accessKey" />
+		<constructor-arg index="1" ref="secretKey" />
+	</bean>
+	<bean id="amazonS3Client" class="com.amazonaws.services.s3.AmazonS3Client" scope="singleton">
+		<constructor-arg ref="awsCredentials" />
+	</bean>
 	<bean id="storageLocationDAO"
-		class="org.sagebionetworks.repo.model.dbo.dao.StorageLocationDAOImpl"
-		scope="singleton" />
+			class="org.sagebionetworks.repo.model.dbo.dao.StorageLocationDAOImpl"
+			scope="singleton">
+	</bean>
 
 	<bean id="entityBootstrapper"
 		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapperImpl">

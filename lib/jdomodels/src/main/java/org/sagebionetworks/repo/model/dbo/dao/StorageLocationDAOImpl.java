@@ -13,6 +13,8 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 
+import com.amazonaws.services.s3.AmazonS3;
+
 public class StorageLocationDAOImpl implements StorageLocationDAO {
 
 	private static String DELETE_SQL = "DELETE FROM "
@@ -24,6 +26,9 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
+
+	@Autowired
+	private AmazonS3 amazonS3Client;
 
 	@Override
 	public void replaceLocationData(StorageLocations locations) throws DatastoreException {
@@ -37,7 +42,7 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 		this.simpleJdbcTempalte.update(DELETE_SQL, nodeId);
 
 		// Then update
-		List<DBOStorageLocation> batch = StorageLocationUtils.createBatch(locations);
+		List<DBOStorageLocation> batch = StorageLocationUtils.createBatch(locations, amazonS3Client);
 		this.dboBasicDao.createBatch(batch);
 	}
 }

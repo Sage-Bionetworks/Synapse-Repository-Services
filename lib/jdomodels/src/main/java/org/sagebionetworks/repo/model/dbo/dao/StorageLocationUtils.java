@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -14,24 +15,36 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
 
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.AmazonServiceException;
-import com.amazonaws.auth.AWSCredentials;
-import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
 
+/**
+ * Translates between database objects and data transfer objects for StorageLocation.
+ *
+ * @author ewu
+ */
 public class StorageLocationUtils {
 
 	/**
 	 * Prepares a batch of DBO for insertions.
 	 */
-	public static List<DBOStorageLocation> createBatch(StorageLocations storageLocations) {
+	public static List<DBOStorageLocation> createBatch(
+			StorageLocations storageLocations, AmazonS3 s3Client) {
+
+		if (storageLocations == null) {
+			throw new NullPointerException();
+		}
+		if (s3Client == null) {
+			throw new NullPointerException();
+		}
 
 		List<DBOStorageLocation> dboList = new ArrayList<DBOStorageLocation>();
 
 		Long nodeId = storageLocations.getNodeId();
 		Long userId = storageLocations.getUserId();
 
+		// Attachments
 		List<AttachmentData> attachmentList = storageLocations.getAttachments();
 		for (AttachmentData attachment : attachmentList) {
 			DBOStorageLocation dbo = new DBOStorageLocation();
@@ -42,10 +55,10 @@ public class StorageLocationUtils {
 			dbo.setStorageProvider(LocationTypeNames.awss3.name());
 			dbo.setContentType(attachment.getContentType());
 			dbo.setContentMd5(attachment.getMd5());
-			setContentSize(dbo);
 			dboList.add(dbo);
 		}
 
+		// Locations
 		List<LocationData> locationList = storageLocations.getLocations();
 		String contentType = null;
 		String md5 = null;
@@ -75,9 +88,11 @@ public class StorageLocationUtils {
 			if (md5 != null) {
 				dbo.setContentMd5(md5);
 			}
-			setContentSize(dbo);
 			dboList.add(dbo);
 		}
+
+		// Update content from S3
+		setContent(nodeId, dboList, s3Client);
 
 		return dboList;
 	}
@@ -91,44 +106,52 @@ public class StorageLocationUtils {
 	 *
 	 * @throws AmazonClientException  When the AWS S3 client encounters an internal error
 	 */
-	private static boolean setContentSize(DBOStorageLocation dbo) {
-		if (LocationTypeNames.awss3.name().equalsIgnoreCase(dbo.getStorageProvider())) {
-			try {
-				String path = dbo.getLocation();
-				ObjectMetadata metaData = S3_CLIENT.getObjectMetadata(BUCKET, path);
-				long length = metaData.getContentLength(); // number of bytes
-				dbo.setContentSize(length);
-				if (dbo.getContentMd5() == null) {
-					dbo.setContentMd5(metaData.getContentMD5());
+	private static void setContent(Long nodeId,
+			List<DBOStorageLocation> dboList, AmazonS3 s3Client) {
+
+		// Gather the list of all the storage locations under this node
+		Map<String, S3ObjectSummary> s3ObjectMap = new HashMap<String, S3ObjectSummary>();
+		String prefix = nodeId.toString() + "/"; // Don't forget the delimiter '/'
+		try {
+			ObjectListing objectList = s3Client.listObjects(BUCKET, prefix);
+			for (S3ObjectSummary objectSummary : objectList.getObjectSummaries()) {
+				s3ObjectMap.put(objectSummary.getKey(), objectSummary);
+			}
+			while (objectList.isTruncated()) {
+				objectList = s3Client.listNextBatchOfObjects(objectList);
+				for (S3ObjectSummary objectSummary : objectList.getObjectSummaries()) {
+					s3ObjectMap.put(objectSummary.getKey(), objectSummary);
 				}
-				if (dbo.getContentType() == null) {
-					dbo.setContentType(metaData.getContentType());
+			}
+		} catch (AmazonServiceException ase) {
+			StringBuilder errMsg = new StringBuilder()
+				.append("bucket = ").append(BUCKET).append(", ")
+				.append("prefix = ").append(prefix).append(", ")
+				.append("Request ID = ").append(ase.getRequestId()).append(", ")
+				.append("Error Message = ").append(ase.getMessage()).append(", ")
+				.append("HTTP Status Code = ").append(ase.getStatusCode()).append(", ")
+				.append("AWS Error Code = ").append(ase.getErrorCode()).append(", ")
+				.append("Error Type = ").append(ase.getErrorType());
+			logger.warn(errMsg.toString());
+		}
+
+		// Update the DBOs
+		String awss3 = LocationTypeNames.awss3.name();
+		for (DBOStorageLocation dbo : dboList) {
+			if (awss3.equals(dbo.getStorageProvider())) {
+				String key = dbo.getLocation();
+				assert key != null;
+				if (key.startsWith("/")) {
+					key = key.substring(1);
 				}
-				return true;
-			} catch (AmazonServiceException ase) {
-				StringBuilder errMsg = new StringBuilder()
-						.append("bucket = ").append(BUCKET).append(", ")
-						.append("path = ").append(dbo.getLocation()).append(", ")
-						.append("Request ID = ").append(ase.getRequestId()).append(", ")
-						.append("Error Message = ").append(ase.getMessage()).append(", ")
-						.append("HTTP Status Code = ").append(ase.getStatusCode()).append(", ")
-						.append("AWS Error Code = ").append(ase.getErrorCode()).append(", ")
-						.append("Error Type = ").append(ase.getErrorType());
-				logger.info(errMsg.toString());
+				if (s3ObjectMap.containsKey(key)) {
+					S3ObjectSummary s3ObjectSummary = s3ObjectMap.get(key);
+					dbo.setContentSize(s3ObjectSummary.getSize());
+				}
 			}
 		}
-		return false;
-	}
-
-	private static final String BUCKET = StackConfiguration.getS3Bucket();
-
-	private static final AmazonS3 S3_CLIENT;
-	static {
-		String accessKey = StackConfiguration.getIAMUserId();
-		String secretKey = StackConfiguration.getIAMUserKey();
-		AWSCredentials awsCredential = new BasicAWSCredentials(accessKey, secretKey);
-		S3_CLIENT = new AmazonS3Client(awsCredential);
 	}
 
 	private static final Logger logger = Logger.getLogger(StorageLocationUtils.class);
+	private static final String BUCKET = StackConfiguration.getS3Bucket();
 }
