@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -60,8 +59,7 @@ public class SchemaManagerImpl implements SchemaManager {
 			return EntityFactory.createEntityFromJSONString(
 					entity.getJSONSchema(), ObjectSchema.class);
 		} catch (IllegalArgumentException e) {
-			throw new NotFoundException("Could not find a schema for "
-					+ UrlHelpers.RESOURCE_ID + "=" + resourceId);
+			throw new NotFoundException("Could not find a schema for resourceId = "+ resourceId);
 		} catch (JSONObjectAdapterException e) {
 			throw new DatastoreException(e);
 		}

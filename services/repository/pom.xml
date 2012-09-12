@@ -19,22 +19,7 @@
 		<!-- Sage Bionetworks Dependencies -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-models</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-jdomodels</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-search</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-concepts</artifactId>
+			<artifactId>repository-managers</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
@@ -203,27 +188,6 @@
 					<path>/</path>
 				</configuration>
 			</plugin>
-
-			<!-- JavaCC and JJTree parser code generator tool -->
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>javacc-maven-plugin</artifactId>
-				<version>2.6</version>
-				<executions>
-					<execution>
-						<id>jjtree-javacc</id>
-						<goals>
-							<goal>jjtree-javacc</goal>
-						</goals>
-						<configuration>
-							<!-- options for JJTree and JavaCC go here -->
-							<isStatic>false</isStatic>
-							<nodeClass>org.sagebionetworks.repo.queryparser.QueryNode</nodeClass>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
@@ -255,23 +219,6 @@
 					</execution>
 				</executions>
 			</plugin>
-
-			<plugin>
-				<groupId>org.sagebionetworks</groupId>
-				<artifactId>schema-to-pojo-maven-plugin</artifactId>
-				<executions>
-					<execution>
-						<goals>
-							<goal>generate</goal>
-						</goals>
-						<configuration>
-							<sourceDirectory>src/test/resources/test-schemas</sourceDirectory>
-							<outputDirectory>target/auto-generated-pojos</outputDirectory>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-
 		</plugins>
 	</build>
 

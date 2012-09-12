@@ -26,6 +26,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerTypeNames;
+import org.sagebionetworks.repo.model.NodeQueryDao;
+import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Study;
@@ -36,7 +38,6 @@ import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -47,9 +48,11 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class QueryManagerAutowireTest {
 	
 	@Autowired
-	EntityService entityController;
+	private EntityManager entityManager;
 	@Autowired
 	public UserProvider testUserProvider;
+	@Autowired
+	NodeQueryDao nodeQueryDao;
 	
 	List<String> toDelete = null;
 	
@@ -61,7 +64,7 @@ public class QueryManagerAutowireTest {
 	
 	@Before
 	public void before() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
-		assertNotNull(entityController);
+		assertNotNull(entityManager);
 		assertNotNull(testUserProvider);
 		userInfo=testUserProvider.getTestAdminUserInfo();
 		UserInfo.validateUserInfo(userInfo);
@@ -72,18 +75,20 @@ public class QueryManagerAutowireTest {
 		
 		Project project = new Project();
 		project.setName("QueryManagerAutowireTest.rootProject2");
-		project = entityController.createEntity(userId, project, mockRequest);
+		String id = entityManager.createEntity(userInfo, project);
+		project.setId(id);
 		toDelete.add(project.getId());
 		
 		// Create some datasets
 		for(int i=0; i<totalEntities; i++){
 			Study ds = createForTest(i);
 			ds.setParentId(project.getId());
-			ds = entityController.createEntity(userId, ds, mockRequest);
+			String dsId = entityManager.createEntity(userInfo, ds);
+			ds.setId(dsId);
 			assertNotNull(ds);
 			assertNotNull(ds.getId());
 			toDelete.add(ds.getId());
-			Annotations annos = entityController.getEntityAnnotations(userId, ds.getId(), mockRequest);
+			Annotations annos = entityManager.getAnnotations(userInfo, ds.getId());
 			assertNotNull(annos);
 			// Add some annotations
 			annos.addAnnotation("stringKey", "string"+i);
@@ -93,11 +98,12 @@ public class QueryManagerAutowireTest {
 			annos.addAnnotation("longKey", new Long(i));
 			annos.addAnnotation("dateKey", new Date(10000+i));
 			annos.addAnnotation("doubleKey", new Double(42*i));
-			entityController.updateEntityAnnotations(userId, ds.getId(), annos, mockRequest);
+			entityManager.updateAnnotations(userInfo, ds.getId(), annos);
 			// Add a layer to each dataset
 			Data inLayer = createLayerForTest(i);
 			inLayer.setParentId(ds.getId());
-			inLayer = entityController.createEntity(userId, inLayer, mockRequest);
+			String lid = entityManager.createEntity(userInfo, inLayer);
+			inLayer.setId(id);
 		}
 	}
 	
@@ -123,10 +129,10 @@ public class QueryManagerAutowireTest {
 	
 	@After
 	public void after(){
-		if(entityController != null && toDelete != null){
+		if(entityManager != null && toDelete != null){
 			for(String id: toDelete){
 				try{
-					entityController.deleteEntity(userId, id);
+					entityManager.deleteEntity(userInfo, id);
 				}catch(Exception e){}
 			}
 		}
@@ -144,7 +150,9 @@ public class QueryManagerAutowireTest {
 		query.addExpression(new Expression(new CompoundId("dataset", "doubleKey"), Comparator.GREATER_THAN, "0.0"));
 		// Execute it.
 		long start = System.currentTimeMillis();
-		QueryResults results = entityController.executeQueryWithAnnotations(userId, query, mockRequest);
+		
+		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
+		QueryResults results = new QueryResults(nodeResults.getAllSelectedData(), nodeResults.getTotalNumberOfResults());
 		long end = System.currentTimeMillis();
 		System.out.println("Executed the query in: "+(end-start)+" ms");
 		assertNotNull(results);
@@ -186,7 +194,8 @@ public class QueryManagerAutowireTest {
 		query.addExpression(new Expression(new CompoundId("dataset", "doubleKey"), Comparator.GREATER_THAN, "0.0"));
 		// Execute it.
 		long start = System.currentTimeMillis();
-		QueryResults results = entityController.executeQueryWithAnnotations(userId, query, mockRequest);
+		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
+		QueryResults results = new QueryResults(nodeResults.getAllSelectedData(), nodeResults.getTotalNumberOfResults());
 		long end = System.currentTimeMillis();
 		System.out.println("Executed the query in: "+(end-start)+" ms");
 		assertNotNull(results);
