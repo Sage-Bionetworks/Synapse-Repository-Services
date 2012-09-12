@@ -10,6 +10,7 @@ import org.apache.log4j.rolling.helper.CompositeAction;
 import org.apache.log4j.rolling.helper.FileRenameAction;
 import org.apache.log4j.rolling.helper.GZCompressAction;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.amazonaws.services.s3.AmazonS3;
@@ -71,6 +72,7 @@ public class TimeBasedRollingToS3PolicyTest {
 		assertNull(initialize.getAsynchronous());
 	}
 
+	@Ignore // see https://sagebionetworks.jira.com/browse/PLFM-1492
 	@Test
 	public void testRolloverTooSoon() {
 		setupStackConfigDefaults(true, false, TEST_BUCKET);
