@@ -138,7 +138,7 @@ public class MessageReceiverImplTest {
 		Stack<StubWorker> workerStack = new Stack<StubWorker>();
 		// Setup workers that will not timeout or throw exceptions
 		for(int i=0; i<maxNumberOfWorkerThreads-1; i++){
-			workerStack.push(new StubWorker(1000, null));
+			workerStack.push(new StubWorker(0, null));
 		}
 		// Make the first worker timeout
 		workerStack.push(new StubWorker(visibilityTimeout*1000+100, null));
