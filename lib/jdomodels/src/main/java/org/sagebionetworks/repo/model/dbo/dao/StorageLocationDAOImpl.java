@@ -12,6 +12,8 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public class StorageLocationDAOImpl implements StorageLocationDAO {
 
@@ -25,6 +27,8 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
 
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void replaceLocationData(StorageLocations locations) throws DatastoreException {
 

@@ -13,8 +13,6 @@
 
 	<import resource="classpath:concept-dao-beans.spb.xml" />
 	<import resource="classpath:dao-beans.spb.xml" />
-	<import resource="classpath:controllerProfiler-spb.xml" />
-	<import resource="classpath:activityLogger-spb.xml" />
 	<import resource="classpath:aws-topic-publisher.spb.xml" />
 
 	<!-- The real Node DAO -->
@@ -22,57 +20,9 @@
 	<bean id="nodeInheritanceManager"
 		class="org.sagebionetworks.repo.manager.NodeInheritanceManagerImpl" />
 
-
 	<!-- The Entity manager -->
 	<bean id="entityManager" class="org.sagebionetworks.repo.manager.EntityManagerImpl" />
 
-	<!-- Make sure we can watch for deadlock on all methods of the Generic Entity Controller -->	
-	<bean id="deadlockWatcher"
-		class="org.sagebionetworks.repo.web.DeadlockWatcher" />
-		
-	<!-- The Service Provider  -->
-	<bean id="serviceProider"
-		class="org.sagebionetworks.repo.web.service.ServiceProvider" />
-
-	<!-- The AccessApproval Service  -->
-	<bean id="accessApprovalService"
-		class="org.sagebionetworks.repo.web.service.AccessApprovalServiceImpl" />
-	
-	<!-- The AccessRequirement Service  -->
-	<bean id="accessRequirementService"
-		class="org.sagebionetworks.repo.web.service.AccessRequirementServiceImpl" />
-		
-	<!-- The Administration Service  -->
-	<bean id="administrationService"
-		class="org.sagebionetworks.repo.web.service.AdministrationServiceImpl" />
-		
-	<!-- The Concept Service  -->
-	<bean id="conceptService"
-		class="org.sagebionetworks.repo.web.service.ConceptServiceImpl" />
-
-	<!-- The Entity Service  -->
-	<bean id="entityService"
-		class="org.sagebionetworks.repo.web.service.EntityServiceImpl" />
-		
-	<!-- The S3Token Service  -->
-	<bean id="s3TokenService"
-		class="org.sagebionetworks.repo.web.service.S3TokenServiceImpl" />
-		
-	<!-- The Search Service  -->
-	<bean id="searchService"
-		class="org.sagebionetworks.repo.web.service.SearchServiceImpl" />
-
-	<!-- The UserProfile Service -->
-	<bean id="userProfileService"
-		class="org.sagebionetworks.repo.web.service.UserProfileServiceImpl" />
-		
-	<!-- The UserGroup Service -->
-	<bean id="userGroupService"
-		class="org.sagebionetworks.repo.web.service.UserGroupServiceImpl" />
-
-	<!-- The EntityBundle Service  -->
-	<bean id="entityBundleService"
-		class="org.sagebionetworks.repo.web.service.EntityBundleServiceImpl" />
 
 	<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
@@ -238,87 +188,6 @@
 					<ref bean="accessRequirementBackupDriver" />
 				</entry>
 			</map>
-		</property>
-	</bean>
-
-	<!-- Provides validation for all types -->
-	<bean id="allTypesValidator"
-		class="org.sagebionetworks.repo.web.controller.metadata.AllTypesValidatorImpl"
-		scope="singleton" />
-
-	<bean id="datasetMetadataProvider"
-		class="org.sagebionetworks.repo.web.controller.metadata.DatasetMetadataProvider"
-		scope="singleton" />
-	<bean id="inputDataLayerProvider"
-		class="org.sagebionetworks.repo.web.controller.metadata.LayerMetadataProvider"
-		scope="singleton" />
-	<bean id="projectMetadataProvider"
-		class="org.sagebionetworks.repo.web.controller.metadata.ProjectMetadataProvider"
-		scope="singleton" />
-	<bean id="storedLayerPreviewMetadataProvider"
-		class="org.sagebionetworks.repo.web.controller.metadata.PreviewMetadataProvider"
-		scope="singleton" />
-	<bean id="folderMetadataProvider"
-		class="org.sagebionetworks.repo.web.controller.metadata.FolderMetadataProvider"
-		scope="singleton" />
-	<bean id="analysisMetadataProvider"
-		class="org.sagebionetworks.repo.web.controller.metadata.AnalysisMetadataProvider"
-		scope="singleton" />
-	<bean id="stepMetadataProvider"
-		class="org.sagebionetworks.repo.web.controller.metadata.StepMetadataProvider"
-		scope="singleton" />
-	<bean id="codeMetadataProvider"
-		class="org.sagebionetworks.repo.web.controller.metadata.CodeMetadataProvider"
-		scope="singleton" />
-	<bean id="locationableMetadataProvider"
-		class="org.sagebionetworks.repo.web.controller.metadata.LocationableMetadataProvider"
-		scope="singleton" />
-
-	<!-- the keys in this map must be the values of the org.sagebionetworks.repo.modelObjectType 
-		enum -->
-	<bean id="metadataProviderFactory"
-		class="org.sagebionetworks.repo.web.controller.metadata.MetadataProviderFactoryImpl"
-		scope="singleton">
-		<property name="metadataProviderMap">
-			<map>
-				<entry key="dataset">
-					<ref bean="datasetMetadataProvider" />
-				</entry>
-				<entry key="layer">
-					<ref bean="inputDataLayerProvider" />
-				</entry>
-				<entry key="project">
-					<ref bean="projectMetadataProvider" />
-				</entry>
-				<entry key="preview">
-					<ref bean="storedLayerPreviewMetadataProvider" />
-				</entry>
-				<entry key="folder">
-					<ref bean="folderMetadataProvider" />
-				</entry>
-				<entry key="analysis">
-					<ref bean="analysisMetadataProvider" />
-				</entry>
-				<entry key="step">
-					<ref bean="stepMetadataProvider" />
-				</entry>
-				<entry key="code">
-					<ref bean="codeMetadataProvider" />
-				</entry>
-				<entry key="locationable">
-					<ref bean="locationableMetadataProvider" />
-				</entry>
-			</map>
-		</property>
-	</bean>
-
-	<!-- A profiler that logs performance data for all bean method calls. -->
-	<bean id="profiler" class="profiler.org.sagebionetworks.Profiler">
-		<property name="handlers">
-			<list>
-				<bean name="loggingProfiler" class="profiler.org.sagebionetworks.LoggingProfiler" />
-				<bean name="perThreadProfiler" class="profiler.org.sagebionetworks.PerThreadHandler" />
-			</list>
 		</property>
 	</bean>
 
