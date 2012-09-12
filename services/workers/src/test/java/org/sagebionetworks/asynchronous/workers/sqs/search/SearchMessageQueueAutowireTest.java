@@ -28,7 +28,7 @@ import com.amazonaws.util.json.JSONObject;
 @ContextConfiguration(locations = { "classpath:sqs-manager-spb.xml" })
 public class SearchMessageQueueAutowireTest {
 	
-	public static final long MAX_WAIT_MS = 10*1000; // 10 sec
+	public static final long MAX_WAIT_MS = 20*1000; // 20 sec
 	
 	@Autowired
 	SearchMessageQueue searchMessageQueue;
