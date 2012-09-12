@@ -15,6 +15,9 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.amazonaws.AmazonClientException;
+import com.amazonaws.services.s3.AmazonS3;
+
 public class StorageLocationDAOImpl implements StorageLocationDAO {
 
 	private static String DELETE_SQL = "DELETE FROM "
@@ -27,10 +30,13 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTempalte;
 
-	
+	@Autowired
+	private AmazonS3 amazonS3Client;
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void replaceLocationData(StorageLocations locations) throws DatastoreException {
+	public void replaceLocationData(StorageLocations locations)
+			throws DatastoreException {
 
 		if (locations == null) {
 			return;
@@ -41,7 +47,12 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 		this.simpleJdbcTempalte.update(DELETE_SQL, nodeId);
 
 		// Then update
-		List<DBOStorageLocation> batch = StorageLocationUtils.createBatch(locations);
-		this.dboBasicDao.createBatch(batch);
+		try {
+			List<DBOStorageLocation> batch = StorageLocationUtils.createBatch(
+					locations, amazonS3Client);
+			this.dboBasicDao.createBatch(batch);
+		} catch (AmazonClientException e) {
+			throw new DatastoreException(e);
+		}
 	}
 }
