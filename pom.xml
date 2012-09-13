@@ -298,6 +298,12 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
+				<artifactId>repository-managers</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
 				<artifactId>services-authentication</artifactId>
 				<version>${project.version}</version>
 				<type>war</type>
