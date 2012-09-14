@@ -4,8 +4,10 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -16,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -94,5 +97,40 @@ public class EntityBundleController extends BaseController {
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
 		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, versionNumber, mask, request, offset, limit, sort, ascending);
 	}	
+	
+	/**
+	 * Create an entity and associated components with a single POST.
+	 * Specifically, this operation supports creation of an Entity, its
+	 * Annotations, and its ACL.
+	 * 
+	 * Upon successful creation, an EntityBundle is returned containing the
+	 * requested components, as defined by the partsMask.
+	 * 
+	 * @param userId
+	 * @param eb
+	 * @param mask
+	 * @param request
+	 * @return
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws ParseException 
+	 * @throws ACLInheritanceException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE, method = RequestMethod.POST)
+	public @ResponseBody
+	EntityBundle createEntityBundle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestBody EntityBundle eb,
+			@RequestParam int mask, 
+			HttpServletRequest request
+			)
+			throws ConflictingUpdateException, DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+		return serviceProvider.getEntityBundleService().createEntityBundle(userId, eb, mask, request);
+	}
 
 }

@@ -441,6 +441,31 @@ public class Synapse {
 	}
 
 	/**
+	 * Get a bundle of information about an entity in a single call.
+	 * 
+	 * @param entityId
+	 * @param partsMask
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public EntityBundle createEntityBundle(EntityBundle eb, int partsMask) throws SynapseException {
+		if (eb == null)
+			throw new IllegalArgumentException("EntityBundle cannot be null");
+		String url = ENTITY_URI_PATH + ENTITY_BUNDLE_PATH + partsMask;
+		JSONObject jsonObject;
+		try {
+			// Convert to JSON
+			jsonObject = EntityFactory.createJSONObjectForEntity(eb);
+			// Create
+			jsonObject = createEntity(url, jsonObject);
+			// Convert returned JSON to EntityBundle
+			return EntityFactory.createEntityFromJSONObject(jsonObject,	EntityBundle.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	/**
 	 * Get a dataset, layer, preview, annotations, etc...
 	 * 
 	 * @param uri
