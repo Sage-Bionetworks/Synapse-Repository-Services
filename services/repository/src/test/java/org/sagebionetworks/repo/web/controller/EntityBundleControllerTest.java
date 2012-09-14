@@ -5,11 +5,15 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.TreeSet;
 
 import javax.servlet.ServletException;
 
@@ -18,6 +22,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Data;
@@ -30,6 +35,7 @@ import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -45,6 +51,12 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @MockWebApplication
 public class EntityBundleControllerTest {
 	
+	private static final String DUMMY_STUDY_2 = "Test Study 2";
+	private static final String DUMMY_STUDY_1 = "Test Study 1";
+	private static final String DUMMY_PROJECT = "Test Project";
+
+	private static final long BOOTSTRAP_USER_GROUP_ID = 0L;
+
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
 	
@@ -78,21 +90,21 @@ public class EntityBundleControllerTest {
 	public void testGetEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
 		// Create an entity
 		Project p = new Project();
-		p.setName("Dummy Project");
+		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
 		String id = p2.getId();
 		toDelete.add(id);
 		
 		Study s1 = new Study();
-		s1.setName("Dummy Study 1");
+		s1.setName(DUMMY_STUDY_1);
 		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
 		s1 = (Study) entityServletHelper.createEntity(s1, TEST_USER1);
 		toDelete.add(s1.getId());
 		
 		Study s2 = new Study();
-		s2.setName("Dummy Study 2");
+		s2.setName(DUMMY_STUDY_2);
 		s2.setEntityType(s2.getClass().getName());
 		s2.setParentId(id);
 		s2 = (Study) entityServletHelper.createEntity(s2, TEST_USER1);
@@ -153,14 +165,14 @@ public class EntityBundleControllerTest {
 	public void testGetEntityBundleInheritedACL() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
 		// Create an entity
 		Project p = new Project();
-		p.setName("Dummy Project");
+		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
 		String id = p2.getId();
 		toDelete.add(id);
 		
 		Study s1 = new Study();
-		s1.setName("Dummy Study 1");
+		s1.setName(DUMMY_STUDY_1);
 		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
 		s1 = (Study) entityServletHelper.createEntity(s1, TEST_USER1);
@@ -191,7 +203,7 @@ public class EntityBundleControllerTest {
 	public void testGetEntityBundleForVersion() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {		
 		// Create an entity
 		Project p = new Project();
-		p.setName("Dummy Project");
+		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
 		String parentId = p2.getId();
@@ -208,6 +220,7 @@ public class EntityBundleControllerTest {
 		d1.setMd5("c88c3db97754be31f9242eb3c08382ee");
 		d1 = (Data) entityServletHelper.createEntity(d1, TEST_USER1);
 		toDelete.add(d1.getId());
+		
 		// Get/add/update annotations for this entity
 		Annotations a1 = entityServletHelper.getEntityAnnotaions(d1.getId(), TEST_USER1);
 		a1.addAnnotation("v1", new Long(1));
@@ -256,7 +269,7 @@ public class EntityBundleControllerTest {
 	public void testGetPartialEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
 		// Create an entity
 		Project p = new Project();
-		p.setName("Dummy Project");
+		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
 		String id = p2.getId();
@@ -300,4 +313,116 @@ public class EntityBundleControllerTest {
 		PaginatedResults<UserGroup> ug = eb.getGroups();
 		assertNull("UserGroups were not requested, but were returned in bundle", ug);
 	}
+	
+	@Test
+	public void testCreateEntityBundleParentIsNotRoot() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
+		// Create an entity
+		Project p = new Project();
+		p.setName(DUMMY_PROJECT);
+		p.setEntityType(p.getClass().getName());
+		
+		p = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		toDelete.add(p.getId());
+		
+		Study s1 = new Study();
+		s1.setName(DUMMY_STUDY_1);
+		s1.setEntityType(s1.getClass().getName());
+		s1.setParentId(p.getId());
+		
+		// Create annotations for this entity
+		Annotations a = new Annotations();		
+		a.addAnnotation("doubleAnno", new Double(45.0001));
+		a.addAnnotation("string", "A string");
+		
+		// Create ACL for this entity
+		AccessControlList acl = new AccessControlList();
+		Set<ResourceAccess> resourceAccess = new TreeSet<ResourceAccess>();
+		acl.setResourceAccess(resourceAccess);
+		
+		// Create the bundle, verify contents
+		int mask =  EntityBundle.ENTITY | 
+					EntityBundle.ANNOTATIONS |
+					EntityBundle.ACL;
+		EntityBundle eb = new EntityBundle();
+		eb.setEntity(s1);
+		eb.setAnnotations(a);
+		eb.setAccessControlList(acl);
+				
+		eb = entityServletHelper.createEntityBundle(eb, mask, TEST_USER1);
+		toDelete.add(eb.getEntity().getId());
+		
+		Study s2 = (Study) eb.getEntity();
+		assertNotNull(s2);
+		assertFalse("Etag should have been updated, but was not", p.getEtag().equals(s2.getEtag()));
+		assertEquals(s1.getName(), s2.getName());
+		
+		Annotations a2 = eb.getAnnotations();
+		assertNotNull(a2);
+		assertFalse("Etag should have been updated, but was not", a2.getEtag().equals(a.getEtag()));
+		a.setEtag(a2.getEtag());
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a.getStringAnnotations(), a2.getStringAnnotations());
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a.getDoubleAnnotations(), a2.getDoubleAnnotations());
+		
+		AccessControlList acl2 = eb.getAccessControlList();
+		assertNotNull(acl2);
+		assertFalse("Etag should have been updated, but was not", acl2.getEtag().equals(acl.getEtag()));
+		acl.setEtag(acl2.getEtag());
+		assertEquals("Retrieved ACL in bundle does not match original one", acl.getResourceAccess(), acl2.getResourceAccess());
+	}
+	
+	@Test
+	public void testCreateEntityBundleParentIsRoot() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
+		// Create an entity
+		Project p = new Project();
+		p.setName(DUMMY_PROJECT);
+		p.setEntityType(p.getClass().getName());
+		
+		// Create annotations for this entity
+		Annotations a = new Annotations();		
+		a.addAnnotation("doubleAnno", new Double(45.0001));
+		a.addAnnotation("string", "A string");
+		
+		// Create ACL for this entity
+		AccessControlList acl = new AccessControlList();
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(BOOTSTRAP_USER_GROUP_ID);
+		Set<ACCESS_TYPE> atypes = new HashSet<ACCESS_TYPE>();
+		atypes.add(ACCESS_TYPE.READ);
+		ra.setAccessType(atypes);
+		Set<ResourceAccess> raSet = new HashSet<ResourceAccess>();
+		raSet.add(ra);
+		acl.setResourceAccess(raSet);
+		
+		// Create the bundle, verify contents
+		int mask =  EntityBundle.ENTITY | 
+					EntityBundle.ANNOTATIONS |
+					EntityBundle.ACL;
+		EntityBundle eb = new EntityBundle();
+		eb.setEntity(p);
+		eb.setAnnotations(a);
+		eb.setAccessControlList(acl);
+				
+		eb = entityServletHelper.createEntityBundle(eb, mask, TEST_USER1);
+		toDelete.add(eb.getEntity().getId());
+		
+		Project p2 = (Project) eb.getEntity();
+		assertNotNull(p2);
+		assertEquals(p.getName(), p2.getName());
+		
+		Annotations a2 = eb.getAnnotations();
+		assertNotNull(a2);
+		a.setEtag(a2.getEtag());
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a.getStringAnnotations(), a2.getStringAnnotations());
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a.getDoubleAnnotations(), a2.getDoubleAnnotations());
+		
+		AccessControlList acl2 = eb.getAccessControlList();
+		assertNotNull(acl2);
+		acl.setEtag(acl2.getEtag());
+		
+		for (ResourceAccess resAcc : acl2.getResourceAccess()) {
+			if (resAcc.equals(ra)) return;
+		}
+		fail("ACL update failed: missing Resource Access " + ra.toString());
+	}
+
 }

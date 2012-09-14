@@ -5,10 +5,15 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -87,5 +92,42 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		return eb;
 
 	}	
+	
+	@Override
+	public EntityBundle createEntityBundle(String userId, EntityBundle eb, int partsMask, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+		if ((partsMask & EntityBundle.ENTITY) > 0 && eb.getEntity() != null) {
+			Entity entity = serviceProvider.getEntityService().createEntity(userId, eb.getEntity(), request);
+			if ((partsMask & EntityBundle.ACL) > 0 && eb.getAccessControlList() != null) {
+				AccessControlList acl;				
+				try {
+					// ACLs are created automatically for entities whose parent is root;
+					// update the existing ACL
+					acl = serviceProvider.getEntityService().getEntityACL(entity.getId(), userId, request);
+					acl.getResourceAccess().addAll(eb.getAccessControlList().getResourceAccess());
+					acl = serviceProvider.getEntityService().updateEntityACL(userId, acl, null, request);
+				} catch (ACLInheritanceException e) {
+					// No ACL exists;
+					// create a new ACL
+					acl = eb.getAccessControlList();
+					acl.setId(entity.getId());
+					acl = serviceProvider.getEntityService().createEntityACL(userId, acl, request);
+				}				
+				eb.setAccessControlList(acl);
+			}
+			if ((partsMask & EntityBundle.ANNOTATIONS) > 0 && eb.getAnnotations() != null) {
+				Annotations annos = serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId(), request);
+				annos.addAll(eb.getAnnotations());
+				annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos, request);
+				eb.setAnnotations(annos);
+			}			
+		} else {
+			// Bundle did not contain an entity
+			throw new IllegalArgumentException("Invalid request: no entity to create");
+		}
+		
+		// TODO: Remove this once users, groups have been removed from bundle
+		partsMask &= ~(EntityBundle.GROUPS | EntityBundle.PERMISSIONS);
+		return getEntityBundle(userId, eb.getEntity().getId(), partsMask, request, null, null, null, null);
+	}
 
 }

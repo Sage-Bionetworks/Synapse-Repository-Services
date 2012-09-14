@@ -407,8 +407,8 @@ public interface EntityService {
 	throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException;
 	
 	/**
-	 * Update an entity ACL. If 'recursive' is true, then the ACL will be applied
-	 * to all child entities via inheritance.
+	 * Update an entity ACL. If the String 'recursive' is "true", then the ACL 
+	 * will be applied to all child entities via inheritance.
 	 * @param userId
 	 * @param updated
 	 * @param recursive

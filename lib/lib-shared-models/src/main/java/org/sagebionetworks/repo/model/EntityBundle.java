@@ -337,7 +337,7 @@ public class EntityBundle implements JSONEntity {
 			sb.append("ENTITY_PATH, ");
 		if (referencedBy != null)
 			sb.append("ENTITY_REFERENCEDBY, ");
-		if (childCount != 0)
+		if (childCount != null)
 			sb.append("CHILD_COUNT, ");
 		if (acl != null)
 			sb.append("ACCESS_CONTROL_LIST, ");

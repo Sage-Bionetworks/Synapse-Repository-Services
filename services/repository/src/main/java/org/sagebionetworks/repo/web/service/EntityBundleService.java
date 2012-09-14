@@ -3,8 +3,10 @@ package org.sagebionetworks.repo.web.service;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -55,5 +57,32 @@ public interface EntityBundleService {
 			HttpServletRequest request, Integer offset, Integer limit,
 			String sort, Boolean ascending) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
+
+	
+	/**
+	 * Create an entity and associated components with a single POST.
+	 * Specifically, this operation supports creation of an Entity, its
+	 * Annotations, and its ACL.
+	 * 
+	 * Upon successful creation, an EntityBundle is returned containing the
+	 * requested components, as defined by the partsMask.
+	 * 
+	 * @param userId
+	 * @param eb
+	 * @param partsMask
+	 * @param request
+	 * @return
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws ParseException 
+	 * @throws ACLInheritanceException 
+	 */
+	public EntityBundle createEntityBundle(String userId, EntityBundle eb,
+			int partsMask, HttpServletRequest request)
+			throws ConflictingUpdateException, DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException;
 
 }

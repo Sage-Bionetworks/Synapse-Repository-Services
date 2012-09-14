@@ -36,8 +36,6 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockServletConfig;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * Note: In order to use this class you must have the following annotations on
@@ -216,6 +214,41 @@ public class EntityServletTestHelper {
 		request.setParameter("mask", "" + mask);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		return new EntityBundle(joa);
+	}
+	
+	/**
+	 * Create an entity bundle.
+	 * @param id
+	 * @param testUser1
+	 * @return
+	 * @throws IOException 
+	 * @throws ServletException 
+	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException 
+	 * @throws NotFoundException 
+	 */
+	public EntityBundle createEntityBundle(EntityBundle entityBundle, int mask, String username)
+			throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ENTITY_BUNDLE);
+		request.setParameter("mask", "" + mask);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		String body = EntityFactory.createJSONStringForEntity(entityBundle);
+		request.setContent(body.getBytes("UTF-8"));
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {
