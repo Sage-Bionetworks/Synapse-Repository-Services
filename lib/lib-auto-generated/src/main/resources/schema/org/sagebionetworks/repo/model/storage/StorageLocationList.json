@@ -6,6 +6,11 @@
 			"type": "string",
 			"required": true
 		},
+		"grandTotal": {
+			"description": "The grand total in bytes of all the storage locations owned by the user.",
+			"type": "integer",
+			"required": true
+		},
 		"locationList": {
 			"description": "The list of storage locations.",
 			"type": "array",
