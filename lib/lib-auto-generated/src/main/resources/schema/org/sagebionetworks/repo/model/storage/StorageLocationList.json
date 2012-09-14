@@ -1,0 +1,18 @@
+{
+	"description": "JSON schema for a list of storage locations used by a specific user.",
+	"properties": {
+		"userId": {
+			"description": "The user that created or last modified the storage locations.",
+			"type": "string",
+			"required": true
+		},
+		"locationList": {
+			"description": "The list of storage locations.",
+			"type": "array",
+			"items":  {
+				"$ref": "org.sagebionetworks.repo.model.storage.StorageLocation"
+			},
+			"required": true
+		}
+	}
+}

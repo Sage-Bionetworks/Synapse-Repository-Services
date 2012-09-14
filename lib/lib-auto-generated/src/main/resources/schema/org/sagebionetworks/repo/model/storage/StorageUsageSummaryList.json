@@ -1,0 +1,18 @@
+{
+	"description": "JSON schema for a list of summaries of storage usage.",
+	"properties": {
+		"userId": {
+			"description": "The user who created or last modified the storage locations.",
+			"type": "string",
+			"required": true
+		},
+		"summaryList": {
+			"description": "The list of summaries.",
+			"type": "array",
+			"items":  {
+				"$ref": "org.sagebionetworks.repo.model.storage.StorageUsageSummary"
+			},
+			"required": true
+		}
+	}
+}
