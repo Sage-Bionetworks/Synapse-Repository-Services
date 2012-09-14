@@ -107,4 +107,7 @@
 	<!-- DAO used by asynchronous RDS works to update RDS tables acting as indicies -->
 	<bean id="asynchronousDAO" class="org.sagebionetworks.repo.model.dbo.dao.AsynchronousDAOImpl" />
 
+	<bean id="competitionDao" class="org.sagebionetworks.competition.dao.CompetitionDAOImpl"
+		depends-on="idGenerator" />
+
 </beans>

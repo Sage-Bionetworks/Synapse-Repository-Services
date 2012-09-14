@@ -43,6 +43,9 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStackStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
+				
+				<!-- Competition beans -->
+				<bean class="org.sagebionetworks.competition.dbo.CompetitionDBO" />
 			</list>
 		</property>
 	</bean>
