@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.backup;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -142,6 +144,15 @@ public class NodeBackupManagerImplAutowireTest {
 				} catch (Exception e) {}
 			}
 		}
+	}
+	
+	@Test
+	public void testDoesNodeExist() throws DatastoreException, UnauthorizedException, NotFoundException{
+		Node node = nodeManager.get(adminUser, newNodeId);
+		assertNotNull(node);
+		assertTrue(backupManager.doesNodeExist(node.getId(), node.getETag()));
+		assertFalse(backupManager.doesNodeExist(node.getId(), "notmyetag"));
+		assertFalse(backupManager.doesNodeExist("syn999999999999", "notmyetag"));
 	}
 	
 	

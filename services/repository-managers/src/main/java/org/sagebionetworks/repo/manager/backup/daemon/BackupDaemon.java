@@ -13,7 +13,6 @@ import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.backup.GenericBackupDriver;
 import org.sagebionetworks.repo.manager.backup.Progress;
-import org.sagebionetworks.repo.manager.backup.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -36,7 +35,6 @@ public class BackupDaemon implements Runnable{
 	
 	private static final String PREFIX_BACKUP = "Backup-";
 	private static final String PREFIX_TEMP = "temp-";
-	private static final String PREFIX_SEARCH = "search-";
 	static private Log log = LogFactory.getLog(BackupDaemon.class);
 	public static long NANO_SECONDS_PER_MILISECOND = 1000000;
 	private static final String S3_DOMAIN = "s3.amazonaws.com";
@@ -45,7 +43,6 @@ public class BackupDaemon implements Runnable{
 
 	private BackupRestoreStatusDAO backupRestoreStatusDao;
 	private GenericBackupDriver backupDriver;
-	private SearchDocumentDriver searchDocumentDriver;
 	private AmazonS3Client awsClient;
 	private String awsBucket;
 	private DaemonType type;
@@ -73,7 +70,7 @@ public class BackupDaemon implements Runnable{
 	 * @param dao
 	 * @param driver
 	 */
-	BackupDaemon(BackupRestoreStatusDAO dao, GenericBackupDriver driver, SearchDocumentDriver searchDocumentDriver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2){
+	BackupDaemon(BackupRestoreStatusDAO dao, GenericBackupDriver driver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2){
 		if(dao == null) throw new IllegalArgumentException("BackupRestoreStatusDAO cannot be null");
 		if(driver == null) throw new IllegalArgumentException("GenericBackupDriver cannot be null");
 		if(client == null) throw new IllegalArgumentException("AmazonS3Client cannot be null");
@@ -81,7 +78,6 @@ public class BackupDaemon implements Runnable{
 		if(threadPool == null) throw new IllegalArgumentException("Thread pool cannot be null");
 		this.backupRestoreStatusDao = dao;
 		this.backupDriver = driver;
-		this.searchDocumentDriver = searchDocumentDriver;
 		this.awsClient = client;
 		this.awsBucket = bucket;
 		this.watcherPool = threadPool;
@@ -93,8 +89,8 @@ public class BackupDaemon implements Runnable{
 	 * @param dao
 	 * @param driver
 	 */
-	BackupDaemon(BackupRestoreStatusDAO dao, GenericBackupDriver driver, SearchDocumentDriver searchDocumentDriver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2, Set<String> entitiesToBackup){
-		this(dao, driver, searchDocumentDriver, client, bucket, threadPool, threadPool2);
+	BackupDaemon(BackupRestoreStatusDAO dao, GenericBackupDriver driver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2, Set<String> entitiesToBackup){
+		this(dao, driver, client, bucket, threadPool, threadPool2);
 		this.entitiesToBackup = entitiesToBackup;
 	}
 	
@@ -120,9 +116,6 @@ public class BackupDaemon implements Runnable{
 			if(entitiesToBackup == null){
 				// This is a full backup file.
 				prefix = PREFIX_BACKUP;
-			}
-			else if(DaemonType.SEARCH_DOCUMENT == type) {
-				prefix = PREFIX_SEARCH;
 			}
 			else {
 				// Incremental backup files are temporary.
@@ -186,14 +179,6 @@ public class BackupDaemon implements Runnable{
 				String backupUrl = uploadFileToS3(tempBackup, null);
 				status.setBackupUrl(backupUrl);
 			}
-			else if(DaemonType.SEARCH_DOCUMENT == type){
-				// Once the driver is done upload the file to S3.
-				status.setProgresssMessage("Starting to upload temp file: "+tempBackup.getAbsolutePath()+" to S3...");
-				updateStatus();
-				// Now upload the file to S3
-				String backupUrl = uploadFileToS3(tempBackup, S3KEY_SEARCH_PREFIX);
-				status.setBackupUrl(backupUrl);
-			}
 			else if(DaemonType.RESTORE == type){
 				// If this backup file is a temp file then delete it from S3 now that we have consumed it.
 				// We also want to cleanup backup files from builds.
@@ -241,9 +226,6 @@ public class BackupDaemon implements Runnable{
 					}else if(DaemonType.RESTORE == type) {
 						// This is a restore
 						backupDriver.restoreFromBackup(tempBackup, progress);		
-					}else if(DaemonType.SEARCH_DOCUMENT == type) {
-						// This is a restore
-						searchDocumentDriver.writeSearchDocument(tempBackup, progress, entitiesToBackup);		
 					}else{
 						throw new IllegalArgumentException("Unknown type: "+type);
 					}
@@ -323,20 +305,6 @@ public class BackupDaemon implements Runnable{
 		if(fileName == null) throw new IllegalArgumentException("Backup file name cannot be null");
 		this.type = DaemonType.RESTORE;
 		this.backupFileName = fileName;
-		return start(userPrincipalId);
-	}
-
-	/**
-	 * Start this daemon for a search document..
-	 * @param user
-	 * @return
-	 * @throws DatastoreException 
-	 * @throws UnauthorizedException
-	 * @throws DatastoreException
-	 */
-	public BackupRestoreStatus startSearchDocument(String userPrincipalId) throws DatastoreException {
-		if(userPrincipalId == null) throw new IllegalArgumentException("userPrincipalId cannot be null");
-		this.type = DaemonType.SEARCH_DOCUMENT;
 		return start(userPrincipalId);
 	}
 

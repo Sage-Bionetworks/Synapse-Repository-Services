@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+                           http://www.springframework.org/schema/beans
+                           http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+                           http://www.springframework.org/schema/context
+                           http://www.springframework.org/schema/context/spring-context-3.0.xsd
+                           http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-3.0.xsd">
+
+	<!-- Discover all our controllers -->
+	<context:component-scan base-package="org.sagebionetworks.search.controller" />
+
+	<!-- Import the manager beans -->
+	<import resource="classpath:controller-spb.xml" />
+
+
+	<bean
+		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">
+		<property name="messageConverters">
+			<ref bean="messageConverterList" />
+		</property>
+		<property name="customModelAndViewResolvers">
+			<list>
+				<bean class="org.sagebionetworks.repo.web.ResponseHeaderResolver" />
+			</list>
+		</property>
+	</bean>
+	<bean
+		class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerExceptionResolver">
+		<property name="messageConverters">
+			<ref bean="messageConverterList" />
+		</property>
+	</bean>
+	<!-- This is the list of message converters used in various places -->
+	<util:list id="messageConverterList">
+		<ref bean="objectTypeSerializer" />
+		<ref bean="atomConverter" />
+	</util:list>
+
+	<bean id="atomConverter"
+		class="org.springframework.http.converter.feed.AtomFeedHttpMessageConverter">
+		<property name="supportedMediaTypes" value="application/atom+xml" />
+	</bean>
+
+	<!-- Here's the configuration for when we are using a View -->
+	<bean
+		class="org.springframework.web.servlet.view.ContentNegotiatingViewResolver">
+		<property name="mediaTypes">
+			<map>
+				<entry key="atom" value="application/atom+xml" />
+				<entry key="html" value="text/html" />
+				<entry key="json" value="application/json" />
+			</map>
+		</property>
+
+		<property name="defaultContentType" value="application/json" />
+		<property name="favorPathExtension" value="true" />
+
+		<property name="defaultViews">
+			<list>
+				<bean
+					class="org.springframework.web.servlet.view.json.MappingJacksonJsonView" />
+			</list>
+		</property>
+
+		<property name="viewResolvers">
+			<list>
+				<!-- Allow custom views -->
+				<bean class="org.springframework.web.servlet.view.BeanNameViewResolver" />
+				<!-- Allow JSP templates for service admin pages -->
+				<bean id="viewResolver"
+					class="org.springframework.web.servlet.view.UrlBasedViewResolver">
+					<property name="viewClass"
+						value="org.springframework.web.servlet.view.JstlView" />
+					<property name="prefix" value="/WEB-INF/jsp/" />
+					<property name="suffix" value=".jsp" />
+				</bean>
+			</list>
+		</property>
+
+	</bean>
+
+</beans>

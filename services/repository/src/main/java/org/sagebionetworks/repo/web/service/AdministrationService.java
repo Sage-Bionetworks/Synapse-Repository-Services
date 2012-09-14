@@ -85,25 +85,6 @@ public interface AdministrationService {
 			ConflictingUpdateException;
 
 	/**
-	 * Start a search document daemon.  Monitor the status of the daemon with the getStatus method.
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	public BackupRestoreStatus startSearchDocument(String userId,
-			HttpHeaders header, HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException,
-			ConflictingUpdateException;
-
-	/**
 	 * Get the status of a running daemon (either a backup or restore)
 	 * @param daemonId
 	 * @param userId

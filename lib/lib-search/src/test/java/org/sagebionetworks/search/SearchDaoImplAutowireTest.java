@@ -35,7 +35,6 @@ import com.amazonaws.services.cloudsearch.model.OptionState;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:search-beans.spb.xml" })
-@Ignore // Turned off until the dao is turned on.
 public class SearchDaoImplAutowireTest {
 	
 	@Autowired
@@ -121,7 +120,7 @@ public class SearchDaoImplAutowireTest {
 		// Create this document
 		searchDao.createOrUpdateSearchDocument(document);
 		// It can take several seconds for the update to apply.
-		Thread.sleep(10*1000);
+		Thread.sleep(20*1000);
 		// Now make sure we can search for it
 		SearchResults results = searchDao.executeSearch("q=AABBCC");
 		assertNotNull(results);
@@ -129,6 +128,10 @@ public class SearchDaoImplAutowireTest {
 		assertEquals(1, results.getHits().size());
 		Hit hit = results.getHits().get(0);
 		assertEquals(id, hit.getId());
+		
+		// Make sure the document exists
+		assertTrue(searchDao.doesDocumentExist(id, etag));
+		assertFalse(searchDao.doesDocumentExist(id, "oldEtag"));
 		
 		// now update the document and try the search again.
 		fields.setDescription("JJKKRRDD seven eight nine");
@@ -154,6 +157,8 @@ public class SearchDaoImplAutowireTest {
 		assertNotNull(results);
 		assertNotNull(results.getHits());
 		assertEquals(0, results.getHits().size());
+		// It should not exists
+		assertFalse(searchDao.doesDocumentExist(id, etag));
 	}
 	
 	/**

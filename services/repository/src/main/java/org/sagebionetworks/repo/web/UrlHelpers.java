@@ -261,11 +261,9 @@ public class UrlHelpers {
 	public static final String DAEMON 						= ADMIN+"/daemon";
 	public static final String BACKUP						= "/backup";
 	public static final String RESTORE						= "/restore";
-	public static final String SEARCH_DOCUMENT 				= "/searchDocument";
 	public static final String DAEMON_ID					= "/{daemonId}";
 	public static final String ENTITY_BACKUP_DAMEON			= DAEMON+BACKUP;
 	public static final String ENTITY_RESTORE_DAMEON		= DAEMON+RESTORE;
-	public static final String ENTITY_SEARCH_DOCUMENT_DAMEON = DAEMON+SEARCH_DOCUMENT;
 	public static final String ENTITY_DAEMON_ID				= DAEMON+DAEMON_ID;
 	
 	public static final String CONCEPT	= "/concept";

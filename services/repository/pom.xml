@@ -56,13 +56,6 @@
 			<artifactId>jstl</artifactId>
 		</dependency>
 
-		<!-- ATOM -->
-		<dependency>
-			<groupId>rome</groupId>
-			<artifactId>rome</artifactId>
-			<version>0.5</version>
-		</dependency>
-
 		<!-- Spring Framework dependencies -->
 		<dependency>
 			<groupId>org.springframework</groupId>
@@ -117,41 +110,11 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk</artifactId>
-			<scope>compile</scope>
-		</dependency>
+
 		<dependency>
 			<groupId>opensymphony</groupId>
 			<artifactId>quartz-all</artifactId>
-			<version>1.6.3</version>
-			<type>jar</type>
-			<scope>compile</scope>
 		</dependency>
-		<dependency>
-			<groupId>commons-collections</groupId>
-			<artifactId>commons-collections</artifactId>
-			<version>20040616</version>
-			<type>jar</type>
-			<scope>compile</scope>
-		</dependency>
-
-
-		<!-- We use this to -->
-		<dependency>
-			<groupId>org.imgscalr</groupId>
-			<artifactId>imgscalr-lib</artifactId>
-		</dependency>
-
-		<!-- Trie library -->
-		<dependency>
-			<groupId>org.ardverk</groupId>
-			<artifactId>patricia-trie</artifactId>
-			<version>0.6</version>
-		</dependency>
-
-
 	</dependencies>
 
 	<build>

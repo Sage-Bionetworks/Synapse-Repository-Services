@@ -51,28 +51,6 @@
 			<artifactId>lib-logging</artifactId>
 		</dependency>
 
-		<!-- This was being pulled in as a child dependency of the springframework 
-			but the tomcat plugin needs this to be in scope "provided" -->
-		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>com.springsource.javax.servlet</artifactId>
-			<scope>provided</scope>
-		</dependency>
-
-		<!-- In a tomcat container, such as Elastic Beanstalk, you have to include 
-			jstl.jar manually, hence this entry. -->
-		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>jstl</artifactId>
-		</dependency>
-
-		<!-- ATOM -->
-		<dependency>
-			<groupId>rome</groupId>
-			<artifactId>rome</artifactId>
-			<version>0.5</version>
-		</dependency>
-
 		<!-- Spring Framework dependencies -->
 		<dependency>
 			<groupId>org.springframework</groupId>
@@ -82,18 +60,7 @@
 
 		<dependency>
 			<groupId>org.springframework</groupId>
-			<artifactId>org.springframework.web</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
-		</dependency>
-
-		<!-- Jackson JSON Mapper -->
-		<dependency>
-			<groupId>org.codehaus.jackson</groupId>
-			<artifactId>jackson-mapper-asl</artifactId>
 		</dependency>
 
 		<!-- Logging dependencies -->
@@ -119,11 +86,6 @@
 		</dependency>
 
 		<dependency>
-			<groupId>joda-time</groupId>
-			<artifactId>joda-time</artifactId>
-		</dependency>
-
-		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
@@ -135,9 +97,6 @@
 		<dependency>
 			<groupId>opensymphony</groupId>
 			<artifactId>quartz-all</artifactId>
-			<version>1.6.3</version>
-			<type>jar</type>
-			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>commons-collections</groupId>
@@ -146,9 +105,7 @@
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
-
-
-		<!-- We use this to -->
+		<!-- We use this to images for previews.-->
 		<dependency>
 			<groupId>org.imgscalr</groupId>
 			<artifactId>imgscalr-lib</artifactId>
@@ -215,7 +172,6 @@
 					</execution>
 				</executions>
 			</plugin>
-
 		</plugins>
 	</build>
 

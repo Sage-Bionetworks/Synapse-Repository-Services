@@ -5,9 +5,11 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.UnknownHostException;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
+import static org.sagebionetworks.search.SearchConstants.*;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.http.client.ClientProtocolException;
@@ -55,6 +57,8 @@ import com.amazonaws.services.cloudsearch.model.UpdateServiceAccessPoliciesReque
  */
 public class SearchDaoImpl implements SearchDao {
 
+	private static final String QUERY_BY_ID_AND_ETAG = "bq=(and+"+FIELD_ID+":'%1$s'+"+FIELD_ETAG+":'%2$s')";
+
 	private static final String POLICY_TEMPLATE = "{\"Statement\": [{\"Effect\":\"Allow\", \"Action\": \"*\", \"Resource\": \"%1$s\", \"Condition\": { \"IpAddress\": { \"aws:SourceIp\": [\"%3$s\"] } }}, {\"Effect\":\"Allow\", \"Action\": \"*\", \"Resource\": \"%2$s\", \"Condition\": { \"IpAddress\": { \"aws:SourceIp\": [\"%3$s\"] } }} ] }";
 
 	private static final String SEARCH_DOMAIN_NAME_TEMPLATE = "%1$s-%2$s-sagebase-org";
@@ -95,7 +99,7 @@ public class SearchDaoImpl implements SearchDao {
 	/**
 	 * This feature is currently turned off.
 	 */
-	boolean featureEnabled = false;
+	boolean featureEnabled = true;
 	/**
 	 * Spring will call this method when the bean is first initialize.
 	 * @throws InterruptedException 
@@ -276,13 +280,15 @@ public class SearchDaoImpl implements SearchDao {
 	@Override
 	public void createOrUpdateSearchDocument(Document document) throws ClientProtocolException, IOException, HttpClientHelperException {
 		if(document == null) throw new IllegalArgumentException("Document cannot be null");
-		// the version is always the current time.
-		DateTime now = DateTime.now();
-		document.setVersion(now.getMillis() / 1000);
-		document.setType(DocumentTypeNames.add);
-		document.setLang("en");
+		List<Document> list = new LinkedList<Document>();
+		list.add(document);
+		createOrUpdateSearchDocument(list);
+	}
+	
+	@Override
+	public void createOrUpdateSearchDocument(List<Document> batch) throws ClientProtocolException, IOException, HttpClientHelperException {
 		// Cleanup they data
-		byte[] bytes = cleanSearchDocument(document);
+		byte[] bytes = cleanSearchDocuments(batch);
 		ByteArrayInputStream in = new ByteArrayInputStream(bytes);
 		// Pass along to the client
 		cloudHttpClient.sendDocuments(in, bytes.length);
@@ -295,20 +301,32 @@ public class SearchDaoImpl implements SearchDao {
 	 * @throws UnsupportedEncodingException
 	 * @throws JSONObjectAdapterException
 	 */
-	static byte[] cleanSearchDocument(Document document) {
+	static byte[] cleanSearchDocuments(List<Document> documents) {
 		String serializedDocument;
 		try {
-			serializedDocument = EntityFactory.createJSONStringForEntity(document);
-			// AwesomeSearch pukes on control characters. Some descriptions have
-			// control characters in them for some reason, in any case, just get rid
-			// of all control characters in the search document
-			String cleanedDocument = serializedDocument.replaceAll("\\p{Cc}", "");
-
-			// Get rid of escaped control characters too
-			cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]","");
 			StringBuilder builder = new StringBuilder();
 			builder.append("[");
-			builder.append(cleanedDocument);
+			int count = 0;
+			for(Document document: documents){
+				// the version is always the current time.
+				DateTime now = DateTime.now();
+				document.setVersion(now.getMillis() / 1000);
+				document.setType(DocumentTypeNames.add);
+				document.setLang("en");
+				serializedDocument = EntityFactory.createJSONStringForEntity(document);
+				// AwesomeSearch pukes on control characters. Some descriptions have
+				// control characters in them for some reason, in any case, just get rid
+				// of all control characters in the search document
+				String cleanedDocument = serializedDocument.replaceAll("\\p{Cc}", "");
+
+				// Get rid of escaped control characters too
+				cleanedDocument = cleanedDocument.replaceAll("\\\\u00[0,1][0-9,a-f]","");
+				if(count > 0){
+					builder.append(", ");
+				}
+				builder.append(cleanedDocument);
+				count++;
+			}
 			builder.append("]");
 			// AwesomeSearch expects UTF-8
 			return builder.toString().getBytes("UTF-8");
@@ -361,5 +379,21 @@ public class SearchDaoImpl implements SearchDao {
 			throw new RuntimeException(e);
 		}
 	}
+
+	@Override
+	public String executeRawSearch(String search) throws ClientProtocolException, IOException,
+			HttpClientHelperException {
+		return cloudHttpClient.performSearch(search);
+	}
+
+	@Override
+	public boolean doesDocumentExist(String id, String etag) throws ClientProtocolException, IOException, HttpClientHelperException {
+		// Search for the document
+		String query = String.format(QUERY_BY_ID_AND_ETAG, id, etag);
+		SearchResults results = executeSearch(query);
+		return results.getHits().size() > 0;
+	}
+
+
 
 }

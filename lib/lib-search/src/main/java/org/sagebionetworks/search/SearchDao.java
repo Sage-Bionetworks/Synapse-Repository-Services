@@ -55,6 +55,15 @@ public interface SearchDao {
 	 void createOrUpdateSearchDocument(Document toCreate) throws ClientProtocolException, IOException, HttpClientHelperException;
 	 
 	 /**
+	  * Create or update a batch of search documents
+	  * @param batch
+	 * @throws HttpClientHelperException 
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	  */
+	 void createOrUpdateSearchDocument(List<Document> batch) throws ClientProtocolException, IOException, HttpClientHelperException;
+	 
+	 /**
 	  * Delete a document using its id.
 	  * @param documentId
 	 * @throws HttpClientHelperException 
@@ -82,4 +91,26 @@ public interface SearchDao {
 	 * @throws ClientProtocolException 
 	  */
 	 SearchResults executeSearch(String search) throws ClientProtocolException, IOException, HttpClientHelperException;
+	 
+	 /**
+	  * The unprocessed form of the search
+	  * @param search
+	  * @return
+	  * @throws ClientProtocolException
+	  * @throws IOException
+	  * @throws HttpClientHelperException
+	  */
+	 String executeRawSearch(String search) throws ClientProtocolException, IOException, HttpClientHelperException;
+	 
+	 /**
+	  * Does a document already exist with the given id and etag?
+	  * @param id
+	  * @param etag
+	  * @return
+	 * @throws HttpClientHelperException 
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	  */
+	 boolean doesDocumentExist(String id, String etag) throws ClientProtocolException, IOException, HttpClientHelperException;
+
 }

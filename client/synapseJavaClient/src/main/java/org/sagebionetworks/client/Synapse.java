@@ -133,6 +133,7 @@ public class Synapse {
 
 	
 	protected String repoEndpoint;
+	protected String searchEndpoint;
 	protected String authEndpoint;
 
 	protected Map<String, String> defaultGETDELETEHeaders;
@@ -225,6 +226,10 @@ public class Synapse {
 	 */
 	public void setAuthEndpoint(String authEndpoint) {
 		this.authEndpoint = authEndpoint;
+	}
+	
+	public void setSearchEndpoint(String searchEndpoint){
+		this.searchEndpoint = searchEndpoint;
 	}
 
 	/**
@@ -2007,12 +2012,11 @@ public class Synapse {
 	public SearchResults search(SearchQuery searchQuery) throws SynapseException, UnsupportedEncodingException, JSONObjectAdapterException {
 		SearchResults searchResults = null;		
 		String uri = "/search?q=" + URLEncoder.encode(SearchUtil.generateQueryString(searchQuery), "UTF-8");
-		JSONObject obj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
+		JSONObject obj = signAndDispatchSynapseRequest(searchEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
 		if(obj != null) {
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(obj);
 			searchResults = new SearchResults(adapter);
 		}
-
 		return searchResults;
 	}
 	
