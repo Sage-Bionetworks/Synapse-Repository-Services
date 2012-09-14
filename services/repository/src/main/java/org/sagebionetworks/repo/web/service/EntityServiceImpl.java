@@ -580,12 +580,25 @@ public class EntityServiceImpl implements EntityService {
 		// Resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		AccessControlList acl = permissionsManager.updateACL(updated, userInfo);
-		if (recursive.equalsIgnoreCase("true"))
+		if (recursive != null && recursive.equalsIgnoreCase("true"))
 			permissionsManager.applyInheritanceToChildren(updated.getId(), userInfo);
 		acl.setUri(request.getRequestURI());
 		return acl;
 	}
 
+	@Override
+	public AccessControlList createOrUpdateEntityACL(String userId,
+			AccessControlList acl, String recursive, HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
+		String entityId = acl.getId();
+		if (permissionsManager.hasLocalACL(entityId)) {
+			// Local ACL exists; update it
+			return updateEntityACL(userId, acl, recursive, request);
+		} else {
+			// Local ACL does not exist; create it
+			return createEntityACL(userId, acl, request);			
+		}
+	}
+	
 	@Override
 	public void deleteEntityACL(String userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {

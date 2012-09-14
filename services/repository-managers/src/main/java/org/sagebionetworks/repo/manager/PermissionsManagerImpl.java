@@ -187,7 +187,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 			// must be authorized to modify permissions
 			if (authorizationManager.canAccess(userInfo, idToChange, ACCESS_TYPE.CHANGE_PERMISSIONS)) {
 				// delete child ACL, if present
-				if (isOwnBenefactor(idToChange)) {
+				if (hasLocalACL(idToChange)) {
 					// Before we can update the ACL we must grab the lock on the node.
 					Node node = nodeDao.getNode(idToChange);
 					nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
@@ -252,13 +252,10 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		return authorizationManager.getUserPermissionsForEntity(userInfo, entityId);
 	}
 
-	/**
-	 * Is a node its own benefactor? In other words, does a node have a locally-
-	 * defined ACL?
-	 */
-	private boolean isOwnBenefactor(String rId) {
+	@Override
+	public boolean hasLocalACL(String resourceId) {
 		try {
-			return nodeInheritanceManager.getBenefactor(rId).equals(rId);
+			return nodeInheritanceManager.getBenefactor(resourceId).equals(resourceId);
 		} catch (Exception e) {
 			return false;
 		}
