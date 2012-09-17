@@ -159,6 +159,20 @@
             "name":"summary",
             "entityType":"org.sagebionetworks.repo.model.Summary",
             "defaultParentPath":"/root"
-        }
+        },
+		{
+			"validParentTypes":[
+                "org.sagebionetworks.repo.model.Folder",
+                "org.sagebionetworks.repo.model.Project",
+                "org.sagebionetworks.repo.model.Study"
+			],
+            "aliases":[
+                "genomicdata",
+                "layer"
+            ],
+			"name": "genomicdata",
+			"entityType": "org.sagebionetworks.repo.model.GenomicData",
+			"defaultParentPath": "/root"
+		}
     ]
 }
