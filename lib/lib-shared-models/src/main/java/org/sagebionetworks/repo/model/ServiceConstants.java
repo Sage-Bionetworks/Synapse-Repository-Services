@@ -201,4 +201,6 @@ public class ServiceConstants {
 
 	public static final String TERMS_OF_USE_ERROR_MESSAGE = "You need to sign the Synapse Terms of Use.   This may be done by logging in to Synapse on the Web.";
 	
+	public static final int DEFAULT_CONNECT_TIMEOUT_MSEC = 5000;
+	public static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 20000;
 }
