@@ -85,7 +85,7 @@ public class Synapse {
 
 	protected static final Logger log = Logger.getLogger(Synapse.class.getName());
 
-	protected static final int DEFAULT_TIMEOUT_MSEC = 5000;
+	protected static final int DEFAULT_TIMEOUT_MSEC = 10000;
 
 	protected static final int JSON_INDENT = 2;
 	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.sagebase.org/repo/v1";
