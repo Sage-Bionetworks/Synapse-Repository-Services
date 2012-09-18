@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -38,6 +39,7 @@ public class SynapseAdministration extends Synapse {
 	public static final String DAEMON_SEARCH_DOCUMENT = DAEMON + SEARCH_DOCUMENT;
 	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
 	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
+	public static final String GET_ALL_BACKUP_COUNTS = "/backupObjectCounts";
 	
 	public SynapseAdministration() {
 		super();
@@ -58,6 +60,22 @@ public class SynapseAdministration extends Synapse {
 		try {
 			results.initializeFromJSONObject(adapter);
 			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public PaginatedResults<MigratableObjectCount> getMigratableObjectCounts(long offset, long limit, boolean includeDependencies) throws SynapseException {
+		String uri = GET_ALL_BACKUP_COUNTS + "?" +
+			ServiceConstants.PAGINATION_OFFSET_PARAM + "=" + offset + "&" +
+			ServiceConstants.PAGINATION_LIMIT_PARAM + "=" + limit + "&" +
+			INCLUDE_DEPENDENCIES_PARAM +  "=" + includeDependencies;
+		JSONObject o = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(o);
+		PaginatedResults<MigratableObjectCount> rs = new PaginatedResults<MigratableObjectCount>(MigratableObjectCount.class);
+		try {
+			rs.initializeFromJSONObject(adapter);
+			return rs;
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}

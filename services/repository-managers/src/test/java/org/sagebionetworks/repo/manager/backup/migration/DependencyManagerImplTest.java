@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.backup.migration;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
@@ -9,6 +10,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.EntityType;
@@ -48,27 +50,27 @@ public class DependencyManagerImplTest {
 	private static QueryResults<MigratableObjectCount> generateMigratableObjectCounts(long startId, long num, MigratableObjectType mot) {
 		QueryResults<MigratableObjectCount> r = new QueryResults<MigratableObjectCount>();
 		List<MigratableObjectCount> l = new ArrayList<MigratableObjectCount>();
-		MigratableObjectCount oc;
+		MigratableObjectCount oc = null;
 		if (mot != MigratableObjectType.ENTITY) {
 			oc = new MigratableObjectCount();
 			oc.setObjectType(mot.name());
+			oc.setCount(LIST_SIZE); // Assume 10 objects of each type
 			oc.setEntityType(null);
-			oc.setCount(num);
-			l.add(oc);
 			r.setTotalNumberOfResults(1);
+			l.add(oc);
 		} else {
-			int c = 0;
-			for (EntityType et: EntityType.values()) {
+			int maxEntityTypeIdx = (int) ((num-1) % EntityType.values().length); // Number of entity types for which we generate record
+			for (int i = 0; i <= maxEntityTypeIdx; i++) {
+				EntityType t = EntityType.values()[i];
 				oc = new MigratableObjectCount();
 				oc.setObjectType(mot.name());
-				oc.setEntityType(et.name());
-				oc.setCount(1L);
+				oc.setCount(10L); // Assume 10 objects of each type
+				oc.setEntityType(t.name());
 				l.add(oc);
-				c++;
 			}
-			r.setTotalNumberOfResults(c);
+			r.setTotalNumberOfResults(maxEntityTypeIdx+1);
 		}
-		
+
 		r.setResults(l);
 		return r;
 	}
@@ -238,27 +240,34 @@ public class DependencyManagerImplTest {
 		}
 	}
 
-	
+
 	@Test
 	public void testGetAllObjectsCounts() throws Exception {
 		DependencyManagerImpl dependencyMgr = new DependencyManagerImpl();
 		List<MigratableDAO> migratableDaos = new ArrayList<MigratableDAO>();
 		
+		// Entities
 		MigratableDAO dao1 = Mockito.mock(MigratableDAO.class);
-		when(dao1.getCount()).thenReturn(LIST_SIZE);
-		when(dao1.getMigrationObjectData(eq(4L)/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(0L, 0L, MigratableObjectType.ENTITY));
-		when(dao1.getMigratableObjectCounts(anyLong()/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigratableObjectCounts(0L, 0L, MigratableObjectType.ENTITY));
+		when(dao1.getMigratableObjectCounts(anyLong()/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigratableObjectCounts(0L, 4L, MigratableObjectType.ENTITY));
 		migratableDaos.add(dao1);
 				
+		// Principals
 		MigratableDAO dao2 = Mockito.mock(MigratableDAO.class);
 		when(dao2.getCount()).thenReturn(LIST_SIZE);
-		when(dao2.getMigrationObjectData(anyLong()/*offset*/, eq(1L)/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(4L, 1L, MigratableObjectType.PRINCIPAL));
-		when(dao2.getMigratableObjectCounts(anyLong()/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigratableObjectCounts(4L, 1L, MigratableObjectType.ENTITY));
+		when(dao2.getMigratableObjectCounts(anyLong()/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigratableObjectCounts(0L, 1L, MigratableObjectType.PRINCIPAL));
 		migratableDaos.add(dao2);
 		
+		// AccessRequirements
+		MigratableDAO dao3 = Mockito.mock(MigratableDAO.class);
+		when(dao3.getCount()).thenReturn(LIST_SIZE);
+		when(dao3.getMigratableObjectCounts(anyLong()/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigratableObjectCounts(0L, 1L, MigratableObjectType.ACCESSREQUIREMENT));
+		migratableDaos.add(dao3);
+		
 		dependencyMgr.setMigratableDaos(migratableDaos);
+		
 		QueryResults<MigratableObjectCount> results = dependencyMgr.getAllObjectsCounts(0, 100, true);
-		assertEquals(2, results.getTotalNumberOfResults());
-		assertEquals(2, results.getResults().size());
+		assertEquals(6, results.getTotalNumberOfResults());
+		assertEquals(6, results.getResults().size());
+		
 	}
 }
