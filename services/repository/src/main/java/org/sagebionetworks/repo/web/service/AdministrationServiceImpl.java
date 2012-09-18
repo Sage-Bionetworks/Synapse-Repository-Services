@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.manager.backup.migration.DependencyManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -66,7 +67,22 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		return result;
 	}
 	
-	
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getAllBackupObjects(java.lang.String, java.lang.Integer, java.lang.Integer, java.lang.Boolean)
+	 */
+	@Override
+	public PaginatedResults<MigratableObjectCount> getAllBackupObjectsCounts(
+			String userId, Integer offset, Integer limit, Boolean  includeDependencies)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
+		QueryResults<MigratableObjectCount> queryResults = dependencyManager.getAllObjectsCounts(offset, limit, includeDependencies);
+		PaginatedResults<MigratableObjectCount> result = new PaginatedResults<MigratableObjectCount>();
+		result.setResults(queryResults.getResults());
+		result.setTotalNumberOfResults(queryResults.getTotalNumberOfResults());
+		return result;
+	}
+		
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#startBackup(java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
 	 */

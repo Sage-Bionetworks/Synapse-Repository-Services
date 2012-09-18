@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -1944,6 +1945,31 @@ public class ServletTestHelper {
 		}
 		return createPaginatedResultsFromJSON(response.getContentAsString(),
 				MigratableObjectData.class);
+	}
+
+	public static PaginatedResults<MigratableObjectCount> getMigratableObjectsCounts(
+			HttpServlet dispatchServlet,
+			long offset,
+			long limit,
+			String userId) throws Exception {
+
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+
+		request.setRequestURI(UrlHelpers.GET_ALL_BACKUP_OBJECTS_COUNTS);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""+offset);
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""+limit);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return createPaginatedResultsFromJSON(response.getContentAsString(),
+				MigratableObjectCount.class);
 	}
 
 	public VersionInfo getVersionInfo() throws ServletException, IOException {

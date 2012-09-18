@@ -49,8 +49,10 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -102,7 +104,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String SQL_COUNT_STRING_ANNOTATIONS_FOR_NODE = "SELECT COUNT("+ANNOTATION_OWNER_ID_COLUMN+") FROM "+TABLE_STRING_ANNOTATIONS+" WHERE "+ANNOTATION_OWNER_ID_COLUMN+" = ? AND "+ANNOTATION_ATTRIBUTE_COLUMN+" = ?";
-
+	private static final String SQL_COUNT_ENTITIES_BY_TYPE = "SELECT t.NAME, COUNT(*) AS C FROM JDONODE n, NODE_TYPE t WHERE n.NODE_TYPE=t.ID";
 	// get all ids, paginated
 	private static final String SQL_GET_NODES_PAGINATED =
 		"SELECT n."+COL_NODE_ID+", n."+COL_NODE_ETAG+
@@ -1220,4 +1222,30 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		queryResults.setTotalNumberOfResults((int)getCount());
 		return queryResults;
 	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public QueryResults<MigratableObjectCount> getMigratableObjectCounts(long offset, long limit, boolean includeDependencies) throws DatastoreException {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);
+		
+		List<MigratableObjectCount> l = this.simpleJdbcTemplate.query(SQL_COUNT_ENTITIES_BY_TYPE,
+				new RowMapper<MigratableObjectCount>() {
+					@Override
+					public MigratableObjectCount mapRow(ResultSet rs, int rowNum) throws SQLException {
+						MigratableObjectCount cnt = new MigratableObjectCount();
+						cnt.setObjectType(MigratableObjectType.ENTITY.name());
+						cnt.setEntityType(rs.getString(1));
+						cnt.setCount(rs.getLong(2));
+						return cnt;
+					}
+				}, params);
+		
+		QueryResults<MigratableObjectCount> qRes = new QueryResults<MigratableObjectCount>();
+		qRes.setResults(l);
+		qRes.setTotalNumberOfResults((int)getCount());
+		return qRes;
+	}
+
 }

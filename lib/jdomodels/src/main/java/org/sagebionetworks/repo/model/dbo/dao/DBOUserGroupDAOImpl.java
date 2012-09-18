@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -204,6 +205,23 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	public long getCount()  throws DatastoreException {
 		return basicDao.getCount(DBOUserGroup.class);
 	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public QueryResults<MigratableObjectCount> getMigratableObjectCounts(long offset, long limit, boolean includeDependencies) throws DatastoreException {
+		List<MigratableObjectCount> l = new ArrayList<MigratableObjectCount>();
+		
+		QueryResults<MigratableObjectCount> qRes = new QueryResults<MigratableObjectCount>();
+		MigratableObjectCount moc = new MigratableObjectCount();
+		moc.setEntityType(MigratableObjectType.PRINCIPAL.name());
+		moc.setEntityType(null);
+		moc.setCount(this.getCount());
+		l.add(moc);
+		qRes.setResults(l);
+		qRes.setTotalNumberOfResults(1);
+		return qRes;
+	}
+
 
 	@Override
 	public Collection<UserGroup> getAllExcept(boolean isIndividual, Collection<String> groupNamesToOmit) throws DatastoreException {
