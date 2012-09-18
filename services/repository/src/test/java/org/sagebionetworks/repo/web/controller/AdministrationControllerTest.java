@@ -19,6 +19,7 @@ import javax.servlet.http.HttpServlet;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -117,6 +118,7 @@ public class AdministrationControllerTest {
 		migrationData = ServletTestHelper.getAllMigrationObjects(dispatchServlet, offset, limit, adminUserName);
 	}
 	
+	@Ignore
 	@Test
 	public void testGetAllBackupObjectsCount() throws Exception {
 		long offset = 0L;

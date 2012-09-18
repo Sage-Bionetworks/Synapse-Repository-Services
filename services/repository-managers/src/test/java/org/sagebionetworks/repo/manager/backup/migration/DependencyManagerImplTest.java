@@ -11,6 +11,7 @@ import java.util.List;
 
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.MigratableDAO;
 import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
@@ -47,13 +48,28 @@ public class DependencyManagerImplTest {
 	private static QueryResults<MigratableObjectCount> generateMigratableObjectCounts(long startId, long num, MigratableObjectType mot) {
 		QueryResults<MigratableObjectCount> r = new QueryResults<MigratableObjectCount>();
 		List<MigratableObjectCount> l = new ArrayList<MigratableObjectCount>();
-		MigratableObjectCount o = new MigratableObjectCount();
-		o.setObjectType(mot.name());
-		o.setEntityType(null);
-		o.setCount(num);
-		l.add(o);
+		MigratableObjectCount oc;
+		if (mot != MigratableObjectType.ENTITY) {
+			oc = new MigratableObjectCount();
+			oc.setObjectType(mot.name());
+			oc.setEntityType(null);
+			oc.setCount(num);
+			l.add(oc);
+			r.setTotalNumberOfResults(1);
+		} else {
+			int c = 0;
+			for (EntityType et: EntityType.values()) {
+				oc = new MigratableObjectCount();
+				oc.setObjectType(mot.name());
+				oc.setEntityType(et.name());
+				oc.setCount(1L);
+				l.add(oc);
+				c++;
+			}
+			r.setTotalNumberOfResults(c);
+		}
+		
 		r.setResults(l);
-		r.setTotalNumberOfResults(1);
 		return r;
 	}
 	
