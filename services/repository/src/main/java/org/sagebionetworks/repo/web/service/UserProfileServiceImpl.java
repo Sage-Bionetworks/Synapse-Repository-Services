@@ -138,7 +138,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Override
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix,
 			Integer offset, Integer limit, HttpHeaders header, HttpServletRequest request) 
-					throws DatastoreException, NotFoundException, IOException {
+					throws DatastoreException, NotFoundException {
 		if (userGroupHeadersCache == null || userGroupHeadersCache.size() == 0)
 			refreshCache();
 		
@@ -188,7 +188,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		Trie<String, Collection<UserGroupHeader>> tempCache = new PatriciaTrie<String, Collection<UserGroupHeader>>(StringKeyAnalyzer.CHAR);
 
 		UserGroupHeader header;
-		List<UserProfile> userProfiles = userProfileManager.getInRange(null, 0, Long.MAX_VALUE).getResults();
+		List<UserProfile> userProfiles = userProfileManager.getInRange(null, 0, Long.MAX_VALUE, true).getResults();
 		for (UserProfile profile : userProfiles) {
 			if (profile .getDisplayName() != null) {
 				header = convertUserProfileToHeader(profile);

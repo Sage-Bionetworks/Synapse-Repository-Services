@@ -512,16 +512,8 @@ public class EntityManagerImpl implements EntityManager {
 		return s3TokenManager.getAttachmentUrl(userId, entityId, tokenId);
 	}
 	
-	/**
-	 * Validate that the user has read access.
-	 * 
-	 * @param userId
-	 * @param entityId
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
-	void validateReadAccess(UserInfo userInfo, String entityId)
+	@Override
+	public void validateReadAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!permissionsManager.hasAccess(entityId,
 				ACCESS_TYPE.READ, userInfo)) {
@@ -531,15 +523,8 @@ public class EntityManagerImpl implements EntityManager {
 		}
 	}
 	
-	/**
-	 * Dev Note: since the user has update permission, we do not need to check
-	 * whether they have signed the use agreement, also this is just for uploads
-	 * 
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 */
-	void validateUpdateAccess(UserInfo userInfo, String entityId)
+	@Override
+	public void validateUpdateAccess(UserInfo userInfo, String entityId)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 		if (!permissionsManager.hasAccess(entityId,
 				ACCESS_TYPE.UPDATE, userInfo)) {

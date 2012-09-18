@@ -7,6 +7,7 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.tool.migration.dao.EntityData;
 
 public class JobUtil {
@@ -31,9 +32,16 @@ public class JobUtil {
 	 */
 	public static Map<MigratableObjectDescriptor, MigratableObjectData> buildMigratableMapFromList(List<MigratableObjectData> list){
 		Map<MigratableObjectDescriptor, MigratableObjectData> map = new HashMap<MigratableObjectDescriptor, MigratableObjectData>();
-		for(MigratableObjectData entity: list){
+		Map<MigratableObjectType,Integer> mapStats = new HashMap<MigratableObjectType,Integer>();
+		for(MigratableObjectData entity: list) {
+			if (!map.containsKey(entity.getId())) { // only count entities once
+				Integer typeCount = mapStats.get(entity.getId().getType());
+				if (typeCount==null) typeCount=1; else typeCount++;
+				mapStats.put(entity.getId().getType(), typeCount);
+			}
 			map.put(entity.getId(), entity);
 		}
+		System.out.println("Migratable list count by type: "+mapStats);
 		return map;
 	}
 	

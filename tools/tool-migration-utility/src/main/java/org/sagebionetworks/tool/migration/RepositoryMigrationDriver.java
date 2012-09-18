@@ -194,7 +194,9 @@ public class RepositoryMigrationDriver {
 	public static ResponseBundle populateQueue(ExecutorService threadPool, Queue<Job> jobQueue, List<MigratableObjectData> sourceData, List<MigratableObjectData> destData, int maxBatchSize) throws InterruptedException,
 			ExecutionException {
 		// Build the maps
+		System.out.println("RepositoryMigrationDriver.populateQueue: destData:");
 		Map<MigratableObjectDescriptor, MigratableObjectData> destMap = JobUtil.buildMigratableMapFromList(destData);
+		System.out.println("RepositoryMigrationDriver.populateQueue: sourceData:");
 		Map<MigratableObjectDescriptor, MigratableObjectData> sourceMap = JobUtil.buildMigratableMapFromList(sourceData);
 		// Build up the create jobs
 		CreationJobBuilder createBuilder = new CreationJobBuilder(sourceData, destMap, jobQueue, maxBatchSize);
@@ -209,6 +211,7 @@ public class RepositoryMigrationDriver {
 		BuilderResponse createResponse = createFuture.get();
 		BuilderResponse updateResponse = updateFuture.get();
 		BuilderResponse deleteResponse = deleteFuture.get();
+		System.out.println("Submitted "+createResponse.getSubmittedToQueue()+" Entities to create queue.  There are "+createResponse.getPendingDependencies()+" Entities pending dependency creations. Submitted "+updateResponse.getSubmittedToQueue()+" updates to the queue. Submitted "+deleteResponse.getSubmittedToQueue()+" for delete.");
 		log.info("Submitted "+createResponse.getSubmittedToQueue()+" Entities to create queue.  There are "+createResponse.getPendingDependencies()+" Entities pending dependency creations. Submitted "+updateResponse.getSubmittedToQueue()+" updates to the queue. Submitted "+deleteResponse.getSubmittedToQueue()+" for delete.");
 		
 		return new ResponseBundle(createResponse, updateResponse, deleteResponse);
