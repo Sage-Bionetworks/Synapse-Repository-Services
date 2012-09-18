@@ -74,6 +74,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
+import org.sagebionetworks.search.controller.SearchUtil;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;

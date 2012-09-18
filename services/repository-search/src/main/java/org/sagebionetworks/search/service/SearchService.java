@@ -8,6 +8,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.json.JSONException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -27,8 +28,7 @@ public interface SearchService {
 	 * @throws NotFoundException
 	 */
 	public @ResponseBody
-	SearchResults proxySearch(String userId, String searchQuery,
-			HttpServletRequest request) throws ClientProtocolException,
+	SearchResults proxySearch(String userId, SearchQuery searchQuery) throws ClientProtocolException,
 			IOException, HttpClientHelperException, DatastoreException,
 			NotFoundException;
 

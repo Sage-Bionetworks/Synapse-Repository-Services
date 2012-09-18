@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.search.query.FacetTopN;
 import org.sagebionetworks.repo.model.search.query.KeyList;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.search.controller.SearchUtil;
 
 import com.amazonaws.services.cloudfront.model.InvalidArgumentException;
 

@@ -7,6 +7,7 @@ import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.search.service.SearchDocumentDriver;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -22,6 +23,11 @@ public class SearchQueueWorkerFactory implements MessageWorkerFactory {
 
 	@Autowired
 	private SearchDocumentDriver searchDocumentDriver;
+	
+	public void initialize(){
+		System.out.println("Starting");
+		SchedulerFactoryBean bean;
+	}
 
 	@Override
 	public Callable<List<Message>> createWorker(List<Message> messages) {

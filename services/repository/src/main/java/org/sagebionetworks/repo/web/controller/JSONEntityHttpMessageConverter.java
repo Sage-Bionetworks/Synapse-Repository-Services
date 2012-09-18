@@ -26,8 +26,7 @@ import org.springframework.http.converter.HttpMessageConverter;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.http.converter.HttpMessageNotWritableException;
 
-public class JSONEntityHttpMessageConverter implements
-		HttpMessageConverter<JSONEntity> {
+public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSONEntity> {
 
 	private List<MediaType> supportedMedia;
 

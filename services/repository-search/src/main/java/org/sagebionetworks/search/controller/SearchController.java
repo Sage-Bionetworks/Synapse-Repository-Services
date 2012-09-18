@@ -9,12 +9,14 @@ import org.json.JSONException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.search.service.SearchService;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -56,11 +58,11 @@ public class SearchController extends BaseController {
 	public @ResponseBody
 	SearchResults proxySearch(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
-			@RequestParam(value = "q", required = false) String searchQuery,
+			@RequestBody SearchQuery searchQuery,
 			HttpServletRequest request) throws ClientProtocolException,
 			IOException, HttpClientHelperException,
 			DatastoreException, NotFoundException {
-		return searchService.proxySearch(userId, searchQuery, request);
+		return searchService.proxySearch(userId, searchQuery);
 	}
 
 	/**

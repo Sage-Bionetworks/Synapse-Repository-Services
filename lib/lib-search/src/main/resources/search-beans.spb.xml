@@ -20,6 +20,6 @@
 	</bean>
 
 	<!-- The search DAO -->
-	<bean id="searchDao" class="org.sagebionetworks.search.SearchDaoImpl" init-method="initialize" />
+	<bean id="searchDao" class="org.sagebionetworks.search.SearchDaoImpl" init-method="initialize" scope="prototype" />
 
 </beans>

@@ -46,7 +46,7 @@ public class MessageReceiverImpl implements MessageReceiver {
      * subsequent retrieve requests after being retrieved by a
      * <code>ReceiveMessage</code> request.
      */
-    private Integer visibilityTimeout;
+    private Integer visibilityTimeoutSec;
     
     /**
      * The MessageQueue that this instance is watching.
@@ -77,7 +77,7 @@ public class MessageReceiverImpl implements MessageReceiver {
 		this.awsSQSClient = awsSQSClient;
 		this.maxNumberOfWorkerThreads = maxNumberOfWorkerThreads;
 		this.maxMessagePerWorker = maxMessagePerWorker;
-		this.visibilityTimeout = visibilityTimeout;
+		this.visibilityTimeoutSec = visibilityTimeout;
 		this.messageQueue = messageQueue;
 		this.workerFactory = workerFactory;
 	}
@@ -112,8 +112,8 @@ public class MessageReceiverImpl implements MessageReceiver {
      * <code>ReceiveMessage</code> request.
 	 * @param visibilityTimeout
 	 */
-	public void setVisibilityTimeout(Integer visibilityTimeout) {
-		this.visibilityTimeout = visibilityTimeout;
+	public void setVisibilityTimeoutSec(Integer visibilityTimeout) {
+		this.visibilityTimeoutSec = visibilityTimeout;
 	}
 
 
@@ -160,12 +160,25 @@ public class MessageReceiverImpl implements MessageReceiver {
 
 	@Override
 	public void triggerFired() throws InterruptedException{
+		try{
+			log.debug("Starting trigger...");
+			long start = System.currentTimeMillis();
+			triggerFiredImpl();
+			long elapse = System.currentTimeMillis()-start;
+			log.debug("Finished trigger in "+elapse+" ms");
+		}catch (Throwable e){
+			log.error("Trigger fired failed", e);
+			throw new RuntimeException(e);
+		}
+	}
+
+	private void triggerFiredImpl() throws InterruptedException {
 		// Validate all config.
 		verifyConfig();
 		// When the timer is fired we receive messages from AWS SQS.
 		// Note: The max number of messages is the maxNumberOfWorkerThreads*maxMessagePerWorker as each worker is expcted to handle a batch of messags.
 		int maxMessages = maxNumberOfWorkerThreads*maxMessagePerWorker;
-		ReceiveMessageResult result = awsSQSClient.receiveMessage(new ReceiveMessageRequest(messageQueue.getQueueUrl()).withMaxNumberOfMessages(maxMessages).withVisibilityTimeout(visibilityTimeout));
+		ReceiveMessageResult result = awsSQSClient.receiveMessage(new ReceiveMessageRequest(messageQueue.getQueueUrl()).withMaxNumberOfMessages(maxMessages).withVisibilityTimeout(visibilityTimeoutSec));
 		// Process all of the messages.
 		List<Future<List<Message>>> currentWorkers = new LinkedList<Future<List<Message>>>();
 		List<Message> messageBatch = new LinkedList<Message>();
@@ -194,7 +207,7 @@ public class MessageReceiverImpl implements MessageReceiver {
 		Thread.sleep(100);
 		// Watch the workers.  As they complete their tasks, delete the messages from the queue.
 		long startTime = System.currentTimeMillis();
-		long visibilityMs = visibilityTimeout*1000;
+		long visibilityMs = visibilityTimeoutSec*1000;
 		while(currentWorkers.size() > 0){
 			long elapase = System.currentTimeMillis()-startTime;
 			if(elapase > visibilityMs){
@@ -243,7 +256,7 @@ public class MessageReceiverImpl implements MessageReceiver {
 		if(awsSQSClient == null) throw new IllegalStateException("awsSQSClient cannot be null");
 		if(maxNumberOfWorkerThreads == null) throw new IllegalStateException("maxNumberOfWorkerThreads cannot be null");
 		if(maxNumberOfWorkerThreads == null) throw new IllegalStateException("maxNumberOfWorkerThreads cannot be null");
-		if(visibilityTimeout == null) throw new IllegalStateException("visibilityTimeout cannot be null");
+		if(visibilityTimeoutSec == null) throw new IllegalStateException("visibilityTimeout cannot be null");
 		if(messageQueue == null) throw new IllegalStateException("messageQueue cannot be null");
 		if(executors == null){
 			// Create the thread pool

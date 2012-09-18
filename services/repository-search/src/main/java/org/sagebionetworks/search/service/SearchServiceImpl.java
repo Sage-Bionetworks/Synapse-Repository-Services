@@ -2,6 +2,7 @@ package org.sagebionetworks.search.service;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -12,8 +13,10 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.search.SearchDao;
+import org.sagebionetworks.search.controller.SearchUtil;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.ResponseBody;
@@ -47,7 +50,7 @@ public class SearchServiceImpl implements SearchService {
 	 */
 	@Override
 	public @ResponseBody
-	SearchResults proxySearch(String userId, String searchQuery, HttpServletRequest request) 
+	SearchResults proxySearch(String userId, SearchQuery searchQuery) 
 			throws ClientProtocolException,	IOException, HttpClientHelperException,
 			DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
@@ -63,11 +66,12 @@ public class SearchServiceImpl implements SearchService {
 	 * @throws IOException
 	 * @throws HttpClientHelperException
 	 */
-	public SearchResults proxySearch(UserInfo userInfo, String searchQuery)	throws UnsupportedEncodingException, ClientProtocolException,
+	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery)	throws UnsupportedEncodingException, ClientProtocolException,
 			IOException, HttpClientHelperException {
-		searchQuery = filterSeachForAuthorization(userInfo, searchQuery);
+		String serchQueryString = SearchUtil.generateQueryString(searchQuery);
+		serchQueryString = filterSeachForAuthorization(userInfo, serchQueryString);
 		// Merge boolean queries as needed and escape them
-		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(searchQuery);
+		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(serchQueryString);
 		return searchDao.executeSearch(cleanedSearchQuery);
 	}
 

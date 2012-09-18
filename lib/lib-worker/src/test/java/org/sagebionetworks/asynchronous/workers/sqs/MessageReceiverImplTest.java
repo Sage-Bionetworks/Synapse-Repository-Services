@@ -74,7 +74,7 @@ public class MessageReceiverImplTest {
 	
 	@Test (expected=IllegalStateException.class)
 	public void testNullVisibilityTimeout() throws InterruptedException{
-		messageReveiver.setVisibilityTimeout(null);
+		messageReveiver.setVisibilityTimeoutSec(null);
 		messageReveiver.triggerFired();
 	}
 	
