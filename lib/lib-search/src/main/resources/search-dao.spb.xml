@@ -8,9 +8,18 @@
        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
        http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
 
-	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
+	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
-	<import resource="classpath:quartz-scheduler-spb.xml" />
+	<!-- Information need to connect to AWS -->
+	<import resource="aws-spb.xml" />
+
+	<!-- Create the AWS search client using the current credentials. -->
+	<bean id="awsSearchClient" class="com.amazonaws.services.cloudsearch.AmazonCloudSearchClient" scope="prototype">
+		<constructor-arg ref="awsCredentials" />
+	</bean>
+
+	<!-- The search DAO -->
+	<bean id="searchDao" class="org.sagebionetworks.search.SearchDaoImpl" init-method="initialize" scope="prototype" />
 
 </beans>

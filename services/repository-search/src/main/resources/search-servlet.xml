@@ -14,7 +14,7 @@
 	<context:component-scan base-package="org.sagebionetworks.search.controller" />
 
 	<!-- Import the manager beans -->
-	<import resource="classpath:search-controller-spb.xml" />
+	<import resource="classpath:search-managers-spb.xml" />
 
 	<!-- Used to Serialize object types -->
 	<bean id="jsonEntityConverter"

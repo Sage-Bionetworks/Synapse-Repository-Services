@@ -34,7 +34,7 @@ import com.amazonaws.services.cloudsearch.model.OptionState;
  *
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:search-beans.spb.xml" })
+@ContextConfiguration(locations = { "classpath:search-dao.spb.xml" })
 public class SearchDaoImplAutowireTest {
 	
 	@Autowired

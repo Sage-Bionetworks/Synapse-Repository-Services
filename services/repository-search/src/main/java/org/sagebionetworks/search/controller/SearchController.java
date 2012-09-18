@@ -41,6 +41,7 @@ public class SearchController extends BaseController {
 	
 	@Autowired
 	SearchService searchService;
+	
 
 	/**
 	 * @param userId

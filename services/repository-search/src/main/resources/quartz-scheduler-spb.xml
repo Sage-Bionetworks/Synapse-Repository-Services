@@ -30,7 +30,7 @@
 
 	<!-- Contains all triggers -->
 	<bean id="mainScheduler" class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
-		scope="prototype" init-method="start">
+		scope="prototype" init-method="start" >
 		<property name="triggers">
 			<list>
 				<ref bean="searchQueueMessageReveiverTrigger"/>

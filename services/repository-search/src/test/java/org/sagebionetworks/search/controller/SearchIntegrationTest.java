@@ -1,6 +1,8 @@
 package org.sagebionetworks.search.controller;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -8,22 +10,26 @@ import java.util.LinkedList;
 import javax.servlet.ServletException;
 
 import org.json.JSONException;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.quartz.SchedulerException;
-import org.quartz.impl.StdScheduler;
-import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.util.UserProvider;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.search.SearchConstants;
 import org.springframework.beans.BeansException;
-import org.springframework.scheduling.quartz.SchedulerFactoryBean;
-import org.springframework.scheduling.quartz.SimpleTriggerBean;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
  * End to end test for the search services.
@@ -32,39 +38,61 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  */
 public class SearchIntegrationTest {
 	
-	private MessageReceiver reciever;
+	public static final long MAX_WAIT = 60*1000; // one minute
+	
+	private EntityManager entityManager;
+	private UserProvider userProvider;
+	private Project project;
 	
 	@Before
-	public void before() throws BeansException, ServletException, SchedulerException{
-		reciever = (MessageReceiver) DispatchServletSingleton.getInstance().getWebApplicationContext().getBean("searchQueueMessageReveiver");
-		SimpleTriggerBean trigger = (SimpleTriggerBean) DispatchServletSingleton.getInstance().getWebApplicationContext().getBean("searchQueueMessageReveiverTrigger");
-		StdScheduler scheduler = (StdScheduler) DispatchServletSingleton.getInstance().getWebApplicationContext().getBean("mainScheduler");
-		SchedulerFactoryBean bean;
-//		scheduler.start();
-		System.out.println(scheduler);
+	public void before() throws BeansException, ServletException, SchedulerException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
+		entityManager = (EntityManager) DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(EntityManager.class);
+		assertNotNull(entityManager);
+		userProvider = DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(UserProvider.class);
+		assertNotNull(userProvider);
+		// Create a project
+		UserInfo info = userProvider.getTestUserInfo();
+		project = new Project();
+		project.setName("SearchIntegrationTest.Project");
+		// this should trigger create messaage.
+		String id = entityManager.createEntity(info, project);
+		project = entityManager.getEntity(info, id, Project.class);
 	}
 	
+	@After
+	public void after() throws DatastoreException, UnauthorizedException, NotFoundException{
+		if(project != null && entityManager != null && userProvider != null){
+			entityManager.deleteEntity(userProvider.getTestAdminUserInfo(), project.getId());
+		}
+	}
 	
 	@Test
-	public void test() throws ServletException, IOException, JSONException, JSONObjectAdapterException, InterruptedException {
-	
-		assertNotNull(reciever);
-		reciever.triggerFired();
+	public void testRoundTrip() throws ServletException, IOException, JSONException, JSONObjectAdapterException, InterruptedException {
 		// First run query
 		SearchQuery query = new SearchQuery();
 		query.setBooleanQuery(new LinkedList<KeyValue>());
 		KeyValue kv = new KeyValue();
-		kv.setKey("id");
-		kv.setValue("syn123");
+		kv.setKey(SearchConstants.FIELD_ID);
+		kv.setValue(project.getId());
 		query.getBooleanQuery().add(kv);
 		// Execute the query
-		SearchResults results = ServletTestHelper.getSearchResults(TestUserDAO.TEST_USER_NAME, query);
-		assertNotNull(results);
-		
-		while(true){
-			Thread.sleep(1000);
-			System.out.println("Sleeping");
-		}
+		SearchResults results = null;
+		long start = System.currentTimeMillis();
+		do{
+			results = ServletTestHelper.getSearchResults(TestUserDAO.TEST_USER_NAME, query);
+			assertNotNull(results);
+			if(results.getHits().size() < 1){
+				System.out.println("Waiting for search index to update...");
+				Thread.sleep(5000);				
+			}
+			long elapse = System.currentTimeMillis() - start;
+			assertTrue("Failed to a new Entity in the search index within the timeout period.",elapse < MAX_WAIT);
+		}while(results.getHits().size() < 1);
+		// Validate the results are what we expect
+		assertEquals(1, results.getHits().size());
+		Hit hit = results.getHits().get(0);
+		System.out.println(results);
+		assertEquals(project.getId(), hit.getId());
 	}
 	
 }

@@ -28,7 +28,13 @@ public class MessageUtils {
 		try {
 			JSONObject object = new JSONObject(message.getBody());
 			if(object.has("objectId")){
+				// This is a message pushed directly to a queue
 				JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(object);
+				return new ChangeMessage(adapter);
+			}if(object.has("TopicArn") && object.has("Message") ){
+				// This is a message that was pushed to a topic then forwarded to a queue.
+				JSONObject innerObject = new JSONObject(object.getString("Message"));
+				JSONObjectAdapterImpl adapter = new JSONObjectAdapterImpl(innerObject);
 				return new ChangeMessage(adapter);
 			}else{
 				throw new IllegalArgumentException("Unknown message type: "+message.getBody());
@@ -38,6 +44,27 @@ public class MessageUtils {
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
 		}
+	}
+	
+	/**
+	 * When a message is first published to a topic, then pushed to a queue, queue message body contains the entire topic message body.
+	 * The topic message body then contains the original message.
+	 * @param message
+	 * @param messageId
+	 * @param receiptHandle
+	 * @return
+	 * @throws JSONObjectAdapterException 
+	 * @throws JSONException 
+	 */
+	public static Message createTopicMessage(ChangeMessage message, String topicArn, String messageId, String receiptHandle) throws JSONObjectAdapterException, JSONException{
+		String messageJson = EntityFactory.createJSONStringForEntity(message);
+		JSONObject jsonObj  = new JSONObject();
+		jsonObj.put("MessageId", "d706461b-738e-42a2-8cfc-d0f50dc2d9e6");
+		jsonObj.put("TopicArn", topicArn);
+		jsonObj.put("Type", "Notification");
+		jsonObj.put("Message", messageJson);
+		String body = jsonObj.toString();
+		return new Message().withBody(body).withMessageId(messageId).withReceiptHandle(receiptHandle);
 	}
 	
 	/**

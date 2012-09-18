@@ -83,8 +83,8 @@ public class SearchDaoImpl implements SearchDao {
 			// CloudSearch
 			connectionManager.setDefaultMaxPerRoute(StackConfiguration.getHttpClientMaxConnsPerRoute());
 			HttpParams clientParams = new BasicHttpParams();
-			clientParams.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT,10*1000);
-			clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT, 10*1000);
+			clientParams.setParameter(CoreConnectionPNames.CONNECTION_TIMEOUT,20*1000);
+			clientParams.setParameter(CoreConnectionPNames.SO_TIMEOUT, 20*1000);
 			httpClient = new DefaultHttpClient(connectionManager, clientParams);
 		} catch (Exception e) {
 			throw new RuntimeException(e);
