@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -52,6 +53,18 @@ public class AdministrationController extends BaseController {
 
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getAdministrationService().getAllBackupObjects(userId, offset, limit, includeDependencies);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.GET_ALL_BACKUP_OBJECTS_COUNTS, method = RequestMethod.GET)
+	public @ResponseBody PaginatedResults<MigratableObjectCount> getAllBackupObjectsCounts(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
+			@RequestParam(value = UrlHelpers.INCLUDE_DEPENDENCIES_PARAM, required = false, defaultValue = "true") Boolean  includeDependencies
+
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		return serviceProvider.getAdministrationService().getAllBackupObjectsCounts(userId, offset, limit, includeDependencies);
 	}
 	
 	

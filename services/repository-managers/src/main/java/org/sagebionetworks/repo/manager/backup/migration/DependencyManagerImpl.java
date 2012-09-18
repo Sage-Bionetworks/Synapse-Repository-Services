@@ -9,6 +9,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MigratableDAO;
 import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.QueryResults;
 
 /**
@@ -55,5 +56,21 @@ public class DependencyManagerImpl implements DependencyManager {
 			queryResults.setTotalNumberOfResults((int)total);
 			return queryResults;
 	}
+	@Override
+	public QueryResults<MigratableObjectCount> getAllObjectsCounts(long offset, long limit, boolean includeDependencies) throws DatastoreException {
+		// TODO: Re-implement to use the MigratableDAOs
+		List<MigratableObjectCount> ods = new ArrayList<MigratableObjectCount>();
+		long total = 0L;
+		for (MigratableDAO migratableDAO: getMigratableDaos()) {
+			QueryResults<MigratableObjectCount> locRes = migratableDAO.getMigratableObjectCounts(offset, limit, includeDependencies);
+			ods.addAll(locRes.getResults());
+			total += locRes.getTotalNumberOfResults();
+		}
+		QueryResults<MigratableObjectCount> queryResults = new QueryResults<MigratableObjectCount>();
+		queryResults.setResults(ods);
+		queryResults.setTotalNumberOfResults((int)total);
+		return queryResults;
+	}
+
 
 }

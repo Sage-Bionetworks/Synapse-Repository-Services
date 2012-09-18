@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -276,6 +277,23 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		queryResults.setTotalNumberOfResults((int)getCount());
 		return queryResults;
 	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public QueryResults<MigratableObjectCount> getMigratableObjectCounts(long offset, long limit, boolean includeDependencies) throws DatastoreException {
+		List<MigratableObjectCount> l = new ArrayList<MigratableObjectCount>();
+		
+		QueryResults<MigratableObjectCount> qRes = new QueryResults<MigratableObjectCount>();
+		MigratableObjectCount moc = new MigratableObjectCount();
+		moc.setEntityType(MigratableObjectType.ACCESSREQUIREMENT.name());
+		moc.setEntityType(null);
+		moc.setCount(this.getCount());
+		l.add(moc);
+		qRes.setResults(l);
+		qRes.setTotalNumberOfResults(1);
+		return qRes;
+	}
+
 
 	@Transactional(readOnly = true)
 	@Override
