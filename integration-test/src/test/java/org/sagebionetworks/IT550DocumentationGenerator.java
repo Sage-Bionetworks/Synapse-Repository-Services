@@ -10,6 +10,7 @@ import org.apache.log4j.PatternLayout;
 import org.apache.log4j.WriterAppender;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.EntityDocumentation;
 import org.sagebionetworks.client.ManualProvenanceDocumentation;
@@ -20,6 +21,7 @@ import org.sagebionetworks.client.ManualProvenanceDocumentation;
  * @author deflaux
  * 
  */
+@Ignore
 public class IT550DocumentationGenerator {
 
 	Logger log;

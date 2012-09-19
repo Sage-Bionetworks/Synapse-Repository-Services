@@ -18,7 +18,7 @@
     <module>authutil</module>
     <module>repository</module>
     <module>auth</module>
-    <module>repository-search</module>
+    <module>search</module>
   </modules>
 
 </project>

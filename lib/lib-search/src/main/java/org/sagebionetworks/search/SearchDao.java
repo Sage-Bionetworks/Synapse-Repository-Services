@@ -9,10 +9,6 @@ import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
-import com.amazonaws.services.cloudsearch.model.AccessPoliciesStatus;
-import com.amazonaws.services.cloudsearch.model.DomainStatus;
-import com.amazonaws.services.cloudsearch.model.IndexFieldStatus;
-
 /**
  * Abstraction for interacting with the search index.
  * 
@@ -21,30 +17,6 @@ import com.amazonaws.services.cloudsearch.model.IndexFieldStatus;
  */
 public interface SearchDao {
 	
-	/**
-	 * The name of of the search domain.
-	 * @return
-	 */
-	String getSearchDomainName();
-	
-	/**
-	 * Get the status of the domain.
-	 * @return
-	 */
-	DomainStatus getDomainStatus();
-
-	/**
-	 * The list of all IndexFields and their status.
-	 * @return
-	 */
-	List<IndexFieldStatus> getIndexFieldStatus();
-	
-	/**
-	 * The JSON of the current access policy.
-	 * @return
-	 */
-	 AccessPoliciesStatus getAccessPoliciesStatus();
-	 
 	 /**
 	  * Create a new search document.
 	  * @param toCreate
@@ -112,5 +84,6 @@ public interface SearchDao {
 	 * @throws ClientProtocolException 
 	  */
 	 boolean doesDocumentExist(String id, String etag) throws ClientProtocolException, IOException, HttpClientHelperException;
+	 
 
 }

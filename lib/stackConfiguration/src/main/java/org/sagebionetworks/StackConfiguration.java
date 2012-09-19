@@ -97,6 +97,10 @@ public class StackConfiguration {
 	public static String getRepositoryServiceEndpoint() {
 		return configuration.getRepositoryServiceEndpoint();
 	}
+	
+	public static String getSearchServiceEndpoint() {
+		return configuration.getSearchServiceEndpoint();
+	}
 
 	public static String getPortalEndpoint() {
 		return configuration.getPortalEndpoint();
@@ -104,16 +108,6 @@ public class StackConfiguration {
 
 	public static String getCrowdEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.crowd.endpoint");
-	}
-
-	public static String getSearchServiceEndpoint() {
-		return configuration
-				.getProperty("org.sagebionetworks.cloudsearch.searchservice.endpoint");
-	}
-
-	public static String getDocumentServiceEndpoint() {
-		return configuration
-				.getProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint");
 	}
 
 	/**

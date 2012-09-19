@@ -373,42 +373,7 @@ public class IT100BackupRestoration {
 		
 	}
 	
-	@Test
-	public void testSearchDocumentRoundTrip() throws Exception{
-		String projectDescription = "Integration Test - Search Document Round Trip";
-		// Create a project
-		Project project = new Project();
-		project.setDescription(projectDescription);
-		project = synapse.createEntity(project);
-		assertNotNull(project);
-		toDelete.add(project);
 
-		// Now make a search document of this entity
-		BackupSubmission submission = new BackupSubmission();
-		Set<String> set = new HashSet<String>();
-		set.add(project.getId());
-		submission.setEntityIdsToBackup(set);
-		
-		BackupRestoreStatus status = synapse.startSearchDocumentDaemon(submission);
-		assertNotNull(status);
-		// Wait for the daemon to complete
-		status = waitForDaemon(status.getId());
-		assertNotNull(status.getBackupUrl());
-		assertTrue(status.getBackupUrl().startsWith(S3_WORKFLOW_URL_PREFIX));
-		// extract the s3Key
-		String searchDocumentS3Key = status.getBackupUrl().substring(S3_WORKFLOW_URL_PREFIX.length());
-		
-		S3Object s3Object = s3Client.getObject(S3_WORKFLOW_BUCKET, searchDocumentS3Key);
-		String serializedSearchDocuments = IOUtils.toString(s3Object.getObjectContent(), "UTF-8");
-		JSONArray searchDocuments = new JSONArray(serializedSearchDocuments);
-		assertEquals(1, searchDocuments.length());
-		JSONObject searchDocument = searchDocuments.getJSONObject(0);
-		Document document = EntityFactory.createEntityFromJSONObject(searchDocument, Document.class);
-		assertEquals(projectDescription, document.getFields().getDescription());
-		assertEquals("dev admin", document.getFields().getCreated_by());
-		assertEquals("dev admin", document.getFields().getModified_by());
-	}
-	
 	@Test
 	public void testSingleRoundTrip() throws Exception{
 		// Create a project

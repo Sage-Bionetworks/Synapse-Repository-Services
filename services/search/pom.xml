@@ -1,29 +1,20 @@
-<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-
 	<parent>
-		<groupId>org.sagebionetworks</groupId>
 		<artifactId>services</artifactId>
+		<groupId>org.sagebionetworks</groupId>
 		<version>develop-SNAPSHOT</version>
+		<relativePath>..</relativePath>
 	</parent>
-
-	<groupId>org.sagebionetworks</groupId>
-	<artifactId>services-repository</artifactId>
+	<artifactId>services-search</artifactId>
 	<packaging>war</packaging>
-	<name>Platform Repository Service</name>
-
 	<dependencies>
-
-		<!-- Sage Bionetworks Dependencies -->
+	
+			<!-- Sage Bionetworks Dependencies -->
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>repository-managers</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
-			<artifactId>auth-util</artifactId>
 		</dependency>
 
 		<dependency>
@@ -33,12 +24,21 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-securityUtilities</artifactId>
+			<artifactId>lib-worker</artifactId>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>lib-logging</artifactId>
+			<artifactId>schema-to-pojo-org-json</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-search</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk</artifactId>
 		</dependency>
 
 		<!-- This was being pulled in as a child dependency of the springframework 
@@ -46,7 +46,6 @@
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>com.springsource.javax.servlet</artifactId>
-			<scope>provided</scope>
 		</dependency>
 
 		<!-- In a tomcat container, such as Elastic Beanstalk, you have to include 
@@ -62,26 +61,33 @@
 			<artifactId>org.springframework.spring-library</artifactId>
 			<type>libd</type>
 		</dependency>
-		<!-- ATOM -->
 		<dependency>
-			<groupId>rome</groupId>
-			<artifactId>rome</artifactId>
-			<version>0.5</version>
+			<groupId>org.codehaus.jackson</groupId>
+			<artifactId>jackson-core-asl</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>org.springframework.web</artifactId>
 		</dependency>
-
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-aspects</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjlib</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjweaver</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjrt</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>spring-test</artifactId>
-		</dependency>
-
-		<!-- Jackson JSON Mapper -->
-		<dependency>
-			<groupId>org.codehaus.jackson</groupId>
-			<artifactId>jackson-mapper-asl</artifactId>
 		</dependency>
 
 		<!-- Logging dependencies -->
@@ -96,47 +102,24 @@
 		</dependency>
 
 		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>apache-log4j-extras</artifactId>
-		</dependency>
-
-		<dependency>
 			<groupId>org.mockito</groupId>
 			<artifactId>mockito-all</artifactId>
 			<scope>test</scope>
 		</dependency>
 
 		<dependency>
-			<groupId>joda-time</groupId>
-			<artifactId>joda-time</artifactId>
-		</dependency>
-
-		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
-
 		<dependency>
 			<groupId>opensymphony</groupId>
 			<artifactId>quartz-all</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>commons-collections</groupId>
-			<artifactId>commons-collections</artifactId>
-			<version>20040616</version>
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
+
 	</dependencies>
 	<build>
-		<resources>
-			<resource>
-				<directory>src/main/resources</directory>
-				<filtering>true</filtering>
-			</resource>
-		</resources>
-
-
 		<plugins>
 			<!-- Make a WAR file -->
 			<plugin>
@@ -145,7 +128,7 @@
 				<configuration>
 					<webResources>
 						<resource>
-							<directory>src/main/webapp</directory>
+							<directory>src/main/resources/webapp</directory>
 							<filtering>true</filtering>
 						</resource>
 					</webResources>
@@ -162,39 +145,14 @@
 					<path>/</path>
 				</configuration>
 			</plugin>
+
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<argLine>-Xmx1024m -Xms128m</argLine>
+					<argLine>-Xmx512m -Xms128m</argLine>
 				</configuration>
 			</plugin>
 
-			<!-- Added this path to the test classpath so that we do not need to copy 
-				and paste our servlet config into a separate file even though we want the 
-				exact same config for testing -->
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>build-helper-maven-plugin</artifactId>
-				<version>1.3</version>
-				<executions>
-					<execution>
-						<id>add-test-resource</id>
-						<phase>generate-test-sources</phase>
-						<goals>
-							<goal>add-test-resource</goal>
-						</goals>
-						<configuration>
-							<resources>
-								<resource>
-									<directory>src/main/webapp/WEB-INF</directory>
-								</resource>
-							</resources>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
 		</plugins>
 	</build>
-
 </project>
-

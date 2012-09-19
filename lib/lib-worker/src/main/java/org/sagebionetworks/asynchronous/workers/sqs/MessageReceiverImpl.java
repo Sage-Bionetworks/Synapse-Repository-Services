@@ -159,26 +159,39 @@ public class MessageReceiverImpl implements MessageReceiver {
 	}
 
 	@Override
-	public void triggerFired() throws InterruptedException{
+	public int triggerFired() throws InterruptedException{
 		try{
-			log.debug("Starting trigger...");
+			if(log.isDebugEnabled()){
+				log.debug("Starting trigger...");
+			}
 			long start = System.currentTimeMillis();
-			triggerFiredImpl();
+			int count =triggerFiredImpl();
 			long elapse = System.currentTimeMillis()-start;
-			log.debug("Finished trigger in "+elapse+" ms");
+			if(log.isDebugEnabled()){
+				log.debug("Finished trigger in "+elapse+" ms");
+			}
+			return count;
 		}catch (Throwable e){
 			log.error("Trigger fired failed", e);
-			throw new RuntimeException(e);
+			// We only want to throw a runtime.
+			RuntimeException runtime = null;
+			if(e instanceof RuntimeException){
+				runtime = (RuntimeException) e;
+			}else{
+				runtime = new RuntimeException(e);
+			}
+			throw runtime;
 		}
 	}
 
-	private void triggerFiredImpl() throws InterruptedException {
+	private int triggerFiredImpl() throws InterruptedException {
 		// Validate all config.
 		verifyConfig();
 		// When the timer is fired we receive messages from AWS SQS.
 		// Note: The max number of messages is the maxNumberOfWorkerThreads*maxMessagePerWorker as each worker is expcted to handle a batch of messags.
 		int maxMessages = maxNumberOfWorkerThreads*maxMessagePerWorker;
 		ReceiveMessageResult result = awsSQSClient.receiveMessage(new ReceiveMessageRequest(messageQueue.getQueueUrl()).withMaxNumberOfMessages(maxMessages).withVisibilityTimeout(visibilityTimeoutSec));
+		if(result.getMessages().size() < 1) return 0;
 		// Process all of the messages.
 		List<Future<List<Message>>> currentWorkers = new LinkedList<Future<List<Message>>>();
 		List<Message> messageBatch = new LinkedList<Message>();
@@ -246,6 +259,8 @@ public class MessageReceiverImpl implements MessageReceiver {
 			// Give other threads a chance to work
 			Thread.yield();
 		}
+		// Return the number of messages that were on the queue.
+		return result.getMessages().size();
 	}
 
 

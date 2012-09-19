@@ -1,0 +1,10 @@
+{
+	"title": "ErrorResponse",
+	"description": "JSON schema for a change message",
+	"properties": {
+		"reason": {
+			"type": "string",
+			"description":"The reason for the error"
+		}
+	}
+}
