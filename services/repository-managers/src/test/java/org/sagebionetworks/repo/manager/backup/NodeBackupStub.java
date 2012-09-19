@@ -272,6 +272,12 @@ public class NodeBackupStub implements NodeBackupManager {
 			createOrUpdateRevision(rev);
 		}
 	}
+
+	@Override
+	public boolean doesNodeExist(String nodeId, String etag) {
+		// TODO Auto-generated method stub
+		return false;
+	}
 	
 
 }

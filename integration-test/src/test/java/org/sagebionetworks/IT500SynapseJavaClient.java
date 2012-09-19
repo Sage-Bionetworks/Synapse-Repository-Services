@@ -92,6 +92,7 @@ public class IT500SynapseJavaClient {
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration
 				.getRepositoryServiceEndpoint());
+		synapse.setSearchEndpoint(StackConfiguration.getSearchServiceEndpoint());
 		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
 	}

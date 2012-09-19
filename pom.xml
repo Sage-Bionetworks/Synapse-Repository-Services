@@ -142,6 +142,15 @@
 				<artifactId>jackson-mapper-asl</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
+			
+			<!-- Used for timer triggers (cron-like) -->
+			<dependency>
+				<groupId>opensymphony</groupId>
+				<artifactId>quartz-all</artifactId>
+				<version>1.6.3</version>
+				<type>jar</type>
+				<scope>compile</scope>
+			</dependency>
 
 			<!-- Spring Framework dependencies -->
 			<dependency>
@@ -315,7 +324,12 @@
 				<version>${project.version}</version>
 				<type>war</type>
 			</dependency>
-
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>services-search</artifactId>
+				<version>${project.version}</version>
+				<type>war</type>
+			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-auto-generated</artifactId>
@@ -327,7 +341,13 @@
 				<artifactId>lib-shared-models</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-
+			
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-worker</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-communicationUtilities</artifactId>

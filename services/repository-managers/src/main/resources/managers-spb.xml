@@ -107,10 +107,6 @@
 		class="org.sagebionetworks.repo.manager.backup.NodeSerializerImpl"
 		scope="singleton" />
 
-	<bean id="searchDocumentDriver"
-		class="org.sagebionetworks.repo.manager.backup.SearchDocumentDriverImpl"
-		scope="singleton" />
-
 	<bean id="entityBackupDriver"
 		class="org.sagebionetworks.repo.manager.backup.NodeBackupDriverImpl"
 		scope="singleton" />

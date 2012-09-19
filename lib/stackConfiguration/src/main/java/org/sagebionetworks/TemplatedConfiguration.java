@@ -116,6 +116,12 @@ public interface TemplatedConfiguration {
 	 * @return repository service endpoint
 	 */
 	public String getRepositoryServiceEndpoint();
+	
+	/**
+	 * 
+	 * @return search service endpoint
+	 */
+	public String getSearchServiceEndpoint();
 
 	/**
 	 * @return portal endpoint

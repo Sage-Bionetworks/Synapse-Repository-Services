@@ -192,41 +192,6 @@ public class BackupDaemonLauncherImplAutowireTest {
 		assertEquals(annos, annosClone);
 	}
 	
-	@Test
-	public void testSearchDocumentRoundTrip() throws UnauthorizedException, DatastoreException, NotFoundException, InterruptedException, InvalidModelException{
-		// First create a node using random data
-		Node node = new Node();
-		node.setName("BackupDaemonLauncherImplAutowireTest.testSearchDocumentRoundTrip");
-		node.setNodeType(EntityType.project.name());
-		UserInfo nonAdmin = testUserProvider.getTestAdminUserInfo();
-		Annotations annos = RandomAnnotationsUtil.generateRandom(12334, 100);
-		NamedAnnotations named = new NamedAnnotations();
-		named.put(NamedAnnotations.NAME_SPACE_ADDITIONAL, annos);
-		String id = nodeManager.createNewNode(node, named, nonAdmin);
-		assertNotNull(id);
-		nodesToDelete.add(id);
-		// Fetch them back
-		node = nodeManager.get(nonAdmin, id);
-		named = nodeManager.getAnnotations(nonAdmin, id);
-		annos = named.getAdditionalAnnotations();
-				
-		// First start the backup daemon as an administrator
-		UserInfo admin = testUserProvider.getTestAdminUserInfo();
-		HashSet<String> batch = new HashSet<String>();
-		batch.add(id);
-		BackupRestoreStatus status = backupDaemonLauncher.startSearchDocument(admin, batch);
-		assertNotNull(status);
-		assertNotNull(status.getId());
-		// Wait for it finish
-		status = waitForStatus(DaemonStatus.COMPLETED, status.getId());
-		assertNotNull(status.getBackupUrl());
-		String fullUrl = status.getBackupUrl();
-		System.out.println(fullUrl);
-		int index = fullUrl.lastIndexOf("/");
-		String fileName = status.getBackupUrl().substring(index+1, fullUrl.length());
-		assertTrue(0 < fileName.length());
-	}
-	
 	/**
 	 * Helper method to wait for a given status of the Daemon
 	 * @param lookinFor
