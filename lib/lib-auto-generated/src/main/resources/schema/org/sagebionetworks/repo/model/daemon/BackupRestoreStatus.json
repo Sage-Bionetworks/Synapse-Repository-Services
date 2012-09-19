@@ -21,8 +21,7 @@
 			"id": "org.sagebionetworks.repo.model.daemon.DaemonType",
 			"enum": [
 				"BACKUP",
-				"RESTORE",
-				"SEARCH_DOCUMENT"
+				"RESTORE"
 			]
 		},
 		"id": {

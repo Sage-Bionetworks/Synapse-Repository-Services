@@ -14,8 +14,6 @@ import org.sagebionetworks.tool.migration.Progress.AggregateProgress;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 import org.sagebionetworks.tool.migration.job.Job.Type;
 import org.sagebionetworks.tool.migration.job.WorkerResult.JobStatus;
-import org.sagebionetworks.tool.searchupdater.job.SearchDocumentAddWorker;
-import org.sagebionetworks.tool.searchupdater.job.SearchDocumentDeleteWorker;
 
 /**
  * This worker will clear the queue using all available threads, then 
@@ -66,12 +64,6 @@ public class JobQueueWorker implements Callable<AggregateResult> {
 				// Create a worker
 				DeleteWorker worker = new DeleteWorker(configuration, this.factory, job.getObjectIds(), job.getObjectType(), progress);
 				// add this worker to the list
-				workerList.add(worker);
-			} else if (Type.SEARCH_ADD == job.getJobType()) {
-				SearchDocumentAddWorker worker = new SearchDocumentAddWorker(configuration, this.factory, job.getObjectIds(), progress);
-				workerList.add(worker);
-			} else if (Type.SEARCH_DELETE == job.getJobType()) {
-				SearchDocumentDeleteWorker worker = new SearchDocumentDeleteWorker(configuration, this.factory, job.getObjectIds(), progress);
 				workerList.add(worker);
 			} else {
 				throw new IllegalArgumentException("Unknown job type: "	+ job.getJobType());
