@@ -6,7 +6,6 @@ import java.util.concurrent.ExecutorService;
 
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.backup.GenericBackupDriver;
-import org.sagebionetworks.repo.manager.backup.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.BackupRestoreStatusDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
@@ -39,9 +38,6 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	Map<String, GenericBackupDriver> backupDriverMap;
 	
 	@Autowired
-	SearchDocumentDriver searchDocumentDriver;
-	
-	@Autowired
 	ExecutorService backupDaemonThreadPool;
 	
 	@Autowired
@@ -66,25 +62,11 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		}
 		
 		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, typeSpecificBackupDriver, searchDocumentDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, entitiesToBackup);
+		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, typeSpecificBackupDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, entitiesToBackup);
 		// Start that bad boy up!
 		return daemon.startBackup(username.getIndividualGroup().getId());
 	}
 
-	@Override
-	public BackupRestoreStatus startSearchDocument(UserInfo username, Set<String> entityIds) throws UnauthorizedException, DatastoreException {
-		UserInfo.validateUserInfo(username);
-		// Only an admin can start a backup Daemon
-		if(!username.isAdmin()) throw new UnauthorizedException("Must be an administrator to start a search document daemon");
-		
-		AmazonS3Client client = createNewAWSClient();
-
-		// Create a new daemon and start it
-		GenericBackupDriver entityBackupDriver = backupDriverMap.get(MigratableObjectType.ENTITY.name());
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, entityBackupDriver, searchDocumentDriver, client, workflowBucket, backupDaemonThreadPool, backupDaemonThreadPool2, entityIds);
-		// Start that bad boy up!
-		return daemon.startSearchDocument(username.getIndividualGroup().getId());
-	}
 	
 	@Override
 	public BackupRestoreStatus startRestore(UserInfo username, String fileName, MigratableObjectType migrationType)	throws UnauthorizedException, DatastoreException {
@@ -100,7 +82,7 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 		}
 		
 		// Create a new daemon and start it
-		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, typeSpecificBackupDriver, searchDocumentDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2);
+		BackupDaemon daemon = new BackupDaemon(backupRestoreStatusDao, typeSpecificBackupDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2);
 		return daemon.startRestore(username.getIndividualGroup().getId(), fileName);
 	}
 

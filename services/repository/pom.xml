@@ -56,20 +56,18 @@
 			<artifactId>jstl</artifactId>
 		</dependency>
 
-		<!-- ATOM -->
-		<dependency>
-			<groupId>rome</groupId>
-			<artifactId>rome</artifactId>
-			<version>0.5</version>
-		</dependency>
-
 		<!-- Spring Framework dependencies -->
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>org.springframework.spring-library</artifactId>
 			<type>libd</type>
 		</dependency>
-
+		<!-- ATOM -->
+		<dependency>
+			<groupId>rome</groupId>
+			<artifactId>rome</artifactId>
+			<version>0.5</version>
+		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
 			<artifactId>org.springframework.web</artifactId>
@@ -117,17 +115,10 @@
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>com.amazonaws</groupId>
-			<artifactId>aws-java-sdk</artifactId>
-			<scope>compile</scope>
-		</dependency>
+
 		<dependency>
 			<groupId>opensymphony</groupId>
 			<artifactId>quartz-all</artifactId>
-			<version>1.6.3</version>
-			<type>jar</type>
-			<scope>compile</scope>
 		</dependency>
 		<dependency>
 			<groupId>commons-collections</groupId>
@@ -136,24 +127,7 @@
 			<type>jar</type>
 			<scope>compile</scope>
 		</dependency>
-
-
-		<!-- We use this to -->
-		<dependency>
-			<groupId>org.imgscalr</groupId>
-			<artifactId>imgscalr-lib</artifactId>
-		</dependency>
-
-		<!-- Trie library -->
-		<dependency>
-			<groupId>org.ardverk</groupId>
-			<artifactId>patricia-trie</artifactId>
-			<version>0.6</version>
-		</dependency>
-
-
 	</dependencies>
-
 	<build>
 		<resources>
 			<resource>

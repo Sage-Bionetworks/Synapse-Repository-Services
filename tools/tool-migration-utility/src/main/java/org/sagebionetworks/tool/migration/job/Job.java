@@ -18,9 +18,7 @@ public class Job {
 	public enum Type {
 		CREATE,
 		UPDATE,
-		DELETE,
-		SEARCH_ADD, 
-		SEARCH_DELETE
+		DELETE
 	}
 	private Set<String> objectIds;
 	private MigratableObjectType objectType;

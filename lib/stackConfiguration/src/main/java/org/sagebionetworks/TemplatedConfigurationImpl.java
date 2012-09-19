@@ -313,6 +313,11 @@ public class TemplatedConfigurationImpl implements TemplatedConfiguration {
 	public String getRepositoryServiceEndpoint() {
 		return getProperty("org.sagebionetworks.repositoryservice.endpoint");
 	}
+	
+	@Override
+	public String getSearchServiceEndpoint() {
+		return getProperty("org.sagebionetworks.searchservice.endpoint");
+	}
 
 	@Override
 	public String getPortalEndpoint() {

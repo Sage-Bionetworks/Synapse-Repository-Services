@@ -26,6 +26,7 @@
 		<module>jdomodels</module>
 		<module>logging</module>
 		<module>lib-search</module>
+		<module>lib-worker</module>
 	</modules>
 
 </project>
