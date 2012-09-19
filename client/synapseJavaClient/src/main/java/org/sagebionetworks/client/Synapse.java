@@ -77,6 +77,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+import org.sagebionetworks.repo.model.ServiceConstants;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -84,8 +85,6 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 public class Synapse {
 
 	protected static final Logger log = Logger.getLogger(Synapse.class.getName());
-
-	protected static final int DEFAULT_TIMEOUT_MSEC = 5000;
 
 	protected static final int JSON_INDENT = 2;
 	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.sagebase.org/repo/v1";
@@ -177,13 +176,12 @@ public class Synapse {
 		defaultPOSTPUTHeaders.put("Content-Type", "application/json");
 
 		this.clientProvider = clientProvider;
-		clientProvider.setGlobalConnectionTimeout(DEFAULT_TIMEOUT_MSEC);
-		clientProvider.setGlobalSocketTimeout(DEFAULT_TIMEOUT_MSEC);
-
+		clientProvider.setGlobalConnectionTimeout(ServiceConstants.DEFAULT_CONNECT_TIMEOUT_MSEC);
+		clientProvider.setGlobalSocketTimeout(ServiceConstants.DEFAULT_SOCKET_TIMEOUT_MSEC);
+		
 		this.dataUploader = dataUploader;
 		
 		requestProfile = false;
-
 	}
 
 	/**
