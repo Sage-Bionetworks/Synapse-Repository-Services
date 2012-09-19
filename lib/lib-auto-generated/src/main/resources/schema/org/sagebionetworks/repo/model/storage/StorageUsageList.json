@@ -11,11 +11,11 @@
 			"type": "integer",
 			"required": true
 		},
-		"locationList": {
-			"description": "The list of storage locations.",
+		"usageList": {
+			"description": "The list of storage usages.",
 			"type": "array",
 			"items":  {
-				"$ref": "org.sagebionetworks.repo.model.storage.StorageLocation"
+				"$ref": "org.sagebionetworks.repo.model.storage.StorageUsage"
 			},
 			"required": true
 		}
