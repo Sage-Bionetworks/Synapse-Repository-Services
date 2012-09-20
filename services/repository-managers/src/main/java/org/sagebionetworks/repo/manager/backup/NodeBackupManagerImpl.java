@@ -231,4 +231,19 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 		}
 	}
 
+	@Transactional(readOnly = true)
+	@Override
+	public boolean doesNodeExist(String nodeId, String etag) {
+		if(nodeId == null) throw new IllegalAccessError("NodeId cannot be null");
+		if(etag == null) throw new IllegalArgumentException("Etag cannot be null");
+		try {
+			String current = nodeDao.peekCurrentEtag(nodeId);
+			return etag.equals(current);
+		} catch (DatastoreException e) {
+			return false;
+		} catch (NotFoundException e) {
+			return false;
+		}
+	}
+
 }

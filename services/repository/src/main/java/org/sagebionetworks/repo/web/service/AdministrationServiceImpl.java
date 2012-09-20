@@ -142,28 +142,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	}
 	
 	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.AdministrationService#startSearchDocument(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
-	 */
-	@Override
-	public BackupRestoreStatus startSearchDocument(String userId,
-			HttpHeaders header,	HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		
-		// The BackupSubmission is optional.  When included we will only backup the entity Ids included.
-		// When the body is null all entities will be backed up.
-		Set<String> entityIdsToBackup = null;
-		if(request.getInputStream() != null){
-			BackupSubmission submission = objectTypeSerializer.deserialize(request.getInputStream(), header,BackupSubmission.class, header.getContentType());
-			entityIdsToBackup = submission.getEntityIdsToBackup();
-		}
-		// Get the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		// start a search document daemon
-		return backupDaemonLauncher.startSearchDocument(userInfo, entityIdsToBackup);
-	}
-	
-	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getStatus(java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
 	 */
 	@Override

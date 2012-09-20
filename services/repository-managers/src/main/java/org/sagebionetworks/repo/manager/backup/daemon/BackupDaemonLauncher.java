@@ -34,15 +34,6 @@ public interface BackupDaemonLauncher {
 	public BackupRestoreStatus startRestore(UserInfo username, String fileName, MigratableObjectType migrationType) throws UnauthorizedException, DatastoreException;
 	
 	public void delete(UserInfo username, MigratableObjectDescriptor mod) throws UnauthorizedException, DatastoreException, NotFoundException;
-	/**
-	 * The daemon should create a starting status, and then start the thread 
-	 * that will do the search document.
-	 * @return
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 */
-	public BackupRestoreStatus startSearchDocument(UserInfo userInfo, Set<String> entityIds) throws UnauthorizedException, DatastoreException;
-
 
 	/**
 	 * Terminate an existing backup daemon.

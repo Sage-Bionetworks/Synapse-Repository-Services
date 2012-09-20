@@ -57,7 +57,7 @@ public class SearchSchemaLoader {
 		List<IndexField> list = new LinkedList<IndexField>();
 		// Literal fields to be returned in Search Results
 		list.add(new IndexField().withIndexFieldName(FIELD_ID).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withResultEnabled(true).withSearchEnabled(true)));
-		list.add(new IndexField().withIndexFieldName(FIELD_ETAG).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withResultEnabled(true)));
+		list.add(new IndexField().withIndexFieldName(FIELD_ETAG).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withResultEnabled(true).withSearchEnabled(true)));
 		// Free text fields to be returned in Search Results
 		list.add(new IndexField().withIndexFieldName(FIELD_NAME).withIndexFieldType(IndexFieldType.Text).withTextOptions(new TextOptions().withResultEnabled(true)));
 		list.add(new IndexField().withIndexFieldName(FIELD_DESCRIPTION).withIndexFieldType(IndexFieldType.Text).withTextOptions(new TextOptions().withResultEnabled(true)));

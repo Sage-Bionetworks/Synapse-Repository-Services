@@ -56,5 +56,13 @@ public interface NodeBackupSource {
 	 * @return
 	 */
 	public long getTotalNodeCount();
+	
+	/**
+	 * Does a node with the given Id and Etag exist?
+	 * @param nodeId
+	 * @param etag
+	 * @return
+	 */
+	public boolean doesNodeExist(String nodeId, String etag);
 
 }
