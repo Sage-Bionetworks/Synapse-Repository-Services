@@ -5,8 +5,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -30,29 +28,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@Transactional(readOnly = true)
 public class PermissionsManagerImpl implements PermissionsManager {
 	
 	
 	@Autowired
-	private AccessControlListDAO aclDAO;
-	
+	private AccessControlListDAO aclDAO;	
 	@Autowired
-	private AuthorizationManager authorizationManager;
-	
+	private AuthorizationManager authorizationManager;	
 	@Autowired
-	private NodeInheritanceManager nodeInheritanceManager;
-	
+	private NodeInheritanceManager nodeInheritanceManager;	
 	@Autowired
-	NodeDAO nodeDao;
-	
+	NodeDAO nodeDao;	
 	@Autowired
-	private UserGroupDAO userGroupDAO;
-	
+	private UserGroupDAO userGroupDAO;	
 	@Autowired
 	private UserManager userManager;
 
-	@Transactional(readOnly = true)
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
 		// get the id that this node inherits its permissions from

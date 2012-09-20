@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
@@ -29,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
  * @author jmhill
  *
  */
-@Transactional(readOnly = false)
 public class EntityBootstrapperImpl implements EntityBootstrapper {
 	
 	@Autowired
@@ -47,6 +47,7 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 	 */
 	private Map<String, EntityBootstrapData> pathMap;
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void afterPropertiesSet() throws Exception {
 		// First make sure the nodeDao has been boostraped

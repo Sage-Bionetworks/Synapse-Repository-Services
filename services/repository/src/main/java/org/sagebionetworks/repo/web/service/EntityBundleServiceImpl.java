@@ -19,6 +19,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public class EntityBundleServiceImpl implements EntityBundleService {
 	
@@ -99,6 +101,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 
 	}	
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public EntityBundle createEntityBundle(String userId, EntityBundleCreate ebc, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
 		if (ebc.getEntity() == null) {
