@@ -285,7 +285,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		
 		QueryResults<MigratableObjectCount> qRes = new QueryResults<MigratableObjectCount>();
 		MigratableObjectCount moc = new MigratableObjectCount();
-		moc.setEntityType(MigratableObjectType.ACCESSREQUIREMENT.name());
+		moc.setObjectType(MigratableObjectType.ACCESSREQUIREMENT.name());
 		moc.setEntityType(null);
 		moc.setCount(this.getCount());
 		l.add(moc);

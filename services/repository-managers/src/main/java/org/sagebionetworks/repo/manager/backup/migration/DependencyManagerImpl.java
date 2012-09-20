@@ -63,7 +63,7 @@ public class DependencyManagerImpl implements DependencyManager {
 		for (MigratableDAO migratableDAO: getMigratableDaos()) {
 			QueryResults<MigratableObjectCount> locRes = migratableDAO.getMigratableObjectCounts(offset, limit, includeDependencies);
 			ods.addAll(locRes.getResults());
-			total += locRes.getTotalNumberOfResults();
+			total += locRes.getResults().size();
 		}
 		QueryResults<MigratableObjectCount> queryResults = new QueryResults<MigratableObjectCount>();
 		queryResults.setResults(ods);

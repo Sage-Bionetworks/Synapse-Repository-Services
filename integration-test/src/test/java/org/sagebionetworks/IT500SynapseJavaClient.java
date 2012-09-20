@@ -1038,5 +1038,6 @@ public class IT500SynapseJavaClient {
 	@Ignore
 	@Test
 	public void testGetMigratableObjectCounts() throws SynapseException {
+		
 	}
 }

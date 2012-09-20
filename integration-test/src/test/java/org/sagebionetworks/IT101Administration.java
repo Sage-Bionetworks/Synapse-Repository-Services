@@ -11,10 +11,13 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
@@ -134,6 +137,17 @@ public class IT101Administration {
 		project = synapse.putEntity(project);
 		assertNotNull(project);
 		assertEquals(newDescription, project.getDescription());
+	}
+	
+	@Ignore
+	@Test
+	public void testgetMigratableObjectCounts() throws Exception {
+		PaginatedResults<MigratableObjectCount> rs = synapse.getMigratableObjectCounts(0, 100, true);
+		assertNotNull(rs);
+		assertNotNull(rs.getResults());
+		assertNotNull(rs.getTotalNumberOfResults());
+		assertTrue(rs.getTotalNumberOfResults() > 0);
+		
 	}
 
 }

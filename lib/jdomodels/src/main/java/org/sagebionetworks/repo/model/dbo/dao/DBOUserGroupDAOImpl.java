@@ -213,7 +213,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		
 		QueryResults<MigratableObjectCount> qRes = new QueryResults<MigratableObjectCount>();
 		MigratableObjectCount moc = new MigratableObjectCount();
-		moc.setEntityType(MigratableObjectType.PRINCIPAL.name());
+		moc.setObjectType(MigratableObjectType.PRINCIPAL.name());
 		moc.setEntityType(null);
 		moc.setCount(this.getCount());
 		l.add(moc);
