@@ -19,13 +19,10 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@Transactional(readOnly = true)
 public class JDOAccessControlListDAOImpl implements AccessControlListDAO {
-	
-	
+		
 	@Autowired
 	DBOAccessControlListDao dboAccessControlListDao;
-	
 	// This is better suited for simple JDBC query.
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -35,7 +32,6 @@ public class JDOAccessControlListDAOImpl implements AccessControlListDAO {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	@Transactional(readOnly = true)
 	public AccessControlList getForResource(String rId) throws DatastoreException, NotFoundException {
 		return dboAccessControlListDao.getACL(KeyFactory.stringToKey(rId));
 	}
@@ -43,7 +39,6 @@ public class JDOAccessControlListDAOImpl implements AccessControlListDAO {
 	/**
 	 * @return true iff some group in 'groups' has explicit permission to access 'resourceId' using access type 'accessType'
 	 */
-	@Transactional(readOnly = true)
 	public boolean canAccess(Collection<UserGroup> groups, 
 			String resourceId, 
 			ACCESS_TYPE accessType) throws DatastoreException {
@@ -87,7 +82,6 @@ public class JDOAccessControlListDAOImpl implements AccessControlListDAO {
 		return dto.getId();
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public AccessControlList get(String id) throws DatastoreException,	NotFoundException {
 		return dboAccessControlListDao.getACL(KeyFactory.stringToKey(id));

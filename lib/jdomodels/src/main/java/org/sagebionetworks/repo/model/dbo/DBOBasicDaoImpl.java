@@ -23,14 +23,12 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 @SuppressWarnings("rawtypes")
-@Transactional(readOnly = true)
 public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	
 	public static final String GET_LAST_ID_SQL = "SELECT LAST_INSERT_ID()";
 	
 	@Autowired
-	private DDLUtils ddlUtils;
-	
+	private DDLUtils ddlUtils;	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
@@ -89,10 +87,8 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		}
 	}
 
-
-
-	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
 	public <T extends DatabaseObject<T>> T createNew(T toCreate) throws DatastoreException {
 		if(toCreate == null) throw new IllegalArgumentException("The object to create cannot be null");
 		// Lookup the insert SQL
@@ -162,7 +158,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		}
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public <T extends DatabaseObject<T>> T getObjectById(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException, NotFoundException{
 		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
@@ -178,7 +173,6 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 		}
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public <T extends DatabaseObject<T>> long getCount(Class<? extends T> clazz) throws DatastoreException {
 		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");

@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
-import java.io.InputStream;
-
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.manager.AccessApprovalManager;
@@ -14,7 +12,6 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.util.ControllerUtil;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -22,23 +19,19 @@ import org.sagebionetworks.repo.web.controller.ControllerEntityClassHelper;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Controller;
-import com.amazonaws.util.StringInputStream;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public class AccessApprovalServiceImpl implements AccessApprovalService {
 
 	@Autowired
-	AccessApprovalManager accessApprovalManager;
-	
+	AccessApprovalManager accessApprovalManager;	
 	@Autowired
 	UserManager userManager;
-
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
 
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.AccessApprovalService#createAccessApproval(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
-	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AccessApproval createAccessApproval(String userId, HttpHeaders header,
 			HttpServletRequest request) throws DatastoreException, UnauthorizedException, 
@@ -48,11 +41,6 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 		return accessApprovalManager.createAccessApproval(userInfo, accessApproval);
 	}
 
-
-
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.AccessApprovalService#getAccessApprovals(java.lang.String, java.lang.String, javax.servlet.http.HttpServletRequest)
-	 */
 	@Override
 	public PaginatedResults<AccessApproval> getAccessApprovals(String userId, 
 			String entityId, HttpServletRequest request) throws DatastoreException,
@@ -72,9 +60,7 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 				false);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.AccessApprovalService#deleteAccessApprovals(java.lang.String, java.lang.String)
-	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteAccessApprovals(String userId, String approvalId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException, 

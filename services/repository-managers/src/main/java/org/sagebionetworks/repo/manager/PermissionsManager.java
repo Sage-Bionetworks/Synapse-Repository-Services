@@ -137,4 +137,13 @@ public interface PermissionsManager {
 	 * @throws NotFoundException 
 	 */
 	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo,	String entityId) throws NotFoundException, DatastoreException;
+
+	/**
+	 * Check whether or not a given resource/entity has a local ACL. Such
+	 * resources/entities are self-benefactors.
+	 *
+	 * @param resourceId
+	 * @return
+	 */
+	public boolean hasLocalACL(String resourceId);
 }
