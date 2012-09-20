@@ -55,10 +55,11 @@ public class TimeBasedRollingToS3PolicyIntegrationTest {
 		Mockito.when(mockStackAccess.getLogSweepingEnabled()).thenReturn(false);
 		Mockito.when(mockStackAccess.getS3LogBucket()).thenReturn("log-test-bucket");
 
+		String logDirectoryPrefix = "target/logs/";
 		TimeBasedRollingToS3Policy tbrp = new TimeBasedRollingToS3Policy(1, mockS3, mockStackAccess);
-		tbrp.setFileNamePattern("test6-%d{" + datePattern + "}.gz");
-		tbrp.setActiveFileName("test6.log");
-		rfa.setFile("test6.log");
+		tbrp.setFileNamePattern(logDirectoryPrefix + "test6-%d{" + datePattern + "}.gz");
+		tbrp.setActiveFileName(logDirectoryPrefix + "test6.log");
+		rfa.setFile("target/logs/test6.log");
 		rfa.setRollingPolicy(tbrp);
 		rfa.setAppend(false);
 		rfa.setThreshold(Level.DEBUG);
@@ -71,11 +72,11 @@ public class TimeBasedRollingToS3PolicyIntegrationTest {
 		Calendar cal = Calendar.getInstance();
 
 		for (int i = 0; i < 3; i++) {
-			filenames[i] = "test6-" + sdf.format(cal.getTime()) + ".gz";
+			filenames[i] = logDirectoryPrefix + "test6-" + sdf.format(cal.getTime()) + ".gz";
 			cal.add(Calendar.SECOND, 1);
 		}
 
-		filenames[3] = "test6.log";
+		filenames[3] = logDirectoryPrefix + "test6.log";
 
 		System.out.println("Waiting until next second and 100 millis.");
 		delayUntilNextSecond(100);
@@ -95,11 +96,6 @@ public class TimeBasedRollingToS3PolicyIntegrationTest {
 
 		assertTrue(compare(filenames[3], "tbrts3-test.3"));
 
-		for (String filename : filenames) {
-			File file = new File(filename);
-			if (file.exists())
-				file.delete();
-		}
 	}
 
 	void delayUntilNextSecond(int millis) {
