@@ -1754,4 +1754,26 @@ public class NodeDAOImplTest {
 		assertFalse(nodeDao.isNodesParentRoot(grandkidId));
 	}
 	
+	@Test
+	public void testHasChildren() throws DatastoreException, InvalidModelException, NotFoundException{
+		//make root node
+		Node node = privateCreateNew("root");
+		node.setNodeType(EntityType.project.name());
+		String parentId = nodeDao.createNew(node);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		assertFalse(nodeDao.isNodesParentRoot(parentId));
+		
+		//add a child to the root	
+		node = privateCreateNew("child1");
+		node.setNodeType(EntityType.dataset.name());
+		node.setParentId(parentId);
+		String child1Id = nodeDao.createNew(node);
+		toDelete.add(child1Id);
+		assertTrue(nodeDao.isNodesParentRoot(child1Id));
+		
+		// The root should have children but the child should not
+		assertTrue(nodeDao.doesNodeHaveChildren(parentId));
+		assertFalse(nodeDao.doesNodeHaveChildren(child1Id));
+	}
 }
