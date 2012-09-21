@@ -22,7 +22,7 @@ public class EntityBundle implements JSONEntity {
 	public static int PERMISSIONS	     	= 0x4;
 	public static int ENTITY_PATH	      	= 0x8;
 	public static int ENTITY_REFERENCEDBY 	= 0x10;
-	public static int CHILD_COUNT			= 0x20;
+	public static int HAS_CHILDREN			= 0x20;
 	public static int ACL					= 0x40;
 	public static int USERS					= 0x80;
 	public static int GROUPS				= 0x100;
@@ -35,7 +35,7 @@ public class EntityBundle implements JSONEntity {
 	private static final String JSON_PERMISSIONS = "permissions";
 	private static final String JSON_PATH = "path";
 	private static final String JSON_REFERENCED_BY = "referencedBy";
-	private static final String JSON_CHILD_COUNT = "childCount";
+	private static final String JSON_HAS_CHILDREN = "hasChildren";
 	private static final String JSON_ACL = "accessControlList";
 	private static final String JSON_USERS = "users";
 	private static final String JSON_GROUPS = "groups";
@@ -46,7 +46,7 @@ public class EntityBundle implements JSONEntity {
 	private UserEntityPermissions permissions;
 	private EntityPath path;
 	private PaginatedResults<EntityHeader> referencedBy;
-	private Long childCount;
+	private Boolean hasChildren;
 	private AccessControlList acl;
 	private PaginatedResults<UserProfile> users;
 	private PaginatedResults<UserGroup> groups;
@@ -103,8 +103,8 @@ public class EntityBundle implements JSONEntity {
 				referencedBy = new PaginatedResults<EntityHeader>(EntityHeader.class);
 			referencedBy.initializeFromJSONObject(joa);
 		}
-		if (toInitFrom.has(JSON_CHILD_COUNT)) {
-			childCount = toInitFrom.getLong(JSON_CHILD_COUNT);
+		if (toInitFrom.has(JSON_HAS_CHILDREN)) {
+			hasChildren = toInitFrom.getBoolean(JSON_HAS_CHILDREN);
 		}
 		if (toInitFrom.has(JSON_ACL)) {
 			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ACL);
@@ -159,8 +159,8 @@ public class EntityBundle implements JSONEntity {
 			referencedBy.writeToJSONObject(joa);
 			writeTo.put(JSON_REFERENCED_BY, joa);
 		}
-		if (childCount != null) {
-			writeTo.put(JSON_CHILD_COUNT, childCount);
+		if (hasChildren != null) {
+			writeTo.put(JSON_HAS_CHILDREN, hasChildren);
 		}
 		if (acl != null) {
 			JSONObjectAdapter joa = writeTo.createNew();
@@ -264,18 +264,17 @@ public class EntityBundle implements JSONEntity {
 	}
 
 	/**
-	 * Get the number of child Entities of the Entity in this bundle.
+	 * Does this entity have children?
 	 */
-	public Long getChildCount() {
-		return childCount;
+	public Boolean getHasChildren() {
+		return hasChildren;
 	}
 
 	/**
-	 * Set the childCount in this bundle. Should equal the number of Entities
-	 * which have the Entity in this bundle as their direct parent.
+	 * Does this entity have children?
 	 */
-	public void setChildCount(Long childCount) {
-		this.childCount = childCount;
+	public void setHasChildren(Boolean hasChildren) {
+		this.hasChildren = hasChildren;
 	}
 
 	/**
@@ -337,8 +336,8 @@ public class EntityBundle implements JSONEntity {
 			sb.append("ENTITY_PATH, ");
 		if (referencedBy != null)
 			sb.append("ENTITY_REFERENCEDBY, ");
-		if (childCount != 0)
-			sb.append("CHILD_COUNT, ");
+		if (hasChildren != null)
+			sb.append("HAS_CHILDREN, ");
 		if (acl != null)
 			sb.append("ACCESS_CONTROL_LIST, ");
 		if (users != null)
@@ -355,15 +354,21 @@ public class EntityBundle implements JSONEntity {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime * result	+ ((entity == null) ? 0 : entity.hashCode());
-		result = prime * result	+ ((annotations == null) ? 0 : annotations.hashCode());
-		result = prime * result	+ ((permissions == null) ? 0 : permissions.hashCode());
-		result = prime * result	+ ((path == null) ? 0 : path.hashCode());
-		result = prime * result	+ ((referencedBy == null) ? 0 : referencedBy.hashCode());
-		result = prime * result + childCount.hashCode();
 		result = prime * result + ((acl == null) ? 0 : acl.hashCode());
-		result = prime * result	+ ((users == null) ? 0 : users.hashCode());
-		result = prime * result	+ ((groups == null) ? 0 : groups.hashCode());
+		result = prime * result
+				+ ((annotations == null) ? 0 : annotations.hashCode());
+		result = prime * result + ((entity == null) ? 0 : entity.hashCode());
+		result = prime * result
+				+ ((entityType == null) ? 0 : entityType.hashCode());
+		result = prime * result + ((groups == null) ? 0 : groups.hashCode());
+		result = prime * result
+				+ ((hasChildren == null) ? 0 : hasChildren.hashCode());
+		result = prime * result + ((path == null) ? 0 : path.hashCode());
+		result = prime * result
+				+ ((permissions == null) ? 0 : permissions.hashCode());
+		result = prime * result
+				+ ((referencedBy == null) ? 0 : referencedBy.hashCode());
+		result = prime * result + ((users == null) ? 0 : users.hashCode());
 		return result;
 	}
 	
@@ -376,47 +381,55 @@ public class EntityBundle implements JSONEntity {
 		if (getClass() != obj.getClass())
 			return false;
 		EntityBundle other = (EntityBundle) obj;
-		if (entity == null) {
-			if (other.entity != null)
+		if (acl == null) {
+			if (other.acl != null)
 				return false;
-		} else if (!entity.equals(other.entity))
+		} else if (!acl.equals(other.acl))
 			return false;
 		if (annotations == null) {
 			if (other.annotations != null)
 				return false;
 		} else if (!annotations.equals(other.annotations))
 			return false;
-		if (permissions == null) {
-			if (other.permissions != null)
+		if (entity == null) {
+			if (other.entity != null)
 				return false;
-		} else if (!permissions.equals(other.permissions))
+		} else if (!entity.equals(other.entity))
+			return false;
+		if (entityType == null) {
+			if (other.entityType != null)
+				return false;
+		} else if (!entityType.equals(other.entityType))
+			return false;
+		if (groups == null) {
+			if (other.groups != null)
+				return false;
+		} else if (!groups.equals(other.groups))
+			return false;
+		if (hasChildren == null) {
+			if (other.hasChildren != null)
+				return false;
+		} else if (!hasChildren.equals(other.hasChildren))
 			return false;
 		if (path == null) {
 			if (other.path != null)
 				return false;
 		} else if (!path.equals(other.path))
 			return false;
+		if (permissions == null) {
+			if (other.permissions != null)
+				return false;
+		} else if (!permissions.equals(other.permissions))
+			return false;
 		if (referencedBy == null) {
 			if (other.referencedBy != null)
 				return false;
 		} else if (!referencedBy.equals(other.referencedBy))
 			return false;
-		if (childCount != other.childCount)
-			return false;
-		if (acl == null) {
-			if (other.acl != null)
-				return false;
-		} else if (!acl.equals(other.acl))
-			return false;
 		if (users == null) {
 			if (other.users != null)
 				return false;
 		} else if (!users.equals(other.users))
-			return false;
-		if (groups == null) {
-			if (other.groups != null)
-				return false;
-		} else if (!groups.equals(other.groups))
 			return false;
 		return true;
 	}

@@ -225,5 +225,13 @@ public interface NodeManager {
 	 */
 	public EntityHeaderQueryResults getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Integer offset, Integer limit)
 	throws NotFoundException, DatastoreException;
+
+	/**
+	 * Does this node have children?
+	 * 
+	 * @param entityId
+	 * @return
+	 */
+	public boolean doesNodeHaveChildren(String entityId);
 	
 }

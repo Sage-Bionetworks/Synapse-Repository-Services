@@ -118,7 +118,7 @@ public class EntityBundleTest {
 		acl.setId("syn456");
 		
 		// Child Count
-		Long childCount = 12L;
+		Boolean hasChildren = true;
 		
 		// Annotations
 		Annotations annotations = new Annotations();
@@ -185,7 +185,7 @@ public class EntityBundleTest {
 		entityBundle.setPermissions(permissions);
 		entityBundle.setPath(path);
 		entityBundle.setReferencedBy(referencedBy);
-		entityBundle.setChildCount(childCount);
+		entityBundle.setHasChildren(hasChildren);
 		entityBundle.setAccessControlList(acl);
 		entityBundle.setUsers(users);
 		entityBundle.setGroups(groups);
