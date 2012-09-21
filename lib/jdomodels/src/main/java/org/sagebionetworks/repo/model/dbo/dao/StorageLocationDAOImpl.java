@@ -10,6 +10,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STORAG
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -25,7 +26,6 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimensionValue;
-import org.sagebionetworks.repo.model.storage.StorageUsageList;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummary;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +66,11 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 			" FROM " + TABLE_STORAGE_LOCATION +
 			" WHERE " + COL_STORAGE_LOCATION_USER_ID + " = :" + COL_STORAGE_LOCATION_USER_ID +
 			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
+
+	private static final String SELECT_STORAGE_LOCATION_COUNT_FOR_USER =
+			"SELECT COUNT(" + COL_STORAGE_LOCATION_ID + ")" +
+			" FROM " + TABLE_STORAGE_LOCATION +
+			" WHERE " + COL_STORAGE_LOCATION_USER_ID + " = :" + COL_STORAGE_LOCATION_USER_ID;
 
 	private static final RowMapper<DBOStorageLocation> rowMapper = (new DBOStorageLocation()).getTableMapping();
 
@@ -193,7 +198,7 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 	}
 
 	@Override
-	public StorageUsageList getStorageUsageInRange(String userId, long beginIncl, long endExcl)
+	public List<StorageUsage> getStorageUsageInRange(String userId, long beginIncl, long endExcl)
 			throws DatastoreException {
 
 		if (userId == null || userId.isEmpty()) {
@@ -207,12 +212,6 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 			msg += ")";
 			throw new IllegalArgumentException(msg);
 		}
-
-		StorageUsageList suList = new StorageUsageList();
-		suList.setUserId(userId);
-
-		Long grandTotal = getTotalUsage(userId);
-		suList.setGrandTotal(grandTotal);
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(OFFSET_PARAM_NAME, beginIncl);
@@ -236,9 +235,24 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 			su.setContentSize(dbo.getContentSize());
 			su.setContentMd5(dbo.getContentMd5());
 		}
-		suList.setUsageList(usageList);
 
-		return suList;
+		usageList = Collections.unmodifiableList(usageList);
+		return usageList;
+	}
+
+	@Transactional(readOnly = true)
+	@Override
+	public Long getCount(String userId) throws DatastoreException {
+
+		if (userId == null || userId.isEmpty()) {
+			throw new NullPointerException();
+		}
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		Long userIdLong = KeyFactory.stringToKey(userId);
+		paramMap.addValue(COL_STORAGE_LOCATION_USER_ID, userIdLong);
+		Long count = simpleJdbcTemplate.queryForLong(SELECT_STORAGE_LOCATION_COUNT_FOR_USER, paramMap);
+		return count;
 	}
 
 	private List<String> getGroupByColumns(List<StorageUsageDimension> dimensionList) {

@@ -175,7 +175,22 @@ public class ServiceConstants {
 	 * 
 	 */
 	public static final String ACCEPTS_TERMS_OF_USE_REQUIRED_TOKEN = "TermsOfUseAcceptanceRequired";
-	
+
+	/**
+	 * Parameter for the first aggregating dimension for storage usage.
+	 */
+	public static final String STORAGE_DIMENSION_1_PARAM = "sd1";
+
+	/**
+	 * Parameter for the second aggregating dimension for storage usage.
+	 */
+	public static final String STORAGE_DIMENSION_2_PARAM = "sd2";
+
+	/**
+	 * Parameter for the third aggregating dimension for storage usage.
+	 */
+	public static final String STORAGE_DIMENSION_3_PARAM = "sd3";
+
 	/**
 	 * Utility method to sanity check pagination parameters
 	 * <p>

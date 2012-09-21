@@ -2,8 +2,8 @@ package org.sagebionetworks.repo.model;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
-import org.sagebionetworks.repo.model.storage.StorageUsageList;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 
 /**
@@ -38,6 +38,11 @@ public interface StorageLocationDAO {
 	 * Gets detailed, itemized storage usage for the specified user. Results are paged as
 	 * specified by the begin (inclusive) and the end (exclusive) indices.
 	 */
-	StorageUsageList getStorageUsageInRange(String userId, long beginIncl, long endExcl)
+	List<StorageUsage> getStorageUsageInRange(String userId, long beginIncl, long endExcl)
 			throws DatastoreException;
+
+	/**
+	 * Gets the count of storage items for the specified user.
+	 */
+	Long getCount(String userId) throws DatastoreException;
 }
