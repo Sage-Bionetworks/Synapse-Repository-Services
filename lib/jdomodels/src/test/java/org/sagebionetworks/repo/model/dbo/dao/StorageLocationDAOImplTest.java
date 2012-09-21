@@ -32,7 +32,6 @@ import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimensionValue;
-import org.sagebionetworks.repo.model.storage.StorageUsageList;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummary;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -206,12 +205,8 @@ public class StorageLocationDAOImplTest {
 
 		int beginIncl = 0;
 		int endExcl = 1000;
-		StorageUsageList usage = dao.getStorageUsageInRange(userId, beginIncl, endExcl);
+		List<StorageUsage> suList = dao.getStorageUsageInRange(userId, beginIncl, endExcl);
 
-		//Assert.assertEquals(87L, usage.getGrandTotal().longValue());
-		Assert.assertEquals(userId, usage.getUserId());
-
-		List<StorageUsage> suList = usage.getUsageList();
 		Assert.assertEquals(4, suList.size());
 		Map<String, StorageUsage> suMap = new HashMap<String, StorageUsage>();
 		for (StorageUsage su : suList) {
@@ -265,9 +260,14 @@ public class StorageLocationDAOImplTest {
 
 		beginIncl = 1;
 		endExcl = 3;
-		usage = dao.getStorageUsageInRange(userId, beginIncl, endExcl);
-		suList = usage.getUsageList();
+		suList = dao.getStorageUsageInRange(userId, beginIncl, endExcl);
 		Assert.assertEquals(2, suList.size());
+	}
+
+	@Test
+	public void testGetCount() {
+		dao.replaceLocationData(locations);
+		Assert.assertEquals(Long.valueOf(4L), dao.getCount(userId));
 	}
 
 	private StorageLocationDAO unwrap() throws Exception {
