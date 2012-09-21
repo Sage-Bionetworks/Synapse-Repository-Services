@@ -28,7 +28,7 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 			throws UnauthorizedException, DatastoreException {
 
 		// this will throw UnauthorizedException
-		validateUser(currUserId, userId);
+		checkUserAuthorization(currUserId, userId);
 
 		StorageUsageSummaryList results = storageUsageManager.getStorageUsage(userId, dList);
 		return results;
@@ -40,7 +40,7 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 			throws UnauthorizedException, DatastoreException {
 
 		// this will throw UnauthorizedException
-		validateUser(currUserId, userId);
+		checkUserAuthorization(currUserId, userId);
 
 		QueryResults<StorageUsage> queryResults = storageUsageManager.getStorageUsage(userId, offset, limit);
 		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>(urlPath, 
@@ -54,7 +54,7 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	 *
 	 * @throws UnauthorizedException When current user is not authorized to view another user
 	 */
-	private void validateUser(String currUserId, String userId) throws DatastoreException, UnauthorizedException {
+	private void checkUserAuthorization(String currUserId, String userId) throws DatastoreException, UnauthorizedException {
 		if (currUserId == null) {
 			throw new NullPointerException();
 		}
