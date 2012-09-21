@@ -1,5 +1,5 @@
 {
-	"description": "JSON schema for information about a single storage location.",
+	"description": "JSON schema for usage information about a single storage location.",
 	"properties": {
 		"id": {
 			"description": "The id of the storage location.",
