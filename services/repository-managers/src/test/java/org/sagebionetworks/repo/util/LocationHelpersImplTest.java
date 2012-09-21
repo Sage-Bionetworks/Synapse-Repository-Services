@@ -121,7 +121,7 @@ public class LocationHelpersImplTest {
 		assertFalse(getUrl.equals(headUrl));
 
 		// If 2 of the 6 seconds have elapsed, the urls are still "fresh enough" to reuse
-		Thread.sleep(2000);  
+		Thread.sleep(1000);  
 		
 		// Test Cache Hits
 		assertTrue(getUrl.equals(helper.presignS3GETUrl("user1@foo.com", "/123/foo.zip", 6)));
@@ -136,7 +136,7 @@ public class LocationHelpersImplTest {
 		assertFalse(headUrl.equals(helper.presignS3HEADUrl("user1@foo.com", "/123/foo.tgz", 6)));
 
 		// Now that 4+ of the 6 seconds have elapsed, the urls are NOT "fresh enough" to reuse
-		Thread.sleep(2000);  
+		Thread.sleep(3000);  
 		
 		// Test Cache Misses due to timing
 		assertFalse(getUrl.equals(helper.presignS3GETUrl("user1@foo.com", "/123/foo.zip", 6)));

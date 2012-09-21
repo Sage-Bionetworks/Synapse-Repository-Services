@@ -511,13 +511,13 @@ public class EntityServiceImpl implements EntityService {
 		return executeQueryAndConvertToEntites(paging, request, clazz, userInfo, query);
 	}
 	
-	@Override
-	public Long getChildCount(String userId, String entityId, HttpServletRequest request) throws DatastoreException, ParseException, NotFoundException, UnauthorizedException {
-		String queryString = SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID + entityId + 
-				LIMIT_1_OFFSET_1;
-		QueryResults qr = query(userId, queryString, request);
-		return qr.getTotalNumberOfResults();
-	}
+//	@Override
+//	public Long getChildCount(String userId, String entityId, HttpServletRequest request) throws DatastoreException, ParseException, NotFoundException, UnauthorizedException {
+//		String queryString = SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID + entityId + 
+//				LIMIT_1_OFFSET_1;
+//		QueryResults qr = query(userId, queryString, request);
+//		return qr.getTotalNumberOfResults();
+//	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -755,5 +755,15 @@ public class EntityServiceImpl implements EntityService {
 			}
 		}
 		return result;
+	}
+
+	@Override
+	public boolean doesEntityHaveChildren(String userId, String entityId,
+			HttpServletRequest request) throws DatastoreException,
+			ParseException, NotFoundException, UnauthorizedException {
+		if(entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.doesEntityHaveChildren(userInfo, entityId);
 	}	
 }
