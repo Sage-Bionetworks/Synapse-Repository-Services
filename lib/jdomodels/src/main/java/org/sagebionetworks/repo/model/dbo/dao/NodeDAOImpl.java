@@ -1248,7 +1248,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		
 		QueryResults<MigratableObjectCount> qRes = new QueryResults<MigratableObjectCount>();
 		qRes.setResults(l);
-		qRes.setTotalNumberOfResults((int)getCount());
+		qRes.setTotalNumberOfResults(l.size());
 		return qRes;
 	}
 
