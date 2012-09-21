@@ -278,17 +278,20 @@ public class UrlHelpers {
 	 */
 	public static final String STORAGE_DETAILS = "/storageDetails";
 
-	private static final String STORAGE_USER_ID = "/{userId}";
+	/**
+	 * The user whose storage usage is queried.
+	 */
+	public static final String STORAGE_USER_ID = "userId";
 
 	/**
 	 * Storage usage summary for the specified user.
 	 */
-	public static final String STORAGE_SUMMARY_USER_ID = STORAGE_SUMMARY + STORAGE_USER_ID;
+	public static final String STORAGE_SUMMARY_USER_ID = STORAGE_SUMMARY + "/{" + STORAGE_USER_ID + "}";
 
 	/**
 	 * Itemized storage usage for the specified user.
 	 */
-	public static final String STORAGE_DETAILS_USER_ID = STORAGE_DETAILS + STORAGE_USER_ID;
+	public static final String STORAGE_DETAILS_USER_ID = STORAGE_DETAILS + "/{" + STORAGE_USER_ID + "}";
 
 	/**
 	 * Public access for Synapse user and group info
