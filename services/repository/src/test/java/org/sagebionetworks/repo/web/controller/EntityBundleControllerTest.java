@@ -110,7 +110,7 @@ public class EntityBundleControllerTest {
 					EntityBundle.PERMISSIONS |
 					EntityBundle.ENTITY_PATH |
 					EntityBundle.ENTITY_REFERENCEDBY |
-					EntityBundle.CHILD_COUNT |
+					EntityBundle.HAS_CHILDREN |
 					EntityBundle.ACL |
 					EntityBundle.USERS |
 					EntityBundle.GROUPS;
@@ -135,9 +135,9 @@ public class EntityBundleControllerTest {
 		PaginatedResults<EntityHeader> rb = eb.getReferencedBy();
 		assertNotNull("ReferencedBy was requested, but null in bundle", rb);
 		
-		Long cc = eb.getChildCount();
-		assertNotNull("ChildCount was requested, but null in bundle", cc);
-		assertEquals("Incorrect ChildCount", 2, cc.intValue());
+		Boolean hasChildren = eb.getHasChildren();
+		assertNotNull("HasChildren was requested, but null in bundle", hasChildren);
+		assertEquals("HasChildren incorrect", Boolean.TRUE, hasChildren);
 		
 		AccessControlList acl = eb.getAccessControlList();
 		assertNotNull("AccessControlList was requested, but null in bundle", acl);
@@ -288,8 +288,8 @@ public class EntityBundleControllerTest {
 		PaginatedResults<EntityHeader> rb = eb.getReferencedBy();
 		assertNull("ReferencedBy was not requested, but were returned in bundle", rb);
 		
-		Long cc = eb.getChildCount();
-		assertNull("ChildCount was not requested, but were returned in bundle", cc);
+		Boolean hasChildren = eb.getHasChildren();
+		assertNull("HasChildren was not requested, but were returned in bundle", hasChildren);
 		
 		AccessControlList acl = eb.getAccessControlList();
 		assertNull("AccessControlList was not requested, but were returned in bundle", acl);

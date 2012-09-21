@@ -594,7 +594,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public Long getChildCount(String userId, String entityId,
+	public boolean doesEntityHaveChildren(String userId, String entityId,
 			HttpServletRequest request) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException;
 	
