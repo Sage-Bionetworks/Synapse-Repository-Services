@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
 
 public class UserProfileManagerUtilsTest {
 
@@ -43,9 +44,13 @@ public class UserProfileManagerUtilsTest {
 	public void testClearPrivateFields() {
 		UserProfile up = new UserProfile();
 		up.setDisplayName("me");
+		AttachmentData pic = new AttachmentData();
+		pic.setPreviewId("a preview ID");
+		up.setPic(pic);
 		up.setRStudioUrl("http://rstudio");
 		UserProfileManagerUtils.clearPrivateFields(up);
 		assertEquals("me", up.getDisplayName());
+		assertEquals(pic, up.getPic());
 		assertNull(up.getRStudioUrl());
 	}
 

@@ -75,14 +75,11 @@ public class UserProfileManagerImpl implements UserProfileManager {
 				userProfile.setEmail(userGroup.getName());
 		}
 		boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
-		// TODO: Remove this tempfix
-		AttachmentData pic = userProfile.getPic(); // Tempfix for PLFM-1475 (8/31/12)
 		if (!canSeePrivate) {
 			UserProfileManagerUtils.clearPrivateFields(userProfile);
 			if (userGroup != null)
 				userProfile.setEmail(StringUtil.obfuscateEmailAddress(userGroup.getName()));
 		}
-		userProfile.setPic(pic); // Tempfix for PLFM-1475 (8/31/12)
 		return userProfile;
 	}
 
@@ -107,10 +104,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl, schema);
 		long totalNumberOfResults = userProfileDAO.getCount();
 		for (UserProfile userProfile : userProfiles) {
-			// TODO: Remove this tempfix
-			AttachmentData pic = userProfile.getPic(); // Tempfix for PLFM-1475 (8/31/12)
 			UserProfileManagerUtils.clearPrivateFields(userProfile);
-			userProfile.setPic(pic); // Tempfix for PLFM-1475 (8/31/12)
 			if (includeEmail) {
 				UserGroup userGroup = userGroupDAO.get(userProfile.getOwnerId());
 				if (userGroup != null)
