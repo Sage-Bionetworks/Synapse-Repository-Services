@@ -290,5 +290,16 @@ public interface EntityManager {
 	 * @throws UnauthorizedException
 	 */
 	public void validateUpdateAccess(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException, UnauthorizedException;
+	
+	/**
+	 * Does an entity have children?
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 */
+	public boolean doesEntityHaveChildren(UserInfo userInfo, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 }

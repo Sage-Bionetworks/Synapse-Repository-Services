@@ -410,7 +410,7 @@ public class IT500SynapseJavaClient {
 				EntityBundle.PERMISSIONS |
 				EntityBundle.ENTITY_PATH |
 				EntityBundle.ENTITY_REFERENCEDBY |
-				EntityBundle.CHILD_COUNT |
+				EntityBundle.HAS_CHILDREN |
 				EntityBundle.ACL |
 				EntityBundle.USERS |
 				EntityBundle.GROUPS;
@@ -431,7 +431,7 @@ public class IT500SynapseJavaClient {
 		assertEquals("Invalid fetched ReferencedBy in the EntityBundle", 
 				synapse.getEntityReferencedBy(project), entityBundle.getReferencedBy());
 		assertEquals("Invalid fetched ChildCount in the EntityBundle", 
-				synapse.getChildCount(project.getId()), entityBundle.getChildCount());
+				synapse.getChildCount(project.getId()) > 0, entityBundle.getHasChildren());
 		assertEquals("Invalid fetched ACL in the EntityBundle", 
 				synapse.getACL(project.getId()), entityBundle.getAccessControlList());
 		assertEquals("Invalid fetched Users in the EntityBundle", 

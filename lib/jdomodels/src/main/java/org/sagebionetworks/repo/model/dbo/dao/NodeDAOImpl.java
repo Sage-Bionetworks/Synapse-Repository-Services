@@ -102,6 +102,11 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String SQL_COUNT_STRING_ANNOTATIONS_FOR_NODE = "SELECT COUNT("+ANNOTATION_OWNER_ID_COLUMN+") FROM "+TABLE_STRING_ANNOTATIONS+" WHERE "+ANNOTATION_OWNER_ID_COLUMN+" = ? AND "+ANNOTATION_ATTRIBUTE_COLUMN+" = ?";
+	
+	/**
+	 * To determine if a node has children we fetch the first child ID.
+	 */
+	private static final String SQL_GET_FIRST_CHILD = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? LIMIT 1 OFFSET 0";
 
 	// get all ids, paginated
 	private static final String SQL_GET_NODES_PAGINATED =
@@ -1223,5 +1228,18 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		queryResults.setResults(ods);
 		queryResults.setTotalNumberOfResults((int)getCount());
 		return queryResults;
+	}
+
+	@Override
+	public boolean doesNodeHaveChildren(String nodeId) {
+		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
+		try{
+			long id = this.simpleJdbcTemplate.queryForLong(SQL_GET_FIRST_CHILD, KeyFactory.stringToKey(nodeId));
+			// At least one node has this parent id.
+			return true;
+		}catch(EmptyResultDataAccessException e){
+			// Nothing has that parent id.
+			return false;
+		}
 	}
 }
