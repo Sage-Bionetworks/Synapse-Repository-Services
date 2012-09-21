@@ -31,11 +31,10 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 	public static final String SQL_GET_ALL_STATUS = "SELECT "+COL_STACK_STATUS_STATUS+", "+COL_STACK_STATUS_CURRENT_MESSAGE+", "+COL_STACK_STATUS_PENDING_MESSAGE+" FROM "+TABLE_STACK_STATUS+" WHERE "+COL_NODE_ID+" = "+DBOStackStatus.STATUS_ID;
 	
 	@Autowired
-	DBOBasicDao dboBasicDao;
-	
+	DBOBasicDao dboBasicDao;	
 	// This is better suited for simple JDBC query.
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 
 
 	/**
@@ -94,7 +93,6 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 		throw new IllegalArgumentException("StatusEnum cannot be null");
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public StackStatus getFullCurrentStatus() {
 		RowMapper<StackStatus> mapper = new RowMapper<StackStatus>() {
@@ -110,13 +108,12 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 			}
 		};
 		// Get the data
-		return simpleJdbcTempalte.queryForObject(SQL_GET_ALL_STATUS, mapper);
+		return simpleJdbcTemplate.queryForObject(SQL_GET_ALL_STATUS, mapper);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public StatusEnum getCurrentStatus() {
-		int index = simpleJdbcTempalte.queryForInt(SQL_GET_STATUS);
+		int index = simpleJdbcTemplate.queryForInt(SQL_GET_STATUS);
 		return StatusEnum.values()[index];
 	}
 

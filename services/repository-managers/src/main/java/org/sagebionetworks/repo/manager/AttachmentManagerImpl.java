@@ -28,8 +28,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author jmhill
  *
  */
-public class AttachmentManagerImpl implements AttachmentManager{
-	
+public class AttachmentManagerImpl implements AttachmentManager{	
 		
 	@Autowired
 	AmazonS3Utility s3Utility;

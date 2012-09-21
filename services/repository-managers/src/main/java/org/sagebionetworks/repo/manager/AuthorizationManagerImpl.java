@@ -19,26 +19,19 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 
-@Transactional(readOnly = true)
 public class AuthorizationManagerImpl implements AuthorizationManager {
 	
 	@Autowired
-	private NodeInheritanceDAO nodeInheritanceDAO;
-	
+	private NodeInheritanceDAO nodeInheritanceDAO;	
 	@Autowired
-	private AccessControlListDAO accessControlListDAO;
-	
+	private AccessControlListDAO accessControlListDAO;	
 	@Autowired
-	private AccessRequirementDAO  accessRequirementDAO;
-	
+	private AccessRequirementDAO  accessRequirementDAO;	
 	@Autowired
-	NodeQueryDao nodeQueryDao;
-	
+	NodeQueryDao nodeQueryDao;	
 	@Autowired
 	NodeDAO nodeDAO;
-
 
 	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
 		User user = userInfo.getUser();
@@ -60,17 +53,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		return accessRequirementIds.isEmpty();
 	}
 	
-	/**
-	 * 
-	 * @param nodeId
-	 * @param accessType
-	 * 
-	 * @return true iff the given group has the given access to the given node
-	 * 
-	 * @exception NotFoundException if the group or node is invalid
-	 * 
-	 */
-	@Transactional(readOnly = true)
 	@Override
 	public boolean canAccess(UserInfo userInfo, final String nodeId, ACCESS_TYPE accessType) 
 		throws NotFoundException, DatastoreException {
@@ -91,18 +73,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		return accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, accessType);
 	}
 
-	/**
-     *
-	 * @param nodeId
-	 * @param accessType
-	 * 
-	 * @return true iff either (1) the user has 'add child' access to the parent or (2) parent is null
-	 * and user is admin
-	 * 
-	 * @exception NotFoundException if the group or node is invalid
-	 * 
-	 */
-	@Transactional(readOnly = true)
 	@Override
 	public boolean canCreate(UserInfo userInfo, final Node node) 
 		throws NotFoundException, DatastoreException {
@@ -126,7 +96,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		return accessControlListDAO.authorizationSQL(n);
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo,	String entityId) throws NotFoundException, DatastoreException {
 		UserEntityPermissions permission = new UserEntityPermissions();

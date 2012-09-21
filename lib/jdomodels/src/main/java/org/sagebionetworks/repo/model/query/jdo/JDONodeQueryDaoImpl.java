@@ -27,7 +27,6 @@ import org.sagebionetworks.repo.model.query.FieldType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Implementation of the NodeQueryDao using JDO.
@@ -57,7 +56,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	/**
 	 * Execute the actual query
 	 */
-	@Transactional(readOnly = true)
 	@Override
 	public NodeQueryResults executeQuery(BasicQuery query, UserInfo userInfo) throws DatastoreException {
 		try {
@@ -72,7 +70,6 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 	/**
 	 * Execute a count query.
 	 */
-	@Transactional(readOnly = true)
 	@Override
 	public long executeCountQuery(BasicQuery query, UserInfo userInfo)
 			throws DatastoreException {
