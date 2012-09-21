@@ -136,6 +136,10 @@
 	<bean id="s3Utility" class="org.sagebionetworks.repo.manager.AmazonS3UtilityImpl"
 		scope="singleton" />
 
+	<bean id="storageUsageManager"
+		class="org.sagebionetworks.repo.manager.StorageUsageManagerImpl"
+		scope="singleton" />
+
 	<bean id="attachmentManager" class="org.sagebionetworks.repo.manager.AttachmentManagerImpl"
 		scope="singleton" />
 
