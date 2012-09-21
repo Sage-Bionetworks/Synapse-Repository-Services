@@ -5,19 +5,32 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public class EntityBundleServiceImpl implements EntityBundleService {
 	
 	@Autowired
 	ServiceProvider serviceProvider;
+	
+	@Override
+	public void setServiceProvider(ServiceProvider serviceProvider) {
+		this.serviceProvider = serviceProvider;
+	}
 
 	@Override
 	public EntityBundle getEntityBundle(String userId, String entityId, int mask, HttpServletRequest request, 
@@ -82,5 +95,40 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		return eb;
 
 	}	
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public EntityBundle createEntityBundle(String userId, EntityBundleCreate ebc, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+		if (ebc.getEntity() == null) {
+			throw new IllegalArgumentException("Invalid request: no entity to create");
+		}
+		
+		int partsMask = 0;
+		
+		// Create the Entity
+		partsMask += EntityBundle.ENTITY;
+		Entity toCreate = ebc.getEntity();
+		Entity entity = serviceProvider.getEntityService().createEntity(userId, toCreate, request);
+		
+		// Create the ACL
+		if (ebc.getAccessControlList() != null) {
+			partsMask += EntityBundle.ACL;
+			AccessControlList acl = ebc.getAccessControlList();
+			acl.setId(entity.getId());
+			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null, request);
+			ebc.setAccessControlList(acl);
+		}
+		
+		// Create the Annotations
+		if (ebc.getAnnotations() != null) {
+			partsMask += EntityBundle.ANNOTATIONS;
+			Annotations annos = serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId(), request);
+			annos.addAll(ebc.getAnnotations());
+			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos, request);
+			ebc.setAnnotations(annos);
+		}
+		
+		return getEntityBundle(userId, entity.getId(), partsMask, request, null, null, null, null);
+	}
 
 }

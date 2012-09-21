@@ -5,12 +5,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import javax.servlet.ServletException;
 
 import org.junit.After;
@@ -45,6 +43,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @MockWebApplication
 public class EntityBundleControllerTest {
 	
+	private static final String DUMMY_STUDY_2 = "Test Study 2";
+	private static final String DUMMY_STUDY_1 = "Test Study 1";
+	private static final String DUMMY_PROJECT = "Test Project";
+
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
 	
@@ -78,21 +80,21 @@ public class EntityBundleControllerTest {
 	public void testGetEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
 		// Create an entity
 		Project p = new Project();
-		p.setName("Dummy Project");
+		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
 		String id = p2.getId();
 		toDelete.add(id);
 		
 		Study s1 = new Study();
-		s1.setName("Dummy Study 1");
+		s1.setName(DUMMY_STUDY_1);
 		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
 		s1 = (Study) entityServletHelper.createEntity(s1, TEST_USER1);
 		toDelete.add(s1.getId());
 		
 		Study s2 = new Study();
-		s2.setName("Dummy Study 2");
+		s2.setName(DUMMY_STUDY_2);
 		s2.setEntityType(s2.getClass().getName());
 		s2.setParentId(id);
 		s2 = (Study) entityServletHelper.createEntity(s2, TEST_USER1);
@@ -153,14 +155,14 @@ public class EntityBundleControllerTest {
 	public void testGetEntityBundleInheritedACL() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
 		// Create an entity
 		Project p = new Project();
-		p.setName("Dummy Project");
+		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
 		String id = p2.getId();
 		toDelete.add(id);
 		
 		Study s1 = new Study();
-		s1.setName("Dummy Study 1");
+		s1.setName(DUMMY_STUDY_1);
 		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
 		s1 = (Study) entityServletHelper.createEntity(s1, TEST_USER1);
@@ -191,7 +193,7 @@ public class EntityBundleControllerTest {
 	public void testGetEntityBundleForVersion() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {		
 		// Create an entity
 		Project p = new Project();
-		p.setName("Dummy Project");
+		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
 		String parentId = p2.getId();
@@ -208,6 +210,7 @@ public class EntityBundleControllerTest {
 		d1.setMd5("c88c3db97754be31f9242eb3c08382ee");
 		d1 = (Data) entityServletHelper.createEntity(d1, TEST_USER1);
 		toDelete.add(d1.getId());
+		
 		// Get/add/update annotations for this entity
 		Annotations a1 = entityServletHelper.getEntityAnnotaions(d1.getId(), TEST_USER1);
 		a1.addAnnotation("v1", new Long(1));
@@ -256,7 +259,7 @@ public class EntityBundleControllerTest {
 	public void testGetPartialEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
 		// Create an entity
 		Project p = new Project();
-		p.setName("Dummy Project");
+		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
 		String id = p2.getId();
@@ -300,4 +303,5 @@ public class EntityBundleControllerTest {
 		PaginatedResults<UserGroup> ug = eb.getGroups();
 		assertNull("UserGroups were not requested, but were returned in bundle", ug);
 	}
+
 }

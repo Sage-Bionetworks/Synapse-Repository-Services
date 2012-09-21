@@ -15,7 +15,6 @@ import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 

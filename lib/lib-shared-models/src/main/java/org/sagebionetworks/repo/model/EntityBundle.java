@@ -29,17 +29,18 @@ public class EntityBundle implements JSONEntity {
 	
 	private static AutoGenFactory autoGenFactory = new AutoGenFactory();
 	
-	private static final String JSON_ENTITY = "entity";
-	private static final String JSON_ENTITY_TYPE = "entityType";
-	private static final String JSON_ANNOTATIONS = "annotations";
-	private static final String JSON_PERMISSIONS = "permissions";
-	private static final String JSON_PATH = "path";
-	private static final String JSON_REFERENCED_BY = "referencedBy";
-	private static final String JSON_HAS_CHILDREN = "hasChildren";
-	private static final String JSON_ACL = "accessControlList";
-	private static final String JSON_USERS = "users";
-	private static final String JSON_GROUPS = "groups";
-	
+
+	protected static final String JSON_ENTITY 			= "entity";
+	protected static final String JSON_ENTITY_TYPE 		= "entityType";
+	protected static final String JSON_ANNOTATIONS 		= "annotations";
+	protected static final String JSON_PERMISSIONS 		= "permissions";
+	protected static final String JSON_PATH				= "path";
+	protected static final String JSON_REFERENCED_BY 	= "referencedBy";
+	protected static final String JSON_HAS_CHILDREN 	= "hasChildren";
+	protected static final String JSON_ACL 				= "accessControlList";
+	protected static final String JSON_USERS 			= "users";
+	protected static final String JSON_GROUPS 			= "groups";
+
 	private Entity entity;
 	private String entityType;
 	private Annotations annotations;
@@ -328,6 +329,8 @@ public class EntityBundle implements JSONEntity {
 			return "EntityBundle (empty)";
 		StringBuilder sb = new StringBuilder();
 		sb.append("EntityBundle (" + entity.getName() + ") contains [");
+		if (entity != null)
+			sb.append("ENTITY");
 		if (annotations != null)
 			sb.append("ANNOTATIONS, ");
 		if (permissions != null)

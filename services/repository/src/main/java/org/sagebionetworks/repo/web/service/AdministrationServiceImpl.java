@@ -36,23 +36,16 @@ import org.springframework.http.HttpHeaders;
 public class AdministrationServiceImpl implements AdministrationService  {
 	
 	@Autowired
-	private BackupDaemonLauncher backupDaemonLauncher;
-	
+	private BackupDaemonLauncher backupDaemonLauncher;	
 	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;
-	
+	ObjectTypeSerializer objectTypeSerializer;	
 	@Autowired
 	UserManager userManager;
-	
 	@Autowired
-	StackStatusManager stackStatusManager;
-	
+	StackStatusManager stackStatusManager;	
 	@Autowired
 	DependencyManager dependencyManager;
 	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getAllBackupObjects(java.lang.String, java.lang.Integer, java.lang.Integer, java.lang.Boolean)
-	 */
 	@Override
 	public PaginatedResults<MigratableObjectData> getAllBackupObjects(
 			String userId, Integer offset, Integer limit, Boolean  includeDependencies)
@@ -66,10 +59,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		return result;
 	}
 	
-	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.AdministrationService#startBackup(java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
-	 */
 	@Override
 	public BackupRestoreStatus startBackup(String userId, String type, 
 			HttpHeaders header,	HttpServletRequest request)

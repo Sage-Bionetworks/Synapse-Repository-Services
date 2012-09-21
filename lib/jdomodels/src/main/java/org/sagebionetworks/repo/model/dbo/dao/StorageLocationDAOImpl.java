@@ -109,7 +109,6 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 		}
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public Long getTotalUsage(String userId) throws DatastoreException {
 
@@ -125,7 +124,6 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 		return total;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public StorageUsageSummaryList getAggregatedUsage(String userId,
 			List<StorageUsageDimension> dimensionList)
@@ -194,7 +192,6 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 		return summaryList;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public StorageUsageList getStorageUsageInRange(String userId, long beginIncl, long endExcl)
 			throws DatastoreException {

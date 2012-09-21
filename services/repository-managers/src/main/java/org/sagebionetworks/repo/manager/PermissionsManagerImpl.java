@@ -5,8 +5,6 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -30,29 +28,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@Transactional(readOnly = true)
 public class PermissionsManagerImpl implements PermissionsManager {
 	
 	
 	@Autowired
-	private AccessControlListDAO aclDAO;
-	
+	private AccessControlListDAO aclDAO;	
 	@Autowired
-	private AuthorizationManager authorizationManager;
-	
+	private AuthorizationManager authorizationManager;	
 	@Autowired
-	private NodeInheritanceManager nodeInheritanceManager;
-	
+	private NodeInheritanceManager nodeInheritanceManager;	
 	@Autowired
-	NodeDAO nodeDao;
-	
+	NodeDAO nodeDao;	
 	@Autowired
-	private UserGroupDAO userGroupDAO;
-	
+	private UserGroupDAO userGroupDAO;	
 	@Autowired
 	private UserManager userManager;
 
-	@Transactional(readOnly = true)
 	@Override
 	public AccessControlList getACL(String nodeId, UserInfo userInfo) throws NotFoundException, DatastoreException, ACLInheritanceException {
 		// get the id that this node inherits its permissions from
@@ -187,7 +178,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 			// must be authorized to modify permissions
 			if (authorizationManager.canAccess(userInfo, idToChange, ACCESS_TYPE.CHANGE_PERMISSIONS)) {
 				// delete child ACL, if present
-				if (isOwnBenefactor(idToChange)) {
+				if (hasLocalACL(idToChange)) {
 					// Before we can update the ACL we must grab the lock on the node.
 					Node node = nodeDao.getNode(idToChange);
 					nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
@@ -252,13 +243,10 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		return authorizationManager.getUserPermissionsForEntity(userInfo, entityId);
 	}
 
-	/**
-	 * Is a node its own benefactor? In other words, does a node have a locally-
-	 * defined ACL?
-	 */
-	private boolean isOwnBenefactor(String rId) {
+	@Override
+	public boolean hasLocalACL(String resourceId) {
 		try {
-			return nodeInheritanceManager.getBenefactor(rId).equals(rId);
+			return nodeInheritanceManager.getBenefactor(resourceId).equals(resourceId);
 		} catch (Exception e) {
 			return false;
 		}
