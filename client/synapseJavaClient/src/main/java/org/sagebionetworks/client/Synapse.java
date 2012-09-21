@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.LocationData;
@@ -110,6 +111,7 @@ public class Synapse {
 	protected static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
 	protected static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
 	protected static final String ENTITY_BUNDLE_PATH = "/bundle?mask=";
+	protected static final String BUNDLE = "/bundle";
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
@@ -440,6 +442,31 @@ public class Synapse {
 			// Now convert to Object to an entity
 			return (T) EntityFactory.createEntityFromJSONObject(jsonObject,
 					entity.getClass());
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	/**
+	 * Get a bundle of information about an entity in a single call.
+	 * 
+	 * @param entityId
+	 * @param partsMask
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public EntityBundle createEntityBundle(EntityBundleCreate ebc) throws SynapseException {
+		if (ebc == null)
+			throw new IllegalArgumentException("EntityBundle cannot be null");
+		String url = ENTITY_URI_PATH + BUNDLE;
+		JSONObject jsonObject;
+		try {
+			// Convert to JSON
+			jsonObject = EntityFactory.createJSONObjectForEntity(ebc);
+			// Create
+			jsonObject = createEntity(url, jsonObject);
+			// Convert returned JSON to EntityBundle
+			return EntityFactory.createEntityFromJSONObject(jsonObject,	EntityBundle.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}

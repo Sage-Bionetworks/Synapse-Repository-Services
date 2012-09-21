@@ -23,15 +23,15 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Autowired
-	private AccessRequirementDAO accessRequirementDAO;
-		
+	private AccessRequirementDAO accessRequirementDAO;		
 	@Autowired
-	private AccessApprovalDAO accessApprovalDAO;
-	
+	private AccessApprovalDAO accessApprovalDAO;	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
@@ -59,6 +59,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		a.setModifiedOn(now);
 	}
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ForbiddenException {
 		validateAccessRequirement(accessRequirement);
@@ -98,6 +99,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return result;
 	}	
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends AccessRequirement> T updateAccessRequirement(UserInfo userInfo, T accessRequirement) throws NotFoundException, UnauthorizedException, ConflictingUpdateException, InvalidModelException, ForbiddenException, DatastoreException {
 		validateAccessRequirement(accessRequirement);
@@ -106,6 +108,7 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		return accessRequirementDAO.update(accessRequirement);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteAccessRequirement(UserInfo userInfo,
 			String accessRequirementId) throws NotFoundException,

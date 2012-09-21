@@ -39,16 +39,15 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
+	
 	@Autowired
 	private DBOBasicDao basicDao;
-
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
 	private ETagGenerator eTagGenerator;
-
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	private static final String SELECT_FOR_REQUIREMENT_SQL = 
 		"SELECT * FROM "+TABLE_ACCESS_APPROVAL+" WHERE "+
@@ -107,7 +106,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		MapSqlParameterSource params = new MapSqlParameterSource();		
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementIds);
 		params.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
-		List<DBOAccessApproval> dbos = simpleJdbcTempalte.query(SELECT_FOR_REQUIREMENT_AND_PRINCIPAL_SQL, rowMapper, params);
+		List<DBOAccessApproval> dbos = simpleJdbcTemplate.query(SELECT_FOR_REQUIREMENT_AND_PRINCIPAL_SQL, rowMapper, params);
 		for (DBOAccessApproval dbo : dbos) {
 			AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
 			// validate:  The principal ID and accessor ID should each be from the passed in lists
@@ -145,7 +144,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		param.addValue(COL_ACCESS_APPROVAL_ID, dto.getId());
 		List<DBOAccessApproval> aas = null;
 		try{
-			aas = simpleJdbcTempalte.query(SELECT_FOR_UPDATE_SQL, new RowMapper<DBOAccessApproval>(){
+			aas = simpleJdbcTemplate.query(SELECT_FOR_UPDATE_SQL, new RowMapper<DBOAccessApproval>(){
 				@Override
 				public DBOAccessApproval mapRow(ResultSet rs, int rowNum)
 						throws SQLException {
@@ -192,7 +191,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		List<AccessApproval> dtos = new ArrayList<AccessApproval>();
 		MapSqlParameterSource params = new MapSqlParameterSource();		
 		params.addValue(COL_ACCESS_APPROVAL_REQUIREMENT_ID, accessRequirementId);
-		List<DBOAccessApproval> dbos = simpleJdbcTempalte.query(SELECT_FOR_REQUIREMENT_SQL, rowMapper, params);
+		List<DBOAccessApproval> dbos = simpleJdbcTemplate.query(SELECT_FOR_REQUIREMENT_SQL, rowMapper, params);
 		for (DBOAccessApproval dbo : dbos) {
 			AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
 			if (!accessRequirementId.equals(dto.getRequirementId().toString()))

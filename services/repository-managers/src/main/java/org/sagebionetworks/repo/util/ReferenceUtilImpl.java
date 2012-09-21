@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.transaction.annotation.Transactional;
 
 public class ReferenceUtilImpl implements ReferenceUtil {
 	
@@ -24,7 +23,6 @@ public class ReferenceUtilImpl implements ReferenceUtil {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	@Transactional(readOnly = true)
 	public void replaceNullVersionNumbersWithCurrent(Map<String, Set<Reference>> references) throws DatastoreException {
 		if(references != null){
 			// Find any revision that is missing its rev number;
