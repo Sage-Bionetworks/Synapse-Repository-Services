@@ -19,6 +19,8 @@ public class UserProfileManagerUtils {
 	 * @return
 	 */
 	public static boolean isPublic(String property) {
+		//profile picture is always public, even though AttachmentData might not be
+		if (property.equals("pic")) return true;
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		Map<String, ObjectSchema> schemaProperties = schema.getProperties();	
 		ObjectSchema propertySchema = schemaProperties.get(property);
