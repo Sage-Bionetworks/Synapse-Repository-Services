@@ -145,6 +145,7 @@ public class IT510SynapseJavaClientSearchTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // This test does not seem stable.
 	@Test
 	public void testSearch() throws Exception {
 		SearchQuery searchQuery = new SearchQuery();
@@ -210,6 +211,7 @@ public class IT510SynapseJavaClientSearchTest {
 	/**
 	 * @throws Exception
 	 */
+	@Ignore // This test does not appear to be stable.
 	@Test
 	public void testFacetedSearch() throws Exception {
 		SearchQuery searchQuery = new SearchQuery();
