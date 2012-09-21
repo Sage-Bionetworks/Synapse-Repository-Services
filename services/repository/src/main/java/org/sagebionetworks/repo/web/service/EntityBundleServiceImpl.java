@@ -60,13 +60,8 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		if ((mask & EntityBundle.ENTITY_REFERENCEDBY) > 0) {
 			eb.setReferencedBy(serviceProvider.getEntityService().getEntityReferences(userId, entityId, null, null, null, request));
 		}
-		if ((mask & EntityBundle.CHILD_COUNT) > 0) {
-			try {
-				eb.setChildCount(serviceProvider.getEntityService().getChildCount(userId, entityId, request));
-			} catch (ParseException e) {
-				eb.setChildCount(null);
-				throw e;
-			}
+		if ((mask & EntityBundle.HAS_CHILDREN) > 0) {
+			eb.setHasChildren(serviceProvider.getEntityService().doesEntityHaveChildren(userId, entityId, request));
 		}
 		if ((mask & EntityBundle.ACL) > 0) {
 			try {

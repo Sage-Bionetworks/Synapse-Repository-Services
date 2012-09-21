@@ -502,4 +502,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return referenceDao.getReferrers(KeyFactory.stringToKey(nodeId), versionNumber, userInfo, offset, limit);
 	}
 
+	@Override
+	public boolean doesNodeHaveChildren(String nodeId) {
+		return nodeDao.doesNodeHaveChildren(nodeId);
+	}
+
 }
