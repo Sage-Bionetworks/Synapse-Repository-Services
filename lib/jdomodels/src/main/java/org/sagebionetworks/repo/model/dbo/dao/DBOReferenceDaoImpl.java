@@ -43,7 +43,6 @@ import org.springframework.transaction.annotation.Transactional;
  * @author John
  *
  */
-@Transactional(readOnly = true)
 public class DBOReferenceDaoImpl implements DBOReferenceDao {
 	
 	private static final String DELETE_SQL = "DELETE FROM "+TABLE_REFERENCE+" WHERE "+COL_REFERENCE_OWNER_NODE+" = ?";
@@ -66,7 +65,6 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
-
 	@Autowired
 	DBOBasicDao dboBasicDao;
 	
@@ -84,7 +82,7 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 		}
 		return references;
 	}
-	@Transactional(readOnly = true)
+	
 	@Override
 	public Map<String, Set<Reference>> getReferences(Long ownerId) {
 		if(ownerId == null) throw new IllegalArgumentException("OwnerId cannot be null");
@@ -114,18 +112,6 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 		return results;
 	}
 
-
-	/**
-	 * Get the EntityHeaders of the entities which refer to a given target
-	 * if targetVersion is not null then return just the referrers of the given specific version of the target
-	 * @param targetId the Node ID of the target
-	 * @param targetVersion the version of the target
-	 * @param offset ZERO based pagination param
-	 * @param limit pagination param
-	 * @return a List of EntityHeaders
-	 * 
-	 */
-	@Transactional(readOnly = true)
 	@Override
 	public EntityHeaderQueryResults getReferrers(Long targetId, Integer targetVersion, UserInfo userInfo, Integer offset, Integer limit) throws DatastoreException {
 		if(targetId == null) throw new IllegalArgumentException("targetId cannot be null");

@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.http.HttpException;
 import org.json.JSONArray;
@@ -41,6 +42,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
@@ -438,6 +440,51 @@ public class IT500SynapseJavaClient {
 				synapse.getUsers(offset, limit), entityBundle.getUsers());
 		assertEquals("Invalid fetched Groups in the EntityBundle", 
 				synapse.getGroups(offset, limit), entityBundle.getGroups());
+	}
+	
+	@Test
+	public void testJavaClientCreateEntityBundle() throws SynapseException {
+		// Create an entity		
+		Study s1 = new Study();
+		s1.setName("Dummy Study 1");
+		s1.setEntityType(s1.getClass().getName());
+		s1.setParentId(project.getId());
+		
+		// Create annotations for this entity
+		Annotations a1 = new Annotations();		
+		a1.addAnnotation("doubleAnno", new Double(45.0001));
+		a1.addAnnotation("string", "A string");
+		
+		// Create ACL for this entity
+		AccessControlList acl1 = new AccessControlList();
+		Set<ResourceAccess> resourceAccess = new TreeSet<ResourceAccess>();
+		acl1.setResourceAccess(resourceAccess);
+		
+		// Create the bundle, verify contents
+		EntityBundleCreate ebc = new EntityBundleCreate();
+		ebc.setEntity(s1);
+		ebc.setAnnotations(a1);
+		ebc.setAccessControlList(acl1);
+				
+		EntityBundle response = synapse.createEntityBundle(ebc);
+		
+		Study s2 = (Study) response.getEntity();
+		assertNotNull(s2);
+		assertNotNull("Etag should have been generated, but was not", s2.getEtag());
+		assertEquals(s1.getName(), s2.getName());
+		
+		Annotations a2 = response.getAnnotations();
+		assertNotNull(a2);
+		assertNotNull("Etag should have been generated, but was not", a2.getEtag());
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a1.getStringAnnotations(), a2.getStringAnnotations());
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a1.getDoubleAnnotations(), a2.getDoubleAnnotations());
+		
+		AccessControlList acl2 = response.getAccessControlList();
+		assertNotNull(acl2);
+		assertNotNull("Etag should have been generated, but was not", acl2.getEtag());
+		assertEquals("Retrieved ACL in bundle does not match original one", acl1.getResourceAccess(), acl2.getResourceAccess());
+	
+		synapse.deleteEntityById(s2.getId());
 	}
 
 	/**

@@ -19,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
  * @author jmhill
  *
  */
-@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	
 	@Autowired

@@ -23,11 +23,11 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@Transactional(readOnly = true)
 public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	
 	private static final String SELECT_BENEFICIARIES = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_BENEFACTOR_ID+" = ?";
 	private static final String SELECT_BENEFACTOR = "SELECT "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
+	
 	@Autowired
 	DBOBasicDao dboBasicDao;
 	@Autowired
@@ -47,7 +47,6 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		return dboBasicDao.getObjectById(DBONode.class, params);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public Set<String> getBeneficiaries(String benefactorId) throws NotFoundException, DatastoreException {
 		Long id = KeyFactory.stringToKey(benefactorId);
@@ -59,7 +58,6 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		return new HashSet<String>(list);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public String getBenefactor(String beneficiaryId) throws NotFoundException, DatastoreException {
 		try{

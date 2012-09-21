@@ -33,14 +33,13 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 public class DBOUserProfileDAOImpl implements UserProfileDAO {
-	@Autowired
-	private DBOBasicDao basicDao;
-
-	@Autowired
-	private ETagGenerator eTagGenerator;
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
+	private DBOBasicDao basicDao;
+	@Autowired
+	private ETagGenerator eTagGenerator;	
+	@Autowired
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	private static final String SELECT_PAGINATED = 
 			"SELECT * FROM "+SqlConstants.TABLE_USER_PROFILE+
@@ -89,7 +88,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		long limit = toExcl - fromIncl;
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<DBOUserProfile> dbos = simpleJdbcTempalte.query(SELECT_PAGINATED, userProfileRowMapper, param);
+		List<DBOUserProfile> dbos = simpleJdbcTemplate.query(SELECT_PAGINATED, userProfileRowMapper, param);
 		List<UserProfile> dtos = new ArrayList<UserProfile>();
 		for (DBOUserProfile dbo : dbos) {
 			UserProfile dto = new UserProfile();
@@ -137,7 +136,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, dto.getOwnerId());
 		try{
-			dbo = simpleJdbcTempalte.queryForObject(SELECT_FOR_UPDATE_SQL, TABLE_MAPPING, param);
+			dbo = simpleJdbcTemplate.queryForObject(SELECT_FOR_UPDATE_SQL, TABLE_MAPPING, param);
 		}catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("The resource you are attempting to access cannot be found");
 		}

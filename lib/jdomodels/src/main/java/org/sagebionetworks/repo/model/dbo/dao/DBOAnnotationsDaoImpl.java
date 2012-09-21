@@ -28,7 +28,6 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@Transactional(readOnly = true)
 public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 	
 	private static String[] ANNOTATION_TABLES = new String[]{
@@ -58,17 +57,15 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 	private static String SELECT_DATE_ANNOS = String.format(SELECT_FORMAT, TABLE_DATE_ANNOTATIONS);
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
-
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
 	DBOBasicDao dboBasicDao;
 	
-	@Transactional(readOnly = true)
 	@Override
 	public Annotations getAnnotations(Long owner) {
 		final Annotations results = new Annotations();
 		// First select the string annotations
-		simpleJdbcTempalte.query(SELECT_STRING_ANNOS, new RowMapper<String>() {
+		simpleJdbcTemplate.query(SELECT_STRING_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String key = rs.getString(ANNOTATION_ATTRIBUTE_COLUMN);
@@ -78,7 +75,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 			}
 		}, owner);
 		// Get the longs
-		simpleJdbcTempalte.query(SELECT_LONG_ANNOS, new RowMapper<String>() {
+		simpleJdbcTemplate.query(SELECT_LONG_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String key = rs.getString(ANNOTATION_ATTRIBUTE_COLUMN);
@@ -91,7 +88,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 			}
 		}, owner);
 		// Get the doubles
-		simpleJdbcTempalte.query(SELECT_DOUBLE_ANNOS, new RowMapper<String>() {
+		simpleJdbcTemplate.query(SELECT_DOUBLE_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String key = rs.getString(ANNOTATION_ATTRIBUTE_COLUMN);
@@ -104,7 +101,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 			}
 		}, owner);
 		// Get the dates
-		simpleJdbcTempalte.query(SELECT_DATE_ANNOS, new RowMapper<String>() {
+		simpleJdbcTemplate.query(SELECT_DATE_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String key = rs.getString(ANNOTATION_ATTRIBUTE_COLUMN);
@@ -125,7 +122,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		Long ownerId = KeyFactory.stringToKey(annotations.getId());
 		// First we must delete all annotations for this node.
 		for(String deleteSql: ALL_DELETE_SQL){
-			simpleJdbcTempalte.update(deleteSql, ownerId);
+			simpleJdbcTemplate.update(deleteSql, ownerId);
 		}
 		// Create the string.
 		Map<String, List<String>> stringAnnos = annotations.getStringAnnotations();

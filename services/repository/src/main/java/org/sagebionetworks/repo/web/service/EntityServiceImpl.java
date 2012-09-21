@@ -53,6 +53,8 @@ import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProv
 import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * Implementation for REST controller for CRUD operations on Entity DTOs and Entity
@@ -133,7 +135,6 @@ public class EntityServiceImpl implements EntityService {
 				userInfo, query);
 	}
 	
-
 	@Override
 	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(
 			String userId, Integer offset, Integer limit, String entityId,
@@ -288,6 +289,7 @@ public class EntityServiceImpl implements EntityService {
 		return getEntityForVersion(userId, id, versionNumber, request, type.getClassForType());
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> T createEntity(String userId, T newEntity, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -320,7 +322,7 @@ public class EntityServiceImpl implements EntityService {
 	 * @throws UnauthorizedException
 	 * @throws InvalidModelException
 	 */
-	public void fireValidateEvent(UserInfo userInfo, EventType eventType, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
+	private void fireValidateEvent(UserInfo userInfo, EventType eventType, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
 		List<EntityHeader> newParentPath = null;
 		if(entity.getParentId() != null){
 			newParentPath = entityManager.getEntityPathAsAdmin(entity.getParentId());
@@ -349,6 +351,7 @@ public class EntityServiceImpl implements EntityService {
 		}
 	}
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> T updateEntity(String userId,
 			T updatedEntity, boolean newVersion, HttpServletRequest request)
@@ -373,6 +376,7 @@ public class EntityServiceImpl implements EntityService {
 		return getEntity(userInfo, entityId, request, clazz, eventType);
 	}
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteEntity(String userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -384,7 +388,7 @@ public class EntityServiceImpl implements EntityService {
 		deleteEntity(userId, entityId, type.getClassForType());
 	}
 
-	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> void deleteEntity(String userId, String id, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -406,6 +410,7 @@ public class EntityServiceImpl implements EntityService {
 		return;
 	}
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteEntityVersion(String userId, String id, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
@@ -417,6 +422,7 @@ public class EntityServiceImpl implements EntityService {
 		deleteEntityVersion(userId, entityId, versionNumber, type.getClassForType());
 	}
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> void deleteEntityVersion(String userId, String id,
 			Long versionNumber, Class<? extends Entity> classForType) throws DatastoreException, NotFoundException, UnauthorizedException, ConflictingUpdateException {
@@ -460,7 +466,6 @@ public class EntityServiceImpl implements EntityService {
 		return annotations;
 	}
 	
-
 	@Override
 	public Annotations getEntityAnnotationsForVersion(String userId, String id,
 			Long versionNumber, HttpServletRequest request)
@@ -471,7 +476,7 @@ public class EntityServiceImpl implements EntityService {
 		return annotations;
 	}
 
-
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Annotations updateEntityAnnotations(String userId, String entityId,
 			Annotations updatedAnnotations, HttpServletRequest request) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
@@ -482,7 +487,6 @@ public class EntityServiceImpl implements EntityService {
 		addServiceSpecificMetadata(updatedAnnotations.getId(), annos, request);
 		return annos;
 	}
-
 
 	@Override
 	public <T extends Entity> List<T> getEntityChildrenOfType(String userId,
@@ -515,6 +519,7 @@ public class EntityServiceImpl implements EntityService {
 		return qr.getTotalNumberOfResults();
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,	HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
@@ -533,21 +538,7 @@ public class EntityServiceImpl implements EntityService {
 		return newList;
 	}
 
-	/**
-	 * Create a new entity
-	 * <p>
-	 * 
-	 * @param userId
-	 * @param newACL
-	 * @param request
-	 *            used to get the servlet URL prefix
-	 * @return the newly created entity
-	 * @throws InvalidModelException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException 
-	 * @throws ConflictingUpdateException 
-	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AccessControlList createEntityACL(String userId, AccessControlList newACL,
 			HttpServletRequest request) throws DatastoreException,
@@ -558,8 +549,6 @@ public class EntityServiceImpl implements EntityService {
 		acl.setUri(request.getRequestURI());
 		return acl;
 	}
-
-	
 
 	@Override
 	public  AccessControlList getEntityACL(String entityId, String userId, HttpServletRequest request)
@@ -573,19 +562,34 @@ public class EntityServiceImpl implements EntityService {
 		return acl;
 	}
 
-
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AccessControlList updateEntityACL(String userId,
 			AccessControlList updated, String recursive, HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
 		// Resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		AccessControlList acl = permissionsManager.updateACL(updated, userInfo);
-		if (recursive.equalsIgnoreCase("true"))
+		if (recursive != null && recursive.equalsIgnoreCase("true"))
 			permissionsManager.applyInheritanceToChildren(updated.getId(), userInfo);
 		acl.setUri(request.getRequestURI());
 		return acl;
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public AccessControlList createOrUpdateEntityACL(String userId,
+			AccessControlList acl, String recursive, HttpServletRequest request) throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
+		String entityId = acl.getId();
+		if (permissionsManager.hasLocalACL(entityId)) {
+			// Local ACL exists; update it
+			return updateEntityACL(userId, acl, recursive, request);
+		} else {
+			// Local ACL does not exist; create it
+			return createEntityACL(userId, acl, request);			
+		}
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteEntityACL(String userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException {
@@ -593,22 +597,12 @@ public class EntityServiceImpl implements EntityService {
 		permissionsManager.restoreInheritance(id, userInfo);
 	}
 
-	/**
-	 * determine whether a user has the given access type for a given entity
-	 * @param nodeId
-	 * @param userId
-	 * @param accessType
-	 * @return
-	 * @throws NotFoundException
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException 
-	 */
+	@Override
 	public <T extends Entity> boolean hasAccess(String entityId, String userId, HttpServletRequest request, String accessType) 
 		throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return permissionsManager.hasAccess(entityId, ACCESS_TYPE.valueOf(accessType), userInfo);
 	}
-
 
 	@Override
 	public List<EntityHeader> getEntityPath(String userId, String entityId) throws DatastoreException, NotFoundException, UnauthorizedException {
@@ -616,13 +610,11 @@ public class EntityServiceImpl implements EntityService {
 		return entityManager.getEntityPath(userInfo, entityId);
 	}
 
-
 	@Override
 	public EntityHeader getEntityHeader(String userId, String entityId)	throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.getEntityHeader(userInfo, entityId);
 	}
-
 
 	@Override
 	public <T extends Entity> EntityHeader getEntityBenefactor(String entityId, String userId, HttpServletRequest request) throws NotFoundException,
@@ -635,17 +627,6 @@ public class EntityServiceImpl implements EntityService {
 		return getEntityHeader(userId, benefactor);
 	}
 
-	/**
-	 * Get the entities which refer to the given version of the given entity
-	 * @param userId
-	 * @param entityId
-	 * @param versionNumber
-	 * @param offset ONE based pagination param
-	 * @param limit pagination param
-	 * @request
-	 * @return the headers of the entities which have references to 'entityId'
-	 * 
-	 */
 	@Override
 	public PaginatedResults<EntityHeader> getEntityReferences(String userId, String entityId, Integer versionNumber, Integer offset, Integer limit, HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
@@ -669,7 +650,6 @@ public class EntityServiceImpl implements EntityService {
 		throw toThrow;
 	}
 
-
 	@Override
 	public S3AttachmentToken createS3AttachmentToken(String userId, String entityId,
 			S3AttachmentToken token) throws UnauthorizedException, NotFoundException, DatastoreException, InvalidModelException {
@@ -681,22 +661,12 @@ public class EntityServiceImpl implements EntityService {
 			String tokenId) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		return entityManager.getAttachmentUrl(userId, entityId, tokenId);
 	}
-
 	
-	/**
+	
+	/*
 	 * ===== Query services =====
 	 */
 	
-	/**
-	 * @param userId
-	 * @param query
-	 * @param request
-	 * @return paginated results
-	 * @throws DatastoreException
-	 * @throws ParseException
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
 	@Override
 	public QueryResults query(String userId, String query, HttpServletRequest request) 
 			throws DatastoreException, ParseException, NotFoundException, UnauthorizedException {

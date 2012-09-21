@@ -12,25 +12,19 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.stereotype.Controller;
 
 /**
  * The web controller for the concept services.
  * 
  * @author John
- *
  */
 public class ConceptServiceImpl implements ConceptService {
 	
 	@Autowired
-	ConceptManager conceptManager;
-	
+	ConceptManager conceptManager;	
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
-	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.ConceptService#getConceptsForParent(java.lang.String, java.lang.String, java.lang.Integer, java.lang.Integer, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
-	 */
+
 	@Override
 	public ConceptResponsePage getConceptsForParent(String id, String prefixFilter,
 			Integer offset, Integer limit, HttpHeaders header, HttpServletRequest request) 
@@ -55,11 +49,7 @@ public class ConceptServiceImpl implements ConceptService {
 		results.setTotalNumberOfResults(new Long(eqr.getTotalNumberOfResults()));
 		return results;
 	}
-	
-	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.ConceptService#getConcept(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
-	 */
+
 	@Override
 	public Concept getConcept(String id, HttpHeaders header, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException, IOException {

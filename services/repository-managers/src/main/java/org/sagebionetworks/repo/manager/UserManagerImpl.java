@@ -29,14 +29,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@Transactional(readOnly = true)
 public class UserManagerImpl implements UserManager {
+	
 	@Autowired
 	UserDAO userDAO;
-
 	@Autowired
-	UserGroupDAO userGroupDAO;
-	
+	UserGroupDAO userGroupDAO;	
 	@Autowired
 	UserProfileDAO userProfileDAO;
 
@@ -142,7 +140,6 @@ public class UserManagerImpl implements UserManager {
 	}
 
 	/**
-	 * 
 	 * NOTE: This method has the side effect of creating in the 'permissions'
 	 * representation of groups any groups that the UserDAO knows the user to
 	 * belong to. That is, the 'truth' about groups is assumed to be in the
@@ -233,7 +230,6 @@ public class UserManagerImpl implements UserManager {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	@Transactional(readOnly = true)
 	@Override
 	public UserGroup getDefaultUserGroup(DEFAULT_GROUPS group)
 			throws DatastoreException {
@@ -252,7 +248,6 @@ public class UserManagerImpl implements UserManager {
 
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public UserGroup findGroup(String name, boolean b) throws DatastoreException {
 		return userGroupDAO.findGroup(name, b);
