@@ -92,7 +92,6 @@ import org.springframework.transaction.annotation.Transactional;
  * @author jmhill
  *
  */
-@Transactional(readOnly = true)
 public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 	private static final String SQL_SELECT_TYPE_FOR_ALIAS = "SELECT DISTINCT "+COL_OWNER_TYPE+" FROM "+TABLE_NODE_TYPE_ALIAS+" WHERE "+COL_NODE_TYPE_ALIAS+" = ?";
@@ -320,7 +319,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return newRev.getRevisionNumber();
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public Node getNode(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
@@ -461,7 +459,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return params;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public NamedAnnotations getAnnotations(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
@@ -491,7 +488,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return annos;
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException {
 		Long nodeId = KeyFactory.stringToKey(id);
@@ -501,7 +497,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return getAnnotations(jdo, rev);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public Set<Node> getChildren(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
@@ -523,7 +518,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return new HashSet<String>(ids);
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public String peekCurrentEtag(String id) throws NotFoundException, DatastoreException {
 		try{
@@ -672,7 +666,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return merged;
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public List<Long> getVersionNumbers(String id) throws NotFoundException, DatastoreException {
 		List<Long> list = new ArrayList<Long>();
@@ -729,7 +722,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return dboBasicDao.getObjectById(DBONodeType.class, params);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public boolean doesNodeExist(Long nodeId) {
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -743,13 +735,11 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public long getCount() {
 		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL);
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public boolean doesNodeRevisionExist(String nodeId, Long revNumber) {
 		try{
@@ -761,7 +751,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException {
 		// Fetch the basic data for an entity.
@@ -836,7 +825,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
 		// Call the recursive method
@@ -864,7 +852,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public String getNodeIdForPath(String path) throws DatastoreException {
 		// Get the names
@@ -961,7 +948,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return resutls;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public List<String> getChildrenIdsAsList(String id) throws DatastoreException {
 		List<String> list = new ArrayList<String>();
@@ -973,7 +959,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return list;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public NodeRevisionBackup getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException {
 		if(nodeId == null) throw new IllegalArgumentException("nodeId cannot be null");
@@ -982,7 +967,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return JDORevisionUtils.createDtoFromJdo(rev);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public long getTotalNodeCount() {
 		return simpleJdbcTemplate.queryForLong(SQL_COUNT_NODES, new HashMap<String, String>());
@@ -1023,11 +1007,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		replaceAnnotationsAndReferencesIfCurrent(owner.getCurrentRevNumber(), dboRev);
 	}
 
-	/**
-	 * Determ
-	 * @throws DatastoreException 
-	 */
-	@Transactional(readOnly = true)
 	@Override
 	public boolean isStringAnnotationQueryable(String nodeId, String annotationKey) throws DatastoreException {
 		// Count how many annotations this node has with this 
@@ -1035,9 +1014,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return count > 0;
 	}
 
-
-	
-	@Transactional(readOnly = true)
 	@Override
 	public String getParentId(String nodeId) throws NumberFormatException, NotFoundException, DatastoreException{
 		ParentTypeName nodeParent = getParentTypeName(KeyFactory.stringToKey(nodeId));
@@ -1071,7 +1047,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * Get the current revision number of a node.
 	 * @throws DatastoreException 
 	 */
-	@Transactional(readOnly = true)
 	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException, DatastoreException{
 		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
 		try{
@@ -1133,7 +1108,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return queryResults;
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset,
 			long limit, boolean includeDependencies) throws DatastoreException {

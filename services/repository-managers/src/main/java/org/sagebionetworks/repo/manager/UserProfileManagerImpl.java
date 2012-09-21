@@ -24,6 +24,8 @@ import org.sagebionetworks.repo.util.StringUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @author brucehoff
@@ -122,6 +124,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	/**
 	 * This method is only available to the object owner or an admin
 	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated)
 			throws NotFoundException, DatastoreException,

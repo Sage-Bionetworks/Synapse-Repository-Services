@@ -23,15 +23,15 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	
 	@Autowired
-	private AccessRequirementDAO accessRequirementDAO;
-	
+	private AccessRequirementDAO accessRequirementDAO;	
 	@Autowired
-	private AccessApprovalDAO accessApprovalDAO;
-	
+	private AccessApprovalDAO accessApprovalDAO;	
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
@@ -67,6 +67,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		a.setModifiedOn(now);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends AccessApproval> T createAccessApproval(UserInfo userInfo, T accessApproval) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException,ForbiddenException {
@@ -102,6 +103,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return result;
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends AccessApproval> T  updateAccessApproval(UserInfo userInfo, T accessApproval) throws NotFoundException,
 			DatastoreException, UnauthorizedException,
@@ -118,6 +120,7 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 		return accessApprovalDAO.update(accessApproval);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteAccessApproval(UserInfo userInfo, String accessApprovalId)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ForbiddenException {
