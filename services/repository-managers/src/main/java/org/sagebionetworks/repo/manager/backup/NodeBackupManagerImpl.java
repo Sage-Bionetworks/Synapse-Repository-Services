@@ -29,29 +29,22 @@ import org.springframework.transaction.annotation.Transactional;
  * The class acts as the source and destination for backups and restoration.
  * 
  * @author jmhill
- *
  */
-@Transactional(readOnly = true)
 public class NodeBackupManagerImpl implements NodeBackupManager {
 
-	@Autowired NodeDAO nodeDao;
-
+	@Autowired 
+	NodeDAO nodeDao;
 	@Autowired
 	private NodeBackupDAO nodeBackupDao;
-
 	@Autowired
 	private AccessControlListDAO aclDAO;
-
 	@Autowired
 	private UserGroupDAO userGroupDAO;
-
 	@Autowired
 	private UserProfileDAO userProfileDAO;
-
 	@Autowired
 	private NodeInheritanceDAO inheritanceDAO;
 
-	@Transactional(readOnly = true)
 	@Override
 	public NodeBackup getRoot() throws DatastoreException, NotFoundException {
 		// First look up the ID of the root
@@ -60,14 +53,12 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 		return getNode(id);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public String getRootId() throws DatastoreException, NotFoundException {
 		String id = nodeDao.getNodeIdForPath(NodeConstants.ROOT_FOLDER_PATH);
 		return id;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public NodeBackup getNode(String id) throws NotFoundException, DatastoreException {
 		// Build up the node from the id
@@ -228,6 +219,20 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 		// Now process all revisions
 		for(NodeRevisionBackup rev: revisions){
 			createOrUpdateRevision(rev);
+		}
+	}
+
+	@Override
+	public boolean doesNodeExist(String nodeId, String etag) {
+		if(nodeId == null) throw new IllegalAccessError("NodeId cannot be null");
+		if(etag == null) throw new IllegalArgumentException("Etag cannot be null");
+		try {
+			String current = nodeDao.peekCurrentEtag(nodeId);
+			return etag.equals(current);
+		} catch (DatastoreException e) {
+			return false;
+		} catch (NotFoundException e) {
+			return false;
 		}
 	}
 

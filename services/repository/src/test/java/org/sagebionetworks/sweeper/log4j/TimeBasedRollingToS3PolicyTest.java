@@ -72,17 +72,6 @@ public class TimeBasedRollingToS3PolicyTest {
 		assertNull(initialize.getAsynchronous());
 	}
 
-	@Ignore // see https://sagebionetworks.jira.com/browse/PLFM-1492
-	@Test
-	public void testRolloverTooSoon() {
-		setupStackConfigDefaults(true, false, TEST_BUCKET);
-		setDefaultPolicyOptions();
-		RolloverDescription initialize = testingPolicy.initialize(TEST_AFN, true);
-		RolloverDescription rollover = testingPolicy.rollover(TEST_AFN);
-		assertNotNull("initialize should not be null", initialize);
-		assertNull("Rollover should be null", rollover);
-	}
-
 	@Test
 	public void testRollover() throws InterruptedException {
 		setupStackConfigDefaults(true, false, TEST_BUCKET);

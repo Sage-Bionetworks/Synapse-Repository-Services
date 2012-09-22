@@ -160,34 +160,7 @@ public class AdministrationController extends BaseController {
 		serviceProvider.getAdministrationService().deleteMigratableObject(userId, objectId, type, header, request);
 	}
 	
-	/**
-	 * Start a search document daemon.  Monitor the status of the daemon with the getStatus method.
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { 
-			UrlHelpers.ENTITY_SEARCH_DOCUMENT_DAMEON
-			}, method = RequestMethod.POST)
-	public @ResponseBody
-	BackupRestoreStatus startSearchDocument(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		
-		return serviceProvider.getAdministrationService().startSearchDocument(userId, header, request);
-	}
-	
+
 	/**
 	 * Get the status of a running daemon (either a backup or restore)
 	 * @param daemonId

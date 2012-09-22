@@ -32,10 +32,9 @@ public class SynapseAdministration extends Synapse {
 	public static final String DAEMON = ADMIN + "/daemon";
 	public static final String BACKUP = "/backup";
 	public static final String RESTORE = "/restore";
-	public static final String SEARCH_DOCUMENT = "/searchDocument";
+//	public static final String SEARCH_DOCUMENT = "/searchDocument";
 	public static final String DAEMON_BACKUP = DAEMON + BACKUP;
 	public static final String DAEMON_RESTORE = DAEMON + RESTORE;
-	public static final String DAEMON_SEARCH_DOCUMENT = DAEMON + SEARCH_DOCUMENT;
 	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
 	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
 	
@@ -77,20 +76,6 @@ public class SynapseAdministration extends Synapse {
 			throws JSONObjectAdapterException, SynapseException {
 		JSONObject json = EntityFactory.createJSONObjectForEntity(submission);
 		json = createEntity(DAEMON_BACKUP+"?migrationType="+migrationType, json);
-		return EntityFactory.createEntityFromJSONObject(json,
-				BackupRestoreStatus.class);
-	}
-
-	/**
-	 * @param submission
-	 * @return status
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 */
-	public BackupRestoreStatus startSearchDocumentDaemon(BackupSubmission submission)
-			throws JSONObjectAdapterException, SynapseException {
-		JSONObject json = EntityFactory.createJSONObjectForEntity(submission);
-		json = createEntity(DAEMON_SEARCH_DOCUMENT, json);
 		return EntityFactory.createEntityFromJSONObject(json,
 				BackupRestoreStatus.class);
 	}

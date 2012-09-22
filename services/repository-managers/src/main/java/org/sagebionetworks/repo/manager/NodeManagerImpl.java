@@ -40,26 +40,20 @@ import org.springframework.transaction.annotation.Transactional;
  * @author jmhill
  *
  */
-@Transactional(readOnly = true)
 public class NodeManagerImpl implements NodeManager, InitializingBean {
 	
 	static private Log log = LogFactory.getLog(NodeManagerImpl.class);
 	
 	@Autowired
-	NodeDAO nodeDao;
-	
+	NodeDAO nodeDao;	
 	@Autowired
-	AuthorizationManager authorizationManager;
-	
+	AuthorizationManager authorizationManager;	
 	@Autowired
-	private AccessControlListDAO aclDAO;
-	
+	private AccessControlListDAO aclDAO;	
 	@Autowired
-	private EntityBootstrapper entityBootstrapper;
-	
+	private EntityBootstrapper entityBootstrapper;	
 	@Autowired
-	private NodeInheritanceManager nodeInheritanceManager;
-	
+	private NodeInheritanceManager nodeInheritanceManager;	
 	@Autowired
 	private ReferenceDao referenceDao;
 	
@@ -241,7 +235,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		nodeDao.deleteVersion(id, versionNumber);
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public Node get(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Validate the username
@@ -257,8 +250,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		return result;
 	}
-	
-	@Transactional(readOnly = true)
+
 	@Override
 	public Node getNodeForVersionNumber(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
@@ -331,9 +323,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return get(userInfo, updatedNode.getId());
 	}
 
-
-
-	@Transactional(readOnly = true)
 	@Override
 	public NamedAnnotations getAnnotations(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
@@ -348,8 +337,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		return annos;
 	}
-	
-	@Transactional(readOnly = true)
+
 	@Override
 	public NamedAnnotations getAnnotationsForVersion(UserInfo userInfo, String nodeId, Long versionNumber) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
@@ -426,15 +414,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return nodeDao.getChildren(parentId);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public EntityType getNodeType(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
 		Node node = get(userInfo, nodeId);
 		return EntityType.valueOf(node.getNodeType());
 	}
 	
-
-	@Transactional(readOnly = true)
 	@Override
 	public List<Long> getAllVersionNumbersForNode(UserInfo userInfo,
 			String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -448,7 +433,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return nodeDao.getVersionNumbers(nodeId);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public List<EntityHeader> getNodePath(UserInfo userInfo, String nodeId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -459,8 +443,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		return nodeDao.getEntityPath(nodeId);
 	}
-	
-	@Transactional(readOnly = true)
+
 	@Override
 	public List<EntityHeader> getNodePathAsAdmin(String nodeId)	throws NotFoundException, DatastoreException {
 		// This version does not require authorization.
@@ -482,7 +465,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return id;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -494,12 +476,16 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return nodeDao.getEntityHeader(entityId);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public EntityHeaderQueryResults getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Integer offset, Integer limit)
 			throws NotFoundException, DatastoreException {
 		UserInfo.validateUserInfo(userInfo);
 		return referenceDao.getReferrers(KeyFactory.stringToKey(nodeId), versionNumber, userInfo, offset, limit);
+	}
+
+	@Override
+	public boolean doesNodeHaveChildren(String nodeId) {
+		return nodeDao.doesNodeHaveChildren(nodeId);
 	}
 
 }

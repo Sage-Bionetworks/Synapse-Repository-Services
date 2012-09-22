@@ -37,23 +37,16 @@ import org.springframework.http.HttpHeaders;
 public class AdministrationServiceImpl implements AdministrationService  {
 	
 	@Autowired
-	private BackupDaemonLauncher backupDaemonLauncher;
-	
+	private BackupDaemonLauncher backupDaemonLauncher;	
 	@Autowired
-	ObjectTypeSerializer objectTypeSerializer;
-	
+	ObjectTypeSerializer objectTypeSerializer;	
 	@Autowired
 	UserManager userManager;
-	
 	@Autowired
-	StackStatusManager stackStatusManager;
-	
+	StackStatusManager stackStatusManager;	
 	@Autowired
 	DependencyManager dependencyManager;
 	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getAllBackupObjects(java.lang.String, java.lang.Integer, java.lang.Integer, java.lang.Boolean)
-	 */
 	@Override
 	public PaginatedResults<MigratableObjectData> getAllBackupObjects(
 			String userId, Integer offset, Integer limit, Boolean  includeDependencies)
@@ -139,28 +132,6 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		mod.setType(MigratableObjectType.valueOf(type));
 		// start a restore daemon
 		backupDaemonLauncher.delete(userInfo, mod);
-	}
-	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.AdministrationService#startSearchDocument(java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
-	 */
-	@Override
-	public BackupRestoreStatus startSearchDocument(String userId,
-			HttpHeaders header,	HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		
-		// The BackupSubmission is optional.  When included we will only backup the entity Ids included.
-		// When the body is null all entities will be backed up.
-		Set<String> entityIdsToBackup = null;
-		if(request.getInputStream() != null){
-			BackupSubmission submission = objectTypeSerializer.deserialize(request.getInputStream(), header,BackupSubmission.class, header.getContentType());
-			entityIdsToBackup = submission.getEntityIdsToBackup();
-		}
-		// Get the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		// start a search document daemon
-		return backupDaemonLauncher.startSearchDocument(userInfo, entityIdsToBackup);
 	}
 	
 	/* (non-Javadoc)

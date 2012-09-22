@@ -25,7 +25,7 @@ public class ServiceProvider {
 	@Autowired
 	private S3TokenService s3TokenService;
 	@Autowired
-	private SearchService searchService;
+	private StorageUsageService storageUsageService;
 	@Autowired
 	private UserGroupService userGroupService;
 	@Autowired
@@ -52,8 +52,8 @@ public class ServiceProvider {
 	public S3TokenService getS3TokenService() {
 		return s3TokenService;
 	}
-	public SearchService getSearchService() {
-		return searchService;
+	public StorageUsageService getStorageUsageService() {
+		return storageUsageService;
 	}
 	public UserGroupService getUserGroupService() {
 		return userGroupService;

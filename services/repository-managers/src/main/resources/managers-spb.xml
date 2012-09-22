@@ -107,10 +107,6 @@
 		class="org.sagebionetworks.repo.manager.backup.NodeSerializerImpl"
 		scope="singleton" />
 
-	<bean id="searchDocumentDriver"
-		class="org.sagebionetworks.repo.manager.backup.SearchDocumentDriverImpl"
-		scope="singleton" />
-
 	<bean id="entityBackupDriver"
 		class="org.sagebionetworks.repo.manager.backup.NodeBackupDriverImpl"
 		scope="singleton" />
@@ -138,6 +134,10 @@
 		scope="singleton" />
 
 	<bean id="s3Utility" class="org.sagebionetworks.repo.manager.AmazonS3UtilityImpl"
+		scope="singleton" />
+
+	<bean id="storageUsageManager"
+		class="org.sagebionetworks.repo.manager.StorageUsageManagerImpl"
 		scope="singleton" />
 
 	<bean id="attachmentManager" class="org.sagebionetworks.repo.manager.AttachmentManagerImpl"

@@ -43,8 +43,8 @@
 	<!-- The S3Token Service -->
 	<bean id="s3TokenService" class="org.sagebionetworks.repo.web.service.S3TokenServiceImpl" />
 
-	<!-- The Search Service -->
-	<bean id="searchService" class="org.sagebionetworks.repo.web.service.SearchServiceImpl" />
+	<!-- The StorageUsage Service -->
+	<bean id="storageUsageService" class="org.sagebionetworks.repo.web.service.StorageUsageServiceImpl" />
 
 	<!-- The UserProfile Service -->
 	<bean id="userProfileService"

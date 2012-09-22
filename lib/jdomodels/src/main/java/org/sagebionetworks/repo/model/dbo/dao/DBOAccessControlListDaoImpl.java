@@ -32,7 +32,6 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@Transactional(readOnly = true)
 public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 	
 	private static final String SELECT_ACCESS_TYPES_FOR_RESOURCE = "SELECT "+COL_RESOURCE_ACCESS_TYPE_ELEMENT+" FROM "+TABLE_RESOURCE_ACCESS_TYPE+" WHERE "+COL_RESOURCE_ACCESS_TYPE_ID+" = ?";
@@ -49,8 +48,7 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 	private static RowMapper<DBOResourceAccess> accessMapper = new DBOResourceAccess().getTableMapping();
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTemplate;
-	
+	private SimpleJdbcTemplate simpleJdbcTemplate;	
 	@Autowired
 	DBOBasicDao dboBasicDao;
 
@@ -96,8 +94,6 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 		}
 	}
 
-
-	@Transactional(readOnly = true)
 	@Override
 	public AccessControlList getACL(Long owner) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();

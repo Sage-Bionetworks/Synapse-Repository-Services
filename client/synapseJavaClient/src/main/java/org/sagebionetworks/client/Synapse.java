@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.LocationData;
@@ -89,6 +90,7 @@ public class Synapse {
 	protected static final int JSON_INDENT = 2;
 	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.sagebase.org/repo/v1";
 	protected static final String DEFAULT_AUTH_ENDPOINT = "https://auth-prod.sagebase.org/auth/v1";
+	protected static final String DEFAULT_SEARCH_ENDPOINT = "https://search-prod.sagebase.org/search/v1";
 	protected static final String SESSION_TOKEN_HEADER = "sessionToken";
 	protected static final String REQUEST_PROFILE_DATA = "profile_request";
 	protected static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
@@ -109,6 +111,7 @@ public class Synapse {
 	protected static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
 	protected static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
 	protected static final String ENTITY_BUNDLE_PATH = "/bundle?mask=";
+	protected static final String BUNDLE = "/bundle";
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
@@ -132,6 +135,7 @@ public class Synapse {
 
 	
 	protected String repoEndpoint;
+	protected String searchEndpoint;
 	protected String authEndpoint;
 
 	protected Map<String, String> defaultGETDELETEHeaders;
@@ -167,6 +171,7 @@ public class Synapse {
 
 		setRepositoryEndpoint(DEFAULT_REPO_ENDPOINT);
 		setAuthEndpoint(DEFAULT_AUTH_ENDPOINT);
+		setSearchEndpoint(DEFAULT_SEARCH_ENDPOINT);
 
 		defaultGETDELETEHeaders = new HashMap<String, String>();
 		defaultGETDELETEHeaders.put("Accept", "application/json");
@@ -223,6 +228,10 @@ public class Synapse {
 	 */
 	public void setAuthEndpoint(String authEndpoint) {
 		this.authEndpoint = authEndpoint;
+	}
+	
+	public void setSearchEndpoint(String searchEndpoint){
+		this.searchEndpoint = searchEndpoint;
 	}
 
 	/**
@@ -433,6 +442,31 @@ public class Synapse {
 			// Now convert to Object to an entity
 			return (T) EntityFactory.createEntityFromJSONObject(jsonObject,
 					entity.getClass());
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	/**
+	 * Get a bundle of information about an entity in a single call.
+	 * 
+	 * @param entityId
+	 * @param partsMask
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public EntityBundle createEntityBundle(EntityBundleCreate ebc) throws SynapseException {
+		if (ebc == null)
+			throw new IllegalArgumentException("EntityBundle cannot be null");
+		String url = ENTITY_URI_PATH + BUNDLE;
+		JSONObject jsonObject;
+		try {
+			// Convert to JSON
+			jsonObject = EntityFactory.createJSONObjectForEntity(ebc);
+			// Create
+			jsonObject = createEntity(url, jsonObject);
+			// Convert returned JSON to EntityBundle
+			return EntityFactory.createEntityFromJSONObject(jsonObject,	EntityBundle.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -2004,13 +2038,13 @@ public class Synapse {
 	
 	public SearchResults search(SearchQuery searchQuery) throws SynapseException, UnsupportedEncodingException, JSONObjectAdapterException {
 		SearchResults searchResults = null;		
-		String uri = "/search?q=" + URLEncoder.encode(SearchUtil.generateQueryString(searchQuery), "UTF-8");
-		JSONObject obj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
+		String uri = "/search";
+		String jsonBody = EntityFactory.createJSONStringForEntity(searchQuery);
+		JSONObject obj = signAndDispatchSynapseRequest(searchEndpoint, uri, "POST", jsonBody, defaultPOSTPUTHeaders);
 		if(obj != null) {
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(obj);
 			searchResults = new SearchResults(adapter);
 		}
-
 		return searchResults;
 	}
 	

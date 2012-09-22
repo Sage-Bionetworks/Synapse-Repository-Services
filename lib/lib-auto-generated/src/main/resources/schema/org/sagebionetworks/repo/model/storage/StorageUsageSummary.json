@@ -13,7 +13,7 @@
 			],
 			"type": "array",
 			"items": {
-				"type": "string"
+				"$ref": "org.sagebionetworks.repo.model.storage.StorageUsageDimensionValue"
 			},
 			"required": true
 		},

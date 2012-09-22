@@ -299,4 +299,11 @@ public interface NodeDAO extends MigratableDAO {
 	 */
     public boolean isNodesParentRoot(String nodeId) throws NotFoundException, DatastoreException;
 
+    /**
+     * Does this given node have any children?
+     * @param nodeId
+     * @return
+     */
+	public boolean doesNodeHaveChildren(String nodeId);
+
 }

@@ -8,7 +8,6 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 
 /**
  * S3Tokens have their very own controller because they are not entities, and

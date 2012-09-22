@@ -9,7 +9,6 @@ import java.io.IOException;
 import java.util.List;
 
 import org.apache.http.client.ClientProtocolException;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.search.Document;
@@ -34,18 +33,21 @@ import com.amazonaws.services.cloudsearch.model.OptionState;
  *
  */
 @RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:search-beans.spb.xml" })
-@Ignore // Turned off until the dao is turned on.
+@ContextConfiguration(locations = { "classpath:search-dao.spb.xml" })
 public class SearchDaoImplAutowireTest {
+	
+	public static final long MAX_WAIT_TIME = 60*1000; // one minute
 	
 	@Autowired
 	SearchDao searchDao;
+	@Autowired
+	SearchDomainSetup searchDomainSetup;
 	
 	@Test
 	public void testSetup(){
 		assertNotNull(searchDao);
 		// Validate that the search index is ready to go.
-		DomainStatus status = searchDao.getDomainStatus();
+		DomainStatus status = searchDomainSetup.getDomainStatus();
 		assertNotNull(status);
 		// The domain should be ready
 		assertTrue("Search domain has not been created", status.isCreated());
@@ -65,7 +67,7 @@ public class SearchDaoImplAutowireTest {
 		// This is our expected list of fields.
 		List<IndexField> expected = SearchSchemaLoader.loadSearchDomainSchema();
 		// Do we have the expected index fields?
-		List<IndexFieldStatus> currentFields = searchDao.getIndexFieldStatus();
+		List<IndexFieldStatus> currentFields = searchDomainSetup.getIndexFieldStatus();
 		assertNotNull(currentFields);
 		assertEquals(expected.size(), currentFields.size());
 		// Find each and validate it.
@@ -82,14 +84,14 @@ public class SearchDaoImplAutowireTest {
 
 	@Test
 	public void testAccessPolicies(){
-		AccessPoliciesStatus status = searchDao.getAccessPoliciesStatus();
+		AccessPoliciesStatus status = searchDomainSetup.getAccessPoliciesStatus();
 		assertNotNull(status);
 		// Is it active?
 		assertEquals(OptionState.Active, OptionState.valueOf(status.getStatus().getState()));
 		// get the json
 		assertNotNull(status.getOptions());
 		// Is there an access policy for both the search arn and document arn?
-		DomainStatus domainStatus = searchDao.getDomainStatus();
+		DomainStatus domainStatus = searchDomainSetup.getDomainStatus();
 		assertNotNull(status);
 		assertTrue(status.getOptions().indexOf(domainStatus.getDocService().getArn()) > 0);
 		assertTrue(status.getOptions().indexOf(domainStatus.getSearchService().getArn()) > 0);
@@ -120,8 +122,8 @@ public class SearchDaoImplAutowireTest {
 		fields.setDescription("AABBCC one two thre");
 		// Create this document
 		searchDao.createOrUpdateSearchDocument(document);
-		// It can take several seconds for the update to apply.
-		Thread.sleep(10*1000);
+		// Wait for the create
+		waitForSearchCreateOrUpdate(id, etag);
 		// Now make sure we can search for it
 		SearchResults results = searchDao.executeSearch("q=AABBCC");
 		assertNotNull(results);
@@ -130,10 +132,17 @@ public class SearchDaoImplAutowireTest {
 		Hit hit = results.getHits().get(0);
 		assertEquals(id, hit.getId());
 		
+		// Make sure the document exists
+		assertTrue(searchDao.doesDocumentExist(id, etag));
+		assertFalse(searchDao.doesDocumentExist(id, "oldEtag"));
+		
 		// now update the document and try the search again.
 		fields.setDescription("JJKKRRDD seven eight nine");
+		etag += "0";
+		fields.setEtag(etag);
 		searchDao.createOrUpdateSearchDocument(document);
-		Thread.sleep(15*1000);
+		// Wait for the create
+		waitForSearchCreateOrUpdate(id, etag);
 		// We should not be able to find it with the old string
 		results = searchDao.executeSearch("q=AABBCC");
 		assertNotNull(results);
@@ -148,12 +157,52 @@ public class SearchDaoImplAutowireTest {
 		assertEquals(id, hit.getId());
 		// Delete the document.
 		searchDao.deleteDocument(id);
-		Thread.sleep(15*1000);
+		waitForSearchDelete(id, etag);
 		// We should not be able to find this document
 		results = searchDao.executeSearch("bq=id:'"+id+"'");
 		assertNotNull(results);
 		assertNotNull(results.getHits());
 		assertEquals(0, results.getHits().size());
+		// It should not exists
+		assertFalse(searchDao.doesDocumentExist(id, etag));
+	}
+	
+	/**
+	 * Helper to wait for a search document to be created or update.
+	 * @param id
+	 * @param etag
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws HttpClientHelperException
+	 * @throws InterruptedException
+	 */
+	private void waitForSearchCreateOrUpdate(String id, String etag) throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException{
+		long start = System.currentTimeMillis();
+		while(!searchDao.doesDocumentExist(id, etag)){
+			System.out.println(String.format("Waiting for Search document create, id: %1$s etag: %2$s", id, etag));
+			Thread.sleep(2000);
+			long elapse = System.currentTimeMillis()-start;
+			assertTrue(String.format("Timed out waiting for Search document create, id: %1$s etag: %2$s", id, etag),elapse < MAX_WAIT_TIME);
+		}
+	}
+	
+	/**
+	 * Helper to wait for a search document to be created or update.
+	 * @param id
+	 * @param etag
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws HttpClientHelperException
+	 * @throws InterruptedException
+	 */
+	private void waitForSearchDelete(String id, String etag) throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException{
+		long start = System.currentTimeMillis();
+		while(searchDao.doesDocumentExist(id, etag)){
+			System.out.println(String.format("Waiting for Search document delete, id: %1$s etag: %2$s", id, etag));
+			Thread.sleep(2000);
+			long elapse = System.currentTimeMillis()-start;
+			assertTrue(String.format("Timed out waiting for Search document delete, id: %1$s etag: %2$s", id, etag),elapse < MAX_WAIT_TIME);
+		}
 	}
 	
 	/**

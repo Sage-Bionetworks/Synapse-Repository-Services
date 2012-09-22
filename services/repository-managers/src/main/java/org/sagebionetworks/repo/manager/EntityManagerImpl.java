@@ -30,7 +30,6 @@ import org.springframework.transaction.annotation.Transactional;
 /**
  *
  */
-@Transactional(readOnly = true)
 public class EntityManagerImpl implements EntityManager {
 
 	@Autowired
@@ -77,7 +76,6 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeId;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public <T extends Entity> EntityWithAnnotations<T> getEntityWithAnnotations(
 			UserInfo userInfo, String entityId, Class<? extends T> entityClass)
@@ -122,7 +120,6 @@ public class EntityManagerImpl implements EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	@Transactional(readOnly = true)
 	public <T extends Entity> EntityWithAnnotations<T> getEntityVersionWithAnnotations(
 			UserInfo userInfo, String entityId, Long versionNumber,
 			Class<? extends T> entityClass) throws NotFoundException,
@@ -166,7 +163,6 @@ public class EntityManagerImpl implements EntityManager {
 		return ewa;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public <T extends Entity> T getEntity(UserInfo userInfo, String entityId,
 			Class<? extends T> entityClass) throws NotFoundException,
@@ -180,7 +176,6 @@ public class EntityManagerImpl implements EntityManager {
 		return ewa.getEntity();
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public <T extends Entity> T getEntityForVersion(UserInfo userInfo,
 			String entityId, Long versionNumber, Class<? extends T> entityClass)
@@ -232,7 +227,6 @@ public class EntityManagerImpl implements EntityManager {
 		nodeManager.deleteVersion(userInfo, id, versionNumber);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public Annotations getAnnotations(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -532,6 +526,12 @@ public class EntityManagerImpl implements EntityManager {
 					"update access is required to obtain an S3Token for entity "
 							+ entityId);
 		}
+	}
+
+	@Override
+	public boolean doesEntityHaveChildren(UserInfo userInfo, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException {
+		validateReadAccess(userInfo, entityId);
+		return nodeManager.doesNodeHaveChildren(entityId);
 	}
 
 }

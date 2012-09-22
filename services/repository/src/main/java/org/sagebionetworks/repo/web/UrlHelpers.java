@@ -143,6 +143,7 @@ public class UrlHelpers {
 	public static final String ENTITY_ID	= ENTITY+ID;
 	public static final String USER_PROFILE_ID		= USER_PROFILE+PROFILE_ID;
 	
+	public static final String ENTITY_BUNDLE = ENTITY+BUNDLE;
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
@@ -258,11 +259,9 @@ public class UrlHelpers {
 	public static final String DAEMON 						= ADMIN+"/daemon";
 	public static final String BACKUP						= "/backup";
 	public static final String RESTORE						= "/restore";
-	public static final String SEARCH_DOCUMENT 				= "/searchDocument";
 	public static final String DAEMON_ID					= "/{daemonId}";
 	public static final String ENTITY_BACKUP_DAMEON			= DAEMON+BACKUP;
 	public static final String ENTITY_RESTORE_DAMEON		= DAEMON+RESTORE;
-	public static final String ENTITY_SEARCH_DOCUMENT_DAMEON = DAEMON+SEARCH_DOCUMENT;
 	public static final String ENTITY_DAEMON_ID				= DAEMON+DAEMON_ID;
 	
 	public static final String CONCEPT	= "/concept";
@@ -280,17 +279,20 @@ public class UrlHelpers {
 	 */
 	public static final String STORAGE_DETAILS = "/storageDetails";
 
-	private static final String STORAGE_USER_ID = "/{userId}";
+	/**
+	 * The user whose storage usage is queried.
+	 */
+	public static final String STORAGE_USER_ID = "userId";
 
 	/**
 	 * Storage usage summary for the specified user.
 	 */
-	public static final String STORAGE_SUMMARY_USER_ID = STORAGE_SUMMARY + STORAGE_USER_ID;
+	public static final String STORAGE_SUMMARY_USER_ID = STORAGE_SUMMARY + "/{" + STORAGE_USER_ID + "}";
 
 	/**
 	 * Itemized storage usage for the specified user.
 	 */
-	public static final String STORAGE_DETAILS_USER_ID = STORAGE_DETAILS + STORAGE_USER_ID;
+	public static final String STORAGE_DETAILS_USER_ID = STORAGE_DETAILS + "/{" + STORAGE_USER_ID + "}";
 
 	/**
 	 * Public access for Synapse user and group info

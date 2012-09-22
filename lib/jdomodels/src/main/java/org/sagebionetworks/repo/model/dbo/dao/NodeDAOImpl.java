@@ -94,7 +94,6 @@ import org.springframework.transaction.annotation.Transactional;
  * @author jmhill
  *
  */
-@Transactional(readOnly = true)
 public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 	private static final String SQL_SELECT_TYPE_FOR_ALIAS = "SELECT DISTINCT "+COL_OWNER_TYPE+" FROM "+TABLE_NODE_TYPE_ALIAS+" WHERE "+COL_NODE_TYPE_ALIAS+" = ?";
@@ -105,6 +104,12 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String SQL_COUNT_STRING_ANNOTATIONS_FOR_NODE = "SELECT COUNT("+ANNOTATION_OWNER_ID_COLUMN+") FROM "+TABLE_STRING_ANNOTATIONS+" WHERE "+ANNOTATION_OWNER_ID_COLUMN+" = ? AND "+ANNOTATION_ATTRIBUTE_COLUMN+" = ?";
 	private static final String SQL_COUNT_ENTITIES_BY_TYPE = "SELECT t.NAME, COUNT(*) AS C FROM JDONODE n, NODE_TYPE t WHERE n.NODE_TYPE=t.ID";
+	
+	/**
+	 * To determine if a node has children we fetch the first child ID.
+	 */
+	private static final String SQL_GET_FIRST_CHILD = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? LIMIT 1 OFFSET 0";
+
 	// get all ids, paginated
 	private static final String SQL_GET_NODES_PAGINATED =
 		"SELECT n."+COL_NODE_ID+", n."+COL_NODE_ETAG+
@@ -322,7 +327,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return newRev.getRevisionNumber();
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public Node getNode(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
@@ -463,7 +467,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return params;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public NamedAnnotations getAnnotations(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
@@ -493,7 +496,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return annos;
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException {
 		Long nodeId = KeyFactory.stringToKey(id);
@@ -503,7 +505,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return getAnnotations(jdo, rev);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public Set<Node> getChildren(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
@@ -525,11 +526,14 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return new HashSet<String>(ids);
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public String peekCurrentEtag(String id) throws NotFoundException, DatastoreException {
-		String currentTag = simpleJdbcTemplate.queryForObject(SQL_ETAG_WITHOUT_LOCK, String.class, KeyFactory.stringToKey(id));
-		return currentTag;
+		try{
+			return simpleJdbcTemplate.queryForObject(SQL_ETAG_WITHOUT_LOCK, String.class, KeyFactory.stringToKey(id));
+		}catch(EmptyResultDataAccessException e){
+			// Occurs if there are no results
+			throw new NotFoundException("Cannot find a node with id: "+id);
+		}
 	}
 
 	/**
@@ -670,7 +674,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return merged;
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public List<Long> getVersionNumbers(String id) throws NotFoundException, DatastoreException {
 		List<Long> list = new ArrayList<Long>();
@@ -727,7 +730,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return dboBasicDao.getObjectById(DBONodeType.class, params);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public boolean doesNodeExist(Long nodeId) {
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -741,13 +743,11 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public long getCount() {
 		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL);
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public boolean doesNodeRevisionExist(String nodeId, Long revNumber) {
 		try{
@@ -759,7 +759,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException {
 		// Fetch the basic data for an entity.
@@ -834,7 +833,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
 		// Call the recursive method
@@ -862,7 +860,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public String getNodeIdForPath(String path) throws DatastoreException {
 		// Get the names
@@ -959,7 +956,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return resutls;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public List<String> getChildrenIdsAsList(String id) throws DatastoreException {
 		List<String> list = new ArrayList<String>();
@@ -971,7 +967,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return list;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public NodeRevisionBackup getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException {
 		if(nodeId == null) throw new IllegalArgumentException("nodeId cannot be null");
@@ -980,7 +975,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return JDORevisionUtils.createDtoFromJdo(rev);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public long getTotalNodeCount() {
 		return simpleJdbcTemplate.queryForLong(SQL_COUNT_NODES, new HashMap<String, String>());
@@ -1021,11 +1015,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		replaceAnnotationsAndReferencesIfCurrent(owner.getCurrentRevNumber(), dboRev);
 	}
 
-	/**
-	 * Determ
-	 * @throws DatastoreException 
-	 */
-	@Transactional(readOnly = true)
 	@Override
 	public boolean isStringAnnotationQueryable(String nodeId, String annotationKey) throws DatastoreException {
 		// Count how many annotations this node has with this 
@@ -1033,9 +1022,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return count > 0;
 	}
 
-
-	
-	@Transactional(readOnly = true)
 	@Override
 	public String getParentId(String nodeId) throws NumberFormatException, NotFoundException, DatastoreException{
 		ParentTypeName nodeParent = getParentTypeName(KeyFactory.stringToKey(nodeId));
@@ -1069,7 +1055,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * Get the current revision number of a node.
 	 * @throws DatastoreException 
 	 */
-	@Transactional(readOnly = true)
 	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException, DatastoreException{
 		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
 		try{
@@ -1131,7 +1116,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return queryResults;
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset,
 			long limit, boolean includeDependencies) throws DatastoreException {
@@ -1248,4 +1232,16 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return qRes;
 	}
 
+	@Override
+	public boolean doesNodeHaveChildren(String nodeId) {
+		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
+		try{
+			long id = this.simpleJdbcTemplate.queryForLong(SQL_GET_FIRST_CHILD, KeyFactory.stringToKey(nodeId));
+			// At least one node has this parent id.
+			return true;
+		}catch(EmptyResultDataAccessException e){
+			// Nothing has that parent id.
+			return false;
+		}
+	}
 }
