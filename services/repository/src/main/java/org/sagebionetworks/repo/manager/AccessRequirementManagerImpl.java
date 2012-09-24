@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -35,6 +36,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
+	@Autowired
+	private AuthorizationManager authorizationManager;
+	
 	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
 		if (a.getEntityType()==null ||
 				a.getAccessType()==null ||
@@ -58,11 +62,15 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 		a.setModifiedBy(userInfo.getIndividualGroup().getId());
 		a.setModifiedOn(now);
 	}
-	
+		
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ForbiddenException {
 		validateAccessRequirement(accessRequirement);
-		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
+		ACTUtils.verifyACTTeamMembershipOrCanCreateOrEdit(
+				userInfo, 
+				accessRequirement.getEntityIds(),
+				userGroupDAO, 
+				authorizationManager);
 		populateCreationFields(userInfo, accessRequirement);
 		return accessRequirementDAO.create(accessRequirement);
 	}
