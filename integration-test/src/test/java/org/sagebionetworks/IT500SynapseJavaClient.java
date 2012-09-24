@@ -18,6 +18,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.TreeSet;
 
 import org.apache.http.HttpException;
 import org.json.JSONArray;
@@ -41,6 +42,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Folder;
@@ -86,6 +88,7 @@ public class IT500SynapseJavaClient {
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration
 				.getRepositoryServiceEndpoint());
+		synapse.setSearchEndpoint(StackConfiguration.getSearchServiceEndpoint());
 		synapse.login(user, pw);
 		
 		return synapse;
@@ -422,7 +425,7 @@ public class IT500SynapseJavaClient {
 				EntityBundle.PERMISSIONS |
 				EntityBundle.ENTITY_PATH |
 				EntityBundle.ENTITY_REFERENCEDBY |
-				EntityBundle.CHILD_COUNT |
+				EntityBundle.HAS_CHILDREN |
 				EntityBundle.ACL |
 				EntityBundle.USERS |
 				EntityBundle.GROUPS;
@@ -443,13 +446,58 @@ public class IT500SynapseJavaClient {
 		assertEquals("Invalid fetched ReferencedBy in the EntityBundle", 
 				synapse.getEntityReferencedBy(project), entityBundle.getReferencedBy());
 		assertEquals("Invalid fetched ChildCount in the EntityBundle", 
-				synapse.getChildCount(project.getId()), entityBundle.getChildCount());
+				synapse.getChildCount(project.getId()) > 0, entityBundle.getHasChildren());
 		assertEquals("Invalid fetched ACL in the EntityBundle", 
 				synapse.getACL(project.getId()), entityBundle.getAccessControlList());
 		assertEquals("Invalid fetched Users in the EntityBundle", 
 				synapse.getUsers(offset, limit), entityBundle.getUsers());
 		assertEquals("Invalid fetched Groups in the EntityBundle", 
 				synapse.getGroups(offset, limit), entityBundle.getGroups());
+	}
+	
+	@Test
+	public void testJavaClientCreateEntityBundle() throws SynapseException {
+		// Create an entity		
+		Study s1 = new Study();
+		s1.setName("Dummy Study 1");
+		s1.setEntityType(s1.getClass().getName());
+		s1.setParentId(project.getId());
+		
+		// Create annotations for this entity
+		Annotations a1 = new Annotations();		
+		a1.addAnnotation("doubleAnno", new Double(45.0001));
+		a1.addAnnotation("string", "A string");
+		
+		// Create ACL for this entity
+		AccessControlList acl1 = new AccessControlList();
+		Set<ResourceAccess> resourceAccess = new TreeSet<ResourceAccess>();
+		acl1.setResourceAccess(resourceAccess);
+		
+		// Create the bundle, verify contents
+		EntityBundleCreate ebc = new EntityBundleCreate();
+		ebc.setEntity(s1);
+		ebc.setAnnotations(a1);
+		ebc.setAccessControlList(acl1);
+				
+		EntityBundle response = synapse.createEntityBundle(ebc);
+		
+		Study s2 = (Study) response.getEntity();
+		assertNotNull(s2);
+		assertNotNull("Etag should have been generated, but was not", s2.getEtag());
+		assertEquals(s1.getName(), s2.getName());
+		
+		Annotations a2 = response.getAnnotations();
+		assertNotNull(a2);
+		assertNotNull("Etag should have been generated, but was not", a2.getEtag());
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a1.getStringAnnotations(), a2.getStringAnnotations());
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a1.getDoubleAnnotations(), a2.getDoubleAnnotations());
+		
+		AccessControlList acl2 = response.getAccessControlList();
+		assertNotNull(acl2);
+		assertNotNull("Etag should have been generated, but was not", acl2.getEtag());
+		assertEquals("Retrieved ACL in bundle does not match original one", acl1.getResourceAccess(), acl2.getResourceAccess());
+	
+		synapse.deleteEntityById(s2.getId());
 	}
 
 	/**
@@ -495,7 +543,7 @@ public class IT500SynapseJavaClient {
 		// TODO test auto versioning
 		
 	}
-
+	
 	/**
 	 * @throws Exception
 	 */
@@ -526,7 +574,114 @@ public class IT500SynapseJavaClient {
 		assertEquals(externalUrlFileSizeBytes, downloadedLayer.length());
 
 	}
+	
+	/**
+	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
+	 * @throws Exception
+	 */
+	@Test
+	@Ignore // This test has the same potential instability issue as testJavaDownloadExternalLayer(). Useful test to run locally
+	public void testJavaClientUpdateExternalLocation() throws Exception {
+			// Use a url that we expect to be available and whose contents we don't
+		// expect to change
+		String externalUrl = "http://www.sagebase.org/favicon";
+		int externalUrlFileSizeBytes = 1150;
+
+		List<LocationData> locations = new ArrayList<LocationData>();
 		
+		Data layer = new Data();
+		layer.setType(LayerTypeNames.M);
+		layer.setLocations(locations);
+		layer.setParentId(dataset.getId());
+		layer = synapse.createEntity(layer);
+
+		//update the locations
+		layer = (Data)synapse.updateExternalLocationableToSynapse(layer, externalUrl);
+		locations = layer.getLocations();
+		
+		assertEquals(1, locations.size());
+		LocationData location = locations.get(0);
+		assertEquals(LocationTypeNames.external, location.getType());
+		assertNotNull(location.getPath());
+		//test location url
+		assertEquals(location.getPath(), externalUrl);
+		//md5 is not calculated, should not be set
+		//assertEquals(layer.getMd5(), externalUrlMD5);
+		assertTrue(layer.getMd5() == null || layer.getMd5().length() == 0);
+		
+		File downloadedLayer = synapse.downloadLocationableFromSynapse(layer);
+		assertEquals(externalUrlFileSizeBytes, downloadedLayer.length());
+	}
+	
+	/**
+	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
+	 * @throws Exception
+	 */
+	@Test
+	public void testJavaClientUpdateExternalLocationWithoutDownload() throws Exception {
+			// Use a url that we expect to be available and whose contents we don't
+		// expect to change
+		String externalUrl = "http://www.sagebase.org/favicon";
+		String externalUrlMD5 = "8f8e272d7fdb2fc6c19d57d00330c397";
+		//int externalUrlFileSizeBytes = 1150;
+
+		List<LocationData> locations = new ArrayList<LocationData>();
+		
+		Data layer = new Data();
+		layer.setType(LayerTypeNames.M);
+		layer.setLocations(locations);
+		layer.setParentId(dataset.getId());
+		layer = synapse.createEntity(layer);
+
+		//update the locations
+		layer = (Data)synapse.updateExternalLocationableToSynapse(layer, externalUrl, externalUrlMD5);
+		locations = layer.getLocations();
+		
+		assertEquals(1, locations.size());
+		LocationData location = locations.get(0);
+		assertEquals(LocationTypeNames.external, location.getType());
+		assertNotNull(location.getPath());
+		//test location url
+		assertEquals(location.getPath(), externalUrl);
+		assertEquals(layer.getMd5(), externalUrlMD5);
+
+		//also verify all is well when we don't set the md5 for external
+		layer = (Data)synapse.updateExternalLocationableToSynapse(layer, externalUrl);
+		locations = layer.getLocations();
+		
+		assertEquals(1, locations.size());
+		location = locations.get(0);
+		assertEquals(LocationTypeNames.external, location.getType());
+		assertNotNull(location.getPath());
+		//test location url
+		assertEquals(location.getPath(), externalUrl);
+		assertNull(layer.getMd5());
+		
+	}
+	
+	/**
+	 * Create a Data entity, update it's location data to point to an external url, then download it's data and test
+	 * @throws Exception
+	 */
+	@Test(expected=SynapseBadRequestException.class)
+	public void testJavaClientUpdateMissingMd5() throws Exception {
+		List<LocationData> locations = new ArrayList<LocationData>();
+		
+		LocationData fakeAwsLocation = new LocationData();
+		fakeAwsLocation.setPath("fakeawslocation");
+		fakeAwsLocation.setType(LocationTypeNames.awss3);
+		locations.add(fakeAwsLocation);
+
+		Data layer = new Data();
+		layer.setType(LayerTypeNames.M);
+		//md5 not set
+		layer.setParentId(dataset.getId());
+		layer.setLocations(locations);
+		//should fail (due to missing md5)
+		layer = synapse.createEntity(layer);
+	}
+
+	
 	@Test
 	public void testGetUsers() throws Exception {
 		UserProfile myProfile = synapse.getMyProfile();

@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.LocationData;
@@ -59,7 +60,6 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -78,6 +78,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+import org.sagebionetworks.repo.model.ServiceConstants;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -86,11 +87,10 @@ public class Synapse {
 
 	protected static final Logger log = Logger.getLogger(Synapse.class.getName());
 
-	protected static final int DEFAULT_TIMEOUT_MSEC = 5000;
-
 	protected static final int JSON_INDENT = 2;
 	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.sagebase.org/repo/v1";
 	protected static final String DEFAULT_AUTH_ENDPOINT = "https://auth-prod.sagebase.org/auth/v1";
+	protected static final String DEFAULT_SEARCH_ENDPOINT = "https://search-prod.sagebase.org/search/v1";
 	protected static final String SESSION_TOKEN_HEADER = "sessionToken";
 	protected static final String REQUEST_PROFILE_DATA = "profile_request";
 	protected static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
@@ -111,6 +111,7 @@ public class Synapse {
 	protected static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
 	protected static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
 	protected static final String ENTITY_BUNDLE_PATH = "/bundle?mask=";
+	protected static final String BUNDLE = "/bundle";
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
@@ -134,6 +135,7 @@ public class Synapse {
 
 	
 	protected String repoEndpoint;
+	protected String searchEndpoint;
 	protected String authEndpoint;
 
 	protected Map<String, String> defaultGETDELETEHeaders;
@@ -169,6 +171,7 @@ public class Synapse {
 
 		setRepositoryEndpoint(DEFAULT_REPO_ENDPOINT);
 		setAuthEndpoint(DEFAULT_AUTH_ENDPOINT);
+		setSearchEndpoint(DEFAULT_SEARCH_ENDPOINT);
 
 		defaultGETDELETEHeaders = new HashMap<String, String>();
 		defaultGETDELETEHeaders.put("Accept", "application/json");
@@ -178,13 +181,12 @@ public class Synapse {
 		defaultPOSTPUTHeaders.put("Content-Type", "application/json");
 
 		this.clientProvider = clientProvider;
-		clientProvider.setGlobalConnectionTimeout(DEFAULT_TIMEOUT_MSEC);
-		clientProvider.setGlobalSocketTimeout(DEFAULT_TIMEOUT_MSEC);
-
+		clientProvider.setGlobalConnectionTimeout(ServiceConstants.DEFAULT_CONNECT_TIMEOUT_MSEC);
+		clientProvider.setGlobalSocketTimeout(ServiceConstants.DEFAULT_SOCKET_TIMEOUT_MSEC);
+		
 		this.dataUploader = dataUploader;
 		
 		requestProfile = false;
-
 	}
 
 	/**
@@ -226,6 +228,10 @@ public class Synapse {
 	 */
 	public void setAuthEndpoint(String authEndpoint) {
 		this.authEndpoint = authEndpoint;
+	}
+	
+	public void setSearchEndpoint(String searchEndpoint){
+		this.searchEndpoint = searchEndpoint;
 	}
 
 	/**
@@ -436,6 +442,31 @@ public class Synapse {
 			// Now convert to Object to an entity
 			return (T) EntityFactory.createEntityFromJSONObject(jsonObject,
 					entity.getClass());
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	/**
+	 * Get a bundle of information about an entity in a single call.
+	 * 
+	 * @param entityId
+	 * @param partsMask
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public EntityBundle createEntityBundle(EntityBundleCreate ebc) throws SynapseException {
+		if (ebc == null)
+			throw new IllegalArgumentException("EntityBundle cannot be null");
+		String url = ENTITY_URI_PATH + BUNDLE;
+		JSONObject jsonObject;
+		try {
+			// Convert to JSON
+			jsonObject = EntityFactory.createJSONObjectForEntity(ebc);
+			// Create
+			jsonObject = createEntity(url, jsonObject);
+			// Convert returned JSON to EntityBundle
+			return EntityFactory.createEntityFromJSONObject(jsonObject,	EntityBundle.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -1257,6 +1288,42 @@ public class Synapse {
 		return putEntity(locationable);
 	}
 	
+	
+
+	/**
+	 * Update the locationable to point to the given external url
+	 * @param locationable
+	 * @param externalUrl
+	 * @return the updated locationable
+	 * @throws SynapseException
+	 */
+	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
+			String externalUrl) throws SynapseException {
+		return updateExternalLocationableToSynapse(locationable, externalUrl, null);
+	}
+	
+	/**
+	 * Update the locationable to point to the given external url
+	 * @param locationable
+	 * @param externalUrl
+	 * @param md5 the calculated md5 checksum for the file referenced by the external url
+	 * @return the updated locationable
+	 * @throws SynapseException
+	 */
+	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
+			String externalUrl, String md5) throws SynapseException {
+		// set the upload location in the locationable so that Synapse
+		// is aware of the new data
+		LocationData location = new LocationData();
+		location.setPath(externalUrl);
+		location.setType(LocationTypeNames.external);
+		locationable.setMd5(md5);
+		List<LocationData> locations = new ArrayList<LocationData>();
+		locations.add(location);
+		locationable.setLocations(locations);
+		return putEntity(locationable);
+	}
+	
 	/**
 	 * This version will use the file name for the file name.
 	 * @param entityId
@@ -1475,7 +1542,6 @@ public class Synapse {
 		//Now download the file
 		downloadFromSynapse(url, null, destFile);
 	}
-	
 	
 	/**
 	 * Downlaod a preview to the passed file.
@@ -1972,13 +2038,13 @@ public class Synapse {
 	
 	public SearchResults search(SearchQuery searchQuery) throws SynapseException, UnsupportedEncodingException, JSONObjectAdapterException {
 		SearchResults searchResults = null;		
-		String uri = "/search?q=" + URLEncoder.encode(SearchUtil.generateQueryString(searchQuery), "UTF-8");
-		JSONObject obj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
+		String uri = "/search";
+		String jsonBody = EntityFactory.createJSONStringForEntity(searchQuery);
+		JSONObject obj = signAndDispatchSynapseRequest(searchEndpoint, uri, "POST", jsonBody, defaultPOSTPUTHeaders);
 		if(obj != null) {
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(obj);
 			searchResults = new SearchResults(adapter);
 		}
-
 		return searchResults;
 	}
 	

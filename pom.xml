@@ -142,6 +142,15 @@
 				<artifactId>jackson-mapper-asl</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
+			
+			<!-- Used for timer triggers (cron-like) -->
+			<dependency>
+				<groupId>opensymphony</groupId>
+				<artifactId>quartz-all</artifactId>
+				<version>1.6.3</version>
+				<type>jar</type>
+				<scope>compile</scope>
+			</dependency>
 
 			<!-- Spring Framework dependencies -->
 			<dependency>
@@ -156,7 +165,22 @@
 				<artifactId>org.springframework.web</artifactId>
 				<version>${org.springframework.version}</version>
 			</dependency>
+			<!-- This was being pulled in as a child dependency of the springframework 
+				but the tomcat plugin needs this to be in scope "provided" -->
+			<dependency>
+				<groupId>javax.servlet</groupId>
+				<artifactId>com.springsource.javax.servlet</artifactId>
+				<version>2.5.0</version>
+				<scope>provided</scope>
+			</dependency>
 
+			<!-- In a tomcat container, such as Elastic Beanstalk, you have to include 
+				jstl.jar manually, hence this entry. -->
+			<dependency>
+				<groupId>javax.servlet</groupId>
+				<artifactId>jstl</artifactId>
+				<version>1.2</version>
+			</dependency>
 			<dependency>
 				<groupId>org.springframework</groupId>
 				<artifactId>spring-test</artifactId>
@@ -283,6 +307,12 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
+				<artifactId>repository-managers</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
 				<artifactId>services-authentication</artifactId>
 				<version>${project.version}</version>
 				<type>war</type>
@@ -294,7 +324,12 @@
 				<version>${project.version}</version>
 				<type>war</type>
 			</dependency>
-
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>services-search</artifactId>
+				<version>${project.version}</version>
+				<type>war</type>
+			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-auto-generated</artifactId>
@@ -306,7 +341,13 @@
 				<artifactId>lib-shared-models</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-
+			
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-worker</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-communicationUtilities</artifactId>
@@ -334,6 +375,12 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-models</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-search</artifactId>
 				<version>${project.version}</version>
 			</dependency>
 
@@ -418,6 +465,11 @@
 				<version>4.2</version>
 				<type>jar</type>
 				<scope>compile</scope>
+			</dependency>
+			<dependency>
+				<groupId>com.thoughtworks.xstream</groupId>
+				<artifactId>xstream</artifactId>
+				<version>${xstream.version}</version>
 			</dependency>
 
 		</dependencies>

@@ -17,6 +17,7 @@ import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
 
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.tool.migration.gui.PreviewUtil;
 import org.sagebionetworks.tool.migration.gui.model.EntityCountModel;
 import org.sagebionetworks.tool.migration.gui.presenter.StackStatusPresenter;
@@ -180,8 +181,8 @@ public class StackStatusView extends JPanel implements StackStatusPresenter.View
 	}
 
 	@Override
-	public void setEntityTypeCount(EntityType type, long count) {
-		countModel.setValue(type, count);
+	public void setEntityTypeCount(MigratableObjectType objType, EntityType type, long count) {
+		countModel.setValue(objType, type, count);
 	}
 
 	@Override

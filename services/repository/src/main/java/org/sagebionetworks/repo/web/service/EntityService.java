@@ -407,8 +407,8 @@ public interface EntityService {
 	throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException;
 	
 	/**
-	 * Update an entity ACL. If 'recursive' is true, then the ACL will be applied
-	 * to all child entities via inheritance.
+	 * Update an entity ACL. If the String 'recursive' is "true", then the ACL 
+	 * will be applied to all child entities via inheritance.
 	 * @param userId
 	 * @param updated
 	 * @param recursive
@@ -421,6 +421,26 @@ public interface EntityService {
 	public AccessControlList updateEntityACL(String userId, AccessControlList updated, String recursive, HttpServletRequest request) throws 
 		DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException;
 	
+	/**
+	 * Update an entity ACL. If no such ACL exists, then create it.
+	 * 
+	 * If the String 'recursive' is "true", then the ACL will be applied to all
+	 * child entities via inheritance.
+	 * 
+	 * @param userId
+	 * @param acl
+	 * @param recursive
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException
+	 */
+	public AccessControlList createOrUpdateEntityACL(String userId,	AccessControlList acl, String recursive, HttpServletRequest request)
+			throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException,	ConflictingUpdateException;
+
 	/**
 	 * Delete a specific entity
 	 * <p>
@@ -594,7 +614,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public Long getChildCount(String userId, String entityId,
+	public boolean doesEntityHaveChildren(String userId, String entityId,
 			HttpServletRequest request) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException;
 	

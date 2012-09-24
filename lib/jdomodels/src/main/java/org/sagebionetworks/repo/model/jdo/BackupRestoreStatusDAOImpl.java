@@ -23,12 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
  * @author jmhill
  * 
  */
-@Transactional(readOnly = true)
 public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
-
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
 	DBOBasicDao dboBasicDao;
 
@@ -67,7 +65,6 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	 * @throws NotFoundException
 	 * @throws DataAccessException
 	 */
-	@Transactional(readOnly = true)
 	@Override
 	public BackupRestoreStatus get(String id) throws DatastoreException,
 			NotFoundException {

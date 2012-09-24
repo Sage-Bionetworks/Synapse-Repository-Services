@@ -17,12 +17,13 @@ public class EntityBundle implements JSONEntity {
 	/**
 	 * Masks for requesting what should be included in the bundle.
 	 */
+	
 	public static int ENTITY 		      		= 0x1;
 	public static int ANNOTATIONS	      		= 0x2;
 	public static int PERMISSIONS	     		= 0x4;
 	public static int ENTITY_PATH	      		= 0x8;
 	public static int ENTITY_REFERENCEDBY 		= 0x10;
-	public static int CHILD_COUNT				= 0x20;
+	public static int HAS_CHILDREN				= 0x20;
 	public static int ACL						= 0x40;
 	public static int USERS						= 0x80;
 	public static int GROUPS					= 0x100;
@@ -31,18 +32,19 @@ public class EntityBundle implements JSONEntity {
 	
 	private static AutoGenFactory autoGenFactory = new AutoGenFactory();
 	
-	private static final String JSON_ENTITY = "entity";
-	private static final String JSON_ENTITY_TYPE = "entityType";
-	private static final String JSON_ANNOTATIONS = "annotations";
-	private static final String JSON_PERMISSIONS = "permissions";
-	private static final String JSON_PATH = "path";
-	private static final String JSON_REFERENCED_BY = "referencedBy";
-	private static final String JSON_CHILD_COUNT = "childCount";
-	private static final String JSON_ACL = "accessControlList";
-	private static final String JSON_USERS = "users";
-	private static final String JSON_GROUPS = "groups";
-	private static final String JSON_ACCESS_REQUIREMENTS = "accessRequirements";
-	private static final String JSON_UNMET_ACCESS_REQUIREMENTS = "unmetAccessRequirements";
+	public static final String JSON_ENTITY = "entity";
+	public static final String JSON_ENTITY_TYPE = "entityType";
+	public static final String JSON_ANNOTATIONS = "annotations";
+	public static final String JSON_PERMISSIONS = "permissions";
+	public static final String JSON_PATH = "path";
+	public static final String JSON_REFERENCED_BY = "referencedBy";
+	public static final String JSON_HAS_CHILDREN 	= "hasChildren";
+
+	public static final String JSON_ACL = "accessControlList";
+	public static final String JSON_USERS = "users";
+	public static final String JSON_GROUPS = "groups";
+	public static final String JSON_ACCESS_REQUIREMENTS = "accessRequirements";
+	public static final String JSON_UNMET_ACCESS_REQUIREMENTS = "unmetAccessRequirements";
 	
 	private Entity entity;
 	private String entityType;
@@ -50,7 +52,7 @@ public class EntityBundle implements JSONEntity {
 	private UserEntityPermissions permissions;
 	private EntityPath path;
 	private PaginatedResults<EntityHeader> referencedBy;
-	private Long childCount;
+	private Boolean hasChildren;
 	private AccessControlList acl;
 	private PaginatedResults<UserProfile> users;
 	private PaginatedResults<UserGroup> groups;
@@ -109,8 +111,8 @@ public class EntityBundle implements JSONEntity {
 				referencedBy = new PaginatedResults<EntityHeader>(EntityHeader.class);
 			referencedBy.initializeFromJSONObject(joa);
 		}
-		if (toInitFrom.has(JSON_CHILD_COUNT)) {
-			childCount = toInitFrom.getLong(JSON_CHILD_COUNT);
+		if (toInitFrom.has(JSON_HAS_CHILDREN)) {
+			hasChildren = toInitFrom.getBoolean(JSON_HAS_CHILDREN);
 		}
 		if (toInitFrom.has(JSON_ACL)) {
 			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ACL);
@@ -177,8 +179,8 @@ public class EntityBundle implements JSONEntity {
 			referencedBy.writeToJSONObject(joa);
 			writeTo.put(JSON_REFERENCED_BY, joa);
 		}
-		if (childCount != null) {
-			writeTo.put(JSON_CHILD_COUNT, childCount);
+		if (hasChildren != null) {
+			writeTo.put(JSON_HAS_CHILDREN, hasChildren);
 		}
 		if (acl != null) {
 			JSONObjectAdapter joa = writeTo.createNew();
@@ -292,18 +294,17 @@ public class EntityBundle implements JSONEntity {
 	}
 
 	/**
-	 * Get the number of child Entities of the Entity in this bundle.
+	 * Does this entity have children?
 	 */
-	public Long getChildCount() {
-		return childCount;
+	public Boolean getHasChildren() {
+		return hasChildren;
 	}
 
 	/**
-	 * Set the childCount in this bundle. Should equal the number of Entities
-	 * which have the Entity in this bundle as their direct parent.
+	 * Does this entity have children?
 	 */
-	public void setChildCount(Long childCount) {
-		this.childCount = childCount;
+	public void setHasChildren(Boolean hasChildren) {
+		this.hasChildren = hasChildren;
 	}
 
 	/**
@@ -371,17 +372,6 @@ public class EntityBundle implements JSONEntity {
 	}
 
 	@Override
-	public String toString() {
-		return "EntityBundle [entity=" + entity + ", entityType=" + entityType
-				+ ", annotations=" + annotations + ", permissions="
-				+ permissions + ", path=" + path + ", referencedBy="
-				+ referencedBy + ", childCount=" + childCount + ", acl=" + acl
-				+ ", users=" + users + ", groups=" + groups
-				+ ", accessRequirements=" + accessRequirements
-				+ ", unmetAccessRequirements=" + unmetAccessRequirements + "]";
-	}
-	
-	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
@@ -392,12 +382,12 @@ public class EntityBundle implements JSONEntity {
 		result = prime * result + ((acl == null) ? 0 : acl.hashCode());
 		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
-		result = prime * result
-				+ ((childCount == null) ? 0 : childCount.hashCode());
 		result = prime * result + ((entity == null) ? 0 : entity.hashCode());
 		result = prime * result
 				+ ((entityType == null) ? 0 : entityType.hashCode());
 		result = prime * result + ((groups == null) ? 0 : groups.hashCode());
+		result = prime * result
+				+ ((hasChildren == null) ? 0 : hasChildren.hashCode());
 		result = prime * result + ((path == null) ? 0 : path.hashCode());
 		result = prime * result
 				+ ((permissions == null) ? 0 : permissions.hashCode());
@@ -410,7 +400,7 @@ public class EntityBundle implements JSONEntity {
 		result = prime * result + ((users == null) ? 0 : users.hashCode());
 		return result;
 	}
-	
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -435,11 +425,6 @@ public class EntityBundle implements JSONEntity {
 				return false;
 		} else if (!annotations.equals(other.annotations))
 			return false;
-		if (childCount == null) {
-			if (other.childCount != null)
-				return false;
-		} else if (!childCount.equals(other.childCount))
-			return false;
 		if (entity == null) {
 			if (other.entity != null)
 				return false;
@@ -454,6 +439,11 @@ public class EntityBundle implements JSONEntity {
 			if (other.groups != null)
 				return false;
 		} else if (!groups.equals(other.groups))
+			return false;
+		if (hasChildren == null) {
+			if (other.hasChildren != null)
+				return false;
+		} else if (!hasChildren.equals(other.hasChildren))
 			return false;
 		if (path == null) {
 			if (other.path != null)
@@ -483,4 +473,17 @@ public class EntityBundle implements JSONEntity {
 			return false;
 		return true;
 	}
+
+	@Override
+	public String toString() {
+		return "EntityBundle [entity=" + entity + ", entityType=" + entityType
+				+ ", annotations=" + annotations + ", permissions="
+				+ permissions + ", path=" + path + ", referencedBy="
+				+ referencedBy + ", hasChildren=" + hasChildren + ", acl="
+				+ acl + ", users=" + users + ", groups=" + groups
+				+ ", accessRequirements=" + accessRequirements
+				+ ", unmetAccessRequirements=" + unmetAccessRequirements + "]";
+	}
+
+
 }

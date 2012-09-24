@@ -7,15 +7,18 @@
        http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
        http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd">
 
-	<!-- Trun on Spring's auotproxy using AspectJ's @Aspect annotations. -->
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
 	<aop:aspectj-autoproxy />
 
 	<!-- Import the stack configuration -->
 	<import resource="dbo-beans.spb.xml" />
 	<import resource="bootstrap-entites-spb.xml" />
-
+	
 	<!-- Depends on ID-generator. -->
 	<import resource="id-generator.spb.xml" />
+	
+	<!-- Transactional Messenger -->
+	<bean id="transactionalMessenger" class="org.sagebionetworks.repo.model.message.TransactionalMessengerImpl"/>
 	
 	<bean id="dboAnnotationsDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDaoImpl"/>
 	
@@ -49,6 +52,20 @@
 	<bean id="accessControlListDAO"
 		class="org.sagebionetworks.repo.model.jdo.JDOAccessControlListDAOImpl"
 		scope="singleton" />
+
+	<bean id="accessKey" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserId"/>
+	<bean id="secretKey" class="org.sagebionetworks.StackConfiguration" factory-method="getIAMUserKey"/>
+	<bean id="awsCredentials" class="com.amazonaws.auth.BasicAWSCredentials">
+		<constructor-arg index="0" ref="accessKey" />
+		<constructor-arg index="1" ref="secretKey" />
+	</bean>
+	<bean id="amazonS3Client" class="com.amazonaws.services.s3.AmazonS3Client" scope="singleton">
+		<constructor-arg ref="awsCredentials" />
+	</bean>
+	<bean id="storageLocationDAO"
+			class="org.sagebionetworks.repo.model.dbo.dao.StorageLocationDAOImpl"
+			scope="singleton">
+	</bean>
 
 	<bean id="entityBootstrapper"
 		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapperImpl">

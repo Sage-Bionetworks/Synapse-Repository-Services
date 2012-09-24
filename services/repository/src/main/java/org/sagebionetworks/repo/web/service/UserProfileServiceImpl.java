@@ -33,27 +33,23 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Autowired
-	UserProfileManager userProfileManager;
-	
+	UserProfileManager userProfileManager;	
 	@Autowired
-	UserManager userManager;
-	
+	UserManager userManager;	
 	@Autowired
-	PermissionsManager permissionsManager;
-	
+	PermissionsManager permissionsManager;	
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
 
 	private Long cacheLastUpdated = 0L;
 	private Trie<String, Collection<UserGroupHeader>> userGroupHeadersCache;
 
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getMyOwnUserProfile(java.lang.String)
-	 */
 	@Override
 	public UserProfile getMyOwnUserProfile(String userId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -61,10 +57,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return userProfileManager.getUserProfile(userInfo, userInfo.getIndividualGroup().getId());
 	}
 	
-
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserProfileByOwnerId(java.lang.String, java.lang.String)
-	 */
 	@Override
 	public UserProfile getUserProfileByOwnerId(String userId, String profileId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -72,9 +64,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return userProfileManager.getUserProfile(userInfo, profileId);
 	}
 	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserProfilesPaginated(javax.servlet.http.HttpServletRequest, java.lang.String, java.lang.Integer, java.lang.Integer, java.lang.String, java.lang.Boolean)
-	 */
 	@Override
 	public PaginatedResults<UserProfile> getUserProfilesPaginated(HttpServletRequest request,
 			String userId, Integer offset, Integer limit, String sort, Boolean ascending)
@@ -92,10 +81,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 				sort, 
 				ascending);
 	}
-	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.UserProfileService#updateUserProfile(java.lang.String, org.springframework.http.HttpHeaders, java.lang.String, javax.servlet.http.HttpServletRequest)
-	 */
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public UserProfile updateUserProfile(String userId, HttpHeaders header, 
 			String etag, HttpServletRequest request) throws NotFoundException, ConflictingUpdateException,
@@ -108,9 +95,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return userProfileManager.updateUserProfile(userInfo, entity);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.UserProfileService#createUserProfileS3AttachmentToken(java.lang.String, java.lang.String, org.sagebionetworks.repo.model.attachment.S3AttachmentToken, javax.servlet.http.HttpServletRequest)
-	 */
 	@Override
 	public S3AttachmentToken createUserProfileS3AttachmentToken(String userId, String profileId, 
 			S3AttachmentToken token, HttpServletRequest request) throws NotFoundException,
@@ -118,10 +102,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return userProfileManager.createS3UserProfileAttachmentToken(userInfo, profileId, token);
 	}
-	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserProfileAttachmentUrl(java.lang.String, java.lang.String, org.sagebionetworks.repo.model.attachment.PresignedUrl, javax.servlet.http.HttpServletRequest)
-	 */
+
 	@Override
 	public PresignedUrl getUserProfileAttachmentUrl(String userId, String profileId,
 			PresignedUrl url, HttpServletRequest request) throws NotFoundException,
@@ -131,10 +112,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return userProfileManager.getUserProfileAttachmentUrl(userInfo, profileId, url.getTokenID());
 	}
-	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.UserProfileService#getUserGroupHeadersByPrefix(java.lang.String, java.lang.Integer, java.lang.Integer, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
-	 */
+
 	@Override
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix,
 			Integer offset, Integer limit, HttpHeaders header, HttpServletRequest request) 
@@ -179,16 +157,12 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return list;
 	}
 
-
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.repo.web.service.UserProfileService#populateCache()
-	 */
 	@Override
 	public synchronized void refreshCache() throws DatastoreException, NotFoundException {		
 		Trie<String, Collection<UserGroupHeader>> tempCache = new PatriciaTrie<String, Collection<UserGroupHeader>>(StringKeyAnalyzer.CHAR);
 
 		UserGroupHeader header;
-		List<UserProfile> userProfiles = userProfileManager.getInRange(null, 0, Long.MAX_VALUE).getResults();
+		List<UserProfile> userProfiles = userProfileManager.getInRange(null, 0, Long.MAX_VALUE, true).getResults();
 		for (UserProfile profile : userProfiles) {
 			if (profile .getDisplayName() != null) {
 				header = convertUserProfileToHeader(profile);

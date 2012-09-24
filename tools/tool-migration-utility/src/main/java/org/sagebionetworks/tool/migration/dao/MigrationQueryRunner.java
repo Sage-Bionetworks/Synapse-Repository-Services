@@ -26,7 +26,7 @@ public class MigrationQueryRunner implements QueryRunner<MigratableObjectData> {
 		this.queryForDependencies = queryForDependencies;
 	}
 	
-	public static final long PAGE_SIZE = 1000L; // was 100
+	public static final long PAGE_SIZE = 10000L; // was 100
 	public static final int MAX_RETRIES = 3;
 	
 	@Override
@@ -51,6 +51,7 @@ public class MigrationQueryRunner implements QueryRunner<MigratableObjectData> {
 			while (retryCount<MAX_RETRIES) {
 				try {
 					page = client.getAllMigratableObjectsPaginated(offset, PAGE_SIZE, queryForDependencies);
+					totalCount = page.getTotalNumberOfResults();
 					break;
 				} catch (SynapseServiceException e) {
 					// will retry, unless we've hit the retry limit

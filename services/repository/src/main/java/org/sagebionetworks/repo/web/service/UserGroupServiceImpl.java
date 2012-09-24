@@ -18,8 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class UserGroupServiceImpl implements UserGroupService {
 	
 	@Autowired
-	PermissionsManager permissionsManager;
-	
+	PermissionsManager permissionsManager;	
 	@Autowired
 	UserManager userManager;
 	
@@ -30,7 +29,7 @@ public class UserGroupServiceImpl implements UserGroupService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;
 		List<UserGroup> results = permissionsManager.getGroupsInRange(userInfo, offset, endExcl, sort, ascending);
-		int totalNumberOfResults = permissionsManager.getGroups(userInfo).size();
+		int totalNumberOfResults = permissionsManager.getGroups().size();
 		return new PaginatedResults<UserGroup>(
 				request.getServletPath()+UrlHelpers.USERGROUP, 
 				results,

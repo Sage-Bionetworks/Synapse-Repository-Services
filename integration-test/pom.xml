@@ -20,6 +20,7 @@
 		<org.sagebionetworks.authenticationservice.privateendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.privateendpoint>
 		<org.sagebionetworks.authenticationservice.publicendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.publicendpoint>
 		<org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
+		<org.sagebionetworks.searchservice.endpoint>http://localhost:8080/repository-search-${project.version}/search/v1</org.sagebionetworks.searchservice.endpoint>
 		<org.sagebionetworks.portal.endpoint>http://localhost:8080/portal-${project.version}/Portal</org.sagebionetworks.portal.endpoint>
 		<!-- This is where the repository war will be deployed -->
 		<org.sagebionetworks.auth.context>services-authentication-${project.version}</org.sagebionetworks.auth.context>
@@ -155,6 +156,11 @@
 								<!-- How long do we wait until the we timeout (in ms) -->
 								<!-- <pingTimeout>2000</pingTimeout> -->
 							</deployable>
+							<deployable>
+								<groupId>org.sagebionetworks</groupId>
+								<artifactId>services-search</artifactId>
+								<type>war</type>
+							</deployable>
 						</deployables>
 						<properties>
 <!-- 							Add the following to 'remote debug' the entire deployment stack -->
@@ -221,6 +227,12 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>services-repository</artifactId>
+			<type>war</type>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>services-search</artifactId>
 			<type>war</type>
 		</dependency>
 
