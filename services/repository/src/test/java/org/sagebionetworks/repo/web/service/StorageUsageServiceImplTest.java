@@ -10,9 +10,11 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.StorageUsageManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.test.util.ReflectionTestUtils;
@@ -28,11 +30,16 @@ public class StorageUsageServiceImplTest {
 	@Before
 	public void before() throws Exception {
 
+		UserGroup userGroup = Mockito.mock(UserGroup.class);
+		Mockito.when(userGroup.getId()).thenReturn("0");
+
 		UserInfo userInfo = Mockito.mock(UserInfo.class);
 		Mockito.when(userInfo.isAdmin()).thenReturn(false);
+		Mockito.when(userInfo.getIndividualGroup()).thenReturn(userGroup);
 
 		UserInfo adminUserInfo = Mockito.mock(UserInfo.class);
 		Mockito.when(adminUserInfo.isAdmin()).thenReturn(true);
+		Mockito.when(adminUserInfo.getIndividualGroup()).thenReturn(userGroup);
 
 		UserManager userMan = Mockito.mock(UserManager.class);
 		Mockito.when(userMan.getUserInfo(userId)).thenReturn(userInfo);
@@ -52,21 +59,21 @@ public class StorageUsageServiceImplTest {
 	}
 
 	@Test
-	public void testSameUser() {
+	public void testSameUser() throws NotFoundException {
 		StorageUsageSummaryList results = suService.getStorageUsage(userId, userId, dList);
 		Assert.assertNotNull(results);
 		Assert.assertEquals(susList, results);
 	}
 
 	@Test
-	public void testAdminUser() {
+	public void testAdminUser() throws NotFoundException {
 		StorageUsageSummaryList results = suService.getStorageUsage(adminUserId, userId, dList);
 		Assert.assertNotNull(results);
 		Assert.assertEquals(susList, results);
 	}
 
 	@Test(expected=UnauthorizedException.class)
-	public void testNonAdminUser() {
+	public void testNonAdminUser() throws NotFoundException {
 		suService.getStorageUsage(userId, adminUserId, dList);
 		Assert.fail();
 	}

@@ -240,7 +240,6 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 		return usageList;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public Long getCount(String userId) throws DatastoreException {
 
