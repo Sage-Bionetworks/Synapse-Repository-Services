@@ -134,15 +134,7 @@ public class DBOChangeDAOImplTest {
 	
 	@Test
 	public void testSortByObjectId(){
-		List<DBOChange> batch = new ArrayList<DBOChange>();
-		for(int i=0; i<5; i++){
-			DBOChange change = new DBOChange();
-			change.setObjectId(new Long(i));
-			change.setObjectEtag("etag"+i);
-			change.setChangeType(ChangeType.UPDATE);
-			change.setObjectType(ObjectType.ENTITY);
-			batch.add(change);
-		}
+		List<DBOChange> batch = createList(5, ObjectType.ENTITY);
 		// Start shuffled
 		Collections.shuffle(batch);
 		// Now sort
@@ -160,11 +152,11 @@ public class DBOChangeDAOImplTest {
 		List<DBOChange> batch = new ArrayList<DBOChange>();
 		for(int i=0; i<5; i++){
 			DBOChange change = new DBOChange();
-			change.setObjectId(0l);
-			change.setChangeNumber(new Long(i*2));
+			change.setObjectId(new Long(i));
 			change.setObjectEtag("etag"+i);
 			change.setChangeType(ChangeType.UPDATE);
 			change.setObjectType(ObjectType.ENTITY);
+			change.setChangeNumber(new Long(i));
 			batch.add(change);
 		}
 		// Start shuffled
@@ -184,15 +176,7 @@ public class DBOChangeDAOImplTest {
 		// Get the current change number
 		int numChangesInBatch = 5;
 		long startChangeNumber = changeDAO.getCurrentChangeNumber();
-		List<DBOChange> batch = new ArrayList<DBOChange>();
-		for(int i=0; i<numChangesInBatch; i++){
-			DBOChange change = new DBOChange();
-			change.setObjectId(new Long(i));
-			change.setObjectEtag("etag"+i);
-			change.setChangeType(ChangeType.UPDATE);
-			change.setObjectType(ObjectType.ENTITY);
-			batch.add(change);
-		}
+		List<DBOChange> batch = createList(5, ObjectType.PRINCIPAL);
 		// We want to start with an unordered list of changes
 		// because the batch replace must sort the list by object id
 		// to ensure a consistent update order to prevent deadlock.
@@ -217,6 +201,62 @@ public class DBOChangeDAOImplTest {
 		long endChangeNumber = changeDAO.getCurrentChangeNumber();
 		assertEquals(startChangeNumber + numChangesInBatch , endChangeNumber);
 
+	}
+	
+	@Test
+	public void testListChangesNullType(){
+		// Get the current change number
+		List<DBOChange> batch = createList(2, ObjectType.ENTITY);
+		// Pass the batch.
+		batch  = changeDAO.replaceChange(batch);
+		// The resulting list 
+		assertNotNull(batch);
+		// Now listing this should return the same as the batch
+		List<DBOChange> list = changeDAO.listChanges(batch.get(0).getChangeNumber(), null, 10);
+		assertEquals(batch, list);
+	}
+	
+	@Test
+	public void testListChangesType(){
+		// Get the current change number
+		List<DBOChange> batch = new ArrayList<DBOChange>();
+		List<DBOChange> expectedFiltered = new ArrayList<DBOChange>();
+		for(int i=0; i<5; i++){
+			DBOChange change = new DBOChange();
+			change.setObjectId(new Long(i));
+			change.setObjectEtag("etag"+i);
+			change.setChangeType(ChangeType.UPDATE);
+			if(i%2 > 0){
+				change.setObjectType(ObjectType.ENTITY);
+				expectedFiltered.add(change);
+			}else{
+				change.setObjectType(ObjectType.PRINCIPAL);
+			}
+			batch.add(change);
+		}
+		// Pass the batch.
+		batch  = changeDAO.replaceChange(batch);
+		// Now listing this should return the same as the batch
+		List<DBOChange> list = changeDAO.listChanges(batch.get(0).getChangeNumber(), ObjectType.ENTITY, 10);
+		assertEquals(expectedFiltered, list);
+	}
+
+	/**
+	 * Helper to build up a list of changes.
+	 * @param numChangesInBatch
+	 * @return
+	 */
+	private List<DBOChange> createList(int numChangesInBatch, ObjectType type) {
+		List<DBOChange> batch = new ArrayList<DBOChange>();
+		for(int i=0; i<numChangesInBatch; i++){
+			DBOChange change = new DBOChange();
+			change.setObjectId(new Long(i));
+			change.setObjectEtag("etag"+i);
+			change.setChangeType(ChangeType.UPDATE);
+			change.setObjectType(type);
+			batch.add(change);
+		}
+		return batch;
 	}
 
 }

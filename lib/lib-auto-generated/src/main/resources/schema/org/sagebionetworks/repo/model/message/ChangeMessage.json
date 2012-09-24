@@ -16,7 +16,8 @@
 			"name": "ObjectType",
 			"id": "org.sagebionetworks.repo.model.message.ObjectType",
 			"enum": [
-				"ENTITY"
+				"ENTITY",
+				"PRINCIPAL"
 			]
 		},
 		"changeType": {

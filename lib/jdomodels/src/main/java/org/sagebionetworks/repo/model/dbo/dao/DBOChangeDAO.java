@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
+import org.sagebionetworks.repo.model.message.ObjectType;
 
 /**
  * Abstraction for DBOChage CRUD.
@@ -43,5 +44,15 @@ public interface DBOChangeDAO {
 	 * Clear the entire change list.
 	 */
 	void deleteAllChanges();
+	
+	/**
+	 * List changes according to parameters.
+	 * 
+	 * @param greaterOrEqualChangeNumber - List changes with a change number that is greater or equals to this number.
+	 * @param type - When not null, only changes for the given object type will be returned.  When null, then all object types will be returned.
+	 * @param limit - The number of results.  The max limit is 1K.
+	 * @return
+	 */
+	List<DBOChange> listChanges(long greaterOrEqualChangeNumber, ObjectType type, long limit);
 
 }
