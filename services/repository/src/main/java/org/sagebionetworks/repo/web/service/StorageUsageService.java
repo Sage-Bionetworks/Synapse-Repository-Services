@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface StorageUsageService {
 
@@ -16,17 +17,21 @@ public interface StorageUsageService {
 	 *
 	 * @throws UnauthorizedException
 	 *			When the current user is not authorized to view the specified user's storage usage.
+	 * @throws NotFoundException
+	 *			When the user does not exist.
 	 */
-	StorageUsageSummaryList getStorageUsage(String currUserId, String userId, List<StorageUsageDimension> dList)
-			throws UnauthorizedException, DatastoreException;
+	StorageUsageSummaryList getStorageUsage(String currUserName, String userName, List<StorageUsageDimension> dList)
+			throws UnauthorizedException, NotFoundException, DatastoreException;
 
 	/**
 	 * Retrieves detailed, itemized usage for the specified user.
 	 *
 	 * @throws UnauthorizedException
 	 *			When the current user is not authorized to view the specified user's storage usage.
+	 * @throws NotFoundException
+	 *			When the user does not exist.
 	 */
-	PaginatedResults<StorageUsage> getStorageUsage(String currUserId, String userId,
+	PaginatedResults<StorageUsage> getStorageUsage(String currUserName, String userName,
 			Integer offset, Integer limit, String urlPath)
-			throws UnauthorizedException, DatastoreException;
+			throws UnauthorizedException, NotFoundException, DatastoreException;
 }
