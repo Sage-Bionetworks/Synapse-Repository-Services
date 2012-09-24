@@ -51,7 +51,6 @@ public class DependencyManagerImplTest {
 		List<MigratableObjectCount> l = new ArrayList<MigratableObjectCount>();
 		MigratableObjectCount oc = new MigratableObjectCount();
 		oc.setObjectType(mot.name());
-		oc.setEntityType(null);
 		oc.setCount(num);
 		l.add(oc);
 		r.setTotalNumberOfResults(1);
