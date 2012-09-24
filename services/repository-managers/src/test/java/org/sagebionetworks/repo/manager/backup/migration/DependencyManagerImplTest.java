@@ -245,7 +245,6 @@ public class DependencyManagerImplTest {
 		// AccessRequirements
 		MigratableDAO dao3 = Mockito.mock(MigratableDAO.class);
 		when(dao3.getCount()).thenReturn(LIST_SIZE);
-		when(dao3.getMigratableObjectCounts(anyLong()/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigratableObjectCounts(0L, 1L, MigratableObjectType.ACCESSREQUIREMENT));
 		migratableDaos.add(dao3);
 		
 		dependencyMgr.setMigratableDaos(migratableDaos);
