@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.storage.StorageUsageDimension;
 import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.repo.web.service.StorageUsageService;
@@ -50,6 +51,8 @@ public class StorageUsageController extends BaseController {
 	 *			Third dimension for aggregating the numbers. This must be a valid value of the StorageUsageDimension enum.
 	 * @throws IllegalArgumentException
 	 *			When the supplied list of aggregating dimensions has invalid values. See StorageUsageDimension for valid values.
+	 * @throws NotFoundException
+	 *			When the user does not exist.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_SUMMARY, method = RequestMethod.GET)
@@ -58,7 +61,7 @@ public class StorageUsageController extends BaseController {
 			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_1_PARAM, required = false) String sd1,
 			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_2_PARAM, required = false) String sd2,
 			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_3_PARAM, required = false) String sd3)
-			throws IllegalArgumentException, DatastoreException {
+			throws IllegalArgumentException, NotFoundException, DatastoreException {
 
 		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
 		addDimension(sd1, dList);
@@ -90,6 +93,8 @@ public class StorageUsageController extends BaseController {
 	 *			When the supplied list of aggregating dimensions has invalid values. See StorageUsageDimension for valid values.
 	 * @throws UnauthorizedException
 	 *			When the current user is not authorized to view the specified user's storage usage.
+	 * @throws NotFoundException
+	 *			When the specified user does not exist.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_SUMMARY_USER_ID, method = RequestMethod.GET)
@@ -99,7 +104,7 @@ public class StorageUsageController extends BaseController {
 			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_1_PARAM, required = false) String sd1,
 			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_2_PARAM, required = false) String sd2,
 			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_3_PARAM, required = false) String sd3)
-			throws IllegalArgumentException, DatastoreException, UnauthorizedException {
+			throws IllegalArgumentException, UnauthorizedException, NotFoundException, DatastoreException {
 
 		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
 		addDimension(sd1, dList);
@@ -113,6 +118,9 @@ public class StorageUsageController extends BaseController {
 
 	/**
 	 * Retrieves detailed, itemized usage for the current user.
+	 *
+	 * @throws NotFoundException
+	 *			When the specified user does not exist.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_DETAILS, method = RequestMethod.GET)
@@ -121,7 +129,7 @@ public class StorageUsageController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
 			HttpServletRequest request)
-			throws DatastoreException {
+			throws NotFoundException, DatastoreException {
 		String url = request.getServletPath() + UrlHelpers.STORAGE_DETAILS; // XXX: Need a better way to wire in the URL
 		StorageUsageService service = serviceProvider.getStorageUsageService();
 		PaginatedResults<StorageUsage> results = service.getStorageUsage(currUserId, currUserId, offset, limit, url);
@@ -138,6 +146,8 @@ public class StorageUsageController extends BaseController {
 	 *			The current user, the user who is querying the storage usage.
 	 * @throws UnauthorizedException
 	 *			When the current user is not authorized to view the specified user's storage usage.
+	 * @throws NotFoundException
+	 *			When the specified user does not exist.
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_DETAILS_USER_ID, method = RequestMethod.GET)
@@ -147,7 +157,7 @@ public class StorageUsageController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
 			HttpServletRequest request)
-			throws DatastoreException, UnauthorizedException {
+			throws UnauthorizedException, NotFoundException, DatastoreException {
 		String url = request.getServletPath() + UrlHelpers.STORAGE_DETAILS_USER_ID; // XXX: Need a better way to wire in the URL
 		StorageUsageService service = serviceProvider.getStorageUsageService();
 		PaginatedResults<StorageUsage> results = service.getStorageUsage(currUserId, userId, offset, limit, url);
