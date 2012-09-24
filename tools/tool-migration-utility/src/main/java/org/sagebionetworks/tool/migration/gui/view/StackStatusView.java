@@ -181,8 +181,8 @@ public class StackStatusView extends JPanel implements StackStatusPresenter.View
 	}
 
 	@Override
-	public void setEntityTypeCount(MigratableObjectType objType, EntityType type, long count) {
-		countModel.setValue(objType, type, count);
+	public void setEntityTypeCount(MigratableObjectType objType, long count) {
+		countModel.setValue(objType, count);
 	}
 
 	@Override

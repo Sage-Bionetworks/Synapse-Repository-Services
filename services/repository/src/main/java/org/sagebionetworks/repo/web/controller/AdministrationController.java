@@ -58,13 +58,9 @@ public class AdministrationController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.GET_ALL_BACKUP_OBJECTS_COUNTS, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<MigratableObjectCount> getAllBackupObjectsCounts(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = UrlHelpers.INCLUDE_DEPENDENCIES_PARAM, required = false, defaultValue = "true") Boolean  includeDependencies
-
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return serviceProvider.getAdministrationService().getAllBackupObjectsCounts(userId, offset, limit, includeDependencies);
+		return serviceProvider.getAdministrationService().getAllBackupObjectsCounts(userId);
 	}
 	
 	

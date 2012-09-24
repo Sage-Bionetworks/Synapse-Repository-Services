@@ -50,9 +50,8 @@ public class EntityCountModel extends AbstractTableModel {
 	 * @param entityType if objType==ENTITY, this is the sub-type, else null
 	 * @param count
 	 */
-	public void setValue(MigratableObjectType objType, EntityType entityType, long count){
+	public void setValue(MigratableObjectType objType, long count){
 		String typeName = objType.name();
-		if (objType.equals(MigratableObjectType.ENTITY)) typeName=entityType.name();
 		int r = rowIndex.get(typeName);
 		map.put(r, String.format(LONG_WITH_COMMA_FORMAT, count));
 		// Fire the change.

@@ -24,6 +24,6 @@ public interface DependencyManager {
 	 * @throws DatastoreException 
 	 */
 	QueryResults<MigratableObjectData> getAllObjects(long offset, long limit, boolean includeDependencies) throws DatastoreException;
-	QueryResults<MigratableObjectCount> getAllObjectsCounts(long offset, long limit, boolean includeDependencies) throws DatastoreException;
+	QueryResults<MigratableObjectCount> getAllObjectsCounts() throws DatastoreException;
 
 }

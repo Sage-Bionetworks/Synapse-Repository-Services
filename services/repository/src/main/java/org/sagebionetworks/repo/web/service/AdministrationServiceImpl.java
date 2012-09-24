@@ -64,12 +64,11 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getAllBackupObjectsCounts(java.lang.String, java.lang.Integer, java.lang.Integer, java.lang.Boolean)
 	 */
 	@Override
-	public PaginatedResults<MigratableObjectCount> getAllBackupObjectsCounts(
-			String userId, Integer offset, Integer limit, Boolean  includeDependencies)
+	public PaginatedResults<MigratableObjectCount> getAllBackupObjectsCounts(String userId)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
-		QueryResults<MigratableObjectCount> queryResults = dependencyManager.getAllObjectsCounts(offset, limit, includeDependencies);
+		QueryResults<MigratableObjectCount> queryResults = dependencyManager.getAllObjectsCounts();
 		PaginatedResults<MigratableObjectCount> result = new PaginatedResults<MigratableObjectCount>();
 		result.setResults(queryResults.getResults());
 		result.setTotalNumberOfResults(queryResults.getTotalNumberOfResults());

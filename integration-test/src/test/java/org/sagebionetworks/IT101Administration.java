@@ -142,7 +142,7 @@ public class IT101Administration {
 	@Ignore
 	@Test
 	public void testgetMigratableObjectCounts() throws Exception {
-		PaginatedResults<MigratableObjectCount> rs = synapse.getMigratableObjectCounts(0, 100, true);
+		PaginatedResults<MigratableObjectCount> rs = synapse.getMigratableObjectCounts();
 		assertNotNull(rs);
 		assertNotNull(rs.getResults());
 		assertNotNull(rs.getTotalNumberOfResults());

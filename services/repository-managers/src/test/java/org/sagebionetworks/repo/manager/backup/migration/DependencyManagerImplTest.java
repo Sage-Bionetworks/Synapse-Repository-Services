@@ -224,7 +224,6 @@ public class DependencyManagerImplTest {
 		}
 	}
 
-	@Ignore
 	@Test
 	public void testGetAllObjectsCounts() throws Exception {
 		DependencyManagerImpl dependencyMgr = new DependencyManagerImpl();
@@ -233,25 +232,26 @@ public class DependencyManagerImplTest {
 		// Entities
 		MigratableDAO dao1 = Mockito.mock(MigratableDAO.class);
 		when(dao1.getCount()).thenReturn(LIST_SIZE);
-		when(dao1.getMigrationObjectData(eq(4L)/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(0L, 0L, MigratableObjectType.ENTITY));
+		when(dao1.getMigratableObjectType()).thenReturn(MigratableObjectType.ENTITY);
 		migratableDaos.add(dao1);
 				
 		// Principals
 		MigratableDAO dao2 = Mockito.mock(MigratableDAO.class);
 		when(dao2.getCount()).thenReturn(LIST_SIZE);
-		when(dao2.getMigrationObjectData(anyLong()/*offset*/, eq(1L)/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(4L, 1L, MigratableObjectType.PRINCIPAL));
+		when(dao2.getMigratableObjectType()).thenReturn(MigratableObjectType.PRINCIPAL);
 		migratableDaos.add(dao2);
 		
 		// AccessRequirements
 		MigratableDAO dao3 = Mockito.mock(MigratableDAO.class);
 		when(dao3.getCount()).thenReturn(LIST_SIZE);
+		when(dao3.getMigratableObjectType()).thenReturn(MigratableObjectType.ACCESSREQUIREMENT);
 		migratableDaos.add(dao3);
 		
 		dependencyMgr.setMigratableDaos(migratableDaos);
 		
-		QueryResults<MigratableObjectCount> results = dependencyMgr.getAllObjectsCounts(0, 100, true);
-		assertEquals(6, results.getTotalNumberOfResults());
-		assertEquals(6, results.getResults().size());
+		QueryResults<MigratableObjectCount> results = dependencyMgr.getAllObjectsCounts();
+		assertEquals(3, results.getTotalNumberOfResults());
+		assertEquals(3, results.getResults().size());
 		
 	}
 }

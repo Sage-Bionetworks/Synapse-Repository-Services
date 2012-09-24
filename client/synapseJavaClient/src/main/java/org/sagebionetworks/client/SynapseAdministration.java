@@ -64,11 +64,8 @@ public class SynapseAdministration extends Synapse {
 		}
 	}
 	
-	public PaginatedResults<MigratableObjectCount> getMigratableObjectCounts(long offset, long limit, boolean includeDependencies) throws SynapseException {
-		String uri = GET_ALL_BACKUP_COUNTS + "?" +
-			ServiceConstants.PAGINATION_OFFSET_PARAM + "=" + offset + "&" +
-			ServiceConstants.PAGINATION_LIMIT_PARAM + "=" + limit + "&" +
-			INCLUDE_DEPENDENCIES_PARAM +  "=" + includeDependencies;
+	public PaginatedResults<MigratableObjectCount> getMigratableObjectCounts() throws SynapseException {
+		String uri = GET_ALL_BACKUP_COUNTS;
 		JSONObject o = getEntity(uri);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(o);
 		PaginatedResults<MigratableObjectCount> rs = new PaginatedResults<MigratableObjectCount>(MigratableObjectCount.class);

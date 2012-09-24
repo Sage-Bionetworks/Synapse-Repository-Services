@@ -59,8 +59,8 @@ public class SynapseAdministrationTest {
 		String expectedJSONResult = EntityFactory.createJSONStringForEntity(p);
 		StringEntity responseEntity = new StringEntity(expectedJSONResult);
 		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		PaginatedResults<MigratableObjectCount> clone = synapse.getMigratableObjectCounts(0, 100, true);
-		assertNotNull(clone);
-		assertEquals(p, clone);
+		PaginatedResults<MigratableObjectCount> oc = synapse.getMigratableObjectCounts();
+		assertNotNull(oc);
+		assertEquals(p, oc);
 	}
 }

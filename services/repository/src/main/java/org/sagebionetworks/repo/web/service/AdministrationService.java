@@ -24,9 +24,8 @@ public interface AdministrationService {
 			Boolean includeDependencies) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 
-	public PaginatedResults<MigratableObjectCount> getAllBackupObjectsCounts(
-			String userId, Integer offset, Integer limit,
-			Boolean includeDependencies) throws DatastoreException,
+	public PaginatedResults<MigratableObjectCount> getAllBackupObjectsCounts(String userId)
+			throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 	
 	/**

@@ -57,7 +57,7 @@ public class DependencyManagerImpl implements DependencyManager {
 			return queryResults;
 	}
 	@Override
-	public QueryResults<MigratableObjectCount> getAllObjectsCounts(long offset, long limit, boolean includeDependencies) throws DatastoreException {
+	public QueryResults<MigratableObjectCount> getAllObjectsCounts() throws DatastoreException {
 		List<MigratableObjectCount> ods = new ArrayList<MigratableObjectCount>();
 		long total = 0L;
 		for (MigratableDAO migratableDAO: getMigratableDaos()) {
