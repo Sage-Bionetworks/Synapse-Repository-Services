@@ -22,33 +22,20 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
  * @author deflaux
- * 
  */
 @Controller
 public class QueryController extends BaseController {
 
 	@Autowired
-	ServiceProvider serviceProvider;	
+	private ServiceProvider serviceProvider;	
 
-	/**
-	 * @param userId
-	 * @param query
-	 * @param request
-	 * @return paginated results
-	 * @throws DatastoreException
-	 * @throws ParseException
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.QUERY, method = RequestMethod.GET)
-	public @ResponseBody
-	QueryResults query(
+	public @ResponseBody QueryResults query(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.QUERY_PARAM, required = true) String query,
-			HttpServletRequest request) throws DatastoreException,
-			ParseException, NotFoundException, UnauthorizedException {
-		return serviceProvider.getEntityService().query(userId, query, request);
+			HttpServletRequest request)
+			throws DatastoreException, ParseException, NotFoundException, UnauthorizedException {
+		return serviceProvider.getNodeQueryService().query(userId, query, request);
 	}
-	
 }
