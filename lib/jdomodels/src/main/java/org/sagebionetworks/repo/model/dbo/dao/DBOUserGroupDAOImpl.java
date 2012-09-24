@@ -203,23 +203,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		return basicDao.getCount(DBOUserGroup.class);
 	}
 
-	@Transactional(readOnly = true)
-	@Override
-	public QueryResults<MigratableObjectCount> getMigratableObjectCounts(long offset, long limit, boolean includeDependencies) throws DatastoreException {
-		List<MigratableObjectCount> l = new ArrayList<MigratableObjectCount>();
-		
-		QueryResults<MigratableObjectCount> qRes = new QueryResults<MigratableObjectCount>();
-		MigratableObjectCount moc = new MigratableObjectCount();
-		moc.setObjectType(MigratableObjectType.PRINCIPAL.name());
-		moc.setEntityType(null);
-		moc.setCount(this.getCount());
-		l.add(moc);
-		qRes.setResults(l);
-		qRes.setTotalNumberOfResults(1);
-		return qRes;
-	}
-
-
 	@Override
 	public Collection<UserGroup> getAllExcept(boolean isIndividual, Collection<String> groupNamesToOmit) throws DatastoreException {
 		// the SQL will be invalid for an empty list, so we 'divert' that case:
@@ -426,6 +409,8 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		}
 	}
 
-
+	public MigratableObjectType getMigratableObjectType() {
+		return MigratableObjectType.PRINCIPAL;
+	}
 
 }

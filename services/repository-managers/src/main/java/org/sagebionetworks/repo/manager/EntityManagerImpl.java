@@ -528,4 +528,10 @@ public class EntityManagerImpl implements EntityManager {
 		}
 	}
 
+	@Override
+	public boolean doesEntityHaveChildren(UserInfo userInfo, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException {
+		validateReadAccess(userInfo, entityId);
+		return nodeManager.doesNodeHaveChildren(entityId);
+	}
+
 }

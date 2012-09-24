@@ -11,6 +11,7 @@ import java.util.Map;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.repo.model.Annotations;
@@ -18,7 +19,8 @@ import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Project;
 
 
-// this is to investigate PLFM-1431
+
+@Ignore // this is to investigate PLFM-1431
 public class ITCreationLoadTest {
 
 	private static Synapse synapse = null;

@@ -60,6 +60,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		return result;
 	}
 	
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.AdministrationService#getAllBackupObjectsCounts(java.lang.String, java.lang.Integer, java.lang.Integer, java.lang.Boolean)
+	 */
 	@Override
 	public PaginatedResults<MigratableObjectCount> getAllBackupObjectsCounts(
 			String userId, Integer offset, Integer limit, Boolean  includeDependencies)
@@ -73,6 +76,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		return result;
 	}
 		
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.repo.web.service.AdministrationService#startBackup(java.lang.String, java.lang.String, org.springframework.http.HttpHeaders, javax.servlet.http.HttpServletRequest)
+	 */
 	@Override
 	public BackupRestoreStatus startBackup(String userId, String type, 
 			HttpHeaders header,	HttpServletRequest request)

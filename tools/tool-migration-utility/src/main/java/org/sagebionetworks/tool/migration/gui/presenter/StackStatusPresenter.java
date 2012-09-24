@@ -178,15 +178,16 @@ public class StackStatusPresenter implements Runnable{
 				setStackStatus(status.getStatus().name());
 				
 				QueryRunner queryRunner = new QueryRunnerImpl(client);
-				// Get each entity type
-				for(EntityType type: EntityType.values()){
-					// Make some progress
-					setProgressValue(current++, "Querying for "+type.name()+" count...");
-					long count = queryRunner.getCountForType(type);
-					setCountForEntity(MigratableObjectType.ENTITY, type, count);
-				}
+//				Per discussion with John, don't get counts / type
+//				// Get each entity type
+//				for(EntityType type: EntityType.values()){
+//					// Make some progress
+//					setProgressValue(current++, "Querying for "+type.name()+" count...");
+//					long count = queryRunner.getCountForType(type);
+//					setCountForEntity(MigratableObjectType.ENTITY, type, count);
+//				}
 				
-				// now get the other types...
+
 				
 				// Make some progress
 				setProgressValue(current++, "Querying for total entity count...");
