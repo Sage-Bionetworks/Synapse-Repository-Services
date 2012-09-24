@@ -97,6 +97,16 @@ public class SqlConstants {
 	public static final String COL_ACCESS_APPROVAL_ENTITY_TYPE		= "ENTITY_TYPE";
 	public static final String COL_ACCESS_APPROVAL_SERIALIZED_ENTITY= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_APPROVAL				= "schema/AccessApproval-ddl.sql";
+	
+	// The CHANGES table
+	public static final String TABLE_CHANGES						= "CHANGES";
+	public static final String COL_CHANGES_CHANGE_NUM				= "CHANGE_NUM";
+	public static final String COL_CHANGES_TIME_STAMP				= "TIME_STAMP";
+	public static final String COL_CHANGES_OBJECT_ID				= "OBJECT_ID";
+	public static final String COL_CHANGES_OBJECT_TYPE				= "OBJECT_TYPE";
+	public static final String COL_CHANGES_OBJECT_ETAG				= "OBJECT_ETAG";
+	public static final String COL_CHANGES_CHANGE_TYPE				= "CHANGE_TYPE";
+	public static final String DDL_CHANGES							= "schema/Changes-ddl.sql";
 
 	// 
 	public static final String COL_STACK_STATUS_STATUS				= "STATUS";

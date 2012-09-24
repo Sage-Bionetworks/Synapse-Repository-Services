@@ -20,9 +20,11 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 import org.sagebionetworks.repo.model.jdo.JDONodeLockChecker;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
@@ -50,6 +52,9 @@ public class NodeDaoMessageTest {
 	
 	@Autowired
 	TransactionalMessenger transactionalMessanger;
+	
+	@Autowired
+	DBOChangeDAO changeDAO;
 	
 	TransactionalMessengerObserver mockObserver;
 	
@@ -88,6 +93,8 @@ public class NodeDaoMessageTest {
 	public void testCreateNode() throws NotFoundException, DatastoreException, InvalidModelException{
 		// When we create a node a create message should get fired
 		Node node = NodeTestUtils.createNew("createTest", creatorUserGroupId);
+		// Get the current change number
+		long startChangeNumber = changeDAO.getCurrentChangeNumber();
 		// Now create it
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
@@ -100,6 +107,14 @@ public class NodeDaoMessageTest {
 		expectedMessage.setObjectId(id);
 		// The message should have been fired once.
 		verify(mockObserver, times(1)).fireChangeMessage(expectedMessage);
+		
+		// Make sure our change was recorded in the database
+		List<DBOChange> changeList = changeDAO.listChanges(startChangeNumber+1, ObjectType.ENTITY, 1);
+		assertNotNull(changeList);
+		List<ChangeMessage> converted = ChangeMessageUtils.createDTOList(changeList);
+		assertNotNull(converted);
+		assertEquals(1, converted.size());
+		assertEquals(expectedMessage, converted.get(0));
 		
 	}
 	
