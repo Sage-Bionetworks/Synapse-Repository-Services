@@ -67,6 +67,11 @@
 			scope="singleton">
 	</bean>
 
+	<bean id="changeDAO"
+			class="org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAOImpl"
+			scope="singleton">
+	</bean>
+
 	<bean id="entityBootstrapper"
 		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapperImpl">
 		<property name="bootstrapEntities">

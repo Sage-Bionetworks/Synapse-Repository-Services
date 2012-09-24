@@ -5,6 +5,8 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -27,6 +29,8 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	private static final String TRANSACTIONAL_MESSANGER_IMPL_MESSAGES = "TransactionalMessangerImpl.Messages";
 	@Autowired
 	DataSourceTransactionManager txManager;
+	@Autowired
+	DBOChangeDAO changeDAO;
 	
 	/**
 	 * The list of observers that are notified of messages after a commit.
@@ -112,7 +116,19 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 			}
 			// Clear the list
 			currentMessages.clear();
-		}	
+		}
+
+		@Override
+		public void beforeCommit(boolean readOnly) {
+			// write the changes to the database
+			List<ChangeMessage> currentMessages = (List<ChangeMessage>) TransactionSynchronizationManager.getResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
+			if(currentMessages == null) throw new IllegalStateException("No messages bound to this transaction");
+			if(currentMessages.isEmpty()) throw new IllegalStateException("Called on an empty list");
+			// Create the list of DBOS
+			List<DBOChange> dboList = ChangeMessageUtils.createDBOList(currentMessages);
+			changeDAO.replaceChange(dboList);
+		}
+		
 	}
 	
 	/**
