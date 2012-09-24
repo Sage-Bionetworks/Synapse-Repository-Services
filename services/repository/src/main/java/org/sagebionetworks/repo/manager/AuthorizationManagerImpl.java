@@ -76,15 +76,14 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		throws NotFoundException, DatastoreException {
 		// if is an administrator, return true
 		if (userInfo.isAdmin()) return true;
-		if (accessType.equals(ACCESS_TYPE.DOWNLOAD)) {
-			return canDownload(userInfo, nodeId);
-		}
 		{
 			// if the user is the owner of the object, then she has full access to the object
-			// (note, this does not include 'download' access, handled above)
 			Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
 			Node node = nodeDAO.getNode(nodeId);
 			if (node.getCreatedByPrincipalId().equals(principalId)) return true;
+		}
+		if (accessType.equals(ACCESS_TYPE.DOWNLOAD)) {
+			return canDownload(userInfo, nodeId);
 		}
 		// must look-up access
 		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(nodeId);

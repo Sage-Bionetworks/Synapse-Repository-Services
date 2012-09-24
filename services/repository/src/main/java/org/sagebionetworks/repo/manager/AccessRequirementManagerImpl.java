@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -39,6 +41,9 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Autowired
 	private AuthorizationManager authorizationManager;
 	
+	@Autowired
+	NodeDAO nodeDAO;
+
 	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
 		if (a.getEntityType()==null ||
 				a.getAccessType()==null ||
@@ -84,6 +89,15 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Override
 	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException {
+		{
+			// if the user is the owner of the object, then she has full access to the object
+			// and therefore has no unmet access requirements
+			Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
+			Node node = nodeDAO.getNode(entityId);
+			if (node.getCreatedByPrincipalId().equals(principalId)) {
+				return new QueryResults<AccessRequirement>(new ArrayList<AccessRequirement>(), 0);
+			}
+		}
 		List<AccessRequirement> ars = accessRequirementDAO.getForNode(entityId);
 		Map<String, AccessRequirement> arIds = new HashMap<String, AccessRequirement>();
 		for (AccessRequirement ar : ars) arIds.put(ar.getId().toString(), ar);
