@@ -41,6 +41,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODaemonTerminate" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStackStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
 			</list>
 		</property>
 	</bean>

@@ -1,8 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +17,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -51,6 +56,9 @@ public class NodeDaoMessageTest {
 	@Autowired
 	TransactionalMessenger transactionalMessanger;
 	
+	@Autowired
+	DBOChangeDAO changeDAO;
+	
 	TransactionalMessengerObserver mockObserver;
 	
 	// delete anything at the end
@@ -88,6 +96,8 @@ public class NodeDaoMessageTest {
 	public void testCreateNode() throws NotFoundException, DatastoreException, InvalidModelException{
 		// When we create a node a create message should get fired
 		Node node = NodeTestUtils.createNew("createTest", creatorUserGroupId);
+		// Get the current change number
+		long startChangeNumber = changeDAO.getCurrentChangeNumber();
 		// Now create it
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
@@ -98,14 +108,32 @@ public class NodeDaoMessageTest {
 		expectedMessage.setObjectType(ObjectType.ENTITY);
 		expectedMessage.setObjectEtag(node.getETag());
 		expectedMessage.setObjectId(id);
+		expectedMessage.setChangeNumber(startChangeNumber+1);
+		
+		// Make sure our change was recorded in the database
+		List<ChangeMessage> converted = changeDAO.listChanges(startChangeNumber+1, ObjectType.ENTITY, 1);
+		assertNotNull(converted);
+		assertEquals(1, converted.size());
+		ChangeMessage result = converted.get(0);
+		assertNotNull(result.getChangeNumber());
+		assertNotNull(result.getTimestamp());
+		assertEquals(expectedMessage.getObjectEtag(), result.getObjectEtag());
+		assertEquals(expectedMessage.getObjectId(), result.getObjectId());
+		assertEquals(expectedMessage.getObjectType(), result.getObjectType());
+		
+		// copy over the timestamp for the expected test.
+		expectedMessage.setTimestamp(result.getTimestamp());
+		
 		// The message should have been fired once.
 		verify(mockObserver, times(1)).fireChangeMessage(expectedMessage);
-		
 	}
 	
 	@Test
 	public void testUpdate() throws NotFoundException, DatastoreException, InvalidModelException, ConflictingUpdateException, NumberFormatException, InterruptedException{
 		Node node = NodeTestUtils.createNew("updateTest", creatorUserGroupId);
+		
+		// Get the current change number
+		long startChangeNumber = changeDAO.getCurrentChangeNumber();
 		// Now create it
 		final String id = nodeDao.createNew(node);
 		toDelete.add(id);
@@ -145,11 +173,18 @@ public class NodeDaoMessageTest {
 			String newEtag = nodeLockerA.getEtag();
 			assertFalse("The etag should have changed.",eTag.equals(newEtag));
 			
+			List<ChangeMessage> converted = changeDAO.listChanges(startChangeNumber+1, ObjectType.ENTITY, 1);
+			assertNotNull(converted);
+			assertEquals(1, converted.size());
+			ChangeMessage result = converted.get(0);
+			
 			ChangeMessage expectedMessage = new ChangeMessage();
 			expectedMessage.setChangeType(ChangeType.UPDATE);
 			expectedMessage.setObjectType(ObjectType.ENTITY);
 			expectedMessage.setObjectEtag(newEtag);
 			expectedMessage.setObjectId(id);
+			expectedMessage.setChangeNumber(result.getChangeNumber());
+			expectedMessage.setTimestamp(result.getTimestamp());
 			// The message should have been fired once.
 			verify(updateObserver, times(1)).fireChangeMessage(expectedMessage);
 		}finally{
@@ -216,6 +251,7 @@ public class NodeDaoMessageTest {
 	@Test
 	public void testDelete() throws DatastoreException, InvalidModelException, NotFoundException{
 		// Make sure a delete message is sent.
+		
 		// When we create a node a create message should get fired
 		Node node = NodeTestUtils.createNew("createTest", creatorUserGroupId);
 		// Now create it
@@ -223,10 +259,19 @@ public class NodeDaoMessageTest {
 		toDelete.add(id);
 		nodeDao.delete(id);
 		
+		// Get the current change number
+		long chagneNumber = changeDAO.getCurrentChangeNumber();
+		List<ChangeMessage> converted = changeDAO.listChanges(chagneNumber, ObjectType.ENTITY, 1);
+		assertNotNull(converted);
+		assertEquals(1, converted.size());
+		ChangeMessage result = converted.get(0);
+		
 		ChangeMessage expectedMessage = new ChangeMessage();
 		expectedMessage.setChangeType(ChangeType.DELETE);
 		expectedMessage.setObjectType(ObjectType.ENTITY);
 		expectedMessage.setObjectId(id);
+		expectedMessage.setTimestamp(result.getTimestamp());
+		expectedMessage.setChangeNumber(chagneNumber);
 		// The message should have been fired once.
 		verify(mockObserver, times(1)).fireChangeMessage(expectedMessage);
 	}

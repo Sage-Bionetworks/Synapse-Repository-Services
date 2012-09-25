@@ -2,6 +2,15 @@
 	"title": "ChangeMessage",
 	"description": "JSON schema for a change message",
 	"properties": {
+		"changeNumber": {
+			"type": "integer",
+			"description":"The application change number created as a result of this change."
+		},
+		"timestamp": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this change was originally committed."
+		},		
 		"objectId": {
 			"type": "string",
 			"description":"The unique identifier of the object that changed"
@@ -16,7 +25,8 @@
 			"name": "ObjectType",
 			"id": "org.sagebionetworks.repo.model.message.ObjectType",
 			"enum": [
-				"ENTITY"
+				"ENTITY",
+				"PRINCIPAL"
 			]
 		},
 		"changeType": {
