@@ -14,13 +14,11 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
@@ -456,20 +454,6 @@ public interface EntityService {
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
 
 	/**
-	 * Execute a query and include the annotations for each entity.
-	 * @param <T>
-	 * @param userInfo
-	 * @param query
-	 * @param clazz
-	 * @param request
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 * @throws UnauthorizedException 
-	 */
-	public QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
-
-	/**
 	 * determine whether a user has the given access type for a given entity
 	 * @param nodeId
 	 * @param userId
@@ -586,23 +570,6 @@ public interface EntityService {
 			String tokenID) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
 	/**
-	 * Perform a query.
-	 * 
-	 * @param userId
-	 * @param query
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws ParseException
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
-	public QueryResults query(String userId, String query, HttpServletRequest request)
-			throws DatastoreException, ParseException, NotFoundException,
-			UnauthorizedException;
-
-	
-	/**
 	 * Get the number of children that this entity has.
 	 * 
 	 * @param userId
@@ -617,5 +584,4 @@ public interface EntityService {
 	public boolean doesEntityHaveChildren(String userId, String entityId,
 			HttpServletRequest request) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException;
-	
 }
