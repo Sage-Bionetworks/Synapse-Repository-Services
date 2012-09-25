@@ -213,47 +213,6 @@ public class DBOChange implements AutoIncrementDatabaseObject<DBOChange>  {
 	public void setObjectId(Long objectId) {
 		this.objectId = objectId;
 	}
-
-	/**
-	 * Simple helper to sort by ObjectID
-	 * 
-	 * @param list
-	 * @return
-	 */
-	public static List<DBOChange> sortByObjectId(List<DBOChange> list){
-		Collections.sort(list, new Comparator<DBOChange>() {
-			@Override
-			public int compare(DBOChange one, DBOChange two) {
-				if(one == null) throw new IllegalArgumentException("DBOChange cannot be null");
-				if(one.getObjectId() == null) throw new IllegalArgumentException("one.getObjectId() cannot be null");
-				if(two == null) throw new IllegalArgumentException("DBOChange cannot be null");
-				if(two.getObjectId() == null) throw new IllegalArgumentException("two.getObjectId() cannot be null");
-				return one.getObjectId().compareTo(two.getObjectId());
-			}
-		});
-		return list;
-	}
-
-	
-	/**
-	 * Simple helper to sort by ChangeNumber
-	 * 
-	 * @param list
-	 * @return
-	 */
-	public static List<DBOChange> sortByChangeNumber(List<DBOChange> list){
-		Collections.sort(list, new Comparator<DBOChange>() {
-			@Override
-			public int compare(DBOChange one, DBOChange two) {
-				if(one == null) throw new IllegalArgumentException("DBOChange cannot be null");
-				if(one.getChangeNumber() == null) throw new IllegalArgumentException("one.getChangeNumber() cannot be null");
-				if(two == null) throw new IllegalArgumentException("DBOChange cannot be null");
-				if(two.getChangeNumber() == null) throw new IllegalArgumentException("two.getChangeNumber() cannot be null");
-				return one.getChangeNumber().compareTo(two.getChangeNumber());
-			}
-		});
-		return list;
-	}
 	
 	@Override
 	public int hashCode() {
