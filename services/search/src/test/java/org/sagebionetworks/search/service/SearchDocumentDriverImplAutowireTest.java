@@ -10,7 +10,6 @@ import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -166,7 +165,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertEquals(node.getParentId(), fields.getParent_id());
 		assertEquals(node.getName(), fields.getName());
 		
-		assertEquals(fakeEntityPathJSONString, fields.getPath());
 		assertEquals("study", fields.getNode_type());
 		assertEquals(node.getDescription(), fields.getDescription());
 		// since the Principal doesn't exist, the 'created by' display name defaults to the principal ID
@@ -200,24 +198,6 @@ public class SearchDocumentDriverImplAutowireTest {
 		assertTrue(10 < fields.getReferences().size());
 		assertEquals(SearchDocumentDriverImpl.FIELD_VALUE_SIZE_LIMIT, fields
 				.getReferences().size());
-
-		// Annotations are always of length 1
-		assertEquals(1, fields.getAnnotations().size());
-		// Check the free text annotations
-		String annotationValues[] = fields.getAnnotations().get(0).split(" ");
-		List<String> annotations = Arrays.asList(annotationValues);
-		assertEquals(9, annotations.size());
-		assertTrue(annotations.contains("species:Dragon"));
-		assertTrue(annotations.contains("Species:Unicorn"));
-		assertTrue(annotations.contains("Tissue_Tumor:ear_lobe"));
-		assertTrue(annotations.contains("platform:synapse"));
-		assertTrue(annotations.contains("numSamples:999"));
-		assertTrue(annotations.contains("number_of_samples:42"));
-		assertTrue(annotations
-				.contains("stringKey:a_multi-word_annotation_gets_underscores_so_we_can_exact-match_find_it"));
-		assertTrue(annotations.contains("longKey:10"));
-		assertTrue(annotations.contains("dateKey:"
-				+ dateValue.toString().replaceAll("\\s", "_")));
 	}
 
 	private EntityPath createFakeEntityPath() {

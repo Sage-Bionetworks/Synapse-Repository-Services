@@ -5,10 +5,12 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.security.KeyFactory;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -37,6 +39,7 @@ import org.sagebionetworks.repo.model.query.jdo.NodeAliasCache;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -69,7 +72,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	private static Log log = LogFactory.getLog(SearchDocumentDriverImpl.class);
 
 	private static final String PATH_DELIMITER = "/";
-	private static final String CATCH_ALL_FIELD = "annotations";
 	private static final String DISEASE_FIELD = "disease";
 	private static final String TISSUE_FIELD = "tissue";
 	private static final String SPECIES_FIELD = "species";
@@ -138,129 +140,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		this.backupManager = backupManager;
 	}
 
-	/**
-	 * @param destination
-	 * @param progress
-	 * @param entitiesToBackup
-	 * @throws IOException
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 * @throws InterruptedException
-	 * @throws JSONObjectAdapterException
-	 */
-	public void writeSearchDocument(File destination,
-			Set<String> entitiesToBackup) throws IOException,
-			DatastoreException, NotFoundException, InterruptedException,
-			JSONObjectAdapterException {
-		if (destination == null)
-			throw new IllegalArgumentException(
-					"Destination file cannot be null");
-		if (!destination.exists())
-			throw new IllegalArgumentException(
-					"Destination file does not exist: "
-							+ destination.getAbsolutePath());
 
-		// If the entitiesToBackup is null then include the root
-		List<String> listToBackup = new ArrayList<String>();
-		boolean isRecursive = false;
-		if (entitiesToBackup == null) {
-			// Just add the root
-			isRecursive = true;
-			listToBackup.add(backupManager.getRootId());
-		} else {
-			// Add all of the entities from the set.
-			isRecursive = false;
-			listToBackup.addAll(entitiesToBackup);
-		}
-		log.info("Starting a backup to file: " + destination.getAbsolutePath());
-		// First write to the file
-		FileOutputStream outputStream = new FileOutputStream(destination);
-		// DEV NOTE: (1) AwesomeSearch cannot currently accept zipped content so
-		// we are not making a ZipOutputStream here (2) AwesomeSearch expects a
-		// raw JSON array so we cannot use something like
-		// org.sagebionetworks.repo.model.search.DocumentBatch here . . . also
-		// building up a gigantic DocumentBatch isn't appropriate for the
-		// streaming we are doing here to help with memory usage when dealing
-		// with a large batch of entities to send to search so this is better
-		// anyway
-		outputStream.write('[');
-		boolean isFirstEntry = true;
-		// First write the root node as its own entry
-		for (String idToBackup : listToBackup) {
-			// Recursively write each node.
-			NodeBackup backup = backupManager.getNode(idToBackup);
-			if (backup == null)
-				throw new IllegalArgumentException("Cannot backup node: "
-						+ idToBackup + " because it does not exists");
-			writeSearchDocumentBatch(outputStream, backup, "",
-					isRecursive, isFirstEntry);
-			isFirstEntry = false;
-		}
-		outputStream.write(']');
-		outputStream.flush();
-		outputStream.close();
-	}
-
-	/**
-	 * This is a recursive method that will write the full tree of node data to
-	 * the search document batch.
-	 * 
-	 * @throws JSONObjectAdapterException
-	 */
-	private void writeSearchDocumentBatch(OutputStream outputStream,
-			NodeBackup backup, String path,
-			boolean isRecursive, boolean isFirstEntry)
-			throws NotFoundException, DatastoreException, InterruptedException,
-			IOException, JSONObjectAdapterException {
-		if (backup == null)
-			throw new IllegalArgumentException("NodeBackup cannot be null");
-		if (backup.getNode() == null)
-			throw new IllegalArgumentException("NodeBackup.node cannot be null");
-		Node node = backup.getNode();
-		if (node.getId() == null)
-			throw new IllegalArgumentException("node.id cannot be null");
-		// Since this could be called in a tight loop, we need to be
-		// CPU friendly
-		Thread.yield();
-		path = path + node.getId() + PATH_DELIMITER;
-		// Write this node
-		// A well-formed JSON array does not end with a final comma, so here's
-		// how we ensure we add the right commas
-		if (isFirstEntry) {
-			isFirstEntry = false;
-		} else {
-			outputStream.write(",\n".getBytes());
-		}
-		writeSearchDocument(outputStream, backup, path);
-		if (isRecursive) {
-			// now write each child
-			List<String> childList = backup.getChildren();
-			if (childList != null) {
-				for (String childId : childList) {
-					NodeBackup child = backupManager.getNode(childId);
-					writeSearchDocumentBatch(outputStream, child, path, isRecursive, false);
-				}
-			}
-		}
-	}
-
-
-	/**
-	 * Write a single search document
-	 * 
-	 * @throws JSONObjectAdapterException
-	 */
-	private void writeSearchDocument(OutputStream outputStream,
-			NodeBackup backup, String path1) throws NotFoundException,
-			DatastoreException, IOException, JSONObjectAdapterException {
-		if (backup == null)
-			throw new IllegalArgumentException("NodeBackup cannot be null");
-		if (backup.getNode() == null)
-			throw new IllegalArgumentException("NodeBackup.node cannot be null");
-		Document document = formulateFromBackup(backup);
-		outputStream.write(cleanSearchDocument(document));
-		outputStream.flush();
-	}
 
 	/**
 	 * @param backup
@@ -277,14 +157,25 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		Long revId = node.getVersionNumber();
 		NodeRevisionBackup rev = backupManager.getNodeRevision(node.getId(),
 				revId);
-
-		List<EntityHeader> pathHeaders = nodeManager.getNodePathAsAdmin(node.getId());
-		EntityPath entityPath = new EntityPath();
-		entityPath.setPath(pathHeaders);
+		// get the path
+		EntityPath entityPath = getEntityPath(node.getId());
 		
 		Document document = formulateSearchDocument(node, rev, benefactorBackup
 				.getAcl(), entityPath);
 		return document;
+	}
+
+	/**
+	 * Get the entity path
+	 * @param nodeId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	private EntityPath getEntityPath(String nodeId) throws NotFoundException {
+		List<EntityHeader> pathHeaders = nodeManager.getNodePathAsAdmin(nodeId);
+		EntityPath entityPath = new EntityPath();
+		entityPath.setPath(pathHeaders);
+		return entityPath;
 	}
 
 	static byte[] cleanSearchDocument(Document document)
@@ -325,18 +216,18 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		fields.setParent_id(node.getParentId());
 		fields.setName(node.getName());
 		
-		// set path as EntityPath JSON object
-		AdapterFactoryImpl factory = new AdapterFactoryImpl();
-		JSONObjectAdapter adapter = factory.createNew();
-		String path = "";
-		try {
-			entityPath.writeToJSONObject(adapter);
-			path = adapter.toJSONString();
-		} catch (JSONObjectAdapterException e) {
-			// fails define path as empty
-			log.warn("Serialization of EntityPath failed", e);
+		// Add each ancestor from the path
+		List<Long> ancestors = new LinkedList<Long>();
+		if(entityPath != null && entityPath.getPath() != null){
+			for(EntityHeader eh: entityPath.getPath()){
+				if(eh.getId() != null && node.getId().equals(eh.getId())){
+					ancestors.add(org.sagebionetworks.repo.model.jdo.KeyFactory.stringToKey(eh.getId()));
+				}
+			}
+			// Add the fields.
+			fields.setAncestors(ancestors);
 		}
-		fields.setPath(path);
+
 		
 		fields.setNode_type(aliasCache.getPreferredAlias(node.getNodeType()));
 		if (null != node.getDescription()) {
@@ -359,7 +250,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		boost.add(node.getId());
 
 		// Annotations
-		fields.setAnnotations(new ArrayList<String>());
 		fields.setDisease(new ArrayList<String>());
 		fields.setSpecies(new ArrayList<String>());
 		fields.setTissue(new ArrayList<String>());
@@ -369,15 +259,6 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				.getPrimaryAnnotations());
 		addAnnotationsToSearchDocument(fields, rev.getNamedAnnotations()
 				.getAdditionalAnnotations());
-
-		// Transform the annotations array back to an array containing a single
-		// string since we often overflow the upper limit on value array length
-		// for AwesomeSearch
-		String joinedAnnotations = StringUtils.join(fields.getAnnotations(),
-				" ");
-		List<String> annotationsValue = new ArrayList<String>();
-		annotationsValue.add(joinedAnnotations);
-		fields.setAnnotations(annotationsValue);
 
 		// References, just put the node id to which the reference refers. Not
 		// currently adding the version or the type of the reference (e.g.,
@@ -472,33 +353,13 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 					addAnnotationToSearchDocument(fields, searchFieldName,
 							objs[i]);
 				}
-
-				// Put ALL annotations into the catch-all field even if they are
-				// also in a facet, this way we can discover them both by free
-				// text AND faceted search
-
-				// TODO dates to epoch time? or skip them?
-				String catchAllValue = key + ":" + objs[i].toString();
-
-				// A multi-word annotation gets underscores so we can
-				// exact-match find it but I'm not positive this is actually
-				// true because AwesomeSearch might be splitting free text on
-				// underscores
-				catchAllValue = catchAllValue.replaceAll("\\s", "_");
-				addAnnotationToSearchDocument(fields, CATCH_ALL_FIELD,
-						catchAllValue);
 			}
 		}
 	}
 
 	static void addAnnotationToSearchDocument(DocumentFields fields,
 			String key, Object value) {
-		if (CATCH_ALL_FIELD == key) {
-			// Since the annotations field is a text field, after this we just
-			// join it into a single string instead of truncating it here since
-			// there is no need to truncate for free text
-			fields.getAnnotations().add((String) value);
-		} else if (DISEASE_FIELD == key
+		 if (DISEASE_FIELD == key
 				&& FIELD_VALUE_SIZE_LIMIT > fields.getDisease().size()) {
 			fields.getDisease().add((String) value);
 		} else if (TISSUE_FIELD == key
@@ -541,5 +402,27 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	@Override
 	public boolean doesDocumentExist(String nodeId, String etag) {
 		return backupManager.doesNodeExist(nodeId, etag);
+	}
+
+	@Override
+	public void addReturnDataToHits(List<Hit> hits) {
+		List<Hit> toRemove = new LinkedList<Hit>();
+		if(hits != null){
+			// For each hit we need to add the path
+			for(Hit hit: hits){
+				try {
+					EntityPath path = getEntityPath(hit.getId());
+					hit.setPath(path);
+				} catch (NotFoundException e) {
+					// Add a warning and remove it from the hits
+					log.warn("Found a search document that did not exist in the reposiroty: "+hit, e);
+					// We need to remove this from the hits
+					toRemove.add(hit);
+				}
+			}
+		}
+		if(!toRemove.isEmpty()){
+			hits.removeAll(toRemove);
+		}
 	}
 }

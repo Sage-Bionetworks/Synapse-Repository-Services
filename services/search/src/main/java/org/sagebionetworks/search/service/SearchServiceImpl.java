@@ -2,7 +2,6 @@ package org.sagebionetworks.search.service;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -44,6 +43,9 @@ public class SearchServiceImpl implements SearchService {
 
 	@Autowired
 	UserManager userManager;
+	
+	@Autowired
+	private SearchDocumentDriver searchDocumentDriver;
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.SearchService#proxySearch(java.lang.String, java.lang.String, javax.servlet.http.HttpServletRequest)
@@ -72,7 +74,12 @@ public class SearchServiceImpl implements SearchService {
 		serchQueryString = filterSeachForAuthorization(userInfo, serchQueryString);
 		// Merge boolean queries as needed and escape them
 		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(serchQueryString);
-		return searchDao.executeSearch(cleanedSearchQuery);
+		SearchResults results = searchDao.executeSearch(cleanedSearchQuery);
+		// Add any extra return results to the hits
+		if(results != null && results.getHits() != null){
+			searchDocumentDriver.addReturnDataToHits(results.getHits());
+		}
+		return results;
 	}
 
 	/**
