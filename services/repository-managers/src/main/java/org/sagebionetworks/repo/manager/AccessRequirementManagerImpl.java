@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
@@ -99,24 +100,21 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 				return new QueryResults<AccessRequirement>(new ArrayList<AccessRequirement>(), 0);
 			}
 		}
-		List<AccessRequirement> ars = accessRequirementDAO.getForNode(entityId);
-		Map<String, AccessRequirement> arIds = new HashMap<String, AccessRequirement>();
-		for (AccessRequirement ar : ars) arIds.put(ar.getId().toString(), ar);
-		List<String> principalIds = new ArrayList<String>();
-		principalIds.add(userInfo.getIndividualGroup().getId());
-		for (UserGroup ug : userInfo.getGroups()) principalIds.add(ug.getId());
-		List<AccessApproval> aas = accessApprovalDAO.getForAccessRequirementsAndPrincipals(arIds.keySet(), principalIds);
-		Set<String> aaRequirementIds = new HashSet<String>(); // this should be a subset of arIds
-		for (AccessApproval aa : aas) {
-			if (!arIds.keySet().contains(aa.getRequirementId().toString())) throw new DatastoreException("Approval "+aa.getId()+
-					" references requirement "+aa.getRequirementId()+" which does not belong to "+entityId);
-			aaRequirementIds.add(aa.getRequirementId().toString());
-		}
-		// now find out what values in arIds are NOT in aaRequirementIds.  These are the unmet requirements
-		Set<String> unmetRequirementIds = new HashSet<String>(arIds.keySet());
-		unmetRequirementIds.removeAll(aaRequirementIds);
+		
+		List<Long> principalIds = new ArrayList<Long>();
+		principalIds.add(Long.parseLong(userInfo.getIndividualGroup().getId()));
+		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
+		List<Long> unmetIds = accessRequirementDAO.unmetAccessRequirements(entityId, principalIds, ACCESS_TYPE.DOWNLOAD); // TODO make access type a param
 		List<AccessRequirement> unmetRequirements = new ArrayList<AccessRequirement>();
-		for (String rId : unmetRequirementIds) unmetRequirements.add(arIds.get(rId));
+		// if there are any unmet requirements, retrieve the object(s)
+		if (!unmetIds.isEmpty()) {
+			List<AccessRequirement> allRequirementsForEntity = accessRequirementDAO.getForNode(entityId);
+			for (Long unmetId : unmetIds) { // typically there will be just one id here
+				for (AccessRequirement ar : allRequirementsForEntity) { // typically there will be just one id here
+					if (ar.getId().equals(unmetId)) unmetRequirements.add(ar);
+				}
+			}
+		}
 		QueryResults<AccessRequirement> result = new QueryResults<AccessRequirement>(unmetRequirements, (int)unmetRequirements.size());
 		return result;
 	}	

@@ -1,6 +1,11 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
+
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -56,8 +61,8 @@ public class EntityBundle implements JSONEntity {
 	private AccessControlList acl;
 	private PaginatedResults<UserProfile> users;
 	private PaginatedResults<UserGroup> groups;
-	private VariableContentPaginatedResults<AccessRequirement> accessRequirements;
-	private VariableContentPaginatedResults<AccessRequirement> unmetAccessRequirements;
+	private List<AccessRequirement> accessRequirements;
+	private List<AccessRequirement> unmetAccessRequirements;
 	
 	/**
 	 * Create a new EntityBundle
@@ -133,16 +138,20 @@ public class EntityBundle implements JSONEntity {
 			groups.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_ACCESS_REQUIREMENTS)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ACCESS_REQUIREMENTS);
-			if (accessRequirements == null)
-				accessRequirements = new VariableContentPaginatedResults<AccessRequirement>();
-			accessRequirements.initializeFromJSONObject(joa);
+			JSONArrayAdapter a = (JSONArrayAdapter) toInitFrom.getJSONArray(JSON_ACCESS_REQUIREMENTS);
+			accessRequirements = new ArrayList<AccessRequirement>();
+			for (int i=0; i<a.length(); i++) {
+				JSONObjectAdapter joa = (JSONObjectAdapter)a.getJSONObject(i);
+				accessRequirements.add((AccessRequirement)EntityClassHelper.deserialize(joa));
+			}
 		}
 		if (toInitFrom.has(JSON_UNMET_ACCESS_REQUIREMENTS)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_UNMET_ACCESS_REQUIREMENTS);
-			if (unmetAccessRequirements == null)
-				unmetAccessRequirements = new VariableContentPaginatedResults<AccessRequirement>();
-			unmetAccessRequirements.initializeFromJSONObject(joa);
+			JSONArrayAdapter a = (JSONArrayAdapter) toInitFrom.getJSONArray(JSON_UNMET_ACCESS_REQUIREMENTS);
+			unmetAccessRequirements = new ArrayList<AccessRequirement>();
+			for (int i=0; i<a.length(); i++) {
+				JSONObjectAdapter joa = (JSONObjectAdapter)a.getJSONObject(i);
+				unmetAccessRequirements.add((AccessRequirement)EntityClassHelper.deserialize(joa));
+			}
 		}
 		return toInitFrom;
 	}
@@ -198,14 +207,22 @@ public class EntityBundle implements JSONEntity {
 			writeTo.put(JSON_GROUPS, joa);
 		}
 		if (accessRequirements != null) {
-			JSONObjectAdapter joa = writeTo.createNew();
-			accessRequirements.writeToJSONObject(joa);
-			writeTo.put(JSON_ACCESS_REQUIREMENTS, joa);			
+			JSONArrayAdapter arArray = writeTo.createNewArray();
+			for (int i=0; i<accessRequirements.size(); i++) {
+				JSONObjectAdapter joa = arArray.createNew();
+				accessRequirements.get(i).writeToJSONObject(joa);
+				arArray.put(i, joa);	
+			}
+			writeTo.put(JSON_ACCESS_REQUIREMENTS, arArray);
 		}
 		if (unmetAccessRequirements != null) {
-			JSONObjectAdapter joa = writeTo.createNew();
-			unmetAccessRequirements.writeToJSONObject(joa);
-			writeTo.put(JSON_UNMET_ACCESS_REQUIREMENTS, joa);			
+			JSONArrayAdapter arArray = writeTo.createNewArray();
+			for (int i=0; i<unmetAccessRequirements.size(); i++) {
+				JSONObjectAdapter joa = arArray.createNew();
+				unmetAccessRequirements.get(i).writeToJSONObject(joa);
+				arArray.put(i, joa);	
+			}
+			writeTo.put(JSON_UNMET_ACCESS_REQUIREMENTS, arArray);
 		}
 		return writeTo;
 	}
@@ -353,21 +370,21 @@ public class EntityBundle implements JSONEntity {
 	}
 
 	
-	public VariableContentPaginatedResults<AccessRequirement> getAccessRequirements() {
+	public List<AccessRequirement> getAccessRequirements() {
 		return accessRequirements;
 	}
 
 	public void setAccessRequirements(
-			VariableContentPaginatedResults<AccessRequirement> accessRequirements) {
+			List<AccessRequirement> accessRequirements) {
 		this.accessRequirements = accessRequirements;
 	}
 
-	public VariableContentPaginatedResults<AccessRequirement> getUnmetAccessRequirements() {
+	public List<AccessRequirement> getUnmetAccessRequirements() {
 		return unmetAccessRequirements;
 	}
 
 	public void setUnmetAccessRequirements(
-			VariableContentPaginatedResults<AccessRequirement> unmetAccessRequirements) {
+			List<AccessRequirement> unmetAccessRequirements) {
 		this.unmetAccessRequirements = unmetAccessRequirements;
 	}
 

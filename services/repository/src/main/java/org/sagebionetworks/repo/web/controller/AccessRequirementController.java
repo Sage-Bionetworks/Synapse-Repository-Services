@@ -39,7 +39,8 @@ public class AccessRequirementController extends BaseController {
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws Exception {
-		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, header, request);
+		AccessRequirement accessRequirement = (AccessRequirement)ControllerEntityClassHelper.deserialize(request, header);
+		return serviceProvider.getAccessRequirementService().createAccessRequirement(userId, accessRequirement);
 	}
 	
 
@@ -54,7 +55,7 @@ public class AccessRequirementController extends BaseController {
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
 
-		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirement(userId, entityId, request);
+		return serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, entityId, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)

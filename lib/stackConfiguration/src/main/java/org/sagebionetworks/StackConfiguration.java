@@ -607,11 +607,6 @@ public class StackConfiguration {
 				.getDecryptedProperty("org.sagebionetworks.portal.api.getsatisfaction.secret");
 	}
 	
-	public static int getJiraGovernanceProjectId() {
-		return Integer.valueOf(configuration
-				.getProperty("org.sagebionetworks.portal.api.jira.governance.project.id"));
-	}
-	
 	/**
 	 * The AWS domain name is the <stack>+<stackInstance>
 	 * @return

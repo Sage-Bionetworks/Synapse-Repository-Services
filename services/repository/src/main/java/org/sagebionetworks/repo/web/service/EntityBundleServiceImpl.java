@@ -92,6 +92,14 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		if ((mask & EntityBundle.GROUPS) > 0) {
 			eb.setGroups(serviceProvider.getUserGroupService().getUserGroups(request, userId, offset, limit, sort, ascending));
 		}
+		
+		if ((mask & EntityBundle.ACCESS_REQUIREMENTS) > 0) {
+			eb.setAccessRequirements(serviceProvider.getAccessRequirementService().getAccessRequirements(userId, entityId, request).getResults());
+		}
+		
+		if ((mask & EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
+			eb.setUnmetAccessRequirements(serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, entityId, request).getResults());
+		}
 		return eb;
 
 	}	
@@ -130,5 +138,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		
 		return getEntityBundle(userId, entity.getId(), partsMask, request, null, null, null, null);
 	}
+	
+
 
 }

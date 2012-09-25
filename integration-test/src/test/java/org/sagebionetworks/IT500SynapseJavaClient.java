@@ -428,7 +428,9 @@ public class IT500SynapseJavaClient {
 				EntityBundle.HAS_CHILDREN |
 				EntityBundle.ACL |
 				EntityBundle.USERS |
-				EntityBundle.GROUPS;
+				EntityBundle.GROUPS |
+				EntityBundle.ACCESS_REQUIREMENTS |
+				EntityBundle.UNMET_ACCESS_REQUIREMENTS;
 		
 		long startTime = System.nanoTime();
 		EntityBundle entityBundle = synapse.getEntityBundle(project.getId(), allPartsMask);
@@ -453,6 +455,10 @@ public class IT500SynapseJavaClient {
 				synapse.getUsers(offset, limit), entityBundle.getUsers());
 		assertEquals("Invalid fetched Groups in the EntityBundle", 
 				synapse.getGroups(offset, limit), entityBundle.getGroups());
+		assertEquals("Unexpected ARs in the EntityBundle", 
+				0, entityBundle.getAccessRequirements().size());
+		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
+				0, entityBundle.getUnmetAccessRequirements().size());
 	}
 	
 	@Test
