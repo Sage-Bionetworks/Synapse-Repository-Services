@@ -82,6 +82,18 @@ public class IT500SynapseJavaClient {
 	private static Project project = null;
 	private static Study dataset = null;
 	
+	private static Synapse createSynapseClient(String user, String pw) throws SynapseException {
+		Synapse synapse = new Synapse();
+		synapse.setAuthEndpoint(StackConfiguration
+				.getAuthenticationServicePrivateEndpoint());
+		synapse.setRepositoryEndpoint(StackConfiguration
+				.getRepositoryServiceEndpoint());
+		synapse.setSearchEndpoint(StackConfiguration.getSearchServiceEndpoint());
+		synapse.login(user, pw);
+		
+		return synapse;
+	}
+	
 	/**
 	 * @throws Exception
 	 * 
@@ -89,13 +101,7 @@ public class IT500SynapseJavaClient {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 
-		synapse = new Synapse();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.setSearchEndpoint(StackConfiguration.getSearchServiceEndpoint());
-		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
+		synapse = createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
 	}
 	
@@ -298,27 +304,34 @@ public class IT500SynapseJavaClient {
 		ar.setTermsOfUse("play nice");
 		ar = synapse.createAccessRequirement(ar);
 		
-		// should not be able to download
-		assertFalse(synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		Synapse otherUser = createSynapseClient(
+				StackConfiguration.getIntegrationTestUserTwoName(),
+				StackConfiguration.getIntegrationTestUserTwoPassword());
+		UserProfile otherProfile = synapse.getMyProfile();
+		assertNotNull(otherProfile);
+
 		
-		VariableContentPaginatedResults<AccessRequirement> vcpr = synapse.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
+		// should not be able to download
+		assertFalse(otherUser.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		VariableContentPaginatedResults<AccessRequirement> vcpr = otherUser.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
 		assertEquals(1, vcpr.getResults().size());
 		
 		// now add the ToU approval
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
-		aa.setAccessorId(profile.getOwnerId());
+		aa.setAccessorId(otherProfile.getOwnerId());
 		aa.setEntityType(TermsOfUseAccessApproval.class.getName());
 		aa.setRequirementId(ar.getId());
 		
-		synapse.createAccessApproval(aa);
+		otherUser.createAccessApproval(aa);
 		
-		vcpr = synapse.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
+		vcpr = otherUser.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
 		assertEquals(0, vcpr.getResults().size());
 		
 		// should be able to download
-		assertTrue(synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertTrue(otherUser.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
 		
-		// ACL should reflect this information
+		// ACL should reflect the first User's permission
 		AccessControlList acl = synapse.getACL(project.getId());
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		boolean foundit = false;
@@ -415,7 +428,9 @@ public class IT500SynapseJavaClient {
 				EntityBundle.HAS_CHILDREN |
 				EntityBundle.ACL |
 				EntityBundle.USERS |
-				EntityBundle.GROUPS;
+				EntityBundle.GROUPS |
+				EntityBundle.ACCESS_REQUIREMENTS |
+				EntityBundle.UNMET_ACCESS_REQUIREMENTS;
 		
 		long startTime = System.nanoTime();
 		EntityBundle entityBundle = synapse.getEntityBundle(project.getId(), allPartsMask);
@@ -440,6 +455,10 @@ public class IT500SynapseJavaClient {
 				synapse.getUsers(offset, limit), entityBundle.getUsers());
 		assertEquals("Invalid fetched Groups in the EntityBundle", 
 				synapse.getGroups(offset, limit), entityBundle.getGroups());
+		assertEquals("Unexpected ARs in the EntityBundle", 
+				0, entityBundle.getAccessRequirements().size());
+		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
+				0, entityBundle.getUnmetAccessRequirements().size());
 	}
 	
 	@Test
@@ -716,11 +735,21 @@ public class IT500SynapseJavaClient {
 		r.setTermsOfUse("I promise to be good.");
 		synapse.createAccessRequirement(r);
 		
-		// check that can't download
-		assertFalse(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		// check that owner can download
+		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		Synapse otherUser = createSynapseClient(
+				StackConfiguration.getIntegrationTestUserTwoName(),
+				StackConfiguration.getIntegrationTestUserTwoPassword());
+		UserProfile otherProfile = synapse.getMyProfile();
+		assertNotNull(otherProfile);
 
+		// check that another can't download
+		assertFalse(otherUser.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		
 		// get unmet access requirements
-		PaginatedResults<AccessRequirement> ars = synapse.getUnmetAccessReqAccessRequirements(layer.getId());
+		PaginatedResults<AccessRequirement> ars = otherUser.getUnmetAccessReqAccessRequirements(layer.getId());
 		assertEquals(1, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 		AccessRequirement clone = ars.getResults().get(0);
@@ -730,20 +759,17 @@ public class IT500SynapseJavaClient {
 		
 		// create approval for the requirement
 		TermsOfUseAccessApproval approval = new TermsOfUseAccessApproval();
-		UserProfile profile = synapse.getMyProfile();
-		assertNotNull(profile);
-		assertNotNull(profile.getOwnerId());
-		approval.setAccessorId(profile.getOwnerId());
+		approval.setAccessorId(otherProfile.getOwnerId());
 		approval.setRequirementId(clone.getId());
-		synapse.createAccessApproval(approval);
+		otherUser.createAccessApproval(approval);
 		
 		// get unmet requirements -- should be empty
-		ars = synapse.getUnmetAccessReqAccessRequirements(layer.getId());
+		ars = otherUser.getUnmetAccessReqAccessRequirements(layer.getId());
 		assertEquals(0, ars.getTotalNumberOfResults());
 		assertEquals(0, ars.getResults().size());
 		
 		// check that CAN download
-		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertTrue(otherUser.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 }
 	
 	

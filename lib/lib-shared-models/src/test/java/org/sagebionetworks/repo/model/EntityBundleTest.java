@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -179,6 +180,14 @@ public class EntityBundleTest {
 				14,
 				"name",
 				true);
+		
+		List<AccessRequirement> accessRequirements = new ArrayList<AccessRequirement>();
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setEntityIds(Arrays.asList(new String[]{"101", "102"}));
+		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
+		ar.setTermsOfUse("foo");
+		accessRequirements.add(ar);
 
 		EntityBundle entityBundle = new EntityBundle();
 		entityBundle.setEntity(project);
@@ -189,6 +198,8 @@ public class EntityBundleTest {
 		entityBundle.setAccessControlList(acl);
 		entityBundle.setUsers(users);
 		entityBundle.setGroups(groups);
+		entityBundle.setAccessRequirements(accessRequirements);
+		entityBundle.setUnmetAccessRequirements(accessRequirements);
 		
 		return entityBundle;
 	}

@@ -158,9 +158,20 @@ public class AccessRequirementManagerImplAutoWiredTest {
 	public void testGetUnmetAccessRequirements() throws Exception {
 		ar = newAccessRequirement(entityId);
 		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
-		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, entityId);
+		UserInfo otherUserInfo = testUserProvider.getTestUserInfo();
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(otherUserInfo, entityId);
 		assertEquals(1L, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
+	}
+	
+	// entity owner never has unmet access requirements
+	@Test
+	public void testGetUnmetAccessRequirementsOwner() throws Exception {
+		ar = newAccessRequirement(entityId);
+		ar = accessRequirementManager.createAccessRequirement(adminUserInfo, ar);
+		QueryResults<AccessRequirement> ars = accessRequirementManager.getUnmetAccessRequirements(adminUserInfo, entityId);
+		assertEquals(0L, ars.getTotalNumberOfResults());
+		assertEquals(0, ars.getResults().size());
 	}
 	
 	@Test
