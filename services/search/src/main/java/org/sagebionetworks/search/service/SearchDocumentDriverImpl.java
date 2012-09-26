@@ -171,7 +171,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	private EntityPath getEntityPath(String nodeId) throws NotFoundException {
+	public EntityPath getEntityPath(String nodeId) throws NotFoundException {
 		List<EntityHeader> pathHeaders = nodeManager.getNodePathAsAdmin(nodeId);
 		EntityPath entityPath = new EntityPath();
 		entityPath.setPath(pathHeaders);
@@ -404,25 +404,4 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		return backupManager.doesNodeExist(nodeId, etag);
 	}
 
-	@Override
-	public void addReturnDataToHits(List<Hit> hits) {
-		List<Hit> toRemove = new LinkedList<Hit>();
-		if(hits != null){
-			// For each hit we need to add the path
-			for(Hit hit: hits){
-				try {
-					EntityPath path = getEntityPath(hit.getId());
-					hit.setPath(path);
-				} catch (NotFoundException e) {
-					// Add a warning and remove it from the hits
-					log.warn("Found a search document that did not exist in the reposiroty: "+hit, e);
-					// We need to remove this from the hits
-					toRemove.add(hit);
-				}
-			}
-		}
-		if(!toRemove.isEmpty()){
-			hits.removeAll(toRemove);
-		}
-	}
 }
