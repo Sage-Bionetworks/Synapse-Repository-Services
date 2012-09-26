@@ -93,12 +93,10 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 			NotFoundException, ForbiddenException {
 		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
 		List<AccessRequirement> ars = accessRequirementDAO.getForNode(entityId);
-		List<String> arIds = new ArrayList<String>();
-		for (AccessRequirement ar : ars) arIds.add(ar.getId().toString());
-		List<String> principalIds = new ArrayList<String>();
-		principalIds.add(userInfo.getIndividualGroup().getId());
-		for (UserGroup ug : userInfo.getGroups()) principalIds.add(ug.getId());
-		List<AccessApproval> aas = accessApprovalDAO.getForAccessRequirementsAndPrincipals(arIds, principalIds);
+		List<AccessApproval> aas = new ArrayList<AccessApproval>();
+		for (AccessRequirement ar : ars) {
+			aas.addAll(accessApprovalDAO.getForAccessRequirement(ar.getId().toString()));
+		}
 		QueryResults<AccessApproval> result = new QueryResults<AccessApproval>(aas, aas.size());
 		return result;
 	}
