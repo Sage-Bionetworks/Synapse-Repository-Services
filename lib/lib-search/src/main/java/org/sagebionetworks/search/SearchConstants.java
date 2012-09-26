@@ -13,6 +13,7 @@ public class SearchConstants {
 	public static final String FIELD_NAME		 	= "name";
 	public static final String FIELD_ETAG			= "etag";
 	public static final String FIELD_ID			 	= "id";
+	public static final String FIELD_PATH		 	= "path";
 	public static final String FIELD_ANCESTORS		= "ancestors";
 	public static final String FIELD_TISSUE_R	 	= "tissue_r";
 	public static final String FIELD_DISEASE_R	 	= "disease_r";
@@ -34,6 +35,5 @@ public class SearchConstants {
 	public static final String FIELD_CREATED_ON 	= "created_on";
 	public static final String FIELD_MODIFIED_ON 	= "modified_on";
 	public static final String FIELD_BOOST 			= "boost";
-//	public static final String FIELD_ANNOTATIONS 	= "annotations";
 	public static final String FIELD_DESCRIPTION 	= "description";
 }

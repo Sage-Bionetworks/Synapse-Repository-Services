@@ -47,10 +47,12 @@ public interface SearchDocumentDriver {
 			AccessControlList acl, EntityPath entityPath) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * Add any extra return data to a a hit.
-	 * @param hits
+	 * 
+	 * @param nodeId
+	 * @return
+	 * @throws NotFoundException
 	 */
-	public void addReturnDataToHits(List<Hit> hits);
+	public EntityPath getEntityPath(String nodeId) throws NotFoundException;
 	
 
 }
