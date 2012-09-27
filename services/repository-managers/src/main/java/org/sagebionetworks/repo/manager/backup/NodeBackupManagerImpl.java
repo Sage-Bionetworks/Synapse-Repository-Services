@@ -142,8 +142,9 @@ public class NodeBackupManagerImpl implements NodeBackupManager {
 					aclDAO.create(backup.getAcl());
 				}
 			}
-			// Set the benefactor
-			inheritanceDAO.addBeneficiary(nodeId, backup.getBenefactor());
+			// Set the benefactor without changing the etag
+			boolean keepOldEtag = true;
+			inheritanceDAO.addBeneficiary(nodeId, backup.getBenefactor(), keepOldEtag);
 		} catch (Exception e) {
 			// Convert all exceptions to runtimes to force a rollback on this
 			// node.

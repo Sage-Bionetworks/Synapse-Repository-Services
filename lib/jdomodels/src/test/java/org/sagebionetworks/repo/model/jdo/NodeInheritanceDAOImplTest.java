@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.jdo;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -83,8 +84,12 @@ public class NodeInheritanceDAOImplTest {
 		assertNotNull(childId);
 		benefactor = nodenheritanceDao.getBenefactor(childId);
 		assertEquals(parentId, benefactor);
+		String etagBefore = nodeDao.getNode(childId).getETag();
+		assertNotNull(etagBefore);
 		// Now add this child to the parent
 		nodenheritanceDao.addBeneficiary(childId, parentId);
+		String etagAfter = nodeDao.getNode(childId).getETag();
+		assertFalse("Calling addBeneficiary() should unconditionally change the etag of the node",etagBefore.equals(etagAfter));
 		// Check the change.
 		benefactor = nodenheritanceDao.getBenefactor(childId);
 		assertEquals(parentId, benefactor);
@@ -96,7 +101,13 @@ public class NodeInheritanceDAOImplTest {
 		assertTrue(beneficiaries.contains(childId));
 		
 		// Now add this child to the parent
-		nodenheritanceDao.addBeneficiary(childId, parentId);
+		// Do not change the etag this time
+		etagBefore = nodeDao.getNode(childId).getETag();
+		assertNotNull(etagBefore);
+		boolean keepOldEtag = true;
+		nodenheritanceDao.addBeneficiary(childId, parentId, keepOldEtag);
+		etagAfter = nodeDao.getNode(childId).getETag();
+		assertEquals("Calling addBeneficiary() with keepOldEtag=true should not have changed the etag",etagBefore ,etagAfter);
 		// Check the change.
 		benefactor = nodenheritanceDao.getBenefactor(childId);
 		assertEquals(parentId, benefactor);
