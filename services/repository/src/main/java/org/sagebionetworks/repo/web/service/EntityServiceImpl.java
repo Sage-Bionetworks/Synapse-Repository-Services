@@ -1,14 +1,8 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -30,7 +24,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -40,7 +33,6 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.queryparser.ParseException;
-import org.sagebionetworks.repo.util.QueryTranslator;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.QueryUtils;
@@ -50,7 +42,6 @@ import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
 import org.sagebionetworks.repo.web.controller.metadata.EventType;
 import org.sagebionetworks.repo.web.controller.metadata.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
-import org.sagebionetworks.repo.web.query.QueryStatement;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.transaction.annotation.Propagation;
@@ -87,30 +78,7 @@ public class EntityServiceImpl implements EntityService {
 	@Autowired
 	private AllTypesValidator allTypesValidator;
 	
-	// Use a static instance of this per
-	// http://wiki.fasterxml.com/JacksonBestPracticesPerformance
-	private static final String LIMIT_1_OFFSET_1 = "' limit 1 offset 1";
-	private static final String SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID = 
-			"select id from entity where parentId == '";
-	private static final String excludedDatasetProperties[] = { "uri", "etag",
-			"annotations", "layer" };
-	private static final String excludedLayerProperties[] = { "uri", "etag",
-			"annotations", "preview", "locations" };
-	private static final Map<String, Set<String>> EXCLUDED_PROPERTIES;
-
-	static {
-		Set<String> datasetProperties = new HashSet<String>();
-		datasetProperties.addAll(Arrays.asList(excludedDatasetProperties));
-		Set<String> layerProperties = new HashSet<String>();
-		layerProperties.addAll(Arrays.asList(excludedLayerProperties));
-		Map<String, Set<String>> excludedProperties = new HashMap<String, Set<String>>();
-		excludedProperties.put("dataset", datasetProperties);
-		excludedProperties.put("layer", layerProperties);
-		EXCLUDED_PROPERTIES = Collections.unmodifiableMap(excludedProperties);
-	}
-	
 	public EntityServiceImpl(){}
-	
 
 	/**
 	 * Provided for tests
@@ -661,34 +629,6 @@ public class EntityServiceImpl implements EntityService {
 			String tokenId) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		return entityManager.getAttachmentUrl(userId, entityId, tokenId);
 	}
-	
-	
-	/*
-	 * ===== Query services =====
-	 */
-	
-	@Override
-	public QueryResults query(String userId, String query, HttpServletRequest request) 
-			throws DatastoreException, ParseException, NotFoundException, UnauthorizedException {
-		// Parse and validate the query
-		QueryStatement stmt = new QueryStatement(query);
-		// Convert from a query statement to a basic query
-		BasicQuery basic = QueryTranslator.createBasicQuery(stmt);
-		QueryResults results = executeQueryWithAnnotations(userId, basic, request);
-		results.setResults(formulateResult(stmt, results.getResults()));
-		return results;
-	}
-	
-	@Override
-	public QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
-		if(query == null) throw new IllegalArgumentException("Query cannot be null");
-		// Lookup the user
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		NodeQueryResults nodeResults = nodeQueryDao.executeQuery(query, userInfo);
-		// done
-		return new QueryResults(nodeResults.getAllSelectedData(), nodeResults.getTotalNumberOfResults());
-	}
-
 
 	/**
 	 * First, execute the given query to determine the nodes that match the criteria.
@@ -723,38 +663,6 @@ public class EntityServiceImpl implements EntityService {
 		return new PaginatedResults<T>(request.getServletPath()
 				+ UrlHelpers.ENTITY, entityList,
 				nodeResults.getTotalNumberOfResults(), paging.getOffset(), paging.getLimit(), paging.getSortBy(), paging.getAscending());
-	}
-
-
-	/**
-	 * Process all of the results.
-	 * @param stmt
-	 * @param rows
-	 * @return
-	 */
-	private List<Map<String, Object>> formulateResult(QueryStatement stmt, List<Map<String, Object>> rows) {
-		List<Map<String, Object>> results = new ArrayList<Map<String,Object>>();
-		for(Map<String, Object> row: rows){
-			results.add(formulateResult(stmt, row));
-		}
-		return results;
-	}
-
-	private Map<String, Object> formulateResult(QueryStatement stmt,
-			Map<String, Object> fields) {
-		// TODO filter out un-requested fields when we support more than
-		// SELECT *
-		Map<String, Object> result = new HashMap<String, Object>();
-		for (String field : fields.keySet()) {
-			if (EXCLUDED_PROPERTIES.get("dataset").contains(field)) {
-				// skip this
-			} else {
-				result
-						.put(stmt.getTableName() + "." + field, fields
-								.get(field));
-			}
-		}
-		return result;
 	}
 
 	@Override

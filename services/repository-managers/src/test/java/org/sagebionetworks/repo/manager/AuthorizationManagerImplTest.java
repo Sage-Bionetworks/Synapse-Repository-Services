@@ -440,5 +440,19 @@ public class AuthorizationManagerImplTest {
 		assertEquals(true, uep.getCanView());
 		assertEquals(true, uep.getCanDownload()); // can't read but CAN download, which is controlled separately
 	}
+	
+	@Test
+	public void testOwnerAdminAccess() throws Exception {
+		// the user can do anything
+		UserEntityPermissions uep = authorizationManager.getUserPermissionsForEntity(userInfo,  nodeCreatedByTestUser.getId());
+		assertEquals(true, uep.getCanAddChild());
+		assertEquals(true, uep.getCanChangePermissions());
+		assertEquals(true, uep.getCanDelete());
+		assertEquals(true, uep.getCanEdit());
+		assertEquals(true, uep.getCanView());
+		assertEquals(true, uep.getCanDownload());
+		assertEquals(false, uep.getCanEnableInheritance());
+		assertEquals(nodeCreatedByTestUser.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
+	}
 
 }

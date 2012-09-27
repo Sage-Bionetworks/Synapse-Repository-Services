@@ -1,11 +1,14 @@
 package org.sagebionetworks.search.service;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -42,6 +45,14 @@ public interface SearchDocumentDriver {
 	 */
 	public Document formulateSearchDocument(Node node, NodeRevisionBackup rev,
 			AccessControlList acl, EntityPath entityPath) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * 
+	 * @param nodeId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public EntityPath getEntityPath(String nodeId) throws NotFoundException;
 	
 
 }

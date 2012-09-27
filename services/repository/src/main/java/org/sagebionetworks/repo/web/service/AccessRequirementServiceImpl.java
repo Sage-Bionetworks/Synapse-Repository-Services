@@ -13,7 +13,6 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
-import org.sagebionetworks.repo.web.controller.ControllerEntityClassHelper;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -32,14 +31,14 @@ public class AccessRequirementServiceImpl implements AccessRequirementService {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AccessRequirement createAccessRequirement(String userId, 
-			HttpHeaders header, HttpServletRequest request) throws Exception {
+			AccessRequirement accessRequirement) throws Exception {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		AccessRequirement accessRequirement = (AccessRequirement)ControllerEntityClassHelper.deserialize(request, header);
+
 		return accessRequirementManager.createAccessRequirement(userInfo, accessRequirement);
 	}
 	
 	@Override
-	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirement(
+	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
 				String userId, String entityId,	HttpServletRequest request) 
 				throws DatastoreException, UnauthorizedException, 
 				NotFoundException, ForbiddenException {

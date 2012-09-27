@@ -8,20 +8,19 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.http.HttpHeaders;
 
 public interface AccessRequirementService {
 
 	public AccessRequirement createAccessRequirement(String userId,
-			HttpHeaders header, HttpServletRequest request) throws Exception;
+			AccessRequirement accessRequirement) throws Exception;
 
-	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirement(
-			String userId, String entityId, HttpServletRequest request)
+	public PaginatedResults<AccessRequirement> getUnfulfilledAccessRequirements(
+			String userId, String entityId,	HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException, ForbiddenException;
 
 	public PaginatedResults<AccessRequirement> getAccessRequirements(
-			String userId, String entityId, HttpServletRequest request)
+			String userId, String entityId,	HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException, ForbiddenException;
 

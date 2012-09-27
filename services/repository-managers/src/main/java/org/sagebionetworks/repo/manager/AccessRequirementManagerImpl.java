@@ -8,6 +8,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.ACTAccessRequirement;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessApprovalDAO;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -15,6 +17,8 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -35,6 +39,12 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
+	@Autowired
+	private AuthorizationManager authorizationManager;
+	
+	@Autowired
+	NodeDAO nodeDAO;
+
 	public static void validateAccessRequirement(AccessRequirement a) throws InvalidModelException {
 		if (a.getEntityType()==null ||
 				a.getAccessType()==null ||
@@ -63,7 +73,11 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	@Override
 	public <T extends AccessRequirement> T createAccessRequirement(UserInfo userInfo, T accessRequirement) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ForbiddenException {
 		validateAccessRequirement(accessRequirement);
-		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
+		ACTUtils.verifyACTTeamMembershipOrCanCreateOrEdit(
+				userInfo, 
+				accessRequirement.getEntityIds(),
+				userGroupDAO, 
+				authorizationManager);
 		populateCreationFields(userInfo, accessRequirement);
 		return accessRequirementDAO.create(accessRequirement);
 	}
@@ -77,24 +91,30 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Override
 	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException {
-		List<AccessRequirement> ars = accessRequirementDAO.getForNode(entityId);
-		Map<String, AccessRequirement> arIds = new HashMap<String, AccessRequirement>();
-		for (AccessRequirement ar : ars) arIds.put(ar.getId().toString(), ar);
-		List<String> principalIds = new ArrayList<String>();
-		principalIds.add(userInfo.getIndividualGroup().getId());
-		for (UserGroup ug : userInfo.getGroups()) principalIds.add(ug.getId());
-		List<AccessApproval> aas = accessApprovalDAO.getForAccessRequirementsAndPrincipals(arIds.keySet(), principalIds);
-		Set<String> aaRequirementIds = new HashSet<String>(); // this should be a subset of arIds
-		for (AccessApproval aa : aas) {
-			if (!arIds.keySet().contains(aa.getRequirementId().toString())) throw new DatastoreException("Approval "+aa.getId()+
-					" references requirement "+aa.getRequirementId()+" which does not belong to "+entityId);
-			aaRequirementIds.add(aa.getRequirementId().toString());
+		{
+			// if the user is the owner of the object, then she has full access to the object
+			// and therefore has no unmet access requirements
+			Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
+			Node node = nodeDAO.getNode(entityId);
+			if (node.getCreatedByPrincipalId().equals(principalId)) {
+				return new QueryResults<AccessRequirement>(new ArrayList<AccessRequirement>(), 0);
+			}
 		}
-		// now find out what values in arIds are NOT in aaRequirementIds.  These are the unmet requirements
-		Set<String> unmetRequirementIds = new HashSet<String>(arIds.keySet());
-		unmetRequirementIds.removeAll(aaRequirementIds);
+		
+		List<Long> principalIds = new ArrayList<Long>();
+		principalIds.add(Long.parseLong(userInfo.getIndividualGroup().getId()));
+		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
+		List<Long> unmetIds = accessRequirementDAO.unmetAccessRequirements(entityId, principalIds, ACCESS_TYPE.DOWNLOAD); // TODO make access type a param
 		List<AccessRequirement> unmetRequirements = new ArrayList<AccessRequirement>();
-		for (String rId : unmetRequirementIds) unmetRequirements.add(arIds.get(rId));
+		// if there are any unmet requirements, retrieve the object(s)
+		if (!unmetIds.isEmpty()) {
+			List<AccessRequirement> allRequirementsForEntity = accessRequirementDAO.getForNode(entityId);
+			for (Long unmetId : unmetIds) { // typically there will be just one id here
+				for (AccessRequirement ar : allRequirementsForEntity) { // typically there will be just one id here
+					if (ar.getId().equals(unmetId)) unmetRequirements.add(ar);
+				}
+			}
+		}
 		QueryResults<AccessRequirement> result = new QueryResults<AccessRequirement>(unmetRequirements, (int)unmetRequirements.size());
 		return result;
 	}	

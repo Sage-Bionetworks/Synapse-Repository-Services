@@ -125,8 +125,9 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 			if(currentMessages == null) throw new IllegalStateException("No messages bound to this transaction");
 			if(currentMessages.isEmpty()) throw new IllegalStateException("Called on an empty list");
 			// Create the list of DBOS
-			List<DBOChange> dboList = ChangeMessageUtils.createDBOList(currentMessages);
-			changeDAO.replaceChange(dboList);
+			List<ChangeMessage> updatedList = changeDAO.replaceChange(currentMessages);
+			currentMessages.clear();
+			currentMessages.addAll(updatedList);
 		}
 		
 	}

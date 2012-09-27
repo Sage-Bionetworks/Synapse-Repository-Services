@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.model.query.jdo.QueryUtils;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,7 +46,9 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOReferenceDaoImpl implements DBOReferenceDao {
 	
-	private static final String DELETE_SQL = "DELETE FROM "+TABLE_REFERENCE+" WHERE "+COL_REFERENCE_OWNER_NODE+" = ?";
+	private static final String ID_PARAM = "idParam";
+	private static final String SQL_DELETE_BATCH_BY_PRIMARY_KEY = "DELETE FROM "+TABLE_REFERENCE+" WHERE ID = :"+ID_PARAM;
+	private static final String SQL_IDS_FOR_DELETE = "SELECT ID FROM "+TABLE_REFERENCE+" WHERE "+COL_REFERENCE_OWNER_NODE+" = ? ORDER BY ID ASC";
 	private static final String SELECT_SQL = "SELECT "+COL_REFERENCE_GROUP_NAME+", "+COL_REFERENCE_TARGET_NODE+", "+COL_REFERENCE_TARGET_REVISION_NUMBER+" FROM "+TABLE_REFERENCE+" WHERE "+COL_REFERENCE_OWNER_NODE+" = ?";
 	private static final String REFERENCE_TARGET_NODE_BIND_VAR = "rtn";
 	private static final String REFERENCE_TARGET_REVISION_NO_BIND_VAR = "rtrn";	
@@ -74,7 +77,7 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 		if(ownerId == null) throw new IllegalArgumentException("Owner id cannot be null");
 		if(references == null) throw new IllegalArgumentException("References cannot be null");
 		// First delete all references for this entity.
-		simpleJdbcTemplate.update(DELETE_SQL, ownerId);
+		deleteWithoutGapLockFromTable(ownerId);
 		// Create the list of references
 		List<DBOReference> batch = ReferenceUtil.createDBOReferences(ownerId, references);
 		if(batch.size() > 0 ){
@@ -155,6 +158,28 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 		String countQuery = "SELECT COUNT(*) "+queryTail;
 		ehqr.setTotalNumberOfResults(simpleJdbcTemplate.queryForLong(countQuery, baseParameters));
 		return ehqr;
+	}
+	
+	/**
+	 * In order to avoid MySQL gap locks which cause deadlock, we need to delete by a unique key.
+	 * This means we need to first for row IDs that match the owner.  We then use the ids to
+	 * delete the rows.  
+	 * @param tableName
+	 * @param ownerId
+	 */
+	private void deleteWithoutGapLockFromTable(Long ownerId){
+		// First get all IDs for rows that belong to the passed owner.
+		List<Long> idsToDelete = simpleJdbcTemplate.query(SQL_IDS_FOR_DELETE, new RowMapper<Long>(){
+			@Override
+			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getLong("ID");
+			}}, ownerId);
+		// Prepare to batch delete the rows by their primary key.
+		MapSqlParameterSource[] params = new MapSqlParameterSource[idsToDelete.size()];
+		for(int i=0; i<idsToDelete.size(); i++){
+			params[i] = new MapSqlParameterSource(ID_PARAM, idsToDelete.get(i));
+		}
+		simpleJdbcTemplate.batchUpdate(SQL_DELETE_BATCH_BY_PRIMARY_KEY, params);
 	}
 
 }

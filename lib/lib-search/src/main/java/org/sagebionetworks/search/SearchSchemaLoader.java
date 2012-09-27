@@ -1,7 +1,6 @@
 package org.sagebionetworks.search;
 
-import static org.sagebionetworks.search.SearchConstants.FIELD_ACL;
-import static org.sagebionetworks.search.SearchConstants.FIELD_ANNOTATIONS;
+import static org.sagebionetworks.search.SearchConstants.*;
 import static org.sagebionetworks.search.SearchConstants.FIELD_BOOST;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY;
 import static org.sagebionetworks.search.SearchConstants.FIELD_CREATED_BY_R;
@@ -19,7 +18,6 @@ import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NODE_TYPE_R;
 import static org.sagebionetworks.search.SearchConstants.FIELD_NUM_SAMPLES;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PARENT_ID;
-import static org.sagebionetworks.search.SearchConstants.FIELD_PATH;
 import static org.sagebionetworks.search.SearchConstants.FIELD_PLATFORM;
 import static org.sagebionetworks.search.SearchConstants.FIELD_REFERENCE;
 import static org.sagebionetworks.search.SearchConstants.FIELD_SPECIES;
@@ -37,6 +35,7 @@ import com.amazonaws.services.cloudsearch.model.SourceAttribute;
 import com.amazonaws.services.cloudsearch.model.SourceData;
 import com.amazonaws.services.cloudsearch.model.SourceDataFunction;
 import com.amazonaws.services.cloudsearch.model.TextOptions;
+import com.amazonaws.services.cloudsearch.model.UIntOptions;
 
 /**
  * Load the search schema.
@@ -61,14 +60,12 @@ public class SearchSchemaLoader {
 		// Free text fields to be returned in Search Results
 		list.add(new IndexField().withIndexFieldName(FIELD_NAME).withIndexFieldType(IndexFieldType.Text).withTextOptions(new TextOptions().withResultEnabled(true)));
 		list.add(new IndexField().withIndexFieldName(FIELD_DESCRIPTION).withIndexFieldType(IndexFieldType.Text).withTextOptions(new TextOptions().withResultEnabled(true)));
-		list.add(new IndexField().withIndexFieldName(FIELD_PATH).withIndexFieldType(IndexFieldType.Text).withTextOptions(new TextOptions().withResultEnabled(true)));
-		// Free text fields
-		list.add(new IndexField().withIndexFieldName(FIELD_ANNOTATIONS).withIndexFieldType(IndexFieldType.Text).withTextOptions(new TextOptions().withResultEnabled(false)));
 		list.add(new IndexField().withIndexFieldName(FIELD_BOOST).withIndexFieldType(IndexFieldType.Text).withTextOptions(new TextOptions().withResultEnabled(false)));
 		// Numeric fields (by default these are both faceted and available to be returned in search results)
 		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_ON).withIndexFieldType(IndexFieldType.Uint));
 		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_ON).withIndexFieldType(IndexFieldType.Uint));
 		list.add(new IndexField().withIndexFieldName(FIELD_NUM_SAMPLES).withIndexFieldType(IndexFieldType.Uint));
+		list.add(new IndexField().withIndexFieldName(FIELD_ANCESTORS).withIndexFieldType(IndexFieldType.Uint));
 		// Literal text field facets
 		list.add(new IndexField().withIndexFieldName(FIELD_PARENT_ID).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true)));
 		list.add(new IndexField().withIndexFieldName(FIELD_ACL).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true)));
@@ -81,6 +78,8 @@ public class SearchSchemaLoader {
 		list.add(new IndexField().withIndexFieldName(FIELD_REFERENCE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true)));
 		list.add(new IndexField().withIndexFieldName(FIELD_SPECIES).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true)));
 		list.add(new IndexField().withIndexFieldName(FIELD_TISSUE).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withSearchEnabled(true).withFacetEnabled(true)));
+		// All annotations are stored ad literals in this field.
+//		list.add(new IndexField().withIndexFieldName(FIELD_ANNOTATIONS).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withSearchEnabled(true).withFacetEnabled(false).withResultEnabled(false)));
 		//  Literal text fields to be returned in Search Results whose source is a facet
 		list.add(new IndexField().withIndexFieldName(FIELD_CREATED_BY_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withResultEnabled(true)).withSourceAttributes(new SourceAttribute().withSourceDataFunction(SourceDataFunction.Copy).withSourceDataCopy(new SourceData().withSourceName(FIELD_CREATED_BY))));
 		list.add(new IndexField().withIndexFieldName(FIELD_MODIFIED_BY_R).withIndexFieldType(IndexFieldType.Literal).withLiteralOptions(new LiteralOptions().withResultEnabled(true)).withSourceAttributes(new SourceAttribute().withSourceDataFunction(SourceDataFunction.Copy).withSourceDataCopy(new SourceData().withSourceName(FIELD_MODIFIED_BY))));
