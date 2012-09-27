@@ -23,6 +23,8 @@ public class ServiceProvider {
 	@Autowired
 	private EntityBundleService entityBundleService;
 	@Autowired
+	private NodeQueryService nodeQueryService;
+	@Autowired
 	private S3TokenService s3TokenService;
 	@Autowired
 	private StorageUsageService storageUsageService;
@@ -49,6 +51,9 @@ public class ServiceProvider {
 	public EntityBundleService getEntityBundleService() {
 		return entityBundleService;
 	}
+	public NodeQueryService getNodeQueryService() {
+		return nodeQueryService;
+	}
 	public S3TokenService getS3TokenService() {
 		return s3TokenService;
 	}
@@ -61,5 +66,4 @@ public class ServiceProvider {
 	public UserProfileService getUserProfileService() {
 		return userProfileService;
 	}
-	
 }

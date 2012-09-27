@@ -6,11 +6,6 @@
 			"description": "The name of this entity",
 			"title": "Name"
 		},
-		"path": {
-			"type": "string",
-			"description": "The JSON string holding the EntityHeader array representing the path to this entity. Storing the cached result of entity/id/path to avoid lookup for all search results in a set.",
-			"title": "Path"
-		},
 		"description": {
 			"type": "string",
 			"description": "The description of this entity.",
@@ -52,12 +47,12 @@
 			"description": "The user that last modified this entity.",
 			"title": "Modified By"
 		},
-		"annotations": {
+		"ancestors": {
 			"type": "array",
 			"items": {
-				"type": "string"
+				"type": "integer"
 			},
-			"description": "The entity's primary and secondary annotations are stuffed into here so that we can do free text search over them."
+			"description": "The entity's list of ancestor ids used to look up all children of an en entity recursivily."
 		},
 		"boost": {
 			"type": "array",

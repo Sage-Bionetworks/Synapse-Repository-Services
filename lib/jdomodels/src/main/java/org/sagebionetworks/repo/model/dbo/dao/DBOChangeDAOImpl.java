@@ -5,10 +5,13 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHANGES;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,36 +43,40 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public DBOChange replaceChange(DBOChange change) {
+	public ChangeMessage replaceChange(ChangeMessage change) {
 		if(change == null) throw new IllegalArgumentException("DBOChange cannot be null");
 		if(change.getObjectId() == null) throw new IllegalArgumentException("change.getObjectId() cannot be null");
-		if(change.getChangeTypeEnum() == null) throw new IllegalArgumentException("change.getChangeTypeEnum() cannot be null");
-		if(change.getObjectTypeEnum() == null) throw new IllegalArgumentException("change.getObjectTypeEnum() cannot be null");
-		if(ChangeType.CREATE == change.getChangeTypeEnum() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
-		if(ChangeType.UPDATE == change.getChangeTypeEnum() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
+		if(change.getChangeType() == null) throw new IllegalArgumentException("change.getChangeTypeEnum() cannot be null");
+		if(change.getObjectType() == null) throw new IllegalArgumentException("change.getObjectTypeEnum() cannot be null");
+		if(ChangeType.CREATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
+		if(ChangeType.UPDATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
+		DBOChange dbo = ChangeMessageUtils.createDBO(change);
 		// First delete the change.
-		deleteChange(change.getObjectId());
+		deleteChange(dbo.getObjectId());
 		// Clear the time stamp so that we get a new one automatically.
 		// Note: Mysql TIMESTAMP only keeps seconds (not MS) so for consistency we only write second accuracy.
 		// We are using (System.currentTimeMillis()/1000)*1000; to convert all MS to zeros.
 		long nowMs = (System.currentTimeMillis()/1000)*1000;
-		change.setTimeStamp(new Timestamp(nowMs));
-		change.setChangeNumber(null);
+		dbo.setTimeStamp(new Timestamp(nowMs));
+		dbo.setChangeNumber(null);
 		// Now insert the row with the current value
-		return basicDao.createNew(change);
+		dbo = basicDao.createNew(dbo);
+		return ChangeMessageUtils.createDTO(dbo);
 	}
+
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public List<DBOChange> replaceChange(List<DBOChange> batch) {
-		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
+	public List<ChangeMessage> replaceChange(List<ChangeMessage> batchDTO) {
+		if(batchDTO == null) throw new IllegalArgumentException("Batch cannot be null");
 		// To prevent deadlock we sort by object id to guarantee a consistent update order.
-		batch = DBOChange.sortByObjectId(batch);
+		batchDTO = ChangeMessageUtils.sortByObjectId(batchDTO);
 		// Send each replace them in order.
-		for(DBOChange change: batch){
-			change = replaceChange(change);
+		List<ChangeMessage> resutls = new ArrayList<ChangeMessage>();
+		for(ChangeMessage change: batchDTO){
+			resutls.add(replaceChange(change));
 		}
-		return batch;
+		return resutls;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -92,16 +99,17 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	}
 
 	@Override
-	public List<DBOChange> listChanges(long greaterOrEqualChangeNumber, ObjectType type, long limit) {
+	public List<ChangeMessage> listChanges(long greaterOrEqualChangeNumber, ObjectType type, long limit) {
 		if(limit < 0) throw new IllegalArgumentException("Limit cannot be less than zero");
+		List<DBOChange> dboList = null;
 		if(type == null){
 			// There is no type filter.
-			return simpleJdbcTemplate.query(SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER, new DBOChange().getTableMapping(), greaterOrEqualChangeNumber, limit);
+			dboList = simpleJdbcTemplate.query(SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER, new DBOChange().getTableMapping(), greaterOrEqualChangeNumber, limit);
 		}else{
 			// Filter by object type.
-			return simpleJdbcTemplate.query(SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER_FILTER_BY_OBJECT_TYPE, new DBOChange().getTableMapping(), greaterOrEqualChangeNumber, type.name(), limit);
+			dboList = simpleJdbcTemplate.query(SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER_FILTER_BY_OBJECT_TYPE, new DBOChange().getTableMapping(), greaterOrEqualChangeNumber, type.name(), limit);
 		}
-
+		return ChangeMessageUtils.createDTOList(dboList);
 	}
 
 }
