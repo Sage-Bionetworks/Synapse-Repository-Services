@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -32,6 +33,8 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	DBOBasicDao dboBasicDao;
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	@Autowired
+	private ETagGenerator eTagGenerator;
 	
 	/**
 	 * Try to get a node, and throw a NotFoundException if it fails.
@@ -72,10 +75,25 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException {
+		// By default we do not want to keep the etag
+		boolean keepOldEtag = false;
+		addBeneficiary(beneficiaryId, toBenefactorId, keepOldEtag);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void addBeneficiary(String beneficiaryId, String toBenefactorId,
+			boolean keepOldEtag) throws NotFoundException, DatastoreException {
 		DBONode benefactor = getNodeById(KeyFactory.stringToKey(toBenefactorId));
 		DBONode beneficiary = getNodeById(KeyFactory.stringToKey(beneficiaryId));
 		beneficiary.setBenefactorId(benefactor.getId());
+		// Make sure the etag changes. See PLFM-1467 and PLFM-1517.
+		if(!keepOldEtag){
+			String newEtag = eTagGenerator.generateETag(beneficiary);
+			beneficiary.seteTag(newEtag);
+		}
 		dboBasicDao.update(beneficiary);
+		
 	}
 
 }
