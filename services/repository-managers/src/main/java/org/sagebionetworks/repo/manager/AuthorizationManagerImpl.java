@@ -102,7 +102,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		permission.setOwnerPrincipalId(node.getCreatedByPrincipalId());
 		boolean parentIsRoot = nodeDAO.isNodesParentRoot(entityId);
 		
-		boolean isCreator = userInfo.getIndividualGroup().getId().equals(node.getCreatedByPrincipalId());
+		boolean isCreator = node.getCreatedByPrincipalId().equals(Long.parseLong(userInfo.getIndividualGroup().getId()));
 		// Admin and owner/creator get all
 		if (userInfo.isAdmin() || isCreator) {
 			permission.setCanAddChild(true);
