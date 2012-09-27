@@ -448,12 +448,11 @@ public class Synapse {
 	}
 
 	/**
-	 * Get a bundle of information about an entity in a single call.
+	 * Create an Entity, Annotations, and ACL with a single call.
 	 * 
-	 * @param entityId
-	 * @param partsMask
+	 * @param ebc
 	 * @return
-	 * @throws SynapseException 
+	 * @throws SynapseException
 	 */
 	public EntityBundle createEntityBundle(EntityBundleCreate ebc) throws SynapseException {
 		if (ebc == null)
@@ -465,6 +464,34 @@ public class Synapse {
 			jsonObject = EntityFactory.createJSONObjectForEntity(ebc);
 			// Create
 			jsonObject = createEntity(url, jsonObject);
+			// Convert returned JSON to EntityBundle
+			return EntityFactory.createEntityFromJSONObject(jsonObject,	EntityBundle.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	/**
+	 * Update an Entity, Annotations, and ACL with a single call.
+	 * 
+	 * @param ebc
+	 * @return
+	 * @throws SynapseException
+	 */
+	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc) throws SynapseException {
+		if (ebc == null)
+			throw new IllegalArgumentException("EntityBundle cannot be null");
+		String url = ENTITY_URI_PATH + "/" + entityId + BUNDLE;
+		JSONObject jsonObject;
+		try {
+			// Convert to JSON
+			jsonObject = EntityFactory.createJSONObjectForEntity(ebc);
+			
+			// Update. Bundles do not have their own etags, so we use an
+			// empty requestHeaders object.
+			Map<String, String> requestHeaders = new HashMap<String, String>();
+			jsonObject = putSynapseEntity(repoEndpoint, url, jsonObject, requestHeaders);
+			
 			// Convert returned JSON to EntityBundle
 			return EntityFactory.createEntityFromJSONObject(jsonObject,	EntityBundle.class);
 		} catch (JSONObjectAdapterException e) {

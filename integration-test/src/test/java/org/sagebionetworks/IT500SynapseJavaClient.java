@@ -77,6 +77,8 @@ import org.sagebionetworks.utils.HttpClientHelper;
 public class IT500SynapseJavaClient {
 	
 	public static final int PREVIEW_TIMOUT = 10*1000;
+	
+	private List<String> toDelete = null;
 
 	private static Synapse synapse = null;
 	private static Project project = null;
@@ -107,10 +109,15 @@ public class IT500SynapseJavaClient {
 	
 	@Before
 	public void before() throws SynapseException {
+		toDelete = new ArrayList<String>();
+		
 		project = synapse.createEntity(new Project());
 		dataset = new Study();
 		dataset.setParentId(project.getId());
 		dataset = synapse.createEntity(dataset);
+		
+		toDelete.add(project.getId());
+		toDelete.add(dataset.getId());
 	}
 
 	/**
@@ -123,8 +130,12 @@ public class IT500SynapseJavaClient {
 	 */
 	@After
 	public void after() throws Exception {
-		if(null != project) {
-			synapse.deleteEntity(project);
+		if (toDelete != null) {
+			for (String id: toDelete) {
+				try {
+					synapse.deleteEntityById(id);
+				} catch (Exception e) {}
+			}
 		}
 	}
 
@@ -374,15 +385,6 @@ public class IT500SynapseJavaClient {
 		assertTrue(entityIds.containsAll(outputIds));
 		
 	}
-	
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testJavaClientCRUDEntity() throws Exception {
-
-		// Get the entity annotaions
-	}
 
 	/**
 	 * @throws Exception
@@ -462,7 +464,7 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
-	public void testJavaClientCreateEntityBundle() throws SynapseException {
+	public void testJavaClientCreateUpdateEntityBundle() throws SynapseException {
 		// Create an entity		
 		Study s1 = new Study();
 		s1.setName("Dummy Study 1");
@@ -488,6 +490,7 @@ public class IT500SynapseJavaClient {
 		EntityBundle response = synapse.createEntityBundle(ebc);
 		
 		Study s2 = (Study) response.getEntity();
+		toDelete.add(s2.getId());
 		assertNotNull(s2);
 		assertNotNull("Etag should have been generated, but was not", s2.getEtag());
 		assertEquals(s1.getName(), s2.getName());
@@ -503,8 +506,36 @@ public class IT500SynapseJavaClient {
 		assertNotNull("Etag should have been generated, but was not", acl2.getEtag());
 		assertEquals("Retrieved ACL in bundle does not match original one", acl1.getResourceAccess(), acl2.getResourceAccess());
 	
-		synapse.deleteEntityById(s2.getId());
+		// Update the bundle, verify contents
+		s2.setName("Dummy study 1 updated");
+		a2.addAnnotation("string2", "Another string");
+		acl2.setModifiedBy("Update user");
+		
+		EntityBundleCreate ebc2 = new EntityBundleCreate();
+		ebc2.setEntity(s2);
+		ebc2.setAnnotations(a2);
+		ebc2.setAccessControlList(acl2);
+				
+		EntityBundle response2 = synapse.updateEntityBundle(s2.getId(), ebc2);
+		
+		Study s3 = (Study) response2.getEntity();
+		assertNotNull(s3);
+		assertFalse("Etag should have been updated, but was not", s2.getEtag().equals(s3.getEtag()));
+		assertEquals(s2.getName(), s3.getName());
+		
+		Annotations a3 = response2.getAnnotations();
+		assertNotNull(a3);
+		assertFalse("Etag should have been updated, but was not", a2.getEtag().equals(a3.getEtag()));
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a2.getStringAnnotations(), a3.getStringAnnotations());
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a2.getDoubleAnnotations(), a3.getDoubleAnnotations());
+		
+		AccessControlList acl3 = response2.getAccessControlList();
+		assertNotNull(acl3);
+		assertFalse("Etag should have been updated, but was not", acl2.getEtag().equals(acl3.getEtag()));
+		assertEquals("Retrieved ACL in bundle does not match original one", acl2.getResourceAccess(), acl3.getResourceAccess());
+
 	}
+
 
 	/**
 	 * @throws Exception
