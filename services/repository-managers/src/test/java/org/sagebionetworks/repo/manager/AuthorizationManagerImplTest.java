@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -42,6 +43,9 @@ public class AuthorizationManagerImplTest {
 	
 	@Autowired
 	PermissionsManager permissionsManager;
+	
+	@Autowired
+	NodeDAO nodeDao;
 	
 		
 	private Collection<Node> nodeList = new ArrayList<Node>();
@@ -70,7 +74,7 @@ public class AuthorizationManagerImplTest {
 		Node node = createDTO(name, Long.parseLong(creator.getIndividualGroup().getId()), modifiedBy, parentId);
 		String nodeId = nodeManager.createNewNode(node, creator);
 		assertNotNull(nodeId);
-		node.setId(nodeId);
+		node = nodeManager.get(creator, nodeId);
 		return node;
 	}
 
@@ -443,15 +447,29 @@ public class AuthorizationManagerImplTest {
 	
 	@Test
 	public void testOwnerAdminAccess() throws Exception {
-		// the user can do anything
-		UserEntityPermissions uep = authorizationManager.getUserPermissionsForEntity(userInfo,  nodeCreatedByTestUser.getId());
+		// the user can't do anything
+		UserEntityPermissions uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		assertEquals(false, uep.getCanAddChild());
+		assertEquals(false, uep.getCanChangePermissions());
+		assertEquals(false, uep.getCanDelete());
+		assertEquals(false, uep.getCanEdit());
+		assertEquals(false, uep.getCanView());
+		assertEquals(false, uep.getCanEnableInheritance());
+
+		// but now change the ownership so the user is the owner
+		node.setCreatedByPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
+		nodeDao.updateNode(node);
+		
+		// now the user can do anything..
+		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
 		assertEquals(true, uep.getCanAddChild());
 		assertEquals(true, uep.getCanChangePermissions());
 		assertEquals(true, uep.getCanDelete());
 		assertEquals(true, uep.getCanEdit());
 		assertEquals(true, uep.getCanView());
 		assertEquals(true, uep.getCanDownload());
-		assertEquals(false, uep.getCanEnableInheritance());
+		assertEquals(false, uep.getCanEnableInheritance()); // ... except this
 		assertEquals(nodeCreatedByTestUser.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
 	}
 
