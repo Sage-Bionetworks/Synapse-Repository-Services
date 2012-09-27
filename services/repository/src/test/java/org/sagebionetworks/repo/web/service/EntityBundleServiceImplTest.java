@@ -12,7 +12,6 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -31,15 +30,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityBundleServiceImplTest {
 	
-	@Autowired
 	EntityBundleService entityBundleService;
 	
 	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
@@ -68,7 +61,7 @@ public class EntityBundleServiceImplTest {
 		mockServiceProvider = mock(ServiceProvider.class);
 		mockEntityService = mock(EntityService.class);
 		
-		entityBundleService.setServiceProvider(mockServiceProvider);
+		entityBundleService = new EntityBundleServiceImpl(mockServiceProvider);
 		
 		// Entities
 		project = new Project();
@@ -121,12 +114,12 @@ public class EntityBundleServiceImplTest {
 		
 		// Create the bundle, verify contents
 		EntityBundleCreate ebc = new EntityBundleCreate();
+		
 		ebc.setEntity(study);
 		ebc.setAnnotations(annos);
 		ebc.setAccessControlList(acl);
 		
-		EntityBundle eb = entityBundleService.createEntityBundle(TEST_USER1, ebc, null);
-		
+		EntityBundle eb = entityBundleService.createEntityBundle(TEST_USER1, ebc, null);		
 		Study s2 = (Study) eb.getEntity();
 		assertNotNull(s2);
 		assertEquals(study.getName(), s2.getName());
@@ -141,6 +134,48 @@ public class EntityBundleServiceImplTest {
 		assertEquals("Retrieved ACL in bundle does not match original one", acl.getResourceAccess(), acl2.getResourceAccess());
 	
 		verify(mockEntityService).createEntity(eq(TEST_USER1), eq(study), any(HttpServletRequest.class));
+		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), any(HttpServletRequest.class));
+		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), anyString(), any(HttpServletRequest.class));
+	}
+	
+	@Test
+	public void testUpdateEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, ConflictingUpdateException, InvalidModelException, UnauthorizedException, ACLInheritanceException, ParseException {
+		Annotations annosWithId = new Annotations();
+		annosWithId.setId(STUDY_ID);
+		
+		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID), any(HttpServletRequest.class))).thenReturn(studyWithId);
+		when(mockEntityService.updateEntity(eq(TEST_USER1), eq(study), eq(false), any(HttpServletRequest.class))).thenReturn(studyWithId);
+		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1), any(HttpServletRequest.class))).thenReturn(acl);
+		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), anyString(), any(HttpServletRequest.class))).thenReturn(acl);
+		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), any(HttpServletRequest.class))).thenReturn(annosWithId);
+		when(mockEntityService.updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), any(HttpServletRequest.class))).thenReturn(annos);
+		when(mockServiceProvider.getEntityService()).thenReturn(mockEntityService);
+		
+		// Create the bundle, verify contents
+		EntityBundleCreate ebc = new EntityBundleCreate();
+		study.setId(STUDY_ID);
+		annos.setId(STUDY_ID);
+		acl.setId(STUDY_ID);
+		ebc.setEntity(study);
+		ebc.setAnnotations(annos);
+		ebc.setAccessControlList(acl);
+		
+		EntityBundle eb = entityBundleService.updateEntityBundle(TEST_USER1, STUDY_ID, ebc, null);
+		
+		Study s2 = (Study) eb.getEntity();
+		assertNotNull(s2);
+		assertEquals(study.getName(), s2.getName());
+		
+		Annotations a2 = eb.getAnnotations();
+		assertNotNull(a2);
+		assertEquals("Retrieved Annotations in bundle do not match original ones", annos.getStringAnnotations(), a2.getStringAnnotations());
+		assertEquals("Retrieved Annotations in bundle do not match original ones", annos.getDoubleAnnotations(), a2.getDoubleAnnotations());
+		
+		AccessControlList acl2 = eb.getAccessControlList();
+		assertNotNull(acl2);
+		assertEquals("Retrieved ACL in bundle does not match original one", acl.getResourceAccess(), acl2.getResourceAccess());
+	
+		verify(mockEntityService).updateEntity(eq(TEST_USER1), eq(study), eq(false), any(HttpServletRequest.class));
 		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), any(HttpServletRequest.class));
 		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), anyString(), any(HttpServletRequest.class));
 	}
