@@ -27,11 +27,17 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	@Autowired
 	ServiceProvider serviceProvider;
 	
-	@Override
-	public void setServiceProvider(ServiceProvider serviceProvider) {
+	public EntityBundleServiceImpl() {}
+	
+	/**
+	 * Direct constructor (for testing purposes)
+	 * 
+	 * @param serviceProvider
+	 */
+	public EntityBundleServiceImpl(ServiceProvider serviceProvider) {
 		this.serviceProvider = serviceProvider;
 	}
-
+	
 	@Override
 	public EntityBundle getEntityBundle(String userId, String entityId, int mask, HttpServletRequest request, 
 			Integer offset, Integer limit, String sort, Boolean ascending)
@@ -124,7 +130,6 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			AccessControlList acl = ebc.getAccessControlList();
 			acl.setId(entity.getId());
 			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null, request);
-			ebc.setAccessControlList(acl);
 		}
 		
 		// Create the Annotations
@@ -133,12 +138,53 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			Annotations annos = serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId(), request);
 			annos.addAll(ebc.getAnnotations());
 			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos, request);
-			ebc.setAnnotations(annos);
 		}
 		
 		return getEntityBundle(userId, entity.getId(), partsMask, request, null, null, null, null);
 	}
 	
-
-
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public EntityBundle updateEntityBundle(String userId, String entityId, EntityBundleCreate ebc, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+		
+		int partsMask = 0;
+		
+		Entity entity = ebc.getEntity();
+		AccessControlList acl = ebc.getAccessControlList();
+		Annotations annos = ebc.getAnnotations();
+		
+		// Update the Entity
+		if (ebc.getEntity() != null) {
+			if (!entityId.equals(ebc.getEntity().getId()))
+				throw new IllegalArgumentException("Entity does not match requested entity ID");
+			partsMask += EntityBundle.ENTITY;			
+			entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, request);
+			
+			// Update etag
+			if (acl != null)
+				acl.setEtag(entity.getEtag());
+		}
+			
+		// Update the ACL
+		if (ebc.getAccessControlList() != null) {
+			if (!entityId.equals(ebc.getAccessControlList().getId()))
+				throw new IllegalArgumentException("ACL does not match requested entity ID");
+			partsMask += EntityBundle.ACL;
+			
+			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null, request);
+		}
+		
+		// Update the Annotations
+		if (ebc.getAnnotations() != null) {
+			if (!entityId.equals(ebc.getAnnotations().getId()))
+				throw new IllegalArgumentException("Annotations do not match requested entity ID");
+			partsMask += EntityBundle.ANNOTATIONS;
+			Annotations toUpdate = serviceProvider.getEntityService().getEntityAnnotations(userId, entityId, request);
+			toUpdate.addAll(annos);
+			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate, request);
+		}
+		
+		return getEntityBundle(userId, entityId, partsMask, request, null, null, null, null);
+	}
+	
 }

@@ -58,7 +58,6 @@ public interface EntityBundleService {
 			HttpServletRequest request, Integer offset, Integer limit,
 			String sort, Boolean ascending) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
-
 	
 	/**
 	 * Create an entity and associated components with a single POST.
@@ -66,7 +65,7 @@ public interface EntityBundleService {
 	 * Annotations, and its ACL.
 	 * 
 	 * Upon successful creation, an EntityBundle is returned containing the
-	 * requested components, as defined by the partsMask.
+	 * created components, as defined by the partsMask.
 	 * 
 	 * @param userId
 	 * @param eb
@@ -87,8 +86,30 @@ public interface EntityBundleService {
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException;
 
 	/**
-	 * Replace the autowired ServiceProvider (for testing purposes)
+	 * Update an entity and associated components with a single POST.
+	 * Specifically, this operation supports creation of an Entity, its
+	 * Annotations, and its ACL.
+	 * 
+	 * Upon successful creation, an EntityBundle is returned containing the
+	 * updated components.
+	 * 
+	 * @param userId
+	 * @param entityId
+	 * @param ebc
+	 * @param request
+	 * @return
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws ACLInheritanceException
+	 * @throws ParseException
 	 */
-	public void setServiceProvider(ServiceProvider serviceProvider);
+	public EntityBundle updateEntityBundle(String userId, String entityId,
+			EntityBundleCreate ebc,	HttpServletRequest request) throws 
+			ConflictingUpdateException,	DatastoreException, 
+			InvalidModelException, UnauthorizedException, NotFoundException, 
+			ACLInheritanceException, ParseException;
 
 }
