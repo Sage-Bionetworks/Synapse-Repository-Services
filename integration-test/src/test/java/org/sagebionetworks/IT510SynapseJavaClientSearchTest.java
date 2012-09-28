@@ -33,10 +33,11 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * 
  * @author deflaux
  */
+@Ignore // See: PLFM-1522
 public class IT510SynapseJavaClientSearchTest {
 	
 	
-	public static final long MAX_WAIT_TIME_MS = 5*60*1000; // one min.
+	public static final long MAX_WAIT_TIME_MS = 10*60*1000; // ten min.
 
 	private static Synapse synapse = null;
 	
@@ -53,7 +54,7 @@ public class IT510SynapseJavaClientSearchTest {
 	 * @throws Exception
 	 * 
 	 */
-	@BeforeClass
+//	@BeforeClass See: PLFM-1522
 	public static void beforeClass() throws Exception {
 
 		synapse = new Synapse();
