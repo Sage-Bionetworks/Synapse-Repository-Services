@@ -33,6 +33,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * 
  * @author deflaux
  */
+@Ignore // See: PLFM-1522
 public class IT510SynapseJavaClientSearchTest {
 	
 	
