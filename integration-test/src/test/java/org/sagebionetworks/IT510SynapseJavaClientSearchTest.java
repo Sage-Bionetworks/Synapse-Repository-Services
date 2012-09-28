@@ -54,7 +54,7 @@ public class IT510SynapseJavaClientSearchTest {
 	 * @throws Exception
 	 * 
 	 */
-	@BeforeClass
+//	@BeforeClass See: PLFM-1522
 	public static void beforeClass() throws Exception {
 
 		synapse = new Synapse();
