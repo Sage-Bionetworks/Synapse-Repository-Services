@@ -127,9 +127,16 @@ public class AccessRequirementControllerAutowiredTest {
 		List<AccessRequirement> ars = results.getResults();
 		assertEquals(1, ars.size());
 		
-		// get the unmet access requirements for the entity
+		// get the unmet access requirements for the entity, 
+		// when the user is the entity owner (should be none)
 		results = ServletTestHelper.getUnmetAccessRequirements(
 				dispatchServlet, entityId, userName);	
+		ars = results.getResults();
+		assertEquals(0, ars.size());
+		
+		// get the unmet access requirements for the entity
+		results = ServletTestHelper.getUnmetAccessRequirements(
+				dispatchServlet, entityId, TestUserDAO.TEST_USER_NAME);	
 		ars = results.getResults();
 		assertEquals(1, ars.size());
 		

@@ -77,10 +77,24 @@ import org.sagebionetworks.utils.HttpClientHelper;
 public class IT500SynapseJavaClient {
 	
 	public static final int PREVIEW_TIMOUT = 10*1000;
+	
+	private List<String> toDelete = null;
 
 	private static Synapse synapse = null;
 	private static Project project = null;
 	private static Study dataset = null;
+	
+	private static Synapse createSynapseClient(String user, String pw) throws SynapseException {
+		Synapse synapse = new Synapse();
+		synapse.setAuthEndpoint(StackConfiguration
+				.getAuthenticationServicePrivateEndpoint());
+		synapse.setRepositoryEndpoint(StackConfiguration
+				.getRepositoryServiceEndpoint());
+		synapse.setSearchEndpoint(StackConfiguration.getSearchServiceEndpoint());
+		synapse.login(user, pw);
+		
+		return synapse;
+	}
 	
 	/**
 	 * @throws Exception
@@ -89,22 +103,21 @@ public class IT500SynapseJavaClient {
 	@BeforeClass
 	public static void beforeClass() throws Exception {
 
-		synapse = new Synapse();
-		synapse.setAuthEndpoint(StackConfiguration
-				.getAuthenticationServicePrivateEndpoint());
-		synapse.setRepositoryEndpoint(StackConfiguration
-				.getRepositoryServiceEndpoint());
-		synapse.setSearchEndpoint(StackConfiguration.getSearchServiceEndpoint());
-		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
+		synapse = createSynapseClient(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
 	}
 	
 	@Before
 	public void before() throws SynapseException {
+		toDelete = new ArrayList<String>();
+		
 		project = synapse.createEntity(new Project());
 		dataset = new Study();
 		dataset.setParentId(project.getId());
 		dataset = synapse.createEntity(dataset);
+		
+		toDelete.add(project.getId());
+		toDelete.add(dataset.getId());
 	}
 
 	/**
@@ -117,8 +130,12 @@ public class IT500SynapseJavaClient {
 	 */
 	@After
 	public void after() throws Exception {
-		if(null != project) {
-			synapse.deleteEntity(project);
+		if (toDelete != null) {
+			for (String id: toDelete) {
+				try {
+					synapse.deleteEntityById(id);
+				} catch (Exception e) {}
+			}
 		}
 	}
 
@@ -298,27 +315,34 @@ public class IT500SynapseJavaClient {
 		ar.setTermsOfUse("play nice");
 		ar = synapse.createAccessRequirement(ar);
 		
-		// should not be able to download
-		assertFalse(synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		Synapse otherUser = createSynapseClient(
+				StackConfiguration.getIntegrationTestUserTwoName(),
+				StackConfiguration.getIntegrationTestUserTwoPassword());
+		UserProfile otherProfile = synapse.getMyProfile();
+		assertNotNull(otherProfile);
+
 		
-		VariableContentPaginatedResults<AccessRequirement> vcpr = synapse.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
+		// should not be able to download
+		assertFalse(otherUser.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		VariableContentPaginatedResults<AccessRequirement> vcpr = otherUser.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
 		assertEquals(1, vcpr.getResults().size());
 		
 		// now add the ToU approval
 		TermsOfUseAccessApproval aa = new TermsOfUseAccessApproval();
-		aa.setAccessorId(profile.getOwnerId());
+		aa.setAccessorId(otherProfile.getOwnerId());
 		aa.setEntityType(TermsOfUseAccessApproval.class.getName());
 		aa.setRequirementId(ar.getId());
 		
-		synapse.createAccessApproval(aa);
+		otherUser.createAccessApproval(aa);
 		
-		vcpr = synapse.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
+		vcpr = otherUser.getUnmetAccessReqAccessRequirements(aNewDataset.getId());
 		assertEquals(0, vcpr.getResults().size());
 		
 		// should be able to download
-		assertTrue(synapse.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertTrue(otherUser.canAccess(aNewDataset.getId(), ACCESS_TYPE.DOWNLOAD));
 		
-		// ACL should reflect this information
+		// ACL should reflect the first User's permission
 		AccessControlList acl = synapse.getACL(project.getId());
 		Set<ResourceAccess> ras = acl.getResourceAccess();
 		boolean foundit = false;
@@ -360,15 +384,6 @@ public class IT500SynapseJavaClient {
 		assertEquals(entityIds.size(), outputIds.size());
 		assertTrue(entityIds.containsAll(outputIds));
 		
-	}
-	
-	/**
-	 * @throws Exception
-	 */
-	@Test
-	public void testJavaClientCRUDEntity() throws Exception {
-
-		// Get the entity annotaions
 	}
 
 	/**
@@ -415,7 +430,9 @@ public class IT500SynapseJavaClient {
 				EntityBundle.HAS_CHILDREN |
 				EntityBundle.ACL |
 				EntityBundle.USERS |
-				EntityBundle.GROUPS;
+				EntityBundle.GROUPS |
+				EntityBundle.ACCESS_REQUIREMENTS |
+				EntityBundle.UNMET_ACCESS_REQUIREMENTS;
 		
 		long startTime = System.nanoTime();
 		EntityBundle entityBundle = synapse.getEntityBundle(project.getId(), allPartsMask);
@@ -440,10 +457,14 @@ public class IT500SynapseJavaClient {
 				synapse.getUsers(offset, limit), entityBundle.getUsers());
 		assertEquals("Invalid fetched Groups in the EntityBundle", 
 				synapse.getGroups(offset, limit), entityBundle.getGroups());
+		assertEquals("Unexpected ARs in the EntityBundle", 
+				0, entityBundle.getAccessRequirements().size());
+		assertEquals("Unexpected unmet-ARs in the EntityBundle", 
+				0, entityBundle.getUnmetAccessRequirements().size());
 	}
 	
 	@Test
-	public void testJavaClientCreateEntityBundle() throws SynapseException {
+	public void testJavaClientCreateUpdateEntityBundle() throws SynapseException {
 		// Create an entity		
 		Study s1 = new Study();
 		s1.setName("Dummy Study 1");
@@ -469,6 +490,7 @@ public class IT500SynapseJavaClient {
 		EntityBundle response = synapse.createEntityBundle(ebc);
 		
 		Study s2 = (Study) response.getEntity();
+		toDelete.add(s2.getId());
 		assertNotNull(s2);
 		assertNotNull("Etag should have been generated, but was not", s2.getEtag());
 		assertEquals(s1.getName(), s2.getName());
@@ -484,8 +506,36 @@ public class IT500SynapseJavaClient {
 		assertNotNull("Etag should have been generated, but was not", acl2.getEtag());
 		assertEquals("Retrieved ACL in bundle does not match original one", acl1.getResourceAccess(), acl2.getResourceAccess());
 	
-		synapse.deleteEntityById(s2.getId());
+		// Update the bundle, verify contents
+		s2.setName("Dummy study 1 updated");
+		a2.addAnnotation("string2", "Another string");
+		acl2.setModifiedBy("Update user");
+		
+		EntityBundleCreate ebc2 = new EntityBundleCreate();
+		ebc2.setEntity(s2);
+		ebc2.setAnnotations(a2);
+		ebc2.setAccessControlList(acl2);
+				
+		EntityBundle response2 = synapse.updateEntityBundle(s2.getId(), ebc2);
+		
+		Study s3 = (Study) response2.getEntity();
+		assertNotNull(s3);
+		assertFalse("Etag should have been updated, but was not", s2.getEtag().equals(s3.getEtag()));
+		assertEquals(s2.getName(), s3.getName());
+		
+		Annotations a3 = response2.getAnnotations();
+		assertNotNull(a3);
+		assertFalse("Etag should have been updated, but was not", a2.getEtag().equals(a3.getEtag()));
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a2.getStringAnnotations(), a3.getStringAnnotations());
+		assertEquals("Retrieved Annotations in bundle do not match original ones", a2.getDoubleAnnotations(), a3.getDoubleAnnotations());
+		
+		AccessControlList acl3 = response2.getAccessControlList();
+		assertNotNull(acl3);
+		assertFalse("Etag should have been updated, but was not", acl2.getEtag().equals(acl3.getEtag()));
+		assertEquals("Retrieved ACL in bundle does not match original one", acl2.getResourceAccess(), acl3.getResourceAccess());
+
 	}
+
 
 	/**
 	 * @throws Exception
@@ -716,11 +766,21 @@ public class IT500SynapseJavaClient {
 		r.setTermsOfUse("I promise to be good.");
 		synapse.createAccessRequirement(r);
 		
-		// check that can't download
-		assertFalse(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		// check that owner can download
+		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		Synapse otherUser = createSynapseClient(
+				StackConfiguration.getIntegrationTestUserTwoName(),
+				StackConfiguration.getIntegrationTestUserTwoPassword());
+		UserProfile otherProfile = synapse.getMyProfile();
+		assertNotNull(otherProfile);
 
+		// check that another can't download
+		assertFalse(otherUser.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		
+		
 		// get unmet access requirements
-		PaginatedResults<AccessRequirement> ars = synapse.getUnmetAccessReqAccessRequirements(layer.getId());
+		PaginatedResults<AccessRequirement> ars = otherUser.getUnmetAccessReqAccessRequirements(layer.getId());
 		assertEquals(1, ars.getTotalNumberOfResults());
 		assertEquals(1, ars.getResults().size());
 		AccessRequirement clone = ars.getResults().get(0);
@@ -730,20 +790,17 @@ public class IT500SynapseJavaClient {
 		
 		// create approval for the requirement
 		TermsOfUseAccessApproval approval = new TermsOfUseAccessApproval();
-		UserProfile profile = synapse.getMyProfile();
-		assertNotNull(profile);
-		assertNotNull(profile.getOwnerId());
-		approval.setAccessorId(profile.getOwnerId());
+		approval.setAccessorId(otherProfile.getOwnerId());
 		approval.setRequirementId(clone.getId());
-		synapse.createAccessApproval(approval);
+		otherUser.createAccessApproval(approval);
 		
 		// get unmet requirements -- should be empty
-		ars = synapse.getUnmetAccessReqAccessRequirements(layer.getId());
+		ars = otherUser.getUnmetAccessReqAccessRequirements(layer.getId());
 		assertEquals(0, ars.getTotalNumberOfResults());
 		assertEquals(0, ars.getResults().size());
 		
 		// check that CAN download
-		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertTrue(otherUser.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 }
 	
 	

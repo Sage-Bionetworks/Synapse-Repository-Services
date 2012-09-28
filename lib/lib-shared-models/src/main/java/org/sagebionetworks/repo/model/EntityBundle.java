@@ -1,6 +1,11 @@
 package org.sagebionetworks.repo.model;
 
+import java.util.ArrayList;
+import java.util.List;
+
+
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -17,30 +22,35 @@ public class EntityBundle implements JSONEntity {
 	/**
 	 * Masks for requesting what should be included in the bundle.
 	 */
-	public static int ENTITY 		      	= 0x1;
-	public static int ANNOTATIONS	      	= 0x2;
-	public static int PERMISSIONS	     	= 0x4;
-	public static int ENTITY_PATH	      	= 0x8;
-	public static int ENTITY_REFERENCEDBY 	= 0x10;
-	public static int HAS_CHILDREN			= 0x20;
-	public static int ACL					= 0x40;
-	public static int USERS					= 0x80;
-	public static int GROUPS				= 0x100;
+	
+	public static int ENTITY 		      		= 0x1;
+	public static int ANNOTATIONS	      		= 0x2;
+	public static int PERMISSIONS	     		= 0x4;
+	public static int ENTITY_PATH	      		= 0x8;
+	public static int ENTITY_REFERENCEDBY 		= 0x10;
+	public static int HAS_CHILDREN				= 0x20;
+	public static int ACL						= 0x40;
+	public static int USERS						= 0x80;
+	public static int GROUPS					= 0x100;
+	public static int ACCESS_REQUIREMENTS		= 0x200;
+	public static int UNMET_ACCESS_REQUIREMENTS	= 0x400;
 	
 	private static AutoGenFactory autoGenFactory = new AutoGenFactory();
 	
+	public static final String JSON_ENTITY = "entity";
+	public static final String JSON_ENTITY_TYPE = "entityType";
+	public static final String JSON_ANNOTATIONS = "annotations";
+	public static final String JSON_PERMISSIONS = "permissions";
+	public static final String JSON_PATH = "path";
+	public static final String JSON_REFERENCED_BY = "referencedBy";
+	public static final String JSON_HAS_CHILDREN 	= "hasChildren";
 
-	protected static final String JSON_ENTITY 			= "entity";
-	protected static final String JSON_ENTITY_TYPE 		= "entityType";
-	protected static final String JSON_ANNOTATIONS 		= "annotations";
-	protected static final String JSON_PERMISSIONS 		= "permissions";
-	protected static final String JSON_PATH				= "path";
-	protected static final String JSON_REFERENCED_BY 	= "referencedBy";
-	protected static final String JSON_HAS_CHILDREN 	= "hasChildren";
-	protected static final String JSON_ACL 				= "accessControlList";
-	protected static final String JSON_USERS 			= "users";
-	protected static final String JSON_GROUPS 			= "groups";
-
+	public static final String JSON_ACL = "accessControlList";
+	public static final String JSON_USERS = "users";
+	public static final String JSON_GROUPS = "groups";
+	public static final String JSON_ACCESS_REQUIREMENTS = "accessRequirements";
+	public static final String JSON_UNMET_ACCESS_REQUIREMENTS = "unmetAccessRequirements";
+	
 	private Entity entity;
 	private String entityType;
 	private Annotations annotations;
@@ -51,6 +61,8 @@ public class EntityBundle implements JSONEntity {
 	private AccessControlList acl;
 	private PaginatedResults<UserProfile> users;
 	private PaginatedResults<UserGroup> groups;
+	private List<AccessRequirement> accessRequirements;
+	private List<AccessRequirement> unmetAccessRequirements;
 	
 	/**
 	 * Create a new EntityBundle
@@ -125,6 +137,22 @@ public class EntityBundle implements JSONEntity {
 				groups = new PaginatedResults<UserGroup>(UserGroup.class);
 			groups.initializeFromJSONObject(joa);
 		}
+		if (toInitFrom.has(JSON_ACCESS_REQUIREMENTS)) {
+			JSONArrayAdapter a = (JSONArrayAdapter) toInitFrom.getJSONArray(JSON_ACCESS_REQUIREMENTS);
+			accessRequirements = new ArrayList<AccessRequirement>();
+			for (int i=0; i<a.length(); i++) {
+				JSONObjectAdapter joa = (JSONObjectAdapter)a.getJSONObject(i);
+				accessRequirements.add((AccessRequirement)EntityClassHelper.deserialize(joa));
+			}
+		}
+		if (toInitFrom.has(JSON_UNMET_ACCESS_REQUIREMENTS)) {
+			JSONArrayAdapter a = (JSONArrayAdapter) toInitFrom.getJSONArray(JSON_UNMET_ACCESS_REQUIREMENTS);
+			unmetAccessRequirements = new ArrayList<AccessRequirement>();
+			for (int i=0; i<a.length(); i++) {
+				JSONObjectAdapter joa = (JSONObjectAdapter)a.getJSONObject(i);
+				unmetAccessRequirements.add((AccessRequirement)EntityClassHelper.deserialize(joa));
+			}
+		}
 		return toInitFrom;
 	}
 
@@ -177,6 +205,24 @@ public class EntityBundle implements JSONEntity {
 			JSONObjectAdapter joa = writeTo.createNew();
 			groups.writeToJSONObject(joa);
 			writeTo.put(JSON_GROUPS, joa);
+		}
+		if (accessRequirements != null) {
+			JSONArrayAdapter arArray = writeTo.createNewArray();
+			for (int i=0; i<accessRequirements.size(); i++) {
+				JSONObjectAdapter joa = arArray.createNew();
+				accessRequirements.get(i).writeToJSONObject(joa);
+				arArray.put(i, joa);	
+			}
+			writeTo.put(JSON_ACCESS_REQUIREMENTS, arArray);
+		}
+		if (unmetAccessRequirements != null) {
+			JSONArrayAdapter arArray = writeTo.createNewArray();
+			for (int i=0; i<unmetAccessRequirements.size(); i++) {
+				JSONObjectAdapter joa = arArray.createNew();
+				unmetAccessRequirements.get(i).writeToJSONObject(joa);
+				arArray.put(i, joa);	
+			}
+			writeTo.put(JSON_UNMET_ACCESS_REQUIREMENTS, arArray);
 		}
 		return writeTo;
 	}
@@ -323,40 +369,33 @@ public class EntityBundle implements JSONEntity {
 		this.groups = groups;
 	}
 
-	@Override
-	public String toString() {
-		if (entity == null)
-			return "EntityBundle (empty)";
-		StringBuilder sb = new StringBuilder();
-		sb.append("EntityBundle (" + entity.getName() + ") contains [");
-		if (entity != null)
-			sb.append("ENTITY");
-		if (annotations != null)
-			sb.append("ANNOTATIONS, ");
-		if (permissions != null)
-			sb.append("PERMISSIONS, ");
-		if (path != null)
-			sb.append("ENTITY_PATH, ");
-		if (referencedBy != null)
-			sb.append("ENTITY_REFERENCEDBY, ");
-		if (hasChildren != null)
-			sb.append("HAS_CHILDREN, ");
-		if (acl != null)
-			sb.append("ACCESS_CONTROL_LIST, ");
-		if (users != null)
-			sb.append("USERS, ");
-		if (groups != null)
-			sb.append("GROUPS, ");
-		if (sb.lastIndexOf(",") >= 0)
-			sb.delete(sb.length()-2, sb.length());
-		sb.append("]");
-		return sb.toString();
-	}
 	
+	public List<AccessRequirement> getAccessRequirements() {
+		return accessRequirements;
+	}
+
+	public void setAccessRequirements(
+			List<AccessRequirement> accessRequirements) {
+		this.accessRequirements = accessRequirements;
+	}
+
+	public List<AccessRequirement> getUnmetAccessRequirements() {
+		return unmetAccessRequirements;
+	}
+
+	public void setUnmetAccessRequirements(
+			List<AccessRequirement> unmetAccessRequirements) {
+		this.unmetAccessRequirements = unmetAccessRequirements;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime
+				* result
+				+ ((accessRequirements == null) ? 0 : accessRequirements
+						.hashCode());
 		result = prime * result + ((acl == null) ? 0 : acl.hashCode());
 		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
@@ -371,10 +410,14 @@ public class EntityBundle implements JSONEntity {
 				+ ((permissions == null) ? 0 : permissions.hashCode());
 		result = prime * result
 				+ ((referencedBy == null) ? 0 : referencedBy.hashCode());
+		result = prime
+				* result
+				+ ((unmetAccessRequirements == null) ? 0
+						: unmetAccessRequirements.hashCode());
 		result = prime * result + ((users == null) ? 0 : users.hashCode());
 		return result;
 	}
-	
+
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -384,6 +427,11 @@ public class EntityBundle implements JSONEntity {
 		if (getClass() != obj.getClass())
 			return false;
 		EntityBundle other = (EntityBundle) obj;
+		if (accessRequirements == null) {
+			if (other.accessRequirements != null)
+				return false;
+		} else if (!accessRequirements.equals(other.accessRequirements))
+			return false;
 		if (acl == null) {
 			if (other.acl != null)
 				return false;
@@ -429,6 +477,12 @@ public class EntityBundle implements JSONEntity {
 				return false;
 		} else if (!referencedBy.equals(other.referencedBy))
 			return false;
+		if (unmetAccessRequirements == null) {
+			if (other.unmetAccessRequirements != null)
+				return false;
+		} else if (!unmetAccessRequirements
+				.equals(other.unmetAccessRequirements))
+			return false;
 		if (users == null) {
 			if (other.users != null)
 				return false;
@@ -436,4 +490,17 @@ public class EntityBundle implements JSONEntity {
 			return false;
 		return true;
 	}
+
+	@Override
+	public String toString() {
+		return "EntityBundle [entity=" + entity + ", entityType=" + entityType
+				+ ", annotations=" + annotations + ", permissions="
+				+ permissions + ", path=" + path + ", referencedBy="
+				+ referencedBy + ", hasChildren=" + hasChildren + ", acl="
+				+ acl + ", users=" + users + ", groups=" + groups
+				+ ", accessRequirements=" + accessRequirements
+				+ ", unmetAccessRequirements=" + unmetAccessRequirements + "]";
+	}
+
+
 }

@@ -111,13 +111,14 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		validateContent(acl);
 		Node node = nodeDao.getNode(rId);
 		// Before we can update the ACL we must grab the lock on the node.
-		String newEtag = nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
+		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
 		// set permissions 'benefactor' for resource and all resource's descendants to resource
 		nodeInheritanceManager.setNodeToInheritFromItself(rId);
 		// persist acl and return
 		String id = aclDAO.create(acl);
 		acl = aclDAO.get(acl.getId());
-		acl.setEtag(newEtag);
+		node = nodeDao.getNode(rId);
+		acl.setEtag(node.getETag());
 		return acl;
 	}
 

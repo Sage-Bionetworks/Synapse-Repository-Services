@@ -21,7 +21,8 @@ public class EntityBundleCreate implements JSONEntity {
 	 */
 	public static int ENTITY 		      	= EntityBundle.ENTITY;
 	public static int ANNOTATIONS	      	= EntityBundle.ANNOTATIONS;
-	public static int ACL					= EntityBundle.ACL;;
+	public static int ACL					= EntityBundle.ACL;
+	public static int ACCESS_REQUIREMENT	= EntityBundle.ACCESS_REQUIREMENTS;
 	
 	private static AutoGenFactory autoGenFactory = new AutoGenFactory();
 	
@@ -29,11 +30,21 @@ public class EntityBundleCreate implements JSONEntity {
 	private static final String JSON_ENTITY_TYPE = EntityBundle.JSON_ENTITY_TYPE;
 	private static final String JSON_ANNOTATIONS = EntityBundle.JSON_ANNOTATIONS;
 	private static final String JSON_ACL = EntityBundle.JSON_ACL;
+	private static final String JSON_ACCESS_REQUIREMENT = EntityBundle.JSON_ACCESS_REQUIREMENTS;
 
 	private Entity entity;
 	private String entityType;
 	private Annotations annotations;
 	private AccessControlList acl;
+	private AccessRequirement accessRequirement;
+
+	public AccessRequirement getAccessRequirement() {
+		return accessRequirement;
+	}
+
+	public void setAccessRequirement(AccessRequirement accessRequirement) {
+		this.accessRequirement = accessRequirement;
+	}
 
 	/**
 	 * Create a new EntityBundle
@@ -75,6 +86,10 @@ public class EntityBundleCreate implements JSONEntity {
 				acl = (AccessControlList) autoGenFactory.newInstance(AccessControlList.class.getName());
 			acl.initializeFromJSONObject(joa);
 		}
+		if (toInitFrom.has(JSON_ACCESS_REQUIREMENT)) {
+			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_ACCESS_REQUIREMENT);
+			accessRequirement = (AccessRequirement) EntityClassHelper.deserialize(joa);
+		}
 		return toInitFrom;
 	}
 
@@ -99,6 +114,11 @@ public class EntityBundleCreate implements JSONEntity {
 			JSONObjectAdapter joa = writeTo.createNew();
 			acl.writeToJSONObject(joa);
 			writeTo.put(JSON_ACL, joa);
+		}
+		if (accessRequirement!=null) {
+			JSONObjectAdapter joa = writeTo.createNew();
+			accessRequirement.writeToJSONObject(joa);
+			writeTo.put(JSON_ACCESS_REQUIREMENT, joa);
 		}
 		return writeTo;
 	}
@@ -158,26 +178,19 @@ public class EntityBundleCreate implements JSONEntity {
 
 	@Override
 	public String toString() {
-		if (entity == null)
-			return "EntityBundle (empty)";
-		StringBuilder sb = new StringBuilder();
-		sb.append("EntityBundle (" + entity.getName() + ") contains [");
-		if (entity != null)
-			sb.append("ENTITY");
-		if (annotations != null)
-			sb.append("ANNOTATIONS, ");
-		if (acl != null)
-			sb.append("ACCESS_CONTROL_LIST, ");
-		if (sb.lastIndexOf(",") >= 0)
-			sb.delete(sb.length()-2, sb.length());
-		sb.append("]");
-		return sb.toString();
+		return "EntityBundleCreate [entity=" + entity + ", entityType="
+				+ entityType + ", annotations=" + annotations + ", acl=" + acl
+				+ ", accessRequirement=" + accessRequirement + "]";
 	}
 
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime
+				* result
+				+ ((accessRequirement == null) ? 0 : accessRequirement
+						.hashCode());
 		result = prime * result + ((acl == null) ? 0 : acl.hashCode());
 		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
@@ -196,6 +209,11 @@ public class EntityBundleCreate implements JSONEntity {
 		if (getClass() != obj.getClass())
 			return false;
 		EntityBundleCreate other = (EntityBundleCreate) obj;
+		if (accessRequirement == null) {
+			if (other.accessRequirement != null)
+				return false;
+		} else if (!accessRequirement.equals(other.accessRequirement))
+			return false;
 		if (acl == null) {
 			if (other.acl != null)
 				return false;

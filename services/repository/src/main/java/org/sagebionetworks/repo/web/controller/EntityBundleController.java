@@ -108,8 +108,7 @@ public class EntityBundleController extends BaseController {
 	 * requested components, as defined by the partsMask.
 	 * 
 	 * @param userId
-	 * @param eb
-	 * @param mask
+	 * @param ebc
 	 * @param request
 	 * @return
 	 * @throws ConflictingUpdateException
@@ -117,8 +116,8 @@ public class EntityBundleController extends BaseController {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
-	 * @throws ParseException 
-	 * @throws ACLInheritanceException 
+	 * @throws ACLInheritanceException
+	 * @throws ParseException
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE, method = RequestMethod.POST)
@@ -131,6 +130,40 @@ public class EntityBundleController extends BaseController {
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
 		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, request);
+	}
+	
+	/**
+	 * Update an entity and associated components with a single POST.
+	 * Specifically, this operation supports update of an Entity, its
+	 * Annotations, and its ACL.
+	 * 
+	 * Upon successful creation, an EntityBundle is returned containing the
+	 * requested components, as defined by the partsMask.
+	 * 
+	 * @param userId
+	 * @param ebc
+	 * @param request
+	 * @return
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws ParseException 
+	 * @throws ACLInheritanceException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.PUT)
+	public @ResponseBody
+	EntityBundle updateEntityBundle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@PathVariable String id,
+			@RequestBody EntityBundleCreate ebc,
+			HttpServletRequest request
+			)
+			throws ConflictingUpdateException, DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, request);
 	}
 
 }

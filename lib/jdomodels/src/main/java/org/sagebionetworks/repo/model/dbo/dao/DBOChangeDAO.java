@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ObjectType;
 
 /**
@@ -17,7 +18,7 @@ public interface DBOChangeDAO {
 	 * @param change
 	 * @return
 	 */
-	public DBOChange replaceChange(DBOChange change);
+	public ChangeMessage replaceChange(ChangeMessage change);
 	
 	/**
 	 * Batch replace.
@@ -25,7 +26,7 @@ public interface DBOChangeDAO {
 	 * @param change
 	 * @return
 	 */
-	public List<DBOChange> replaceChange(List<DBOChange> batch);
+	public List<ChangeMessage> replaceChange(List<ChangeMessage> batch);
 	
 	
 	/**
@@ -53,6 +54,6 @@ public interface DBOChangeDAO {
 	 * @param limit - The number of results.  The max limit is 1K.
 	 * @return
 	 */
-	List<DBOChange> listChanges(long greaterOrEqualChangeNumber, ObjectType type, long limit);
+	List<ChangeMessage> listChanges(long greaterOrEqualChangeNumber, ObjectType type, long limit);
 
 }

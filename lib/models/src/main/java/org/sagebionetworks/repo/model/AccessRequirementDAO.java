@@ -77,6 +77,6 @@ public interface AccessRequirementDAO extends MigratableDAO {
 	 * @return the AccessRequirement IDs for the given node and given access type which are unmet for the given principal
 	 * @throws DatastoreException
 	 */
-	List<Long> unmetAccessRequirements(String nodeId, Collection<Long> principalId,
+	List<Long> unmetAccessRequirements(String nodeId, Collection<Long> principalIds,
 			ACCESS_TYPE accessType) throws DatastoreException;
 }

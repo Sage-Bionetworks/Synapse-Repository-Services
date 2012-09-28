@@ -12,6 +12,7 @@ import com.amazonaws.services.cloudsearch.AmazonCloudSearchClient;
 import com.amazonaws.services.cloudsearch.model.AccessPoliciesStatus;
 import com.amazonaws.services.cloudsearch.model.CreateDomainRequest;
 import com.amazonaws.services.cloudsearch.model.DefineIndexFieldRequest;
+import com.amazonaws.services.cloudsearch.model.DeleteIndexFieldRequest;
 import com.amazonaws.services.cloudsearch.model.DescribeDomainsRequest;
 import com.amazonaws.services.cloudsearch.model.DescribeDomainsResult;
 import com.amazonaws.services.cloudsearch.model.DescribeIndexFieldsRequest;
@@ -189,6 +190,16 @@ public class SearchDomainSetupImpl implements SearchDomainSetup {
 									.withDomainName(domainName).withIndexField(
 											field));
 				}
+			}
+		}
+		// Delete any index field that should not be in the schema
+		DescribeIndexFieldsResult difr = awsSearchClient
+				.describeIndexFields(new DescribeIndexFieldsRequest()
+						.withDomainName(domainName));
+		for(IndexFieldStatus is: difr.getIndexFields()){
+			// Remove any field that is not used.
+			if(!indexList.contains(is.getOptions())){
+				awsSearchClient.deleteIndexField(new DeleteIndexFieldRequest().withDomainName(domainName).withIndexFieldName(is.getOptions().getIndexFieldName()));
 			}
 		}
 	}
