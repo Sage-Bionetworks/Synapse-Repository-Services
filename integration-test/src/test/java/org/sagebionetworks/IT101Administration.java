@@ -139,14 +139,13 @@ public class IT101Administration {
 		assertEquals(newDescription, project.getDescription());
 	}
 	
-	@Ignore
 	@Test
 	public void testgetMigratableObjectCounts() throws Exception {
 		PaginatedResults<MigratableObjectCount> rs = synapse.getMigratableObjectCounts();
 		assertNotNull(rs);
 		assertNotNull(rs.getResults());
 		assertNotNull(rs.getTotalNumberOfResults());
-		assertTrue(rs.getTotalNumberOfResults() > 0);
+		assertEquals(3, rs.getTotalNumberOfResults());
 		
 	}
 

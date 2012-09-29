@@ -38,7 +38,7 @@ public class SynapseAdministration extends Synapse {
 	public static final String DAEMON_RESTORE = DAEMON + RESTORE;
 	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
 	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
-	public static final String GET_ALL_BACKUP_COUNTS = "/backupObjectCounts";
+	public static final String GET_ALL_BACKUP_COUNTS = "/backupObjectsCounts";
 	
 	public SynapseAdministration() {
 		super();
