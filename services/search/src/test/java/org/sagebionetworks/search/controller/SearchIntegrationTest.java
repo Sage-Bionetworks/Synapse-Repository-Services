@@ -1,9 +1,10 @@
 package org.sagebionetworks.search.controller;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -14,12 +15,10 @@ import org.json.JSONException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.quartz.SchedulerException;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -32,7 +31,6 @@ import org.sagebionetworks.repo.web.util.UserProvider;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
-import org.springframework.beans.BeansException;
 
 /**
  * End to end test for the search services.
@@ -50,7 +48,7 @@ public class SearchIntegrationTest {
 	private Project project;
 	
 	@Before
-	public void before() throws BeansException, ServletException, SchedulerException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, InterruptedException{
+	public void before() throws Exception {
 		entityManager = (EntityManager) DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(EntityManager.class);
 		assertNotNull(entityManager);
 		userProvider = DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(UserProvider.class);
@@ -59,6 +57,9 @@ public class SearchIntegrationTest {
 		searchDao = DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(SearchDao.class);
 		// Before we start, make sure the search queue is empty
 		emptySearchQueue();
+		// Now delete all documents in the search index.
+		searchDao.deleteAllDocuments();
+		
 		// Create a project
 		UserInfo info = userProvider.getTestUserInfo();
 		project = new Project();

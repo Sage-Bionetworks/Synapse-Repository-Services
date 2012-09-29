@@ -6,9 +6,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
+import java.util.UUID;
 
 import org.apache.http.client.ClientProtocolException;
+import org.junit.After;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.search.Document;
@@ -42,6 +47,14 @@ public class SearchDaoImplAutowireTest {
 	SearchDao searchDao;
 	@Autowired
 	SearchDomainSetup searchDomainSetup;
+	
+	private Random rand = new Random(System.currentTimeMillis());
+	
+	@After
+	public void after() throws Exception {
+		// Delete all documents after a test
+		searchDao.deleteAllDocuments();
+	}
 	
 	@Test
 	public void testSetup(){
@@ -99,10 +112,12 @@ public class SearchDaoImplAutowireTest {
 	
 	@Test
 	public void testCRUD() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException{
+		// Before we start this test delete all data in the search index
+		searchDao.deleteAllDocuments();
 		// create a document, search for it, then delete it.
-		String id = "abc";
+		String id = createUniqueId();
 		String etag = "4567";
-		String parentId = "xyz";
+		String parentId = createUniqueId();
 		String name = "This is my name";
 		searchDao.deleteDocument(id);
 		// Now create the document
@@ -165,6 +180,46 @@ public class SearchDaoImplAutowireTest {
 		assertEquals(0, results.getHits().size());
 		// It should not exists
 		assertFalse(searchDao.doesDocumentExist(id, etag));
+	}
+	
+	@Test
+	public void testListSearchDocuments() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException{
+		// Before we start this test delete all data in the search index
+		searchDao.deleteAllDocuments();
+		// For this test we are creating a set of documents, waiting for them then 
+		List<Document> toCreate = new ArrayList<Document>();
+		int numbToCreate = 5;
+		for(int i=0; i<numbToCreate; i++){
+			Document doc = new Document();
+			doc.setId(createUniqueId());
+			doc.setFields(new DocumentFields());
+			doc.getFields().setEtag(UUID.randomUUID().toString());
+			doc.getFields().setDescription("This is a test document");
+			toCreate.add(doc);
+		}
+		// Create the list
+		searchDao.createOrUpdateSearchDocument(toCreate);
+		// Wait for each
+		for(Document doc: toCreate){
+			waitForSearchCreateOrUpdate(doc.getId(), doc.getFields().getEtag());
+		}
+		// Now query for the list
+		SearchResults results = searchDao.listSearchDocuments(1, 0);
+		System.out.println(results);
+		assertNotNull(results);
+		assertNotNull(results.getHits());
+		assertNotNull(results.getFound());
+		assertTrue(results.getFound() >= numbToCreate);
+		assertEquals(1, results.getHits().size());
+		
+	}
+
+	public String createUniqueId() {
+		long rl = rand.nextLong();
+		if(rl < 0){
+			rl *= -1l;
+		}
+		return "syn"+rl;
 	}
 	
 	/**

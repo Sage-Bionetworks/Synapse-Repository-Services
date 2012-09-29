@@ -26,7 +26,9 @@ import org.json.JSONArray;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.search.AwesomeSearchFactory;
 import org.sagebionetworks.repo.model.search.Document;
+import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
@@ -46,6 +48,8 @@ import com.amazonaws.services.cloudsearch.AmazonCloudSearchClient;
 public class SearchDaoImpl implements SearchDao {
 
 	private static final String QUERY_BY_ID_AND_ETAG = "bq=(and+"+FIELD_ID+":'%1$s'+"+FIELD_ETAG+":'%2$s')";
+	
+	private static final String QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE = "bq="+FIELD_ID+":'*'&size=%1$s&start=%2$s";
 
 	static private Log log = LogFactory.getLog(SearchDaoImpl.class);
 	
@@ -126,6 +130,11 @@ public class SearchDaoImpl implements SearchDao {
 				document.setVersion(now.getMillis() / 1000);
 				document.setType(DocumentTypeNames.add);
 				document.setLang("en");
+				if(document.getFields() == null){
+					document.setFields(new DocumentFields());
+				}
+				// The id field must match the document's id.
+				document.getFields().setId(document.getId());
 				serializedDocument = EntityFactory.createJSONStringForEntity(document);
 				// AwesomeSearch pukes on control characters. Some descriptions have
 				// control characters in them for some reason, in any case, just get rid
@@ -141,6 +150,7 @@ public class SearchDaoImpl implements SearchDao {
 				count++;
 			}
 			builder.append("]");
+//			log.warn(builder.toString());
 			// AwesomeSearch expects UTF-8
 			return builder.toString().getBytes("UTF-8");
 		} catch (JSONObjectAdapterException e) {
@@ -205,6 +215,31 @@ public class SearchDaoImpl implements SearchDao {
 		String query = String.format(QUERY_BY_ID_AND_ETAG, id, etag);
 		SearchResults results = executeSearch(query);
 		return results.getHits().size() > 0;
+	}
+
+	@Override
+	public SearchResults listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException, HttpClientHelperException {
+		String query = String.format(QUERY_LIST_ALL_DOCUMENTS_ONE_PAGE, limit, offset);
+		return executeSearch(query);
+	}
+
+	@Override
+	public void deleteAllDocuments() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException {
+		// Keep deleting as long as there are documents
+		SearchResults sr = null;
+		do{
+			sr = listSearchDocuments(1000, 0);
+			HashSet<String> idSet = new HashSet<String>();
+			for(Hit hit: sr.getHits()){
+				idSet.add(hit.getId());
+			}
+			// Delete the whole set
+			if(!idSet.isEmpty()){
+				log.warn("Deleting the following documents for the search index:"+idSet.toString());
+				deleteDocuments(idSet);
+				Thread.sleep(5000);
+			}
+		}while(sr.getFound() > 0);
 	}
 
 }
