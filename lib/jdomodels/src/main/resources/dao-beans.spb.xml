@@ -20,6 +20,8 @@
 	<!-- Transactional Messenger -->
 	<bean id="transactionalMessenger" class="org.sagebionetworks.repo.model.message.TransactionalMessengerImpl"/>
 	
+	<bean id="tagMessenger" class="org.sagebionetworks.repo.model.dbo.dao.TagMessengerImpl"/>
+	
 	<bean id="dboAnnotationsDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDaoImpl"/>
 	
 	<bean id="referenceDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOReferenceDaoImpl"/>
