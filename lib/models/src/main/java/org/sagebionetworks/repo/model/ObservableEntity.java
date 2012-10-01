@@ -7,7 +7,7 @@ import org.sagebionetworks.repo.model.message.ObjectType;
  * @author jmhill
  *
  */
-public interface ObservableEntity  {
+public interface ObservableEntity  extends TaggableEntity {
 	
 	/**
 	 * The id of the object.

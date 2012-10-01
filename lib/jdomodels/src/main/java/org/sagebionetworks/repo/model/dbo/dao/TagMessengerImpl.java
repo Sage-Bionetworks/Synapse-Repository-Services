@@ -26,7 +26,7 @@ public class TagMessengerImpl implements TagMessenger{
 	public void generateEtagAndSendMessage(ObservableEntity observable,
 			ChangeType changeType) {
 		// Send a message that an entity was created
-		String newEtag = eTagGenerator.generateETag(null);
+		String newEtag = eTagGenerator.generateETag(observable);
 		observable.seteTag(newEtag);
 		// Create the message
 		ChangeMessage message = new ChangeMessage();
