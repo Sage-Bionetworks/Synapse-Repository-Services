@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.model.message;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -44,17 +47,27 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		// Bind this message to the transaction
 		@SuppressWarnings("unchecked")
 		// Get the bound list of messages if it already exists.
-		List<ChangeMessage> currentMessages = (List<ChangeMessage>) TransactionSynchronizationManager.getResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
+		Map<String, ChangeMessage> currentMessages = getCurrentBoundMessages();
+		// If we already have a message going out for this object then we needs replace it with the latest.
+		// If an object's etag changes multiple times, only the final etag should be in the message.
+		currentMessages.put(message.getObjectId(), message);
+		// Register a handler if needed
+		registerHandlerIfNeeded();
+	}
+	
+	/**
+	 * Get the messages that are currently bound to this transaction.
+	 * @return
+	 */
+	private Map<String, ChangeMessage> getCurrentBoundMessages(){
+		Map<String, ChangeMessage> currentMessages = (Map<String, ChangeMessage>) TransactionSynchronizationManager.getResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
 		if(currentMessages == null){
 			// This is the first time it is called for this thread.
-			currentMessages = new LinkedList<ChangeMessage>();
+			currentMessages = new HashMap<String, ChangeMessage>();
 			// Bind this list to the transaction.
 			TransactionSynchronizationManager.bindResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES, currentMessages);
 		}
-		// Add this message to the list
-		currentMessages.add(message);
-		// Register a handler if needed
-		registerHandlerIfNeeded();
+		return currentMessages;
 	}
 	
 	/**
@@ -101,13 +114,12 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		public void afterCommit() {
 			// Log the messages
 			@SuppressWarnings("unchecked")
-			List<ChangeMessage> currentMessages = (List<ChangeMessage>) TransactionSynchronizationManager.getResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
-			if(currentMessages == null) throw new IllegalStateException("No messages bound to this transaction");
-			if(currentMessages.isEmpty()) throw new IllegalStateException("Called on an empty list");
+			Map<String, ChangeMessage> currentMessages = getCurrentBoundMessages();
 			// For each observer fire the message.
 			for(TransactionalMessengerObserver observer: observers){
 				// Fire each message.
-				for(ChangeMessage message: currentMessages){
+				Collection<ChangeMessage> collection = currentMessages.values();
+				for(ChangeMessage message: collection){
 					observer.fireChangeMessage(message);
 					if(log.isTraceEnabled()){
 						log.trace("Firing a change event: "+message+" for observer: "+observer);
@@ -121,13 +133,15 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		@Override
 		public void beforeCommit(boolean readOnly) {
 			// write the changes to the database
-			List<ChangeMessage> currentMessages = (List<ChangeMessage>) TransactionSynchronizationManager.getResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
-			if(currentMessages == null) throw new IllegalStateException("No messages bound to this transaction");
-			if(currentMessages.isEmpty()) throw new IllegalStateException("Called on an empty list");
+			Map<String, ChangeMessage> currentMessages = getCurrentBoundMessages();
+			Collection<ChangeMessage> collection = currentMessages.values();
+			List<ChangeMessage> list = new LinkedList<ChangeMessage>(collection);
 			// Create the list of DBOS
-			List<ChangeMessage> updatedList = changeDAO.replaceChange(currentMessages);
-			currentMessages.clear();
-			currentMessages.addAll(updatedList);
+			List<ChangeMessage> updatedList = changeDAO.replaceChange(list);
+			// Now replace each entry on the map with the update message
+			for(ChangeMessage message: updatedList){
+				currentMessages.put(message.getObjectId(), message);
+			}
 		}
 		
 	}
