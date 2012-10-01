@@ -308,14 +308,10 @@ public class JDOSecondaryPropertyUtils {
 			}
 		}
 
-		if (attachmentList.size() > 0 || locationList.size() > 0) {
-			Map<String, List<String>> strAnnotations = primaryAnnos.getStringAnnotations();
-			StorageLocations sl = new StorageLocations(node, user,
-					Collections.unmodifiableList(attachmentList),
-					Collections.unmodifiableList(locationList), strAnnotations);
-			return sl;
-		}
-
-		return null;
+		Map<String, List<String>> strAnnotations = primaryAnnos.getStringAnnotations();
+		StorageLocations sl = new StorageLocations(node, user,
+				Collections.unmodifiableList(attachmentList),
+				Collections.unmodifiableList(locationList), strAnnotations);
+		return sl;
 	}
 }

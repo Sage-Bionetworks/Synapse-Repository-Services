@@ -106,24 +106,25 @@ public class StorageLocationUtils {
 	 *
 	 * @throws AmazonClientException  When the AWS S3 client encounters an internal error
 	 */
-	private static void updateContent(Long nodeId,
-			List<DBOStorageLocation> dboList, AmazonS3 s3Client) {
+	private static void updateContent(Long nodeId, List<DBOStorageLocation> dboList, AmazonS3 s3Client) {
 
-		String awss3 = LocationTypeNames.awss3.name();
+		// No need to call S3 if there is no storage
+		if (dboList.size() == 0) {
+			return;
+		}
 
-		// Update the DBOs with information retrieved from S3
-		long start = System.currentTimeMillis();
-		int round = 0;
-		boolean retry = false;
-		do {
+		int numRetries = 0;
+		boolean retry = true;
+		while (retry) {
+
 			retry = false;
-			round++;
-
-			logger.info("Retry " + round);
+			numRetries++;
 
 			// Gather the list of all the storage locations under this node
 			Map<String, S3ObjectSummary> s3ObjectMap = getObjectMapFromS3(nodeId, s3Client);
+			String awss3 = LocationTypeNames.awss3.name();
 
+			// Update the DBOs with information retrieved from S3
 			for (DBOStorageLocation dbo : dboList) {
 				if (awss3.equals(dbo.getStorageProvider())) {
 					String key = dbo.getLocation();
@@ -131,24 +132,21 @@ public class StorageLocationUtils {
 					if (key.startsWith("/")) {
 						key = key.substring(1);
 					}
-					logger.info("Checking AWS S3 for " + key);
 					if (s3ObjectMap.containsKey(key)) {
-						logger.info(key + " found");
 						S3ObjectSummary s3ObjectSummary = s3ObjectMap.get(key);
 						dbo.setContentSize(s3ObjectSummary.getSize());
 					} else {
 						logger.info(key + " not found");
+						logger.info("Retry " + numRetries);
 						retry = true;
-						if (round > 100) {
+						if (numRetries > 2) {
+							logger.info("Max number of retries reached. Retry aborted.");
 							retry = false;
 						}
 					}
 				}
 			}
-		} while (retry);
-		long end = System.currentTimeMillis();
-		logger.info("Round: " + round);
-		logger.info("Time: " + (end - start));
+		}
 	}
 
 	private static Map<String, S3ObjectSummary> getObjectMapFromS3(Long nodeId, AmazonS3 s3Client) {
