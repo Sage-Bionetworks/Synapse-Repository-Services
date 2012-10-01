@@ -26,21 +26,11 @@ public class EntityCountModel extends AbstractTableModel {
 	
 	public EntityCountModel(){
 		int i=0;
-		for (EntityType entityType : EntityType.values()) {
-			rowIndex.put(entityType.name(), i);
-			reverseRowIndex.put(i, entityType.name());
+		for (MigratableObjectType objType : MigratableObjectType.values()) {
+			rowIndex.put(objType.name(), i);
+			reverseRowIndex.put(i, objType.name());
 			map.put(i, "unknown");
 			i++;
-		}
-		for (MigratableObjectType objType : MigratableObjectType.values()) {
-			if (objType.equals(MigratableObjectType.ENTITY)) {
-				// skip it
-			} else {
-				rowIndex.put(objType.name(), i);
-				reverseRowIndex.put(i, objType.name());
-				map.put(i, "unknown");
-				i++;
-			}
 		}
 	}
 	
