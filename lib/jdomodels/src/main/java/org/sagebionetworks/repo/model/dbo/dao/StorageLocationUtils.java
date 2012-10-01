@@ -109,6 +109,50 @@ public class StorageLocationUtils {
 	private static void updateContent(Long nodeId,
 			List<DBOStorageLocation> dboList, AmazonS3 s3Client) {
 
+		String awss3 = LocationTypeNames.awss3.name();
+
+		// Update the DBOs with information retrieved from S3
+		long start = System.currentTimeMillis();
+		int round = 0;
+		boolean retry = false;
+		do {
+			retry = false;
+			round++;
+
+			logger.info("Retry " + round);
+
+			// Gather the list of all the storage locations under this node
+			Map<String, S3ObjectSummary> s3ObjectMap = getObjectMapFromS3(nodeId, s3Client);
+
+			for (DBOStorageLocation dbo : dboList) {
+				if (awss3.equals(dbo.getStorageProvider())) {
+					String key = dbo.getLocation();
+					assert key != null;
+					if (key.startsWith("/")) {
+						key = key.substring(1);
+					}
+					logger.info("Checking AWS S3 for " + key);
+					if (s3ObjectMap.containsKey(key)) {
+						logger.info(key + " found");
+						S3ObjectSummary s3ObjectSummary = s3ObjectMap.get(key);
+						dbo.setContentSize(s3ObjectSummary.getSize());
+					} else {
+						logger.info(key + " not found");
+						retry = true;
+						if (round > 100) {
+							retry = false;
+						}
+					}
+				}
+			}
+		} while (retry);
+		long end = System.currentTimeMillis();
+		logger.info("Round: " + round);
+		logger.info("Time: " + (end - start));
+	}
+
+	private static Map<String, S3ObjectSummary> getObjectMapFromS3(Long nodeId, AmazonS3 s3Client) {
+
 		// Gather the list of all the storage locations under this node
 		Map<String, S3ObjectSummary> s3ObjectMap = new HashMap<String, S3ObjectSummary>();
 		String prefix = nodeId.toString() + "/"; // Don't forget the delimiter '/'
@@ -135,21 +179,7 @@ public class StorageLocationUtils {
 			logger.warn(errMsg.toString());
 		}
 
-		// Update the DBOs
-		String awss3 = LocationTypeNames.awss3.name();
-		for (DBOStorageLocation dbo : dboList) {
-			if (awss3.equals(dbo.getStorageProvider())) {
-				String key = dbo.getLocation();
-				assert key != null;
-				if (key.startsWith("/")) {
-					key = key.substring(1);
-				}
-				if (s3ObjectMap.containsKey(key)) {
-					S3ObjectSummary s3ObjectSummary = s3ObjectMap.get(key);
-					dbo.setContentSize(s3ObjectSummary.getSize());
-				}
-			}
-		}
+		return s3ObjectMap;
 	}
 
 	private static final Logger logger = Logger.getLogger(StorageLocationUtils.class);
