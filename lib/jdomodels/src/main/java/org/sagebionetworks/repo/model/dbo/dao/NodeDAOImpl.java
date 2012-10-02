@@ -637,10 +637,13 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException {
+
 		if(updatedAnnos == null) throw new IllegalArgumentException("Updateded Annotations cannot be null");
 		if(updatedAnnos.getId() == null) throw new IllegalArgumentException("Node ID cannot be null");
 		if(updatedAnnos.getEtag() == null) throw new IllegalArgumentException("Annotations must have a valid eTag");
-		DBONode jdo =  getNodeById(KeyFactory.stringToKey(nodeId));
+
+		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		DBONode jdo =  getNodeById(nodeIdLong);
 		DBORevision rev = getCurrentRevision(jdo);
 
 		// now update the annotations from the passed values.
@@ -650,14 +653,21 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			rev.setAnnotations(newAnnos);
 			// Save the change
 			dboBasicDao.update(rev);
+
+			final Long user = rev.getModifiedBy();
+			StorageLocations sl = JDOSecondaryPropertyUtils.getStorageLocations(updatedAnnos, nodeIdLong, user);
+			storageLocationDao.replaceLocationData(sl);
+
 			// Prepare the annotations for the database.
 			Annotations forDb = prepareAnnotationsForDBReplacement(updatedAnnos, KeyFactory.keyToString(rev.getOwner()));
 			dboAnnotationsDao.replaceAnnotations(forDb);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new DatastoreException(e);
 		}
 	}
-	
+
 	/**
 	 * Prepare annotations to be written to the database.
 	 * @param annos
