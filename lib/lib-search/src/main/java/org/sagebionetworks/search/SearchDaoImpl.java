@@ -125,16 +125,7 @@ public class SearchDaoImpl implements SearchDao {
 			builder.append("[");
 			int count = 0;
 			for(Document document: documents){
-				// the version is always the current time.
-				DateTime now = DateTime.now();
-				document.setVersion(now.getMillis() / 1000);
-				document.setType(DocumentTypeNames.add);
-				document.setLang("en");
-				if(document.getFields() == null){
-					document.setFields(new DocumentFields());
-				}
-				// The id field must match the document's id.
-				document.getFields().setId(document.getId());
+				prepareDocument(document);
 				serializedDocument = EntityFactory.createJSONStringForEntity(document);
 				// AwesomeSearch pukes on control characters. Some descriptions have
 				// control characters in them for some reason, in any case, just get rid
@@ -160,6 +151,23 @@ public class SearchDaoImpl implements SearchDao {
 			// Convert to runtime
 			throw new RuntimeException(e);
 		}
+	}
+
+	/**
+	 * Prepare the document to be sent.
+	 * @param document
+	 */
+	public static void prepareDocument(Document document) {
+		// the version is always the current time.
+		DateTime now = DateTime.now();
+		document.setVersion(now.getMillis() / 1000);
+		document.setType(DocumentTypeNames.add);
+		document.setLang("en");
+		if(document.getFields() == null){
+			document.setFields(new DocumentFields());
+		}
+		// The id field must match the document's id.
+		document.getFields().setId(document.getId());
 	}
 
 	@Override

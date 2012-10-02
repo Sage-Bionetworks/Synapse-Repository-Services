@@ -11,6 +11,8 @@ import org.junit.Test;
 import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 
 /**
@@ -84,6 +86,80 @@ public class TransactionalMessengerImplTest {
 		// Simulate the after commit
 		stubProxy.getSynchronizations().get(0).afterCommit();
 		verify(mockObserver, times(1)).fireChangeMessage(message);
+	}
+	
+	@Test
+	public void testSendMessageTwice() throws JSONObjectAdapterException{
+		ChangeMessage first = new ChangeMessage();
+		first.setChangeNumber(new Long(123));
+		first.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
+		first.setObjectEtag("etag");
+		first.setObjectId("syn456");
+		first.setObjectType(ObjectType.ENTITY);
+		first.setChangeType(ChangeType.DELETE);
+		
+		String json = EntityFactory.createJSONStringForEntity(first);
+		ChangeMessage second = EntityFactory.createEntityFromJSONString(json, ChangeMessage.class);
+		// Change the etag of the second
+		second.setObjectEtag("etagtwo");
+		
+		// Send the message first message
+		messenger.sendMessageAfterCommit(first);
+		messenger.sendMessageAfterCommit(second);
+		assertNotNull(stubProxy.getSynchronizations());
+		assertEquals(1, stubProxy.getSynchronizations().size());
+		// Simulate the before commit
+		stubProxy.getSynchronizations().get(0).beforeCommit(true);
+		List<ChangeMessage> list = new ArrayList<ChangeMessage>();
+		// The second should get sent but not the fist.
+		list.add(second);
+		verify(mockChangeDAO, times(1)).replaceChange(list);
+		list = new ArrayList<ChangeMessage>();
+		list.add(first);
+		verify(mockChangeDAO, never()).replaceChange(list);
+		// Simulate the after commit
+		stubProxy.getSynchronizations().get(0).afterCommit();
+		// The second message should get sent but not the first
+		verify(mockObserver, times(1)).fireChangeMessage(second);
+		verify(mockObserver, never()).fireChangeMessage(first);
+	}
+	
+	@Test
+	public void testSendMessageSameIdDifferntType() throws JSONObjectAdapterException{
+		ChangeMessage first = new ChangeMessage();
+		first.setChangeNumber(new Long(123));
+		first.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
+		first.setObjectEtag("etag");
+		first.setObjectId("syn456");
+		first.setObjectType(ObjectType.ENTITY);
+		first.setChangeType(ChangeType.DELETE);
+		
+		// This has the same id as the first but is of a different type.
+		ChangeMessage second = new ChangeMessage();
+		second.setChangeNumber(new Long(123));
+		second.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
+		second.setObjectEtag("etag");
+		second.setObjectId("syn456");
+		second.setObjectType(ObjectType.PRINCIPAL);
+		second.setChangeType(ChangeType.UPDATE);
+		
+		// Send the message first message
+		messenger.sendMessageAfterCommit(first);
+		messenger.sendMessageAfterCommit(second);
+		assertNotNull(stubProxy.getSynchronizations());
+		assertEquals(1, stubProxy.getSynchronizations().size());
+		// Simulate the before commit
+		stubProxy.getSynchronizations().get(0).beforeCommit(true);
+		List<ChangeMessage> list = new ArrayList<ChangeMessage>();
+		// The second should get sent and so should the first.
+		list.add(first);
+		list.add(second);
+		verify(mockChangeDAO, times(1)).replaceChange(list);
+		// Simulate the after commit
+		stubProxy.getSynchronizations().get(0).afterCommit();
+		// The second message should get sent and so should the first
+		verify(mockObserver, times(1)).fireChangeMessage(second);
+		verify(mockObserver, times(1)).fireChangeMessage(first);
 	}
 
 }
