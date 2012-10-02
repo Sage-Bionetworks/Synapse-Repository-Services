@@ -57,7 +57,7 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity)
+	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity, String activityId)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException {
 		if (newEntity == null)
@@ -67,6 +67,7 @@ public class EntityManagerImpl implements EntityManager {
 		// Set the type for this object
 		node.setNodeType(EntityType.getNodeTypeForClass(newEntity.getClass())
 				.name());
+		node.setActivityId(activityId);
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(newEntity,
@@ -370,7 +371,7 @@ public class EntityManagerImpl implements EntityManager {
 			// Update each child.
 			String id = null;
 			if (child.getId() == null) {
-				id = this.createEntity(userInfo, child);
+				id = this.createEntity(userInfo, child, null);
 			} else {
 				id = child.getId();
 				updateEntity(userInfo, child, false);

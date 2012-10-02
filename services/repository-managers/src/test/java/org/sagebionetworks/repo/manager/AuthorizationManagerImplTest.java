@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -26,6 +27,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -39,13 +41,13 @@ public class AuthorizationManagerImplTest {
 	@Autowired
 	NodeManager nodeManager;
 	@Autowired
-	private UserManager userManager;
-	
+	private UserManager userManager;	
 	@Autowired
-	PermissionsManager permissionsManager;
-	
+	PermissionsManager permissionsManager;	
 	@Autowired
 	NodeDAO nodeDao;
+	@Autowired
+	ActivityManager activityManager;
 	
 		
 	private Collection<Node> nodeList = new ArrayList<Node>();
@@ -57,6 +59,7 @@ public class AuthorizationManagerImplTest {
 	private static final String TEST_USER = "test-user";
 	
 	private List<String> usersToDelete;
+	private List<String> activitiesToDelete;
 	
 	private Node createDTO(String name, Long createdBy, Long modifiedBy, String parentId) {
 		Node node = new Node();
@@ -100,6 +103,8 @@ public class AuthorizationManagerImplTest {
 		Long testUserPrincipalId = Long.parseLong(userInfo.getIndividualGroup().getId());
 		nodeCreatedByTestUser = createNode("bar_"+rand.nextLong(), userInfo, testUserPrincipalId, null);
 		
+		activitiesToDelete = new ArrayList<String>();
+		
 		nodeList.add(nodeCreatedByTestUser);
 	}
 
@@ -115,6 +120,11 @@ public class AuthorizationManagerImplTest {
 			}
 		}
 		
+		if(activitiesToDelete != null && activityManager != null) {
+			for(String activityId : activitiesToDelete) {
+				activityManager.deleteActivity(adminUser, activityId);
+			}
+		}
 	}
 	
 	// test that removing a user from the ACL for their own node doesn't remove their access
@@ -505,4 +515,19 @@ public class AuthorizationManagerImplTest {
 		assertEquals(nodeCreatedByTestUser.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
 	}
 
+	@Test
+	public void testCanReadActivity() throws Exception {
+		AccessControlList acl = permissionsManager.getACL(node.getId(), userInfo);
+		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
+		acl = permissionsManager.updateACL(acl, adminUser);
+		
+		// create an activity
+		Activity act = activityManager.createActivity(userInfo, new Activity());
+		activitiesToDelete.add(act.getId());
+		
+		// test access
+		//boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId);
+		// TODO : finish
+	}
+	
 }

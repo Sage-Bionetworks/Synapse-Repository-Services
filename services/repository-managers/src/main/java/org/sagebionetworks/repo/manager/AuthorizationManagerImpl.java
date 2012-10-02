@@ -1,18 +1,24 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_ID;
+
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -27,7 +33,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;	
 	@Autowired
-	private AccessRequirementDAO  accessRequirementDAO;	
+	private AccessRequirementDAO  accessRequirementDAO;
+	@Autowired
+	private ActivityDAO activityDAO;
 	@Autowired
 	NodeQueryDao nodeQueryDao;	
 	@Autowired
@@ -128,5 +136,23 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		permission.setCanDownload(this.canDownload(userInfo, entityId));
 		permission.setCanEnableInheritance(!parentIsRoot && permission.getCanChangePermissions());
 		return permission;
+	}
+
+	@Override
+	public boolean canAccessActivity(UserInfo userInfo, String activityId) {
+		List<Reference> generatedBy = activityDAO.getEntitiesGeneratedBy(activityId);				
+		// check if has read access to any in result set
+		for(Reference ref : generatedBy) {
+			if(ref.getTargetId() == null) continue;
+			try {
+				if(canAccess(userInfo, ref.getTargetId(), ACCESS_TYPE.READ)) {
+					return true;
+				}
+			} catch (Exception e) {
+				// do nothing, same as false
+			}
+		}		
+		// no access found to generated entities, no access
+		return false;
 	}
 }

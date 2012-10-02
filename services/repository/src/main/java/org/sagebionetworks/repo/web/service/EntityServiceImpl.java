@@ -216,7 +216,7 @@ public class EntityServiceImpl implements EntityService {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Entity> T createEntity(String userId, T newEntity, HttpServletRequest request)
+	public <T extends Entity> T createEntity(String userId, T newEntity, String activityId, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException {
 		// Determine the object type from the url.
@@ -231,7 +231,7 @@ public class EntityServiceImpl implements EntityService {
 		EventType eventType = EventType.CREATE;
 		// Fire the event
 		fireValidateEvent(userInfo, eventType, newEntity, type);
-		String id = entityManager.createEntity(userInfo, newEntity);
+		String id = entityManager.createEntity(userInfo, newEntity, activityId);
 		// Return the resulting entity.
 		return getEntity(userInfo, id, request, clazz, eventType);
 	}
@@ -444,6 +444,9 @@ public class EntityServiceImpl implements EntityService {
 //		return qr.getTotalNumberOfResults();
 //	}
 
+	/*
+	 * TODO : dead code, remove?
+	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,	HttpServletRequest request) throws NotFoundException,

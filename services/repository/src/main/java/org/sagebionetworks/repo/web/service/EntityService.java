@@ -212,7 +212,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException 
 	 */
-	public <T extends Entity> T createEntity(String userId, T newEntity,
+	public <T extends Entity> T createEntity(String userId, T newEntity, String activityId,
 			HttpServletRequest request) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException;
 	

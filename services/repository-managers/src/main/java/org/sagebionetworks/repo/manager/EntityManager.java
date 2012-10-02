@@ -36,7 +36,7 @@ public interface EntityManager {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException 
 	 */
-	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
+	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity, String activityId) throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException;
 		
 	/**
 	 * Get an existing dataset

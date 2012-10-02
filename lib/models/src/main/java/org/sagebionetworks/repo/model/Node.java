@@ -26,6 +26,7 @@ public class Node {
 	String versionLabel;
 	String benefactorId;
 	Map<String, Set<Reference>> references;
+	String activityId;
 	
 	// these are the string names of the users 
 	// we will transition to using 'createdByPrincipalId, modifiedByPrincipalId,
@@ -187,6 +188,14 @@ public class Node {
 	public void setBenefactorId(String benefactorId) {
 		this.benefactorId = benefactorId;
 	}
+
+	public String getActivityId() {
+		return activityId;
+	}
+	public void setActivityId(String activityId) {
+		this.activityId = activityId;
+	}
+
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
@@ -194,6 +203,8 @@ public class Node {
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result
+				+ ((activityId == null) ? 0 : activityId.hashCode());
 		result = prime * result
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime
@@ -231,10 +242,6 @@ public class Node {
 				+ ((benefactorId == null) ? 0 : benefactorId.hashCode());
 		return result;
 	}
-	
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -244,6 +251,11 @@ public class Node {
 		if (getClass() != obj.getClass())
 			return false;
 		Node other = (Node) obj;
+		if (activityId == null) {
+			if (other.activityId != null)
+				return false;
+		} else if (!activityId.equals(other.activityId))
+			return false;
 		if (createdBy == null) {
 			if (other.createdBy != null)
 				return false;
@@ -331,19 +343,19 @@ public class Node {
 			return false;
 		return true;
 	}
-	
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
 	@Override
 	public String toString() {
-		return "Node [createdBy=" + createdByPrincipalId + ", createdOn=" + createdOn
-				+ ", description=" + description + ", eTag=" + eTag + ", id="
-				+ id + ", modifiedBy=" + modifiedByPrincipalId + ", modifiedOn="
-				+ modifiedOn + ", name=" + name + ", nodeType=" + nodeType
-				+ ", parentId=" + parentId + ", references=" + references
-				+ ", versionComment=" + versionComment + ", versionLabel="
-				+ versionLabel + ", versionNumber=" + versionNumber + "]";
+		return "Node [id=" + id + ", name=" + name + ", description="
+				+ description + ", parentId=" + parentId
+				+ ", createdByPrincipalId=" + createdByPrincipalId
+				+ ", createdOn=" + createdOn + ", modifiedByPrincipalId="
+				+ modifiedByPrincipalId + ", modifiedOn=" + modifiedOn
+				+ ", nodeType=" + nodeType + ", eTag=" + eTag
+				+ ", versionNumber=" + versionNumber + ", versionComment="
+				+ versionComment + ", versionLabel=" + versionLabel
+				+ ", references=" + references + ", activityId=" + activityId
+				+ ", createdBy=" + createdBy + ", modifiedBy=" + modifiedBy
+				+ "]";
 	}
-
+	
 }

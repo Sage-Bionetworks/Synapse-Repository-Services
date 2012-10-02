@@ -1,0 +1,78 @@
+{
+	"title": "Activity",
+	"description": "Interface for JSON schema for AccessRequirement POJO",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The unique immutable ID",
+			"transient": true
+		},		
+		"description": {
+			"type": "string",
+			"description": "A description of this Activity.",
+			"title": "Description",
+			"transient": true
+		},
+		"uri": {
+			"type": "string",
+			"description": "The Uniform Resource Identifier (URI) for this object.",
+			"transient": true
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an object is out-of-date.",
+			"transient": true
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this object was created.",
+			"title": "Created On",
+			"transient": true
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this object was last modified.",
+			"title": "Modified On",
+			"transient": true
+		},
+		"createdBy": {
+			"type": "string",
+			"description": "The user that created this object.",
+			"title": "Created By",
+			"transient": true
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description": "The user that last modified this object.",
+			"title": "Modified By",
+			"transient": true
+		},
+		"activityType": {
+			"description": "The type of this Activity",
+			"type": "string",
+			"name": "ActivityType",
+			"enum": [
+				"CODE_EXECUTION", 
+				"MANUAL", 
+				"UNDEFINED", 
+			]
+		},
+		"used": {
+			"type": "array",
+			"description": "The entity references used by this Activity.",
+			"uniqueItems": true,
+			"contentEncoding": "binary",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.Reference"
+			}
+		},
+        "executedEntity":{
+            "type":"object",
+            "$ref":"org.sagebionetworks.repo.model.Reference",
+            "description":"The Synapse entity executed during this Activity",
+            "title":"Executed Entity"
+        }
+	}
+}

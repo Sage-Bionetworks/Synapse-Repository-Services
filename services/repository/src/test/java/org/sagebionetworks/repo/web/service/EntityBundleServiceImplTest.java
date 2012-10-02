@@ -104,8 +104,9 @@ public class EntityBundleServiceImplTest {
 
 	@Test
 	public void testCreateEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, ConflictingUpdateException, InvalidModelException, UnauthorizedException, ACLInheritanceException, ParseException {
+		String activityId = "123";
 		when(mockEntityService.getEntity(eq(TEST_USER1), eq(STUDY_ID), any(HttpServletRequest.class))).thenReturn(studyWithId);
-		when(mockEntityService.createEntity(eq(TEST_USER1), eq(study), any(HttpServletRequest.class))).thenReturn(studyWithId);
+		when(mockEntityService.createEntity(eq(TEST_USER1), eq(study), eq(activityId), any(HttpServletRequest.class))).thenReturn(studyWithId);
 		when(mockEntityService.getEntityACL(eq(STUDY_ID), eq(TEST_USER1), any(HttpServletRequest.class))).thenReturn(acl);
 		when(mockEntityService.createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), anyString(), any(HttpServletRequest.class))).thenReturn(acl);
 		when(mockEntityService.getEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), any(HttpServletRequest.class))).thenReturn(new Annotations());
@@ -119,7 +120,7 @@ public class EntityBundleServiceImplTest {
 		ebc.setAnnotations(annos);
 		ebc.setAccessControlList(acl);
 		
-		EntityBundle eb = entityBundleService.createEntityBundle(TEST_USER1, ebc, null);		
+		EntityBundle eb = entityBundleService.createEntityBundle(TEST_USER1, ebc, activityId, null);		
 		Study s2 = (Study) eb.getEntity();
 		assertNotNull(s2);
 		assertEquals(study.getName(), s2.getName());
@@ -133,7 +134,7 @@ public class EntityBundleServiceImplTest {
 		assertNotNull(acl2);
 		assertEquals("Retrieved ACL in bundle does not match original one", acl.getResourceAccess(), acl2.getResourceAccess());
 	
-		verify(mockEntityService).createEntity(eq(TEST_USER1), eq(study), any(HttpServletRequest.class));
+		verify(mockEntityService).createEntity(eq(TEST_USER1), eq(study), eq(activityId), any(HttpServletRequest.class));
 		verify(mockEntityService).updateEntityAnnotations(eq(TEST_USER1), eq(STUDY_ID), eq(annos), any(HttpServletRequest.class));
 		verify(mockEntityService).createOrUpdateEntityACL(eq(TEST_USER1), eq(acl), anyString(), any(HttpServletRequest.class));
 	}

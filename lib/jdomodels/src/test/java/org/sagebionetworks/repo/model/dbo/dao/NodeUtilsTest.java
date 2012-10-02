@@ -55,6 +55,7 @@ public class NodeUtilsTest {
 		node.setVersionLabel("1.0.1");
 //		node.setVersionNumber("2");
 		node.setReferences(new HashMap<String, Set<Reference>>());
+		node.setActivityId("1234");
 		// Now create a revision for this node
 		DBONode jdoNode = new DBONode();
 		DBORevision jdoRev = new DBORevision();

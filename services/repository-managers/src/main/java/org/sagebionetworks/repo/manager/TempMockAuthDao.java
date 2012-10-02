@@ -42,6 +42,12 @@ public class TempMockAuthDao implements AuthorizationManager{
 		return true;
 	}
 
+	@Override
+	public boolean canAccessActivity(UserInfo userInfo, String activityId) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
 
 
 

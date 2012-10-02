@@ -19,12 +19,13 @@ public class NodeRevisionBackup {
 	
 	private String nodeId;
 	private Long revisionNumber;
+	private String activityId;
 	private String label;
 	private String comment;
 	private String modifiedBy;
 	private Long modifiedByPrincipalId;
-	private Date modifiedOn;
-	private String xmlVersion;
+	private Date modifiedOn;	
+	private String xmlVersion;	
 	/**
 	 * Annotations now belong to a name-space so use namespaceAnnos.
 	 * @deprecated since xml version 1.0
@@ -142,6 +143,15 @@ public class NodeRevisionBackup {
 		this.references = references;
 	}
 
+	
+	public String getActivityId() {
+		return activityId;
+	}
+
+	public void setActivityId(String activityId) {
+		this.activityId = activityId;
+	}
+
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
@@ -151,6 +161,7 @@ public class NodeRevisionBackup {
 		int result = 1;
 		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
+		result = prime * result + ((activityId == null) ? 0 : activityId.hashCode());
 		result = prime * result + ((comment == null) ? 0 : comment.hashCode());
 		result = prime * result + ((label == null) ? 0 : label.hashCode());
 		result = prime * result
@@ -236,6 +247,11 @@ public class NodeRevisionBackup {
 				return false;
 		} else if (!revisionNumber.equals(other.revisionNumber))
 			return false;
+		if (activityId == null) {
+			if (other.activityId != null)
+				return false;
+		} else if (!activityId.equals(other.activityId))
+			return false;
 		if (xmlVersion == null) {
 			if (other.xmlVersion != null)
 				return false;
@@ -253,7 +269,7 @@ public class NodeRevisionBackup {
 				+ comment + ", label=" + label + ", modifiedBy=" + modifiedBy
 				+ ", modifiedOn=" + modifiedOn + ", namedAnnotations="
 				+ namedAnnotations + ", nodeId=" + nodeId + ", references="
-				+ references + ", revisionNumber=" + revisionNumber
+				+ references + ", revisionNumber=" + revisionNumber + ", activityId=" + activityId
 				+ ", xmlVersion=" + xmlVersion + "]";
 	}
 	

@@ -79,8 +79,9 @@ public class EntityManagerImplAutowireTest {
 	@Test
 	public void testAllInOne() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
 		// Create a datset
+		String activityId = null;
 		Study ds = createDataset();
-		String id = entityManager.createEntity(userInfo, ds);
+		String id = entityManager.createEntity(userInfo, ds, activityId);
 		assertNotNull(id);
 		toDelete.add(id);
 		// Get another copy
@@ -117,7 +118,7 @@ public class EntityManagerImplAutowireTest {
 	@Test
 	public void testAggregateUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
 		Study ds = createDataset();
-		String parentId = entityManager.createEntity(userInfo, ds);
+		String parentId = entityManager.createEntity(userInfo, ds, null);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
 		List<Data> layerList = new ArrayList<Data>();
@@ -163,7 +164,7 @@ public class EntityManagerImplAutowireTest {
 		Study ds = createDataset();
 		// This primary field is stored as an annotation.
 		ds.setDisease("disease");
-		String id = entityManager.createEntity(userInfo, ds);
+		String id = entityManager.createEntity(userInfo, ds, null);
 		assertNotNull(id);
 		toDelete.add(id);
 		// Ge the annotations of the datasets
@@ -202,7 +203,7 @@ public class EntityManagerImplAutowireTest {
 	public void testPLFM_1283() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
 		Data study = new Data();
 		study.setName("test PLFM-1283");
-		String id = entityManager.createEntity(userInfo, study);
+		String id = entityManager.createEntity(userInfo, study, null);
 		assertNotNull(id);
 		toDelete.add(id);
 		try{

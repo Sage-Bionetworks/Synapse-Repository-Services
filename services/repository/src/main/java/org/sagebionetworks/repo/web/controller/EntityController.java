@@ -163,6 +163,7 @@ public class EntityController extends BaseController{
 	public @ResponseBody
 	Entity createEntity(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -171,7 +172,7 @@ public class EntityController extends BaseController{
 		// Read the entity from the body
 		Entity entity =  JSONEntityHttpMessageConverter.readEntity(request.getReader());
 		// Now create the entity
-		Entity createdEntity = serviceProvider.getEntityService().createEntity(userId, entity, request);
+		Entity createdEntity = serviceProvider.getEntityService().createEntity(userId, entity, activityId, request);
 		// Finally, add the type specific metadata.
 		return createdEntity;
 	}

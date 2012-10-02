@@ -27,6 +27,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -50,6 +51,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
@@ -82,12 +84,18 @@ public class NodeDAOImplTest {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
+	@Autowired
+	private ActivityDAO activityDAO;
+	
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
 	
 	
 	private Long creatorUserGroupId = null;	
 	private Long altUserGroupId = null;
+	private Activity testActivity = null;
+	private Activity testActivity2 = null;
+	
 	@Before
 	public void before() throws Exception {
 		creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
@@ -99,10 +107,17 @@ public class NodeDAOImplTest {
 		assertNotNull(nodeDao);
 		assertNotNull(nodeInheritanceDAO);
 		toDelete = new ArrayList<String>();
+		
+		Activity act = new Activity();
+		act.setId("1");
+		testActivity = activityDAO.create(act);		
+		Activity act2 = new Activity();
+		act2.setId("2");
+		testActivity2 = activityDAO.create(act2);		
 	}
 	
 	@After
-	public void after() throws DatastoreException{
+	public void after() throws Exception {
 		if(toDelete != null && nodeDao != null){
 			for(String id:  toDelete){
 				// Delete each
@@ -112,6 +127,11 @@ public class NodeDAOImplTest {
 					// happens if the object no longer exists.
 				}
 			}
+		}
+		
+		if(testActivity != null && activityDAO != null) {
+			activityDAO.delete(testActivity.getId());
+			activityDAO.delete(testActivity2.getId());
 		}
 	}
 	
@@ -153,7 +173,8 @@ public class NodeDAOImplTest {
 	public void testCreateNode() throws Exception{
 		Node toCreate = privateCreateNewDistinctModifier("firstNodeEver");
 		toCreate.setVersionComment("This is the first version of the first node ever!");
-		toCreate.setVersionLabel("0.0.1");
+		toCreate.setVersionLabel("0.0.1");		
+		toCreate.setActivityId(testActivity.getId());
 		long initialCount = nodeDao.getCount();
 		String id = nodeDao.createNew(toCreate);
 		assertEquals(1+initialCount, nodeDao.getCount()); // piggy-back checking count on top of other tests :^)
@@ -172,6 +193,7 @@ public class NodeDAOImplTest {
 		assertEquals(new Long(1),loaded.getVersionNumber());
 		assertEquals(toCreate.getVersionComment(), loaded.getVersionComment());
 		assertEquals(toCreate.getVersionLabel(), loaded.getVersionLabel());
+		assertEquals(testActivity.getId(), loaded.getActivityId());
 		
 		// Since this node has no parent, it should be its own benefactor.
 		String benefactorId = nodeInheritanceDAO.getBenefactor(id);
@@ -578,6 +600,7 @@ public class NodeDAOImplTest {
 	@Test
 	public void testUpdateNode() throws Exception{
 		Node node = privateCreateNew("testUpdateNode");
+		node.setActivityId(testActivity.getId());
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -587,6 +610,7 @@ public class NodeDAOImplTest {
 		// Now change the copy and push it back
 		copy.setName("myNewName");
 		copy.setDescription("myNewDescription");
+		copy.setActivityId(testActivity2.getId());
 		nodeDao.updateNode(copy);
 		Node updatedCopy = nodeDao.getNode(id);
 		assertNotNull(updatedCopy);
@@ -721,6 +745,7 @@ public class NodeDAOImplTest {
 		node.setVersionComment("This is the very first version of this node.");
 		node.setVersionLabel("0.0.1");
 		node.setVersionNumber(new Long(0));
+		node.setActivityId(testActivity.getId());
 		String id = nodeDao.createNew(node);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -730,6 +755,7 @@ public class NodeDAOImplTest {
 		assertEquals(node.getVersionComment(), loaded.getVersionComment());
 		assertEquals(node.getVersionLabel(), loaded.getVersionLabel());
 		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, loaded.getVersionNumber());
+		assertEquals(testActivity.getId(), loaded.getActivityId());
 		// Now try to create a new version with a duplicate label
 		try{
 			Long newNumber = nodeDao.createNewVersion(loaded);
@@ -749,6 +775,7 @@ public class NodeDAOImplTest {
 		newRev.setVersionLabel("0.0.2");
 		newRev.setModifiedByPrincipalId(creatorUserGroupId);
 		newRev.setModifiedOn(new Date(System.currentTimeMillis()));
+		newRev.setActivityId(null);
 		Long newNumber = nodeDao.createNewVersion(newRev);
 		assertNotNull(newNumber);
 		assertEquals(new Long(2), newNumber);
@@ -757,7 +784,8 @@ public class NodeDAOImplTest {
 		assertNotNull(loaded);
 		assertEquals(newRev.getVersionComment(), loaded.getVersionComment());
 		assertEquals(newRev.getVersionLabel(), loaded.getVersionLabel());
-		assertEquals(newRev.getModifiedByPrincipalId(), newRev.getModifiedByPrincipalId());
+		assertEquals(newRev.getModifiedByPrincipalId(), loaded.getModifiedByPrincipalId());
+		assertEquals(null, loaded.getActivityId());
 		
 		// Validate that a node with multiple revisions is only listed once.
 		// This was added for PLFM-1537
@@ -1663,6 +1691,7 @@ public class NodeDAOImplTest {
 		// This will be our backup node.
 		Node backup = privateCreateNew("backMeUp");
 		backup.setNodeType(EntityType.project.name());
+		backup.setActivityId(testActivity.getId()); 
 		String id = nodeDao.createNew(backup);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -1680,13 +1709,14 @@ public class NodeDAOImplTest {
 		assertNotNull(restored);
 		assertEquals(id, restored.getId());
 		assertEquals("Failed to set the eTag. See: PLFM-845", newEtag, restored.getETag());
+		assertEquals(testActivity.getId(), restored.getActivityId());
 	}
 	
 	@Test
 	public void testUpdateNodeFromBackup() throws NotFoundException, DatastoreException, InvalidModelException {
 		// This will be our backup node.
 		Node backup = privateCreateNew("backMeUp2");
-		backup.setNodeType(EntityType.project.name());
+		backup.setNodeType(EntityType.project.name());		
 		String id = nodeDao.createNew(backup);
 		toDelete.add(id);
 		assertNotNull(id);
@@ -1696,7 +1726,8 @@ public class NodeDAOImplTest {
 		String newEtag = "199";
 		backup.setETag(newEtag);
 		String newDescription = "New description";
-		backup.setDescription(newDescription);
+		
+		backup.setDescription(newDescription);		
 		// Now create the node from the backup
 		nodeDao.updateNodeFromBackup(backup);
 		// The revision should have been deleted.
@@ -1716,6 +1747,7 @@ public class NodeDAOImplTest {
 		revBackup.setRevisionNumber(1l);
 		revBackup.setLabel("v1");
 		revBackup.setComment("No Comment");
+		revBackup.setActivityId(testActivity.getId()); 
 		((NodeBackupDAO)nodeDao).createNewRevisionFromBackup(revBackup);
 
 		Node restored = nodeDao.getNode(id);
@@ -1723,6 +1755,7 @@ public class NodeDAOImplTest {
 		assertEquals(id, restored.getId());
 		assertEquals("Failed to set the eTag. See: PLFM-845", newEtag, restored.getETag());
 		assertEquals(newDescription, restored.getDescription());
+		assertEquals(testActivity.getId(), restored.getActivityId());
 	}
 	
 	@Test
@@ -1741,6 +1774,45 @@ public class NodeDAOImplTest {
 		// This should throw a NotFoundException exception
 		Long currentRev = nodeDao.getCurrentRevisionNumber(KeyFactory.keyToString(new Long(-12)));
 	}
+	
+	@Test 
+	public void testGetActivityId() throws Exception{
+		// v1: activity 1
+		Node toCreate = privateCreateNewDistinctModifier("getCurrentActivityId");		
+		toCreate.setActivityId(testActivity.getId());
+		String id = nodeDao.createNew(toCreate);
+		toDelete.add(id);
+		assertNotNull(id);
+		Node loadedV1 = nodeDao.getNode(id);	
+
+		// v2: test null version
+		Node newRev = nodeDao.getNode(id);
+		newRev.setVersionLabel("2");
+		newRev.setActivityId(null);
+		Long v2 = nodeDao.createNewVersion(newRev);				
+		Node loadedV2 = nodeDao.getNodeForVersion(id, v2);
+		
+		// v3: activity 2
+		newRev = nodeDao.getNode(id);
+		newRev.setVersionLabel("3");
+		newRev.setActivityId(testActivity2.getId());
+		Long v3 = nodeDao.createNewVersion(newRev);				
+		Node loadedV3 = nodeDao.getNodeForVersion(id, v3);
+		
+		// test returned values in nodes 
+		assertEquals(testActivity.getId(), loadedV1.getActivityId());
+		assertEquals(null, loadedV2.getActivityId());
+		assertEquals(testActivity2.getId(), loadedV3.getActivityId());
+
+		// check getActivityId persistence
+		assertEquals(testActivity.getId(), nodeDao.getActivityId(id, loadedV1.getVersionNumber()));
+		assertEquals(null, nodeDao.getActivityId(id, loadedV2.getVersionNumber()));
+		assertEquals(testActivity2.getId(), nodeDao.getActivityId(id, loadedV3.getVersionNumber()));
+		
+		// test current version (should be 3)
+		assertEquals(testActivity2.getId(), nodeDao.getActivityId(id));
+	}
+
 	
 	@Test
 	public void testGetCreatedBy() throws NotFoundException, DatastoreException, InvalidModelException {
