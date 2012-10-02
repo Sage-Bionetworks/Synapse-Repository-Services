@@ -20,6 +20,7 @@ public interface PermissionsManager {
 	 * Invoked for a node which currently inherits its permissions, this
 	 * method overrides inheritance so that the node defines its own
 	 * permissions, and then assigns permissions based on the passed parameter.
+	 * 
 	 * @throws NotFoundException 
 	 * @throws UnauthorizedException 
 	 * @throws ConflictingUpdateException 
@@ -28,6 +29,24 @@ public interface PermissionsManager {
 	 * 
 	 */
 	public AccessControlList overrideInheritance(AccessControlList acl, UserInfo userInfo) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException;
+
+	/**
+	 * For a node which currently inherits its permissions, this method 
+	 * overrides inheritance so that the node defines its own permissions.
+	 * The node's permissions are initialized as a local copy of node's
+	 * benefactor's permissions.
+	 * 
+	 * @param resourceId
+	 * @param userInfo
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException
+	 * @throws ACLInheritanceException
+	 */
+	public AccessControlList overrideInheritance(String resourceId, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException, ACLInheritanceException;
 
 	/**
 	 * Gets the access control list (ACL) governing the given node id.
