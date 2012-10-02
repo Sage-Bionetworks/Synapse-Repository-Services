@@ -108,7 +108,9 @@ public class StorageLocationDAOImpl implements StorageLocationDAO {
 		try {
 			List<DBOStorageLocation> batch = StorageLocationUtils.createBatch(
 					locations, amazonS3Client);
-			basicDao.createBatch(batch);
+			if (batch.size() > 0) {
+				basicDao.createBatch(batch);
+			}
 		} catch (AmazonClientException e) {
 			throw new DatastoreException(e);
 		}
