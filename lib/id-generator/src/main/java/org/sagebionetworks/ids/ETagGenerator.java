@@ -1,5 +1,7 @@
 package org.sagebionetworks.ids;
 
+import org.sagebionetworks.repo.model.TaggableEntity;
+
 /**
  * Generates e-tags for entities.
  *
