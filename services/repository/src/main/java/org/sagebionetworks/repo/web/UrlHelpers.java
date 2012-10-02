@@ -73,6 +73,11 @@ public class UrlHelpers {
 	public static final String BENEFACTOR = "/benefactor";
 	
 	/**
+	 * The request parameter to fetch the benefactor ACL
+	 */
+	public static final String FROM_BENEFACTOR = "fromBenefactor";
+	
+	/**
 	 * The request parameter to enforce ACL inheritance of child nodes.
 	 */
 	public static final String RECURSIVE = "recursive";

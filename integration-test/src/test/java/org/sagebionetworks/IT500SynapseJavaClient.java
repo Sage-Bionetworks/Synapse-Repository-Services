@@ -218,6 +218,28 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
+	public void testCreateACLInherited() throws Exception {
+		// retrieve parent acl
+		AccessControlList parentAcl = synapse.getACL(project.getId());
+
+		// retrieve child acl - should get parent's
+		AccessControlList childAcl;
+		try {
+			childAcl = synapse.getACL(dataset.getId());
+			fail("Child has ACL, but should inherit from parent");
+		} catch (SynapseException e) {}
+		
+		// request creation of child ACL
+		synapse.createACL(dataset.getId());
+		
+		// retrieve child acl - should NOT get parent's,
+		// but permissions should MATCH the parent's.
+		childAcl = synapse.getACL(dataset.getId());
+		assertFalse(parentAcl.equals(childAcl));
+		assertEquals(parentAcl.getResourceAccess(), childAcl.getResourceAccess());
+	}
+	
+	@Test
 	public void testUpdateACLRecursive() throws Exception {
 		// retrieve parent acl
 		AccessControlList parentAcl = synapse.getACL(project.getId());

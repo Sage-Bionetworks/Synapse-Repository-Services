@@ -78,7 +78,6 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
-import org.sagebionetworks.repo.model.ServiceConstants;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -109,6 +108,7 @@ public class Synapse {
 
 	protected static final String ENTITY_URI_PATH = "/entity";
 	protected static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
+	protected static final String ENTITY_ACL_FROM_BENEFACTOR_SUFFIX = "?fromBenefactor=true";
 	protected static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
 	protected static final String ENTITY_BUNDLE_PATH = "/bundle?mask=";
 	protected static final String BUNDLE = "/bundle";
@@ -401,6 +401,19 @@ public class Synapse {
 	public JSONObject createEntity(String uri, JSONObject entity)
 			throws SynapseException {
 		return createSynapseEntity(repoEndpoint, uri, entity);
+	}
+	
+	/**
+	 * Request creation of a new entity.
+	 * 
+	 * @param uri
+	 * @param entity
+	 * @return the newly created entity
+	 * @throws SynapseException
+	 */
+	public JSONObject requestEntity(String uri)
+			throws SynapseException {
+		return requestSynapseEntity(repoEndpoint, uri);
 	}
 
 	/**
@@ -725,6 +738,9 @@ public class Synapse {
 		deleteEntity(uri);
 	}
 	
+	/**
+	 * Create the provided ACL in Synapse.
+	 */
 	public AccessControlList createACL(AccessControlList acl) throws SynapseException {
 		String entityId = acl.getId();
 		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX;
@@ -735,6 +751,16 @@ public class Synapse {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
+	}
+	
+	/**
+	 * Create an ACL for the specified entity. The created ACL will be a local 
+	 * copy of the entity's benefactor.
+	 */
+	public AccessControlList createACL(String entityId) throws SynapseException, JSONObjectAdapterException {
+		String uri = ENTITY_URI_PATH + "/" + entityId+ ENTITY_ACL_PATH_SUFFIX + ENTITY_ACL_FROM_BENEFACTOR_SUFFIX;
+		JSONObject jsonAcl = requestEntity(uri);
+		return initializeFromJSONObject(jsonAcl, AccessControlList.class);
 	}
 	
 	public PaginatedResults<UserProfile> getUsers(int offset, int limit) throws SynapseException {
@@ -1689,6 +1715,27 @@ public class Synapse {
 		}
 
 		return signAndDispatchSynapseRequest(endpoint, uri, "POST", entity.toString(),
+				defaultPOSTPUTHeaders);
+	}
+	
+	/**
+	 * Request creation of a new entity.
+	 * 
+	 * @param endpoint
+	 * @param uri
+	 * @param entity
+	 * @return the newly created entity
+	 * @throws SynapseException
+	 */
+	public JSONObject requestSynapseEntity(String endpoint, String uri) throws SynapseException {
+		if (null == endpoint) {
+			throw new IllegalArgumentException("must provide endpoint");
+		}
+		if (null == uri) {
+			throw new IllegalArgumentException("must provide uri");
+		}
+
+		return signAndDispatchSynapseRequest(endpoint, uri, "POST", "{}",
 				defaultPOSTPUTHeaders);
 	}
 
