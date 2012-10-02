@@ -33,7 +33,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * 
  * @author deflaux
  */
-@Ignore // See: PLFM-1522
 public class IT510SynapseJavaClientSearchTest {
 	
 	
@@ -54,7 +53,7 @@ public class IT510SynapseJavaClientSearchTest {
 	 * @throws Exception
 	 * 
 	 */
-//	@BeforeClass See: PLFM-1522
+	@BeforeClass
 	public static void beforeClass() throws Exception {
 
 		synapse = new Synapse();

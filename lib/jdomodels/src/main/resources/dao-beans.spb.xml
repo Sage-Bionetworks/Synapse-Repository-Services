@@ -17,8 +17,11 @@
 	<!-- Depends on ID-generator. -->
 	<import resource="id-generator.spb.xml" />
 	
+	<bean id="transactionSynchronizationManager" class="org.sagebionetworks.repo.model.message.TransactionSynchronizationProxyImpl"/>
 	<!-- Transactional Messenger -->
 	<bean id="transactionalMessenger" class="org.sagebionetworks.repo.model.message.TransactionalMessengerImpl"/>
+	
+	<bean id="tagMessenger" class="org.sagebionetworks.repo.model.dbo.dao.TagMessengerImpl"/>
 	
 	<bean id="dboAnnotationsDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOAnnotationsDaoImpl"/>
 	

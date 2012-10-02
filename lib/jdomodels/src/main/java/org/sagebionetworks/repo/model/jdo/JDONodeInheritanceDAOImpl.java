@@ -10,11 +10,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -34,7 +35,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
-	private ETagGenerator eTagGenerator;
+	private TagMessenger tagMessenger;
 	
 	/**
 	 * Try to get a node, and throw a NotFoundException if it fails.
@@ -87,11 +88,13 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		beneficiary.setBenefactorId(benefactor.getId());
 		// Make sure the etag changes. See PLFM-1467 and PLFM-1517.
 		if(!keepOldEtag){
-			String newEtag = eTagGenerator.generateETag(beneficiary);
-			beneficiary.seteTag(newEtag);
+			// Update the etag and send the message.
+			tagMessenger.generateEtagAndSendMessage(beneficiary, ChangeType.UPDATE);
+		}else{
+			// Just send the message
+			tagMessenger.sendMessage(beneficiary, ChangeType.UPDATE);
 		}
 		dboBasicDao.update(beneficiary);
-		
 	}
 
 }

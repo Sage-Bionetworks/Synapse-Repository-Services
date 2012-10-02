@@ -6,12 +6,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.bccsetup.BccConfigHelper;
 import org.sagebionetworks.bccsetup.SpreadsheetHelper;
 
 // Note this depends on a test Google spreadsheet to exist, accessible by the user 'synapse@sagebase.org' 
 // and to be named according to the stack configuration (for testing it's "Test BCC Registrants")
+@Ignore // See PLFM-1529
 public class IT940BCCSetup {
 
 	@Test

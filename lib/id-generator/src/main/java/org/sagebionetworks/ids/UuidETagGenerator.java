@@ -2,6 +2,7 @@ package org.sagebionetworks.ids;
 
 import java.util.UUID;
 
+import org.sagebionetworks.repo.model.TaggableEntity;
 import org.springframework.beans.factory.InitializingBean;
 
 /**

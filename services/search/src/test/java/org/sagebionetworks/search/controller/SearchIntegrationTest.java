@@ -16,12 +16,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.quartz.SchedulerException;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -34,14 +32,12 @@ import org.sagebionetworks.repo.web.util.UserProvider;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.search.SearchConstants;
 import org.sagebionetworks.search.SearchDao;
-import org.springframework.beans.BeansException;
 
 /**
  * End to end test for the search services.
  * @author jmhill
  *
  */
-@Ignore // See: PLFM-1522
 public class SearchIntegrationTest {
 	
 	public static final long MAX_WAIT = 60*1000; // one minute
@@ -53,7 +49,7 @@ public class SearchIntegrationTest {
 	private Project project;
 	
 	@Before
-	public void before() throws BeansException, ServletException, SchedulerException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, InterruptedException{
+	public void before() throws Exception {
 		entityManager = (EntityManager) DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(EntityManager.class);
 		assertNotNull(entityManager);
 		userProvider = DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(UserProvider.class);
@@ -62,6 +58,9 @@ public class SearchIntegrationTest {
 		searchDao = DispatchServletSingleton.getInstance().getWebApplicationContext().getBean(SearchDao.class);
 		// Before we start, make sure the search queue is empty
 		emptySearchQueue();
+		// Now delete all documents in the search index.
+		searchDao.deleteAllDocuments();
+		
 		// Create a project
 		UserInfo info = userProvider.getTestUserInfo();
 		project = new Project();
