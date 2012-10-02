@@ -9,12 +9,10 @@ import java.util.Map;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationAdapter;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 /**
  * Basic implementation of TransactionalMessenger.  Messages are bound to the current transaction and thread.
@@ -34,7 +32,31 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	DataSourceTransactionManager txManager;
 	@Autowired
 	DBOChangeDAO changeDAO;
+	@Autowired
+	TransactionSynchronizationProxy transactionSynchronizationManager;
 	
+	/**
+	 * Used by spring.
+	 * 
+	 */
+	public TransactionalMessengerImpl(){}
+	
+	/**
+	 * For IoC
+	 * @param txManager
+	 * @param changeDAO
+	 * @param transactionSynchronizationManager
+	 */
+	public TransactionalMessengerImpl(
+			DataSourceTransactionManager txManager,
+			DBOChangeDAO changeDAO,
+			TransactionSynchronizationProxy transactionSynchronizationManager) {
+		super();
+		this.txManager = txManager;
+		this.changeDAO = changeDAO;
+		this.transactionSynchronizationManager = transactionSynchronizationManager;
+	}
+
 	/**
 	 * The list of observers that are notified of messages after a commit.
 	 */
@@ -42,17 +64,34 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	
 	@Override
 	public void sendMessageAfterCommit(ChangeMessage message) {
+		if(message == null) throw new IllegalArgumentException("Message cannot be null");
 		// Make sure we are in a transaction.
-		if(!TransactionSynchronizationManager.isSynchronizationActive()) throw new IllegalStateException("Cannot send a transactional message becasue there is no transaction");
+		if(!transactionSynchronizationManager.isSynchronizationActive()) throw new IllegalStateException("Cannot send a transactional message becasue there is no transaction");
 		// Bind this message to the transaction
-		@SuppressWarnings("unchecked")
 		// Get the bound list of messages if it already exists.
 		Map<String, ChangeMessage> currentMessages = getCurrentBoundMessages();
 		// If we already have a message going out for this object then we needs replace it with the latest.
 		// If an object's etag changes multiple times, only the final etag should be in the message.
-		currentMessages.put(message.getObjectId(), message);
+		String key = getObjectKey(message);
+		currentMessages.put(key, message);
 		// Register a handler if needed
 		registerHandlerIfNeeded();
+	}
+	
+	/**
+	 * The key we use for the map is the <type>-<id> for the case where two different types of objects have the same id.
+	 * @param message
+	 * @return
+	 */
+	public String getObjectKey(ChangeMessage message){
+		if(message == null) throw new IllegalArgumentException("Message cannot be null");
+		if(message.getObjectId() == null) throw new IllegalArgumentException("message.getObjectId() cannot be null");
+		if(message.getObjectType() == null) throw new IllegalArgumentException("message.getObjectType() cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append(message.getObjectType().name());
+		builder.append("-");
+		builder.append(message.getObjectId());
+		return builder.toString();
 	}
 	
 	/**
@@ -60,12 +99,12 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	 * @return
 	 */
 	private Map<String, ChangeMessage> getCurrentBoundMessages(){
-		Map<String, ChangeMessage> currentMessages = (Map<String, ChangeMessage>) TransactionSynchronizationManager.getResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
+		Map<String, ChangeMessage> currentMessages = (Map<String, ChangeMessage>) transactionSynchronizationManager.getResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
 		if(currentMessages == null){
 			// This is the first time it is called for this thread.
 			currentMessages = new HashMap<String, ChangeMessage>();
 			// Bind this list to the transaction.
-			TransactionSynchronizationManager.bindResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES, currentMessages);
+			transactionSynchronizationManager.bindResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES, currentMessages);
 		}
 		return currentMessages;
 	}
@@ -76,10 +115,10 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	 */
 	private void registerHandlerIfNeeded(){
 		// Inspect the current handlers.
-		List<TransactionSynchronization> currentList = TransactionSynchronizationManager.getSynchronizations();
+		List<TransactionSynchronization> currentList = transactionSynchronizationManager.getSynchronizations();
 		if(currentList.size() < 1){
 			// Add a new handler
-			TransactionSynchronizationManager.registerSynchronization(new SynchronizationHandler());
+			transactionSynchronizationManager.registerSynchronization(new SynchronizationHandler());
 		}else if(currentList.size() == 1){
 			// Validate that the handler is what we expected
 			TransactionSynchronization ts = currentList.get(0);
@@ -107,13 +146,12 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 				log.trace("Unbinding resources");
 			}
 			// Unbind any messages from this transaction.
-			TransactionSynchronizationManager.unbindResourceIfPossible(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
+			transactionSynchronizationManager.unbindResourceIfPossible(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
 		}
 
 		@Override
 		public void afterCommit() {
 			// Log the messages
-			@SuppressWarnings("unchecked")
 			Map<String, ChangeMessage> currentMessages = getCurrentBoundMessages();
 			// For each observer fire the message.
 			for(TransactionalMessengerObserver observer: observers){

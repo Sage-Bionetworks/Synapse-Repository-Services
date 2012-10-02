@@ -38,7 +38,6 @@ import org.sagebionetworks.search.SearchDao;
  * @author jmhill
  *
  */
-@Ignore // See: PLFM-1522
 public class SearchIntegrationTest {
 	
 	public static final long MAX_WAIT = 60*1000; // one minute
