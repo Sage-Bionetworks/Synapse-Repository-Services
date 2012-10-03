@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -131,6 +132,20 @@ public class EntityManagerImpl implements EntityManager {
 		Node node = nodeManager.getNodeForVersionNumber(userInfo, entityId,
 				versionNumber);
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
+	}
+
+	@Override
+	public VersionInfo getEntityVersionInfo(UserInfo userInfo, String entityId,
+			long versionNumber) throws DatastoreException, UnauthorizedException, NotFoundException {
+		Node node = nodeManager.getNodeForVersionNumber(userInfo, entityId, versionNumber);
+		VersionInfo info = new VersionInfo();
+		info.setId(node.getId());
+		info.setModifiedByPrincipalId(node.getCreatedByPrincipalId().toString());
+		info.setModifiedOn(node.getModifiedOn());
+		info.setVersionNumber(node.getVersionNumber());
+		info.setVersionLabel(node.getVersionLabel());
+		info.setVersionComment(node.getVersionComment());
+		return info;
 	}
 
 	/**
@@ -415,6 +430,21 @@ public class EntityManagerImpl implements EntityManager {
 			UnauthorizedException {
 		// pass through
 		return nodeManager.getAllVersionNumbersForNode(userInfo, entityId);
+	}
+
+	@Override
+	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId,
+			long offset, long limit) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		// pass through
+		return nodeManager.getVersionsOfEntity(userInfo, entityId, offset, limit);
+	}
+
+	@Override
+	public long getVersionCount(String entityId)
+			throws DatastoreException, NotFoundException {
+		// pass through
+		return nodeManager.getVersionCount(entityId);
 	}
 
 	@Override

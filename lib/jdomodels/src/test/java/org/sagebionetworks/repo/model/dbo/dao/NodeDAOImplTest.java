@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -878,6 +879,19 @@ public class NodeDAOImplTest {
 		}
 	}
 	
+	@Test
+	public void testGetVersionInfo() throws Exception {
+		// Create a number of versions
+		int numberVersions = 10;
+		String id = createNodeWithMultipleVersions(numberVersions);
+		// Now list the versions
+		List<VersionInfo> versionsOfEntity = nodeDao.getVersionsOfEntity(id, 0, 10);
+		assertNotNull(versionsOfEntity);
+		assertEquals(numberVersions,versionsOfEntity.size());
+		assertEquals(new Long(numberVersions), versionsOfEntity.get(0).getVersionNumber());
+		assertEquals(new Long(1), versionsOfEntity.get(versionsOfEntity.size()-1).getVersionNumber());
+	}
+
 	@Test
 	public void testDeleteCurrentVersion() throws Exception {
 		// Create a number of versions

@@ -312,4 +312,9 @@ public interface NodeDAO extends MigratableDAO {
      */
 	public boolean doesNodeHaveChildren(String nodeId);
 
+	public List<VersionInfo> getVersionsOfEntity(String entityId, long offset,
+			long limit) throws NotFoundException, DatastoreException;
+
+	public long getVersionCount(String entityId) throws NotFoundException, DatastoreException;
+
 }

@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -104,38 +105,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
-	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(
-			String userId, Integer offset, Integer limit, String entityId,
-			HttpServletRequest request, Class<? extends T> clazz)
-			throws DatastoreException, UnauthorizedException, NotFoundException {
-		if(offset == null){
-			offset = 1;
-		}
-		if(limit == null){
-			limit = Integer.MAX_VALUE;
-		}
-		// First get the full list of all revisions numbers
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		EntityType type =  EntityType.getNodeTypeForClass(clazz);
-		List<Long> versionNumbers = entityManager.getAllVersionNumbersForEntity(userInfo, entityId);
-		// Now fetch the versions requested
-		int start = offset-1;
-		int end = Math.min(start+limit, versionNumbers.size());
-		List<T> entityList = new ArrayList<T>();
-		for(int i=start; i<end; i++){
-			long versionNumber = versionNumbers.get(i);
-			T entity = (T) getEntityForVersion(userInfo, entityId, versionNumber, request, type.getClassForType());
-			entityList.add(entity);
-		}
-		// Return the paginated results
-		return new PaginatedResults<T>(request.getServletPath()
-				+ UrlHelpers.ENTITY, entityList,
-				versionNumbers.size(), offset, limit, "versionNumber", false);
-	}
-	
-
-	@Override
-	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(
+	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(
 			String userId, Integer offset, Integer limit, String entityId,
 			HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -143,30 +113,17 @@ public class EntityServiceImpl implements EntityService {
 			offset = 1;
 		}
 		if(limit == null){
-			limit = Integer.MAX_VALUE;
+			limit = 10;
 		}
+		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
 		// First get the full list of all revisions numbers
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		EntityType type =  entityManager.getEntityType(userInfo, entityId);
-		
-		// TODO: Figure out with John how to use the function above instead of dup'ing code
-		
-		List<Long> versionNumbers = entityManager.getAllVersionNumbersForEntity(userInfo, entityId);
-		// Now fetch the versions requested
-		int start = offset-1;
-		int end = Math.min(start+limit, versionNumbers.size());
-		List<T> entityList = new ArrayList<T>();
-		for(int i=start; i<end; i++){
-			long versionNumber = versionNumbers.get(i);
-			T entity = (T) getEntityForVersion(userInfo, entityId, versionNumber, request, type.getClassForType());
-			entityList.add(entity);
-		}
-		// Return the paginated results
-		return new PaginatedResults<T>(request.getServletPath()
-				+ UrlHelpers.ENTITY, entityList,
-				versionNumbers.size(), offset, limit, "versionNumber", false);
+		//List<Long> versionNumbers = entityManager.getVersionNumbersForEntity(userInfo, entityId);
+		long totalNumberOfVersions = entityManager.getVersionCount(entityId);
+		List<VersionInfo> versionsOfEntity = entityManager.getVersionsOfEntity(userInfo, entityId, (long)offset, (long)limit);
+		return null;
 	}
-	
+
 	@Override
 	public <T extends Entity> T getEntity(String userId, String id, HttpServletRequest request, Class<? extends T> clazz)
 			throws NotFoundException, DatastoreException, UnauthorizedException {

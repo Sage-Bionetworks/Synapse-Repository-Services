@@ -5,10 +5,6 @@
             "type":"string",
             "description":"The id of the entity"            
         },
-        "type":{
-            "type":"string",
-            "description":"The type of the entity"            
-        },
         "versionNumber":{
             "type":"integer",
             "description":"The version number of the entity"            
@@ -21,7 +17,7 @@
             "type":"string",
             "description":"The user defined version label of the entity"            
         },
-      	"modifiedBy": {
+        "modifiedByPrincipalId": {
 						"type": "string",
 						"description": "The user that last modified this entity.",
 						"title": "Modified By",

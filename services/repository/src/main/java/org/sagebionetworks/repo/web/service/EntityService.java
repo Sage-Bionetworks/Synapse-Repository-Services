@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -40,7 +41,7 @@ public interface EntityService {
 	 * 
 	 * @param userId
 	 * @param offset
-	 *            1-Entityd pagination offset
+	 *            1-Entity pagination offset
 	 * @param limit
 	 *            maximum number of results to return
 	 * @param sort
@@ -56,24 +57,6 @@ public interface EntityService {
 			PaginatedParameters paging,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
-	
-	/**
-	 * Get all versions of an entity.  This list will be sorted on version number descending.
-	 * @param <T>
-	 * @param userId
-	 * @param offest
-	 * @param limmit
-	 * @param entityId
-	 * @param request
-	 * @param clazz
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
-			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
-			UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get all versions of an entity.  This list will be sorted on version number descending.
@@ -89,10 +72,9 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
+	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
 			HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
-
 
 	/**
 	 * Get a specific entity

@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeManager {
@@ -233,5 +234,10 @@ public interface NodeManager {
 	 * @return
 	 */
 	public boolean doesNodeHaveChildren(String entityId);
+
+	public long getVersionCount(String entityId) throws NotFoundException, DatastoreException;
+
+	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
+			String entityId, long offset, long limit) throws NotFoundException, UnauthorizedException, DatastoreException;
 	
 }
