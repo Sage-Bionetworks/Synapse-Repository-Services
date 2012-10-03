@@ -104,7 +104,7 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
-	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(
+	public <T extends Entity> PaginatedResults<T> getAllVersionsOfEntity(
 			String userId, Integer offset, Integer limit, String entityId,
 			HttpServletRequest request, Class<? extends T> clazz)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
@@ -135,7 +135,7 @@ public class EntityServiceImpl implements EntityService {
 	
 
 	@Override
-	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(
+	public <T extends Entity> PaginatedResults<T> getAllVersionsOfEntity(
 			String userId, Integer offset, Integer limit, String entityId,
 			HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException, NotFoundException {

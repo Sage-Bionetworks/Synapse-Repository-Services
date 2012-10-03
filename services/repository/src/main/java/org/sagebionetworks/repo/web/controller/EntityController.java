@@ -687,7 +687,7 @@ public class EntityController extends BaseController{
 
 		// Determine the object type from the url.
 		@SuppressWarnings("unchecked")
-		PaginatedResults<Versionable> results = serviceProvider.getEntityService().getAllVerionsOfEntity(userId, offset, limit, id, request);
+		PaginatedResults<Versionable> results = serviceProvider.getEntityService().getAllVersionsOfEntity(userId, offset, limit, id, request);
 		// Return the result
 		return results;
 	}

@@ -71,7 +71,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
+	public <T extends Entity> PaginatedResults<T> getAllVersionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 
@@ -89,10 +89,9 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
+	public <T extends Entity> PaginatedResults<T> getAllVersionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
 			HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
-
 
 	/**
 	 * Get a specific entity
