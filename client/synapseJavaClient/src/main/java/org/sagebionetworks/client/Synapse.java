@@ -68,7 +68,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
+import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -2154,11 +2154,11 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
-	public VersionInfo getVersionInfo() throws SynapseException,
+	public SynapseVersionInfo getVersionInfo() throws SynapseException,
 			JSONObjectAdapterException {
 		JSONObject json = getEntity(VERSION_INFO);
 		return EntityFactory
-				.createEntityFromJSONObject(json, VersionInfo.class);
+				.createEntityFromJSONObject(json, SynapseVersionInfo.class);
 	}
 
 }
