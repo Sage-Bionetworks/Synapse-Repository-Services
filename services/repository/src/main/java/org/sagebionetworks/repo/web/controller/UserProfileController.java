@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -158,6 +159,27 @@ public class UserProfileController extends BaseController {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		return serviceProvider.getUserProfileService().getUserProfileAttachmentUrl(userId, profileId, url, request);
+	}
+	
+	/**
+	 * Batch get headers for users/groups matching a list of Synapse IDs.
+	 * 
+	 * @param header
+	 * @param ids
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.USER_GROUP_HEADERS_BATCH, method = RequestMethod.GET)
+	public @ResponseBody
+	UserGroupHeaderResponsePage getUserGroupHeadersByIds(
+			@RequestHeader HttpHeaders header,
+			@RequestBody List<String> ids,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException {
+		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(ids);
 	}
 
 	/**

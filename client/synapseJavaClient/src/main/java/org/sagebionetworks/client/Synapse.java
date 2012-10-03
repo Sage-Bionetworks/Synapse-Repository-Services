@@ -26,6 +26,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseBadRequestException;
@@ -57,6 +58,7 @@ import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
@@ -115,6 +117,8 @@ public class Synapse {
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
+	
+	protected static final String USER_GROUP_HEADER_BATCH_PATH = "/userGroupHeaders/batch";
 
 	protected static final String TOTAL_NUM_RESULTS = "totalNumberOfResults";
 	
@@ -706,6 +710,21 @@ public class Synapse {
 		String uri = USER_PROFILE_PATH + "/" + ownerId;
 		JSONObject json = getEntity(uri);
 		return initializeFromJSONObject(json, UserProfile.class);
+	}
+	
+	/**
+	 * Batch get headers for users/groups matching a list of Synapse IDs.
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws JSONException 
+	 * @throws SynapseException 
+	 */
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids) throws SynapseException, JSONException {
+		String uri = USER_GROUP_HEADER_BATCH_PATH;
+		JSONArray jsonArr = new JSONArray(ids);
+		JSONObject response = getSynapseEntity(repoEndpoint, uri, jsonArr.toString());
+		return initializeFromJSONObject(response, UserGroupHeaderResponsePage.class);
 	}
 	
 	/**
@@ -1747,7 +1766,7 @@ public class Synapse {
 	 * @return the retrieved entity
 	 * @throws SynapseException
 	 */
-	public JSONObject getSynapseEntity(String endpoint, String uri)
+	public JSONObject getSynapseEntity(String endpoint, String uri, String requestContent)
 			throws SynapseException {
 		if (null == endpoint) {
 			throw new IllegalArgumentException("must provide endpoint");
@@ -1756,8 +1775,20 @@ public class Synapse {
 			throw new IllegalArgumentException("must provide uri");
 		}
 
-		return signAndDispatchSynapseRequest(endpoint, uri, "GET", null,
-				defaultGETDELETEHeaders);
+		return signAndDispatchSynapseRequest(endpoint, uri, "GET", 
+				requestContent, defaultGETDELETEHeaders);
+	}
+	
+	/**
+	 * Get a dataset, layer, preview, annotations, where no request JSON is required.
+	 * 
+	 * @param endpoint
+	 * @param uri
+	 * @return the retrieved entity
+	 * @throws SynapseException
+	 */
+	public JSONObject getSynapseEntity(String endpoint, String uri) throws SynapseException {
+		return getSynapseEntity(endpoint, uri, null);
 	}
 
 	/**
