@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.backup.migration;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
@@ -9,9 +10,12 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.MigratableDAO;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -24,16 +28,18 @@ public class DependencyManagerImplTest {
 	
 	private static final long LIST_SIZE = 3;
 	
-	private static QueryResults<MigratableObjectData> generateMigrationData(long startId, long num, boolean isEntity) {
+	private static QueryResults<MigratableObjectData> generateMigrationData(long startId, long num, MigratableObjectType mot) {
 		QueryResults<MigratableObjectData> qr = new QueryResults<MigratableObjectData>();
 		qr.setTotalNumberOfResults((int)LIST_SIZE);
 		List<MigratableObjectData> results = new ArrayList<MigratableObjectData>();
 		for (int i=0; i<num; i++) {
 			MigratableObjectData od = new MigratableObjectData();
-			if (isEntity) {
+			if (MigratableObjectType.ENTITY == mot) {
 				od.setId(ObjectDescriptorUtils.createEntityObjectDescriptor(startId++));
-			} else {
+			} else  if (MigratableObjectType.PRINCIPAL == mot){
 				od.setId(ObjectDescriptorUtils.createPrincipalObjectDescriptor(startId++));			
+			} else {
+				od.setId(ObjectDescriptorUtils.createAccessRequirementObjectDescriptor(startId++));
 			}
 			results.add(od);
 		}
@@ -41,6 +47,18 @@ public class DependencyManagerImplTest {
 		return qr;
 	}
 
+	private static QueryResults<MigratableObjectCount> generateMigratableObjectCounts(long startId, long num, MigratableObjectType mot) {
+		QueryResults<MigratableObjectCount> r = new QueryResults<MigratableObjectCount>();
+		List<MigratableObjectCount> l = new ArrayList<MigratableObjectCount>();
+		MigratableObjectCount oc = new MigratableObjectCount();
+		oc.setObjectType(mot.name());
+		oc.setCount(num);
+		l.add(oc);
+		r.setTotalNumberOfResults(1);
+		r.setResults(l);
+		return r;
+	}
+	
 	/**
 	 * gets one page spanning the entire content of all the DAOs
 	 */
@@ -51,13 +69,13 @@ public class DependencyManagerImplTest {
 		
 		MigratableDAO dao1 = Mockito.mock(MigratableDAO.class);
 		when(dao1.getCount()).thenReturn(LIST_SIZE);
-		when(dao1.getMigrationObjectData(anyLong()/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(0L, 3L, true));
+		when(dao1.getMigrationObjectData(anyLong()/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(0L, 3L, MigratableObjectType.ENTITY));
 		migratableDaos.add(dao1);
 		
 		
 		MigratableDAO dao2 = Mockito.mock(MigratableDAO.class);
 		when(dao2.getCount()).thenReturn(LIST_SIZE);
-		when(dao2.getMigrationObjectData(anyLong()/*offset*/, eq(2L)/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(3L, 2L, false));
+		when(dao2.getMigrationObjectData(anyLong()/*offset*/, eq(2L)/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(3L, 2L, MigratableObjectType.PRINCIPAL));
 		migratableDaos.add(dao2);
 		
 
@@ -95,14 +113,14 @@ public class DependencyManagerImplTest {
 		MigratableDAO dao1 = Mockito.mock(MigratableDAO.class);
 		when(dao1.getCount()).thenReturn(LIST_SIZE);
 		// return IDs 1,2 (not 0)
-		when(dao1.getMigrationObjectData(anyLong()/*offset*/, eq(3L)/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(1L, 2L, true));
+		when(dao1.getMigrationObjectData(anyLong()/*offset*/, eq(3L)/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(1L, 2L, MigratableObjectType.ENTITY));
 		migratableDaos.add(dao1);
 		
 		
 		MigratableDAO dao2 = Mockito.mock(MigratableDAO.class);
 		when(dao2.getCount()).thenReturn(LIST_SIZE);
 		// return ID 3 (not 4)
-		when(dao2.getMigrationObjectData(anyLong()/*offset*/, eq(1L)/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(3L, 1L, false));
+		when(dao2.getMigrationObjectData(anyLong()/*offset*/, eq(1L)/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(3L, 1L, MigratableObjectType.PRINCIPAL));
 		migratableDaos.add(dao2);
 		
 
@@ -141,13 +159,13 @@ public class DependencyManagerImplTest {
 		
 		MigratableDAO dao1 = Mockito.mock(MigratableDAO.class);
 		when(dao1.getCount()).thenReturn(LIST_SIZE);
-		when(dao1.getMigrationObjectData(eq(3L)/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(0L, 0L, true));
+		when(dao1.getMigrationObjectData(eq(3L)/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(0L, 0L, MigratableObjectType.ENTITY));
 		migratableDaos.add(dao1);
 		
 		
 		MigratableDAO dao2 = Mockito.mock(MigratableDAO.class);
 		when(dao2.getCount()).thenReturn(LIST_SIZE);
-		when(dao2.getMigrationObjectData(anyLong()/*offset*/, eq(2L)/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(3L, 2L, false));
+		when(dao2.getMigrationObjectData(anyLong()/*offset*/, eq(2L)/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(3L, 2L, MigratableObjectType.PRINCIPAL));
 		migratableDaos.add(dao2);
 		
 
@@ -178,13 +196,13 @@ public class DependencyManagerImplTest {
 		
 		MigratableDAO dao1 = Mockito.mock(MigratableDAO.class);
 		when(dao1.getCount()).thenReturn(LIST_SIZE);
-		when(dao1.getMigrationObjectData(eq(4L)/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(0L, 0L, true));
+		when(dao1.getMigrationObjectData(eq(4L)/*offset*/, anyLong()/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(0L, 0L, MigratableObjectType.ENTITY));
 		migratableDaos.add(dao1);
 		
 		
 		MigratableDAO dao2 = Mockito.mock(MigratableDAO.class);
 		when(dao2.getCount()).thenReturn(LIST_SIZE);
-		when(dao2.getMigrationObjectData(anyLong()/*offset*/, eq(1L)/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(4L, 1L, false));
+		when(dao2.getMigrationObjectData(anyLong()/*offset*/, eq(1L)/*limit*/, anyBoolean()/*includeDependencies*/)).thenReturn(generateMigrationData(4L, 1L, MigratableObjectType.PRINCIPAL));
 		migratableDaos.add(dao2);
 		
 
@@ -204,5 +222,36 @@ public class DependencyManagerImplTest {
 			assertEquals(MigratableObjectType.PRINCIPAL, id.getType());
 			assertEquals(""+i, id.getId());
 		}
+	}
+
+	@Test
+	public void testGetAllObjectsCounts() throws Exception {
+		DependencyManagerImpl dependencyMgr = new DependencyManagerImpl();
+		List<MigratableDAO> migratableDaos = new ArrayList<MigratableDAO>();
+		
+		// Entities
+		MigratableDAO dao1 = Mockito.mock(MigratableDAO.class);
+		when(dao1.getCount()).thenReturn(LIST_SIZE);
+		when(dao1.getMigratableObjectType()).thenReturn(MigratableObjectType.ENTITY);
+		migratableDaos.add(dao1);
+				
+		// Principals
+		MigratableDAO dao2 = Mockito.mock(MigratableDAO.class);
+		when(dao2.getCount()).thenReturn(LIST_SIZE);
+		when(dao2.getMigratableObjectType()).thenReturn(MigratableObjectType.PRINCIPAL);
+		migratableDaos.add(dao2);
+		
+		// AccessRequirements
+		MigratableDAO dao3 = Mockito.mock(MigratableDAO.class);
+		when(dao3.getCount()).thenReturn(LIST_SIZE);
+		when(dao3.getMigratableObjectType()).thenReturn(MigratableObjectType.ACCESSREQUIREMENT);
+		migratableDaos.add(dao3);
+		
+		dependencyMgr.setMigratableDaos(migratableDaos);
+		
+		QueryResults<MigratableObjectCount> results = dependencyMgr.getAllObjectsCounts();
+		assertEquals(3, results.getTotalNumberOfResults());
+		assertEquals(3, results.getResults().size());
+		
 	}
 }

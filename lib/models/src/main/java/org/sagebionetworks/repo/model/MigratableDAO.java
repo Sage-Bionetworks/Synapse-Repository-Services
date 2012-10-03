@@ -26,4 +26,5 @@ public interface MigratableDAO {
 	 */
 	QueryResults<MigratableObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies) throws DatastoreException;
 	
+	MigratableObjectType getMigratableObjectType();	
 }
