@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -40,7 +41,7 @@ public interface EntityService {
 	 * 
 	 * @param userId
 	 * @param offset
-	 *            1-Entityd pagination offset
+	 *            1-Entity pagination offset
 	 * @param limit
 	 *            maximum number of results to return
 	 * @param sort
@@ -71,8 +72,8 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public <T extends Entity> PaginatedResults<T> getAllVersionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
-			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
+	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
+			HttpServletRequest request, Class<? extends VersionInfo> clazz) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 
 	/**
@@ -89,7 +90,7 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public <T extends Entity> PaginatedResults<T> getAllVersionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
+	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
 			HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 

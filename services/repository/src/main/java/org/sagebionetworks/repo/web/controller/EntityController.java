@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -673,7 +674,7 @@ public class EntityController extends BaseController{
 			UrlHelpers.ENTITY_VERSION
 		}, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<Versionable> getAllVersionsOfEntity(
+	PaginatedResults<VersionInfo> getAllVersionsOfEntity(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
@@ -687,7 +688,7 @@ public class EntityController extends BaseController{
 
 		// Determine the object type from the url.
 		@SuppressWarnings("unchecked")
-		PaginatedResults<Versionable> results = serviceProvider.getEntityService().getAllVersionsOfEntity(userId, offset, limit, id, request);
+		PaginatedResults<VersionInfo> results = serviceProvider.getEntityService().getAllVersionsOfEntity(userId, offset, limit, id, request);
 		// Return the result
 		return results;
 	}
