@@ -1,9 +1,5 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.net.URLEncoder;
 import java.util.logging.Logger;
 
 import org.json.JSONObject;

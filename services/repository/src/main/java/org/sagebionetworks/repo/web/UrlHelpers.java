@@ -38,6 +38,11 @@ public class UrlHelpers {
 	
 	public static final String ACCESS 				= "/access";
 	
+	/**
+	 * Used for batch requests
+	 */
+	public static final String BATCH				= "/batch";
+	
 	public static final String PERMISSIONS 			= "/permissions";
 
 	public static final String ACCESS_TYPE_PARAM	= "accessType";
@@ -50,6 +55,8 @@ public class UrlHelpers {
 	 */
 	public static final String ID_PATH_VARIABLE = "id";
 	public static final String ID = "/{"+ID_PATH_VARIABLE+"}";
+	
+	public static final String IDS_PATH_VARIABLE = "ids";
 	
 	/**
 	 * URL prefix for all objects that are referenced by their ID.
@@ -303,6 +310,11 @@ public class UrlHelpers {
 	 * Public access for Synapse user and group info
 	 */
 	public static final String USER_GROUP_HEADERS = "/userGroupHeaders";
+	
+	/**
+	 * Public batch request access for Synapse user and group info
+	 */
+	public static final String USER_GROUP_HEADERS_BATCH = USER_GROUP_HEADERS + BATCH;
 	
 	/**
 	 * The name of the query parameter for a prefix filter.
