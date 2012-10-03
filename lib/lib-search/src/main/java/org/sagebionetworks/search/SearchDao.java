@@ -85,5 +85,24 @@ public interface SearchDao {
 	  */
 	 boolean doesDocumentExist(String id, String etag) throws ClientProtocolException, IOException, HttpClientHelperException;
 	 
+	 /**
+	  * List all documents in the search index.
+	  * @param limit
+	  * @param offset
+	  * @return
+	 * @throws HttpClientHelperException 
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	  */
+	 SearchResults listSearchDocuments(long limit, long offset) throws ClientProtocolException, IOException, HttpClientHelperException;
+	 
+	 /**
+	  * Clear all data in the search index.
+	 * @throws HttpClientHelperException 
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 * @throws InterruptedException 
+	  */
+	 void deleteAllDocuments() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException;
 
 }

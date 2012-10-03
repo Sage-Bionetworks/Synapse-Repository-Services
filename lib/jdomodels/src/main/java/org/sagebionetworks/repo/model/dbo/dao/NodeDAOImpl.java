@@ -63,6 +63,7 @@ import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StorageLocations;
+import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeType;
@@ -146,10 +147,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
-	private ETagGenerator eTagGenerator;
+	private TagMessenger tagMessenger;
 
-	@Autowired
-	private TransactionalMessenger transactionalMessanger;
 	@Autowired
 	private DBOBasicDao dboBasicDao;
 	@Autowired
@@ -220,9 +219,11 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			if(dto.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
 			// See PLFM-845.  We need to be able to force the use of an eTag when created from a backup.
 			node.seteTag(KeyFactory.urlDecode(dto.getETag()));
+			// Send a message without changing the etag;
+			tagMessenger.sendMessage(node, ChangeType.CREATE);
 		}else{
 			// Start it with a new e-tag
-			node.seteTag(eTagGenerator.generateETag(node));
+			tagMessenger.generateEtagAndSendMessage(node, ChangeType.CREATE);
 		}
 		// Set the parent and benefactor
 		if(dto.getParentId() != null){
@@ -255,14 +256,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(dto.getReferences() != null){
 			dboReferenceDao.replaceReferences(node.getId(), dto.getReferences());
 		}
-		
-		// Send a message that an entity was created
-		ChangeMessage message = new ChangeMessage();
-		message.setChangeType(ChangeType.CREATE);
-		message.setObjectType(ObjectType.ENTITY);
-		message.setObjectId(KeyFactory.keyToString(node.getId()));
-		message.setObjectEtag(node.geteTag());
-		transactionalMessanger.sendMessageAfterCommit(message);
 		
 		return KeyFactory.keyToString(node.getId());
 	}
@@ -349,13 +342,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	public boolean delete(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
 		MapSqlParameterSource prams = getNodeParameters(KeyFactory.stringToKey(id));
-		// Send a message that the entity was deleted
-		ChangeMessage message = new ChangeMessage();
-		message.setChangeType(ChangeType.DELETE);
-		message.setObjectType(ObjectType.ENTITY);
-		message.setObjectId(id);
-		transactionalMessanger.sendMessageAfterCommit(message);
-		
+		// Send a delete message
+		tagMessenger.sendDeleteMessage(id, ObjectType.ENTITY);
 		return dboBasicDao.deleteObjectById(DBONode.class, prams);
 	}
 	
@@ -555,19 +543,11 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 		// Get a new e-tag
 		DBONode node = getNodeById(longId);
-		currentTag = eTagGenerator.generateETag(node);
-		node.seteTag(currentTag);
+		tagMessenger.generateEtagAndSendMessage(node, ChangeType.UPDATE);
+		currentTag = node.geteTag();
 		// Update the etag
 		int updated = simpleJdbcTemplate.update(UPDATE_ETAG_SQL, currentTag, longId);
 		if(updated != 1) throw new ConflictingUpdateException("Failed to lock Node: "+longId);
-		
-		// Send a message that an entity was updated
-		ChangeMessage message = new ChangeMessage();
-		message.setChangeType(ChangeType.UPDATE);
-		message.setObjectType(ObjectType.ENTITY);
-		message.setObjectId(id);
-		message.setObjectEtag(currentTag);
-		transactionalMessanger.sendMessageAfterCommit(message);
 		
 		// Return the new tag
 		return String.valueOf(currentTag);
@@ -1229,7 +1209,9 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 	
+	@Override
 	public MigratableObjectType getMigratableObjectType() {
 		return MigratableObjectType.ENTITY;
 	}
+
 }

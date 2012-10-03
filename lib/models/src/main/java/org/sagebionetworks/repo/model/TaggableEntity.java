@@ -1,4 +1,4 @@
-package org.sagebionetworks.ids;
+package org.sagebionetworks.repo.model;
 
 /**
  * Whether the entity can be tagged.
