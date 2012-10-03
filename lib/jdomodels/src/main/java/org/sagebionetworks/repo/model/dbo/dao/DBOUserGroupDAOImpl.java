@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -408,6 +409,8 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		}
 	}
 
-
+	public MigratableObjectType getMigratableObjectType() {
+		return MigratableObjectType.PRINCIPAL;
+	}
 
 }

@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -269,6 +270,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return queryResults;
 	}
 
+	@Transactional(readOnly = true)
 	@Override
 	public List<AccessRequirement> getForNode(String nodeId) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -357,6 +359,10 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		simpleJdbcTemplate.update(DELETE_NODE_ACCESS_REQUIREMENT_SQL, param);
 		// ... now populate with the updated values
 		populateNodeAccessRequirement(acessRequirementId, entityIds);
+	}
+	
+	public MigratableObjectType getMigratableObjectType() {
+		return MigratableObjectType.ACCESSREQUIREMENT;
 	}
 	
 }

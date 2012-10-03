@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -37,6 +38,7 @@ public class SynapseAdministration extends Synapse {
 	public static final String DAEMON_RESTORE = DAEMON + RESTORE;
 	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
 	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
+	public static final String GET_ALL_BACKUP_COUNTS = "/backupObjectsCounts";
 	
 	public SynapseAdministration() {
 		super();
@@ -57,6 +59,19 @@ public class SynapseAdministration extends Synapse {
 		try {
 			results.initializeFromJSONObject(adapter);
 			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public PaginatedResults<MigratableObjectCount> getMigratableObjectCounts() throws SynapseException {
+		String uri = GET_ALL_BACKUP_COUNTS;
+		JSONObject o = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(o);
+		PaginatedResults<MigratableObjectCount> rs = new PaginatedResults<MigratableObjectCount>(MigratableObjectCount.class);
+		try {
+			rs.initializeFromJSONObject(adapter);
+			return rs;
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
