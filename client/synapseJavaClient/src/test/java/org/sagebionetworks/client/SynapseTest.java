@@ -40,7 +40,7 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
+import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -286,12 +286,12 @@ public class SynapseTest {
 	
 	@Test
 	public void testGetVersionInfo() throws Exception {
-		VersionInfo expectedVersion = new VersionInfo();
+		SynapseVersionInfo expectedVersion = new SynapseVersionInfo();
 		expectedVersion.setVersion("versionString");
 		String jsonString = EntityFactory.createJSONStringForEntity(expectedVersion);
 		StringEntity responseEntity = new StringEntity(jsonString);
 		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		VersionInfo vi = synapse.getVersionInfo();
+		SynapseVersionInfo vi = synapse.getVersionInfo();
 		assertNotNull(vi);
 		assertEquals(vi, expectedVersion);
 	};
