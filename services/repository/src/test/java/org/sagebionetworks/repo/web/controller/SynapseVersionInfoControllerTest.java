@@ -10,7 +10,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
+import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 
 /**
  *
@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
  */
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class VersionInfoControllerTest {
+public class SynapseVersionInfoControllerTest {
 
 	@Autowired
 	ServletTestHelper testHelper;
@@ -38,7 +38,7 @@ public class VersionInfoControllerTest {
 	
 	@Test
 	public void testGetVersionInfo() throws Exception {
-		VersionInfo vi;
+		SynapseVersionInfo vi;
 		vi = testHelper.getVersionInfo();
 		assertTrue(vi.getVersion().length() > 0);
 	}
