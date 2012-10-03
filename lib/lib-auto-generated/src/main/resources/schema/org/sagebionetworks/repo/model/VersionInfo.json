@@ -1,0 +1,38 @@
+{
+    "description":"JSON schema for EntityHeader POJO",
+    "properties":{
+        "id":{
+            "type":"string",
+            "description":"The id of the entity"            
+        },
+        "type":{
+            "type":"string",
+            "description":"The type of the entity"            
+        },
+        "versionNumber":{
+            "type":"integer",
+            "description":"The version number of the entity"            
+        },
+        "versionLabel":{
+            "type":"string",
+            "description":"The user defined version label of the entity"            
+        },
+        "versionComment":{
+            "type":"string",
+            "description":"The user defined version label of the entity"            
+        },
+      	"modifiedBy": {
+						"type": "string",
+						"description": "The user that last modified this entity.",
+						"title": "Modified By",
+						"transient": true
+				},
+				"modifiedOn": {
+					"type": "string",
+					"format": "date-time",
+					"description": "The date this entity was last modified.",
+					"title": "Modified On",
+					"transient": true
+				}				
+    }
+}
