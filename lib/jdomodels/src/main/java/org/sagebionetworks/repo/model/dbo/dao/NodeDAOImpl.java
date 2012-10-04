@@ -550,7 +550,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(updated != 1) throw new ConflictingUpdateException("Failed to lock Node: "+longId);
 		
 		// Return the new tag
-		return String.valueOf(currentTag);
+		return currentTag;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
