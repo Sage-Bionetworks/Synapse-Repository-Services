@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -301,5 +302,15 @@ public interface EntityManager {
 	 * @throws DatastoreException 
 	 */
 	public boolean doesEntityHaveChildren(UserInfo userInfo, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 *
+	 * @param userInfo
+	 * @param entityId
+	 * @param versionNumber
+	 * @return
+	 */
+	public VersionInfo getEntityVersionInfo(UserInfo userInfo, String entityId,
+			long versionNumber)  throws DatastoreException, UnauthorizedException, NotFoundException;
 
 }

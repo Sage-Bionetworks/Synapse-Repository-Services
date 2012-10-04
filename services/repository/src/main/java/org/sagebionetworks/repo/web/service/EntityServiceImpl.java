@@ -134,9 +134,8 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	private VersionInfo getEntityVersionInfo(UserInfo userInfo,
-			String entityId, long versionNumber) {
-		// TODO Auto-generated method stub
-		return null;
+			String entityId, long versionNumber)  throws DatastoreException, UnauthorizedException, NotFoundException {	
+		return entityManager.getEntityVersionInfo(userInfo, entityId, versionNumber);
 	}
 
 	@Override

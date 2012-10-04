@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -131,6 +132,14 @@ public class EntityManagerImpl implements EntityManager {
 		Node node = nodeManager.getNodeForVersionNumber(userInfo, entityId,
 				versionNumber);
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
+	}
+
+	@Override
+	public VersionInfo getEntityVersionInfo(UserInfo userInfo, String entityId,
+			long versionNumber) throws DatastoreException, UnauthorizedException, NotFoundException {
+		Node node = nodeManager.getNodeForVersionNumber(userInfo, entityId, versionNumber);
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	/**
