@@ -606,10 +606,11 @@ public class Synapse {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedResults<VersionInfo> getEntityVersions(String entityId) throws SynapseException {
+	public PaginatedResults<VersionInfo> getEntityVersions(String entityId, int offset, int limit) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
-		String url = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION;				
+		String url = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION +
+				"?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<VersionInfo> results = new PaginatedResults<VersionInfo>();
