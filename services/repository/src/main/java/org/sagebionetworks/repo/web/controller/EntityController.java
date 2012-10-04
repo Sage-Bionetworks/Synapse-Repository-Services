@@ -228,7 +228,7 @@ public class EntityController extends BaseController{
 //		Entity entity = (Entity) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
 		Entity entity =  JSONEntityHttpMessageConverter.readEntity(request.getReader());
 		if(etag != null){
-			entity.setEtag(etag.toString());
+			entity.setEtag(etag);
 		}
 		// validate the entity
 		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersion, request);
@@ -270,7 +270,7 @@ public class EntityController extends BaseController{
 		// Read the entity from the body
 		Entity entity =  JSONEntityHttpMessageConverter.readEntity(request.getReader());
 		if(etag != null){
-			entity.setEtag(etag.toString());
+			entity.setEtag(etag);
 		}
 		// validate the entity
 		entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, request);
