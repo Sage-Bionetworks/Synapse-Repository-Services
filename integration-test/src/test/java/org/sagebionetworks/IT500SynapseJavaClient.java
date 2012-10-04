@@ -15,8 +15,10 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -59,6 +61,8 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
@@ -215,6 +219,28 @@ public class IT500SynapseJavaClient {
 		}
 		// now push it, should get a SynapseBadRequestException
 		synapse.updateACL(acl);
+	}
+	
+	@Test
+	public void testCreateACLInherited() throws Exception {
+		// retrieve parent acl
+		AccessControlList parentAcl = synapse.getACL(project.getId());
+
+		// retrieve child acl - should get parent's
+		AccessControlList childAcl;
+		try {
+			childAcl = synapse.getACL(dataset.getId());
+			fail("Child has ACL, but should inherit from parent");
+		} catch (SynapseException e) {}
+		
+		// request creation of child ACL
+		synapse.createACL(dataset.getId());
+		
+		// retrieve child acl - should NOT get parent's,
+		// but permissions should MATCH the parent's.
+		childAcl = synapse.getACL(dataset.getId());
+		assertFalse(parentAcl.equals(childAcl));
+		assertEquals(parentAcl.getResourceAccess(), childAcl.getResourceAccess());
 	}
 	
 	@Test
@@ -747,6 +773,29 @@ public class IT500SynapseJavaClient {
 			assertNotNull(ug.getId());
 			assertNotNull(ug.getName());
 		}
+	}
+	
+	@Test
+	public void testGetUserGroupHeadersById() throws Exception {
+		List<String> ids = new ArrayList<String>();		
+		PaginatedResults<UserProfile> users = synapse.getUsers(0,100);
+		for (UserProfile up : users.getResults()) {	
+			if (up.getDisplayName() != null) {
+				ids.add(up.getOwnerId());
+			}
+		}
+		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByIds(ids);
+		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
+		for (UserGroupHeader ugh : response.getChildren())
+			headers.put(ugh.getOwnerId(), ugh);
+		
+		String dummyId = "This extra String should not match an ID";
+		ids.add(dummyId);
+		
+		assertEquals(ids.size() - 1, headers.size());
+		for (String id : ids)
+			if (!id.equals(dummyId))
+				assertTrue(headers.containsKey(id));
 	}
 	
 	@Test

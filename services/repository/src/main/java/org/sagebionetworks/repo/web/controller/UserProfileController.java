@@ -1,15 +1,16 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-
 import javax.servlet.http.HttpServletRequest;
 
+import org.json.JSONException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.StringArray;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -158,6 +159,29 @@ public class UserProfileController extends BaseController {
 			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
 		return serviceProvider.getUserProfileService().getUserProfileAttachmentUrl(userId, profileId, url, request);
+	}
+	
+	/**
+	 * Batch get headers for users/groups matching a list of Synapse IDs.
+	 * 
+	 * @param header
+	 * @param ids
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws JSONException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.USER_GROUP_HEADERS_BATCH, method = RequestMethod.GET)
+	public @ResponseBody
+	UserGroupHeaderResponsePage getUserGroupHeadersByIds(
+			@RequestHeader HttpHeaders header,
+			@RequestBody StringArray ids,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException, JSONException {
+
+		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(ids.getChildren());
 	}
 
 	/**

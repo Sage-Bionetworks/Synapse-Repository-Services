@@ -348,7 +348,6 @@ public class EntityController extends BaseController{
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the entity.
-		@SuppressWarnings("unchecked")
 		Entity updatedEntity = serviceProvider.getEntityService().getEntityForVersion(userId, id, versionNumber, request);
 		// Return the results
 		return updatedEntity;
@@ -503,9 +502,11 @@ public class EntityController extends BaseController{
 		entityPath.setPath(paths);
 		return entityPath;
 	}
-
+	
 	/**
-	 * Create a new ACL, overriding inheritance.
+	 * Create a new ACL, either using a provided ACL, or a copy of the
+	 * benefactor ACL.
+	 * 
 	 * @param id 
 	 * @param userId - The user that is doing the create.
 	 * @param newAcl 
@@ -517,6 +518,7 @@ public class EntityController extends BaseController{
 	 * @throws NotFoundException - Thrown only for the case where the entity is assigned a parent that does not exist.
 	 * @throws IOException - Thrown if there is a failure to read the header.
 	 * @throws ConflictingUpdateException 
+	 * @throws ACLInheritanceException 
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = { UrlHelpers.ENTITY_ID_ACL }, method = RequestMethod.POST)	
@@ -524,17 +526,21 @@ public class EntityController extends BaseController{
 	AccessControlList createEntityAcl(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = UrlHelpers.FROM_BENEFACTOR, defaultValue = "false") String fromBenefactor,
 			@RequestBody AccessControlList newAcl,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		if(newAcl == null) throw new IllegalArgumentException("New ACL cannot be null");
+			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException, ACLInheritanceException {
 		if(id == null) throw new IllegalArgumentException("ACL ID in the path cannot be null");
-		// pass it along.
-		// This is a fix for PLFM-410
-		newAcl.setId(id);
-		AccessControlList acl = serviceProvider.getEntityService().createEntityACL(userId, newAcl, request);
-		return acl;
+		if (fromBenefactor.equals("true")) {
+			// Copy the benefactor ACL
+			return serviceProvider.getEntityService().createEntityACL(userId, id, request);
+		} else {
+			// Use the user-provided ACL
+			// This is a fix for PLFM-410
+			newAcl.setId(id);
+			return serviceProvider.getEntityService().createEntityACL(userId, newAcl, request);
+		}
 	}
 	
 	/**

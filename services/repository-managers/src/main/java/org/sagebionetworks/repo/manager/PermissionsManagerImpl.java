@@ -121,6 +121,25 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		acl.setEtag(node.getETag());
 		return acl;
 	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public AccessControlList overrideInheritance(String resourceId, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException, ACLInheritanceException {
+		String benefactorId = nodeInheritanceManager.getBenefactor(resourceId);
+		AccessControlList inheritedAcl = null;
+		try {
+			inheritedAcl = getACL(benefactorId, userInfo);
+		} catch (ACLInheritanceException e) {
+			throw new ACLInheritanceException("Resource benefactor (" + benefactorId + ") does not have an ACL!");
+		}
+		
+		AccessControlList newAcl = new AccessControlList();
+		newAcl.setCreationDate(new Date());
+		newAcl.setId(resourceId);
+		newAcl.setResourceAccess(inheritedAcl.getResourceAccess());
+		
+		return overrideInheritance(newAcl, userInfo);
+	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override

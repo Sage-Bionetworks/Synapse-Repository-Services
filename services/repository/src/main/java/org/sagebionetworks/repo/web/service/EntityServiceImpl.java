@@ -517,6 +517,19 @@ public class EntityServiceImpl implements EntityService {
 		acl.setUri(request.getRequestURI());
 		return acl;
 	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public AccessControlList createEntityACL(String userId, String entityId,
+			HttpServletRequest request) throws DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException, 
+			ConflictingUpdateException, ACLInheritanceException {
+
+		UserInfo userInfo = userManager.getUserInfo(userId);		
+		AccessControlList acl = permissionsManager.overrideInheritance(entityId, userInfo);
+		acl.setUri(request.getRequestURI());
+		return acl;
+	}
 
 	@Override
 	public  AccessControlList getEntityACL(String entityId, String userId, HttpServletRequest request)
