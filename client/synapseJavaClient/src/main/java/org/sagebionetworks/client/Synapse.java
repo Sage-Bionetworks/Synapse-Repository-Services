@@ -60,6 +60,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -605,38 +606,17 @@ public class Synapse {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedResults<EntityHeader> getEntityVersions(String entityId) throws SynapseException {
+	public PaginatedResults<VersionInfo> getEntityVersions(String entityId) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
 		String url = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION;				
 		JSONObject jsonObj = getEntity(url);
-		JSONObjectAdapter results = new JSONObjectAdapterImpl(jsonObj);		
-		try {			
-			// TODO : transfer to a paginated list of entityheader. this code can go away with above service change
-			List<EntityHeader> headerList = new ArrayList<EntityHeader>();
-			if(results.has("results")) {
-				JSONArrayAdapter list = results.getJSONArray("results");
-				for(int i=0; i<list.length(); i++) {
-					JSONObjectAdapter entity = list.getJSONObject(i);
-					EntityHeader header = new EntityHeader();
-					header.setId(entity.getString("id"));
-					header.setName(entity.getString("name"));
-					header.setType(entity.getString("entityType"));
-					if(entity.has("versionNumber")) {
-						header.setVersionNumber(entity.getLong("versionNumber"));
-						header.setVersionLabel(entity.getString("versionLabel"));
-					} else {
-						header.setVersionNumber(new Long(1));
-						header.setVersionLabel("1");						
-					}
-					headerList.add(header);
-				}			
-			}
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<VersionInfo> results = new PaginatedResults<VersionInfo>();
 
-			PaginatedResults<EntityHeader> versions = new PaginatedResults<EntityHeader>(EntityHeader.class);
-			versions.setTotalNumberOfResults(results.getInt("totalNumberOfResults"));			
-			versions.setResults(headerList);
-			return versions;
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
