@@ -15,8 +15,10 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -59,6 +61,8 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
@@ -769,6 +773,23 @@ public class IT500SynapseJavaClient {
 			assertNotNull(ug.getId());
 			assertNotNull(ug.getName());
 		}
+	}
+	
+	@Test
+	public void testGetUserGroupHeadersById() throws Exception {
+		List<String> ids = new ArrayList<String>();		
+		PaginatedResults<UserProfile> users = synapse.getUsers(0,100);
+		for (UserProfile up : users.getResults()) {			
+			ids.add(up.getOwnerId());
+		}		
+		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByIds(ids);
+		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
+		for (UserGroupHeader ugh : response.getChildren())
+			headers.put(ugh.getOwnerId(), ugh);
+		
+		assertEquals(users.getResults().size(), headers.size());
+		for (String id : ids)
+			assertTrue(headers.containsKey(id));
 	}
 	
 	@Test

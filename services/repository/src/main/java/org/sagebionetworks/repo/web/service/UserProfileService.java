@@ -114,7 +114,8 @@ public interface UserProfileService {
 	 * @param ids
 	 * @return
 	 */
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids);
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids)
+			throws DatastoreException, NotFoundException ;
 
 	/**
 	 * Get headers for users whose names begin with the supplied prefix.

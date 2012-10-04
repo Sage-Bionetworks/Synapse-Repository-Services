@@ -1,16 +1,16 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
-import java.util.List;
-
 import javax.servlet.http.HttpServletRequest;
 
+import org.json.JSONException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.StringArray;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -171,15 +171,17 @@ public class UserProfileController extends BaseController {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 * @throws IOException
+	 * @throws JSONException 
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.USER_GROUP_HEADERS_BATCH, method = RequestMethod.GET)
 	public @ResponseBody
 	UserGroupHeaderResponsePage getUserGroupHeadersByIds(
 			@RequestHeader HttpHeaders header,
-			@RequestBody List<String> ids,
-			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException {
-		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(ids);
+			@RequestBody StringArray ids,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, IOException, JSONException {
+
+		return serviceProvider.getUserProfileService().getUserGroupHeadersByIds(ids.getChildren());
 	}
 
 	/**

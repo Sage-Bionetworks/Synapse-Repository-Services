@@ -117,7 +117,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids) {		
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids) 
+			throws DatastoreException, NotFoundException {		
+		if (userGroupHeadersIdCache == null || userGroupHeadersIdCache.size() == 0)
+			refreshCache();
 		List<UserGroupHeader> ugHeaders = new ArrayList<UserGroupHeader>();
 		for (String id : ids) {
 			UserGroupHeader header = userGroupHeadersIdCache.get(id);

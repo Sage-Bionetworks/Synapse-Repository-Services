@@ -1,0 +1,12 @@
+{
+	"title": "String Array",
+	"description": "A basic String array for JSON transport.",
+	"properties": {
+		"children": {
+			"type": "array",
+			"items": {
+				"type": "string"
+			}
+		}
+	}
+}
