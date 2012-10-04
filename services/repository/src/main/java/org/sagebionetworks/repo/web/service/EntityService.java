@@ -353,8 +353,7 @@ public interface EntityService {
 			Annotations updatedAnnotations, HttpServletRequest request) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
 	/**
-	 * Create a new entity
-	 * <p>
+	 * Create a new ACL for an entity, using the user-provided ACL.
 	 * 
 	 * @param userId
 	 * @param newEntity
@@ -372,7 +371,26 @@ public interface EntityService {
 			HttpServletRequest request) throws DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ConflictingUpdateException;
 
-	
+	/**
+	 * Create a new ACL for an entity, using a copy of the current benefactor's
+	 * ACL.
+	 * 
+	 * @param userId
+	 * @param entityId
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws ConflictingUpdateException
+	 * @throws ACLInheritanceException
+	 */
+	public AccessControlList createEntityACL(String userId, String entityId,
+			HttpServletRequest request) throws DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException,
+			ConflictingUpdateException, ACLInheritanceException;
+
 	/**
 	 * Get the ACL for a given entity
 	 * @param nodeId
