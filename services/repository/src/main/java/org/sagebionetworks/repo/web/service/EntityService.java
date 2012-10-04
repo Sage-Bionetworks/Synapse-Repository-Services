@@ -57,24 +57,6 @@ public interface EntityService {
 			PaginatedParameters paging,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
-	
-	/**
-	 * Get all versions of an entity.  This list will be sorted on version number descending.
-	 * @param <T>
-	 * @param userId
-	 * @param offest
-	 * @param limmit
-	 * @param entityId
-	 * @param request
-	 * @param clazz
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
-			HttpServletRequest request, Class<? extends VersionInfo> clazz) throws DatastoreException,
-			UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get all versions of an entity.  This list will be sorted on version number descending.

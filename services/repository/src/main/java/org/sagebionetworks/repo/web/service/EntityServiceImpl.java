@@ -107,37 +107,6 @@ public class EntityServiceImpl implements EntityService {
 	@Override
 	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(
 			String userId, Integer offset, Integer limit, String entityId,
-			HttpServletRequest request, Class<? extends VersionInfo> clazz)
-			throws DatastoreException, UnauthorizedException, NotFoundException {
-		if(offset == null){
-			offset = 1;
-		}
-		if(limit == null){
-			limit = Integer.MAX_VALUE;
-		}
-		// First get the full list of all revisions numbers
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		EntityType type =  EntityType.getNodeTypeForClass(clazz);
-		List<Long> versionNumbers = entityManager.getAllVersionNumbersForEntity(userInfo, entityId);
-		// Now fetch the versions requested
-		int start = offset-1;
-		int end = Math.min(start+limit, versionNumbers.size());
-		List<VersionInfo> entityList = new ArrayList<VersionInfo>();
-		for(int i=start; i<end; i++){
-			long versionNumber = versionNumbers.get(i);
-			VersionInfo entity = (VersionInfo) getEntityForVersion(userInfo, entityId, versionNumber, request, type.getClassForType());
-			entityList.add(entity);
-		}
-		// Return the paginated results
-		return new PaginatedResults<VersionInfo>(request.getServletPath()
-				+ UrlHelpers.ENTITY, entityList,
-				versionNumbers.size(), offset, limit, "versionNumber", false);
-	}
-	
-
-	@Override
-	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(
-			String userId, Integer offset, Integer limit, String entityId,
 			HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		if(offset == null){
@@ -148,10 +117,6 @@ public class EntityServiceImpl implements EntityService {
 		}
 		// First get the full list of all revisions numbers
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		EntityType type =  entityManager.getEntityType(userInfo, entityId);
-		
-		// TODO: Figure out with John how to use the function above instead of dup'ing code
-		
 		List<Long> versionNumbers = entityManager.getAllVersionNumbersForEntity(userInfo, entityId);
 		// Now fetch the versions requested
 		int start = offset-1;
@@ -159,15 +124,15 @@ public class EntityServiceImpl implements EntityService {
 		List<VersionInfo> entityList = new ArrayList<VersionInfo>();
 		for(int i=start; i<end; i++){
 			long versionNumber = versionNumbers.get(i);
-			VersionInfo entity = getEntityVersionInfo(userInfo, entityId, versionNumber);
-			entityList.add(entity);
+			VersionInfo info = getEntityVersionInfo(userInfo, entityId, versionNumber);
+			entityList.add(info);
 		}
 		// Return the paginated results
 		return new PaginatedResults<VersionInfo>(request.getServletPath()
 				+ UrlHelpers.ENTITY, entityList,
 				versionNumbers.size(), offset, limit, "versionNumber", false);
 	}
-	
+
 	private VersionInfo getEntityVersionInfo(UserInfo userInfo,
 			String entityId, long versionNumber) {
 		// TODO Auto-generated method stub
