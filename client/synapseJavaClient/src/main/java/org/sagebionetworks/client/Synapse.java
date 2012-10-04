@@ -726,7 +726,11 @@ public class Synapse {
 		stringArray.setChildren(ids);
 		try {
 			JSONObject jsonIds = EntityFactory.createJSONObjectForEntity(stringArray);
-			JSONObject response = getSynapseEntity(repoEndpoint, uri, jsonIds);
+			// Update. Bundles do not have their own etags, so we use an
+			// empty requestHeaders object.
+			Map<String, String> requestHeaders = new HashMap<String, String>();
+			JSONObject response = getSynapseEntity(repoEndpoint, uri, jsonIds, requestHeaders);
+			//JSONObject response = getSynapseEntity(repoEndpoint, uri, jsonIds);
 			return initializeFromJSONObject(response, UserGroupHeaderResponsePage.class);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
@@ -1772,7 +1776,8 @@ public class Synapse {
 	 * @return the retrieved entity
 	 * @throws SynapseException
 	 */
-	public JSONObject getSynapseEntity(String endpoint, String uri, JSONObject requestObject)
+	public JSONObject getSynapseEntity(String endpoint, String uri, 
+			JSONObject requestObject, Map<String, String> requestHeaders)
 			throws SynapseException {
 		if (null == endpoint) {
 			throw new IllegalArgumentException("must provide endpoint");
@@ -1781,13 +1786,16 @@ public class Synapse {
 			throw new IllegalArgumentException("must provide uri");
 		}
 		
-		Map<String, String> requestHeaders = defaultGETDELETEHeaders;
-		String requestContent = null;
+		if (requestHeaders == null)	requestHeaders = new HashMap<String, String>();
+		String requestContent;
 		
 		// if a request object is included, we must specify its content and type
 		if (requestObject != null) {
-			requestHeaders = defaultPOSTPUTHeaders;
+			requestHeaders.putAll(defaultPOSTPUTHeaders);
 			requestContent = requestObject.toString();
+		} else {
+			requestHeaders.putAll(defaultGETDELETEHeaders);
+			requestContent = null;
 		}
 		
 		return signAndDispatchSynapseRequest(endpoint, uri, "GET", 
@@ -1803,7 +1811,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	public JSONObject getSynapseEntity(String endpoint, String uri) throws SynapseException {
-		return getSynapseEntity(endpoint, uri, null);
+		return getSynapseEntity(endpoint, uri, null, null);
 	}
 
 	/**
@@ -2012,7 +2020,7 @@ public class Synapse {
 				requestHeaders.remove(REQUEST_PROFILE_DATA);
 		}
 		
-		// remove session tken if it is null
+		// remove session token if it is null
 		if(requestHeaders.containsKey(SESSION_TOKEN_HEADER) && requestHeaders.get(SESSION_TOKEN_HEADER) == null) {
 			requestHeaders.remove(SESSION_TOKEN_HEADER);
 		}

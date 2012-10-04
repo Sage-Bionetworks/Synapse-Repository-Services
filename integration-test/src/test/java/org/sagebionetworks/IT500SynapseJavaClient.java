@@ -779,17 +779,23 @@ public class IT500SynapseJavaClient {
 	public void testGetUserGroupHeadersById() throws Exception {
 		List<String> ids = new ArrayList<String>();		
 		PaginatedResults<UserProfile> users = synapse.getUsers(0,100);
-		for (UserProfile up : users.getResults()) {			
-			ids.add(up.getOwnerId());
-		}		
+		for (UserProfile up : users.getResults()) {	
+			if (up.getDisplayName() != null) {
+				ids.add(up.getOwnerId());
+			}
+		}
 		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByIds(ids);
 		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
 		for (UserGroupHeader ugh : response.getChildren())
 			headers.put(ugh.getOwnerId(), ugh);
 		
-		assertEquals(users.getResults().size(), headers.size());
+		String dummyId = "This extra String should not match an ID";
+		ids.add(dummyId);
+		
+		assertEquals(ids.size() - 1, headers.size());
 		for (String id : ids)
-			assertTrue(headers.containsKey(id));
+			if (!id.equals(dummyId))
+				assertTrue(headers.containsKey(id));
 	}
 	
 	@Test
