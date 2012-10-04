@@ -569,9 +569,56 @@ public class NodeManagerImplAutoWiredTest {
 		//make a non parentId change to the child
 		Node fetchedNode = nodeManager.get(testUser, childId);
 		fetchedNode.setName("notTheChildName");
-		when(mockNodeDao.getParentId(anyString())).thenReturn(fetchedNode.getParentId());
+		when(mockNodeDao.getParentId(anyString())).thenReturn(new String(fetchedNode.getParentId()));
 		nodeManagerWMocks.update(testUser, fetchedNode);
 		verify(mockNodeDao, never()).changeNodeParent(anyString(), anyString());
 		verify(mockNodeInheritanceManager, never()).nodeParentChanged(anyString(), anyString());
+	}
+	
+	@Test
+	public void testPLFM_1533() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
+		// Create a project
+		//make a root node
+		Node node = new Node();
+		node.setName("root");
+		node.setNodeType(EntityType.project.name());
+		String rootId = nodeManager.createNewNode(node, testUser);
+		assertNotNull(rootId);
+		nodesToDelete.add(rootId);
+		
+		//make a folder
+		node = new Node();
+		node.setName("folder");
+		node.setNodeType(EntityType.folder.name());
+		node.setParentId(rootId);
+		String folderId = nodeManager.createNewNode(node, testUser);
+		assertNotNull(folderId);
+		nodesToDelete.add(folderId);
+		
+		//make a child node
+		node = new Node();
+		node.setName("child");
+		node.setNodeType(EntityType.dataset.name());
+		node.setParentId(folderId);
+		String childId = nodeManager.createNewNode(node, testUser);
+		assertNotNull(childId);
+		nodesToDelete.add(childId);
+		
+		// Get the folder
+		Node folder = nodeManager.get(testUser, folderId);
+		assertNotNull(folder);
+		assertNotNull(folder.getETag());
+		// Get the child
+		Node child = nodeManager.get(testUser, childId);
+		assertNotNull(child);
+		assertNotNull(child.getETag());
+		String childStartEtag = child.getETag();
+		// Now change the parent
+		folder.setName("MyNewName");
+		folder = nodeManager.update(testUser, folder);
+		// Validate that the child etag did not change
+		child = nodeManager.get(testUser, childId);
+		assertNotNull(child);
+		assertEquals("Updating a parent object should not have changed the child's etag",childStartEtag, child.getETag());
 	}
 }
