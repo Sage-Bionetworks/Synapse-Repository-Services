@@ -106,8 +106,50 @@ public class StorageLocationUtils {
 	 *
 	 * @throws AmazonClientException  When the AWS S3 client encounters an internal error
 	 */
-	private static void updateContent(Long nodeId,
-			List<DBOStorageLocation> dboList, AmazonS3 s3Client) {
+	private static void updateContent(Long nodeId, List<DBOStorageLocation> dboList, AmazonS3 s3Client) {
+
+		// No need to call S3 if there is no storage
+		if (dboList.size() == 0) {
+			return;
+		}
+
+		int numRetries = 0;
+		boolean retry = true;
+		while (retry) {
+
+			retry = false;
+			numRetries++;
+
+			// Gather the list of all the storage locations under this node
+			Map<String, S3ObjectSummary> s3ObjectMap = getObjectMapFromS3(nodeId, s3Client);
+			String awss3 = LocationTypeNames.awss3.name();
+
+			// Update the DBOs with information retrieved from S3
+			for (DBOStorageLocation dbo : dboList) {
+				if (awss3.equals(dbo.getStorageProvider())) {
+					String key = dbo.getLocation();
+					assert key != null;
+					if (key.startsWith("/")) {
+						key = key.substring(1);
+					}
+					if (s3ObjectMap.containsKey(key)) {
+						S3ObjectSummary s3ObjectSummary = s3ObjectMap.get(key);
+						dbo.setContentSize(s3ObjectSummary.getSize());
+					} else {
+						logger.info(key + " not found");
+						logger.info("Retry " + numRetries);
+						retry = true;
+						if (numRetries > 2) {
+							logger.info("Max number of retries reached. Retry aborted.");
+							retry = false;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private static Map<String, S3ObjectSummary> getObjectMapFromS3(Long nodeId, AmazonS3 s3Client) {
 
 		// Gather the list of all the storage locations under this node
 		Map<String, S3ObjectSummary> s3ObjectMap = new HashMap<String, S3ObjectSummary>();
@@ -135,21 +177,7 @@ public class StorageLocationUtils {
 			logger.warn(errMsg.toString());
 		}
 
-		// Update the DBOs
-		String awss3 = LocationTypeNames.awss3.name();
-		for (DBOStorageLocation dbo : dboList) {
-			if (awss3.equals(dbo.getStorageProvider())) {
-				String key = dbo.getLocation();
-				assert key != null;
-				if (key.startsWith("/")) {
-					key = key.substring(1);
-				}
-				if (s3ObjectMap.containsKey(key)) {
-					S3ObjectSummary s3ObjectSummary = s3ObjectMap.get(key);
-					dbo.setContentSize(s3ObjectSummary.getSize());
-				}
-			}
-		}
+		return s3ObjectMap;
 	}
 
 	private static final Logger logger = Logger.getLogger(StorageLocationUtils.class);
