@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -205,5 +206,19 @@ public class NodeManagerImpleUnitTest {
 		UserInfo userInfo = anonUserInfo;
 		when(mockReferenceDao.getReferrers(id, null, userInfo, null, null)).thenReturn(expected);
 		EntityHeaderQueryResults actual = nodeManager.getEntityReferences(userInfo, ""+id, null, null, null);
+	}
+	
+	/**
+	 * See PLFM-1533
+	 */
+	@Test
+	public void testIsParentIDChange(){
+		// test the various flavors of parent id change
+		assertTrue(NodeManagerImpl.isParenIdChange(null, "notNull"));
+		assertTrue(NodeManagerImpl.isParenIdChange("notNull", null));
+		assertTrue(NodeManagerImpl.isParenIdChange("one", "two"));
+		assertTrue(NodeManagerImpl.isParenIdChange("two", "one"));
+		assertFalse(NodeManagerImpl.isParenIdChange(null, null));
+		assertFalse(NodeManagerImpl.isParenIdChange("one", "one"));
 	}
 }
