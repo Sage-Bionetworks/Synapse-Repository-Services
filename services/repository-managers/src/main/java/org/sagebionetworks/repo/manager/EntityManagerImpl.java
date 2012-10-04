@@ -302,8 +302,7 @@ public class EntityManagerImpl implements EntityManager {
 		annos.setEtag(updated.getEtag());
 
 		// Auto-version locationable entities
-		if (false == newVersion
-				&& Locationable.class.isAssignableFrom(updated.getClass())) {
+		if (!newVersion && (updated instanceof Locationable)) {
 			Locationable locationable = (Locationable) updated;
 			String currentMd5 = (String) annos.getPrimaryAnnotations()
 					.getSingleValue("md5");
