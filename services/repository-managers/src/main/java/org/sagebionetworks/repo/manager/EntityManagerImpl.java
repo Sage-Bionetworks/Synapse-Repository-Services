@@ -138,7 +138,19 @@ public class EntityManagerImpl implements EntityManager {
 	public VersionInfo getEntityVersionInfo(UserInfo userInfo, String entityId,
 			long versionNumber) throws DatastoreException, UnauthorizedException, NotFoundException {
 		Node node = nodeManager.getNodeForVersionNumber(userInfo, entityId, versionNumber);
-		// TODO Auto-generated method stub
+		VersionInfo info = new VersionInfo();
+		info.setId(node.getId());
+		info.setType(node.getNodeType());
+		info.setModifiedBy(userManager.getDisplayName(node.getCreatedByPrincipalId()));
+		info.setModifiedOn(node.getModifiedOn());
+		info.setVersionNumber(node.getVersionNumber());
+		info.setVersionLabel(node.getVersionLabel());
+		info.setVersionComment(node.getVersionComment());
+		return info;
+	}
+
+	private VersionInfo populateVersionInfoWithNode(Node node) {
+
 		return null;
 	}
 
