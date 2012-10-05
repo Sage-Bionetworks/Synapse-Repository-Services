@@ -44,7 +44,7 @@ public class StorageUsageControllerTest {
 		StorageUsageSummaryList sus = new StorageUsageSummaryList();
 		sus.initializeFromJSONObject(adapter);
 		Assert.assertNotNull(sus);
-		Assert.assertEquals(0L, sus.getGrandTotal().longValue());
+		Assert.assertEquals(0L, sus.getUsage().longValue());
 		Assert.assertEquals(0, sus.getSummaryList().size());
 	}
 
@@ -71,7 +71,7 @@ public class StorageUsageControllerTest {
 		StorageUsageSummaryList sus = new StorageUsageSummaryList();
 		sus.initializeFromJSONObject(adapter);
 		Assert.assertNotNull(sus);
-		Assert.assertEquals(0L, sus.getGrandTotal().longValue());
+		Assert.assertEquals(0L, sus.getUsage().longValue());
 		Assert.assertEquals(0, sus.getSummaryList().size());
 	}
 

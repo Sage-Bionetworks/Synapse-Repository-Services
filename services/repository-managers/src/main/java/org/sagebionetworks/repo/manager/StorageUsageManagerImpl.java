@@ -15,16 +15,54 @@ public class StorageUsageManagerImpl implements StorageUsageManager {
 	private StorageLocationDAO storageUsageDao;
 
 	@Override
-	public StorageUsageSummaryList getStorageUsage(String userId,
+	public StorageUsageSummaryList getUsage(
 			List<StorageUsageDimension> dimensionList) {
-		return storageUsageDao.getAggregatedUsage(userId, dimensionList);
+		return storageUsageDao.getAggregatedUsage(dimensionList);
 	}
 
 	@Override
-	public QueryResults<StorageUsage> getStorageUsage(String userId, Integer offset, Integer limit) {
-		List<StorageUsage> storageUsageList = storageUsageDao.getStorageUsageInRange(userId, offset, offset + limit);
-		long totalCount = storageUsageDao.getCount(userId).longValue();
+	public StorageUsageSummaryList getUsageForUser(String userId,
+			List<StorageUsageDimension> dimensionList) {
+		return storageUsageDao.getAggregatedUsageForUser(userId, dimensionList);
+	}
+
+	@Override
+	public StorageUsageSummaryList getCount(
+			List<StorageUsageDimension> dimensionList) {
+		return storageUsageDao.getAggregatedCount(dimensionList);
+	}
+
+	@Override
+	public StorageUsageSummaryList getCountForUser(String userId,
+			List<StorageUsageDimension> dimensionList) {
+		return storageUsageDao.getAggregatedCountForUser(userId, dimensionList);
+	}
+
+	@Override
+	public QueryResults<StorageUsage> getUsageInRangeForUser(String userId, Integer offset, Integer limit) {
+		List<StorageUsage> storageUsageList = storageUsageDao.getUsageInRangeForUser(userId, offset, offset + limit);
+		long totalCount = storageUsageDao.getCountForUser(userId).longValue();
 		QueryResults<StorageUsage> queryResults = new QueryResults<StorageUsage>(storageUsageList, totalCount);
 		return queryResults;
+	}
+
+	@Override
+	public StorageUsageSummaryList getUsageByUserInRange(Integer offset, Integer limit) {
+		return storageUsageDao.getAggregatedUsageByUserInRange(offset, offset + limit);
+	}
+
+	@Override
+	public StorageUsageSummaryList getUsageByNodeInRange(Integer offset, Integer limit) {
+		return storageUsageDao.getAggregatedUsageByNodeInRange(offset, offset + limit);
+	}
+
+	@Override
+	public StorageUsageSummaryList getCountByUserInRange(Integer offset, Integer limit) {
+		return storageUsageDao.getAggregatedCountByUserInRange(offset, offset + limit);
+	}
+
+	@Override
+	public StorageUsageSummaryList getCountByNodeInRange(Integer offset, Integer limit) {
+		return storageUsageDao.getAggregatedCountByNodeInRange(offset, offset + limit);
 	}
 }
