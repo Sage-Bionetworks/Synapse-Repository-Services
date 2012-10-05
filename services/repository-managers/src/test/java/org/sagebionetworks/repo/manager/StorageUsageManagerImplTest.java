@@ -40,7 +40,7 @@ public class StorageUsageManagerImplTest {
 		ReflectionTestUtils.setField(man, "storageUsageDao", mockDao);
 
 		// Test
-		QueryResults<StorageUsage> results = man.getStorageUsage(userId, offset, limit);
+		QueryResults<StorageUsage> results = man.getUsageInRangeForUser(userId, offset, limit);
 		Assert.assertEquals(total, results.getTotalNumberOfResults());
 		Assert.assertEquals(storageList.size(), results.getResults().size());
 		Assert.assertEquals(s1, results.getResults().get(0));
