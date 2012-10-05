@@ -69,7 +69,7 @@ public class StorageUsageController extends BaseController {
 		addDimension(sd3, dList);
 
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		StorageUsageSummaryList storageSummaries = service.getStorageUsage(currUserId, currUserId, dList);
+		StorageUsageSummaryList storageSummaries = service.getUsageForUser(currUserId, currUserId, dList);
 		return storageSummaries;
 	}
 
@@ -112,7 +112,7 @@ public class StorageUsageController extends BaseController {
 		addDimension(sd3, dList);
 
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		StorageUsageSummaryList storageSummaries = service.getStorageUsage(currUserId, userId, dList);
+		StorageUsageSummaryList storageSummaries = service.getUsageForUser(currUserId, userId, dList);
 		return storageSummaries;
 	}
 
@@ -132,7 +132,7 @@ public class StorageUsageController extends BaseController {
 			throws NotFoundException, DatastoreException {
 		String url = request.getServletPath() + UrlHelpers.STORAGE_DETAILS; // XXX: Need a better way to wire in the URL
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		PaginatedResults<StorageUsage> results = service.getStorageUsage(currUserId, currUserId, offset, limit, url);
+		PaginatedResults<StorageUsage> results = service.getUsageInRangeForUser(currUserId, currUserId, offset, limit, url);
 		return results;
 	}
 
@@ -160,7 +160,7 @@ public class StorageUsageController extends BaseController {
 			throws UnauthorizedException, NotFoundException, DatastoreException {
 		String url = request.getServletPath() + UrlHelpers.STORAGE_DETAILS_USER_ID; // XXX: Need a better way to wire in the URL
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		PaginatedResults<StorageUsage> results = service.getStorageUsage(currUserId, userId, offset, limit, url);
+		PaginatedResults<StorageUsage> results = service.getUsageInRangeForUser(currUserId, userId, offset, limit, url);
 		return results;
 	}
 
