@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Retrieves the storage usage data for a user.
+ * Retrieves storage usage data.
  *
  * @author ewu
  */
@@ -56,7 +56,7 @@ public class StorageUsageController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_SUMMARY, method = RequestMethod.GET)
-	public @ResponseBody StorageUsageSummaryList getStorageUsage(
+	public @ResponseBody StorageUsageSummaryList getUsageForCurrentUser(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String currUserId,
 			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_1_PARAM, required = false) String sd1,
 			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_2_PARAM, required = false) String sd2,
@@ -98,7 +98,7 @@ public class StorageUsageController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_SUMMARY_USER_ID, method = RequestMethod.GET)
-	public @ResponseBody StorageUsageSummaryList getStorageUsageForUser(
+	public @ResponseBody StorageUsageSummaryList getUsageForUser(
 			@PathVariable(value = UrlHelpers.STORAGE_USER_ID) String userId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String currUserId,
 			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_1_PARAM, required = false) String sd1,
@@ -124,7 +124,7 @@ public class StorageUsageController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_DETAILS, method = RequestMethod.GET)
-	public @ResponseBody PaginatedResults<StorageUsage> getItemizedStorageUsage(
+	public @ResponseBody PaginatedResults<StorageUsage> getItemizedStorageUsageForCurrentUser(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currUserId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
