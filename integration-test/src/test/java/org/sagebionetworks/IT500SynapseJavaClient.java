@@ -20,8 +20,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
-
 import org.apache.http.HttpException;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -223,6 +221,14 @@ public class IT500SynapseJavaClient {
 	
 	@Test
 	public void testUpdateACLRecursive() throws Exception {
+		// Create resource access for me
+		UserProfile myProfile = synapse.getMyProfile();
+		Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
+		accessTypes.addAll(Arrays.asList(ACCESS_TYPE.values()));
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(myProfile.getOwnerId()));
+		ra.setAccessType(accessTypes);
+		
 		// retrieve parent acl
 		AccessControlList parentAcl = synapse.getACL(project.getId());
 
@@ -236,6 +242,9 @@ public class IT500SynapseJavaClient {
 		// assign new ACL to child
 		childAcl = new AccessControlList();
 		childAcl.setId(dataset.getId());
+		Set<ResourceAccess> resourceAccesses = new HashSet<ResourceAccess>();
+		resourceAccesses.add(ra);
+		childAcl.setResourceAccess(resourceAccesses);
 		childAcl = synapse.createACL(childAcl);
 		
 		// retrieve child acl - should get child's
@@ -469,6 +478,14 @@ public class IT500SynapseJavaClient {
 	
 	@Test
 	public void testJavaClientCreateUpdateEntityBundle() throws SynapseException {
+		// Create resource access for me
+		UserProfile myProfile = synapse.getMyProfile();
+		Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
+		accessTypes.addAll(Arrays.asList(ACCESS_TYPE.values()));
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(myProfile.getOwnerId()));
+		ra.setAccessType(accessTypes);
+		
 		// Create an entity		
 		Study s1 = new Study();
 		s1.setName("Dummy Study 1");
@@ -482,8 +499,9 @@ public class IT500SynapseJavaClient {
 		
 		// Create ACL for this entity
 		AccessControlList acl1 = new AccessControlList();
-		Set<ResourceAccess> resourceAccess = new TreeSet<ResourceAccess>();
-		acl1.setResourceAccess(resourceAccess);
+		Set<ResourceAccess> resourceAccesses = new HashSet<ResourceAccess>();
+		resourceAccesses.add(ra);
+		acl1.setResourceAccess(resourceAccesses);
 		
 		// Create the bundle, verify contents
 		EntityBundleCreate ebc = new EntityBundleCreate();
