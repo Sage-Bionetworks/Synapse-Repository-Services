@@ -116,29 +116,13 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		" FROM "+TABLE_NODE+" n "+
 		" ORDER BY n."+COL_NODE_ID+
 		" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-
-	// select n.id, n.created_by, n.etag, n.parent_id, n.benefactor_id, r.modified_by
-	// from jdonode n, jdorevison r
-	// where n.id=r.owner_node_id order by n.id limit L offset O
-	private static final String SQL_GET_NODES_AND_DEPENDENCIES_PAGINATED =
-		"SELECT n."+COL_NODE_ID+", n."+COL_NODE_CREATED_BY+", n."+COL_NODE_ETAG+", n."+COL_NODE_PARENT_ID+
-			", n."+COL_NODE_BENEFACTOR_ID+", r."+COL_REVISION_MODIFIED_BY+
-			" FROM "+TABLE_NODE+" n, "+TABLE_REVISION+" r "+
-			" WHERE n."+COL_NODE_ID+"=r."+COL_REVISION_OWNER_NODE+" ORDER BY n."+COL_NODE_ID+
-			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-
-	// find the principal dependencies created by the ACLs on auth benefactor nodes
-	// Note, we identify the benefactor nodes by the fact that they are their own benefactor
-	// below 'LIST' is the list of ids returned by the paginated query above
-	//
-	// select n.id, ra.group_id
-	// from jdonode n, acl acl, jdoresourceaccess ra
-	// where n.id=acl.owner_id_column and ra.owner_id=acl.id and n.id=n.benefactor_id AND n.id in (:LIST)
-	private static final String SQL_GET_BENEFACTORS_DEPENDENCIES =
-		"SELECT n."+COL_NODE_ID+", ra."+COL_RESOURCE_ACCESS_GROUP_ID+
-		" FROM "+TABLE_NODE+" n, "+TABLE_ACCESS_CONTROL_LIST+" acl, "+TABLE_RESOURCE_ACCESS+" ra "+
-		" WHERE n."+COL_NODE_ID+"=acl."+ACL_OWNER_ID_COLUMN+" and ra."+COL_RESOURCE_ACCESS_OWNER+"=acl."+ACL_OWNER_ID_COLUMN+
-		" AND n."+COL_NODE_ID+"=n."+COL_NODE_BENEFACTOR_ID+" AND n."+COL_NODE_ID+" in (:"+COL_NODE_ID+")";
+	
+	// get all dependencies , paginated
+	private static final String SQL_GET_NODES_PAGINATED_DEPENDENCIES =
+		"SELECT n."+COL_NODE_ID+", n."+COL_NODE_ETAG+", n."+COL_NODE_PARENT_ID+", n."+COL_NODE_BENEFACTOR_ID+
+		" FROM "+TABLE_NODE+" n "+
+		" ORDER BY n."+COL_NODE_ID+
+		" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
 	// This is better suited for simple JDBC query.
 	@Autowired
@@ -1112,88 +1096,121 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		// if we don't want dependencies then use an alternate, faster query
 		if (!includeDependencies) return getMigrationObjectDataWithoutDependencies(offset, limit);
 		
-		// for each node, need to get its ID, etag, parent, creator, modifier, and everything referenced by its ACL
-		// first get all the dependencies EXCEPT those of the ACL (include the auth-benefactor dependency which
-		// implicitly makes the node dependent on its ACL)
-		// select n.id, n.created_by, n.etag, n.parent_id, n.benefactor_id, r.modified_by
-		// from jdonode n, jdorevison r
-		// where n.id=r.owner_node_id order by n.id limit L offset O
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
-
-		final List<Long> benefactorIDList = new ArrayList<Long>();
-
-		List<MigratableObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_AND_DEPENDENCIES_PAGINATED, new RowMapper<MigratableObjectData>() {
+		// Note: our goal here is not to list every dependency, but rather just the entity dependencies.
+		List<MigratableObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_PAGINATED_DEPENDENCIES, new RowMapper<MigratableObjectData>() {
 			@Override
 			public MigratableObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
 				MigratableObjectData data = new MigratableObjectData();
 				long nodeId = rs.getLong(COL_NODE_ID);
 				data.setId(ObjectDescriptorUtils.createEntityObjectDescriptor(nodeId));
 				data.setEtag(rs.getString(COL_NODE_ETAG));
-				Set<MigratableObjectDescriptor> dependencies = new HashSet<MigratableObjectDescriptor>();
-
-				long createdBy = rs.getLong(COL_NODE_CREATED_BY);
-				dependencies.add(ObjectDescriptorUtils.createPrincipalObjectDescriptor(createdBy));
-				long modifiedBy = rs.getLong(COL_REVISION_MODIFIED_BY);
-				dependencies.add(ObjectDescriptorUtils.createPrincipalObjectDescriptor(modifiedBy));					
-				long parentId = rs.getLong(COL_NODE_PARENT_ID); // can be null (in which case it's set to 0)
-				if (!rs.wasNull()) {
-					dependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(parentId));
+				// add the parent and benefactor as a dependency
+				Set<MigratableObjectDescriptor> dependependencies = new HashSet<MigratableObjectDescriptor>(2);
+				// this is null for the root node
+				Long parentId = rs.getLong(COL_NODE_PARENT_ID);
+				if(!rs.wasNull()){
+					// We had a parent id so add it as a dependency.
+					dependependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(parentId));
 				}
-				long benefactorId = rs.getLong(COL_NODE_BENEFACTOR_ID); // can be null (in which case it's set to 0)
-				if (!rs.wasNull()) {
-					if (benefactorId==nodeId) {
-						// the node is a permissions benefactor
-						benefactorIDList.add(nodeId);
-					} else {
-						// the node has a benefactor which is some other node
-						dependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(benefactorId));
-					}
+				// Add the benefactor if it is not this node.
+				long benefactorId = rs.getLong(COL_NODE_BENEFACTOR_ID);
+				if(nodeId != benefactorId){
+					dependependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(benefactorId));
 				}
-				data.setDependencies(dependencies);
-				return data;
+				data.setDependencies(dependependencies);
+				return  data;
 			}
 		}, params);
-		
-		if (!benefactorIDList.isEmpty()) {
-			// build up a map to let us find MigratableObjectData from a (benefactor) node Id
-			final Map<Long, MigratableObjectData> benefactorMODMap = new HashMap<Long, MigratableObjectData>();
-			for (MigratableObjectData od : ods) {
-				Long id = KeyFactory.stringToKey(od.getId().getId());
-				if (benefactorIDList.contains((id))) { // just for the benefactors!
-					benefactorMODMap.put(id, od);
-				}
-			}
-			
-			params = new MapSqlParameterSource();
-			params.addValue(COL_NODE_ID, benefactorIDList);		
-			
-			// now find the principal dependencies created by the ACLs on auth benefactor nodes
-			// Note, we identify the benefactor nodes by the fact that they are their own benefactor
-			// below 'LIST' is the list of ids returned by the paginated query above (just the benefactor nodes)
-			//
-			// select n.id, ra.group_id
-			// from jdonode n, acl acl, jdoresourceaccess ra
-			// where n.id=acl.owner_id_column and ra.owner_id=acl.id and n.id=n.benefactor_id AND n.id in (:LIST)
-			this.simpleJdbcTemplate.query(SQL_GET_BENEFACTORS_DEPENDENCIES, new RowMapper<Integer>() {
-				@Override
-				public Integer mapRow(ResultSet rs, int rowNum) throws SQLException {
-					long nodeId = rs.getLong(COL_NODE_ID);
-					MigratableObjectData od = benefactorMODMap.get(nodeId);
-					if (od==null) throw new IllegalStateException("Node "+nodeId+" missing from "+benefactorMODMap.keySet());
-					Collection<MigratableObjectDescriptor> dependencies = od.getDependencies();
-					MigratableObjectDescriptor aclMember = ObjectDescriptorUtils.createPrincipalObjectDescriptor(rs.getLong(COL_RESOURCE_ACCESS_GROUP_ID));
-					if (!dependencies.contains(aclMember)) dependencies.add(aclMember);
-					return 0;
-				}
-			}, params);
-		}
-		
 		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
 		queryResults.setResults(ods);
 		queryResults.setTotalNumberOfResults((int)getCount());
 		return queryResults;
+		
+//		// for each node, need to get its ID, etag, parent, creator, modifier, and everything referenced by its ACL
+//		// first get all the dependencies EXCEPT those of the ACL (include the auth-benefactor dependency which
+//		// implicitly makes the node dependent on its ACL)
+//		// select n.id, n.created_by, n.etag, n.parent_id, n.benefactor_id, r.modified_by
+//		// from jdonode n, jdorevison r
+//		// where n.id=r.owner_node_id order by n.id limit L offset O
+//		MapSqlParameterSource params = new MapSqlParameterSource();
+//		params.addValue(OFFSET_PARAM_NAME, offset);
+//		params.addValue(LIMIT_PARAM_NAME, limit);
+//
+//		final List<Long> benefactorIDList = new ArrayList<Long>();
+//
+//		List<MigratableObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_AND_DEPENDENCIES_PAGINATED, new RowMapper<MigratableObjectData>() {
+//			@Override
+//			public MigratableObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
+//				MigratableObjectData data = new MigratableObjectData();
+//				long nodeId = rs.getLong(COL_NODE_ID);
+//				data.setId(ObjectDescriptorUtils.createEntityObjectDescriptor(nodeId));
+//				data.setEtag(rs.getString(COL_NODE_ETAG));
+//				Set<MigratableObjectDescriptor> dependencies = new HashSet<MigratableObjectDescriptor>();
+//
+//				long createdBy = rs.getLong(COL_NODE_CREATED_BY);
+//				dependencies.add(ObjectDescriptorUtils.createPrincipalObjectDescriptor(createdBy));
+//				long modifiedBy = rs.getLong(COL_REVISION_MODIFIED_BY);
+//				dependencies.add(ObjectDescriptorUtils.createPrincipalObjectDescriptor(modifiedBy));					
+//				long parentId = rs.getLong(COL_NODE_PARENT_ID); // can be null (in which case it's set to 0)
+//				if (!rs.wasNull()) {
+//					dependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(parentId));
+//				}
+//				long benefactorId = rs.getLong(COL_NODE_BENEFACTOR_ID); // can be null (in which case it's set to 0)
+//				if (!rs.wasNull()) {
+//					if (benefactorId==nodeId) {
+//						// the node is a permissions benefactor
+//						benefactorIDList.add(nodeId);
+//					} else {
+//						// the node has a benefactor which is some other node
+//						dependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(benefactorId));
+//					}
+//				}
+//				data.setDependencies(dependencies);
+//				return data;
+//			}
+//		}, params);
+//		
+//		if (!benefactorIDList.isEmpty()) {
+//			// build up a map to let us find MigratableObjectData from a (benefactor) node Id
+//			final Map<Long, MigratableObjectData> benefactorMODMap = new HashMap<Long, MigratableObjectData>();
+//			for (MigratableObjectData od : ods) {
+//				Long id = KeyFactory.stringToKey(od.getId().getId());
+//				if (benefactorIDList.contains((id))) { // just for the benefactors!
+//					benefactorMODMap.put(id, od);
+//				}
+//			}
+//			
+//			params = new MapSqlParameterSource();
+//			params.addValue(COL_NODE_ID, benefactorIDList);		
+//			
+//			// now find the principal dependencies created by the ACLs on auth benefactor nodes
+//			// Note, we identify the benefactor nodes by the fact that they are their own benefactor
+//			// below 'LIST' is the list of ids returned by the paginated query above (just the benefactor nodes)
+//			//
+//			// select n.id, ra.group_id
+//			// from jdonode n, acl acl, jdoresourceaccess ra
+//			// where n.id=acl.owner_id_column and ra.owner_id=acl.id and n.id=n.benefactor_id AND n.id in (:LIST)
+//			this.simpleJdbcTemplate.query(SQL_GET_BENEFACTORS_DEPENDENCIES, new RowMapper<Integer>() {
+//				@Override
+//				public Integer mapRow(ResultSet rs, int rowNum) throws SQLException {
+//					long nodeId = rs.getLong(COL_NODE_ID);
+//					MigratableObjectData od = benefactorMODMap.get(nodeId);
+//					if (od==null) throw new IllegalStateException("Node "+nodeId+" missing from "+benefactorMODMap.keySet());
+//					Collection<MigratableObjectDescriptor> dependencies = od.getDependencies();
+//					MigratableObjectDescriptor aclMember = ObjectDescriptorUtils.createPrincipalObjectDescriptor(rs.getLong(COL_RESOURCE_ACCESS_GROUP_ID));
+//					if (!dependencies.contains(aclMember)) dependencies.add(aclMember);
+//					return 0;
+//				}
+//			}, params);
+//		}
+//		
+//		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
+//		queryResults.setResults(ods);
+//		queryResults.setTotalNumberOfResults((int)getCount());
+//		return queryResults;
 	}
 
 	@Override
