@@ -20,9 +20,33 @@ public interface StorageLocationDAO {
 	void replaceLocationData(StorageLocations locations) throws DatastoreException;
 
 	/**
+	 * Gets the total usage in bytes.
+	 */
+	Long getUsage() throws DatastoreException;
+
+	/**
 	 * Gets the total usage in bytes for the specified user.
 	 */
-	Long getTotalUsage(String userId) throws DatastoreException;
+	Long getUsageForUser(String userId) throws DatastoreException;
+
+	/**
+	 * Gets the count of storage items.
+	 */
+	Long getCount() throws DatastoreException;
+
+	/**
+	 * Gets the count of storage items for the specified user.
+	 */
+	Long getCountForUser(String userId) throws DatastoreException;
+
+	/**
+	 * Gets the aggregated usage in bytes. Numbers are aggregated by the supplied
+	 * dimension list. If the list of dimensions is empty, this will return the grand total.
+	 *
+	 * @throws InvalidModelException Dimensions have invalid column names
+	 */
+	StorageUsageSummaryList getAggregatedUsage(List<StorageUsageDimension> dimensionList)
+			throws DatastoreException, InvalidModelException;
 
 	/**
 	 * Gets the aggregated totals in bytes for the specified user. Numbers are
@@ -31,18 +55,54 @@ public interface StorageLocationDAO {
 	 *
 	 * @throws InvalidModelException Dimensions have invalid column names
 	 */
-	StorageUsageSummaryList getAggregatedUsage(String userId, List<StorageUsageDimension> dimensionList)
+	StorageUsageSummaryList getAggregatedUsageForUser(String userId,
+			List<StorageUsageDimension> dimensionList)
 			throws InvalidModelException, DatastoreException;
+
+	/**
+	 * Gets the aggregated counts of storage items. Numbers are aggregated by the supplied
+	 * dimension list. If the list of dimensions is empty, this will return the total count.
+	 *
+	 * @throws InvalidModelException Dimensions have invalid column names
+	 */
+	StorageUsageSummaryList getAggregatedCount(List<StorageUsageDimension> dimensionList)
+			throws DatastoreException, InvalidModelException;
+
+	/**
+	 * Gets the aggregated counts of storage items for the specified user. Numbers are
+	 * aggregated by the supplied dimension list. If the list of dimensions is empty,
+	 * this will return the total count.
+	 *
+	 * @throws InvalidModelException Dimensions have invalid column names
+	 */
+	StorageUsageSummaryList getAggregatedCountForUser(String userId,
+			List<StorageUsageDimension> dimensionList)
+			throws DatastoreException, InvalidModelException;
 
 	/**
 	 * Gets detailed, itemized storage usage for the specified user. Results are paged as
 	 * specified by the begin (inclusive) and the end (exclusive) indices.
 	 */
-	List<StorageUsage> getStorageUsageInRange(String userId, long beginIncl, long endExcl)
+	List<StorageUsage> getUsageInRangeForUser(String userId, long beginIncl, long endExcl)
 			throws DatastoreException;
 
 	/**
-	 * Gets the count of storage items for the specified user.
+	 * Size in bytes aggregated by user ID.
 	 */
-	Long getCount(String userId) throws DatastoreException;
+	StorageUsageSummaryList getAggregatedUsageByUserInRange(long beginIncl, long endExcl);
+
+	/**
+	 * Size in bytes aggregated by node ID.
+	 */
+	StorageUsageSummaryList getAggregatedUsageByNodeInRange(long beginIncl, long endExcl);
+
+	/**
+	 * Count (of storage items) aggregated by user ID.
+	 */
+	StorageUsageSummaryList getAggregatedCountByUserInRange(long beginIncl, long endExcl);
+
+	/**
+	 * Count (of storage items) aggregated by node ID.
+	 */
+	StorageUsageSummaryList getAggregatedCountByNodeInRange(long beginIncl, long endExcl);
 }
