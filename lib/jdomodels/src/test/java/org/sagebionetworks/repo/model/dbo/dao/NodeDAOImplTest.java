@@ -204,23 +204,9 @@ public class NodeDAOImplTest {
 		for (MigratableObjectData od : ods) {
 			if (od.getId().getId().equals(id)) {
 				foundId=true;
-				// since there's no parent or ACL, the only dependency is on the creator/modifier
+				// since there's no parent or ACL, the only dependency size is zero.
 				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
-				boolean foundCreator = false;
-				boolean foundModifier = false;
-				for (MigratableObjectDescriptor mod : deps) {
-					if (mod.getId().equals(creatorUserGroupId.toString())) {
-						foundCreator = true;
-						assertEquals(MigratableObjectType.PRINCIPAL, mod.getType());
-					}
-					if (mod.getId().equals(altUserGroupId.toString())) {
-						foundModifier = true;
-						assertEquals(MigratableObjectType.PRINCIPAL, mod.getType());
-					}
-				}
-				assertTrue(foundCreator);
-				assertTrue(foundModifier);
+				assertEquals("id: "+id+" dependencies: "+deps.toString(), 0, deps.size());
 			}
 			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
 		}
@@ -408,40 +394,21 @@ public class NodeDAOImplTest {
 				foundId=true;
 				// dependencies are the creator/modifier and the parent/benefactor
 				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
-				boolean foundCreator = false;
+				assertEquals("id: "+id+" dependencies: "+deps.toString(), 1, deps.size());
 				boolean foundParent = false;
 				for (MigratableObjectDescriptor d : deps) {
-					if (creatorUserGroupId.toString().equals(d.getId())) {
-						foundCreator=true;
-						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
-					} else if (parentId.equals(d.getId())) {
+					if (parentId.equals(d.getId())) {
 						foundParent=true;
 						assertEquals(MigratableObjectType.ENTITY, d.getType());
 					}
 				}
-				assertTrue(foundCreator);
 				assertTrue(foundParent);
 			}
 			if (od.getId().getId().equals(parentId)) {
 				foundParentId = true;
 				// dependencies are the creator/modifier and the parent/benefactor
 				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
-				boolean foundCreator = false;
-				boolean foundACLmember = false;
-				for (MigratableObjectDescriptor d : deps) {
-					if (creatorUserGroupId.toString().equals(d.getId())) {
-						foundCreator=true;
-						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
-					} else if (altUserGroupId.toString().equals(d.getId())) { // referenced in the ACL
-						foundACLmember=true;
-						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
-					}
-				}
-				assertTrue(foundCreator);
-				assertTrue(foundACLmember);
-			
+				assertEquals("id: "+id+" dependencies: "+deps.toString(), 0, deps.size());
 			}
 		}
 		assertTrue(foundId);
@@ -458,17 +425,13 @@ public class NodeDAOImplTest {
 		for (MigratableObjectData od : ods) {
 			if (od.getId().getId().equals(id)) {
 				foundId=true;
-				// dependencies are the creator/modifier, the parent and the grandparent/benefactor
+				// dependencies are the parent and the grandparent/benefactor
 				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 3, deps.size());
-				boolean foundCreator = false;
+				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
 				boolean foundParent = false;
 				boolean foundBenefactor = false;
 				for (MigratableObjectDescriptor d : deps) {
-					if (creatorUserGroupId.toString().equals(d.getId())) {
-						foundCreator=true;
-						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
-					} else if (parentId.equals(d.getId())) {
+					if (parentId.equals(d.getId())) {
 						foundParent=true;
 						assertEquals(MigratableObjectType.ENTITY, d.getType());
 					} else if (grandParentId.equals(d.getId())) {
@@ -476,7 +439,6 @@ public class NodeDAOImplTest {
 						assertEquals(MigratableObjectType.ENTITY, d.getType());
 					}
 				}
-				assertTrue(foundCreator);
 				assertTrue(foundParent);
 				assertTrue(foundBenefactor);
 			}
