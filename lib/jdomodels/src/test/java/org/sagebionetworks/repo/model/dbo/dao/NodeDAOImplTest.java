@@ -415,6 +415,28 @@ public class NodeDAOImplTest {
 		assertTrue(foundParentId);
 	}
 	
+	/**
+	 * This is a check for PLFM-1537
+	 * @param id
+	 * @throws Exception
+	 */
+	public void checkMigrationDependenciesWithMultipleRevisions(String id) throws Exception {
+		// first check what happens if dependencies are NOT requested
+		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
+		List<MigratableObjectData> ods = results.getResults();
+		assertEquals(ods.size(), results.getTotalNumberOfResults());
+		assertTrue(ods.size()>0);
+		int count = 0;
+		for (MigratableObjectData od : ods) {
+			if (od.getId().getId().equals(id)) {
+				count++;
+			}
+			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
+			
+		}
+		assertEquals("An entity with multiple revsions should be listed once and only onces in the migration data.",1, count);
+	}
+	
 	public void checkMigrationDependenciesWithGrandParent(String id, String parentId, String grandParentId) throws Exception {
 		// query for objects WITH dependencies
 		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, true);
@@ -711,7 +733,7 @@ public class NodeDAOImplTest {
 			fail("This should have failed due to a duplicate version label");
 		}catch(IllegalArgumentException e){
 			// Expected
-			System.out.println(e.getMessage());
+//			System.out.println(e.getMessage());
 		}
 		// Since creation of a new version failed we should be back to one version
 		loaded = nodeDao.getNode(id);
@@ -733,6 +755,10 @@ public class NodeDAOImplTest {
 		assertEquals(newRev.getVersionComment(), loaded.getVersionComment());
 		assertEquals(newRev.getVersionLabel(), loaded.getVersionLabel());
 		assertEquals(newRev.getModifiedByPrincipalId(), newRev.getModifiedByPrincipalId());
+		
+		// Validate that a node with multiple revisions is only listed once.
+		// This was added for PLFM-1537
+		checkMigrationDependenciesWithMultipleRevisions(id);
 	}
 	
 	@Test
@@ -1094,7 +1120,7 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testCreateRevision() throws NotFoundException, DatastoreException, InvalidModelException {
+	public void testCreateRevision() throws Exception {
 		Long currentVersionNumver = new Long(8);
 		Node node = privateCreateNew("parent");
 		// Start with a node already on an advanced version
@@ -1141,7 +1167,7 @@ public class NodeDAOImplTest {
 		assertNotNull(clone);
 		assertEquals("value on new", clone.getNamedAnnotations().getAnnotationsForName("newNamed").getSingleValue(keyOnNewVersion));
 		assertEquals("1.0", clone.getLabel());
-		assertEquals(newRev, clone);		
+		assertEquals(newRev, clone);
 	}
 
 	@Test
