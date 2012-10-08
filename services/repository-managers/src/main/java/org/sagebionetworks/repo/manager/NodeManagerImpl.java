@@ -512,7 +512,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public long getVersionCount(String entityId)
 			throws NotFoundException, DatastoreException {
 		// TODO Auto-generated method stub
-		return 0;
+		return nodeDao.getVersionCount(entityId);
 	}
 
 	@Override
