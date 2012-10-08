@@ -12,10 +12,17 @@
 			},
 			"required": true
 		},
-		"aggregatedValue": {
-			"description": "Aggregated value. For example, total size in bytes, count of storage items.",
+		"aggregatedSize": {
+			"description": "Aggregated size in bytes.",
 			"type": "integer",
-			"required": false
+			"required": true,
+			"default":"0"
+		},
+		"aggregatedCount": {
+			"description": "Aggregated count of storage items.",
+			"type": "integer",
+			"required": true,
+			"default":"0"
 		}
 	}
 }

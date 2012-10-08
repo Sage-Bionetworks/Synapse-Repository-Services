@@ -50,13 +50,8 @@ public class StorageUsageServiceImplTest {
 		Mockito.when(suMan.getUsage(dList)).thenReturn(susList);
 		Mockito.when(suMan.getUsageForUser(userId, dList)).thenReturn(susList);
 		Mockito.when(suMan.getUsageForUser(adminUserId, dList)).thenReturn(susList);
-		Mockito.when(suMan.getCount(dList)).thenReturn(susList);
-		Mockito.when(suMan.getCountForUser(userId, dList)).thenReturn(susList);
-		Mockito.when(suMan.getCountForUser(adminUserId, dList)).thenReturn(susList);
 		Mockito.when(suMan.getUsageByNodeInRange(offset, limit)).thenReturn(susList);
 		Mockito.when(suMan.getUsageByUserInRange(offset, limit)).thenReturn(susList);
-		Mockito.when(suMan.getCountByNodeInRange(offset, limit)).thenReturn(susList);
-		Mockito.when(suMan.getCountByUserInRange(offset, limit)).thenReturn(susList);
 
 		StorageUsageService srv = suService;
 		if(AopUtils.isAopProxy(srv) && srv instanceof Advised) {
@@ -97,52 +92,9 @@ public class StorageUsageServiceImplTest {
 	}
 
 	@Test
-	public void testGetCountAdminUser() throws Exception {
-		Assert.assertNotNull(suService.getCount(adminUserId, dList));
-	}
-
-	@Test(expected=UnauthorizedException.class)
-	public void testGetCountNonAdminUser() throws Exception {
-		suService.getCount(userId, dList);
-		Assert.fail();
-	}
-
-	@Test
-	public void testGetCountForUserSameUser() throws Exception {
-		StorageUsageSummaryList results = suService.getCountForUser(userId, userId, dList);
-		Assert.assertNotNull(results);
-	}
-
-	@Test
-	public void testGetCountForUserAdminUser() throws Exception {
-		StorageUsageSummaryList results = suService.getCountForUser(adminUserId, userId, dList);
-		Assert.assertNotNull(results);
-	}
-
-	@Test(expected=UnauthorizedException.class)
-	public void testGetCountForUserNonAdminUser() throws Exception {
-		suService.getCountForUser(userId, adminUserId, dList);
-		Assert.fail();
-	}
-
-	@Test
 	public void testGetAggregationInRange() throws Exception {
-		Assert.assertNotNull(suService.getCountByNodeInRange(adminUserId, offset, limit));
-		Assert.assertNotNull(suService.getCountByUserInRange(adminUserId, offset, limit));
 		Assert.assertNotNull(suService.getUsageByNodeInRange(adminUserId, offset, limit));
 		Assert.assertNotNull(suService.getUsageByUserInRange(adminUserId, offset, limit));
-	}
-
-	@Test(expected=UnauthorizedException.class)
-	public void testGetCountByNodeInRangeNonAdmin() throws Exception {
-		suService.getCountByNodeInRange(userId, offset, limit);
-		Assert.fail();
-	}
-
-	@Test(expected=UnauthorizedException.class)
-	public void testGetCountByUserInRangeNonAdmin() throws Exception {
-		suService.getCountByUserInRange(userId, offset, limit);
-		Assert.fail();
 	}
 
 	@Test(expected=UnauthorizedException.class)
@@ -155,5 +107,20 @@ public class StorageUsageServiceImplTest {
 	public void testGetUsageByUserInRangeNonAdmin() throws Exception {
 		suService.getUsageByUserInRange(userId, offset, limit);
 		Assert.fail();
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetUsageForUser() throws Exception {
+		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
+		dList.add(StorageUsageDimension.CONTENT_TYPE);
+		dList.add(StorageUsageDimension.USER_ID); // IllegalArgumentException
+		suService.getUsageForUser(adminUserId, userId, dList);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testGetUsage() {
+		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
+		dList.add(StorageUsageDimension.NODE_ID);
+		suService.getUsage(adminUserId, dList);
 	}
 }

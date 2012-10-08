@@ -22,22 +22,22 @@ public interface StorageLocationDAO {
 	/**
 	 * Gets the total usage in bytes.
 	 */
-	Long getUsage() throws DatastoreException;
+	Long getTotalSize() throws DatastoreException;
 
 	/**
 	 * Gets the total usage in bytes for the specified user.
 	 */
-	Long getUsageForUser(String userId) throws DatastoreException;
+	Long getTotalSizeForUser(String userId) throws DatastoreException;
 
 	/**
 	 * Gets the count of storage items.
 	 */
-	Long getCount() throws DatastoreException;
+	Long getTotalCount() throws DatastoreException;
 
 	/**
 	 * Gets the count of storage items for the specified user.
 	 */
-	Long getCountForUser(String userId) throws DatastoreException;
+	Long getTotalCountForUser(String userId) throws DatastoreException;
 
 	/**
 	 * Gets the aggregated usage in bytes. Numbers are aggregated by the supplied
@@ -60,26 +60,6 @@ public interface StorageLocationDAO {
 			throws InvalidModelException, DatastoreException;
 
 	/**
-	 * Gets the aggregated counts of storage items. Numbers are aggregated by the supplied
-	 * dimension list. If the list of dimensions is empty, this will return the total count.
-	 *
-	 * @throws InvalidModelException Dimensions have invalid column names
-	 */
-	StorageUsageSummaryList getAggregatedCount(List<StorageUsageDimension> dimensionList)
-			throws DatastoreException, InvalidModelException;
-
-	/**
-	 * Gets the aggregated counts of storage items for the specified user. Numbers are
-	 * aggregated by the supplied dimension list. If the list of dimensions is empty,
-	 * this will return the total count.
-	 *
-	 * @throws InvalidModelException Dimensions have invalid column names
-	 */
-	StorageUsageSummaryList getAggregatedCountForUser(String userId,
-			List<StorageUsageDimension> dimensionList)
-			throws DatastoreException, InvalidModelException;
-
-	/**
 	 * Gets detailed, itemized storage usage for the specified user. Results are paged as
 	 * specified by the begin (inclusive) and the end (exclusive) indices.
 	 */
@@ -95,14 +75,4 @@ public interface StorageLocationDAO {
 	 * Size in bytes aggregated by node ID.
 	 */
 	StorageUsageSummaryList getAggregatedUsageByNodeInRange(long beginIncl, long endExcl);
-
-	/**
-	 * Count (of storage items) aggregated by user ID.
-	 */
-	StorageUsageSummaryList getAggregatedCountByUserInRange(long beginIncl, long endExcl);
-
-	/**
-	 * Count (of storage items) aggregated by node ID.
-	 */
-	StorageUsageSummaryList getAggregatedCountByNodeInRange(long beginIncl, long endExcl);
 }

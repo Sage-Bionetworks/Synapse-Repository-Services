@@ -1,15 +1,17 @@
 {
 	"description": "JSON schema for a list of summaries of storage usage.",
 	"properties": {
-		"usage": {
-			"description": "The total usage in bytes of all the storage items asked by the query.",
+		"totalSize": {
+			"description": "The total size in bytes of all the storage items asked by the query.",
 			"type": "integer",
-			"required": true
+			"required": true,
+			"default": "0"
 		},
-		"count": {
+		"totalCount": {
 			"description": "The count of all the storage items asked by the query.",
 			"type": "integer",
-			"required": true
+			"required": true,
+			"default": "0"
 		},
 		"summaryList": {
 			"description": "The list of summaries.",
