@@ -130,8 +130,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
 	private static String SQL_GET_ALL_VERSION_INFO_PAGINATED = "SELECT "
-			+ COL_REVISION_NUMBER + "," + COL_REVISION_LABEL + ","
-			+ COL_REVISION_COMMENT + "," + COL_REVISION_MODIFIED_BY + ","
+			+ COL_REVISION_NUMBER + ", " + COL_REVISION_LABEL + ", "
+			+ COL_REVISION_COMMENT + ", " + COL_REVISION_MODIFIED_BY + ", "
 			+ COL_REVISION_MODIFIED_ON + " FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME+" ORDER BY " + COL_REVISION_NUMBER
 			+ " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
@@ -683,7 +683,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	public List<VersionInfo> getVersionsOfEntity(final String entityId, long offset,
 			long limit) throws NotFoundException, DatastoreException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(OWNER_ID_PARAM_NAME, entityId);
+		params.addValue(OWNER_ID_PARAM_NAME, KeyFactory.stringToKey(entityId));
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
 
