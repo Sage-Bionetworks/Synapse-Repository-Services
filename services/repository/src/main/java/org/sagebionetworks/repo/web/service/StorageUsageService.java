@@ -34,27 +34,6 @@ public interface StorageUsageService {
 			throws UnauthorizedException, NotFoundException, DatastoreException;
 
 	/**
-	 * Retrieves the aggregated count of storage items.
-	 *
-	 * @throws UnauthorizedException
-	 *			When the current user is not an administrator.
-	 */
-	StorageUsageSummaryList getCount(String currUserName, List<StorageUsageDimension> dimensionList)
-			throws UnauthorizedException, DatastoreException;;
-
-	/**
-	 * Retrieves the aggregated counts for the specified user.
-	 *
-	 * @throws UnauthorizedException
-	 *			When the current user is not authorized to view the specified user's storage usage.
-	 * @throws NotFoundException
-	 *			When the user does not exist.
-	 */
-	StorageUsageSummaryList getCountForUser(String currUserName, String userName,
-			List<StorageUsageDimension> dimensionList)
-			throws UnauthorizedException, NotFoundException, DatastoreException;
-
-	/**
 	 * Retrieves detailed, itemized usage for the specified user.
 	 *
 	 * @throws UnauthorizedException
@@ -78,19 +57,5 @@ public interface StorageUsageService {
 	 *			When the current user is not an administrator.
 	 */
 	StorageUsageSummaryList getUsageByNodeInRange(String currUserName, Integer offset, Integer limit)
-			throws UnauthorizedException, DatastoreException;
-
-	/**
-	 * @throws UnauthorizedException
-	 *			When the current user is not an administrator.
-	 */
-	StorageUsageSummaryList getCountByUserInRange(String currUserName, Integer offset, Integer limit)
-			throws UnauthorizedException, DatastoreException;
-
-	/**
-	 * @throws UnauthorizedException
-	 *			When the current user is not an administrator.
-	 */
-	StorageUsageSummaryList getCountByNodeInRange(String currUserName, Integer offset, Integer limit)
 			throws UnauthorizedException, DatastoreException;
 }

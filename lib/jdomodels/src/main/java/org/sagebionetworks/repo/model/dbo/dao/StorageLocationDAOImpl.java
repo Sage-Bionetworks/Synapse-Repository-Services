@@ -50,27 +50,30 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 
 	private static final RowMapper<Long> idRowMapper = ParameterizedSingleColumnRowMapper.newInstance(Long.class);
 
-	private static final String SELECT_STORAGE_USAGE =
+	private static final String SELECT_SUM_SIZE =
 			"SELECT SUM(" + COL_STORAGE_LOCATION_CONTENT_SIZE + ")" +
 			" FROM " + TABLE_STORAGE_LOCATION;
 
-	private static final String SELECT_STORAGE_USAGE_FOR_USER =
+	private static final String SELECT_SUM_SIZE_FOR_USER =
 			"SELECT SUM(" + COL_STORAGE_LOCATION_CONTENT_SIZE + ")" +
 			" FROM " + TABLE_STORAGE_LOCATION +
 			" WHERE " + COL_STORAGE_LOCATION_USER_ID + " = :" + COL_STORAGE_LOCATION_USER_ID;
 
-	private static final String SELECT_STORAGE_LOCATION_COUNT =
+	private static final String SELECT_COUNT =
 			"SELECT COUNT(" + COL_STORAGE_LOCATION_ID + ")" +
 			" FROM " + TABLE_STORAGE_LOCATION;
 
-	private static final String SELECT_STORAGE_LOCATION_COUNT_FOR_USER =
+	private static final String SELECT_COUNT_FOR_USER =
 			"SELECT COUNT(" + COL_STORAGE_LOCATION_ID + ")" +
 			" FROM " + TABLE_STORAGE_LOCATION +
 			" WHERE " + COL_STORAGE_LOCATION_USER_ID + " = :" + COL_STORAGE_LOCATION_USER_ID;
 
-	private static final String COL_RESULTS = "RESULTS";
+	private static final String COL_SUM_SIZE = "SUM_SIZE";
+	private static final String COL_COUNT_ID = "COUNT_ID";
 	private static final String SELECT_AGGREGATED_USAGE_PART_1 =
-			"SELECT SUM(" + COL_STORAGE_LOCATION_CONTENT_SIZE + ") AS " + COL_RESULTS;
+			"SELECT" +
+			" SUM(" + COL_STORAGE_LOCATION_CONTENT_SIZE + ") AS " + COL_SUM_SIZE + ", " +
+			" COUNT(" + COL_STORAGE_LOCATION_ID + ") AS " + COL_COUNT_ID;
 	private static final String SELECT_AGGREGATED_USAGE_PART_2 =
 			" FROM " + TABLE_STORAGE_LOCATION +
 			" GROUP BY ";
@@ -79,18 +82,8 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			" WHERE " + COL_STORAGE_LOCATION_USER_ID + " = :" + COL_STORAGE_LOCATION_USER_ID +
 			" GROUP BY ";
 
-	private static final String SELECT_AGGREGATED_COUNT_PART_1 =
-			"SELECT COUNT(" + COL_STORAGE_LOCATION_ID + ") AS " + COL_RESULTS;
-	private static final String SELECT_AGGREGATED_COUNT_PART_2 =
-			" FROM " + TABLE_STORAGE_LOCATION +
-			" GROUP BY ";
-	private static final String SELECT_AGGREGATED_COUNT_FOR_USER_PART_2 =
-			" FROM " + TABLE_STORAGE_LOCATION +
-			" WHERE " + COL_STORAGE_LOCATION_USER_ID + " = :" + COL_STORAGE_LOCATION_USER_ID +
-			" GROUP BY ";
-
 	private static final String ORDER_BY_DESC_LIMIT =
-			" ORDER BY " + COL_RESULTS + " DESC " +
+			" ORDER BY " + COL_SUM_SIZE + " DESC, " + COL_COUNT_ID + " DESC " +
 			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 
 	private static final String SELECT_STORAGE_LOCATION_FOR_USER_PAGINATED =
@@ -144,13 +137,13 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 	}
 
 	@Override
-	public Long getUsage() throws DatastoreException {
-		long total = simpleJdbcTemplate.queryForLong(SELECT_STORAGE_USAGE);
+	public Long getTotalSize() throws DatastoreException {
+		long total = simpleJdbcTemplate.queryForLong(SELECT_SUM_SIZE);
 		return total;
 	}
 
 	@Override
-	public Long getUsageForUser(String userId) throws DatastoreException {
+	public Long getTotalSizeForUser(String userId) throws DatastoreException {
 
 		if (userId == null || userId.isEmpty()) {
 			throw new NullPointerException();
@@ -159,19 +152,19 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		Long userIdLong = KeyFactory.stringToKey(userId);
 		paramMap.addValue(COL_STORAGE_LOCATION_USER_ID, userIdLong);
-		long total = simpleJdbcTemplate.queryForLong(SELECT_STORAGE_USAGE_FOR_USER, paramMap);
+		long total = simpleJdbcTemplate.queryForLong(SELECT_SUM_SIZE_FOR_USER, paramMap);
 
 		return total;
 	}
 
 	@Override
-	public Long getCount() throws DatastoreException {
-		long count = simpleJdbcTemplate.queryForLong(SELECT_STORAGE_LOCATION_COUNT);
+	public Long getTotalCount() throws DatastoreException {
+		long count = simpleJdbcTemplate.queryForLong(SELECT_COUNT);
 		return count;
 	}
 
 	@Override
-	public Long getCountForUser(String userId) throws DatastoreException {
+	public Long getTotalCountForUser(String userId) throws DatastoreException {
 
 		if (userId == null || userId.isEmpty()) {
 			throw new NullPointerException();
@@ -180,7 +173,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		Long userIdLong = KeyFactory.stringToKey(userId);
 		paramMap.addValue(COL_STORAGE_LOCATION_USER_ID, userIdLong);
-		Long count = simpleJdbcTemplate.queryForLong(SELECT_STORAGE_LOCATION_COUNT_FOR_USER, paramMap);
+		Long count = simpleJdbcTemplate.queryForLong(SELECT_COUNT_FOR_USER, paramMap);
 		return count;
 	}
 
@@ -213,39 +206,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 
 		StorageUsageSummaryList summaryList = getAggregatedResultsForUser(userId, dimensionList,
 				SELECT_AGGREGATED_USAGE_PART_1, SELECT_AGGREGATED_USAGE_FOR_USER_PART_2);
-
-		return summaryList;
-	}
-
-	@Override
-	public StorageUsageSummaryList getAggregatedCount(
-			List<StorageUsageDimension> dimensionList)
-			throws DatastoreException, InvalidModelException {
-
-		if (dimensionList == null) {
-			throw new NullPointerException();
-		}
-
-		StorageUsageSummaryList summaryList = getAggregatedResults(dimensionList,
-				SELECT_AGGREGATED_COUNT_PART_1, SELECT_AGGREGATED_COUNT_PART_2);
-
-		return summaryList;
-	}
-
-	@Override
-	public StorageUsageSummaryList getAggregatedCountForUser(String userId,
-			List<StorageUsageDimension> dimensionList)
-			throws DatastoreException, InvalidModelException {
-
-		if (userId == null || userId.isEmpty()) {
-			throw new NullPointerException();
-		}
-		if (dimensionList == null) {
-			throw new NullPointerException();
-		}
-
-		StorageUsageSummaryList summaryList = getAggregatedResultsForUser(userId, dimensionList,
-				SELECT_AGGREGATED_COUNT_PART_1, SELECT_AGGREGATED_COUNT_FOR_USER_PART_2);
 
 		return summaryList;
 	}
@@ -291,40 +251,6 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 
 		usageList = Collections.unmodifiableList(usageList);
 		return usageList;
-	}
-
-	@Override
-	public StorageUsageSummaryList getAggregatedCountByUserInRange(long beginIncl, long endExcl) {
-
-		if (beginIncl >= endExcl) {
-			String msg = "begin must be greater than end (begin = " + beginIncl;
-			msg += "; end = ";
-			msg += endExcl;
-			msg += ")";
-			throw new IllegalArgumentException(msg);
-		}
-
-		StorageUsageSummaryList summaryList = getAggregatedResults(COL_STORAGE_LOCATION_USER_ID,
-				SELECT_AGGREGATED_COUNT_PART_1, SELECT_AGGREGATED_COUNT_PART_2, beginIncl, endExcl);
-
-		return summaryList;
-	}
-
-	@Override
-	public StorageUsageSummaryList getAggregatedCountByNodeInRange(long beginIncl, long endExcl) {
-
-		if (beginIncl >= endExcl) {
-			String msg = "begin must be greater than end (begin = " + beginIncl;
-			msg += "; end = ";
-			msg += endExcl;
-			msg += ")";
-			throw new IllegalArgumentException(msg);
-		}
-
-		StorageUsageSummaryList summaryList = getAggregatedResults(COL_STORAGE_LOCATION_NODE_ID,
-				SELECT_AGGREGATED_COUNT_PART_1, SELECT_AGGREGATED_COUNT_PART_2, beginIncl, endExcl);
-
-		return summaryList;
 	}
 
 	@Override
@@ -456,15 +382,15 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		StorageUsageSummaryList summaryList = new StorageUsageSummaryList();
 
 		if (userId != null) {
-			Long usage = getUsageForUser(userId);
-			summaryList.setUsage(usage);
-			Long count = getCountForUser(userId);
-			summaryList.setCount(count);
+			Long usage = getTotalSizeForUser(userId);
+			summaryList.setTotalSize(usage);
+			Long count = getTotalCountForUser(userId);
+			summaryList.setTotalCount(count);
 		} else {
-			Long usage = getUsage();
-			summaryList.setUsage(usage);
-			Long count = getCount();
-			summaryList.setCount(count);
+			Long usage = getTotalSize();
+			summaryList.setTotalSize(usage);
+			Long count = getTotalCount();
+			summaryList.setTotalCount(count);
 		}
 
 		List<StorageUsageSummary> susList = new ArrayList<StorageUsageSummary>();
@@ -544,17 +470,33 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		assert rowList != null;
 
 		for (Map<String, Object> row : rowList) {
+
 			StorageUsageSummary summary = new StorageUsageSummary();
-			Object sum = row.get(COL_RESULTS);
-			if (sum == null) {
-				summary.setAggregatedValue(0L);
-			} else if (sum instanceof BigDecimal) {
-				summary.setAggregatedValue(((BigDecimal)sum).longValue());
-			} else if (sum instanceof Long) {
-				summary.setAggregatedValue(((Long)sum).longValue());
+
+			Object size = row.get(COL_SUM_SIZE);
+			if (size == null) {
+				summary.setAggregatedSize(0L);
+			} else if (size instanceof BigDecimal) {
+				summary.setAggregatedSize(((BigDecimal)size).longValue());
+			} else if (size instanceof Long) {
+				summary.setAggregatedSize(((Long)size).longValue());
 			} else {
-				throw new DatastoreException("Unknown type of 'sum': " + sum.getClass().getName());
+				throw new DatastoreException("Unknown type of 'size': " + size.getClass().getName());
 			}
+			size = null;
+
+			Object count = row.get(COL_COUNT_ID);
+			if (count == null) {
+				summary.setAggregatedCount(0L);
+			} else if (count instanceof BigDecimal) {
+				summary.setAggregatedCount(((BigDecimal)count).longValue());
+			} else if (count instanceof Long) {
+				summary.setAggregatedCount(((Long)count).longValue());
+			} else {
+				throw new DatastoreException("Unknown type of 'size': " + count.getClass().getName());
+			}
+			count = null;
+
 			List<StorageUsageDimensionValue> dValList = new ArrayList<StorageUsageDimensionValue>();
 			for (String column : columnList) {
 				String value = row.get(column).toString();

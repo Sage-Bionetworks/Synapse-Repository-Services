@@ -6,6 +6,7 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -24,7 +25,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class StorageUsageControllerTest {
 
 	@Test
-	public void testGrandTotal() throws Exception {
+	public void testGrandTotals() throws Exception {
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod("GET");
@@ -44,7 +45,7 @@ public class StorageUsageControllerTest {
 		StorageUsageSummaryList sus = new StorageUsageSummaryList();
 		sus.initializeFromJSONObject(adapter);
 		Assert.assertNotNull(sus);
-		Assert.assertEquals(0L, sus.getUsage().longValue());
+		Assert.assertEquals(0L, sus.getTotalSize().longValue());
 		Assert.assertEquals(0, sus.getSummaryList().size());
 	}
 
@@ -56,8 +57,10 @@ public class StorageUsageControllerTest {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.STORAGE_SUMMARY + "/0");
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, "0");
-		request.setParameter(ServiceConstants.STORAGE_DIMENSION_1_PARAM, "storage_provider");
-		request.setParameter(ServiceConstants.STORAGE_DIMENSION_2_PARAM, "content_type");
+		String aggregation = "storage_provider";
+		aggregation += ServiceConstants.AGGREGATION_DIMENSION_VALUE_SEPARATOR;
+		aggregation += "content_type";
+		request.setParameter(ServiceConstants.AGGREGATION_DIMENSION, aggregation);
 
 		MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -71,7 +74,7 @@ public class StorageUsageControllerTest {
 		StorageUsageSummaryList sus = new StorageUsageSummaryList();
 		sus.initializeFromJSONObject(adapter);
 		Assert.assertNotNull(sus);
-		Assert.assertEquals(0L, sus.getUsage().longValue());
+		Assert.assertEquals(0L, sus.getTotalSize().longValue());
 		Assert.assertEquals(0, sus.getSummaryList().size());
 	}
 
@@ -83,8 +86,10 @@ public class StorageUsageControllerTest {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.STORAGE_DETAILS);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, "0");
-		request.setParameter(ServiceConstants.STORAGE_DIMENSION_1_PARAM, "storage_provider");
-		request.setParameter(ServiceConstants.STORAGE_DIMENSION_2_PARAM, "content_type");
+		String aggregation = "storage_provider";
+		aggregation += ServiceConstants.AGGREGATION_DIMENSION_VALUE_SEPARATOR;
+		aggregation += "content_type";
+		request.setParameter(ServiceConstants.AGGREGATION_DIMENSION, aggregation);
 
 		MockHttpServletResponse response = new MockHttpServletResponse();
 

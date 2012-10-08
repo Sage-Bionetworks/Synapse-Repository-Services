@@ -36,6 +36,9 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 			throw new UnauthorizedException("Only administrators are allowed.");
 		}
 
+		// this will throw IllegalArgumentException
+		validateDimensionList(dimensionList);
+
 		StorageUsageSummaryList results = storageUsageManager.getUsage(dimensionList);
 		return results;
 	}
@@ -55,51 +58,11 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 		boolean isAdmin = isAdmin(currUserName);
 		// this will throw UnauthorizedException
 		checkUserAuthorization(isAdmin, currUserName, userName);
-		// this will throw UnauthorizedException
-		validateDimensionList(isAdmin, dimensionList);
+		// this will throw IllegalArgumentException
+		validateDimensionList(dimensionList);
 
 		String userId = getUserId(userName);
 		StorageUsageSummaryList results = storageUsageManager.getUsageForUser(userId, dimensionList);
-		return results;
-	}
-
-	@Override
-	public StorageUsageSummaryList getCount(String currUserName,
-			List<StorageUsageDimension> dimensionList) throws UnauthorizedException, DatastoreException {
-
-		if (currUserName == null) {
-			throw new NullPointerException();
-		}
-
-		boolean isAdmin = isAdmin(currUserName);
-		if (!isAdmin) {
-			throw new UnauthorizedException("Only administrators are allowed.");
-		}
-
-		StorageUsageSummaryList results = storageUsageManager.getCount(dimensionList);
-		return results;
-	}
-
-	@Override
-	public StorageUsageSummaryList getCountForUser(String currUserName,
-			String userName, List<StorageUsageDimension> dimensionList)
-			throws UnauthorizedException, NotFoundException, DatastoreException {
-
-		if (currUserName == null) {
-			throw new NullPointerException();
-		}
-		if (userName == null) {
-			throw new NullPointerException();
-		}
-
-		boolean isAdmin = isAdmin(currUserName);
-		// this will throw UnauthorizedException
-		checkUserAuthorization(isAdmin, currUserName, userName);
-		// this will throw UnauthorizedException
-		validateDimensionList(isAdmin, dimensionList);
-
-		String userId = getUserId(userName);
-		StorageUsageSummaryList results = storageUsageManager.getCountForUser(userId, dimensionList);
 		return results;
 	}
 
@@ -134,40 +97,6 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 		}
 
 		StorageUsageSummaryList results = storageUsageManager.getUsageByNodeInRange(offset, limit);
-		return results;
-	}
-
-	@Override
-	public StorageUsageSummaryList getCountByUserInRange(String currUserName,
-			Integer offset, Integer limit) throws UnauthorizedException, DatastoreException {
-
-		if (currUserName == null) {
-			throw new NullPointerException();
-		}
-
-		boolean isAdmin = isAdmin(currUserName);
-		if (!isAdmin) {
-			throw new UnauthorizedException("Only administrators are allowed.");
-		}
-
-		StorageUsageSummaryList results = storageUsageManager.getCountByUserInRange(offset, limit);
-		return results;
-	}
-
-	@Override
-	public StorageUsageSummaryList getCountByNodeInRange(String currUserName,
-			Integer offset, Integer limit) throws UnauthorizedException, DatastoreException {
-
-		if (currUserName == null) {
-			throw new NullPointerException();
-		}
-
-		boolean isAdmin = isAdmin(currUserName);
-		if (!isAdmin) {
-			throw new UnauthorizedException("Only administrators are allowed.");
-		}
-
-		StorageUsageSummaryList results = storageUsageManager.getCountByNodeInRange(offset, limit);
 		return results;
 	}
 
@@ -226,19 +155,17 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	}
 
 	/**
-	 * Some aggregating dimensions are only accessible by administrators.
+	 * Some aggregating dimensions are only accessible via paginated views.
 	 *
-	 * @throws UnauthorizedException When current user is not authorized to aggregate on a particular dimension.
+	 * @throws IllegalArgumentException When an aggregating dimension is for paginated views only.
 	 */
-	private void validateDimensionList(boolean isAdmin, List<StorageUsageDimension> dimensionList) {
-		if (!isAdmin) {
-			for (StorageUsageDimension d : dimensionList) {
-				if (StorageUsageDimension.USER_ID.equals(d)) {
-					throw new UnauthorizedException("Only administrators are allowed to aggregate by user ID.");
-				}
-				if (StorageUsageDimension.NODE_ID.equals(d)) {
-					throw new UnauthorizedException("Only administrators are allowed to aggregate by node ID.");
-				}
+	private void validateDimensionList(List<StorageUsageDimension> dimensionList) {
+		for (StorageUsageDimension d : dimensionList) {
+			if (StorageUsageDimension.USER_ID.equals(d)) {
+				throw new IllegalArgumentException(StorageUsageDimension.USER_ID + " is for paginated views only.");
+			}
+			if (StorageUsageDimension.NODE_ID.equals(d)) {
+				throw new IllegalArgumentException(StorageUsageDimension.NODE_ID + " is for paginated views only.");
 			}
 		}
 	}

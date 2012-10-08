@@ -33,7 +33,7 @@ public class StorageUsageManagerImplTest {
 
 		StorageLocationDAO mockDao = Mockito.mock(StorageLocationDAO.class);
 		Mockito.when(mockDao.getUsageInRangeForUser(userId, offset, offset + limit)).thenReturn(storageList);
-		Mockito.when(mockDao.getCountForUser(userId)).thenReturn(total);
+		Mockito.when(mockDao.getTotalCountForUser(userId)).thenReturn(total);
 
 		StorageUsageManager man = new StorageUsageManagerImpl();
 		man = unwrap(man);
