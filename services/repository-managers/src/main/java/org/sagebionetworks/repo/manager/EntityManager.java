@@ -313,4 +313,16 @@ public interface EntityManager {
 	public VersionInfo getEntityVersionInfo(UserInfo userInfo, String entityId,
 			long versionNumber)  throws DatastoreException, UnauthorizedException, NotFoundException;
 
+	/**
+	 * Return a paginated list of all version of this entity.
+	 * @param userInfo
+	 * @param entityId
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId, long offset, long limit) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	public long getVersionCount(String entityId) throws DatastoreException, NotFoundException;
+
 }

@@ -113,29 +113,15 @@ public class EntityServiceImpl implements EntityService {
 			offset = 1;
 		}
 		if(limit == null){
-			limit = Integer.MAX_VALUE;
+			limit = 10;
 		}
+		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
 		// First get the full list of all revisions numbers
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		List<Long> versionNumbers = entityManager.getAllVersionNumbersForEntity(userInfo, entityId);
-		// Now fetch the versions requested
-		int start = offset-1;
-		int end = Math.min(start+limit, versionNumbers.size());
-		List<VersionInfo> entityList = new ArrayList<VersionInfo>();
-		for(int i=start; i<end; i++){
-			long versionNumber = versionNumbers.get(i);
-			VersionInfo info = getEntityVersionInfo(userInfo, entityId, versionNumber);
-			entityList.add(info);
-		}
-		// Return the paginated results
-		return new PaginatedResults<VersionInfo>(request.getServletPath()
-				+ UrlHelpers.ENTITY, entityList,
-				versionNumbers.size(), offset, limit, "versionNumber", false);
-	}
-
-	private VersionInfo getEntityVersionInfo(UserInfo userInfo,
-			String entityId, long versionNumber)  throws DatastoreException, UnauthorizedException, NotFoundException {	
-		return entityManager.getEntityVersionInfo(userInfo, entityId, versionNumber);
+		//List<Long> versionNumbers = entityManager.getVersionNumbersForEntity(userInfo, entityId);
+		long totalNumberOfVersions = entityManager.getVersionCount(entityId);
+		List<VersionInfo> versionsOfEntity = entityManager.getVersionsOfEntity(userInfo, entityId, (long)offset, (long)limit);
+		return null;
 	}
 
 	@Override

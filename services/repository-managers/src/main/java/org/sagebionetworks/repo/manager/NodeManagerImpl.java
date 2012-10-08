@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.ReferenceDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
@@ -505,6 +506,25 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public boolean doesNodeHaveChildren(String nodeId) {
 		return nodeDao.doesNodeHaveChildren(nodeId);
+	}
+
+	@Override
+	public long getVersionCount(String entityId)
+			throws NotFoundException, DatastoreException {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
+			String entityId, long offset, long limit) throws NotFoundException,
+			UnauthorizedException, DatastoreException {
+		UserInfo.validateUserInfo(userInfo);
+		if (!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.READ)) {
+			String userName = userInfo.getUser().getUserId();
+			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
+		}
+		return nodeDao.getVersionsOfEntity(entityId, offset, limit);
 	}
 
 }

@@ -140,18 +140,12 @@ public class EntityManagerImpl implements EntityManager {
 		Node node = nodeManager.getNodeForVersionNumber(userInfo, entityId, versionNumber);
 		VersionInfo info = new VersionInfo();
 		info.setId(node.getId());
-		info.setType(node.getNodeType());
-		info.setModifiedBy(userManager.getDisplayName(node.getCreatedByPrincipalId()));
+		info.setModifiedByPrincipalId(node.getCreatedByPrincipalId().toString());
 		info.setModifiedOn(node.getModifiedOn());
 		info.setVersionNumber(node.getVersionNumber());
 		info.setVersionLabel(node.getVersionLabel());
 		info.setVersionComment(node.getVersionComment());
 		return info;
-	}
-
-	private VersionInfo populateVersionInfoWithNode(Node node) {
-
-		return null;
 	}
 
 	/**
@@ -436,6 +430,21 @@ public class EntityManagerImpl implements EntityManager {
 			UnauthorizedException {
 		// pass through
 		return nodeManager.getAllVersionNumbersForNode(userInfo, entityId);
+	}
+
+	@Override
+	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId,
+			long offset, long limit) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		// pass through
+		return nodeManager.getVersionsOfEntity(userInfo, entityId, offset, limit);
+	}
+
+	@Override
+	public long getVersionCount(String entityId)
+			throws DatastoreException, NotFoundException {
+		// pass through
+		return nodeManager.getVersionCount(entityId);
 	}
 
 	@Override
