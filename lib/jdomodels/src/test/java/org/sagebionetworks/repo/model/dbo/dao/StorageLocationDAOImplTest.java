@@ -73,7 +73,7 @@ public class StorageLocationDAOImplTest {
 	private final long a1Size = 23L;
 	private final long a2Size = 53L;
 	private final long l2Size = 11L;
-	private final long usageTotal = a1Size + a2Size + l2Size;
+	private final long sizeTotal = a1Size + a2Size + l2Size;
 	private final long countTotal = 4L; // a1, a2, l1, l2; l1 has no size (i.e. null)
 
 	@Before
@@ -146,42 +146,42 @@ public class StorageLocationDAOImplTest {
 	}
 
 	@Test
-	public void testGetUsage() throws Exception {
+	public void testGetTotalSize() throws Exception {
 		addTestNode();
 		dao.replaceLocationData(locations);
-		Long total = dao.getUsage();
+		Long total = dao.getTotalSize();
 		// Except for the ones we are mocking here, no other
 		// storage item has size in the test database
-		Assert.assertEquals(usageTotal, total.longValue());
+		Assert.assertEquals(sizeTotal, total.longValue());
 		removeTestNode();
 	}
 
 	@Test
-	public void testGetUsageForUser() throws Exception {
+	public void testGetTotalSizeForUser() throws Exception {
 		addTestNode();
 		dao.replaceLocationData(locations);
-		Long total = dao.getUsageForUser(userId);
-		Assert.assertEquals(usageTotal, total.longValue());
-		total = dao.getUsageForUser("syn9293829999990"); // fake user
+		Long total = dao.getTotalSizeForUser(userId);
+		Assert.assertEquals(sizeTotal, total.longValue());
+		total = dao.getTotalSizeForUser("syn9293829999990"); // fake user
 		Assert.assertEquals(0L, total.longValue());
 		removeTestNode();
 	}
 
 	@Test
-	public void testGetCount() throws Exception {
+	public void testGetTotalCount() throws Exception {
 		addTestNode();
 		dao.replaceLocationData(locations);
 		// There are other storage items besides the ones mocked here
-		Assert.assertTrue(dao.getCount() >= countTotal);
+		Assert.assertTrue(dao.getTotalCount() >= countTotal);
 		removeTestNode();
 	}
 
 	@Test
-	public void testGetCountForUser() throws Exception {
+	public void testGetTotalCountForUser() throws Exception {
 		addTestNode();
 		dao.replaceLocationData(locations);
-		Assert.assertEquals(countTotal, dao.getCountForUser(userId).longValue());
-		Assert.assertEquals(0L, dao.getCountForUser("syn9293829999990").longValue()); // fake user
+		Assert.assertEquals(countTotal, dao.getTotalCountForUser(userId).longValue());
+		Assert.assertEquals(0L, dao.getTotalCountForUser("syn9293829999990").longValue()); // fake user
 		removeTestNode();
 	}
 
@@ -195,9 +195,9 @@ public class StorageLocationDAOImplTest {
 		StorageUsageSummaryList susList = dao.getAggregatedUsage(dList);
 		// Except for the ones we are mocking here, no other
 		// storage item has size in the test database
-		Assert.assertEquals(usageTotal, susList.getUsage().longValue());
+		Assert.assertEquals(sizeTotal, susList.getTotalSize().longValue());
 		// There are other storage items (owned by other users) besides the ones mocked here
-		Assert.assertTrue(susList.getCount().longValue() >= countTotal);
+		Assert.assertTrue(susList.getTotalCount().longValue() >= countTotal);
 		Assert.assertEquals(0, susList.getSummaryList().size());
 
 		dList.add(StorageUsageDimension.STORAGE_PROVIDER);
@@ -208,9 +208,9 @@ public class StorageLocationDAOImplTest {
 		susList = dao.getAggregatedUsage(dList);
 		// Except for the ones we are mocking here, no other
 		// storage item has size in the test database
-		Assert.assertEquals(usageTotal, susList.getUsage().longValue());
+		Assert.assertEquals(sizeTotal, susList.getTotalSize().longValue());
 		// There are other storage items (owned by other users) besides the ones mocked here
-		Assert.assertTrue(susList.getCount().longValue() >= countTotal);
+		Assert.assertTrue(susList.getTotalCount().longValue() >= countTotal);
 		List<StorageUsageSummary> summaryList = susList.getSummaryList();
 		//
 		// Currently aggregated into 3 rows:
@@ -222,18 +222,21 @@ public class StorageLocationDAOImplTest {
 		//      external         false
 		//
 		Assert.assertEquals(3, summaryList.size());
-		long sum = 0;
+		long sumOfSize = 0;
+		long sumOfCount = 0;
 		for (StorageUsageSummary summary : summaryList) {
 			List<StorageUsageDimensionValue> dvList = summary.getDimensionList();;
 			Assert.assertEquals(2, dvList.size());
 			// We should maintain the original aggregating order
 			Assert.assertEquals(StorageUsageDimension.STORAGE_PROVIDER, dvList.get(0).getDimension());
 			Assert.assertEquals(StorageUsageDimension.IS_ATTACHMENT, dvList.get(1).getDimension());
-			sum = sum + summary.getAggregatedValue();
+			sumOfSize = sumOfSize + summary.getAggregatedSize();
+			sumOfCount = sumOfCount + summary.getAggregatedCount();
 		}
 		// Except for the ones we are mocking here, no other
 		// storage item has size in the test database
-		Assert.assertEquals(usageTotal, sum);
+		Assert.assertEquals(sizeTotal, sumOfSize);
+		Assert.assertEquals(susList.getTotalCount().longValue(), sumOfCount);
 
 		removeTestNode();
 	}
@@ -246,16 +249,16 @@ public class StorageLocationDAOImplTest {
 
 		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
 		StorageUsageSummaryList susList = dao.getAggregatedUsageForUser(userId, dList);
-		Assert.assertEquals(usageTotal, susList.getUsage().longValue());
-		Assert.assertEquals(countTotal, susList.getCount().longValue());
+		Assert.assertEquals(sizeTotal, susList.getTotalSize().longValue());
+		Assert.assertEquals(countTotal, susList.getTotalCount().longValue());
 		Assert.assertEquals(0, susList.getSummaryList().size());
 
 		dList.add(StorageUsageDimension.IS_ATTACHMENT);
 		dList.add(StorageUsageDimension.STORAGE_PROVIDER);
 
 		susList = dao.getAggregatedUsageForUser(userId, dList);
-		Assert.assertEquals(usageTotal, susList.getUsage().longValue());
-		Assert.assertEquals(countTotal, susList.getCount().longValue());
+		Assert.assertEquals(sizeTotal, susList.getTotalSize().longValue());
+		Assert.assertEquals(countTotal, susList.getTotalCount().longValue());
 		List<StorageUsageSummary> summaryList = susList.getSummaryList();
 		//
 		// Currently aggregated into 3 rows:
@@ -267,112 +270,18 @@ public class StorageLocationDAOImplTest {
 		//      external         false
 		//
 		Assert.assertEquals(3, summaryList.size());
-		long sum = 0;
+		long sumOfSize = 0L;
+		long sumOfCount = 0L;
 		for (StorageUsageSummary summary : summaryList) {
 			List<StorageUsageDimensionValue> dvList = summary.getDimensionList();
 			Assert.assertEquals(2, dvList.size());
 			Assert.assertEquals(StorageUsageDimension.IS_ATTACHMENT, dvList.get(0).getDimension());
 			Assert.assertEquals(StorageUsageDimension.STORAGE_PROVIDER, dvList.get(1).getDimension());
-			sum = sum + summary.getAggregatedValue();
+			sumOfSize = sumOfSize + summary.getAggregatedSize();
+			sumOfCount = sumOfCount + summary.getAggregatedCount();
 		}
-		Assert.assertEquals(usageTotal, sum);
-
-		removeTestNode();
-	}
-
-	@Test
-	public void testGetAggregatedCount() throws Exception {
-
-		addTestNode();
-		dao.replaceLocationData(locations);
-
-		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
-		StorageUsageSummaryList susList = dao.getAggregatedCount(dList);
-		// Except for the ones we are mocking here, no other
-		// storage item has size in the test database
-		Assert.assertEquals(usageTotal, susList.getUsage().longValue());
-		// There are other storage items (owned by other users) besides the ones mocked here
-		Assert.assertTrue(susList.getCount().longValue() >= countTotal);
-		Assert.assertEquals(0, susList.getSummaryList().size());
-
-		dList.add(StorageUsageDimension.STORAGE_PROVIDER);
-		dList.add(StorageUsageDimension.IS_ATTACHMENT);
-		dList.add(StorageUsageDimension.IS_ATTACHMENT);
-
-		susList = dao.getAggregatedCount(dList);
-		// Except for the ones we are mocking here, no other
-		// storage item has size in the test database
-		Assert.assertEquals(usageTotal, susList.getUsage().longValue());
-		// There are other storage items (owned by other users)  besides the ones mocked here
-		Assert.assertTrue(susList.getCount().longValue() >= countTotal);
-		List<StorageUsageSummary> summaryList = susList.getSummaryList();
-		//
-		// Currently aggregated into 3 rows:
-		//
-		// STORAGE_PROVIDER | IS_ATTACHMENT
-		// =================================
-		//      awss3            false
-		//      awss3            true
-		//      external         false
-		//
-		Assert.assertEquals(3, summaryList.size());
-		long totalCount = 0;
-		for (StorageUsageSummary summary : summaryList) {
-			List<StorageUsageDimensionValue> dvList = summary.getDimensionList();;
-			Assert.assertEquals(2, dvList.size());
-			// We should maintain the original aggregating order
-			Assert.assertEquals(StorageUsageDimension.STORAGE_PROVIDER, dvList.get(0).getDimension());
-			Assert.assertEquals(StorageUsageDimension.IS_ATTACHMENT, dvList.get(1).getDimension());
-			totalCount = totalCount + summary.getAggregatedValue();
-		}
-		// Except for the ones we are mocking here, no other
-		// storage item has size in the test database
-		Assert.assertEquals(susList.getCount().longValue(), totalCount);
-
-		removeTestNode();
-	}
-
-	@Test
-	public void testGetAggregatedCountForUser() throws Exception {
-
-		addTestNode();
-		dao.replaceLocationData(locations);
-
-		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
-		StorageUsageSummaryList susList = dao.getAggregatedCountForUser(userId, dList);
-		Assert.assertEquals(usageTotal, susList.getUsage().longValue());
-		Assert.assertEquals(countTotal, susList.getCount().longValue());
-		Assert.assertEquals(0, susList.getSummaryList().size());
-
-		dList.add(StorageUsageDimension.IS_ATTACHMENT);
-		dList.add(StorageUsageDimension.IS_ATTACHMENT);
-		dList.add(StorageUsageDimension.STORAGE_PROVIDER);
-		dList.add(StorageUsageDimension.STORAGE_PROVIDER);
-		dList.add(StorageUsageDimension.IS_ATTACHMENT);
-
-		susList = dao.getAggregatedCountForUser(userId, dList);
-		Assert.assertEquals(usageTotal, susList.getUsage().longValue());
-		Assert.assertEquals(countTotal, susList.getCount().longValue());
-		List<StorageUsageSummary> summaryList = susList.getSummaryList();
-		//
-		// Currently aggregated into 3 rows:
-		//
-		// STORAGE_PROVIDER | IS_ATTACHMENT
-		// =================================
-		//      awss3            false
-		//      awss3            true
-		//      external         false
-		//
-		Assert.assertEquals(3, summaryList.size());
-		long totalCount = 0;
-		for (StorageUsageSummary summary : summaryList) {
-			List<StorageUsageDimensionValue> dvList = summary.getDimensionList();
-			Assert.assertEquals(2, dvList.size());
-			Assert.assertEquals(StorageUsageDimension.IS_ATTACHMENT, dvList.get(0).getDimension());
-			Assert.assertEquals(StorageUsageDimension.STORAGE_PROVIDER, dvList.get(1).getDimension());
-			totalCount = totalCount + summary.getAggregatedValue();
-		}
-		Assert.assertEquals(countTotal, totalCount);
+		Assert.assertEquals(sizeTotal, sumOfSize);
+		Assert.assertEquals(countTotal, sumOfCount);
 
 		removeTestNode();
 	}
@@ -456,19 +365,22 @@ public class StorageLocationDAOImplTest {
 		int endExcl = 1000;
 		StorageUsageSummaryList summaryList = dao.getAggregatedUsageByUserInRange(beginIncl, endExcl);
 
-		Assert.assertTrue(summaryList.getCount().longValue() >= countTotal);
-		Assert.assertEquals(usageTotal, summaryList.getUsage().longValue());
+		Assert.assertEquals(sizeTotal, summaryList.getTotalSize().longValue());
+		Assert.assertTrue(summaryList.getTotalCount().longValue() >= countTotal);
 
 		List<StorageUsageSummary> summaries = summaryList.getSummaryList();
-		long totalUsage = 0L;
+		long sumOfSize = 0L;
+		long sumOfCount = 0L;
 		for (StorageUsageSummary sus : summaries) {
 			Assert.assertEquals(1, sus.getDimensionList().size());
 			StorageUsageDimensionValue sudv = sus.getDimensionList().get(0);
 			Assert.assertEquals(StorageUsageDimension.USER_ID, sudv.getDimension());
 			Assert.assertNotNull(sudv.getValue());
-			totalUsage = totalUsage + sus.getAggregatedValue();
+			sumOfSize = sumOfSize + sus.getAggregatedSize();
+			sumOfCount = sumOfCount + sus.getAggregatedCount();
 		}
-		Assert.assertEquals(usageTotal, totalUsage);
+		Assert.assertEquals(sizeTotal, sumOfSize);
+		Assert.assertEquals(summaryList.getTotalCount().longValue(), sumOfCount);
 
 		removeTestNode();
 	}
@@ -483,75 +395,22 @@ public class StorageLocationDAOImplTest {
 		int endExcl = 1000;
 		StorageUsageSummaryList summaryList = dao.getAggregatedUsageByNodeInRange(beginIncl, endExcl);
 
-		Assert.assertTrue(summaryList.getCount().longValue() >= countTotal);
-		Assert.assertEquals(usageTotal, summaryList.getUsage().longValue());
+		Assert.assertEquals(sizeTotal, summaryList.getTotalSize().longValue());
+		Assert.assertTrue(summaryList.getTotalCount().longValue() >= countTotal);
 
 		List<StorageUsageSummary> summaries = summaryList.getSummaryList();
-		long totalUsage = 0L;
+		long sumOfSize = 0L;
+		long sumOfCount = 0L;
 		for (StorageUsageSummary sus : summaries) {
 			Assert.assertEquals(1, sus.getDimensionList().size());
 			StorageUsageDimensionValue sudv = sus.getDimensionList().get(0);
 			Assert.assertEquals(StorageUsageDimension.NODE_ID, sudv.getDimension());
 			Assert.assertNotNull(sudv.getValue());
-			totalUsage = totalUsage + sus.getAggregatedValue();
+			sumOfSize = sumOfSize + sus.getAggregatedSize();
+			sumOfCount = sumOfCount + sus.getAggregatedCount();
 		}
-		Assert.assertEquals(usageTotal, totalUsage);
-
-		removeTestNode();
-	}
-
-	@Test
-	public void testGetAggregatedCountByUserInRange() throws Exception {
-
-		addTestNode();
-		dao.replaceLocationData(locations);
-
-		int beginIncl = 0;
-		int endExcl = 1000;
-		StorageUsageSummaryList summaryList = dao.getAggregatedCountByUserInRange(beginIncl, endExcl);
-
-		Assert.assertTrue(summaryList.getCount().longValue() >= countTotal);
-		Assert.assertEquals(usageTotal, summaryList.getUsage().longValue());
-
-		List<StorageUsageSummary> summaries = summaryList.getSummaryList();
-		long totalCount = 0L;
-		for (StorageUsageSummary sus : summaries) {
-			Assert.assertEquals(1, sus.getDimensionList().size());
-			StorageUsageDimensionValue sudv = sus.getDimensionList().get(0);
-			Assert.assertEquals(StorageUsageDimension.USER_ID, sudv.getDimension());
-			Assert.assertNotNull(sudv.getValue());
-			totalCount = totalCount + sus.getAggregatedValue();
-		}
-		Assert.assertTrue(totalCount >= countTotal);
-		Assert.assertEquals(summaryList.getCount().longValue(), totalCount);
-
-		removeTestNode();
-	}
-
-	@Test
-	public void testGetAggregatedCountByNodeInRange() throws Exception {
-
-		addTestNode();
-		dao.replaceLocationData(locations);
-
-		int beginIncl = 0;
-		int endExcl = 1000;
-		StorageUsageSummaryList summaryList = dao.getAggregatedCountByNodeInRange(beginIncl, endExcl);
-
-		Assert.assertTrue(summaryList.getCount().longValue() >= countTotal);
-		Assert.assertEquals(usageTotal, summaryList.getUsage().longValue());
-
-		List<StorageUsageSummary> summaries = summaryList.getSummaryList();
-		long totalCount = 0L;
-		for (StorageUsageSummary sus : summaries) {
-			Assert.assertEquals(1, sus.getDimensionList().size());
-			StorageUsageDimensionValue sudv = sus.getDimensionList().get(0);
-			Assert.assertEquals(StorageUsageDimension.NODE_ID, sudv.getDimension());
-			Assert.assertNotNull(sudv.getValue());
-			totalCount = totalCount + sus.getAggregatedValue();
-		}
-		Assert.assertTrue(totalCount >= countTotal);
-		Assert.assertEquals(summaryList.getCount().longValue(), totalCount);
+		Assert.assertEquals(sizeTotal, sumOfSize);
+		Assert.assertEquals(summaryList.getTotalCount().longValue(), sumOfCount);
 
 		removeTestNode();
 	}
