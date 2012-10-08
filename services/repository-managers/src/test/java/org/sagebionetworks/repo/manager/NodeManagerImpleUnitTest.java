@@ -22,11 +22,11 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ReferenceDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
@@ -200,12 +200,12 @@ public class NodeManagerImpleUnitTest {
 	
 	@Test
 	public void testGetReferences() throws Exception {
-		EntityHeaderQueryResults expected = new EntityHeaderQueryResults();
-		expected.setEntityHeaders(new ArrayList<EntityHeader>());
+		QueryResults<EntityHeader> expected = new QueryResults<EntityHeader>();
+		expected.setResults(new ArrayList<EntityHeader>());
 		Long id = 101L;
 		UserInfo userInfo = anonUserInfo;
 		when(mockReferenceDao.getReferrers(id, null, userInfo, null, null)).thenReturn(expected);
-		EntityHeaderQueryResults actual = nodeManager.getEntityReferences(userInfo, ""+id, null, null, null);
+		QueryResults<EntityHeader> actual = nodeManager.getEntityReferences(userInfo, ""+id, null, null, null);
 	}
 	
 	/**

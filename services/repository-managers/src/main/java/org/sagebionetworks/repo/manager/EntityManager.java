@@ -8,9 +8,9 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
@@ -242,7 +242,7 @@ public interface EntityManager {
 	 * @param entityId
 	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
 	 */
-	public EntityHeaderQueryResults getEntityReferences(UserInfo userInfo, String entityId, Integer versionNumber, Integer offset, Integer limit) throws NotFoundException, DatastoreException;
+	public QueryResults<EntityHeader> getEntityReferences(UserInfo userInfo, String entityId, Integer versionNumber, Integer offset, Integer limit) throws NotFoundException, DatastoreException;
 
 	/**
 	 * create a s3 attachment token for this entity

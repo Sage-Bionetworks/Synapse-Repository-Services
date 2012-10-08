@@ -18,12 +18,12 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.NodeQueryResults;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -602,9 +602,9 @@ public class EntityServiceImpl implements EntityService {
 		if (offset==null) offset = 1;
 		if (limit==null) limit = Integer.MAX_VALUE;
 		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
-		EntityHeaderQueryResults results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, offset-1, limit);
+		QueryResults<EntityHeader> results = entityManager.getEntityReferences(userInfo, entityId, versionNumber, offset-1, limit);
 		String urlPath = request.getRequestURL()==null ? "" : request.getRequestURL().toString();
-		return new PaginatedResults(urlPath,  results.getEntityHeaders(), results.getTotalNumberOfResults(), offset, limit, /*sort*/null, /*ascending*/true);
+		return new PaginatedResults(urlPath,  results.getResults(), results.getTotalNumberOfResults(), offset, limit, /*sort*/null, /*ascending*/true);
 	}
 
 	@Override

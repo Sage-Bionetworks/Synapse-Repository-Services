@@ -12,12 +12,12 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
@@ -438,12 +438,12 @@ public class EntityManagerImpl implements EntityManager {
 	 * @return the headers of the entities which refer to the given entityId,
 	 *         filtered by the access permissions of 'userInfo'
 	 */
-	public EntityHeaderQueryResults getEntityReferences(UserInfo userInfo,
+	public QueryResults<EntityHeader> getEntityReferences(UserInfo userInfo,
 			String entityId, Integer versionNumber, Integer offset,
 			Integer limit) throws NotFoundException, DatastoreException {
 		// pass through
 
-		EntityHeaderQueryResults results = nodeManager.getEntityReferences(
+		QueryResults<EntityHeader> results = nodeManager.getEntityReferences(
 				userInfo, entityId, versionNumber, offset, limit);
 		// Note: This is a hack that we currently depend on for Mike's demo.
 		// In the demo we want to show that one dataset is derived from another
@@ -463,8 +463,8 @@ public class EntityManagerImpl implements EntityManager {
 		// This propery will then point to the original dataset. At that point
 		// this method will work without this hack!
 
-		if (results != null && results.getEntityHeaders() != null) {
-			List<EntityHeader> list = results.getEntityHeaders();
+		if (results != null && results.getResults() != null) {
+			List<EntityHeader> list = results.getResults();
 			for (int i = 0; i < list.size(); i++) {
 				EntityHeader header = list.get(i);
 				EntityType type = EntityType.valueOf(header.getType());

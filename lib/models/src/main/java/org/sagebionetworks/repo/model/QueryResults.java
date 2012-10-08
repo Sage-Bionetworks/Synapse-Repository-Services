@@ -70,10 +70,10 @@ public class QueryResults<T> {
 	}
 
 	/**
-	 * @param totalNumberOfResults
+	 * @param l
 	 */
-	public void setTotalNumberOfResults(int totalNumberOfResults) {
-		this.totalNumberOfResults = totalNumberOfResults;
+	public void setTotalNumberOfResults(long l) {
+		this.totalNumberOfResults = l;
 	}
 
 	/**
