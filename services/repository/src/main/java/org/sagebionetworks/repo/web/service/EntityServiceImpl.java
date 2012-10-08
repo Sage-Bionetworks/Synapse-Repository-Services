@@ -120,8 +120,9 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		//List<Long> versionNumbers = entityManager.getVersionNumbersForEntity(userInfo, entityId);
 		long totalNumberOfVersions = entityManager.getVersionCount(entityId);
-		List<VersionInfo> versionsOfEntity = entityManager.getVersionsOfEntity(userInfo, entityId, (long)offset, (long)limit);
-		return null;
+		List<VersionInfo> versionsOfEntity = entityManager.getVersionsOfEntity(userInfo, entityId, (long)offset-1, (long)limit);
+		String urlPath = request.getRequestURL()==null ? "" : request.getRequestURL().toString();
+		return new PaginatedResults<VersionInfo>(urlPath, versionsOfEntity, totalNumberOfVersions, offset, limit, null, false);
 	}
 
 	@Override
