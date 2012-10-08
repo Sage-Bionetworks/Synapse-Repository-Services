@@ -57,6 +57,7 @@ import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
@@ -115,6 +116,8 @@ public class Synapse {
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
+	
+	protected static final String USER_GROUP_HEADER_BATCH_PATH = "/userGroupHeaders/batch?ids=";
 
 	protected static final String TOTAL_NUM_RESULTS = "totalNumberOfResults";
 	
@@ -693,6 +696,32 @@ public class Synapse {
 		String uri = USER_PROFILE_PATH + "/" + ownerId;
 		JSONObject json = getEntity(uri);
 		return initializeFromJSONObject(json, UserProfile.class);
+	}
+	
+	/**
+	 * Batch get headers for users/groups matching a list of Synapse IDs.
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws JSONException 
+	 * @throws SynapseException 
+	 */
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids) throws SynapseException {
+		String uri = listToString(ids);
+		JSONObject json = getEntity(uri);
+		return initializeFromJSONObject(json, UserGroupHeaderResponsePage.class);
+	}
+
+	private String listToString(List<String> ids) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(USER_GROUP_HEADER_BATCH_PATH);
+		for (String id : ids) {
+			sb.append(id);
+			sb.append(',');
+		}
+		// Remove the trailing comma
+		sb.deleteCharAt(sb.length() - 1);
+		return sb.toString();
 	}
 	
 	/**
@@ -1707,10 +1736,8 @@ public class Synapse {
 		}
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
-		}
-
-		return signAndDispatchSynapseRequest(endpoint, uri, "GET", null,
-				defaultGETDELETEHeaders);
+		}		
+		return signAndDispatchSynapseRequest(endpoint, uri, "GET", null, defaultGETDELETEHeaders);
 	}
 
 	/**
@@ -1919,7 +1946,7 @@ public class Synapse {
 				requestHeaders.remove(REQUEST_PROFILE_DATA);
 		}
 		
-		// remove session tken if it is null
+		// remove session token if it is null
 		if(requestHeaders.containsKey(SESSION_TOKEN_HEADER) && requestHeaders.get(SESSION_TOKEN_HEADER) == null) {
 			requestHeaders.remove(SESSION_TOKEN_HEADER);
 		}

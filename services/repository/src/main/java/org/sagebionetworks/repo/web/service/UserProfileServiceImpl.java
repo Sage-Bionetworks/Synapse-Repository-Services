@@ -3,8 +3,10 @@ package org.sagebionetworks.repo.web.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedMap;
 import javax.servlet.http.HttpServletRequest;
 
@@ -47,8 +49,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
 
-	private Long cacheLastUpdated = 0L;
-	private Trie<String, Collection<UserGroupHeader>> userGroupHeadersCache;
+	private Long cachesLastUpdated = 0L;
+	private Trie<String, Collection<UserGroupHeader>> userGroupHeadersNamePrefixCache;
+	private Map<String, UserGroupHeader> userGroupHeadersIdCache;
 
 	@Override
 	public UserProfile getMyOwnUserProfile(String userId) 
@@ -112,12 +115,30 @@ public class UserProfileServiceImpl implements UserProfileService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return userProfileManager.getUserProfileAttachmentUrl(userInfo, profileId, url.getTokenID());
 	}
+	
+	@Override
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids) 
+			throws DatastoreException, NotFoundException {		
+		if (userGroupHeadersIdCache == null || userGroupHeadersIdCache.size() == 0)
+			refreshCache();
+		List<UserGroupHeader> ugHeaders = new ArrayList<UserGroupHeader>();
+		for (String id : ids) {
+			UserGroupHeader header = userGroupHeadersIdCache.get(id);
+			if (header != null) ugHeaders.add(header);
+		}
+		
+		UserGroupHeaderResponsePage response = new UserGroupHeaderResponsePage();
+		response.setChildren(ugHeaders);
+		response.setTotalNumberOfResults((long) ugHeaders.size());
+		response.setPrefixFilter(null);
+		return response;
+	}
 
 	@Override
 	public UserGroupHeaderResponsePage getUserGroupHeadersByPrefix(String prefix,
 			Integer offset, Integer limit, HttpHeaders header, HttpServletRequest request) 
 					throws DatastoreException, NotFoundException {
-		if (userGroupHeadersCache == null || userGroupHeadersCache.size() == 0)
+		if (userGroupHeadersNamePrefixCache == null || userGroupHeadersNamePrefixCache.size() == 0)
 			refreshCache();
 		
 		int limitInt = 10;
@@ -129,7 +150,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			offsetInt = offset.intValue();
 		}
 		// Get the results from the cache
-		SortedMap<String, Collection<UserGroupHeader>> matched = userGroupHeadersCache.prefixMap(prefix.toLowerCase());
+		SortedMap<String, Collection<UserGroupHeader>> matched = userGroupHeadersNamePrefixCache.prefixMap(prefix.toLowerCase());
 		List<UserGroupHeader> fullList = flatten(matched);
 		EntityQueryResults<UserGroupHeader> eqr = new EntityQueryResults<UserGroupHeader>(fullList, limitInt, offsetInt);
 		UserGroupHeaderResponsePage results = new UserGroupHeaderResponsePage();
@@ -159,28 +180,32 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	@Override
 	public synchronized void refreshCache() throws DatastoreException, NotFoundException {		
-		Trie<String, Collection<UserGroupHeader>> tempCache = new PatriciaTrie<String, Collection<UserGroupHeader>>(StringKeyAnalyzer.CHAR);
-
+		Trie<String, Collection<UserGroupHeader>> tempPrefixCache = new PatriciaTrie<String, Collection<UserGroupHeader>>(StringKeyAnalyzer.CHAR);
+		Map<String, UserGroupHeader> tempIdCache = new HashMap<String, UserGroupHeader>();
+		
 		UserGroupHeader header;
 		List<UserProfile> userProfiles = userProfileManager.getInRange(null, 0, Long.MAX_VALUE, true).getResults();
 		for (UserProfile profile : userProfiles) {
-			if (profile .getDisplayName() != null) {
+			if (profile.getDisplayName() != null) {
 				header = convertUserProfileToHeader(profile);
-				addToCache(tempCache, header);
+				addToPrefixCache(tempPrefixCache, header);
+				addToIdCache(tempIdCache, header);
 			}
 		}
 		Collection<UserGroup> userGroups = permissionsManager.getGroups();
 		for (UserGroup group : userGroups) {
 			if (group.getName() != null) {
 				header = convertUserGroupToHeader(group);			
-				addToCache(tempCache, header);
+				addToPrefixCache(tempPrefixCache, header);
+				addToIdCache(tempIdCache, header);
 			}
 		}
-		userGroupHeadersCache = tempCache;
-		cacheLastUpdated = System.currentTimeMillis();		
+		userGroupHeadersNamePrefixCache = tempPrefixCache;
+		userGroupHeadersIdCache = tempIdCache;
+		cachesLastUpdated = System.currentTimeMillis();		
 	}
 	
-	private void addToCache(Trie<String, Collection<UserGroupHeader>> tempCache, UserGroupHeader header) {
+	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> tempCache, UserGroupHeader header) {
 		String name = header.getDisplayName().toLowerCase();
 		if (!tempCache.containsKey(name)) {
 			// cache does not contain a user/group with that name
@@ -194,12 +219,16 @@ public class UserProfileServiceImpl implements UserProfileService {
 		}
 	}
 	
+	private void addToIdCache(Map<String, UserGroupHeader> tempCache, UserGroupHeader header) {
+		tempCache.put(header.getOwnerId(), header);
+	}
+	
 	@Override
 	public Long millisSinceLastCacheUpdate() {
-		if (userGroupHeadersCache == null) {
+		if (userGroupHeadersNamePrefixCache == null) {
 			return null;
 		}
-		return System.currentTimeMillis() - cacheLastUpdated;
+		return System.currentTimeMillis() - cachesLastUpdated;
 	}
 	
 	private UserGroupHeader convertUserProfileToHeader(UserProfile profile) {
