@@ -1646,6 +1646,23 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testGetCreatedBy() throws NotFoundException, DatastoreException, InvalidModelException {
+		Node node = privateCreateNew("foobar");
+		node.setNodeType(EntityType.project.name());
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		Long createdBy = nodeDao.getCreatedBy(id);
+		assertEquals(creatorUserGroupId, createdBy);
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetCreatedByDoesNotExist() throws NotFoundException, DatastoreException{
+		// This should throw a NotFoundException exception
+		Long createdBy = nodeDao.getCreatedBy(KeyFactory.keyToString(new Long(-12)));
+	}
+	
+	@Test
 	public void testGetAllNodeTypesForAlias(){
 		// This should return all entity types.
 		List<Short> expected = new ArrayList<Short>();

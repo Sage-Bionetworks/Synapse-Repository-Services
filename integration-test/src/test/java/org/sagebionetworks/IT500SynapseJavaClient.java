@@ -15,11 +15,11 @@ import java.io.IOException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
-
 import org.apache.http.HttpException;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -59,6 +59,8 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeader;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
@@ -219,6 +221,14 @@ public class IT500SynapseJavaClient {
 	
 	@Test
 	public void testUpdateACLRecursive() throws Exception {
+		// Create resource access for me
+		UserProfile myProfile = synapse.getMyProfile();
+		Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
+		accessTypes.addAll(Arrays.asList(ACCESS_TYPE.values()));
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(myProfile.getOwnerId()));
+		ra.setAccessType(accessTypes);
+		
 		// retrieve parent acl
 		AccessControlList parentAcl = synapse.getACL(project.getId());
 
@@ -232,6 +242,9 @@ public class IT500SynapseJavaClient {
 		// assign new ACL to child
 		childAcl = new AccessControlList();
 		childAcl.setId(dataset.getId());
+		Set<ResourceAccess> resourceAccesses = new HashSet<ResourceAccess>();
+		resourceAccesses.add(ra);
+		childAcl.setResourceAccess(resourceAccesses);
 		childAcl = synapse.createACL(childAcl);
 		
 		// retrieve child acl - should get child's
@@ -465,6 +478,14 @@ public class IT500SynapseJavaClient {
 	
 	@Test
 	public void testJavaClientCreateUpdateEntityBundle() throws SynapseException {
+		// Create resource access for me
+		UserProfile myProfile = synapse.getMyProfile();
+		Set<ACCESS_TYPE> accessTypes = new HashSet<ACCESS_TYPE>();
+		accessTypes.addAll(Arrays.asList(ACCESS_TYPE.values()));
+		ResourceAccess ra = new ResourceAccess();
+		ra.setPrincipalId(Long.parseLong(myProfile.getOwnerId()));
+		ra.setAccessType(accessTypes);
+		
 		// Create an entity		
 		Study s1 = new Study();
 		s1.setName("Dummy Study 1");
@@ -478,8 +499,9 @@ public class IT500SynapseJavaClient {
 		
 		// Create ACL for this entity
 		AccessControlList acl1 = new AccessControlList();
-		Set<ResourceAccess> resourceAccess = new TreeSet<ResourceAccess>();
-		acl1.setResourceAccess(resourceAccess);
+		Set<ResourceAccess> resourceAccesses = new HashSet<ResourceAccess>();
+		resourceAccesses.add(ra);
+		acl1.setResourceAccess(resourceAccesses);
 		
 		// Create the bundle, verify contents
 		EntityBundleCreate ebc = new EntityBundleCreate();
@@ -747,6 +769,29 @@ public class IT500SynapseJavaClient {
 			assertNotNull(ug.getId());
 			assertNotNull(ug.getName());
 		}
+	}
+	
+	@Test
+	public void testGetUserGroupHeadersById() throws Exception {
+		List<String> ids = new ArrayList<String>();		
+		PaginatedResults<UserProfile> users = synapse.getUsers(0,100);
+		for (UserProfile up : users.getResults()) {	
+			if (up.getDisplayName() != null) {
+				ids.add(up.getOwnerId());
+			}
+		}
+		UserGroupHeaderResponsePage response = synapse.getUserGroupHeadersByIds(ids);
+		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
+		for (UserGroupHeader ugh : response.getChildren())
+			headers.put(ugh.getOwnerId(), ugh);
+		
+		String dummyId = "This extra String should not match an ID";
+		ids.add(dummyId);
+		
+		assertEquals(ids.size() - 1, headers.size());
+		for (String id : ids)
+			if (!id.equals(dummyId))
+				assertTrue(headers.containsKey(id));
 	}
 	
 	@Test
