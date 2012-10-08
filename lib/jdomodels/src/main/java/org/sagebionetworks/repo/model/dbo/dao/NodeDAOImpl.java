@@ -166,7 +166,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static String SQL_COUNT_NODE_ID = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID +" = :"+BIND_ID_KEY;
 	private static String SQL_COUNT_REVISON_ID = "SELECT COUNT("+COL_REVISION_OWNER_NODE+") FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE +" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static String SQL_COUNT_REVISONS = "SELECT COUNT("
-			+ COL_REVISION_OWNER_NODE + ") FROM " + TABLE_REVISION + " WHERE "
+			+ COL_REVISION_NUMBER+ ") FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = ?";
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

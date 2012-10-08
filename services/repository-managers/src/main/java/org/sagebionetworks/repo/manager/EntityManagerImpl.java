@@ -134,20 +134,6 @@ public class EntityManagerImpl implements EntityManager {
 		return populateEntityWithNodeAndAnnotations(entityClass, annos, node);
 	}
 
-	@Override
-	public VersionInfo getEntityVersionInfo(UserInfo userInfo, String entityId,
-			long versionNumber) throws DatastoreException, UnauthorizedException, NotFoundException {
-		Node node = nodeManager.getNodeForVersionNumber(userInfo, entityId, versionNumber);
-		VersionInfo info = new VersionInfo();
-		info.setId(node.getId());
-		info.setModifiedByPrincipalId(node.getCreatedByPrincipalId().toString());
-		info.setModifiedOn(node.getModifiedOn());
-		info.setVersionNumber(node.getVersionNumber());
-		info.setVersionLabel(node.getVersionLabel());
-		info.setVersionComment(node.getVersionComment());
-		return info;
-	}
-
 	/**
 	 * Create and populate an instance of an entity using both a node and
 	 * annotations.
