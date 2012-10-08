@@ -893,6 +893,16 @@ public class NodeDAOImplTest {
 	}
 
 	@Test
+	public void testVersionCount() throws Exception {
+		// Create a number of versions
+		int numberVersions = 10;
+		String id = createNodeWithMultipleVersions(numberVersions);
+		// Now list the versions
+		long numVersions = nodeDao.getVersionCount(id);
+		assertEquals(numberVersions, numVersions);
+	}
+
+	@Test
 	public void testDeleteCurrentVersion() throws Exception {
 		// Create a number of versions
 		int numberVersions = 2;

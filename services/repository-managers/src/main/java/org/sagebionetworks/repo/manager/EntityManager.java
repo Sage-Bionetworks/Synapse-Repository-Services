@@ -304,16 +304,6 @@ public interface EntityManager {
 	public boolean doesEntityHaveChildren(UserInfo userInfo, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
-	 *
-	 * @param userInfo
-	 * @param entityId
-	 * @param versionNumber
-	 * @return
-	 */
-	public VersionInfo getEntityVersionInfo(UserInfo userInfo, String entityId,
-			long versionNumber)  throws DatastoreException, UnauthorizedException, NotFoundException;
-
-	/**
 	 * Return a paginated list of all version of this entity.
 	 * @param userInfo
 	 * @param entityId
