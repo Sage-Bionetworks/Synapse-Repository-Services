@@ -509,14 +509,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
-	public long getVersionCount(String entityId)
-			throws NotFoundException, DatastoreException {
-		// TODO Auto-generated method stub
-		return nodeDao.getVersionCount(entityId);
-	}
-
-	@Override
-	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
+	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
 			String entityId, long offset, long limit) throws NotFoundException,
 			UnauthorizedException, DatastoreException {
 		UserInfo.validateUserInfo(userInfo);

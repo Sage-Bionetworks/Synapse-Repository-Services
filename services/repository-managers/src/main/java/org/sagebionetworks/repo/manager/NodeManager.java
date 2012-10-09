@@ -235,9 +235,7 @@ public interface NodeManager {
 	 */
 	public boolean doesNodeHaveChildren(String entityId);
 
-	public long getVersionCount(String entityId) throws NotFoundException, DatastoreException;
-
-	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
+	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
 			String entityId, long offset, long limit) throws NotFoundException, UnauthorizedException, DatastoreException;
 	
 }
