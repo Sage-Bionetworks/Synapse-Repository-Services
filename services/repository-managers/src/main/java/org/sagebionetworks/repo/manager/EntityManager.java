@@ -311,8 +311,6 @@ public interface EntityManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public List<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId, long offset, long limit) throws DatastoreException, UnauthorizedException, NotFoundException;
-
-	public long getVersionCount(String entityId) throws DatastoreException, NotFoundException;
+	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId, long offset, long limit) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 }

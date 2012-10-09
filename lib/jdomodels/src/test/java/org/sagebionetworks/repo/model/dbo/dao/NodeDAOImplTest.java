@@ -885,11 +885,11 @@ public class NodeDAOImplTest {
 		int numberVersions = 10;
 		String id = createNodeWithMultipleVersions(numberVersions);
 		// Now list the versions
-		List<VersionInfo> versionsOfEntity = nodeDao.getVersionsOfEntity(id, 0, 10);
+		QueryResults<VersionInfo> versionsOfEntity = nodeDao.getVersionsOfEntity(id, 0, 10);
 		assertNotNull(versionsOfEntity);
-		assertEquals(numberVersions,versionsOfEntity.size());
-		assertEquals(new Long(numberVersions), versionsOfEntity.get(0).getVersionNumber());
-		assertEquals(new Long(1), versionsOfEntity.get(versionsOfEntity.size()-1).getVersionNumber());
+		assertEquals(numberVersions,versionsOfEntity.getResults().size());
+		assertEquals(new Long(numberVersions), versionsOfEntity.getResults().get(0).getVersionNumber());
+		assertEquals(new Long(1), versionsOfEntity.getResults().get(versionsOfEntity.getResults().size()-1).getVersionNumber());
 	}
 
 	@Test
