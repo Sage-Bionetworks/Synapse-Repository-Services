@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.ontology;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityQueryResults;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -22,7 +22,7 @@ public interface ConceptManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public EntityQueryResults<Concept> getChildConcepts(String parentConceptURI, String prefixFilter, int limit, int offest) throws DatastoreException, NotFoundException;
+	public QueryResults<Concept> getChildConcepts(String parentConceptURI, String prefixFilter, int limit, int offest) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get a concept for a given uri.

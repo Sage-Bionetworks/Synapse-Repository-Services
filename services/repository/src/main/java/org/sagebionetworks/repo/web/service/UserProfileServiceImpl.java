@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityQueryResults;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -131,7 +131,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		// Get the results from the cache
 		SortedMap<String, Collection<UserGroupHeader>> matched = userGroupHeadersCache.prefixMap(prefix.toLowerCase());
 		List<UserGroupHeader> fullList = flatten(matched);
-		EntityQueryResults<UserGroupHeader> eqr = new EntityQueryResults<UserGroupHeader>(fullList, limitInt, offsetInt);
+		QueryResults<UserGroupHeader> eqr = new QueryResults<UserGroupHeader>(fullList, limitInt, offsetInt);
 		UserGroupHeaderResponsePage results = new UserGroupHeaderResponsePage();
 		results.setChildren(eqr.getResults());
 		results.setPrefixFilter(prefix);
