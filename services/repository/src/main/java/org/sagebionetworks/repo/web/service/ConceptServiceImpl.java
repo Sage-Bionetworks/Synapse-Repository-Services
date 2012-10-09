@@ -5,7 +5,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.manager.ontology.ConceptManager;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityQueryResults;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -41,7 +41,7 @@ public class ConceptServiceImpl implements ConceptService {
 		String conceptUri = conceptManager.getOntologyBaseURI()+id;
 //		SummaryRequest summaryRequest =  (SummaryRequest) objectTypeSerializer.deserialize(request.getInputStream(), header, SummaryRequest.class, header.getContentType());
 		// Get the results from the manager
-		EntityQueryResults<Concept> eqr = conceptManager.getChildConcepts(conceptUri, prefixFilter, limitInt, offesetInt);
+		QueryResults<Concept> eqr = conceptManager.getChildConcepts(conceptUri, prefixFilter, limitInt, offesetInt);
 		ConceptResponsePage results = new ConceptResponsePage();
 		results.setChildren(eqr.getResults());
 		results.setParentConceptUri(conceptUri);
