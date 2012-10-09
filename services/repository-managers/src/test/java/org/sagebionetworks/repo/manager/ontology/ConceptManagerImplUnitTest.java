@@ -16,7 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityQueryResults;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptDAO;
 import org.sagebionetworks.repo.model.ontology.ConceptSummary;
@@ -114,7 +114,7 @@ public class ConceptManagerImplUnitTest {
 	@Test
 	public void testGetAllConcepts() throws DatastoreException, NotFoundException{
 		// First with no prefix
-		EntityQueryResults<Concept> paged = manager.getChildConcepts(parentURI, null, Integer.MAX_VALUE, 0);
+		QueryResults<Concept> paged = manager.getChildConcepts(parentURI, null, Integer.MAX_VALUE, 0);
 		List<Concept> results = paged.getResults();
 		assertNotNull(results);
 		assertEquals(3, results.size());
@@ -253,7 +253,7 @@ public class ConceptManagerImplUnitTest {
 		when(mockCache.containsKey(parentUniquePart)).thenReturn(false);
 		manager = new ConceptManagerImpl(mockDao, mockCache, baseURI);
 		// The first time should hit the dao
-		EntityQueryResults<Concept> paged = manager.getChildConcepts(parentURI, null, Integer.MAX_VALUE, 0);
+		QueryResults<Concept> paged = manager.getChildConcepts(parentURI, null, Integer.MAX_VALUE, 0);
 		List<Concept> results = paged.getResults();
 //		assertEquals(list, result);
 		// Now validate that the concept was placed in the cache
@@ -280,7 +280,7 @@ public class ConceptManagerImplUnitTest {
 		when(mockCache.containsKey(parentUniquePart)).thenReturn(true);
 		manager = new ConceptManagerImpl(mockDao, mockCache, baseURI);
 		// The first time should hit the dao
-		EntityQueryResults<Concept> paged = manager.getChildConcepts(parentURI, null, Integer.MAX_VALUE, 0);
+		QueryResults<Concept> paged = manager.getChildConcepts(parentURI, null, Integer.MAX_VALUE, 0);
 		List<Concept> results = paged.getResults();
 //		assertEquals(list, result);
 		// Now validate that the concept was placed in the cache

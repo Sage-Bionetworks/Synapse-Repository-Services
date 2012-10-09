@@ -31,6 +31,6 @@ public interface ReferenceDao {
 	 * @throws DatastoreException 
 	 * 
 	 */
-	public EntityHeaderQueryResults getReferrers(Long targetId, Integer targetVersion, UserInfo userInfo, Integer offset, Integer limit) throws DatastoreException;
+	public QueryResults<EntityHeader> getReferrers(Long targetId, Integer targetVersion, UserInfo userInfo, Integer offset, Integer limit) throws DatastoreException;
 
 }

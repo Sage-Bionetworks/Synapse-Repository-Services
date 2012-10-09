@@ -22,8 +22,8 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -116,7 +116,7 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 	}
 
 	@Override
-	public EntityHeaderQueryResults getReferrers(Long targetId, Integer targetVersion, UserInfo userInfo, Integer offset, Integer limit) throws DatastoreException {
+	public QueryResults<EntityHeader> getReferrers(Long targetId, Integer targetVersion, UserInfo userInfo, Integer offset, Integer limit) throws DatastoreException {
 		if(targetId == null) throw new IllegalArgumentException("targetId cannot be null");
 		// Build up the results from the DB.
 		final List<EntityHeader> results = new ArrayList<EntityHeader>();
@@ -153,8 +153,8 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 				return referrer;
 			}
 		}, fullParameters);
-		EntityHeaderQueryResults ehqr = new EntityHeaderQueryResults();
-		ehqr.setEntityHeaders(results);
+		QueryResults<EntityHeader> ehqr = new QueryResults<EntityHeader>();
+		ehqr.setResults(results);
 		String countQuery = "SELECT COUNT(*) "+queryTail;
 		ehqr.setTotalNumberOfResults(simpleJdbcTemplate.queryForLong(countQuery, baseParameters));
 		return ehqr;
