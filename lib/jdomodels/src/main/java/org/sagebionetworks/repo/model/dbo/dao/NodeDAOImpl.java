@@ -16,7 +16,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TY
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
@@ -62,6 +65,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StorageLocations;
 import org.sagebionetworks.repo.model.TagMessenger;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeType;
@@ -102,6 +106,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String SQL_COUNT_STRING_ANNOTATIONS_FOR_NODE = "SELECT COUNT("+ANNOTATION_OWNER_ID_COLUMN+") FROM "+TABLE_STRING_ANNOTATIONS+" WHERE "+ANNOTATION_OWNER_ID_COLUMN+" = ? AND "+ANNOTATION_ATTRIBUTE_COLUMN+" = ?";
+	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
 	
 	/**
 	 * To determine if a node has children we fetch the first child ID.
@@ -121,6 +126,13 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		" FROM "+TABLE_NODE+" n "+
 		" ORDER BY n."+COL_NODE_ID+
 		" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+
+	private static String SQL_GET_ALL_VERSION_INFO_PAGINATED = "SELECT "
+			+ COL_REVISION_NUMBER + ", " + COL_REVISION_LABEL + ", "
+			+ COL_REVISION_COMMENT + ", " + COL_REVISION_MODIFIED_BY + ", "
+			+ COL_REVISION_MODIFIED_ON + " FROM " + TABLE_REVISION + " WHERE "
+			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME+" ORDER BY " + COL_REVISION_NUMBER
+			+ " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
 	// This is better suited for simple JDBC query.
 	@Autowired
@@ -145,12 +157,15 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";
 	
 	private static String SQL_GET_ALL_VERSION_NUMBERS = "SELECT "+COL_REVISION_NUMBER+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE +" = ? ORDER BY "+COL_REVISION_NUMBER+" DESC";
+
 	
 	private static String SQL_COUNT_ALL = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
 	// Used to determine if a node id already exists
 	private static String SQL_COUNT_NODE_ID = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID +" = :"+BIND_ID_KEY;
 	private static String SQL_COUNT_REVISON_ID = "SELECT COUNT("+COL_REVISION_OWNER_NODE+") FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE +" = ? AND "+COL_REVISION_NUMBER+" = ?";
-
+	private static String SQL_COUNT_REVISONS = "SELECT COUNT("
+			+ COL_REVISION_NUMBER+ ") FROM " + TABLE_REVISION + " WHERE "
+			+ COL_REVISION_OWNER_NODE + " = ?";
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -654,6 +669,43 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			list.add(revId);
 		}
 		return list;
+	}
+
+	@Override
+	public long getVersionCount(String entityId) throws NotFoundException,
+			DatastoreException {
+		return simpleJdbcTemplate.queryForLong(SQL_COUNT_REVISONS, KeyFactory.stringToKey(entityId));
+	}
+
+	@Override
+	public QueryResults<VersionInfo> getVersionsOfEntity(final String entityId, long offset,
+			long limit) throws NotFoundException, DatastoreException {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(OWNER_ID_PARAM_NAME, KeyFactory.stringToKey(entityId));
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);
+
+		QueryResults<VersionInfo> queryResults = new QueryResults<VersionInfo>();
+
+		queryResults.setTotalNumberOfResults(getVersionCount(entityId));
+		queryResults.setResults(simpleJdbcTemplate.query(SQL_GET_ALL_VERSION_INFO_PAGINATED, new RowMapper<VersionInfo>() {
+
+			@Override
+			public VersionInfo mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				VersionInfo info = new VersionInfo();
+				info.setId(entityId);
+				info.setModifiedByPrincipalId(rs.getString(COL_REVISION_MODIFIED_BY));
+				info.setModifiedOn(rs.getDate(COL_REVISION_MODIFIED_ON));
+				info.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
+				info.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+				info.setVersionComment(rs.getString(COL_REVISION_COMMENT));
+				return info;
+			}
+
+		}, params));
+
+		return queryResults;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

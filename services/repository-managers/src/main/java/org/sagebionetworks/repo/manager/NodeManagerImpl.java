@@ -15,15 +15,16 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ReferenceDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
@@ -496,7 +497,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
-	public EntityHeaderQueryResults getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Integer offset, Integer limit)
+	public QueryResults<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Integer offset, Integer limit)
 			throws NotFoundException, DatastoreException {
 		UserInfo.validateUserInfo(userInfo);
 		return referenceDao.getReferrers(KeyFactory.stringToKey(nodeId), versionNumber, userInfo, offset, limit);
@@ -505,6 +506,18 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public boolean doesNodeHaveChildren(String nodeId) {
 		return nodeDao.doesNodeHaveChildren(nodeId);
+	}
+
+	@Override
+	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
+			String entityId, long offset, long limit) throws NotFoundException,
+			UnauthorizedException, DatastoreException {
+		UserInfo.validateUserInfo(userInfo);
+		if (!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.READ)) {
+			String userName = userInfo.getUser().getUserId();
+			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
+		}
+		return nodeDao.getVersionsOfEntity(entityId, offset, limit);
 	}
 
 }
