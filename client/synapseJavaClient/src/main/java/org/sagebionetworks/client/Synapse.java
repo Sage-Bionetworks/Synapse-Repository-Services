@@ -616,7 +616,7 @@ public class Synapse {
 				"?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<VersionInfo> results = new PaginatedResults<VersionInfo>();
+		PaginatedResults<VersionInfo> results = new PaginatedResults<VersionInfo>(VersionInfo.class);
 
 		try {
 			results.initializeFromJSONObject(adapter);
