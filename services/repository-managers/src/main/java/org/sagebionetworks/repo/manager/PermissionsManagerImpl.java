@@ -92,7 +92,8 @@ public class PermissionsManagerImpl implements PermissionsManager {
 			throw new UnauthorizedException("Not authorized.");
 		}
 		// validate content
-		validateACLContent(acl, userInfo);
+		Long ownerId = nodeDao.getCreatedBy(acl.getId());
+		validateACLContent(acl, userInfo, ownerId);
 		// Before we can update the ACL we must grab the lock on the node.
 		String newETag = nodeDao.lockNodeAndIncrementEtag(acl.getId(), acl.getEtag());
 		aclDAO.update(acl);
@@ -112,7 +113,8 @@ public class PermissionsManagerImpl implements PermissionsManager {
 			throw new UnauthorizedException("Not authorized.");
 		}
 		// validate content
-		validateACLContent(acl, userInfo);
+		Long ownerId = nodeDao.getCreatedBy(acl.getId());
+		validateACLContent(acl, userInfo, ownerId);
 		Node node = nodeDao.getNode(rId);
 		// Before we can update the ACL we must grab the lock on the node.
 		nodeDao.lockNodeAndIncrementEtag(node.getId(), node.getETag());
@@ -257,7 +259,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		}
 	}
 
-	public static void validateACLContent(AccessControlList acl, UserInfo userInfo) throws InvalidModelException {
+	public static void validateACLContent(AccessControlList acl, UserInfo userInfo, Long ownerId) throws InvalidModelException {
 		if (acl.getId()==null) 
 			throw new InvalidModelException("Resource ID is null");
 		if(acl.getResourceAccess() == null) 
@@ -267,6 +269,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 		
 		// Verify that the caller maintains permissions access
 		String callerPrincipalId = userInfo.getIndividualGroup().getId();
+		boolean callerIsOwner = callerPrincipalId.equals(ownerId.toString());
 		boolean foundCallerInAcl = false;
 		for (ResourceAccess ra : acl.getResourceAccess()) {
 			if (ra==null) throw new InvalidModelException("ACL row is null.");
@@ -280,7 +283,7 @@ public class PermissionsManagerImpl implements PermissionsManager {
 			}
 		}
 		
-		if (!foundCallerInAcl && !userInfo.isAdmin()) {
+		if (!foundCallerInAcl && !userInfo.isAdmin() && !callerIsOwner) {
 			throw new InvalidModelException("Caller is trying to revoke their own ACL editing permissions.");
 		}
 	}
