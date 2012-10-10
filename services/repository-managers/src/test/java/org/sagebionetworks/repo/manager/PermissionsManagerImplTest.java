@@ -57,6 +57,7 @@ public class PermissionsManagerImplTest {
 	private UserInfo userInfo = null;
 	
 	private static final String TEST_USER = "test-user";
+	private static Long ownerId;
 	
 	private List<String> usersToDelete;
 	
@@ -97,6 +98,7 @@ public class PermissionsManagerImplTest {
 		usersToDelete = new ArrayList<String>();
 		usersToDelete.add(userInfo.getIndividualGroup().getId());
 		usersToDelete.add(userInfo.getUser().getId());
+		ownerId = Long.parseLong(userInfo.getIndividualGroup().getId());
 	}
 
 	@After
@@ -152,7 +154,7 @@ public class PermissionsManagerImplTest {
 		acl.setResourceAccess(ras);	
 		
 		// Should not throw any exceptions
-		PermissionsManagerImpl.validateACLContent(acl, userInfo);
+		PermissionsManagerImpl.validateACLContent(acl, userInfo, ownerId);
 	}
 	
 	@Test(expected = InvalidModelException.class)
@@ -163,7 +165,7 @@ public class PermissionsManagerImplTest {
 		acl.setId("resource id");
 		
 		// Should fail, since user is not included with proper permissions in ACL
-		PermissionsManagerImpl.validateACLContent(acl, userInfo);
+		PermissionsManagerImpl.validateACLContent(acl, userInfo, ownerId);
 	}
 
 	
@@ -175,7 +177,18 @@ public class PermissionsManagerImplTest {
 		acl.setId("resource id");
 		
 		// Should not throw any exceptions
-		PermissionsManagerImpl.validateACLContent(acl, adminInfo);
+		PermissionsManagerImpl.validateACLContent(acl, adminInfo, ownerId);
+	}
+	
+	@Test
+	public void testValidateACLContent_OwnerMissing()throws Exception {
+		UserInfo ownerInfo = userManager.getUserInfo(TEST_USER);
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		
+		// Should not throw any exceptions
+		PermissionsManagerImpl.validateACLContent(acl, ownerInfo, ownerId);
 	}
 	
 	@Test(expected = InvalidModelException.class)
@@ -196,7 +209,7 @@ public class PermissionsManagerImplTest {
 		acl.setResourceAccess(ras);	
 		
 		// Should fail since user does not have permission editing rights in ACL
-		PermissionsManagerImpl.validateACLContent(acl, userInfo);
+		PermissionsManagerImpl.validateACLContent(acl, userInfo, ownerId);
 	}
 
 
