@@ -135,47 +135,43 @@
 							<org.sagebionetworks.rest.api.endpoint>${tomcat.endpoint}/${org.sagebionetworks.repository.context}</org.sagebionetworks.rest.api.endpoint>
 						</systemProperties>
 					</container>
-					<configuration>
-						<type>standalone</type>
-						<home>${project.build.directory}/tomcat7x/container/${tomcat-file}/bin</home>
-						<deployables>
-							<deployable>
-								<groupId>org.sagebionetworks</groupId>
-								<artifactId>services-authentication</artifactId>
-								<type>war</type>
-								<!-- url to ping to know if deployable is done or not -->
-								<!-- <pingURL>${tomcat.endpoint}/${org.sagebionetworks.auth.context}</pingURL> -->
-								<!-- How long do we wait until the we timeout (in ms) -->
-								<!-- <pingTimeout>2000</pingTimeout> -->
-							</deployable>
-							<deployable>
-								<groupId>org.sagebionetworks</groupId>
-								<artifactId>services-repository</artifactId>
-								<type>war</type>
-								<!-- url to ping to know if deployable is done or not -->
-								<!-- <pingURL>${org.sagebionetworks.repository.service.base.url}/dataset/test</pingURL> -->
-								<!-- How long do we wait until the we timeout (in ms) -->
-								<!-- <pingTimeout>2000</pingTimeout> -->
-							</deployable>
-							<deployable>
-								<groupId>org.sagebionetworks</groupId>
-								<artifactId>services-search</artifactId>
-								<type>war</type>
-							</deployable>
-						</deployables>
-						<properties>
-<!-- 							Add the following to 'remote debug' the entire deployment stack -->
-<!-- 
-							<cargo.jvmargs> 
+					<type>standalone</type>
+					<home>${project.build.directory}/tomcat7x/container/${tomcat-file}/bin</home>
+					<deployables>
+						<deployable>
+							<groupId>org.sagebionetworks</groupId>
+							<artifactId>services-authentication</artifactId>
+							<type>war</type>
+							<!-- url to ping to know if deployable is done or not -->
+							<!-- <pingURL>${tomcat.endpoint}/${org.sagebionetworks.auth.context}</pingURL> -->
+							<!-- How long do we wait until the we timeout (in ms) -->
+							<!-- <pingTimeout>2000</pingTimeout> -->
+						</deployable>
+						<deployable>
+							<groupId>org.sagebionetworks</groupId>
+							<artifactId>services-repository</artifactId>
+							<type>war</type>
+							<!-- url to ping to know if deployable is done or not -->
+							<!-- <pingURL>${org.sagebionetworks.repository.service.base.url}/dataset/test</pingURL> -->
+							<!-- How long do we wait until the we timeout (in ms) -->
+							<!-- <pingTimeout>2000</pingTimeout> -->
+						</deployable>
+						<deployable>
+							<groupId>org.sagebionetworks</groupId>
+							<artifactId>services-search</artifactId>
+							<type>war</type>
+						</deployable>
+					</deployables>
+					<properties>
+<!-- 					Add the following to 'remote debug' the entire deployment stack
+						<cargo.jvmargs>
 							-Xdebug
 							-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8989
 							-Xnoagent
 							-Djava.compiler=NONE
-							</cargo.jvmargs>
- -->							
- 						</properties>
-					</configuration>
-
+						</cargo.jvmargs>
+-->
+					</properties>
 				</configuration>
 
 				<executions>
