@@ -38,6 +38,11 @@ public class UrlHelpers {
 	
 	public static final String ACCESS 				= "/access";
 	
+	/**
+	 * Used for batch requests
+	 */
+	public static final String BATCH				= "/batch";
+	
 	public static final String PERMISSIONS 			= "/permissions";
 
 	public static final String ACCESS_TYPE_PARAM	= "accessType";
@@ -50,6 +55,8 @@ public class UrlHelpers {
 	 */
 	public static final String ID_PATH_VARIABLE = "id";
 	public static final String ID = "/{"+ID_PATH_VARIABLE+"}";
+	
+	public static final String IDS_PATH_VARIABLE = "ids";
 	
 	/**
 	 * URL prefix for all objects that are referenced by their ID.
@@ -295,9 +302,29 @@ public class UrlHelpers {
 	public static final String STORAGE_DETAILS_USER_ID = STORAGE_DETAILS + "/{" + STORAGE_USER_ID + "}";
 
 	/**
+	 * Storage usage summary for administrators.
+	 */
+	public static final String ADMIN_STORAGE_SUMMARY = ADMIN + STORAGE_SUMMARY;
+
+	/**
+	 * Storage usage summaries, aggregated by users, for administrators.
+	 */
+	public static final String ADMIN_STORAGE_SUMMARY_PER_USER = ADMIN_STORAGE_SUMMARY + "/perUser";
+
+	/**
+	 * Storage usage summaries, aggregated by entities, for administrators.
+	 */
+	public static final String ADMIN_STORAGE_SUMMARY_PER_ENTITY = ADMIN_STORAGE_SUMMARY + "/perEntity";
+
+	/**
 	 * Public access for Synapse user and group info
 	 */
 	public static final String USER_GROUP_HEADERS = "/userGroupHeaders";
+	
+	/**
+	 * Public batch request access for Synapse user and group info
+	 */
+	public static final String USER_GROUP_HEADERS_BATCH = USER_GROUP_HEADERS + BATCH;
 	
 	/**
 	 * The name of the query parameter for a prefix filter.

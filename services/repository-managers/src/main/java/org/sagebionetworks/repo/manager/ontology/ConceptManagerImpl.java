@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityQueryResults;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptDAO;
 import org.sagebionetworks.repo.model.ontology.ConceptSummary;
@@ -55,7 +55,7 @@ public class ConceptManagerImpl implements ConceptManager {
 	}
 	
 	@Override
-	public EntityQueryResults<Concept> getChildConcepts(String parentConceptURI, String prefix, int limit, int offest) throws DatastoreException, NotFoundException {
+	public QueryResults<Concept> getChildConcepts(String parentConceptURI, String prefix, int limit, int offest) throws DatastoreException, NotFoundException {
 		// First extract the unique value
 		String uniquePart = getUniqueURIPart(parentConceptURI);
 		// First check to see if the cache has 
@@ -76,7 +76,7 @@ public class ConceptManagerImpl implements ConceptManager {
 		}
 		
 		// Return one page.
-		return new EntityQueryResults<Concept>(fullList, limit, offest);
+		return new QueryResults<Concept>(fullList, limit, offest);
 	}
 	
 

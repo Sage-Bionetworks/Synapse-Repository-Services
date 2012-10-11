@@ -65,20 +65,24 @@ public class StorageLocationDAOImplTest {
 	private String userId;
 	private String nodeId;
 
+	private List<AttachmentData> attachmentList;
+	private List<LocationData> locationList;
+	private Map<String, List<String>> strAnnotations;
 	private StorageLocations locations;
+
+	private final long a1Size = 23L;
+	private final long a2Size = 53L;
+	private final long l2Size = 11L;
+	private final long sizeTotal = a1Size + a2Size + l2Size;
+	private final long countTotal = 4L; // a1, a2, l1, l2; l1 has no size (i.e. null)
 
 	@Before
 	public void before() throws Exception {
 
 		userId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
 		Assert.assertNotNull(userId);
-		Long userIdLong = Long.parseLong(userId);
-		Node node = NodeTestUtils.createNew("test node for location data", userIdLong);
-		Assert.assertNotNull(node);
-		nodeId = nodeDao.createNew(node);
-		Assert.assertNotNull(nodeId);
 
-		List<AttachmentData> attachmentList = new ArrayList<AttachmentData>();
+		attachmentList = new ArrayList<AttachmentData>();
 		AttachmentData ad = new AttachmentData();
 		ad.setName("ad1");
 		ad.setTokenId("ad1Token");
@@ -96,7 +100,7 @@ public class StorageLocationDAOImplTest {
 		ad.setPreviewId("ad2Preview");
 		attachmentList.add(ad);
 
-		List<LocationData> locationList = new ArrayList<LocationData>();
+		locationList = new ArrayList<LocationData>();
 		LocationData ld = new LocationData();
 		ld.setPath("ld1Path");
 		ld.setType(LocationTypeNames.external);
@@ -106,106 +110,191 @@ public class StorageLocationDAOImplTest {
 		ld.setType(LocationTypeNames.awss3);
 		locationList.add(ld);
 
-		Map<String, List<String>> strAnnotations = new HashMap<String, List<String>>();
+		strAnnotations = new HashMap<String, List<String>>();
 		List<String> md5List = new ArrayList<String>();
 		md5List.add("ldMd5");
-		strAnnotations.put("md5", md5List);
-	
+		strAnnotations.put("md5", md5List);	
 		List<String> ctList = new ArrayList<String>();
 		ctList.add("ldContentType");
 		strAnnotations.put("contentType", ctList);
-
-		locations = new StorageLocations(KeyFactory.stringToKey(nodeId), userIdLong,
-			attachmentList, locationList, strAnnotations);
-
-		List<S3ObjectSummary> objList = new ArrayList<S3ObjectSummary>();
-		S3ObjectSummary objSummary = mock(S3ObjectSummary.class);
-		when(objSummary.getKey()).thenReturn(KeyFactory.stringToKey(nodeId) + "/ad1Token");
-		when(objSummary.getSize()).thenReturn(23L);
-		objList.add(objSummary);
-		objSummary = mock(S3ObjectSummary.class);
-		when(objSummary.getKey()).thenReturn(KeyFactory.stringToKey(nodeId) + "/ad2Token");
-		when(objSummary.getSize()).thenReturn(53L);
-		objList.add(objSummary);
-		objSummary = mock(S3ObjectSummary.class);
-		when(objSummary.getKey()).thenReturn("abc/xyz");
-		when(objSummary.getSize()).thenReturn(11L);
-		objList.add(objSummary);
-		ObjectListing objListing = mock(ObjectListing.class);
-		when(objListing.getObjectSummaries()).thenReturn(objList);
-		when(objListing.isTruncated()).thenReturn(false);
-
-		AmazonS3 s3Client = Mockito.mock(AmazonS3.class);
-		String bucket = StackConfiguration.getS3Bucket();
-		when(s3Client.listObjects(bucket, KeyFactory.stringToKey(nodeId) + "/")).thenReturn(objListing);
-		ReflectionTestUtils.setField(unwrap(), "amazonS3Client", s3Client);
 	}
 
 	@After
 	public void after() throws NotFoundException, DatastoreException {
-		boolean success = nodeDao.delete(nodeId.toString());
-		Assert.assertTrue(success);
+		if (nodeId != null) {
+			nodeDao.delete(nodeId.toString());
+		}
+		attachmentList = null;
+		locationList = null;
+		strAnnotations = null;
 		locations = null;
 	}
 
 	@Test
-	public void testReplaceLocationData() throws NotFoundException, DatastoreException {
-		long c = basicDao.getCount(DBOStorageLocation.class);
+	public void testReplaceLocationData() throws Exception {
+		long base = basicDao.getCount(DBOStorageLocation.class);
+		long count = attachmentList.size() + locationList.size();
+		addTestNode();
 		dao.replaceLocationData(locations);
 		// We have inserted 4 rows in this unit test
-		Assert.assertEquals(4L + c, basicDao.getCount(DBOStorageLocation.class));
+		Assert.assertEquals(base + count, basicDao.getCount(DBOStorageLocation.class));
 		// Repeat should replace the same 4 rows (i.e. shouldn't add another 4 rows)
 		dao.replaceLocationData(locations);
-		Assert.assertEquals(4L + c, basicDao.getCount(DBOStorageLocation.class));
+		Assert.assertEquals(base + count, basicDao.getCount(DBOStorageLocation.class));
+		removeTestNode();
+		Assert.assertEquals(base, basicDao.getCount(DBOStorageLocation.class));
 	}
 
 	@Test
-	public void testTotalUsage() throws DatastoreException {
+	public void testGetTotalSize() throws Exception {
+		addTestNode();
 		dao.replaceLocationData(locations);
-		Long total = dao.getTotalUsage(userId);
-		Assert.assertEquals(87L, total.longValue());
-		total = dao.getTotalUsage("syn9293829999990"); // fake user
-		Assert.assertEquals(0L, total.longValue());
+		Long total = dao.getTotalSize();
+		// Except for the ones we are mocking here, no other
+		// storage item has size in the test database
+		Assert.assertEquals(sizeTotal, total.longValue());
+		removeTestNode();
 	}
 
 	@Test
-	public void testGetAggregatedUsage() {
+	public void testGetTotalSizeForUser() throws Exception {
+		addTestNode();
+		dao.replaceLocationData(locations);
+		Long total = dao.getTotalSizeForUser(userId);
+		Assert.assertEquals(sizeTotal, total.longValue());
+		total = dao.getTotalSizeForUser("syn9293829999990"); // fake user
+		Assert.assertEquals(0L, total.longValue());
+		removeTestNode();
+	}
 
+	@Test
+	public void testGetTotalCount() throws Exception {
+		addTestNode();
+		dao.replaceLocationData(locations);
+		// There are other storage items besides the ones mocked here
+		Assert.assertTrue(dao.getTotalCount() >= countTotal);
+		removeTestNode();
+	}
+
+	@Test
+	public void testGetTotalCountForUser() throws Exception {
+		addTestNode();
+		dao.replaceLocationData(locations);
+		Assert.assertEquals(countTotal, dao.getTotalCountForUser(userId).longValue());
+		Assert.assertEquals(0L, dao.getTotalCountForUser("syn9293829999990").longValue()); // fake user
+		removeTestNode();
+	}
+
+	@Test
+	public void testGetAggregatedUsage() throws Exception {
+
+		addTestNode();
 		dao.replaceLocationData(locations);
 
 		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
-		StorageUsageSummaryList susList = dao.getAggregatedUsage(userId, dList);
-		Assert.assertEquals(userId, susList.getUserId());
-		Assert.assertEquals(87L, susList.getGrandTotal().longValue());
+		StorageUsageSummaryList susList = dao.getAggregatedUsage(dList);
+		// Except for the ones we are mocking here, no other
+		// storage item has size in the test database
+		Assert.assertEquals(sizeTotal, susList.getTotalSize().longValue());
+		// There are other storage items (owned by other users) besides the ones mocked here
+		Assert.assertTrue(susList.getTotalCount().longValue() >= countTotal);
+		Assert.assertEquals(0, susList.getSummaryList().size());
+
+		dList.add(StorageUsageDimension.STORAGE_PROVIDER);
+		dList.add(StorageUsageDimension.IS_ATTACHMENT);
+		dList.add(StorageUsageDimension.STORAGE_PROVIDER);
+		dList.add(StorageUsageDimension.IS_ATTACHMENT);
+
+		susList = dao.getAggregatedUsage(dList);
+		// Except for the ones we are mocking here, no other
+		// storage item has size in the test database
+		Assert.assertEquals(sizeTotal, susList.getTotalSize().longValue());
+		// There are other storage items (owned by other users) besides the ones mocked here
+		Assert.assertTrue(susList.getTotalCount().longValue() >= countTotal);
+		List<StorageUsageSummary> summaryList = susList.getSummaryList();
+		//
+		// Currently aggregated into 3 rows:
+		//
+		// STORAGE_PROVIDER | IS_ATTACHMENT
+		// =================================
+		//      awss3            false
+		//      awss3            true
+		//      external         false
+		//
+		Assert.assertEquals(3, summaryList.size());
+		long sumOfSize = 0;
+		long sumOfCount = 0;
+		for (StorageUsageSummary summary : summaryList) {
+			List<StorageUsageDimensionValue> dvList = summary.getDimensionList();;
+			Assert.assertEquals(2, dvList.size());
+			// We should maintain the original aggregating order
+			Assert.assertEquals(StorageUsageDimension.STORAGE_PROVIDER, dvList.get(0).getDimension());
+			Assert.assertEquals(StorageUsageDimension.IS_ATTACHMENT, dvList.get(1).getDimension());
+			sumOfSize = sumOfSize + summary.getAggregatedSize();
+			sumOfCount = sumOfCount + summary.getAggregatedCount();
+		}
+		// Except for the ones we are mocking here, no other
+		// storage item has size in the test database
+		Assert.assertEquals(sizeTotal, sumOfSize);
+		Assert.assertEquals(susList.getTotalCount().longValue(), sumOfCount);
+
+		removeTestNode();
+	}
+
+	@Test
+	public void testGetAggregatedUsageForUser() throws Exception {
+
+		addTestNode();
+		dao.replaceLocationData(locations);
+
+		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
+		StorageUsageSummaryList susList = dao.getAggregatedUsageForUser(userId, dList);
+		Assert.assertEquals(sizeTotal, susList.getTotalSize().longValue());
+		Assert.assertEquals(countTotal, susList.getTotalCount().longValue());
 		Assert.assertEquals(0, susList.getSummaryList().size());
 
 		dList.add(StorageUsageDimension.IS_ATTACHMENT);
 		dList.add(StorageUsageDimension.STORAGE_PROVIDER);
-		susList = dao.getAggregatedUsage(userId, dList);
-		Assert.assertEquals(userId, susList.getUserId());
-		Assert.assertEquals(87L, susList.getGrandTotal().longValue());
+
+		susList = dao.getAggregatedUsageForUser(userId, dList);
+		Assert.assertEquals(sizeTotal, susList.getTotalSize().longValue());
+		Assert.assertEquals(countTotal, susList.getTotalCount().longValue());
 		List<StorageUsageSummary> summaryList = susList.getSummaryList();
+		//
+		// Currently aggregated into 3 rows:
+		//
+		// STORAGE_PROVIDER | IS_ATTACHMENT
+		// =================================
+		//      awss3            false
+		//      awss3            true
+		//      external         false
+		//
 		Assert.assertEquals(3, summaryList.size());
-		long sum = 0;
+		long sumOfSize = 0L;
+		long sumOfCount = 0L;
 		for (StorageUsageSummary summary : summaryList) {
-			Assert.assertEquals(userId, summary.getUserId());
 			List<StorageUsageDimensionValue> dvList = summary.getDimensionList();
 			Assert.assertEquals(2, dvList.size());
 			Assert.assertEquals(StorageUsageDimension.IS_ATTACHMENT, dvList.get(0).getDimension());
 			Assert.assertEquals(StorageUsageDimension.STORAGE_PROVIDER, dvList.get(1).getDimension());
-			sum = sum + summary.getTotalSize();
+			sumOfSize = sumOfSize + summary.getAggregatedSize();
+			sumOfCount = sumOfCount + summary.getAggregatedCount();
 		}
-		Assert.assertEquals(87L, sum);
+		Assert.assertEquals(sizeTotal, sumOfSize);
+		Assert.assertEquals(countTotal, sumOfCount);
+
+		removeTestNode();
 	}
 
 	@Test
-	public void testGetStorageUsageInRange() {
+	public void testGetStorageUsageInRangeForUser() throws Exception {
 
+		addTestNode();
 		dao.replaceLocationData(locations);
 
 		int beginIncl = 0;
 		int endExcl = 1000;
-		List<StorageUsage> suList = dao.getStorageUsageInRange(userId, beginIncl, endExcl);
+		List<StorageUsage> suList = dao.getUsageInRangeForUser(userId, beginIncl, endExcl);
 
 		Assert.assertEquals(4, suList.size());
 		Map<String, StorageUsage> suMap = new HashMap<String, StorageUsage>();
@@ -222,7 +311,7 @@ public class StorageLocationDAOImplTest {
 		Assert.assertEquals(LocationTypeNames.awss3, su.getStorageProvider());
 		Assert.assertEquals("/" + KeyFactory.stringToKey(nodeId) + "/ad1Token", su.getLocation());
 		Assert.assertEquals("ad1Code", su.getContentType());
-		Assert.assertEquals(23L, su.getContentSize().longValue());
+		Assert.assertEquals(a1Size, su.getContentSize().longValue());
 		Assert.assertEquals("ad1Md5", su.getContentMd5());
 
 		su = suMap.get("/" + KeyFactory.stringToKey(nodeId) + "/ad2Token");
@@ -233,7 +322,7 @@ public class StorageLocationDAOImplTest {
 		Assert.assertEquals(LocationTypeNames.awss3, su.getStorageProvider());
 		Assert.assertEquals("/" + KeyFactory.stringToKey(nodeId) + "/ad2Token", su.getLocation());
 		Assert.assertEquals("ad2Code", su.getContentType());
-		Assert.assertEquals(53L, su.getContentSize().longValue());
+		Assert.assertEquals(a2Size, su.getContentSize().longValue());
 		Assert.assertEquals("ad2Md5", su.getContentMd5());
 
 		su = suMap.get("ld1Path");
@@ -255,19 +344,121 @@ public class StorageLocationDAOImplTest {
 		Assert.assertEquals(LocationTypeNames.awss3, su.getStorageProvider());
 		Assert.assertEquals("abc/xyz", su.getLocation());
 		Assert.assertEquals("ldContentType", su.getContentType());
-		Assert.assertEquals(11L, su.getContentSize().longValue());
+		Assert.assertEquals(l2Size, su.getContentSize().longValue());
 		Assert.assertEquals("ldMd5", su.getContentMd5());
 
 		beginIncl = 1;
 		endExcl = 3;
-		suList = dao.getStorageUsageInRange(userId, beginIncl, endExcl);
+		suList = dao.getUsageInRangeForUser(userId, beginIncl, endExcl);
 		Assert.assertEquals(2, suList.size());
+
+		removeTestNode();
 	}
 
 	@Test
-	public void testGetCount() {
+	public void testGetAggregatedUsageByUserInRange() throws Exception {
+
+		addTestNode();
 		dao.replaceLocationData(locations);
-		Assert.assertEquals(Long.valueOf(4L), dao.getCount(userId));
+
+		int beginIncl = 0;
+		int endExcl = 1000;
+		StorageUsageSummaryList summaryList = dao.getAggregatedUsageByUserInRange(beginIncl, endExcl);
+
+		Assert.assertEquals(sizeTotal, summaryList.getTotalSize().longValue());
+		Assert.assertTrue(summaryList.getTotalCount().longValue() >= countTotal);
+
+		List<StorageUsageSummary> summaries = summaryList.getSummaryList();
+		long sumOfSize = 0L;
+		long sumOfCount = 0L;
+		for (StorageUsageSummary sus : summaries) {
+			Assert.assertEquals(1, sus.getDimensionList().size());
+			StorageUsageDimensionValue sudv = sus.getDimensionList().get(0);
+			Assert.assertEquals(StorageUsageDimension.USER_ID, sudv.getDimension());
+			Assert.assertNotNull(sudv.getValue());
+			sumOfSize = sumOfSize + sus.getAggregatedSize();
+			sumOfCount = sumOfCount + sus.getAggregatedCount();
+		}
+		Assert.assertEquals(sizeTotal, sumOfSize);
+		Assert.assertEquals(summaryList.getTotalCount().longValue(), sumOfCount);
+
+		removeTestNode();
+	}
+
+	@Test
+	public void testGetAggregatedUsageByNodeInRange() throws Exception {
+
+		addTestNode();
+		dao.replaceLocationData(locations);
+
+		int beginIncl = 0;
+		int endExcl = 1000;
+		StorageUsageSummaryList summaryList = dao.getAggregatedUsageByNodeInRange(beginIncl, endExcl);
+
+		Assert.assertEquals(sizeTotal, summaryList.getTotalSize().longValue());
+		Assert.assertTrue(summaryList.getTotalCount().longValue() >= countTotal);
+
+		List<StorageUsageSummary> summaries = summaryList.getSummaryList();
+		long sumOfSize = 0L;
+		long sumOfCount = 0L;
+		for (StorageUsageSummary sus : summaries) {
+			Assert.assertEquals(1, sus.getDimensionList().size());
+			StorageUsageDimensionValue sudv = sus.getDimensionList().get(0);
+			Assert.assertEquals(StorageUsageDimension.NODE_ID, sudv.getDimension());
+			Assert.assertNotNull(sudv.getValue());
+			sumOfSize = sumOfSize + sus.getAggregatedSize();
+			sumOfCount = sumOfCount + sus.getAggregatedCount();
+		}
+		Assert.assertEquals(sizeTotal, sumOfSize);
+		Assert.assertEquals(summaryList.getTotalCount().longValue(), sumOfCount);
+
+		removeTestNode();
+	}
+
+	// Inserts a new test node so that storage location data can be associated with this node
+	private void addTestNode() throws Exception {
+
+		// Create the node
+		Long userIdLong = Long.parseLong(userId);
+		Assert.assertNotNull(userIdLong);
+		Node node = NodeTestUtils.createNew("A test node for location data", userIdLong);
+		Assert.assertNotNull(node);
+		String nodeId = nodeDao.createNew(node);
+		Assert.assertNotNull(nodeId);
+		this.nodeId = nodeId;
+
+		// Create the location data
+		locations = new StorageLocations(KeyFactory.stringToKey(nodeId), userIdLong,
+				attachmentList, locationList, strAnnotations);
+
+		// Mock a new S3 client
+		List<S3ObjectSummary> objList = new ArrayList<S3ObjectSummary>();
+		S3ObjectSummary objSummary = mock(S3ObjectSummary.class);
+		when(objSummary.getKey()).thenReturn(KeyFactory.stringToKey(nodeId) + "/ad1Token");
+		when(objSummary.getSize()).thenReturn(a1Size);
+		objList.add(objSummary);
+		objSummary = mock(S3ObjectSummary.class);
+		when(objSummary.getKey()).thenReturn(KeyFactory.stringToKey(nodeId) + "/ad2Token");
+		when(objSummary.getSize()).thenReturn(a2Size);
+		objList.add(objSummary);
+		objSummary = mock(S3ObjectSummary.class);
+		when(objSummary.getKey()).thenReturn("abc/xyz");
+		when(objSummary.getSize()).thenReturn(l2Size);
+		objList.add(objSummary);
+		ObjectListing objListing = mock(ObjectListing.class);
+		when(objListing.getObjectSummaries()).thenReturn(objList);
+		when(objListing.isTruncated()).thenReturn(false);
+
+		AmazonS3 s3Client = Mockito.mock(AmazonS3.class);
+		String bucket = StackConfiguration.getS3Bucket();
+		when(s3Client.listObjects(bucket, KeyFactory.stringToKey(nodeId) + "/")).thenReturn(objListing);
+		ReflectionTestUtils.setField(unwrap(), "amazonS3Client", s3Client);
+	}
+
+	// Removes the test node. This should also remove any storage location associated with it
+	private void removeTestNode() throws Exception {
+		boolean success = nodeDao.delete(nodeId.toString());
+		Assert.assertTrue(success);
 	}
 
 	private StorageLocationDAO unwrap() throws Exception {

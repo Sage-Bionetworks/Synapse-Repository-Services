@@ -13,6 +13,15 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface StorageUsageService {
 
 	/**
+	 * Retrieves the aggregated usage.
+	 *
+	 * @throws UnauthorizedException
+	 *			When the current user is not an administrator.
+	 */
+	StorageUsageSummaryList getUsage(String currUserName, List<StorageUsageDimension> dimensionList)
+			throws UnauthorizedException, DatastoreException;
+
+	/**
 	 * Retrieves the aggregated usage for the specified user.
 	 *
 	 * @throws UnauthorizedException
@@ -20,7 +29,8 @@ public interface StorageUsageService {
 	 * @throws NotFoundException
 	 *			When the user does not exist.
 	 */
-	StorageUsageSummaryList getStorageUsage(String currUserName, String userName, List<StorageUsageDimension> dList)
+	StorageUsageSummaryList getUsageForUser(String currUserName, String userName,
+			List<StorageUsageDimension> dimensionList)
 			throws UnauthorizedException, NotFoundException, DatastoreException;
 
 	/**
@@ -31,7 +41,21 @@ public interface StorageUsageService {
 	 * @throws NotFoundException
 	 *			When the user does not exist.
 	 */
-	PaginatedResults<StorageUsage> getStorageUsage(String currUserName, String userName,
+	PaginatedResults<StorageUsage> getUsageInRangeForUser(String currUserName, String userName,
 			Integer offset, Integer limit, String urlPath)
 			throws UnauthorizedException, NotFoundException, DatastoreException;
+
+	/**
+	 * @throws UnauthorizedException
+	 *			When the current user is not an administrator.
+	 */
+	StorageUsageSummaryList getUsageByUserInRange(String currUserName, Integer offset, Integer limit)
+			throws UnauthorizedException, DatastoreException;
+
+	/**
+	 * @throws UnauthorizedException
+	 *			When the current user is not an administrator.
+	 */
+	StorageUsageSummaryList getUsageByNodeInRange(String currUserName, Integer offset, Integer limit)
+			throws UnauthorizedException, DatastoreException;
 }

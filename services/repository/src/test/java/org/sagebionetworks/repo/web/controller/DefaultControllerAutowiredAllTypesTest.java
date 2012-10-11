@@ -52,6 +52,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -638,7 +639,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 				long previousVersion = currentVersion-1;
 				long firstVersion = 1;
 				// Now get all entities
-				PaginatedResults<Versionable> results = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), 1, 100, userName);
+				PaginatedResults<VersionInfo> results = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100, userName);
 				assertNotNull(results);
 				assertEquals(currentVersion, results.getTotalNumberOfResults());
 				assertNotNull(results.getResults());
@@ -650,7 +651,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 				assertEquals(new Long(firstVersion), results.getResults().get(results.getResults().size()-1).getVersionNumber());
 				
 				// Query again but this time get a sub-set
-				results = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), 2, 3, userName);
+				results = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 2, 3, userName);
 				assertNotNull(results);
 				assertEquals(currentVersion, results.getTotalNumberOfResults());
 				assertNotNull(results.getResults());
@@ -735,14 +736,14 @@ public class DefaultControllerAutowiredAllTypesTest {
 				assertNotNull(newVersion);
 				
 				// There should be two versions
-				PaginatedResults<Versionable> paging = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), 1, 100, userName);
+				PaginatedResults<VersionInfo> paging = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100, userName);
 				assertNotNull(paging);
 				assertEquals(2, paging.getTotalNumberOfResults());
 				
 				// Now delete the new version
 				ServletTestHelper.deleteEntityVersion(dispatchServlet, versionableEntity.getClass(), entity.getId(), 2l, userName);
 				// We should be down to one version
-				paging = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, versionableEntity.getClass(), entity.getId(), 1, 100, userName);
+				paging = ServletTestHelper.getAllVersionsOfEntity(dispatchServlet, entity.getId(), 1, 100, userName);
 				assertNotNull(paging);
 				assertEquals(1, paging.getTotalNumberOfResults());
 				

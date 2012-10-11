@@ -272,6 +272,12 @@ public interface NodeDAO extends MigratableDAO {
 	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException, DatastoreException;
 	
 	/**
+	 * Get the Synapse ID of the creator of a node.
+	 * @throws DatastoreException 
+	 */
+	public Long getCreatedBy(String nodeId) throws NotFoundException, DatastoreException;
+
+	/**
 	 * Get all of the node types for a given alias.
 	 * @param alias
 	 * @return
@@ -305,5 +311,10 @@ public interface NodeDAO extends MigratableDAO {
      * @return
      */
 	public boolean doesNodeHaveChildren(String nodeId);
+
+	public QueryResults<VersionInfo> getVersionsOfEntity(String entityId, long offset,
+			long limit) throws NotFoundException, DatastoreException;
+
+	public long getVersionCount(String entityId) throws NotFoundException, DatastoreException;
 
 }

@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 /**
- * Retrieves the storage usage data for a user.
+ * Retrieves storage usage data.
  *
  * @author ewu
  */
@@ -43,12 +43,8 @@ public class StorageUsageController extends BaseController {
 	 * for example, ['storage_provider', 'content_type']. If no dimension is passed, the returned results
 	 * will contain only the grand total.
 	 *
-	 * @param sd1
-	 *			First dimension for aggregating the numbers. This must be a valid value of the StorageUsageDimension enum.
-	 * @param sd2
-	 *			Second dimension for aggregating the numbers. This must be a valid value of the StorageUsageDimension enum.
-	 * @param sd3
-	 *			Third dimension for aggregating the numbers. This must be a valid value of the StorageUsageDimension enum.
+	 * @param aggregation
+	 *			Aggregating dimensions/columns. This must be concatenated values of the StorageUsageDimension enum.
 	 * @throws IllegalArgumentException
 	 *			When the supplied list of aggregating dimensions has invalid values. See StorageUsageDimension for valid values.
 	 * @throws NotFoundException
@@ -56,20 +52,14 @@ public class StorageUsageController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_SUMMARY, method = RequestMethod.GET)
-	public @ResponseBody StorageUsageSummaryList getStorageUsage(
+	public @ResponseBody StorageUsageSummaryList getUsageForCurrentUser(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String currUserId,
-			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_1_PARAM, required = false) String sd1,
-			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_2_PARAM, required = false) String sd2,
-			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_3_PARAM, required = false) String sd3)
+			@RequestParam(value = ServiceConstants.AGGREGATION_DIMENSION, required = false) String aggregation)
 			throws IllegalArgumentException, NotFoundException, DatastoreException {
 
-		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
-		addDimension(sd1, dList);
-		addDimension(sd2, dList);
-		addDimension(sd3, dList);
-
+		List<StorageUsageDimension> dList = getAggregatingDimensionList(aggregation);
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		StorageUsageSummaryList storageSummaries = service.getStorageUsage(currUserId, currUserId, dList);
+		StorageUsageSummaryList storageSummaries = service.getUsageForUser(currUserId, currUserId, dList);
 		return storageSummaries;
 	}
 
@@ -83,12 +73,8 @@ public class StorageUsageController extends BaseController {
 	 *			The user whose storage usage is being queried.
 	 * @param currUserId
 	 *			The current user, the user who is querying the storage usage.
-	 * @param sd1
-	 *			First dimension for aggregating the numbers. This must be a valid value of the StorageUsageDimension enum.
-	 * @param sd2
-	 *			Second dimension for aggregating the numbers. This must be a valid value of the StorageUsageDimension enum.
-	 * @param sd3
-	 *			Third dimension for aggregating the numbers. This must be a valid value of the StorageUsageDimension enum.
+	 * @param aggregation
+	 *			Aggregating dimensions/columns. This must be concatenated values of the StorageUsageDimension enum.
 	 * @throws IllegalArgumentException
 	 *			When the supplied list of aggregating dimensions has invalid values. See StorageUsageDimension for valid values.
 	 * @throws UnauthorizedException
@@ -98,21 +84,28 @@ public class StorageUsageController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_SUMMARY_USER_ID, method = RequestMethod.GET)
-	public @ResponseBody StorageUsageSummaryList getStorageUsageForUser(
+	public @ResponseBody StorageUsageSummaryList getUsageForUser(
 			@PathVariable(value = UrlHelpers.STORAGE_USER_ID) String userId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String currUserId,
-			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_1_PARAM, required = false) String sd1,
-			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_2_PARAM, required = false) String sd2,
-			@RequestParam(value = ServiceConstants.STORAGE_DIMENSION_3_PARAM, required = false) String sd3)
+			@RequestParam(value = ServiceConstants.AGGREGATION_DIMENSION, required = false) String aggregation)
 			throws IllegalArgumentException, UnauthorizedException, NotFoundException, DatastoreException {
 
-		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
-		addDimension(sd1, dList);
-		addDimension(sd2, dList);
-		addDimension(sd3, dList);
-
+		List<StorageUsageDimension> dList = getAggregatingDimensionList(aggregation);
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		StorageUsageSummaryList storageSummaries = service.getStorageUsage(currUserId, userId, dList);
+		StorageUsageSummaryList storageSummaries = service.getUsageForUser(currUserId, userId, dList);
+		return storageSummaries;
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_STORAGE_SUMMARY, method = RequestMethod.GET)
+	public @ResponseBody StorageUsageSummaryList getUsageForAdmin(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String currUserId,
+			@RequestParam(value = ServiceConstants.AGGREGATION_DIMENSION, required = false) String aggregation)
+			throws IllegalArgumentException, UnauthorizedException, NotFoundException, DatastoreException {
+
+		List<StorageUsageDimension> dList = getAggregatingDimensionList(aggregation);
+		StorageUsageService service = serviceProvider.getStorageUsageService();
+		StorageUsageSummaryList storageSummaries = service.getUsage(currUserId, dList);
 		return storageSummaries;
 	}
 
@@ -124,15 +117,16 @@ public class StorageUsageController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.STORAGE_DETAILS, method = RequestMethod.GET)
-	public @ResponseBody PaginatedResults<StorageUsage> getItemizedStorageUsage(
+	public @ResponseBody PaginatedResults<StorageUsage> getItemizedStorageUsageForCurrentUser(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currUserId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException {
+
 		String url = request.getServletPath() + UrlHelpers.STORAGE_DETAILS; // XXX: Need a better way to wire in the URL
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		PaginatedResults<StorageUsage> results = service.getStorageUsage(currUserId, currUserId, offset, limit, url);
+		PaginatedResults<StorageUsage> results = service.getUsageInRangeForUser(currUserId, currUserId, offset, limit, url);
 		return results;
 	}
 
@@ -158,21 +152,51 @@ public class StorageUsageController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
 			HttpServletRequest request)
 			throws UnauthorizedException, NotFoundException, DatastoreException {
+
 		String url = request.getServletPath() + UrlHelpers.STORAGE_DETAILS_USER_ID; // XXX: Need a better way to wire in the URL
 		StorageUsageService service = serviceProvider.getStorageUsageService();
-		PaginatedResults<StorageUsage> results = service.getStorageUsage(currUserId, userId, offset, limit, url);
+		PaginatedResults<StorageUsage> results = service.getUsageInRangeForUser(currUserId, userId, offset, limit, url);
 		return results;
 	}
 
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_STORAGE_SUMMARY_PER_USER, method = RequestMethod.GET)
+	public @ResponseBody StorageUsageSummaryList getUsageByUserForAdmin(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currUserId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws UnauthorizedException, NotFoundException, DatastoreException {
+		StorageUsageService service = serviceProvider.getStorageUsageService();
+		return service.getUsageByUserInRange(currUserId, offset, limit);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ADMIN_STORAGE_SUMMARY_PER_ENTITY, method = RequestMethod.GET)
+	public @ResponseBody StorageUsageSummaryList getUsageByNodeForAdmin(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currUserId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit)
+			throws UnauthorizedException, NotFoundException, DatastoreException {
+		StorageUsageService service = serviceProvider.getStorageUsageService();
+		return service.getUsageByNodeInRange(currUserId, offset, limit);
+	}
+
 	/**
-	 * Reads the dimension enum and adds it to the list. Null or empty string will be skipped.
-	 *
 	 * @throws IllegalArgumentException If the dimension is not a valid dimension
 	 */
-	private void addDimension(String d, List<StorageUsageDimension> dList)
+	private List<StorageUsageDimension> getAggregatingDimensionList(String aggregation)
 			throws IllegalArgumentException {
-		if (d != null && d.length() > 0) {
-			dList.add(StorageUsageDimension.valueOf(d.toUpperCase()));
+
+		List<StorageUsageDimension> dimList = new ArrayList<StorageUsageDimension>();
+		if (aggregation != null && aggregation.length() > 0) {
+			String[] splits = aggregation.split(ServiceConstants.AGGREGATION_DIMENSION_VALUE_SEPARATOR);
+			for (String split : splits) {
+				// Throws IllegalArgumentException
+				StorageUsageDimension d = StorageUsageDimension.valueOf(split.toUpperCase());
+				dimList.add(d);
+			}
 		}
+
+		return dimList;
 	}
 }

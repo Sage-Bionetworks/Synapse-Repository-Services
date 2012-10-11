@@ -9,20 +9,13 @@ import org.sagebionetworks.repo.model.storage.StorageUsageSummaryList;
 
 public interface StorageUsageManager {
 
-	/**
-	 * 
-	 * @param userId
-	 * @param dimensionList
-	 * @return
-	 */
-	StorageUsageSummaryList getStorageUsage(String userId, List<StorageUsageDimension> dimensionList);
+	StorageUsageSummaryList getUsage(List<StorageUsageDimension> dimensionList);
 
-	/**
-	 * 
-	 * @param userId
-	 * @param offset
-	 * @param limit
-	 * @return
-	 */
-	QueryResults<StorageUsage> getStorageUsage(String userId, Integer offset, Integer limit);
+	StorageUsageSummaryList getUsageForUser(String userId, List<StorageUsageDimension> dimensionList);
+
+	QueryResults<StorageUsage> getUsageInRangeForUser(String userId, Integer offset, Integer limit);
+
+	StorageUsageSummaryList getUsageByUserInRange(Integer offset, Integer limit);
+
+	StorageUsageSummaryList getUsageByNodeInRange(Integer offset, Integer limit);
 }

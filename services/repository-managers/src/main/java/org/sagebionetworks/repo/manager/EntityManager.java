@@ -8,11 +8,12 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -242,7 +243,7 @@ public interface EntityManager {
 	 * @param entityId
 	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'
 	 */
-	public EntityHeaderQueryResults getEntityReferences(UserInfo userInfo, String entityId, Integer versionNumber, Integer offset, Integer limit) throws NotFoundException, DatastoreException;
+	public QueryResults<EntityHeader> getEntityReferences(UserInfo userInfo, String entityId, Integer versionNumber, Integer offset, Integer limit) throws NotFoundException, DatastoreException;
 
 	/**
 	 * create a s3 attachment token for this entity
@@ -301,5 +302,15 @@ public interface EntityManager {
 	 * @throws DatastoreException 
 	 */
 	public boolean doesEntityHaveChildren(UserInfo userInfo, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * Return a paginated list of all version of this entity.
+	 * @param userInfo
+	 * @param entityId
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId, long offset, long limit) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 }

@@ -1,15 +1,17 @@
 {
 	"description": "JSON schema for a list of summaries of storage usage.",
 	"properties": {
-		"userId": {
-			"description": "The user who created or last modified the storage locations.",
-			"type": "string",
-			"required": true
-		},
-		"grandTotal": {
-			"description": "The grand total in bytes of all the storage locations owned by the user.",
+		"totalSize": {
+			"description": "The total size in bytes of all the storage items asked by the query.",
 			"type": "integer",
-			"required": true
+			"required": true,
+			"default": "0"
+		},
+		"totalCount": {
+			"description": "The count of all the storage items asked by the query.",
+			"type": "integer",
+			"required": true,
+			"default": "0"
 		},
 		"summaryList": {
 			"description": "The list of summaries.",

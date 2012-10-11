@@ -57,8 +57,7 @@ public class ServiceConstants {
 	public static final String DEFAULT_PAGINATION_LIMIT_PARAM = "10";
 	public static final Integer DEFAULT_PAGINATION_LIMIT_PARAM_INT = Integer
 			.parseInt(DEFAULT_PAGINATION_LIMIT_PARAM);
-	
-	
+
 	/**
 	 * Default value for limit parameter
 	 */
@@ -125,6 +124,17 @@ public class ServiceConstants {
 	public static final String BATCH_PARAM_VALUE_SEPARATOR = ",";
 
 	/**
+	 * Parameter name for the aggregating dimensions. To use more then one aggregation dimension,
+	 * Concatenate the values by using the separator below.
+	 */
+	public static final String AGGREGATION_DIMENSION = "aggregation";
+
+	/**
+	 * Separator to concatenate values for aggregating dimensions.
+	 */
+	public static final String AGGREGATION_DIMENSION_VALUE_SEPARATOR = ",";
+
+	/**
 	 * Request parameter specific to GET requests for layer locations so that we
 	 * can return a presigned URL for an S3 GET, HEAD, or DELETE operation
 	 */
@@ -175,21 +185,6 @@ public class ServiceConstants {
 	 * 
 	 */
 	public static final String ACCEPTS_TERMS_OF_USE_REQUIRED_TOKEN = "TermsOfUseAcceptanceRequired";
-
-	/**
-	 * Parameter for the first aggregating dimension for storage usage.
-	 */
-	public static final String STORAGE_DIMENSION_1_PARAM = "sd1";
-
-	/**
-	 * Parameter for the second aggregating dimension for storage usage.
-	 */
-	public static final String STORAGE_DIMENSION_2_PARAM = "sd2";
-
-	/**
-	 * Parameter for the third aggregating dimension for storage usage.
-	 */
-	public static final String STORAGE_DIMENSION_3_PARAM = "sd3";
 
 	/**
 	 * Utility method to sanity check pagination parameters

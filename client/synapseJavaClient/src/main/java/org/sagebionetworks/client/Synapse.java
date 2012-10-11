@@ -57,9 +57,11 @@ import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -68,7 +70,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
+import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -115,6 +117,8 @@ public class Synapse {
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
+	
+	protected static final String USER_GROUP_HEADER_BATCH_PATH = "/userGroupHeaders/batch?ids=";
 
 	protected static final String TOTAL_NUM_RESULTS = "totalNumberOfResults";
 	
@@ -605,38 +609,18 @@ public class Synapse {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedResults<EntityHeader> getEntityVersions(String entityId) throws SynapseException {
+	public PaginatedResults<VersionInfo> getEntityVersions(String entityId, int offset, int limit) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
-		String url = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION;				
+		String url = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION +
+				"?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
-		JSONObjectAdapter results = new JSONObjectAdapterImpl(jsonObj);		
-		try {			
-			// TODO : transfer to a paginated list of entityheader. this code can go away with above service change
-			List<EntityHeader> headerList = new ArrayList<EntityHeader>();
-			if(results.has("results")) {
-				JSONArrayAdapter list = results.getJSONArray("results");
-				for(int i=0; i<list.length(); i++) {
-					JSONObjectAdapter entity = list.getJSONObject(i);
-					EntityHeader header = new EntityHeader();
-					header.setId(entity.getString("id"));
-					header.setName(entity.getString("name"));
-					header.setType(entity.getString("entityType"));
-					if(entity.has("versionNumber")) {
-						header.setVersionNumber(entity.getLong("versionNumber"));
-						header.setVersionLabel(entity.getString("versionLabel"));
-					} else {
-						header.setVersionNumber(new Long(1));
-						header.setVersionLabel("1");						
-					}
-					headerList.add(header);
-				}			
-			}
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<VersionInfo> results = new PaginatedResults<VersionInfo>(VersionInfo.class);
 
-			PaginatedResults<EntityHeader> versions = new PaginatedResults<EntityHeader>(EntityHeader.class);
-			versions.setTotalNumberOfResults(results.getInt("totalNumberOfResults"));			
-			versions.setResults(headerList);
-			return versions;
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -693,6 +677,32 @@ public class Synapse {
 		String uri = USER_PROFILE_PATH + "/" + ownerId;
 		JSONObject json = getEntity(uri);
 		return initializeFromJSONObject(json, UserProfile.class);
+	}
+	
+	/**
+	 * Batch get headers for users/groups matching a list of Synapse IDs.
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws JSONException 
+	 * @throws SynapseException 
+	 */
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids) throws SynapseException {
+		String uri = listToString(ids);
+		JSONObject json = getEntity(uri);
+		return initializeFromJSONObject(json, UserGroupHeaderResponsePage.class);
+	}
+
+	private String listToString(List<String> ids) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(USER_GROUP_HEADER_BATCH_PATH);
+		for (String id : ids) {
+			sb.append(id);
+			sb.append(',');
+		}
+		// Remove the trailing comma
+		sb.deleteCharAt(sb.length() - 1);
+		return sb.toString();
 	}
 	
 	/**
@@ -1707,10 +1717,8 @@ public class Synapse {
 		}
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
-		}
-
-		return signAndDispatchSynapseRequest(endpoint, uri, "GET", null,
-				defaultGETDELETEHeaders);
+		}		
+		return signAndDispatchSynapseRequest(endpoint, uri, "GET", null, defaultGETDELETEHeaders);
 	}
 
 	/**
@@ -1919,7 +1927,7 @@ public class Synapse {
 				requestHeaders.remove(REQUEST_PROFILE_DATA);
 		}
 		
-		// remove session tken if it is null
+		// remove session token if it is null
 		if(requestHeaders.containsKey(SESSION_TOKEN_HEADER) && requestHeaders.get(SESSION_TOKEN_HEADER) == null) {
 			requestHeaders.remove(SESSION_TOKEN_HEADER);
 		}
@@ -2154,11 +2162,11 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
-	public VersionInfo getVersionInfo() throws SynapseException,
+	public SynapseVersionInfo getVersionInfo() throws SynapseException,
 			JSONObjectAdapterException {
 		JSONObject json = getEntity(VERSION_INFO);
 		return EntityFactory
-				.createEntityFromJSONObject(json, VersionInfo.class);
+				.createEntityFromJSONObject(json, SynapseVersionInfo.class);
 	}
 
 }

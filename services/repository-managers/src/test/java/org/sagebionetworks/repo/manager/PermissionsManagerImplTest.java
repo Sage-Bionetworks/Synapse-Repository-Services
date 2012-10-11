@@ -45,8 +45,7 @@ public class PermissionsManagerImplTest {
 	@Autowired
 	NodeManager nodeManager;
 	@Autowired
-	private UserManager userManager;
-	
+	private UserManager userManager;	
 	@Autowired
 	PermissionsManager permissionsManager;
 		
@@ -58,6 +57,7 @@ public class PermissionsManagerImplTest {
 	private UserInfo userInfo = null;
 	
 	private static final String TEST_USER = "test-user";
+	private static Long ownerId;
 	
 	private List<String> usersToDelete;
 	
@@ -98,6 +98,7 @@ public class PermissionsManagerImplTest {
 		usersToDelete = new ArrayList<String>();
 		usersToDelete.add(userInfo.getIndividualGroup().getId());
 		usersToDelete.add(userInfo.getUser().getId());
+		ownerId = Long.parseLong(userInfo.getIndividualGroup().getId());
 	}
 
 	@After
@@ -136,9 +137,81 @@ public class PermissionsManagerImplTest {
 	}
 
 	@Test
-	public void testValidateContent()throws Exception {
-//		fail("Not yet implemented");
+	public void testValidateACLContent() throws Exception {
+		UserInfo userInfo = userManager.getUserInfo(TestUserDAO.TEST_USER_NAME);
+		ResourceAccess userRA = new ResourceAccess();
+		userRA.setGroupName(userInfo.getIndividualGroup().getName());
+		userRA.setPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
+		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
+		ats.add(ACCESS_TYPE.CHANGE_PERMISSIONS);
+		userRA.setAccessType(ats);
+		
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ras.add(userRA);
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		acl.setResourceAccess(ras);	
+		
+		// Should not throw any exceptions
+		PermissionsManagerImpl.validateACLContent(acl, userInfo, ownerId);
 	}
+	
+	@Test(expected = InvalidModelException.class)
+	public void testValidateACLContent_UserMissing()throws Exception {
+		UserInfo userInfo = userManager.getUserInfo(TestUserDAO.TEST_USER_NAME);
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		
+		// Should fail, since user is not included with proper permissions in ACL
+		PermissionsManagerImpl.validateACLContent(acl, userInfo, ownerId);
+	}
+
+	
+	@Test
+	public void testValidateACLContent_AdminMissing()throws Exception {
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		
+		// Should not throw any exceptions
+		PermissionsManagerImpl.validateACLContent(acl, adminInfo, ownerId);
+	}
+	
+	@Test
+	public void testValidateACLContent_OwnerMissing()throws Exception {
+		UserInfo ownerInfo = userManager.getUserInfo(TEST_USER);
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		
+		// Should not throw any exceptions
+		PermissionsManagerImpl.validateACLContent(acl, ownerInfo, ownerId);
+	}
+	
+	@Test(expected = InvalidModelException.class)
+	public void testValidateACLContent_UserInsufficientPermissions() throws Exception {
+		UserInfo userInfo = userManager.getUserInfo(TestUserDAO.TEST_USER_NAME);
+		ResourceAccess userRA = new ResourceAccess();
+		userRA.setGroupName(userInfo.getIndividualGroup().getName());
+		userRA.setPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
+		Set<ACCESS_TYPE> ats = new HashSet<ACCESS_TYPE>();
+		ats.add(ACCESS_TYPE.READ);
+		userRA.setAccessType(ats);
+		
+		Set<ResourceAccess> ras = new HashSet<ResourceAccess>();
+		ras.add(userRA);
+		
+		AccessControlList acl = new AccessControlList();
+		acl.setId("resource id");
+		acl.setResourceAccess(ras);	
+		
+		// Should fail since user does not have permission editing rights in ACL
+		PermissionsManagerImpl.validateACLContent(acl, userInfo, ownerId);
+	}
+
 
 	@Test
 	public void testUpdateACL() throws Exception {

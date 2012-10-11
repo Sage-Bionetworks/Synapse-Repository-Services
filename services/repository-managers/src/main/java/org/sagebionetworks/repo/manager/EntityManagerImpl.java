@@ -12,14 +12,15 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.EntityHeaderQueryResults;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -302,8 +303,7 @@ public class EntityManagerImpl implements EntityManager {
 		annos.setEtag(updated.getEtag());
 
 		// Auto-version locationable entities
-		if (false == newVersion
-				&& Locationable.class.isAssignableFrom(updated.getClass())) {
+		if (!newVersion && (updated instanceof Locationable)) {
 			Locationable locationable = (Locationable) updated;
 			String currentMd5 = (String) annos.getPrimaryAnnotations()
 					.getSingleValue("md5");
@@ -419,6 +419,14 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
+	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId,
+			long offset, long limit) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		// pass through
+		return nodeManager.getVersionsOfEntity(userInfo, entityId, offset, limit);
+	}
+
+	@Override
 	public List<EntityHeader> getEntityPath(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// pass through
@@ -439,12 +447,12 @@ public class EntityManagerImpl implements EntityManager {
 	 * @return the headers of the entities which refer to the given entityId,
 	 *         filtered by the access permissions of 'userInfo'
 	 */
-	public EntityHeaderQueryResults getEntityReferences(UserInfo userInfo,
+	public QueryResults<EntityHeader> getEntityReferences(UserInfo userInfo,
 			String entityId, Integer versionNumber, Integer offset,
 			Integer limit) throws NotFoundException, DatastoreException {
 		// pass through
 
-		EntityHeaderQueryResults results = nodeManager.getEntityReferences(
+		QueryResults<EntityHeader> results = nodeManager.getEntityReferences(
 				userInfo, entityId, versionNumber, offset, limit);
 		// Note: This is a hack that we currently depend on for Mike's demo.
 		// In the demo we want to show that one dataset is derived from another
@@ -464,8 +472,8 @@ public class EntityManagerImpl implements EntityManager {
 		// This propery will then point to the original dataset. At that point
 		// this method will work without this hack!
 
-		if (results != null && results.getEntityHeaders() != null) {
-			List<EntityHeader> list = results.getEntityHeaders();
+		if (results != null && results.getResults() != null) {
+			List<EntityHeader> list = results.getResults();
 			for (int i = 0; i < list.size(); i++) {
 				EntityHeader header = list.get(i);
 				EntityType type = EntityType.valueOf(header.getType());
