@@ -90,6 +90,13 @@ public class EntityServiceImpl implements EntityService {
 		super();
 		this.entityManager = entityManager;
 	}
+	
+	public EntityServiceImpl(UserManager userManager, EntityManager entityManager) {
+		super();
+		this.entityManager = entityManager;
+		this.userManager = userManager;
+	}
+
 
 	@Override
 	public <T extends Entity> PaginatedResults<T> getEntities(String userId, PaginatedParameters paging,
@@ -631,4 +638,17 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.doesEntityHaveChildren(userInfo, entityId);
 	}	
+	
+	@Override
+	public void changeEntityType(String userId, String entityId, String newTypeName)
+			throws NotFoundException, UnauthorizedException, DatastoreException, IllegalArgumentException,
+			ClassNotFoundException, InstantiationException, IllegalAccessException {
+		if (entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
+		if (userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		if (newTypeName == null) throw new IllegalArgumentException("NewTypeName cannot be null");
+		
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		entityManager.changeEntityType(userInfo, entityId, newTypeName);
+	}
+
 }

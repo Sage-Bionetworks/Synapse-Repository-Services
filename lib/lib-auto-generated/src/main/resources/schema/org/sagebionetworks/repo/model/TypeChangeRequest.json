@@ -1,0 +1,9 @@
+{
+    "description":"Request to change entity type.",
+    "properties":{
+        "newType":{
+            "type":"string",
+            "description":"The requested type for the entity."
+        }  
+    }
+}

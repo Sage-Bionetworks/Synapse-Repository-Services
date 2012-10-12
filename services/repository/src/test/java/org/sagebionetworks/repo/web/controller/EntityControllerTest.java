@@ -14,6 +14,7 @@ import javax.servlet.ServletException;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
@@ -27,8 +28,10 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
+import org.sagebionetworks.repo.model.TypeChangeRequest;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -261,6 +264,40 @@ public class EntityControllerTest {
 			assertTrue(e.getMessage().indexOf(Code.class.getName()) > 0);
 			assertTrue(e.getMessage().indexOf(Study.class.getName()) > 0);
 		}
+		
+	}
+	
+	
+	@Test
+	public void testChangeEntityType() throws Exception {
+		Study s = new Study();
+		s.setName("StudyToChangeToFolder");
+		s.setEntityType(s.getClass().getName());
+		s = (Study) entityServletHelper.createEntity(s, TEST_USER1);
+		assertNotNull(s);
+		String studyId = s.getId();
+		// Get the annotaions for this entity
+		Annotations annots = entityServletHelper.getEntityAnnotaions(studyId, TEST_USER1);
+		assertNotNull(annots);
+		annots.addAnnotation("doubleAnno", new Double(45.0001));
+		annots.addAnnotation("string", "A string");
+		Annotations annosClone = entityServletHelper.updateAnnotations(annots, TEST_USER1);
+		assertNotNull(annosClone);
+		assertEquals(studyId, annosClone.getId());
+		assertFalse(annots.getEtag().equals(annosClone.getEtag()));
+
+		TypeChangeRequest req = new TypeChangeRequest();
+		req.setNewType("folder");
+		entityServletHelper.changeEntityType(s.getId(), s.getEtag(), TEST_USER1, req);
+		Folder f = (Folder)entityServletHelper.getEntity(s.getId(), TEST_USER1);
+		assertNotNull(f);
+		assertEquals(studyId, f.getId());
+		annots = entityServletHelper.getEntityAnnotaions(studyId, TEST_USER1);
+		assertNotNull(annots);
+		assertEquals(studyId, annots.getId());
+		String value = (String) annots.getSingleValue("string");
+		assertEquals("A string", value);
+		assertEquals(new Double(45.0001), annots.getSingleValue("doubleAnno"));
 		
 	}
 	
