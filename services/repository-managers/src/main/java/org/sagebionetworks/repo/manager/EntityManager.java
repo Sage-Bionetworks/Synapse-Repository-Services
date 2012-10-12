@@ -313,4 +313,21 @@ public interface EntityManager {
 	 */
 	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo, String entityId, long offset, long limit) throws DatastoreException, UnauthorizedException, NotFoundException;
 
+	/**
+	 * Change the type of an entity
+	 * 
+	 * @param userInfo
+	 * @param entityId
+	 * @param entityTypeName
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws IllegalArgumentException
+	 * @throws IllegalAccessException 
+	 * @throws InstantiationException 
+	 * @throws ClassNotFoundException 
+	 */
+	public void changeEntityType(UserInfo userInfo, String entityId, String entityTypeName)
+		throws DatastoreException, UnauthorizedException, NotFoundException, IllegalArgumentException,
+			ClassNotFoundException, InstantiationException, IllegalAccessException;
 }
