@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.TypeChangeRequest;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.VersionInfo;
@@ -840,4 +841,41 @@ public class EntityController extends BaseController{
 		// Pass it along.
 		return serviceProvider.getEntityService().getAttachmentUrl(userId, id, url.getTokenID());
 	}
+	
+    /**
+     * Change the type for an existing entity with a PUT.
+     * 
+     * @param userId
+     * @param id
+     * @param request
+     * @return 
+     * @throws NotFoundException
+     * @throws DatastoreException
+     * @throws UnauthorizedException
+     * @throws IllegalAccessException 
+     * @throws InstantiationException 
+     * @throws ClassNotFoundException 
+     * @throws IllegalArgumentException 
+     */
+    @ResponseStatus(HttpStatus.OK)
+    @RequestMapping(value = { UrlHelpers.ENTITY_CHANGE_TYPE+UrlHelpers.TYPE}, method = RequestMethod.PUT)
+    public @ResponseBody
+    void changeEntityType(
+    				@PathVariable String id,
+                    @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+                    @RequestBody TypeChangeRequest typeChangeRequest,
+        			@RequestHeader HttpHeaders header,
+        			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
+                    HttpServletRequest request)
+                    		throws NotFoundException,
+                    			DatastoreException, UnauthorizedException, IllegalArgumentException,
+                    			ClassNotFoundException, InstantiationException, IllegalAccessException {
+    		// Get new type out of typeChangeRequest
+    		String newEntityTypeName = typeChangeRequest.getNewType();
+    		
+    		// Change type of entity
+    		serviceProvider.getEntityService().changeEntityType(userId, id, newEntityTypeName);
+            return;
+    }
+	
 }

@@ -215,6 +215,11 @@ public class UrlHelpers {
 	public static final String ENTITY_VERSION_NUMBER_BUNDLE = ENTITY_VERSION_NUMBER+BUNDLE;
 
 	/**
+	 * Change the type of an entity
+	 */
+	public static final String ENTITY_CHANGE_TYPE = ENTITY_ID;
+
+	/**
 	 * URL path for query controller
 	 * 
 	 */

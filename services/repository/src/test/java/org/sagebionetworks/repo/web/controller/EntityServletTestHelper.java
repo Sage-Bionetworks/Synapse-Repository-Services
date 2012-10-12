@@ -25,6 +25,7 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.TypeChangeRequest;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -531,6 +532,33 @@ public class EntityServletTestHelper {
 		}
 		// Done!
 		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), EntityRegistry.class);
+		
+	}
+	
+	public void changeEntityType(
+			String entityId,
+			String entityEtag,
+			String userId,
+			TypeChangeRequest chgReq
+			) throws ServletException, IOException, JSONObjectAdapterException, DatastoreException, NotFoundException {
+		MockHttpServletRequest req = new MockHttpServletRequest();
+		MockHttpServletResponse resp = new MockHttpServletResponse();
+		req.setMethod("PUT");
+		req.addHeader("Accept", "application/json");
+		req.setRequestURI(UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.TYPE);
+		req.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		req.addHeader(ServiceConstants.ETAG_HEADER, entityEtag);
+		req.addHeader("Content-Type", "application/json; charset=UTF-8");
+		StringWriter out = new StringWriter();
+		String body = EntityFactory.createJSONStringForEntity(chgReq);
+		req.setContent(body.getBytes("UTF-8"));
+
+		dispatcherServlet.service(req, resp);
+		log.debug("Results: " + resp.getContentAsString());
+
+		if (resp.getStatus() != HttpStatus.OK.value()) {
+			handleException(resp.getStatus(), resp.getContentAsString());
+		}
 		
 	}
 }
