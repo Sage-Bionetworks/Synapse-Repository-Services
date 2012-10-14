@@ -499,7 +499,8 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 
 			List<StorageUsageDimensionValue> dValList = new ArrayList<StorageUsageDimensionValue>();
 			for (String column : columnList) {
-				String value = row.get(column).toString();
+				Object valObj = row.get(column);
+				String value = (valObj == null ? "UNKNOWN" : valObj.toString());
 				StorageUsageDimensionValue val = new StorageUsageDimensionValue();
 				val.setDimension(StorageUsageDimension.valueOf(column));
 				val.setValue(value);
