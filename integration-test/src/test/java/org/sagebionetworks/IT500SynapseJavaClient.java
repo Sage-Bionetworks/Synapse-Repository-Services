@@ -219,6 +219,7 @@ public class IT500SynapseJavaClient {
 		synapse.updateACL(acl);
 	}
 	
+	@Ignore
 	@Test
 	public void testUpdateACLRecursive() throws Exception {
 		// Create resource access for me
