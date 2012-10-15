@@ -114,5 +114,14 @@ public class NodeFieldTest {
 		assertEquals(SqlConstants.TABLE_REVISION, NodeField.VERSION_LABEL.getTableName());
 		assertEquals(SqlConstants.REVISION_ALIAS, NodeField.VERSION_LABEL.getTableAlias());
 	}
+	
+	
+	@Test
+	public void testBenefacrorId(){
+		assertEquals("benefactorId", NodeField.BENEFACTOR_ID.getFieldName());
+		assertEquals(SqlConstants.COL_NODE_BENEFACTOR_ID, NodeField.BENEFACTOR_ID.getColumnName());
+		assertEquals(SqlConstants.TABLE_NODE, NodeField.BENEFACTOR_ID.getTableName());
+		assertEquals(SqlConstants.NODE_ALIAS, NodeField.BENEFACTOR_ID.getTableAlias());
+	}
 
 }

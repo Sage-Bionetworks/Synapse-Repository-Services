@@ -24,6 +24,7 @@ public class Node {
 	Long versionNumber;
 	String versionComment;
 	String versionLabel;
+	String benefactorId;
 	Map<String, Set<Reference>> references;
 	
 	// these are the string names of the users 
@@ -172,6 +173,20 @@ public class Node {
 		this.references = references;
 	}
 	
+	/**
+	 * The benefactor is the node that this node inherits its ACL from.
+	 * @return
+	 */
+	public String getBenefactorId() {
+		return benefactorId;
+	}
+	/**
+	 * The benefactor is the node that this node inherits its ACL from.
+	 * @param benefactorId
+	 */
+	public void setBenefactorId(String benefactorId) {
+		this.benefactorId = benefactorId;
+	}
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()
 	 */
@@ -212,6 +227,8 @@ public class Node {
 				+ ((versionLabel == null) ? 0 : versionLabel.hashCode());
 		result = prime * result
 				+ ((versionNumber == null) ? 0 : versionNumber.hashCode());
+		result = prime * result
+				+ ((benefactorId == null) ? 0 : benefactorId.hashCode());
 		return result;
 	}
 	
@@ -306,6 +323,11 @@ public class Node {
 			if (other.versionNumber != null)
 				return false;
 		} else if (!versionNumber.equals(other.versionNumber))
+			return false;
+		if (benefactorId == null) {
+			if (other.benefactorId != null)
+				return false;
+		} else if (!benefactorId.equals(other.benefactorId))
 			return false;
 		return true;
 	}
