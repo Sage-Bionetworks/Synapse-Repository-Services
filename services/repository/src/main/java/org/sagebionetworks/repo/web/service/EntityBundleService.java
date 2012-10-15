@@ -34,8 +34,7 @@ public interface EntityBundleService {
 	 * @throws ParseException 
 	 */
 	public EntityBundle getEntityBundle(String userId, String entityId, int mask,
-			HttpServletRequest request, Integer offset, Integer limit,
-			String sort, Boolean ascending) throws NotFoundException,
+			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 
 
@@ -55,8 +54,7 @@ public interface EntityBundleService {
 	 * @throws ParseException 
 	 */
 	public EntityBundle getEntityBundle(String userId, String entityId, Long versionNumber, int mask,
-			HttpServletRequest request, Integer offset, Integer limit,
-			String sort, Boolean ascending) throws NotFoundException,
+			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException;
 	
 	/**
