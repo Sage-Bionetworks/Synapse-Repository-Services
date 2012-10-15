@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 /**
  * A manager for basic editing of entities.
@@ -326,8 +327,9 @@ public interface EntityManager {
 	 * @throws IllegalAccessException 
 	 * @throws InstantiationException 
 	 * @throws ClassNotFoundException 
+	 * @throws JSONObjectAdapterException 
 	 */
 	public void changeEntityType(UserInfo userInfo, String entityId, String entityTypeName)
 		throws DatastoreException, UnauthorizedException, NotFoundException, IllegalArgumentException,
-			ClassNotFoundException, InstantiationException, IllegalAccessException;
+			ClassNotFoundException, InstantiationException, IllegalAccessException, JSONObjectAdapterException;
 }

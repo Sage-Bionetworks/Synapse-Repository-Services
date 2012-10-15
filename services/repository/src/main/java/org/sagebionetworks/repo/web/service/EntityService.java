@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
 import org.sagebionetworks.repo.web.controller.metadata.EventType;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 
 /**
@@ -579,9 +580,10 @@ public interface EntityService {
 	 * @throws ClassNotFoundException 
 	 * @throws IllegalArgumentException 
 	 * @throws DatastoreException 
+	 * @throws JSONObjectAdapterException 
 	 */
 	public void changeEntityType(String userId, String entityId, String newTypeName)
-		throws NotFoundException, UnauthorizedException, DatastoreException, IllegalArgumentException, ClassNotFoundException, InstantiationException, IllegalAccessException;
+		throws NotFoundException, UnauthorizedException, DatastoreException, IllegalArgumentException, ClassNotFoundException, InstantiationException, IllegalAccessException, JSONObjectAdapterException;
 	
 
 }

@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.web.controller.metadata.EntityEvent;
 import org.sagebionetworks.repo.web.controller.metadata.EventType;
 import org.sagebionetworks.repo.web.controller.metadata.MetadataProviderFactory;
 import org.sagebionetworks.repo.web.controller.metadata.TypeSpecificMetadataProvider;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.transaction.annotation.Propagation;
@@ -642,7 +643,7 @@ public class EntityServiceImpl implements EntityService {
 	@Override
 	public void changeEntityType(String userId, String entityId, String newTypeName)
 			throws NotFoundException, UnauthorizedException, DatastoreException, IllegalArgumentException,
-			ClassNotFoundException, InstantiationException, IllegalAccessException {
+			ClassNotFoundException, InstantiationException, IllegalAccessException, JSONObjectAdapterException {
 		if (entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
 		if (userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		if (newTypeName == null) throw new IllegalArgumentException("NewTypeName cannot be null");

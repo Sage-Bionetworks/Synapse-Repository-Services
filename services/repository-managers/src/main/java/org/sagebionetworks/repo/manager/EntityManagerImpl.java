@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -556,7 +557,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Override
 	public void changeEntityType(UserInfo userInfo, String entityId, String entityTypeName)
 		throws DatastoreException, UnauthorizedException, NotFoundException, IllegalArgumentException,
-		ClassNotFoundException, InstantiationException, IllegalAccessException {
+		ClassNotFoundException, InstantiationException, IllegalAccessException, JSONObjectAdapterException {
 		
 		validateReadAccess(userInfo, entityId);
 		validateUpdateAccess(userInfo, entityId);
@@ -564,128 +565,27 @@ public class EntityManagerImpl implements EntityManager {
 		
 		NodeBackup nodeBackup = nodeBackupManager.getNode(entityId);
 		Node node = nodeBackup.getNode();
+		
 		// TODO: Change register.json and uncomment check
 //		String srcTypeName = node.getNodeType();
 //		if (! isValidTypeChange(srcTypeName, entityTypeName)) {
 //			throw new IllegalArgumentException("Cannot change type from " + srcTypeName + "to " + entityTypeName);
 //		}
 		
-		NodeBackup unb = changeNodeBackupNodeType(nodeBackup, newEntityType.name());
+		// On the node itself, only the type changes
+		nodeBackup.getNode().setNodeType(newEntityType.name());
 		
+		// For each node revision, move primary fields as appropriate
 		List<Long> revisionNums = nodeBackup.getRevisions();
 		List<NodeRevisionBackup> nodeRevisionBackups = new ArrayList<NodeRevisionBackup>();
 		for (Long revisionNum: revisionNums) {
 			NodeRevisionBackup nodeRevisionBackup = nodeBackupManager.getNodeRevision(entityId, revisionNum);
-			nodeRevisionBackup = changeNodeRevisionBackupNodeType(nodeRevisionBackup, newEntityType.name());
+			nodeRevisionBackup = EntityManagerUtils.changeNodeRevisionBackupNodeType(nodeRevisionBackup, newEntityType.name());
 			nodeRevisionBackups.add(nodeRevisionBackup);
 		}
 		
+		// TODO: Surface lockAndIncrementETag and call before updating
 		nodeBackupManager.createOrUpdateNodeWithRevisions(nodeBackup, nodeRevisionBackups);
 	}
 	
-	private NodeBackup changeNodeBackupNodeType(NodeBackup nb, String newType) {
-		Node n = nb.getNode();
-		n.setNodeType(newType);
-		return nb;
-	}
-	
-	private NodeRevisionBackup changeNodeRevisionBackupNodeType(NodeRevisionBackup nrb, String newType) {
-		NamedAnnotations namedAnnots = nrb.getNamedAnnotations();
-		Annotations primaryAnnots = namedAnnots.getPrimaryAnnotations();
-		Annotations additionalAnnots = namedAnnots.getAdditionalAnnotations();
-		moveFieldsFromPrimaryToAdditionals(primaryAnnots, additionalAnnots);
-		return nrb;
-	}
-
-	private static void moveFieldsFromPrimaryToAdditionals(Annotations primaryAnnots, Annotations additionalAnnots) {
-		// Move annotations from primary to additional
-		// TODO: There's got to be a better way of handling each type of list
-		// List<Map <String, List<? extends Object>>> srcAnnots;
-		List<String> excludedAnnots = Arrays.asList(
-				"name", "description", "parentId", "attachments",	// Entity
-				"locations", "md5", "contentType", "s3Token",		// Locationable
-				"versionLabel", "versionComment"					// Versionable
-				);
-
-		
-		Map<String, List<byte[]>> srcBlobAnnots = primaryAnnots.getBlobAnnotations();
-		Map<String, List<byte[]>> destBlobAnnots = additionalAnnots.getBlobAnnotations();
-		moveFields(srcBlobAnnots, destBlobAnnots, excludedAnnots);
-		Map<String, List<Date>> srcDateAnnots = primaryAnnots.getDateAnnotations();
-		Map<String, List<Date>> destDateAnnots = additionalAnnots.getDateAnnotations();
-		moveFields(srcDateAnnots, destDateAnnots, excludedAnnots);
-		Map<String, List<Double>> srcDoubleAnnots = primaryAnnots.getDoubleAnnotations();
-		Map<String, List<Double>> destDoubleAnnots = additionalAnnots.getDoubleAnnotations();
-		moveFields(srcDoubleAnnots, destDoubleAnnots, excludedAnnots);
-		Map<String, List<Long>> srcLongAnnots = primaryAnnots.getLongAnnotations();
-		Map<String, List<Long>> destLongAnnots = additionalAnnots.getLongAnnotations();
-		moveFields(srcLongAnnots, destLongAnnots, excludedAnnots);
-		Map<String, List<String>> srcStringAnnots = primaryAnnots.getStringAnnotations();
-		Map<String, List<String>> destStringAnnots = additionalAnnots.getStringAnnotations();
-		moveFields(srcStringAnnots, destStringAnnots, excludedAnnots);
-	}
-	
-	private static <T extends Object> void moveFields(Map<String, List<T>> l1, Map<String, List<T>> l2, List<String> excludedKeys) {
-		Iterator<Map.Entry<String, List<T>>> iter = l1.entrySet().iterator();
-		while (iter.hasNext()) {
-			Map.Entry<String, List<T>> entry = iter.next();
-			if (! excludedKeys.contains(entry.getKey())) {
-				List<T> value = entry.getValue();
-				if (! l2.containsKey(entry.getKey())) {
-					l2.put(entry.getKey(), value);
-				} else {
-					List<T> targetValue = l2.get(entry.getKey());
-					targetValue.addAll(value);
-					l2.put(entry.getKey(), targetValue);
-				}
-				iter.remove();
-			}
-		}
-	}
-
-	// TODO: Better exception handling
-	public static boolean isValidTypeChange(String srcTypeName, String destTypeName) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
-		boolean v = true;
-		EntityType srcType = EntityType.valueOf(srcTypeName);
-		EntityType destType = EntityType.valueOf(destTypeName);
-		EntityTypeMetadata srcTypeMetadata = srcType.getMetadata();
-		EntityTypeMetadata destTypeMetadata = destType.getMetadata();
-		String srcClassName = srcTypeMetadata.getEntityType();
-		String destClassName = destTypeMetadata.getEntityType();
-		
-		// Check compatible interfaces
-		Object srcObj = Class.forName(srcClassName).newInstance();
-		Object destObj = Class.forName(destClassName).newInstance();
-		if (srcObj instanceof Locationable) {
-			if (! (Locationable.class.isInstance(destObj))) {
-				return false;
-			}
-		}
-		if (Versionable.class.isInstance(srcObj)) {
-			if (! (Versionable.class.isInstance(destObj))) {
-				return false;
-			}
-		}
-		
-		// src valid parent types should be included in dest valid parent types
-		for (String vpSrc: srcTypeMetadata.getValidParentTypes()) {
-			if (! destTypeMetadata.getValidParentTypes().contains(vpSrc)) {
-				v = false;
-				break;
-			}
-		}
-		// every type that has src as valid parent should also have dest as valid parent type
-		if (v) {
-			for (EntityType t: EntityType.values()) {
-				List<String> l = t.getMetadata().getValidParentTypes();
-				if ((l.contains(srcClassName)) && (! l.contains(destClassName))) {
-					v = false;
-					break;
-				}
-			}			
-		}
-		return v;
-	}
-
-
 }

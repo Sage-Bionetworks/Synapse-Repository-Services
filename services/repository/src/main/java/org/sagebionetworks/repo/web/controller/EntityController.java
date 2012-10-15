@@ -856,6 +856,7 @@ public class EntityController extends BaseController{
      * @throws InstantiationException 
      * @throws ClassNotFoundException 
      * @throws IllegalArgumentException 
+     * @throws JSONObjectAdapterException 
      */
     @ResponseStatus(HttpStatus.OK)
     @RequestMapping(value = { UrlHelpers.ENTITY_CHANGE_TYPE+UrlHelpers.TYPE}, method = RequestMethod.PUT)
@@ -869,7 +870,7 @@ public class EntityController extends BaseController{
                     HttpServletRequest request)
                     		throws NotFoundException,
                     			DatastoreException, UnauthorizedException, IllegalArgumentException,
-                    			ClassNotFoundException, InstantiationException, IllegalAccessException {
+                    			ClassNotFoundException, InstantiationException, IllegalAccessException, JSONObjectAdapterException {
     		// Get new type out of typeChangeRequest
     		String newEntityTypeName = typeChangeRequest.getNewType();
     		

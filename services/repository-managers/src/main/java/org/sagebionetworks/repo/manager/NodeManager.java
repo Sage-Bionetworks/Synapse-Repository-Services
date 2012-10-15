@@ -238,4 +238,17 @@ public interface NodeManager {
 	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
 			String entityId, long offset, long limit) throws NotFoundException, UnauthorizedException, DatastoreException;
 	
+	/**
+	 * Lock node and increment ETag
+	 * 
+	 * @param id
+	 * @param eTag
+	 * @return
+	 * @throws NotFoundException
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 */
+	public String lockNodeAndIncrementEtag(UserInfo userInfo, String id, String eTag)
+		throws NotFoundException, ConflictingUpdateException, DatastoreException;
+	
 }

@@ -519,5 +519,20 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		return nodeDao.getVersionsOfEntity(entityId, offset, limit);
 	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public String lockNodeAndIncrementEtag(UserInfo userInfo, String id, String eTag)
+		throws NotFoundException, ConflictingUpdateException, DatastoreException {
+		String s = null;
+		UserInfo.validateUserInfo(userInfo);
+		if (! authorizationManager.canAccess(userInfo, id, ACCESS_TYPE.UPDATE)) { 
+			String userName = userInfo.getUser().getUserId();
+			throw new UnauthorizedException(userName+" lacks update access to the requested object.");
+		}
+		s = nodeDao.lockNodeAndIncrementEtag(id, eTag);
+		return s;
+	}
+
 
 }
