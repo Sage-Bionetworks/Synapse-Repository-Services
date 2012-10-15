@@ -16,6 +16,10 @@ public class NodeConstants {
 	 */
 	public static final String COL_PARENT_ID = "parentId";
 	/**
+	 * The name of the column for benefactor Id.
+	 */
+	public static final String COL_BENEFACTOR_ID = "benefactorId";
+	/**
 	 * The name of the name column.
 	 */
 	public static final String COL_NAME = "name";
