@@ -242,7 +242,7 @@ public class SqlConstants {
 	
 	static {
 		Field[] fields = Node.class.getDeclaredFields();
-		PRIMARY_FIELDS = new String[fields.length];
+		PRIMARY_FIELDS = new String[fields.length+1];
 		for(int i=0; i<fields.length; i++){
 			PRIMARY_FIELDS[i] = fields[i].getName();
 		}
