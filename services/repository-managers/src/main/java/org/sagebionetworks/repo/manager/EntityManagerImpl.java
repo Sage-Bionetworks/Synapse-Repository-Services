@@ -555,7 +555,8 @@ public class EntityManagerImpl implements EntityManager {
 	}
 
 	@Override
-	public void changeEntityType(UserInfo userInfo, String entityId, String entityTypeName)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void changeEntityType(UserInfo userInfo, String entityId, String entityTypeName, String beforeETag)
 		throws DatastoreException, UnauthorizedException, NotFoundException, IllegalArgumentException,
 		ClassNotFoundException, InstantiationException, IllegalAccessException, JSONObjectAdapterException {
 		
@@ -563,6 +564,8 @@ public class EntityManagerImpl implements EntityManager {
 		validateUpdateAccess(userInfo, entityId);
 		EntityType newEntityType = EntityType.valueOf(entityTypeName);
 		
+//		String eTag = nodeManager.lockNodeAndIncrementEtag(userInfo, entityId, beforeETag);
+
 		NodeBackup nodeBackup = nodeBackupManager.getNode(entityId);
 		Node node = nodeBackup.getNode();
 		
@@ -574,6 +577,7 @@ public class EntityManagerImpl implements EntityManager {
 		
 		// On the node itself, only the type changes
 		nodeBackup.getNode().setNodeType(newEntityType.name());
+//		nodeBackup.getNode().setETag(eTag);
 		
 		// For each node revision, move primary fields as appropriate
 		List<Long> revisionNums = nodeBackup.getRevisions();
@@ -584,7 +588,6 @@ public class EntityManagerImpl implements EntityManager {
 			nodeRevisionBackups.add(nodeRevisionBackup);
 		}
 		
-		// TODO: Surface lockAndIncrementETag and call before updating
 		nodeBackupManager.createOrUpdateNodeWithRevisions(nodeBackup, nodeRevisionBackups);
 	}
 	

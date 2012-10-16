@@ -23,10 +23,10 @@ import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 public class EntityManagerUtils {
 	
-	public static Set<String> getSetOfPrimaryFieldsToMove(Set<String> srcKeys, String newType) throws JSONObjectAdapterException {
+	public static Set<String> getSetOfPrimaryFieldsToMove(Set<String> srcKeys, String newEntityTypeClass) throws JSONObjectAdapterException {
 		Set<String> s = new HashSet<String>();
 		AutoGenFactory autoGenFactory = new AutoGenFactory();
-		JSONEntity entity = autoGenFactory.newInstance(newType);
+		JSONEntity entity = autoGenFactory.newInstance(newEntityTypeClass);
 		ObjectSchema os = EntityFactory.createEntityFromJSONString(entity.getJSONSchema(), ObjectSchema.class);
 		Map<String, ObjectSchema> props = os.getProperties();
 		Set<String> destKeys = props.keySet();
@@ -43,7 +43,7 @@ public class EntityManagerUtils {
 		Annotations primaryAnnots = namedAnnots.getPrimaryAnnotations();
 		Annotations additionalAnnots = namedAnnots.getAdditionalAnnotations();
 		EntityType newEntityType = EntityType.valueOf(newType);
-		Set<String> fieldsToMove = EntityManagerUtils.getSetOfPrimaryFieldsToMove(primaryAnnots.keySet(), newEntityType.getMetadata().getClass().getName());
+		Set<String> fieldsToMove = EntityManagerUtils.getSetOfPrimaryFieldsToMove(primaryAnnots.keySet(), newEntityType.getClassForType().getName());
 		moveFieldsFromPrimaryToAdditionals(primaryAnnots, additionalAnnots, fieldsToMove);
 		return nrb;
 	}
@@ -61,9 +61,6 @@ public class EntityManagerUtils {
 
 	public static void moveFieldsFromPrimaryToAdditionals(Annotations primaryAnnots, Annotations additionalAnnots, Set<String> keysToMove) {
 		// Move annotations from primary to additional
-		// TODO: There's got to be a better way of handling each type of list
-		// List<Map <String, List<? extends Object>>> srcAnnots;
-		
 		for (String key: keysToMove) {
 			if (primaryAnnots.getBlobAnnotations().containsKey(key)) {
 				Object o = primaryAnnots.getBlobAnnotations().remove(key);
@@ -86,6 +83,9 @@ public class EntityManagerUtils {
 				additionalAnnots.addAnnotation(key, o);
 			}
 		}
+		
+		// TODO: There's got to be a better way of handling each type of list
+		// List<Map <String, List<? extends Object>>> srcAnnots;
 		
 //		Map<String, List<byte[]>> srcBlobAnnots = primaryAnnots.getBlobAnnotations();
 //		Map<String, List<byte[]>> destBlobAnnots = additionalAnnots.getBlobAnnotations();

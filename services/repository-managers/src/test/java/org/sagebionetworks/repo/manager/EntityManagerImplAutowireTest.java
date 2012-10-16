@@ -14,6 +14,7 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -22,9 +23,11 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.GenotypeData;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.PhenotypeData;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -74,6 +77,75 @@ public class EntityManagerImplAutowireTest {
 				}catch(Exception e){}
 			}
 		}
+	}
+	
+	@Ignore
+	@Test
+	public void testChangeEntityType1() throws Exception {
+		// Study to Folder
+		Study s = createDataset();
+		String id = entityManager.createEntity(userInfo, s);
+		toDelete.add(id);
+		EntityWithAnnotations<Study> swa = entityManager.getEntityWithAnnotations(userInfo, id, Study.class);
+		Annotations annos = entityManager.getAnnotations(userInfo, id);
+		annos.addAnnotation("someAnnotKey", "someAnnotValue");
+		entityManager.updateAnnotations(userInfo, id, annos);
+		entityManager.changeEntityType(userInfo, id, "folder", "");
+		Folder f = entityManager.getEntity(userInfo, id, Folder.class);
+		assertNotNull(f);
+		annos = entityManager.getAnnotations(userInfo, id);
+		assertEquals("someAnnotValue", annos.getSingleValue("someAnnotKey"));
+	}
+	
+	@Test
+	public void testChangeEntityType2() throws Exception {
+		// Version 1
+		Data d = new Data();
+		d.setName("dataEntityName");
+		d.setDescription("dataEntityDescription");
+		d.setDisease("dataEntityDiseaseV1");
+		d.setVersionLabel("1.0.0");
+		String id = entityManager.createEntity(userInfo, d);
+		toDelete.add(id);
+		Annotations annots = entityManager.getAnnotations(userInfo, id);
+		annots.addAnnotation("v1StringAnnotKey", "v1StringAnnotValue");
+		annots.addAnnotation("v1LongAnnotKey", new Long(1));
+		entityManager.updateAnnotations(userInfo, id, annots);
+		// Version 2
+		d = entityManager.getEntity(userInfo, id, Data.class);
+		d.setName("dataEntityNameV2");
+		d.setDescription("dataEntityDescriptionV2");
+		d.setVersionLabel("2.0.0");
+		entityManager.updateEntity(userInfo, d, true);
+		annots = entityManager.getAnnotations(userInfo, id);
+		annots.addAnnotation("v2StringAnnotKey", "v2StringAnnotValue");
+		annots.addAnnotation("v2DoubleAnnotKey", new Double(2.0));
+		entityManager.updateAnnotations(userInfo, id, annots);
+		d = entityManager.getEntity(userInfo, id, Data.class);
+		String beforeETag = d.getEtag();
+		
+		// Change type
+		entityManager.changeEntityType(userInfo, id, "phenotypedata", beforeETag);
+		
+		// Check
+		PhenotypeData pd = entityManager.getEntity(userInfo, id, PhenotypeData.class);
+		assertNotNull(pd);
+		assertEquals("dataEntityNameV2", pd.getName());
+		assertEquals("dataEntityDiseaseV1", pd.getDisease());
+		annots = entityManager.getAnnotations(userInfo, id);
+		assertTrue(annots.getStringAnnotations().containsKey("v2StringAnnotKey"));
+		assertEquals("v2StringAnnotValue", annots.getSingleValue("v2StringAnnotKey"));
+		assertEquals(new Double(2.0), annots.getSingleValue("v2DoubleAnnotKey"));
+		assertEquals(new Long(1), annots.getSingleValue("v1LongAnnotKey"));
+		Annotations annots2 = entityManager.getAnnotationsForVersion(userInfo, id, 2L);
+		assertEquals(annots, annots2);
+		Annotations annots1 = entityManager.getAnnotationsForVersion(userInfo, id, 1L);
+		assertEquals(annots.getSingleValue("v1LongANnotsKey"), annots1.getSingleValue("v1LongAnnotsKey"));
+		assertFalse(annots1.getDoubleAnnotations().containsKey("v2DoubleAnnotKey"));
+		d = entityManager.getEntityForVersion(userInfo, id, 1L, Data.class);
+		assertNotNull(d);
+		assertEquals("1.0.0", d.getVersionLabel());
+		assertEquals("dataEntityDiseaseV1", d.getDisease());
 	}
 	
 	@Test

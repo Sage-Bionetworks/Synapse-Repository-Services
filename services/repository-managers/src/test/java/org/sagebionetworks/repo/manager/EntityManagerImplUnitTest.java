@@ -138,7 +138,7 @@ public class EntityManagerImplUnitTest {
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(false);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(false);
 		
-		entityManager.changeEntityType(mockUser, entityId, targetTypeName);
+		entityManager.changeEntityType(mockUser, entityId, targetTypeName, "");
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -151,7 +151,7 @@ public class EntityManagerImplUnitTest {
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, mockUser)).thenReturn(true);
 		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.UPDATE, mockUser)).thenReturn(true);
 		
-		entityManager.changeEntityType(mockUser, entityId, targetTypeName);
+		entityManager.changeEntityType(mockUser, entityId, targetTypeName, "");
 	}
 
 	// TODO: Check md5 issues and re-enable
@@ -256,7 +256,7 @@ public class EntityManagerImplUnitTest {
 		when(mockNodeBackupManager.getNode("syn1000000")).thenReturn(srcNodeBackup);
 		when(mockNodeBackupManager.getNodeRevision("syn1000000", 1L)).thenReturn(srcNodeRevisionBackup1);
 		when(mockNodeBackupManager.getNodeRevision("syn1000000", 2L)).thenReturn(srcNodeRevisionBackup2);
-		entityManager.changeEntityType(mockUser, "syn1000000", "layer");
+		entityManager.changeEntityType(mockUser, "syn1000000", "layer", "");
 		verify(mockNodeBackupManager).createOrUpdateNodeWithRevisions(expectedNodeBackup, expectedListNodeRevisionBackups);
 	}
 	

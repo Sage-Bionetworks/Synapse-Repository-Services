@@ -55,7 +55,7 @@ public class EntityManagerUtilsTest {
 		Set<String> toMove = EntityManagerUtils.getSetOfPrimaryFieldsToMove(srcKeys, "org.sagebionetworks.repo.model.Study");
 		assertTrue(toMove.contains("key1"));
 		assertTrue(toMove.contains("key2"));
-		assertTrue(! toMove.contains("name"));
+		assertTrue(! toMove.contains("name"));		
 	}
 	
 	

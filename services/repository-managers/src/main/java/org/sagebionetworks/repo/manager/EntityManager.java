@@ -329,7 +329,7 @@ public interface EntityManager {
 	 * @throws ClassNotFoundException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	public void changeEntityType(UserInfo userInfo, String entityId, String entityTypeName)
+	public void changeEntityType(UserInfo userInfo, String entityId, String entityTypeName, String beforeETag)
 		throws DatastoreException, UnauthorizedException, NotFoundException, IllegalArgumentException,
 			ClassNotFoundException, InstantiationException, IllegalAccessException, JSONObjectAdapterException;
 }
