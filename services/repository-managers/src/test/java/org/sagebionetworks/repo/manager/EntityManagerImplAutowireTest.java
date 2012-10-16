@@ -79,20 +79,20 @@ public class EntityManagerImplAutowireTest {
 		}
 	}
 	
-	@Ignore
+	
 	@Test
 	public void testChangeEntityType1() throws Exception {
-		// Study to Folder
-		Study s = createDataset();
-		String id = entityManager.createEntity(userInfo, s);
+		// Data to PhenotypeData
+		Data d = createLayerForTest(1);
+		String id = entityManager.createEntity(userInfo, d);
 		toDelete.add(id);
-		EntityWithAnnotations<Study> swa = entityManager.getEntityWithAnnotations(userInfo, id, Study.class);
 		Annotations annos = entityManager.getAnnotations(userInfo, id);
 		annos.addAnnotation("someAnnotKey", "someAnnotValue");
 		entityManager.updateAnnotations(userInfo, id, annos);
-		entityManager.changeEntityType(userInfo, id, "folder", "");
-		Folder f = entityManager.getEntity(userInfo, id, Folder.class);
-		assertNotNull(f);
+		d = entityManager.getEntity(userInfo, id, Data.class);
+		entityManager.changeEntityType(userInfo, id, "phenotypedata", d.getEtag());
+		PhenotypeData pd = entityManager.getEntity(userInfo, id, PhenotypeData.class);
+		assertNotNull(pd);
 		annos = entityManager.getAnnotations(userInfo, id);
 		assertEquals("someAnnotValue", annos.getSingleValue("someAnnotKey"));
 	}
@@ -132,6 +132,7 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(pd);
 		assertEquals("dataEntityNameV2", pd.getName());
 		assertEquals("dataEntityDiseaseV1", pd.getDisease());
+		assertFalse(beforeETag.equals(pd.getEtag()));
 		annots = entityManager.getAnnotations(userInfo, id);
 		assertTrue(annots.getStringAnnotations().containsKey("v2StringAnnotKey"));
 		assertEquals("v2StringAnnotValue", annots.getSingleValue("v2StringAnnotKey"));
@@ -147,6 +148,7 @@ public class EntityManagerImplAutowireTest {
 		assertEquals("1.0.0", d.getVersionLabel());
 		assertEquals("dataEntityDiseaseV1", d.getDisease());
 	}
+	
 	
 	@Test
 	public void testAllInOne() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
@@ -185,6 +187,7 @@ public class EntityManagerImplAutowireTest {
 		assertNotNull(fetched);
 		assertEquals("myNewName", fetched.getName());
 	}
+	
 	
 	@Test
 	public void testAggregateUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
@@ -230,6 +233,7 @@ public class EntityManagerImplAutowireTest {
 	 * @throws DatastoreException 
 	 * @throws ConflictingUpdateException 
 	 */
+	
 	@Test
 	public void testPLFM_203() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ConflictingUpdateException{
 		Study ds = createDataset();
@@ -269,6 +273,7 @@ public class EntityManagerImplAutowireTest {
 		assertEquals("some string value", annos.getSingleValue("stringKey"));
 		
 	}
+	
 	
 	@Test
 	public void testPLFM_1283() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{

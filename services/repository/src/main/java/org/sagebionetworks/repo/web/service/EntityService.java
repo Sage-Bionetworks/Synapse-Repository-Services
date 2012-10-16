@@ -582,7 +582,7 @@ public interface EntityService {
 	 * @throws DatastoreException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	public void changeEntityType(String userId, String entityId, String newTypeName)
+	public void changeEntityType(String userId, String entityId, String newTypeName, String ETag)
 		throws NotFoundException, UnauthorizedException, DatastoreException, IllegalArgumentException, ClassNotFoundException, InstantiationException, IllegalAccessException, JSONObjectAdapterException;
 	
 

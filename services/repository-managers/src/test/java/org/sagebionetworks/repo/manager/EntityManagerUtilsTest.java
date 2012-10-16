@@ -12,6 +12,7 @@ import org.junit.Test;
 
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,29 +23,7 @@ import java.util.List;
 import java.util.Set;
 
 public class EntityManagerUtilsTest {
-	
-//	@Test
-//	public void testGetAllKeys() throws Exception {
-//		Annotations annots = new Annotations();
-//		List<Date> ld = new ArrayList<Date>();
-//		ld.add(new Date("01/01/2000"));
-//		annots.getDateAnnotations().put("dateKey1", ld);
-//		List<Double> ldbl = new ArrayList<Double>();
-//		ldbl.add(new Double(3.1416));
-//		annots.getDoubleAnnotations().put("doubleKey1", ldbl);
-//		List<Long> ll = new ArrayList<Long>();
-//		ll.add(new Long(1000));
-//		annots.getLongAnnotations().put("longKey1", ll);
-//		List<String> ls = new ArrayList<String>();
-//		ls.add(new String("abcdef"));
-//		annots.getStringAnnotations().put("stringKey1", ls);
-//		Collection<String> keys = EntityManagerUtils.getAllKeys(annots);
-//		assertTrue(keys.contains("dateKey1"));
-//		assertTrue(keys.contains("doubleKey1"));
-//		assertTrue(keys.contains("longKey1"));
-//		assertTrue(keys.contains("stringKey1"));
-//	}
-//	
+
 	@Test
 	public void testGetListOfPrimaryFieldsToMove() throws Exception {
 		Set<String> srcKeys = new HashSet<String>();
@@ -183,32 +162,39 @@ public class EntityManagerUtilsTest {
 	}
 	
 	// TODO: Change register.json and enable this test
-	@Ignore
 	@Test
 	public void testIsValidTypeChange() throws Exception {
-		// TODO: Expand to cover all combos?
 		boolean v;
 		String s;
-		// Should not be able to go to project
+		boolean hasChildren;
+		hasChildren = false;
 		// Note: Might work but not for the right reason...
 		s = "project";
-		v = EntityManagerUtils.isValidTypeChange("folder", s);
+		v = EntityManagerUtils.isValidTypeChange(hasChildren, "folder", s);
 		assertFalse(v);
-		// Should be able to go from dataset/study to folder
+		// Should not be able to go from dataset/study to folder (Folder is not Locationable)
 		s = "folder";
-		v = EntityManagerUtils.isValidTypeChange("dataset", s);
+		v = EntityManagerUtils.isValidTypeChange(hasChildren, "dataset", s);
 		assertFalse(v);
 		// Should be able to go from phenotypedata to data
 		s = "layer";
-		v = EntityManagerUtils.isValidTypeChange("phenotypedata", s);
+		v = EntityManagerUtils.isValidTypeChange(hasChildren, "phenotypedata", s);
+		assertTrue(v);
+		// Should be able to go from genotypedata to data
+		s = "layer";
+		v = EntityManagerUtils.isValidTypeChange(hasChildren, "genotypedata", s);
+		assertTrue(v);
+		// Should be able to go from expressiondata to data
+		s = "layer";
+		v = EntityManagerUtils.isValidTypeChange(hasChildren, "expressiondata", s);
 		assertTrue(v);
 		// Should be able to go from data to genomicdata
 		s = "genomicdata";
-		v = EntityManagerUtils.isValidTypeChange("layer", s);
+		v = EntityManagerUtils.isValidTypeChange(hasChildren, "layer", s);
 		assertTrue(v);
 		// Should not be able to go from Locationable to non-Locationable
 		s = "folder";
-		v = EntityManagerUtils.isValidTypeChange("layer", s);
+		v = EntityManagerUtils.isValidTypeChange(hasChildren, "layer", s);
 		assertFalse(v);
 	}
 	

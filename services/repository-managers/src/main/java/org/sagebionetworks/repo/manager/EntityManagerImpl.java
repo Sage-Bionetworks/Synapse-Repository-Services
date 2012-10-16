@@ -564,20 +564,18 @@ public class EntityManagerImpl implements EntityManager {
 		validateUpdateAccess(userInfo, entityId);
 		EntityType newEntityType = EntityType.valueOf(entityTypeName);
 		
-//		String eTag = nodeManager.lockNodeAndIncrementEtag(userInfo, entityId, beforeETag);
-
 		NodeBackup nodeBackup = nodeBackupManager.getNode(entityId);
 		Node node = nodeBackup.getNode();
 		
-		// TODO: Change register.json and uncomment check
-//		String srcTypeName = node.getNodeType();
-//		if (! isValidTypeChange(srcTypeName, entityTypeName)) {
-//			throw new IllegalArgumentException("Cannot change type from " + srcTypeName + "to " + entityTypeName);
-//		}
+		boolean entityHasChildren = doesEntityHaveChildren(userInfo, entityId);
+		
+		String srcTypeName = node.getNodeType();
+		if (! EntityManagerUtils.isValidTypeChange(entityHasChildren, srcTypeName, entityTypeName)) {
+			throw new IllegalArgumentException("Cannot change type from " + srcTypeName + "to " + entityTypeName);
+		}
 		
 		// On the node itself, only the type changes
 		nodeBackup.getNode().setNodeType(newEntityType.name());
-//		nodeBackup.getNode().setETag(eTag);
 		
 		// For each node revision, move primary fields as appropriate
 		List<Long> revisionNums = nodeBackup.getRevisions();
@@ -588,7 +586,13 @@ public class EntityManagerImpl implements EntityManager {
 			nodeRevisionBackups.add(nodeRevisionBackup);
 		}
 		
+		// Cannot acquire lock if I do this here with the current Propagation.REQUIRES_NEW on createOrUpdate()
+		// One solution is to clone the method with Propagation.REQUIRED or Propagation.NESTED
+//		String eTag = nodeManager.lockNodeAndIncrementEtag(userInfo, entityId, beforeETag);
+//		nodeBackup.getNode().setETag(eTag);
+		// Inverting order here for now...
 		nodeBackupManager.createOrUpdateNodeWithRevisions(nodeBackup, nodeRevisionBackups);
+		nodeManager.lockNodeAndIncrementEtag(userInfo, entityId, beforeETag);
 	}
 	
 }

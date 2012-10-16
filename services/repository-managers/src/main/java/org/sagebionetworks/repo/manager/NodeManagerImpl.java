@@ -520,7 +520,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return nodeDao.getVersionsOfEntity(entityId, offset, limit);
 	}
 	
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
 	@Override
 	public String lockNodeAndIncrementEtag(UserInfo userInfo, String id, String eTag)
 		throws NotFoundException, ConflictingUpdateException, DatastoreException {

@@ -48,17 +48,6 @@ public class EntityManagerUtils {
 		return nrb;
 	}
 	
-//	Not needed keyset() returns all the keys...
-//	public static List<String> getAllKeys(Annotations annots) {
-//		List<String> l = new ArrayList<String>();
-//		for (String k: annots.keySet()) {
-////			Annotations a = (Annotations)annots.getSingleValue(k);
-////			l.addAll(a.keySet());
-//			System.out.println(k);
-//		}
-//		return l;
-//	}
-
 	public static void moveFieldsFromPrimaryToAdditionals(Annotations primaryAnnots, Annotations additionalAnnots, Set<String> keysToMove) {
 		// Move annotations from primary to additional
 		for (String key: keysToMove) {
@@ -83,49 +72,10 @@ public class EntityManagerUtils {
 				additionalAnnots.addAnnotation(key, o);
 			}
 		}
-		
-		// TODO: There's got to be a better way of handling each type of list
-		// List<Map <String, List<? extends Object>>> srcAnnots;
-		
-//		Map<String, List<byte[]>> srcBlobAnnots = primaryAnnots.getBlobAnnotations();
-//		Map<String, List<byte[]>> destBlobAnnots = additionalAnnots.getBlobAnnotations();
-//		moveFields(srcBlobAnnots, destBlobAnnots, keysToMove);
-//		Map<String, List<Date>> srcDateAnnots = primaryAnnots.getDateAnnotations();
-//		Map<String, List<Date>> destDateAnnots = additionalAnnots.getDateAnnotations();
-//		moveFields(srcDateAnnots, destDateAnnots, keysToMove);
-//		Map<String, List<Double>> srcDoubleAnnots = primaryAnnots.getDoubleAnnotations();
-//		Map<String, List<Double>> destDoubleAnnots = additionalAnnots.getDoubleAnnotations();
-//		moveFields(srcDoubleAnnots, destDoubleAnnots, keysToMove);
-//		Map<String, List<Long>> srcLongAnnots = primaryAnnots.getLongAnnotations();
-//		Map<String, List<Long>> destLongAnnots = additionalAnnots.getLongAnnotations();
-//		moveFields(srcLongAnnots, destLongAnnots, keysToMove);
-//		Map<String, List<String>> srcStringAnnots = primaryAnnots.getStringAnnotations();
-//		Map<String, List<String>> destStringAnnots = additionalAnnots.getStringAnnotations();
-//		moveFields(srcStringAnnots, destStringAnnots, keysToMove);
-//		
-	}
-	
-	// TODO: Rewrite using delete/add method on Annotations
-	public static <T extends Object> void moveFields(Map<String, List<T>> l1, Map<String, List<T>> l2, List<String> keysToMove) {
-		Iterator<Map.Entry<String, List<T>>> iter = l1.entrySet().iterator();
-		while (iter.hasNext()) {
-			Map.Entry<String, List<T>> entry = iter.next();
-			if (keysToMove.contains(entry.getKey())) {
-				List<T> value = entry.getValue();
-				if (! l2.containsKey(entry.getKey())) {
-					l2.put(entry.getKey(), value);
-				} else {
-					List<T> targetValue = l2.get(entry.getKey());
-					targetValue.addAll(value);
-					l2.put(entry.getKey(), targetValue);
-				}
-				iter.remove();
-			}
-		}
 	}
 
 	// TODO: Better exception handling
-	public static boolean isValidTypeChange(String srcTypeName, String destTypeName) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
+	public static boolean isValidTypeChange(boolean entityHasChildren, String srcTypeName, String destTypeName) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
 		boolean v = true;
 		EntityType srcType = EntityType.valueOf(srcTypeName);
 		EntityType destType = EntityType.valueOf(destTypeName);
@@ -155,15 +105,15 @@ public class EntityManagerUtils {
 				break;
 			}
 		}
-		// every type that has src as valid parent should also have dest as valid parent type
+		// if entity has children then the destination must be project or folder/study
+		// Note: This could require some cleanup if there are children at leaf entities
+		// such as data etc.
 		if (v) {
-			for (EntityType t: EntityType.values()) {
-				List<String> l = t.getMetadata().getValidParentTypes();
-				if ((l.contains(srcClassName)) && (! l.contains(destClassName))) {
+			if (entityHasChildren) {
+				if ((! "project".equals(destTypeName)) && (! "folder".equals(destTypeName)) && (! "study".equals(srcTypeName))) {
 					v = false;
-					break;
 				}
-			}			
+			}
 		}
 		return v;
 	}

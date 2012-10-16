@@ -67,13 +67,13 @@ public class EntityServiceImplUnitTest {
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testChangeEntityTypeNullUserId() throws Exception {
-		controller.changeEntityType(null, "syn01", "newType");
+		controller.changeEntityType(null, "syn01", "newType", "etag");
 	}
 	
 	@Test
 	public void testChangeEntityType() throws Exception {
 		when(mockUserManager.getUserInfo(userId)).thenReturn(userInfo);
-		controller.changeEntityType(userId, "syn01", "newType");
-		verify(mockEntityManager).changeEntityType(userInfo, "syn01", "newType");
+		controller.changeEntityType(userId, "syn01", "newType", "etag");
+		verify(mockEntityManager).changeEntityType(userInfo, "syn01", "newType", "etag");
 	}	
 }

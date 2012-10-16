@@ -155,7 +155,7 @@ public class EntityManagerImplUnitTest {
 	}
 
 	// TODO: Check md5 issues and re-enable
-	@Ignore
+	
 	@Test
 	public void testChangeEntityType() throws Exception {
 		

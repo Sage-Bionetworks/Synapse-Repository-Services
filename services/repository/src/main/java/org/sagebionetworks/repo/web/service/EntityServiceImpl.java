@@ -641,7 +641,7 @@ public class EntityServiceImpl implements EntityService {
 	}	
 	
 	@Override
-	public void changeEntityType(String userId, String entityId, String newTypeName)
+	public void changeEntityType(String userId, String entityId, String newTypeName, String ETag)
 			throws NotFoundException, UnauthorizedException, DatastoreException, IllegalArgumentException,
 			ClassNotFoundException, InstantiationException, IllegalAccessException, JSONObjectAdapterException {
 		if (entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
@@ -649,7 +649,7 @@ public class EntityServiceImpl implements EntityService {
 		if (newTypeName == null) throw new IllegalArgumentException("NewTypeName cannot be null");
 		
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		entityManager.changeEntityType(userInfo, entityId, newTypeName);
+		entityManager.changeEntityType(userInfo, entityId, newTypeName, ETag);
 	}
 
 }

@@ -875,7 +875,7 @@ public class EntityController extends BaseController{
     		String newEntityTypeName = typeChangeRequest.getNewType();
     		
     		// Change type of entity
-    		serviceProvider.getEntityService().changeEntityType(userId, id, newEntityTypeName);
+    		serviceProvider.getEntityService().changeEntityType(userId, id, newEntityTypeName, etag);
             return;
     }
 	
