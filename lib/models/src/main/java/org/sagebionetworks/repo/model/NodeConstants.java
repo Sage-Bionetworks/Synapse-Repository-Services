@@ -28,11 +28,7 @@ public class NodeConstants {
 	 * The name of the type column.
 	 */
 	public static final String COLUMN_LAYER_TYPE = "type";
-	
-	/**
-	 * The default versionLabel for nodes
-	 */
-	public static final String DEFAULT_VERSION_LABEL = "0.0.0";
+
 	
 	/**
 	 * Forward slash should be the prefix of a node's path.
@@ -55,4 +51,8 @@ public class NodeConstants {
 	
 	public static final Long DEFAULT_VERSION_NUMBER = new Long(1);
 	
+	/**
+	 * The default versionLabel for nodes
+	 */
+	public static final String DEFAULT_VERSION_LABEL = DEFAULT_VERSION_NUMBER.toString();
 }

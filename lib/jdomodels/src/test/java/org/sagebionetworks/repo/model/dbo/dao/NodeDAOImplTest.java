@@ -785,9 +785,21 @@ public class NodeDAOImplTest {
 		loaded = nodeDao.getNode(id);
 		assertNotNull(loaded);
 		assertEquals(node.getVersionComment(), loaded.getVersionComment());
-		assertEquals(KeyFactory.keyToString(newNumber), loaded.getVersionLabel());
+		assertEquals(newNumber.toString(), loaded.getVersionLabel());
 	}
 	
+	@Test public void testCreateVersionDefaults() throws Exception {
+		Node node = privateCreateNew("testCreateNewVersion");
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		Node loaded = nodeDao.getNode(id);
+		assertNotNull(loaded);
+		assertEquals(null, loaded.getVersionComment());
+		assertEquals(NodeConstants.DEFAULT_VERSION_LABEL, loaded.getVersionLabel());
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, loaded.getVersionNumber());
+	}
+
 	@Test
 	public void testNewVersionAnnotations() throws Exception {
 		Node node = privateCreateNew("testCreateAnnotations");
