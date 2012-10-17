@@ -19,6 +19,7 @@
     <module>repository</module>
     <module>auth</module>
     <module>search</module>
+    <module>dynamo</module>
   </modules>
 
 </project>
