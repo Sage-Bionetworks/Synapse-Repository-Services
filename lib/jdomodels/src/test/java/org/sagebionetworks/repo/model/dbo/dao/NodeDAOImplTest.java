@@ -902,6 +902,11 @@ public class NodeDAOImplTest {
 		assertEquals(numberVersions,versionsOfEntity.getResults().size());
 		assertEquals(new Long(numberVersions), versionsOfEntity.getResults().get(0).getVersionNumber());
 		assertEquals(new Long(1), versionsOfEntity.getResults().get(versionsOfEntity.getResults().size()-1).getVersionNumber());
+		for (VersionInfo vi : versionsOfEntity.getResults()) {
+			Node node = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
+			Date modDate = node.getModifiedOn();
+			assertEquals(modDate, vi.getModifiedOn());
+		}
 	}
 
 	@Test
