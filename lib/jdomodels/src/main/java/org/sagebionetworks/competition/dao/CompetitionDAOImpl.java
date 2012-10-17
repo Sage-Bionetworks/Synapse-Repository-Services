@@ -83,7 +83,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 		if (dbo.geteTag() == null) dbo.seteTag(eTagGenerator.generateETag(dbo));
 		
 		// Set creation date
-		dbo.setCreatedOn(new Date(System.currentTimeMillis()));
+		dbo.setCreatedOn(new Date());
 		
 		// Ensure DBO has required information
 		verifyCompetitionDBO(dbo);

@@ -3,14 +3,15 @@ package org.sagebionetworks.competition.util;
 public class Utility {
 	
 	/**
-	 * Ensure that an object is not null.
+	 * Ensure that one or several arguments is/are not null.
 	 * 
 	 * @param o
 	 * @param objectName
 	 */
-	public static void ensureNotNull(Object o, String objectName) {
-		if (o == null) 
-			throw new IllegalArgumentException(objectName + " cannot be null.");
+	public static void ensureNotNull(Object ... objects) {
+		for (Object o : objects)
+			if (o == null)
+				throw new IllegalArgumentException("Invalid null argument.");		
 	}
 
 }

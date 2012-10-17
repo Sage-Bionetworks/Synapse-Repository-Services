@@ -10,7 +10,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -26,29 +25,19 @@ public class CompetitionManagerImpl implements CompetitionManager {
 		this.competitionDAO = competitionDAO;
 	}
 	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.competition.manager.CompetitionManager#createCompetition(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.competition.model.Competition)
-	 */
 	@Override
-	public String createCompetition(UserInfo userInfo, Competition comp) 
-			throws DatastoreException, InvalidModelException {
-		Utility.ensureNotNull(userInfo, "User");
-		comp.setOwnerId(userInfo.getIndividualGroup().getId());
+	public String createCompetition(String userId, Competition comp) throws DatastoreException, InvalidModelException {
+		Utility.ensureNotNull(userId);
+		comp.setOwnerId(userId);
 		return competitionDAO.create(comp);
 	}
 	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.competition.manager.CompetitionManager#getCompetition(org.sagebionetworks.repo.model.UserInfo, java.lang.String)
-	 */
 	@Override
 	public Competition getCompetition(String id) throws DatastoreException, NotFoundException, UnauthorizedException {
-		Utility.ensureNotNull(id, "Competition ID");
+		Utility.ensureNotNull(id);
 		return competitionDAO.get(id);
 	}
 	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.competition.manager.CompetitionManager#getInRange(org.sagebionetworks.repo.model.UserInfo, long, long)
-	 */
 	@Override
 	public QueryResults<Competition> getInRange(long startIncl, long endExcl) throws DatastoreException, NotFoundException {
 		List<Competition> competitions = competitionDAO.getInRange(startIncl, endExcl);
@@ -57,55 +46,55 @@ public class CompetitionManagerImpl implements CompetitionManager {
 		return result;
 	}
 	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.competition.manager.CompetitionManager#getCount()
-	 */
 	@Override
 	public long getCount() throws DatastoreException, NotFoundException {
 		return competitionDAO.getCount();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.competition.manager.CompetitionManager#findCompetition(org.sagebionetworks.repo.model.UserInfo, java.lang.String)
-	 */
 	@Override
 	public Competition findCompetition(String name) throws DatastoreException, NotFoundException, UnauthorizedException {
+		Utility.ensureNotNull(name);
 		Competition comp = competitionDAO.find(name);
 		if (comp == null) throw new NotFoundException("No Competition found with name " + name);
 		return comp;
 	}
 	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.competition.manager.CompetitionManager#updateCompetition(org.sagebionetworks.repo.model.UserInfo, org.sagebionetworks.competition.model.Competition)
-	 */
 	@Override
-	public Competition updateCompetition(UserInfo userInfo, Competition comp) throws DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException, ConflictingUpdateException {
+	public Competition updateCompetition(String userId, Competition comp) throws DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException, ConflictingUpdateException {
+		Utility.ensureNotNull(userId, comp);
 		Competition old = competitionDAO.get(comp.getId());
-		if (isAdmin(userInfo, comp) && isAdmin(userInfo, old)) {
-			competitionDAO.update(comp);		
-			return getCompetition(comp.getId());
-		} else {
-			throw new UnauthorizedException("User ID '" + userInfo.getIndividualGroup().getId() +
-					"' is not authorized to modify Competition ID '" + comp.getId() +
-					"' (" + comp.getName() + ")");
-		}
+		if (old == null) throw new NotFoundException("No Competition found with id " + comp.getId());
+		validateAdminAccess(userId, old);
+		validateCompetition(old, comp);
+		competitionDAO.update(comp);
+		return getCompetition(comp.getId());
 	}
 	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.competition.manager.CompetitionManager#deleteCompetition(org.sagebionetworks.repo.model.UserInfo, java.lang.String)
-	 */
 	@Override
-	public void deleteCompetition(UserInfo userInfo, String id) throws DatastoreException, NotFoundException, UnauthorizedException {
+	public void deleteCompetition(String userId, String id) throws DatastoreException, NotFoundException, UnauthorizedException {
+		Utility.ensureNotNull(userId, id);
 		Competition comp = competitionDAO.get(id);
-		if (isAdmin(userInfo, comp))
-			competitionDAO.delete(id);
-		else
-			throw new UnauthorizedException("User ID " + userInfo.getIndividualGroup().getId() +
+		if (comp == null) throw new NotFoundException("No Competition found with id " + id);
+		validateAdminAccess(userId, comp);
+		competitionDAO.delete(id);			
+	}
+	
+	private void validateAdminAccess(String userId, Competition comp) {
+		if (userId.equals(comp.getOwnerId())) return;
+		
+		/*TODO: check list of admins*/
+		if (true)
+			throw new UnauthorizedException("User ID " + userId +
 					" is not authorized to modify Competition ID " + comp.getId() +
 					" (" + comp.getName() + ")");
 	}
 	
-	private boolean isAdmin(UserInfo userInfo, Competition comp) {
-		return userInfo.getIndividualGroup().getId().equals(comp.getOwnerId());
+	private void validateCompetition(Competition oldComp, Competition newComp) {
+		if (!oldComp.getOwnerId().equals(newComp.getOwnerId()))
+			throw new InvalidModelException("Cannot overwrite Competition Owner ID");
+		if (!oldComp.getCreatedOn().equals(newComp.getCreatedOn()))
+			throw new InvalidModelException("Cannot overwrite CreatedOn date");
+		if (!oldComp.getEtag().equals(newComp.getEtag()))
+			throw new InvalidModelException("Etag is invalid. Please fetch the Competition again.");
 	}
 }
