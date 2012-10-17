@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -45,9 +44,17 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	}
 
 	private String topicArn;
+	private String topicName;
 
 	private AtomicReference<List<ChangeMessage>> messageQueue = 
 			new AtomicReference<List<ChangeMessage>>(Collections.synchronizedList(new LinkedList<ChangeMessage>()));
+
+	public RepositoryMessagePublisherImpl(final String topicName) {
+		if (topicName == null) {
+			throw new NullPointerException();
+		}
+		this.topicName = topicName;
+	}
 
 	/**
 	 *
@@ -82,7 +89,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 
 	@Override
 	public String getTopicName(){
-		return StackConfiguration.getRepositoryChangeTopicName();
+		return topicName;
 	}
 
 	@Override

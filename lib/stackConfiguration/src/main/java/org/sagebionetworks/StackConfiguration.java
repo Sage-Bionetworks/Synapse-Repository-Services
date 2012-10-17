@@ -638,7 +638,7 @@ public class StackConfiguration {
 	 * The name of the AWS topic where repository changes messages are published.
 	 * @return
 	 */
-	public static String getRepositoryChangeTopicName(){
+	public String getRepositoryChangeTopicName(){
 		return String.format(StackConstants.TOPIC_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
 	}
 

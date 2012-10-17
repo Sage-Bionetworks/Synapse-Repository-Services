@@ -33,9 +33,10 @@
 
 	<!-- Setups the search message queue. -->
 	<bean id="searchMessageQueue"
-			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl">
-		<constructor-arg index="0"><ref bean="stackConfiguration.searchUpdateQueueName"/></constructor-arg>
-		<constructor-arg index="1"><ref bean="stackConfiguration.repositoryChangeTopicName"/></constructor-arg>
+			class="org.sagebionetworks.asynchronous.workers.sqs.MessageQueueImpl"
+			depends-on="stackConfiguration">
+		<constructor-arg index="0" ref="stackConfiguration.searchUpdateQueueName" />
+		<constructor-arg index="1" ref="stackConfiguration.repositoryChangeTopicName" />
 	</bean>
 
 	<!-- provides search message queue workers -->

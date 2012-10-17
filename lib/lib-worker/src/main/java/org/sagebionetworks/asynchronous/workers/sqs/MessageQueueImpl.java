@@ -22,6 +22,12 @@ import com.amazonaws.services.sqs.model.GetQueueAttributesRequest;
 import com.amazonaws.services.sqs.model.GetQueueAttributesResult;
 import com.amazonaws.services.sqs.model.SetQueueAttributesRequest;
 
+/**
+ * The default implementation of a message queue.
+ *
+ * @author jmhill
+ * @author ewu
+ */
 public class MessageQueueImpl implements MessageQueue {
 
 	private Logger logger = Logger.getLogger(MessageQueueImpl.class);
@@ -136,7 +142,7 @@ public class MessageQueueImpl implements MessageQueue {
 	}
 
 	/**
-	 * Grant the topic permission to write to the queue if it does not already have such a permission.
+	 * Grants the topic permission to write to the queue if it does not already have such a permission.
 	 */
 	private void grantPolicyIfNeeded(final String topicArn, final String queueArn, final String queueUrl) {
 		assert topicArn != null;

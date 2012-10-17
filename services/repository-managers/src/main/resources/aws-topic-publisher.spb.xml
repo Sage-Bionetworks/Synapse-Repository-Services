@@ -25,7 +25,11 @@
 	<!-- The RepositoryMessagePublisher publish repository change messages to an AWS topic -->
 	<bean id="messagePublisher"
 		class="org.sagebionetworks.repo.manager.message.RepositoryMessagePublisherImpl"
-		init-method="initialize" />
+		init-method="initialize">
+		<constructor-arg type="java.lang.String">
+			<ref bean="stackConfiguration.repositoryChangeTopicName" />
+		</constructor-arg>
+	</bean>
 
 	<!-- This timer is used to fire publish events.  This is where messages get published to the AWS topic -->
 	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
