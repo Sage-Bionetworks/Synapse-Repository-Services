@@ -40,7 +40,10 @@ public class StackConstants {
 	 * Template used for the name of the AWS SQS where search updates are pushed.
 	 */
 	public static final String SEARCH_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-search-update-queue";
-	
-	
+
+	/**
+	 * Template used for the name of the AWS SQS where dynamo updates are pushed.
+	 */
+	public static final String DYNAMO_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-dynamo-update-queue";
 
 }
