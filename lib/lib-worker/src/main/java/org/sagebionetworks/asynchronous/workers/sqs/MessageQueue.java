@@ -7,7 +7,7 @@ package org.sagebionetworks.asynchronous.workers.sqs;
  *
  */
 public interface MessageQueue {
-	
+
 	/**
 	 * The name of the SQS queue.
 	 * @return
