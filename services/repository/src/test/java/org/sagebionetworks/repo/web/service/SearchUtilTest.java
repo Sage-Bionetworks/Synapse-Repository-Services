@@ -1,4 +1,4 @@
-package org.sagebionetworks.search.controller;
+package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
@@ -18,7 +18,7 @@ import org.sagebionetworks.repo.model.search.query.FacetTopN;
 import org.sagebionetworks.repo.model.search.query.KeyList;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
-import org.sagebionetworks.search.controller.SearchUtil;
+import org.sagebionetworks.repo.web.service.SearchUtil;
 
 import com.amazonaws.services.cloudfront.model.InvalidArgumentException;
 

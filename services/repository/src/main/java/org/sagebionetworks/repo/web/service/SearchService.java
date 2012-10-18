@@ -1,4 +1,4 @@
-package org.sagebionetworks.search.service;
+package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 

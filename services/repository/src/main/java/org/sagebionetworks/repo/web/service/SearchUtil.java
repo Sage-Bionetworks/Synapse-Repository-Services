@@ -1,4 +1,4 @@
-package org.sagebionetworks.search.controller;
+package org.sagebionetworks.repo.web.service;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;

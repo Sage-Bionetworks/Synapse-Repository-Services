@@ -243,7 +243,7 @@ public class SearchDaoImpl implements SearchDao {
 			}
 			// Delete the whole set
 			if(!idSet.isEmpty()){
-				log.warn("Deleting the following documents for the search index:"+idSet.toString());
+				log.warn("Deleting the following documents from the search index:"+idSet.toString());
 				deleteDocuments(idSet);
 				Thread.sleep(5000);
 			}
