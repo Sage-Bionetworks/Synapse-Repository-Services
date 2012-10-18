@@ -39,16 +39,14 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	}
 	
 	@Override
-	public EntityBundle getEntityBundle(String userId, String entityId, int mask, HttpServletRequest request, 
-			Integer offset, Integer limit, String sort, Boolean ascending)
+	public EntityBundle getEntityBundle(String userId, String entityId, int mask, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return getEntityBundle(userId, entityId, null, mask, request, offset, limit, sort, ascending);
+		return getEntityBundle(userId, entityId, null, mask, request);
 	}
 
 	@Override
 	public EntityBundle getEntityBundle(String userId, String entityId,
-			Long versionNumber, int mask, HttpServletRequest request,
-			Integer offset, Integer limit, String sort, Boolean ascending)
+			Long versionNumber, int mask, HttpServletRequest request)
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, ACLInheritanceException, ParseException {
 
@@ -89,25 +87,14 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				// ACL is inherited from benefactor. Set ACL to null.
 				eb.setAccessControlList(null);
 			}
-		}
-		
-		// TODO : these do not belong in the entity bundle
-		if ((mask & EntityBundle.USERS) > 0) {
-			eb.setUsers(serviceProvider.getUserProfileService().getUserProfilesPaginated(request, userId, offset, limit, sort, ascending));
-		}
-		if ((mask & EntityBundle.GROUPS) > 0) {
-			eb.setGroups(serviceProvider.getUserGroupService().getUserGroups(request, userId, offset, limit, sort, ascending));
-		}
-		
+		}		
 		if ((mask & EntityBundle.ACCESS_REQUIREMENTS) > 0) {
 			eb.setAccessRequirements(serviceProvider.getAccessRequirementService().getAccessRequirements(userId, entityId, request).getResults());
-		}
-		
+		}		
 		if ((mask & EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
 			eb.setUnmetAccessRequirements(serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, entityId, request).getResults());
 		}
 		return eb;
-
 	}	
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -140,7 +127,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos, request);
 		}
 		
-		return getEntityBundle(userId, entity.getId(), partsMask, request, null, null, null, null);
+		return getEntityBundle(userId, entity.getId(), partsMask, request);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -184,7 +171,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate, request);
 		}
 		
-		return getEntityBundle(userId, entityId, partsMask, request, null, null, null, null);
+		return getEntityBundle(userId, entityId, partsMask, request);
 	}
 	
 }
