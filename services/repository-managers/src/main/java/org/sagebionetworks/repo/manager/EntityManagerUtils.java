@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.registry.EntityTypeMetadata;
@@ -36,16 +37,6 @@ public class EntityManagerUtils {
 			}
 		}
 		return s;
-	}
-	
-	public static NodeRevisionBackup changeNodeRevisionBackupNodeType(NodeRevisionBackup nrb, String newType) throws JSONObjectAdapterException {
-		NamedAnnotations namedAnnots = nrb.getNamedAnnotations();
-		Annotations primaryAnnots = namedAnnots.getPrimaryAnnotations();
-		Annotations additionalAnnots = namedAnnots.getAdditionalAnnotations();
-		EntityType newEntityType = EntityType.valueOf(newType);
-		Set<String> fieldsToMove = EntityManagerUtils.getSetOfPrimaryFieldsToMove(primaryAnnots.keySet(), newEntityType.getClassForType().getName());
-		moveFieldsFromPrimaryToAdditionals(primaryAnnots, additionalAnnots, fieldsToMove);
-		return nrb;
 	}
 	
 	public static void moveFieldsFromPrimaryToAdditionals(Annotations primaryAnnots, Annotations additionalAnnots, Set<String> keysToMove) {
@@ -74,6 +65,20 @@ public class EntityManagerUtils {
 		}
 	}
 
+	public static Node cetChangeNodeRevision(Node node, String newType) {
+		node.setNodeType(newType);
+		return node;
+	}
+	
+	public static NamedAnnotations cetChangeNamedAnnotations(NamedAnnotations namedAnnots, String newEntityTypeName) throws JSONObjectAdapterException {
+		Annotations primaryAnnots = namedAnnots.getPrimaryAnnotations();
+		Annotations additionalAnnots = namedAnnots.getAdditionalAnnotations();
+		EntityType newEntityType = EntityType.valueOf(newEntityTypeName);
+		Set<String> fieldsToMove = getSetOfPrimaryFieldsToMove(primaryAnnots.keySet(), newEntityType.getClassForType().getName());
+		moveFieldsFromPrimaryToAdditionals(primaryAnnots, additionalAnnots, fieldsToMove);
+		return namedAnnots;
+	}
+	
 	// TODO: Better exception handling
 	public static boolean isValidTypeChange(boolean entityHasChildren, String srcTypeName, String destTypeName) throws ClassNotFoundException, InstantiationException, IllegalAccessException {
 		boolean v = true;

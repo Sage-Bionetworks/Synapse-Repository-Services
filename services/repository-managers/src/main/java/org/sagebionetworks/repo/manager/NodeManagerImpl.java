@@ -321,7 +321,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			log.debug("username "+userInfo.getUser().getUserId()+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
 		}
 		// Return the new node
-		return get(userInfo, updatedNode.getId());
+		Node uNode = get(userInfo, updatedNode.getId());
+		return uNode;
 	}
 	
 	/**

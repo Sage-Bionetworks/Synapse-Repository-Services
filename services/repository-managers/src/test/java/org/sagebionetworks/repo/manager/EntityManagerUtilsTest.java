@@ -196,6 +196,11 @@ public class EntityManagerUtilsTest {
 		s = "folder";
 		v = EntityManagerUtils.isValidTypeChange(hasChildren, "layer", s);
 		assertFalse(v);
+		// Should be able to go from Data to PhenotypeData
+		s = "phenotypedata";
+		v = EntityManagerUtils.isValidTypeChange(hasChildren, "layer", s);
+		assertTrue(v);
+		
 	}
 	
 

@@ -267,7 +267,7 @@ public class EntityControllerTest {
 		
 	}
 	
-	
+	@Ignore
 	@Test
 	public void testChangeEntityType() throws Exception {
 		Study s = new Study();

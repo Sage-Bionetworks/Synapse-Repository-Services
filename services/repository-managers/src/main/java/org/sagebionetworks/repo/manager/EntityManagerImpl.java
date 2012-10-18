@@ -45,8 +45,6 @@ public class EntityManagerImpl implements EntityManager {
 	@Autowired
 	NodeManager nodeManager;
 	@Autowired
-	NodeBackupManager nodeBackupManager;
-	@Autowired
 	private S3TokenManager s3TokenManager;
 	@Autowired
 	private PermissionsManager permissionsManager;
@@ -61,7 +59,6 @@ public class EntityManagerImpl implements EntityManager {
 			PermissionsManager permissionsManager, UserManager userManager) {
 		super();
 		this.nodeManager = nodeManager;
-		this.nodeBackupManager = nodeBackupManager;
 		this.s3TokenManager = s3TokenManager;
 		this.permissionsManager = permissionsManager;
 		this.userManager = userManager;
@@ -556,43 +553,36 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void changeEntityType(UserInfo userInfo, String entityId, String entityTypeName, String beforeETag)
+	public void changeEntityType(UserInfo userInfo, String entityId, String newEntityTypeName, String beforeETag)
 		throws DatastoreException, UnauthorizedException, NotFoundException, IllegalArgumentException,
 		ClassNotFoundException, InstantiationException, IllegalAccessException, JSONObjectAdapterException {
 		
 		validateReadAccess(userInfo, entityId);
 		validateUpdateAccess(userInfo, entityId);
-		EntityType newEntityType = EntityType.valueOf(entityTypeName);
-		
-		NodeBackup nodeBackup = nodeBackupManager.getNode(entityId);
-		Node node = nodeBackup.getNode();
+		EntityType newEntityType = EntityType.valueOf(newEntityTypeName);
 		
 		boolean entityHasChildren = doesEntityHaveChildren(userInfo, entityId);
 		
+		Node node = nodeManager.get(userInfo, entityId);
+		
 		String srcTypeName = node.getNodeType();
-		if (! EntityManagerUtils.isValidTypeChange(entityHasChildren, srcTypeName, entityTypeName)) {
-			throw new IllegalArgumentException("Cannot change type from " + srcTypeName + "to " + entityTypeName);
+		if (! EntityManagerUtils.isValidTypeChange(entityHasChildren, srcTypeName, newEntityTypeName)) {
+			throw new IllegalArgumentException("Cannot change type from " + srcTypeName + " to " + newEntityTypeName);
 		}
 		
-		// On the node itself, only the type changes
-		nodeBackup.getNode().setNodeType(newEntityType.name());
-		
-		// For each node revision, move primary fields as appropriate
-		List<Long> revisionNums = nodeBackup.getRevisions();
-		List<NodeRevisionBackup> nodeRevisionBackups = new ArrayList<NodeRevisionBackup>();
-		for (Long revisionNum: revisionNums) {
-			NodeRevisionBackup nodeRevisionBackup = nodeBackupManager.getNodeRevision(entityId, revisionNum);
-			nodeRevisionBackup = EntityManagerUtils.changeNodeRevisionBackupNodeType(nodeRevisionBackup, newEntityType.name());
-			nodeRevisionBackups.add(nodeRevisionBackup);
-		}
-		
-		// Cannot acquire lock if I do this here with the current Propagation.REQUIRES_NEW on createOrUpdate()
-		// One solution is to clone the method with Propagation.REQUIRED or Propagation.NESTED
-//		String eTag = nodeManager.lockNodeAndIncrementEtag(userInfo, entityId, beforeETag);
-//		nodeBackup.getNode().setETag(eTag);
-		// Inverting order here for now...
-		nodeBackupManager.createOrUpdateNodeWithRevisions(nodeBackup, nodeRevisionBackups);
-		nodeManager.lockNodeAndIncrementEtag(userInfo, entityId, beforeETag);
+		NamedAnnotations namedAnnots;
+		List<Long> nodeVersionNums = nodeManager.getAllVersionNumbersForNode(userInfo, entityId);
+		// Need to sort versions
+		for (Long nodeVersionNum: nodeVersionNums) {
+			node = nodeManager.getNodeForVersionNumber(userInfo, entityId, nodeVersionNum);
+			namedAnnots = nodeManager.getAnnotationsForVersion(userInfo, entityId, nodeVersionNum);
+			// Change node itself
+			node = EntityManagerUtils.cetChangeNodeRevision(node, newEntityTypeName);
+			// Change annotations
+			namedAnnots = EntityManagerUtils.cetChangeNamedAnnotations(namedAnnots, newEntityTypeName);
+			// Update node and annotations
+			nodeManager.update(userInfo, node, namedAnnots, false);
+		}		
 	}
 	
 }
