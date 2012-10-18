@@ -1,4 +1,4 @@
-package org.sagebionetworks.search.service;
+package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -18,6 +18,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -27,6 +28,7 @@ import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.KeyValue;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.service.SearchServiceImpl;
 import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.utils.HttpClientHelperException;
 

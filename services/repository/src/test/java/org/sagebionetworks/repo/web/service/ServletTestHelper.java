@@ -1,4 +1,4 @@
-package org.sagebionetworks.search.controller;
+package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
 
@@ -41,7 +41,7 @@ public class ServletTestHelper {
 		request.setRequestURI("/search");
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.setContent(EntityFactory.createJSONStringForEntity(query).getBytes("UTF-8"));
-		DispatchServletSingleton.getInstance().service(request, response);
+		org.sagebionetworks.repo.web.controller.DispatchServletSingleton.getInstance().service(request, response);
 		log.info("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.CREATED.value()) {
 			throw new RuntimeException(response.getContentAsString());

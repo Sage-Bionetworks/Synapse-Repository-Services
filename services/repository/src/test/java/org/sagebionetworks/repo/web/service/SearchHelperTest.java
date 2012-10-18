@@ -1,4 +1,4 @@
-package org.sagebionetworks.search.service;
+package org.sagebionetworks.repo.web.service;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 
 import org.apache.commons.lang.StringEscapeUtils;
 import org.junit.Test;
-import org.sagebionetworks.search.service.SearchHelper;
+import org.sagebionetworks.repo.manager.search.SearchHelper;
 
 /**
  * @author deflaux
