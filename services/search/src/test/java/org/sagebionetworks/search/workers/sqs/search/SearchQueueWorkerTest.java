@@ -13,9 +13,9 @@ import org.junit.Test;
 import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.search.SearchDao;
-import org.sagebionetworks.search.service.SearchDocumentDriver;
 
 import com.amazonaws.services.sqs.model.Message;
 

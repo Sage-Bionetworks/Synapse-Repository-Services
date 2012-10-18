@@ -26,11 +26,6 @@
 		<constructor-arg ref="awsCredentials" />
 	</bean>
 
-	<!-- Used to read document from repo -->
-	<bean id="searchDocumentDriver"
-		class="org.sagebionetworks.search.service.SearchDocumentDriverImpl"
-		scope="singleton" />
-
 	<!-- Setups the search message queue. -->
 	<bean id="searchMessageQueue"
 		class="org.sagebionetworks.search.workers.sqs.search.SearchMessageQueue"
