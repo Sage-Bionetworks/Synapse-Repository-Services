@@ -163,13 +163,14 @@
 						</deployable>
 					</deployables>
 					<properties>
+<!-- 					Add the following to 'remote debug' the entire deployment stack
 						<cargo.jvmargs>
 							-Xdebug
 							-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8989
 							-Xnoagent
 							-Djava.compiler=NONE
 						</cargo.jvmargs>
-
+-->
 					</properties>
 				</configuration>
 
