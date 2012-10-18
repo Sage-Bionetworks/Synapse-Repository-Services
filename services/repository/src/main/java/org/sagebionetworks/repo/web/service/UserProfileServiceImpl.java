@@ -48,9 +48,17 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
 
-	private Long cachesLastUpdated = 0L;
-	private Trie<String, Collection<UserGroupHeader>> userGroupHeadersNamePrefixCache;
-	private Map<String, UserGroupHeader> userGroupHeadersIdCache;
+	/**
+	 * These member variables are declared volatile to enforce thread-safe
+	 * cache access. Clients should fetch the latest cache objects for every
+	 * request.
+	 * 
+	 * The cache objects may be *replaced* by new cache objects created in the
+	 * refreshCache() method, but existing cache objects should NOT be modified.
+	 */
+	private volatile Long cachesLastUpdated = 0L;
+	private volatile Trie<String, Collection<UserGroupHeader>> userGroupHeadersNamePrefixCache;
+	private volatile Map<String, UserGroupHeader> userGroupHeadersIdCache;
 
 	@Override
 	public UserProfile getMyOwnUserProfile(String userId) 
@@ -128,8 +136,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 				header = fetchNewHeader(id);
 				if (header == null)
 					throw new NotFoundException("Could not find a user/group for Synapse ID " + id);
-				else
-					addToCaches(header);
 			}
 			ugHeaders.add(header);
 		}
@@ -168,7 +174,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public synchronized void refreshCache() throws DatastoreException, NotFoundException {		
+	public void refreshCache() throws DatastoreException, NotFoundException {
+		// Create and populate local caches. Upon completion, swap them for the
+		// singleton member variable caches.
 		Trie<String, Collection<UserGroupHeader>> tempPrefixCache = new PatriciaTrie<String, Collection<UserGroupHeader>>(StringKeyAnalyzer.CHAR);
 		Map<String, UserGroupHeader> tempIdCache = new HashMap<String, UserGroupHeader>();
 		
@@ -230,11 +238,6 @@ public class UserProfileServiceImpl implements UserProfileService {
 	private UserGroupHeader fetchNewHeader(String id) throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserProfile profile = userProfileManager.getUserProfile(null, id);
 		return profile != null ? convertUserProfileToHeader(profile) : null;
-	}
-
-	private void addToCaches(UserGroupHeader header) {
-		addToPrefixCache(userGroupHeadersNamePrefixCache, header);
-		addToIdCache(userGroupHeadersIdCache, header);
 	}
 
 	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, UserGroupHeader header) {
