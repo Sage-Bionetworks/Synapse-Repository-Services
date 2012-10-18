@@ -29,8 +29,6 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -113,9 +111,7 @@ public class EntityBundleControllerTest {
 					EntityBundle.ENTITY_PATH |
 					EntityBundle.ENTITY_REFERENCEDBY |
 					EntityBundle.HAS_CHILDREN |
-					EntityBundle.ACL |
-					EntityBundle.USERS |
-					EntityBundle.GROUPS;
+					EntityBundle.ACL;
 		EntityBundle eb = entityServletHelper.getEntityBundle(id, mask, TEST_USER1);
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
@@ -143,12 +139,6 @@ public class EntityBundleControllerTest {
 		
 		AccessControlList acl = eb.getAccessControlList();
 		assertNotNull("AccessControlList was requested, but null in bundle", acl);
-		
-		PaginatedResults<UserProfile> up = eb.getUsers();
-		assertNotNull("Users was requested, but null in bundle", up);
-		
-		PaginatedResults<UserGroup> ug = eb.getGroups();
-		assertNotNull("UserGroups was requested, but null in bundle", ug);
 	}
 	
 	@Test
@@ -296,12 +286,6 @@ public class EntityBundleControllerTest {
 		
 		AccessControlList acl = eb.getAccessControlList();
 		assertNull("AccessControlList was not requested, but were returned in bundle", acl);
-		
-		PaginatedResults<UserProfile> up = eb.getUsers();
-		assertNull("Users were not requested, but were returned in bundle", up);
-		
-		PaginatedResults<UserGroup> ug = eb.getGroups();
-		assertNull("UserGroups were not requested, but were returned in bundle", ug);
 	}
 
 }

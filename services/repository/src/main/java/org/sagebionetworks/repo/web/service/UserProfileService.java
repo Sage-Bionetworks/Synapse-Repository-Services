@@ -137,8 +137,7 @@ public interface UserProfileService {
 			throws DatastoreException, NotFoundException;
 
 	/**
-	 * Populate a cache of headers for all Synapse users, to support fast
-	 * prefix matching by user name.
+	 * Populate a cache of headers for all Synapse users.
 	 * 
 	 * @throws DatastoreException
 	 * @throws NotFoundException

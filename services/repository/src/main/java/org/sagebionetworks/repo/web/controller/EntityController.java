@@ -589,7 +589,15 @@ public class EntityController extends BaseController{
 		// This is a fix for PLFM-621
 		updatedACL.setId(id);
 		// pass it along.
-		return serviceProvider.getEntityService().updateEntityACL(userId, updatedACL, recursive, request);
+		return serviceProvider.getEntityService().updateEntityACL(userId, updatedACL, null, request);
+		
+		/* 
+		 * DEV NOTE (10/15/12): Recursive application disabled to prevent users
+		 * from inadvertently deleting permissions. This feature (and its UI 
+		 * implementation) should be throughly evaluated before being enabled.
+		 * 
+		 * See also IT500SynapseJavaClient.testUpdateACLRecursive()
+		 */
 	}
 	
 	/**

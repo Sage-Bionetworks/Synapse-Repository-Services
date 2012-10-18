@@ -219,6 +219,7 @@ public class IT500SynapseJavaClient {
 		synapse.updateACL(acl);
 	}
 	
+	@Ignore
 	@Test
 	public void testUpdateACLRecursive() throws Exception {
 		// Create resource access for me
@@ -421,10 +422,7 @@ public class IT500SynapseJavaClient {
 	}
 	
 	@Test
-	public void testJavaClientGetEntityBundle() throws SynapseException {
-		int offset = Integer.parseInt(ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW);
-		int limit = Integer.parseInt(ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM);
-		
+	public void testJavaClientGetEntityBundle() throws SynapseException {		
 		Annotations annos = synapse.getAnnotations(project.getId());
 		annos.addAnnotation("doubleAnno", new Double(45.0001));
 		annos.addAnnotation("string", "A string");
@@ -442,8 +440,6 @@ public class IT500SynapseJavaClient {
 				EntityBundle.ENTITY_REFERENCEDBY |
 				EntityBundle.HAS_CHILDREN |
 				EntityBundle.ACL |
-				EntityBundle.USERS |
-				EntityBundle.GROUPS |
 				EntityBundle.ACCESS_REQUIREMENTS |
 				EntityBundle.UNMET_ACCESS_REQUIREMENTS;
 		
@@ -466,10 +462,6 @@ public class IT500SynapseJavaClient {
 				synapse.getChildCount(project.getId()) > 0, entityBundle.getHasChildren());
 		assertEquals("Invalid fetched ACL in the EntityBundle", 
 				synapse.getACL(project.getId()), entityBundle.getAccessControlList());
-		assertEquals("Invalid fetched Users in the EntityBundle", 
-				synapse.getUsers(offset, limit), entityBundle.getUsers());
-		assertEquals("Invalid fetched Groups in the EntityBundle", 
-				synapse.getGroups(offset, limit), entityBundle.getGroups());
 		assertEquals("Unexpected ARs in the EntityBundle", 
 				0, entityBundle.getAccessRequirements().size());
 		assertEquals("Unexpected unmet-ARs in the EntityBundle", 

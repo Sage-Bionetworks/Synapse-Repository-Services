@@ -32,6 +32,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 
 public class UserProfileServiceTest {
 	
+	private static final String EXTRA_USER_ID = "foo";
+
 	private UserProfileService userProfileService = new UserProfileServiceImpl();
 	
 	private PermissionsManager mockPermissionsManager;
@@ -67,9 +69,14 @@ public class UserProfileServiceTest {
 		list.add(p);
 		QueryResults<UserProfile> profiles = new QueryResults<UserProfile>(list, list.size());
 		
+		UserProfile extraProfile = new UserProfile();
+		extraProfile.setOwnerId(EXTRA_USER_ID);
+		extraProfile.setDisplayName("This UserProfile was created after the cache was last refreshed.");
+		
 		when(mockPermissionsManager.getGroups()).thenReturn(groups);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong(), eq(true))).thenReturn(profiles);
+		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID))).thenReturn(extraProfile);
 		
 		userProfileService.setPermissionsManager(mockPermissionsManager);
 		userProfileService.setUserProfileManager(mockUserProfileManager);
@@ -77,6 +84,44 @@ public class UserProfileServiceTest {
 	
 	@Test
 	public void testGetUserGroupHeadersById() throws DatastoreException, NotFoundException {
+		List<String> ids = new ArrayList<String>();
+		ids.add("g0");
+		ids.add("g1");
+		ids.add("g2");
+		
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
+		for (UserGroupHeader ugh : response.getChildren())
+			headers.put(ugh.getOwnerId(), ugh);
+		assertEquals(3, headers.size());
+		assertTrue(headers.containsKey("g0"));
+		assertTrue(headers.containsKey("g1"));
+		assertTrue(headers.containsKey("g2"));
+	}
+	
+	@Test
+	public void testGetUserGroupHeadersByIdNotInCache() throws DatastoreException, NotFoundException {
+		List<String> ids = new ArrayList<String>();
+		ids.add("g0");
+		ids.add("g1");
+		ids.add("g2");
+		ids.add(EXTRA_USER_ID); // should require fetch from repo
+		
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
+		for (UserGroupHeader ugh : response.getChildren())
+			headers.put(ugh.getOwnerId(), ugh);
+		assertEquals(4, headers.size());
+		assertTrue(headers.containsKey("g0"));
+		assertTrue(headers.containsKey("g1"));
+		assertTrue(headers.containsKey("g2"));
+		assertTrue(headers.containsKey(EXTRA_USER_ID));
+		
+		verify(mockUserProfileManager).getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID));
+	}
+	
+	@Test(expected = NotFoundException.class)
+	public void testGetUserGroupHeadersByIdDoesNotExist() throws DatastoreException, NotFoundException {
 		List<String> ids = new ArrayList<String>();
 		ids.add("g0");
 		ids.add("g1");
