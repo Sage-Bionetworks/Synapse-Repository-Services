@@ -9,7 +9,6 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 
-	<groupId>org.sagebionetworks</groupId>
 	<artifactId>integration-test</artifactId>
 	<packaging>jar</packaging>
 	<name>Integration Tests for All services</name>
@@ -161,6 +160,11 @@
 							<artifactId>services-search</artifactId>
 							<type>war</type>
 						</deployable>
+						<deployable>
+							<groupId>org.sagebionetworks</groupId>
+							<artifactId>services-dynamo</artifactId>
+							<type>war</type>
+						</deployable>
 					</deployables>
 					<properties>
 <!-- 					Add the following to 'remote debug' the entire deployment stack
@@ -217,7 +221,6 @@
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>com.springsource.javax.servlet</artifactId>
-			<version>2.5.0</version>
 			<scope>provided</scope>
 		</dependency>
 
@@ -230,6 +233,12 @@
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>services-search</artifactId>
+			<type>war</type>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>services-dynamo</artifactId>
 			<type>war</type>
 		</dependency>
 

@@ -7,16 +7,46 @@
 		<version>develop-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
-	<name>Synapse DynamoDB</name>
+	<name>Synapse DynamoDB Updater</name>
 	<artifactId>services-dynamo</artifactId>
 	<packaging>war</packaging>
 	<dependencies>
+
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-worker</artifactId>
 		</dependency>
+
+		<!-- This was being pulled in as a child dependency of the springframework 
+			but the tomcat plugin needs this to be in scope "provided" -->
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>com.springsource.javax.servlet</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!-- In a tomcat container, such as Elastic Beanstalk, you have to include 
+			jstl.jar manually, hence this entry. -->
+		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>jstl</artifactId>
+		</dependency>
+
+		<!-- Spring Framework dependencies -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>org.springframework.spring-library</artifactId>
+			<type>libd</type>
+		</dependency>
+
 	</dependencies>
 	<build>
+		<resources>
+			<resource>
+				<directory>src/main/resources</directory>
+				<filtering>true</filtering>
+			</resource>
+		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -24,7 +54,7 @@
 				<configuration>
 					<webResources>
 						<resource>
-							<directory>src/main/resources/webapp</directory>
+							<directory>src/main/webapp</directory>
 							<filtering>true</filtering>
 						</resource>
 					</webResources>
@@ -34,10 +64,6 @@
 				<groupId>org.apache.tomcat.maven</groupId>
 				<artifactId>tomcat7-maven-plugin</artifactId>
 				<version>2.0</version>
-				<configuration>
-					<!-- Deploy this as the root application -->
-					<path>/</path>
-				</configuration>
 			</plugin>
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
