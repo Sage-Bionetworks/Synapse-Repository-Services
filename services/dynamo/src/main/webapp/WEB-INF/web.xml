@@ -5,7 +5,7 @@
 
 	<context-param>
 		<param-name>contextConfigLocation</param-name>
-		<param-value>/dynamo-update-context.xml</param-value>
+		<param-value>/WEB-INF/dynamo-context.xml</param-value>
 	</context-param>
 
 	<listener>

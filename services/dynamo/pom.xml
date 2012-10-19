@@ -1,5 +1,6 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
 	<modelVersion>4.0.0</modelVersion>
 	<parent>
 		<artifactId>services</artifactId>
@@ -10,6 +11,7 @@
 	<name>Synapse DynamoDB Updater</name>
 	<artifactId>services-dynamo</artifactId>
 	<packaging>war</packaging>
+
 	<dependencies>
 
 		<dependency>
@@ -17,12 +19,31 @@
 			<artifactId>lib-worker</artifactId>
 		</dependency>
 
-		<!-- This was being pulled in as a child dependency of the springframework 
-			but the tomcat plugin needs this to be in scope "provided" -->
 		<dependency>
-			<groupId>javax.servlet</groupId>
-			<artifactId>com.springsource.javax.servlet</artifactId>
-			<scope>provided</scope>
+			<groupId>com.amazonaws</groupId>
+			<artifactId>aws-java-sdk</artifactId>
+		</dependency>
+
+		<!-- Spring Framework dependencies -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>org.springframework.spring-library</artifactId>
+			<type>libd</type>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>org.springframework.web</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-aspects</artifactId>
+		</dependency>
+
+		<!-- Needed for running the tomcat plugin -->
+		<dependency>
+			<groupId>commons-collections</groupId>
+			<artifactId>commons-collections</artifactId>
+			<version>20040616</version>
 		</dependency>
 
 		<!-- In a tomcat container, such as Elastic Beanstalk, you have to include 
@@ -32,21 +53,9 @@
 			<artifactId>jstl</artifactId>
 		</dependency>
 
-		<!-- Spring Framework dependencies -->
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>org.springframework.spring-library</artifactId>
-			<type>libd</type>
-		</dependency>
-
 	</dependencies>
+
 	<build>
-		<resources>
-			<resource>
-				<directory>src/main/resources</directory>
-				<filtering>true</filtering>
-			</resource>
-		</resources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
@@ -55,6 +64,10 @@
 					<webResources>
 						<resource>
 							<directory>src/main/webapp</directory>
+							<filtering>true</filtering>
+						</resource>
+						<resource>
+							<directory>src/main/resources</directory>
 							<filtering>true</filtering>
 						</resource>
 					</webResources>
