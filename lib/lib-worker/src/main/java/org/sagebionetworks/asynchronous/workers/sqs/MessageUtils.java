@@ -85,49 +85,38 @@ public class MessageUtils {
 	
 	
 	/**
-	 * Create an entity delete message.
-	 * @param id
-	 * @return
+	 * Creates an entity delete message.
 	 */
-	public static Message buildDeleteEntityMessage(String nodeId, String messageId, String messageHandle){
-		return buildEntityMessage(ChangeType.DELETE, nodeId, null, messageId, messageHandle);
+	public static Message buildDeleteEntityMessage(String nodeId, String parentId, String messageId, String messageHandle){
+		return buildEntityMessage(ChangeType.DELETE, nodeId, parentId, null, messageId, messageHandle);
 	}
-	
+
 	/**
-	 * Create an Entity Create message
-	 * @param id
-	 * @return
+	 * Creates an Entity Create message.
 	 */
-	public static Message buildCreateEntityMessage(String nodeId, String etag, String messageId, String messageHandle){
-		return buildEntityMessage(ChangeType.CREATE, nodeId, etag, messageId, messageHandle);
+	public static Message buildCreateEntityMessage(String nodeId, String parentId,
+			String etag, String messageId, String messageHandle){
+		return buildEntityMessage(ChangeType.CREATE, nodeId, parentId, etag, messageId, messageHandle);
 	}
-	
+
 	/**
-	 * Create an entity Update message.
-	 * @param nodeId
-	 * @param etag
-	 * @param messageId
-	 * @param messageHandle
-	 * @return
+	 * Creates an entity Update message.
 	 */
-	public static Message buildUpdateEntityMessage(String nodeId, String etag, String messageId, String messageHandle){
-		return buildEntityMessage(ChangeType.UPDATE, nodeId, etag, messageId, messageHandle);
+	public static Message buildUpdateEntityMessage(String nodeId, String parentId,
+			String etag, String messageId, String messageHandle){
+		return buildEntityMessage(ChangeType.UPDATE, nodeId, parentId, etag, messageId, messageHandle);
 	}
-	
+
 	/**
-	 * Create an entity message
-	 * @param type
-	 * @param nodeId
-	 * @param etag
-	 * @param messageId
-	 * @param messageHandle
-	 * @return
+	 * Creates an entity message.
 	 */
-	public static Message buildEntityMessage(ChangeType type, String nodeId, String etag, String messageId, String messageHandle){
+	public static Message buildEntityMessage(ChangeType type, String nodeId, String parentId,
+			String etag, String messageId, String messageHandle){
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(type);
 		message.setObjectEtag(etag);
 		message.setObjectId(nodeId);
+		message.setParentId(parentId);
 		message.setObjectType(ObjectType.ENTITY);
 		return MessageUtils.createMessage(message, messageId, messageHandle);
 	}
