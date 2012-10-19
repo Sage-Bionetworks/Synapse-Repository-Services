@@ -245,7 +245,7 @@ public interface EntityService {
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> T updateEntity(String userId,T updatedEntity, boolean newVersion, HttpServletRequest request)
+	public <T extends Entity> T updateEntity(String userId,T updatedEntity, boolean newVersion, String activityId, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException;
 	

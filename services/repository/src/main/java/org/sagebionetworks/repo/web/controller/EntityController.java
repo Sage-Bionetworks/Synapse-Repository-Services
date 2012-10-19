@@ -196,6 +196,7 @@ public class EntityController extends BaseController{
 	public @ResponseBody
 	Versionable createNewVersion(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
 			@RequestHeader HttpHeaders header,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
 			HttpServletRequest request)
@@ -203,7 +204,7 @@ public class EntityController extends BaseController{
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException, JSONObjectAdapterException {
 
 		// This is simply an update with a new version created.
-		return (Versionable) updateEntityImpl(userId, header, etag, true, request);
+		return (Versionable) updateEntityImpl(userId, header, etag, true, activityId, request);
 	}
 	
 
@@ -223,7 +224,7 @@ public class EntityController extends BaseController{
 	 * @throws UnauthorizedException
 	 */
 	private Entity updateEntityImpl(String userId, HttpHeaders header,
-			String etag, boolean newVersion, HttpServletRequest request) throws IOException,
+			String etag, boolean newVersion, String activityId, HttpServletRequest request) throws IOException,
 			NotFoundException, ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, JSONObjectAdapterException {
 		@SuppressWarnings("unchecked")
@@ -233,7 +234,7 @@ public class EntityController extends BaseController{
 			entity.setEtag(etag);
 		}
 		// validate the entity
-		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersion, request);
+		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersion, activityId, request);
 		// Return the result
 		return entity;
 	}
@@ -263,6 +264,7 @@ public class EntityController extends BaseController{
 	Entity updateEntity(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
 			@RequestHeader HttpHeaders header,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
 			HttpServletRequest request)
@@ -275,7 +277,7 @@ public class EntityController extends BaseController{
 			entity.setEtag(etag);
 		}
 		// validate the entity
-		entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, request);
+		entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, activityId, request);
 		// Return the result
 		return entity;
 	}

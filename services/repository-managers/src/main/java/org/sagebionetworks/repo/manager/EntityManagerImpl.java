@@ -287,7 +287,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> void updateEntity(UserInfo userInfo, T updated,
-			boolean newVersion) throws NotFoundException, DatastoreException,
+			boolean newVersion, String activityId) throws NotFoundException, DatastoreException,
 			UnauthorizedException, ConflictingUpdateException,
 			InvalidModelException {
 
@@ -303,6 +303,12 @@ public class EntityManagerImpl implements EntityManager {
 				updated.getId());
 		annos.setEtag(updated.getEtag());
 
+		
+		// Set activityId if new version or if not changing versions and activityId is defined 
+		if(newVersion || (!newVersion && activityId != null)) {
+			node.setActivityId(activityId);
+		} 
+		
 		// Auto-version locationable entities
 		if (!newVersion && (updated instanceof Locationable)) {
 			Locationable locationable = (Locationable) updated;
@@ -374,7 +380,7 @@ public class EntityManagerImpl implements EntityManager {
 				id = this.createEntity(userInfo, child, null);
 			} else {
 				id = child.getId();
-				updateEntity(userInfo, child, false);
+				updateEntity(userInfo, child, false, null);
 			}
 			ids.add(id);
 		}

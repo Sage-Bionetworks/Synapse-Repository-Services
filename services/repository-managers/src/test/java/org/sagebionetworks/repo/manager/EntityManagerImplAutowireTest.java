@@ -78,10 +78,9 @@ public class EntityManagerImplAutowireTest {
 	
 	@Test
 	public void testAllInOne() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
-		// Create a datset
-		String activityId = null;
+		// Create a datset		
 		Study ds = createDataset();
-		String id = entityManager.createEntity(userInfo, ds, activityId);
+		String id = entityManager.createEntity(userInfo, ds, null);
 		assertNotNull(id);
 		toDelete.add(id);
 		// Get another copy
@@ -109,7 +108,7 @@ public class EntityManagerImplAutowireTest {
 		// Now update the dataset
 		fetched = entityManager.getEntity(userInfo, id, Study.class);
 		fetched.setName("myNewName");
-		entityManager.updateEntity(userInfo, fetched, false);
+		entityManager.updateEntity(userInfo, fetched, false, null);
 		fetched = entityManager.getEntity(userInfo, id, Study.class);
 		assertNotNull(fetched);
 		assertEquals("myNewName", fetched.getName());
@@ -188,7 +187,7 @@ public class EntityManagerImplAutowireTest {
 		assertEquals(ds.getDisease(), clone.getDisease());
 		// Now change the primary field
 		clone.setDisease("disease2");
-		entityManager.updateEntity(userInfo, clone, false);
+		entityManager.updateEntity(userInfo, clone, false, null);
 		clone = entityManager.getEntity(userInfo, id, Study.class);
 		assertNotNull(clone);
 		assertEquals("disease2", clone.getDisease());

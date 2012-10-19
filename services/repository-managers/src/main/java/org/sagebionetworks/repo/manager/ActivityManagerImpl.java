@@ -30,22 +30,11 @@ public class ActivityManagerImpl implements ActivityManager {
 	@Autowired
 	AuthorizationManager authorizationManager;	
 		
-	/**
-	 * For testing ONLY	
-	 */
-	public void setIdGenerator(IdGenerator idGenerator) {
+	public ActivityManagerImpl(IdGenerator idGenerator,
+			ActivityDAO activityDAO, AuthorizationManager authorizationManager) {
+		super();
 		this.idGenerator = idGenerator;
-	}
-	/**
-	 * For testing ONLY	
-	 */
-	public void setActivityDAO(ActivityDAO activityDAO) {
 		this.activityDAO = activityDAO;
-	}
-	/**
-	 * For testing ONLY	
-	 */
-	public void setAuthorizationManager(AuthorizationManager authorizationManager) {
 		this.authorizationManager = authorizationManager;
 	}
 

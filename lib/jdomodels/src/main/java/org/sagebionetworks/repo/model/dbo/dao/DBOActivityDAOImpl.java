@@ -55,26 +55,6 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;	
 	
-	/**
-	 * For unit testing ONLY
-	 */
-	public void setTagMessenger(TagMessenger tagMessenger) {
-		this.tagMessenger = tagMessenger;
-	}
-	/**
-	 * For unit testing ONLY
-	 */
-	public void setBasicDao(DBOBasicDao basicDao) {
-		this.basicDao = basicDao;
-	}
-	/**
-	 * For unit testing ONLY
-	 */
-	public void setSimpleJdbcTemplate(SimpleJdbcTemplate simpleJdbcTemplate) {
-		this.simpleJdbcTemplate = simpleJdbcTemplate;
-	}
-
-	
 	private static final String SELECT_ALL_IDS_SQL = "SELECT " + SqlConstants.COL_ACTIVITY_ID + " FROM " + SqlConstants.TABLE_ACTIVITY;
 
 	private static final String SELECT_FOR_RANGE_SQL = "SELECT * FROM " + TABLE_ACTIVITY 
@@ -92,6 +72,14 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 
 	
 	
+	public DBOActivityDAOImpl(TagMessenger tagMessenger, DBOBasicDao basicDao,
+			SimpleJdbcTemplate simpleJdbcTemplate) {
+		super();
+		this.tagMessenger = tagMessenger;
+		this.basicDao = basicDao;
+		this.simpleJdbcTemplate = simpleJdbcTemplate;
+	}
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Activity> T create(T dto) throws DatastoreException, InvalidModelException {	

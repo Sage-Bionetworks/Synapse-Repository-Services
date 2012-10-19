@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -9,7 +9,10 @@ import org.mockito.Mockito;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -114,4 +117,40 @@ public class EntityManagerImplUnitTest {
 		assertEquals(expectePreSigneUrl, endToken.getPresignedUrl());
 	}
 
+	@Test
+	public void testUpdateEntityActivityId() throws Exception {
+		String id = "123";
+		Node node = mock(Node.class);
+		NamedAnnotations annos = new NamedAnnotations();
+		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
+		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
+		Entity entity = mock(Entity.class);
+		when(entity.getId()).thenReturn(id);
+		
+		String activityId;		
+
+		// Update: same version, null activity id. IMPORTANT: Do not overwrite activity id with null!
+		activityId = null;
+		entityManager.updateEntity(mockUser, entity, false, activityId);		
+		verify(node, never()).setActivityId(anyString());
+		reset(node);
+		
+		// Update: same version, defined activity id. 
+		activityId = "1";
+		entityManager.updateEntity(mockUser, entity, false, activityId);		
+		verify(node).setActivityId(activityId);
+		reset(node);
+	
+		// Update: new version, null activity id. 
+		activityId = null;
+		entityManager.updateEntity(mockUser, entity, true, activityId);		
+		verify(node).setActivityId(activityId);
+		reset(node);
+
+		// Update: new version, defined activity id. 
+		activityId = "1";
+		entityManager.updateEntity(mockUser, entity, true, activityId);		
+		verify(node).setActivityId(activityId);
+		reset(node);
+	}
 }

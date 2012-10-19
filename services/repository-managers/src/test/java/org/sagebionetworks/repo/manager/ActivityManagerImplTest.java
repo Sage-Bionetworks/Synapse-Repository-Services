@@ -52,12 +52,8 @@ public class ActivityManagerImplTest {
 		mockAuthorizationManager = mock(AuthorizationManager.class);
 		adminUserInfo = new UserInfo(true);
 		configureAdminUser();
-		
-		ActivityManagerImpl manager = new ActivityManagerImpl();
-		manager.setIdGenerator(mockIdGenerator);
-		manager.setActivityDAO(mockActivityDAO);
-		manager.setAuthorizationManager(mockAuthorizationManager);		
-		activityManager = manager;
+		 
+		activityManager = new ActivityManagerImpl(mockIdGenerator, mockActivityDAO, mockAuthorizationManager);
 	}
 
 	@Test

@@ -38,12 +38,8 @@ public class DBOActivityDAOImplTest {
 		mockBasicDao = mock(DBOBasicDao.class);
 		mockSimpleJdbcTemplate = mock(SimpleJdbcTemplate.class);
 		mockIdGenerator = mock(IdGenerator.class);
-		
-		DBOActivityDAOImpl dao = new DBOActivityDAOImpl(); 		
-		dao.setTagMessenger(mockTagMessenger);
-		dao.setBasicDao(mockBasicDao);
-		dao.setSimpleJdbcTemplate(mockSimpleJdbcTemplate);		
-		activityDao = dao;		
+				 	
+		activityDao = new DBOActivityDAOImpl(mockTagMessenger, mockBasicDao, mockSimpleJdbcTemplate);		
 	}
 	
 	@Test(expected=NotFoundException.class) 

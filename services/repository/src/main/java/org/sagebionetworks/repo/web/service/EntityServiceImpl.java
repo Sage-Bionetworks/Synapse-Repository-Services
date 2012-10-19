@@ -279,7 +279,7 @@ public class EntityServiceImpl implements EntityService {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> T updateEntity(String userId,
-			T updatedEntity, boolean newVersion, HttpServletRequest request)
+			T updatedEntity, boolean newVersion, String activityId, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
 		if(updatedEntity == null) throw new IllegalArgumentException("Entity cannot be null");
@@ -296,7 +296,7 @@ public class EntityServiceImpl implements EntityService {
 		// Keep the entity id
 		String entityId = updatedEntity.getId();
 		// Now do the update
-		entityManager.updateEntity(userInfo, updatedEntity, newVersion);
+		entityManager.updateEntity(userInfo, updatedEntity, newVersion, activityId);
 		// Return the udpated entity
 		return getEntity(userInfo, entityId, request, clazz, eventType);
 	}
