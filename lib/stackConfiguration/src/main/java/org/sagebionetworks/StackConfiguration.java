@@ -633,22 +633,27 @@ public class StackConfiguration {
 		}
 		return address;
 	}
-	
+
 	/**
 	 * The name of the AWS topic where repository changes messages are published.
 	 * @return
 	 */
-	public static String getRepositoryChangeTopicName(){
+	public String getRepositoryChangeTopicName(){
 		return String.format(StackConstants.TOPIC_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
 	}
-	
+
 	/**
 	 * The name of the AWS SQS where search updates are pushed.
 	 * @return
 	 */
-	public static String getSearchUpdateQueueName(){
+	public String getSearchUpdateQueueName(){
 		return String.format(StackConstants.SEARCH_QUEUE_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
 	}
-	
-	
+
+	/**
+	 * The name of the AWS SQS where dynamo updates are pushed.
+	 */
+	public String getDynamoUpdateQueueName() {
+		return String.format(StackConstants.DYNAMO_QUEUE_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
+	}
 }

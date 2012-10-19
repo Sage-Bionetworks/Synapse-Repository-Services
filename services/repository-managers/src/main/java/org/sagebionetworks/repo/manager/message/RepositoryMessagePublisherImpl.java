@@ -3,10 +3,10 @@ package org.sagebionetworks.repo.manager.message;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.TransactionalMessenger;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -26,15 +26,15 @@ import com.amazonaws.services.sns.model.PublishRequest;
  *
  */
 public class RepositoryMessagePublisherImpl implements RepositoryMessagePublisher {
-	
+
 	static private Log log = LogFactory.getLog(RepositoryMessagePublisherImpl.class);
-	
+
 	@Autowired
 	TransactionalMessenger transactionalMessanger;
-	
+
 	@Autowired
 	AmazonSNSClient awsSNSClient;
-	
+
 	/**
 	 * Used by tests to inject a mock client.
 	 * @param awsSNSClient
@@ -44,9 +44,18 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	}
 
 	private String topicArn;
-	
-	private List<ChangeMessage> messageQueue = Collections.synchronizedList(new LinkedList<ChangeMessage>());
-	
+	private String topicName;
+
+	private AtomicReference<List<ChangeMessage>> messageQueue = 
+			new AtomicReference<List<ChangeMessage>>(Collections.synchronizedList(new LinkedList<ChangeMessage>()));
+
+	public RepositoryMessagePublisherImpl(final String topicName) {
+		if (topicName == null) {
+			throw new NullPointerException();
+		}
+		this.topicName = topicName;
+	}
+
 	/**
 	 *
 	 * This is called by Spring when this bean is created.  This is where we register this class as
@@ -66,9 +75,7 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 			CreateTopicResult result = awsSNSClient.createTopic(new CreateTopicRequest(getTopicName()));
 			topicArn = result.getTopicArn();
 		}
-
 	}
-
 
 	/**
 	 * This is the method that the TransactionalMessenger will call after a transaction is committed.
@@ -77,46 +84,40 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	@Override
 	public void fireChangeMessage(ChangeMessage message) {
 		// Add the message to a queue
-		messageQueue.add(message);
-	}
-	
-	@Override
-	public String getTopicName(){
-		return StackConfiguration.getRepositoryChangeTopicName();
+		messageQueue.get().add(message);
 	}
 
+	@Override
+	public String getTopicName(){
+		return topicName;
+	}
 
 	@Override
 	public String getTopicArn() {
 		return topicArn;
 	}
-	
+
 	/**
 	 * Quartz will fire this method on a timer.  This is where we actually publish the data. 
 	 */
 	public void timerFired(){
-		// Nothing to do if the queue is empty.
-		if(messageQueue.size() > 0){
-			// Swap the current queue as an atomic action. Any messages that arrive while processing will get
-			// processed the next time the timer fires.
-			List<ChangeMessage> currentQueue = messageQueue;
-			messageQueue =  Collections.synchronizedList(new LinkedList<ChangeMessage>());
-			// Publish each message to the topic
-			for(ChangeMessage message: currentQueue){
-				try {
-					String json = EntityFactory.createJSONStringForEntity(message);
-					if(log.isTraceEnabled()){
-						log.info("Publishing a message: "+json);
-					}
-					awsSNSClient.publish(new PublishRequest(this.topicArn, json));
-				} catch (JSONObjectAdapterException e) {
-					// This should not occur.
-					// If it does we want to log it but continue to send messages
-					// as this is called from a timer and not a web-services.
-					log.error("Failed to parse ChangeMessage:", e);
+		// Swap the current queue as an atomic action. Any messages that arrive while processing will get
+		// processed the next time the timer fires.
+		List<ChangeMessage> currentQueue = messageQueue.getAndSet(new LinkedList<ChangeMessage>());
+		// Publish each message to the topic
+		for(ChangeMessage message: currentQueue){
+			try {
+				String json = EntityFactory.createJSONStringForEntity(message);
+				if(log.isTraceEnabled()){
+					log.info("Publishing a message: "+json);
 				}
+				awsSNSClient.publish(new PublishRequest(this.topicArn, json));
+			} catch (JSONObjectAdapterException e) {
+				// This should not occur.
+				// If it does we want to log it but continue to send messages
+				// as this is called from a timer and not a web-services.
+				log.error("Failed to parse ChangeMessage:", e);
 			}
-		}		
+		}
 	}
-
 }

@@ -21,7 +21,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -49,9 +48,17 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
 
-	private Long cachesLastUpdated = 0L;
-	private Trie<String, Collection<UserGroupHeader>> userGroupHeadersNamePrefixCache;
-	private Map<String, UserGroupHeader> userGroupHeadersIdCache;
+	/**
+	 * These member variables are declared volatile to enforce thread-safe
+	 * cache access. Clients should fetch the latest cache objects for every
+	 * request.
+	 * 
+	 * The cache objects may be *replaced* by new cache objects created in the
+	 * refreshCache() method, but existing cache objects should NOT be modified.
+	 */
+	private volatile Long cachesLastUpdated = 0L;
+	private volatile Trie<String, Collection<UserGroupHeader>> userGroupHeadersNamePrefixCache;
+	private volatile Map<String, UserGroupHeader> userGroupHeadersIdCache;
 
 	@Override
 	public UserProfile getMyOwnUserProfile(String userId) 
@@ -124,7 +131,13 @@ public class UserProfileServiceImpl implements UserProfileService {
 		List<UserGroupHeader> ugHeaders = new ArrayList<UserGroupHeader>();
 		for (String id : ids) {
 			UserGroupHeader header = userGroupHeadersIdCache.get(id);
-			if (header != null) ugHeaders.add(header);
+			if (header == null) {
+				// Header not found in cache; attempt to fetch one from repo
+				header = fetchNewHeader(id);
+				if (header == null)
+					throw new NotFoundException("Could not find a user/group for Synapse ID " + id);
+			}
+			ugHeaders.add(header);
 		}
 		
 		UserGroupHeaderResponsePage response = new UserGroupHeaderResponsePage();
@@ -160,26 +173,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 		return results;
 	}
 	
-	/**
-	 * The Trie contains collections of UserGroupHeaders for a given name. This
-	 * method flattens the collections into a single list of UserGroupHeaders.
-	 * 
-	 * @param prefixMap
-	 * @return
-	 */
-	private List<UserGroupHeader> flatten (
-			SortedMap<String, Collection<UserGroupHeader>> prefixMap) {
-		List<UserGroupHeader> list = new ArrayList<UserGroupHeader>();
-		for (Collection<UserGroupHeader> headersOfOneName : prefixMap.values()) {
-			for (UserGroupHeader header : headersOfOneName) {
-				list.add(header);
-			}
-		}
-		return list;
-	}
-
 	@Override
-	public synchronized void refreshCache() throws DatastoreException, NotFoundException {		
+	public void refreshCache() throws DatastoreException, NotFoundException {
+		// Create and populate local caches. Upon completion, swap them for the
+		// singleton member variable caches.
 		Trie<String, Collection<UserGroupHeader>> tempPrefixCache = new PatriciaTrie<String, Collection<UserGroupHeader>>(StringKeyAnalyzer.CHAR);
 		Map<String, UserGroupHeader> tempIdCache = new HashMap<String, UserGroupHeader>();
 		
@@ -205,50 +202,12 @@ public class UserProfileServiceImpl implements UserProfileService {
 		cachesLastUpdated = System.currentTimeMillis();		
 	}
 	
-	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> tempCache, UserGroupHeader header) {
-		String name = header.getDisplayName().toLowerCase();
-		if (!tempCache.containsKey(name)) {
-			// cache does not contain a user/group with that name
-			Collection<UserGroupHeader> coll = new HashSet<UserGroupHeader>();
-			coll.add(header);
-			tempCache.put(name, coll);
-		} else {					
-			// cache already contains a user/group with that name; add to the collection
-			Collection<UserGroupHeader> coll = tempCache.get(name);
-			coll.add(header);
-		}
-	}
-	
-	private void addToIdCache(Map<String, UserGroupHeader> tempCache, UserGroupHeader header) {
-		tempCache.put(header.getOwnerId(), header);
-	}
-	
 	@Override
 	public Long millisSinceLastCacheUpdate() {
 		if (userGroupHeadersNamePrefixCache == null) {
 			return null;
 		}
 		return System.currentTimeMillis() - cachesLastUpdated;
-	}
-	
-	private UserGroupHeader convertUserProfileToHeader(UserProfile profile) {
-		UserGroupHeader header = new UserGroupHeader();
-		header.setDisplayName(profile.getDisplayName());
-		header.setEmail(profile.getEmail());
-		header.setFirstName(profile.getFirstName());
-		header.setLastName(profile.getLastName());
-		header.setOwnerId(profile.getOwnerId());
-		header.setPic(profile.getPic());
-		header.setIsIndividual(true);
-		return header;
-	}
-	
-	private UserGroupHeader convertUserGroupToHeader(UserGroup group) {
-		UserGroupHeader header = new UserGroupHeader();
-		header.setDisplayName(group.getName());
-		header.setOwnerId(group.getId());
-		header.setIsIndividual(group.getIsIndividual());
-		return header;
 	}
 	
 	// setters for managers (for testing)
@@ -270,5 +229,70 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Override
 	public void setUserProfileManager(UserProfileManager userProfileManager) {
 		this.userProfileManager = userProfileManager;
+	}
+
+	/**
+	 * Fetches a UserProfile for a specified Synapse ID. Note that this does not
+	 * check for a UserGroup with the specified ID.
+	 */
+	private UserGroupHeader fetchNewHeader(String id) throws DatastoreException, UnauthorizedException, NotFoundException {
+		UserProfile profile = userProfileManager.getUserProfile(null, id);
+		return profile != null ? convertUserProfileToHeader(profile) : null;
+	}
+
+	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, UserGroupHeader header) {
+		String name = header.getDisplayName().toLowerCase();
+		if (!prefixCache.containsKey(name)) {
+			// cache does not contain a user/group with that name
+			Collection<UserGroupHeader> coll = new HashSet<UserGroupHeader>();
+			coll.add(header);
+			prefixCache.put(name, coll);
+		} else {					
+			// cache already contains a user/group with that name; add to the collection
+			Collection<UserGroupHeader> coll = prefixCache.get(name);
+			coll.add(header);
+		}
+	}
+
+	private void addToIdCache(Map<String, UserGroupHeader> idCache, UserGroupHeader header) {
+		idCache.put(header.getOwnerId(), header);
+	}
+
+	private UserGroupHeader convertUserProfileToHeader(UserProfile profile) {
+		UserGroupHeader header = new UserGroupHeader();
+		header.setDisplayName(profile.getDisplayName());
+		header.setEmail(profile.getEmail());
+		header.setFirstName(profile.getFirstName());
+		header.setLastName(profile.getLastName());
+		header.setOwnerId(profile.getOwnerId());
+		header.setPic(profile.getPic());
+		header.setIsIndividual(true);
+		return header;
+	}
+
+	private UserGroupHeader convertUserGroupToHeader(UserGroup group) {
+		UserGroupHeader header = new UserGroupHeader();
+		header.setDisplayName(group.getName());
+		header.setOwnerId(group.getId());
+		header.setIsIndividual(group.getIsIndividual());
+		return header;
+	}
+
+	/**
+	 * The Trie contains collections of UserGroupHeaders for a given name. This
+	 * method flattens the collections into a single list of UserGroupHeaders.
+	 * 
+	 * @param prefixMap
+	 * @return
+	 */
+	private List<UserGroupHeader> flatten (
+			SortedMap<String, Collection<UserGroupHeader>> prefixMap) {
+		List<UserGroupHeader> list = new ArrayList<UserGroupHeader>();
+		for (Collection<UserGroupHeader> headersOfOneName : prefixMap.values()) {
+			for (UserGroupHeader header : headersOfOneName) {
+				list.add(header);
+			}
+		}
+		return list;
 	}
 }

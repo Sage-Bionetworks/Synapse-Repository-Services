@@ -597,7 +597,7 @@ public class JDONodeQueryDaoImpl implements NodeQueryDao {
 						String bindKey = "expKey" + i;
 						whereBuilder.append(bindKey);
 						// Bind the value to the parameters
-						if((NodeField.PARENT_ID == nodeField) || (NodeField.ID == nodeField)) {
+						if((NodeField.PARENT_ID == nodeField) || (NodeField.ID == nodeField) || (NodeField.BENEFACTOR_ID == nodeField)) {
 							parameters.put(bindKey, KeyFactory.stringToKey(exp.getValue().toString()));
 						}
 						else {

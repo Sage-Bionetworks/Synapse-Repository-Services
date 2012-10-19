@@ -298,17 +298,15 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		// Make a copy of the current revision with an incremented the version number
 		DBORevision newRev = JDORevisionUtils.makeCopyForNewVersion(rev);
 		if(newVersion.getVersionLabel() == null) {
-			// This is a fix for PLFM-995
-			newVersion.setVersionLabel(KeyFactory.keyToString(newRev.getRevisionNumber()));
+			// This is a fix for PLFM-995.  This was modified not to use the KeyFactory because
+			// version labels should NOT be prefixed with syn (per PLFM-1408).
+			newVersion.setVersionLabel(newRev.getRevisionNumber().toString());
 		}
 		// Now update the new revision and node
 		NodeUtils.updateFromDto(newVersion, jdo, newRev);
 		// The new revision becomes the current version
 		jdo.setCurrentRevNumber(newRev.getRevisionNumber());
-		if(newVersion.getVersionLabel() == null) {
-			// This is a fix for PLFM-995
-			newRev.setLabel(KeyFactory.keyToString(newRev.getRevisionNumber()));
-		}
+
 		// Save the change to the node
 		dboBasicDao.update(jdo);
 		dboBasicDao.createNew(newRev);
@@ -696,7 +694,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 				VersionInfo info = new VersionInfo();
 				info.setId(entityId);
 				info.setModifiedByPrincipalId(rs.getString(COL_REVISION_MODIFIED_BY));
-				info.setModifiedOn(rs.getDate(COL_REVISION_MODIFIED_ON));
+				info.setModifiedOn(new Date(rs.getLong(COL_REVISION_MODIFIED_ON)));
 				info.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
 				info.setVersionLabel(rs.getString(COL_REVISION_LABEL));
 				info.setVersionComment(rs.getString(COL_REVISION_COMMENT));

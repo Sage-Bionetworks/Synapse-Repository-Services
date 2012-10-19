@@ -10,6 +10,7 @@ import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.query.Comparator;
 import org.sagebionetworks.repo.model.query.CompoundId;
 import org.sagebionetworks.repo.model.query.Expression;
 import org.sagebionetworks.repo.model.query.FieldType;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -102,17 +104,6 @@ public class JDONodeQueryDAOImplTest {
 		mockUserInfo = Mockito.mock(UserInfo.class);
 		// All tests in the suite assume the user is an admin.
 		when(mockUserInfo.isAdmin()).thenReturn(true);
-		
-		// from
-		// http://groups.google.com/group/google-appengine-java/browse_thread/thread/96baed75e3c30a58/00d5afb2e0445882?lnk=gst&q=DataNucleus+plugin#00d5afb2e0445882
-		// This one caused all the WARNING and SEVERE logs about eclipse UI
-		// elements
-		Logger.getLogger("DataNucleus.Plugin").setLevel(Level.OFF);
-		// This one logged the last couple INFOs about Persistence configuration
-		Logger.getLogger("DataNucleus.Persistence").setLevel(Level.WARNING);
-
-		Logger.getLogger("DataNucleus.Query").setLevel(Level.INFO);
-		Logger.getLogger("DataNucleus.JDO").setLevel(Level.ALL);
 
 		createdBy = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 		
@@ -799,6 +790,53 @@ public class JDONodeQueryDAOImplTest {
 		count = nodeQueryDao.executeCountQuery(query, mockUserInfo);
 		assertTrue(count >= totalNumberOfDatasets*2);
 		
+	}
+	
+	/**
+	 * This is a test for PLFM-1542
+	 * @throws NotFoundException 
+	 * @throws InvalidModelException 
+	 * @throws DatastoreException 
+	 */
+	@Test
+	public void testFilterBenefactorId() throws DatastoreException, InvalidModelException, NotFoundException{
+		// Add several layers of hierarchy with the same benefactor
+		Node parent = NodeTestUtils.createNew("parentPLFM-1542", createdBy);
+		Date now = new Date(System.currentTimeMillis());
+		parent.setDescription("description");
+		parent.setCreatedByPrincipalId(createdBy);
+		parent.setNodeType(EntityType.project.name());
+
+		// Create a parent
+		String rootParentId = nodeDao.createNew(parent);
+		nodeIds.add(rootParentId);
+		List<Map<String, Object>> expected = new LinkedList<Map<String,Object>>();
+		Map<String, Object> map = new HashMap<String, Object>();
+		map.put("id", rootParentId);
+		expected.add(map);
+		// Add some hierarchy
+		int numberLevels = 4;
+		String thisParentId = rootParentId;
+		for(int i=0; i<numberLevels; i++){
+			Node child = NodeTestUtils.createNew("child-"+i, createdBy);
+			child.setParentId(thisParentId);
+			child.setNodeType(EntityType.dataset.name());
+			thisParentId = nodeDao.createNew(child);
+			// Add it to the expected list
+			 map = new HashMap<String, Object>();
+			 map.put("id", thisParentId);
+			 expected.add(map);
+		}
+		// Query for all entites that 
+		BasicQuery query = new BasicQuery();
+		query.setFrom("entity");
+		query.setSelect(new LinkedList<String>());
+		query.getSelect().add("id");
+		query.addExpression(new Expression(new CompoundId(null, NodeConstants.COL_BENEFACTOR_ID), Comparator.EQUALS, rootParentId));
+		NodeQueryResults result = nodeQueryDao.executeQuery(query, mockUserInfo);
+		assertNotNull(result);
+		assertEquals(expected.size(), result.getTotalNumberOfResults());
+		assertEquals(expected, result.getAllSelectedData());
 	}
 
 	
