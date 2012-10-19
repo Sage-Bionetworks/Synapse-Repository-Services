@@ -4,12 +4,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
+import javax.servlet.ServletException;
+
+import org.json.JSONException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Ignore;
@@ -61,7 +66,6 @@ public class IT510SynapseJavaClientSearchTest {
 				.getAuthenticationServicePrivateEndpoint());
 		synapse.setRepositoryEndpoint(StackConfiguration
 				.getRepositoryServiceEndpoint());
-		synapse.setSearchEndpoint(StackConfiguration.getSearchServiceEndpoint());
 		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
 		
@@ -501,6 +505,26 @@ public class IT510SynapseJavaClientSearchTest {
 			if (null != description) {
 				assertFalse("[]".equals(description));
 			}
+		}
+	}
+	
+	@Test
+	public void testBadSearch() throws ServletException, IOException, JSONException, JSONObjectAdapterException, InterruptedException {
+		// First run query
+		SearchQuery query = new SearchQuery();
+		query.setBooleanQuery(new LinkedList<KeyValue>());
+		KeyValue kv = new KeyValue();
+		kv.setKey("ugh");
+		kv.setValue(project.getId());
+		query.getBooleanQuery().add(kv);
+		// this should throw an error
+		try{
+			synapse.search(query);
+			fail("This was a bad query");
+		}catch (SynapseException e) {
+			// did we get the expected message.
+			assertTrue(e.getMessage().indexOf("'ugh' is not defined in the metadata for this collection") > 0);
+			assertFalse("The error message contains the URL of the search index", e.getMessage().indexOf("http://search") > 0);
 		}
 	}
 }

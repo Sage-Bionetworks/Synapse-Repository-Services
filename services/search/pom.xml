@@ -128,7 +128,7 @@
 				<configuration>
 					<webResources>
 						<resource>
-							<directory>src/main/resources/webapp</directory>
+							<directory>src/main/webapp</directory>
 							<filtering>true</filtering>
 						</resource>
 					</webResources>

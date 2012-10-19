@@ -201,5 +201,10 @@
 			</list>
 		</property>
 	</bean>
+	
+		<!-- Used to read document from repo -->
+	<bean id="searchDocumentDriver"
+		class="org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl"
+		scope="singleton" />
 
 </beans>
