@@ -86,9 +86,14 @@ public class ChangeMessageUtils {
 		if(ObjectType.ENTITY == dbo.getObjectTypeEnum()){
 			// Entities get an 'syn' prefix
 			dto.setObjectId(KeyFactory.keyToString(dbo.getObjectId()));
+			dto.setParentId(KeyFactory.keyToString(dbo.getParentId()));
 		}else{
 			// All other types are longs.
 			dto.setObjectId(dbo.getObjectId().toString());
+			Long parentId = dbo.getParentId();
+			if (parentId != null) {
+				dto.setParentId(parentId.toString());
+			}
 		}
 		dto.setChangeType(dbo.getChangeTypeEnum());
 		return dto;

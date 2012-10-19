@@ -270,7 +270,6 @@ public class MessageReceiverImpl implements MessageReceiver {
 	private void verifyConfig() {
 		if(awsSQSClient == null) throw new IllegalStateException("awsSQSClient cannot be null");
 		if(maxNumberOfWorkerThreads == null) throw new IllegalStateException("maxNumberOfWorkerThreads cannot be null");
-		if(maxNumberOfWorkerThreads == null) throw new IllegalStateException("maxNumberOfWorkerThreads cannot be null");
 		if(visibilityTimeoutSec == null) throw new IllegalStateException("visibilityTimeout cannot be null");
 		if(messageQueue == null) throw new IllegalStateException("messageQueue cannot be null");
 		if(executors == null){
