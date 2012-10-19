@@ -271,6 +271,9 @@ public class DBONode implements DatabaseObject<DBONode>, TaggableEntity, Observa
 	public String getIdString() {
 		return KeyFactory.keyToString(id);
 	}
-
+	@Override
+	public String getParentIdString() {
+		return KeyFactory.keyToString(parentId);
+	}
 
 }

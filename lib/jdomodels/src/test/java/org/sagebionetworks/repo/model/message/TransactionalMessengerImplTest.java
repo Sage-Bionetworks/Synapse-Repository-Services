@@ -72,6 +72,7 @@ public class TransactionalMessengerImplTest {
 		message.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
 		message.setObjectEtag("etag");
 		message.setObjectId("syn456");
+		message.setParentId("syn789");
 		message.setObjectType(ObjectType.ENTITY);
 		message.setChangeType(ChangeType.DELETE);
 		// Send the message
@@ -95,6 +96,7 @@ public class TransactionalMessengerImplTest {
 		first.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
 		first.setObjectEtag("etag");
 		first.setObjectId("syn456");
+		first.setParentId("syn789");
 		first.setObjectType(ObjectType.ENTITY);
 		first.setChangeType(ChangeType.DELETE);
 		
@@ -131,6 +133,7 @@ public class TransactionalMessengerImplTest {
 		first.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
 		first.setObjectEtag("etag");
 		first.setObjectId("syn456");
+		// first.setParentId("syn789"); // parent id can be null
 		first.setObjectType(ObjectType.ENTITY);
 		first.setChangeType(ChangeType.DELETE);
 		
