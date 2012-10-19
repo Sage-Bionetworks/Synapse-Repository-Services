@@ -33,6 +33,7 @@ public class TagMessengerImpl implements TagMessenger{
 		message.setChangeType(changeType);
 		message.setObjectType(observable.getObjectType());
 		message.setObjectId(observable.getIdString());
+		message.setParentId(observable.getParentIdString());
 		message.setObjectEtag(observable.geteTag());
 		transactionalMessanger.sendMessageAfterCommit(message);
 	}
@@ -44,6 +45,7 @@ public class TagMessengerImpl implements TagMessenger{
 		message.setChangeType(changeType);
 		message.setObjectType(observable.getObjectType());
 		message.setObjectId(observable.getIdString());
+		message.setParentId(observable.getParentIdString());
 		message.setObjectEtag(observable.geteTag());
 		transactionalMessanger.sendMessageAfterCommit(message);
 	}

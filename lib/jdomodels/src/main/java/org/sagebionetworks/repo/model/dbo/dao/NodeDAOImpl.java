@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ACL_OWNER_ID_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_OWNER_ID_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
@@ -13,21 +12,17 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_TYPE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STRING_ANNOTATIONS;
 
@@ -35,7 +30,6 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -50,7 +44,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -63,6 +56,7 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.StorageLocations;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.VersionInfo;
@@ -212,6 +206,23 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
 		node.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
 
+		// Set the parent and benefactor
+		if(dto.getParentId() != null){
+			// Get the parent
+			DBONode parent = getNodeById(KeyFactory.stringToKey(dto.getParentId()));
+			node.setParentId(parent.getId());
+			// By default a node should inherit from the same 
+			// benefactor as its parent
+			node.setBenefactorId(parent.getBenefactorId());
+		}
+		if(node.getBenefactorId() == null){
+			// For nodes that have no parent, they are
+			// their own benefactor. We have to wait until
+			// after the makePersistent() call to set a node to point 
+			// to itself.
+			node.setBenefactorId(node.getId());
+		}
+
 		if(forceEtag){
 			if(dto.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
 			// See PLFM-845.  We need to be able to force the use of an eTag when created from a backup.
@@ -222,23 +233,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			// Start it with a new e-tag
 			tagMessenger.generateEtagAndSendMessage(node, ChangeType.CREATE);
 		}
-		// Set the parent and benefactor
-		if(dto.getParentId() != null){
-			// Get the parent
-			DBONode parent = getNodeById(KeyFactory.stringToKey(dto.getParentId()));
-			node.setParentId(parent.getId());
-			// By default a node should inherit from the same 
-			// benefactor as its parent
-			node.setBenefactorId(parent.getBenefactorId());
-		}
-		
-		if(node.getBenefactorId() == null){
-			// For nodes that have no parent, they are
-			// their own benefactor. We have to wait until
-			// after the makePersistent() call to set a node to point 
-			// to itself.
-			node.setBenefactorId(node.getId());
-		}
+
 		// Now create the revision
 		rev.setOwner(node.getId());
 		// Now save the node and revision

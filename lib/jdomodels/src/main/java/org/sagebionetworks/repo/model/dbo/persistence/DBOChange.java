@@ -1,18 +1,24 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_CHANGE_NUM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_CHANGE_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_TIME_STAMP;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_CHANGES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHANGES;
+
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
 
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 
 /**
  * Database object used to keep track of all changes that occurred in the repository.
@@ -26,6 +32,7 @@ public class DBOChange implements AutoIncrementDatabaseObject<DBOChange>  {
 		new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM, true),
 		new FieldColumn("timeStamp", COL_CHANGES_TIME_STAMP),
 		new FieldColumn("objectId", COL_CHANGES_OBJECT_ID),
+		new FieldColumn("parentId", COL_CHANGES_PARENT_ID),
 		new FieldColumn("objectType", COL_CHANGES_OBJECT_TYPE),
 		new FieldColumn("objectEtag", COL_CHANGES_OBJECT_ETAG),
 		new FieldColumn("changeType", COL_CHANGES_CHANGE_TYPE),
@@ -34,6 +41,7 @@ public class DBOChange implements AutoIncrementDatabaseObject<DBOChange>  {
 	private Long changeNumber;
 	private Timestamp timeStamp;
     private Long objectId;
+    private Long parentId;
     private ObjectType objectType;
     private String objectEtag;
     private ChangeType changeType;
@@ -49,6 +57,10 @@ public class DBOChange implements AutoIncrementDatabaseObject<DBOChange>  {
 				change.setId(rs.getLong(COL_CHANGES_CHANGE_NUM));
 				change.setTimeStamp(rs.getTimestamp(COL_CHANGES_TIME_STAMP));
 				change.setObjectId(rs.getLong(COL_CHANGES_OBJECT_ID));
+				long parentId = rs.getLong(COL_CHANGES_PARENT_ID);
+				if (!rs.wasNull()) {
+					change.setParentId(parentId);
+				}
 				change.setObjectType(ObjectType.valueOf(rs.getString(COL_CHANGES_OBJECT_TYPE)));
 				change.setObjectEtag(rs.getString(COL_CHANGES_OBJECT_ETAG));
 				change.setChangeType(ChangeType.valueOf(rs.getString(COL_CHANGES_CHANGE_TYPE)));
@@ -213,7 +225,26 @@ public class DBOChange implements AutoIncrementDatabaseObject<DBOChange>  {
 	public void setObjectId(Long objectId) {
 		this.objectId = objectId;
 	}
-	
+
+	/**
+	 * @return the parentId
+	 */
+	public Long getParentId() {
+		return parentId;
+	}
+
+
+	/**
+	 * @param parentId the parentId to set
+	 */
+	public void setParentId(Long parentId) {
+		this.parentId = parentId;
+	}
+
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#hashCode()
+	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -229,54 +260,82 @@ public class DBOChange implements AutoIncrementDatabaseObject<DBOChange>  {
 		result = prime * result
 				+ ((objectType == null) ? 0 : objectType.hashCode());
 		result = prime * result
+				+ ((parentId == null) ? 0 : parentId.hashCode());
+		result = prime * result
 				+ ((timeStamp == null) ? 0 : timeStamp.hashCode());
 		return result;
 	}
 
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#equals(java.lang.Object)
+	 */
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj)
+		if (this == obj) {
 			return true;
-		if (obj == null)
+		}
+		if (obj == null) {
 			return false;
-		if (getClass() != obj.getClass())
+		}
+		if (getClass() != obj.getClass()) {
 			return false;
+		}
 		DBOChange other = (DBOChange) obj;
 		if (changeNumber == null) {
-			if (other.changeNumber != null)
+			if (other.changeNumber != null) {
 				return false;
-		} else if (!changeNumber.equals(other.changeNumber))
+			}
+		} else if (!changeNumber.equals(other.changeNumber)) {
 			return false;
-		if (changeType != other.changeType)
+		}
+		if (changeType != other.changeType) {
 			return false;
+		}
 		if (objectEtag == null) {
-			if (other.objectEtag != null)
+			if (other.objectEtag != null) {
 				return false;
-		} else if (!objectEtag.equals(other.objectEtag))
+			}
+		} else if (!objectEtag.equals(other.objectEtag)) {
 			return false;
+		}
 		if (objectId == null) {
-			if (other.objectId != null)
+			if (other.objectId != null) {
 				return false;
-		} else if (!objectId.equals(other.objectId))
+			}
+		} else if (!objectId.equals(other.objectId)) {
 			return false;
-		if (objectType != other.objectType)
+		}
+		if (objectType != other.objectType) {
 			return false;
+		}
+		if (parentId == null) {
+			if (other.parentId != null) {
+				return false;
+			}
+		} else if (!parentId.equals(other.parentId)) {
+			return false;
+		}
 		if (timeStamp == null) {
-			if (other.timeStamp != null)
+			if (other.timeStamp != null) {
 				return false;
-		} else if (!timeStamp.equals(other.timeStamp))
+			}
+		} else if (!timeStamp.equals(other.timeStamp)) {
 			return false;
+		}
 		return true;
 	}
 
 
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
 	@Override
 	public String toString() {
 		return "DBOChange [changeNumber=" + changeNumber + ", timeStamp="
-				+ timeStamp + ", objectId=" + objectId + ", objectType="
-				+ objectType + ", objectEtag=" + objectEtag + ", changeType="
-				+ changeType + "]";
+				+ timeStamp + ", objectId=" + objectId + ", parentId="
+				+ parentId + ", objectType=" + objectType + ", objectEtag="
+				+ objectEtag + ", changeType=" + changeType + "]";
 	}
 
 }
