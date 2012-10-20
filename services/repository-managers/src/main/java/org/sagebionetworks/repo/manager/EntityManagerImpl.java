@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -18,6 +19,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -54,7 +56,7 @@ public class EntityManagerImpl implements EntityManager {
 	public EntityManagerImpl() {
 	}
 	
-	public EntityManagerImpl(NodeManager nodeManager, NodeBackupManager nodeBackupManager,
+	public EntityManagerImpl(NodeManager nodeManager,
 			S3TokenManager s3TokenManager,
 			PermissionsManager permissionsManager, UserManager userManager) {
 		super();
@@ -560,6 +562,8 @@ public class EntityManagerImpl implements EntityManager {
 		validateReadAccess(userInfo, entityId);
 		validateUpdateAccess(userInfo, entityId);
 		EntityType newEntityType = EntityType.valueOf(newEntityTypeName);
+		Class newEntityTypeClass = newEntityType.getClassForType();
+		String newEntityTypeClassName = newEntityTypeClass.getName();
 		
 		boolean entityHasChildren = doesEntityHaveChildren(userInfo, entityId);
 		
@@ -570,19 +574,51 @@ public class EntityManagerImpl implements EntityManager {
 			throw new IllegalArgumentException("Cannot change type from " + srcTypeName + " to " + newEntityTypeName);
 		}
 		
-		NamedAnnotations namedAnnots;
 		List<Long> nodeVersionNums = nodeManager.getAllVersionNumbersForNode(userInfo, entityId);
-		// Need to sort versions
-		for (Long nodeVersionNum: nodeVersionNums) {
-			node = nodeManager.getNodeForVersionNumber(userInfo, entityId, nodeVersionNum);
-			namedAnnots = nodeManager.getAnnotationsForVersion(userInfo, entityId, nodeVersionNum);
-			// Change node itself
-			node = EntityManagerUtils.cetChangeNodeRevision(node, newEntityTypeName);
-			// Change annotations
-			namedAnnots = EntityManagerUtils.cetChangeNamedAnnotations(namedAnnots, newEntityTypeName);
-			// Update node and annotations
-			nodeManager.update(userInfo, node, namedAnnots, false);
-		}		
+		Collections.sort(nodeVersionNums);
+		Long curVersionNum = node.getVersionNumber();
+		
+		// Delete all versions except current
+		for (Long vNum: nodeVersionNums) {
+			if (! vNum.equals(curVersionNum)) {
+				nodeManager.deleteVersion(userInfo, entityId, vNum);
+			}
+		}
+		
+		NamedAnnotations namedAnnots = nodeManager.getAnnotations(userInfo, entityId);
+		
+		node = EntityManagerUtils.cetChangeNodeRevision(node, newEntityTypeName);
+		namedAnnots = EntityManagerUtils.cetChangeNamedAnnotations(namedAnnots, newEntityTypeName);
+
+		nodeManager.update(userInfo, node, namedAnnots, true);
+		
+		// Update all links to this entity
+		Integer offset = 0;
+		Integer batchSize = 100;
+		QueryResults<EntityHeader> rs = nodeManager.getEntityReferences(userInfo, entityId, curVersionNum.intValue(), offset, batchSize);
+		long numRes = rs.getTotalNumberOfResults();
+		while (offset < numRes) {
+			rs = nodeManager.getEntityReferences(userInfo, entityId, curVersionNum.intValue(), offset, batchSize);
+			// Process result set
+			for (EntityHeader eh: rs.getResults()) {
+				String referrerId = eh.getId();
+				// The link entity is a child of the referrer
+				Set<Node> refChildren = nodeManager.getChildren(userInfo, referrerId);
+				for (Node refChild: refChildren) {
+					if ("link".equals(refChild.getNodeType())) {
+						NamedAnnotations referrerAnnots = nodeManager.getAnnotations(userInfo, refChild.getId());
+						Annotations referrerPrimaryAnnots = referrerAnnots.getPrimaryAnnotations();
+						if (referrerPrimaryAnnots.getSingleValue("targetId").equals(entityId)) {
+							referrerPrimaryAnnots.deleteAnnotation("linksToClassName");
+							referrerPrimaryAnnots.addAnnotation("linksToClassName", newEntityTypeClassName);
+							nodeManager.updateAnnotations(userInfo, refChild.getId(), referrerPrimaryAnnots, "primary");
+							break;
+						}
+					}
+				}
+			}
+			offset += batchSize;
+		}
 	}
 	
 }

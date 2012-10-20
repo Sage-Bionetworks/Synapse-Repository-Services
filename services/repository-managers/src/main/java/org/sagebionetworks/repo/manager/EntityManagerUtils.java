@@ -67,6 +67,8 @@ public class EntityManagerUtils {
 
 	public static Node cetChangeNodeRevision(Node node, String newType) {
 		node.setNodeType(newType);
+		node.setVersionLabel("Entity versioned by changeEntityType().");
+		node.setVersionComment("The type of this entity has changed. All properties that could not be migrated are now annotations.");
 		return node;
 	}
 	

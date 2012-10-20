@@ -96,7 +96,7 @@ public class EntityManagerImplAutowireTest {
 		annos = entityManager.getAnnotations(userInfo, id);
 		assertEquals("someAnnotValue", annos.getSingleValue("someAnnotKey"));
 	}
-	
+	@Ignore
 	@Test
 	public void testChangeEntityType2() throws Exception {
 		// Version 1
