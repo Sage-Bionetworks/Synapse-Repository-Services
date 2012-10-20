@@ -145,12 +145,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 	@Autowired
 	private DBOBasicDao dboBasicDao;
-	@Autowired
-	private DBOReferenceDao dboReferenceDao;
-	@Autowired
-	private DBOAnnotationsDao dboAnnotationsDao;
-	@Autowired
-	private StorageLocationDAO storageLocationDao;
 
 	private static String BIND_ID_KEY = "bindId";
 	private static String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE ID = ?";
@@ -249,10 +243,10 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 		dboBasicDao.createNew(rev);
 		
-		// Create references found in dto, if applicable
-		if(dto.getReferences() != null){
-			dboReferenceDao.replaceReferences(node.getId(), dto.getReferences());
-		}
+//		// Create references found in dto, if applicable
+//		if(dto.getReferences() != null){
+//			dboReferenceDao.replaceReferences(node.getId(), dto.getReferences());
+//		}
 		
 		return KeyFactory.keyToString(node.getId());
 	}
@@ -310,7 +304,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		// Save the change to the node
 		dboBasicDao.update(jdo);
 		dboBasicDao.createNew(newRev);
-		replaceAnnotationsAndReferencesIfCurrent(jdo.getCurrentRevNumber(), newRev);
+//		replaceAnnotationsAndReferencesIfCurrent(jdo.getCurrentRevNumber(), newRev);
 		return newRev.getRevisionNumber();
 	}
 
@@ -359,48 +353,48 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			// Make sure the node is still pointing the the current version
 			node.setCurrentRevNumber(versions.get(0));
 			dboBasicDao.update(node);
-			DBORevision rev = getNodeRevisionById(id, node.getCurrentRevNumber());
-			replaceAnnotationsAndReferencesIfCurrent(node.getCurrentRevNumber(), rev);
+//			DBORevision rev = getNodeRevisionById(id, node.getCurrentRevNumber());
+//			replaceAnnotationsAndReferencesIfCurrent(node.getCurrentRevNumber(), rev);
 		}
 	}
 
-	/**
-	 * Replace the annotations and references if the revision is the current revision.
-	 * @param currentRev
-	 * @param rev
-	 * @throws DatastoreException
-	 */
-	private void replaceAnnotationsAndReferencesIfCurrent(Long currentRev, DBORevision rev) throws DatastoreException {
-		if(currentRev.equals(rev.getRevisionNumber())){
-
-			// Update the references
-			try {
-				if(rev.getReferences() != null){
-					Map<String, Set<Reference>> newRef = JDOSecondaryPropertyUtils.decompressedReferences(rev.getReferences());
-					if(newRef != null){
-						dboReferenceDao.replaceReferences(rev.getOwner(), newRef);	
-					}
-				}
-			} catch (IOException e) {
-				throw new DatastoreException(e);
-			}
-
-			// Update the annotations and the location data
-			try {
-				final NamedAnnotations namedAnnos = JDOSecondaryPropertyUtils.decompressedAnnotations(rev.getAnnotations());
-				final Long node = rev.getOwner();
-				final Long user = rev.getModifiedBy();
-				StorageLocations sl = JDOSecondaryPropertyUtils.getStorageLocations(namedAnnos, node, user);
-				storageLocationDao.replaceLocationData(sl);
-				Annotations forDb = prepareAnnotationsForDBReplacement(namedAnnos, KeyFactory.keyToString(node));
-				dboAnnotationsDao.replaceAnnotations(forDb);
-			} catch (IOException e) {
-				throw new DatastoreException(e);
-			} catch (JSONObjectAdapterException e) {
-				throw new DatastoreException(e);
-			}
-		}
-	}
+//	/**
+//	 * Replace the annotations and references if the revision is the current revision.
+//	 * @param currentRev
+//	 * @param rev
+//	 * @throws DatastoreException
+//	 */
+//	private void replaceAnnotationsAndReferencesIfCurrent(Long currentRev, DBORevision rev) throws DatastoreException {
+//		if(currentRev.equals(rev.getRevisionNumber())){
+//
+//			// Update the references
+//			try {
+//				if(rev.getReferences() != null){
+//					Map<String, Set<Reference>> newRef = JDOSecondaryPropertyUtils.decompressedReferences(rev.getReferences());
+//					if(newRef != null){
+//						dboReferenceDao.replaceReferences(rev.getOwner(), newRef);	
+//					}
+//				}
+//			} catch (IOException e) {
+//				throw new DatastoreException(e);
+//			}
+//
+//			// Update the annotations and the location data
+//			try {
+//				final NamedAnnotations namedAnnos = JDOSecondaryPropertyUtils.decompressedAnnotations(rev.getAnnotations());
+//				final Long node = rev.getOwner();
+//				final Long user = rev.getModifiedBy();
+//				StorageLocations sl = JDOSecondaryPropertyUtils.getStorageLocations(namedAnnos, node, user);
+//				storageLocationDao.replaceLocationData(sl);
+//				Annotations forDb = prepareAnnotationsForDBReplacement(namedAnnos, KeyFactory.keyToString(node));
+//				dboAnnotationsDao.replaceAnnotations(forDb);
+//			} catch (IOException e) {
+//				throw new DatastoreException(e);
+//			} catch (JSONObjectAdapterException e) {
+//				throw new DatastoreException(e);
+//			}
+//		}
+//	}
 	
 	/**
 	 * Try to get a node, and throw a NotFoundException if it fails.
@@ -587,8 +581,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 		
 		dboBasicDao.update(revToUpdate);
-		// But we also need to create any new references or delete removed references, as applicable
-		replaceAnnotationsAndReferencesIfCurrent(jdoToUpdate.getCurrentRevNumber(), revToUpdate);
+//		// But we also need to create any new references or delete removed references, as applicable
+//		replaceAnnotationsAndReferencesIfCurrent(jdoToUpdate.getCurrentRevNumber(), revToUpdate);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -628,19 +622,20 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			rev.setAnnotations(newAnnos);
 			// Save the change
 			dboBasicDao.update(rev);
-
-			final Long user = rev.getModifiedBy();
-			StorageLocations sl = JDOSecondaryPropertyUtils.getStorageLocations(updatedAnnos, nodeIdLong, user);
-			storageLocationDao.replaceLocationData(sl);
-
-			// Prepare the annotations for the database.
-			Annotations forDb = prepareAnnotationsForDBReplacement(updatedAnnos, KeyFactory.keyToString(rev.getOwner()));
-			dboAnnotationsDao.replaceAnnotations(forDb);
+//
+//			final Long user = rev.getModifiedBy();
+//			StorageLocations sl = JDOSecondaryPropertyUtils.getStorageLocations(updatedAnnos, nodeIdLong, user);
+//			storageLocationDao.replaceLocationData(sl);
+//
+//			// Prepare the annotations for the database.
+//			Annotations forDb = prepareAnnotationsForDBReplacement(updatedAnnos, KeyFactory.keyToString(rev.getOwner()));
+//			dboAnnotationsDao.replaceAnnotations(forDb);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
-		} catch (JSONObjectAdapterException e) {
-			throw new DatastoreException(e);
-		}
+		} 
+//		catch (JSONObjectAdapterException e) {
+//			throw new DatastoreException(e);
+//		}
 	}
 
 	/**
@@ -1021,7 +1016,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		// Save the new revision
 		dboBasicDao.update(dboRev);
 		// If this is the current revision then we also need to update all of the annotation tables
-		replaceAnnotationsAndReferencesIfCurrent(owner.getCurrentRevNumber(), dboRev);
+//		replaceAnnotationsAndReferencesIfCurrent(owner.getCurrentRevNumber(), dboRev);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -1033,7 +1028,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
 		dboBasicDao.createNew(dboRev);
 		// If this is the current revision then we also need to update all of the annotation tables
-		replaceAnnotationsAndReferencesIfCurrent(owner.getCurrentRevNumber(), dboRev);
+//		replaceAnnotationsAndReferencesIfCurrent(owner.getCurrentRevNumber(), dboRev);
 	}
 
 	@Override
