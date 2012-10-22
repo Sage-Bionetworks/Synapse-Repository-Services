@@ -29,7 +29,13 @@ public class ActivityManagerImpl implements ActivityManager {
 	private ActivityDAO activityDAO;	
 	@Autowired
 	AuthorizationManager authorizationManager;	
-		
+
+	/**
+	 * For testing
+	 * @param idGenerator
+	 * @param activityDAO
+	 * @param authorizationManager
+	 */
 	public ActivityManagerImpl(IdGenerator idGenerator,
 			ActivityDAO activityDAO, AuthorizationManager authorizationManager) {
 		super();
@@ -38,6 +44,8 @@ public class ActivityManagerImpl implements ActivityManager {
 		this.authorizationManager = authorizationManager;
 	}
 
+	public ActivityManagerImpl() { }
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Activity> T createActivity(UserInfo userInfo, T activity)
@@ -64,7 +72,7 @@ public class ActivityManagerImpl implements ActivityManager {
 		String requestorId = userInfo.getUser().getId();
 		String requestorName = userInfo.getUser().getDisplayName();
 		Activity currentAct = activityDAO.get(activity.getId().toString());
-		if(!currentAct.getCreatedBy().equals(requestorId)) {
+		if(!currentAct.getCreatedBy().equals(requestorId) && !userInfo.isAdmin()) {
 			throw new UnauthorizedException(requestorName +" lacks change access to the requested object.");
 		}			
 		
@@ -86,7 +94,7 @@ public class ActivityManagerImpl implements ActivityManager {
 		String requestorId = userInfo.getUser().getId();
 		String requestorName = userInfo.getUser().getDisplayName();
 		// only owner can change
-		if(!activity.getCreatedBy().equals(requestorId)) {
+		if(!activity.getCreatedBy().equals(requestorId) && !userInfo.isAdmin()) {
 			throw new UnauthorizedException(requestorName +" lacks change access to the requested object.");
 		}			
 		
@@ -101,25 +109,19 @@ public class ActivityManagerImpl implements ActivityManager {
 
 	@Override
 	public Activity getActivity(UserInfo userInfo, String activityId) 
-		throws DatastoreException, NotFoundException, UnauthorizedException {
-//		Activity act = activityDAO.get(activityId);
-//		// use must be able to see at least one used and 
-//		if(!activity.getCreatedBy().equals(requestorId)) {
-//			throw new UnauthorizedException(requestorName +" lacks change access to the requested object.");
-//		}
+		throws DatastoreException, NotFoundException, UnauthorizedException {		
+		Activity act = activityDAO.get(activityId);
 		
-		// get Activity from DAO by id
-		//   - if not found: NotFoundException
-		
-		// Authorization
-		// Pass if:
-		//  1) user can see one of the entities that wasGeneratedBy this activity?
-		
-		//TODO : finish
-		
-		return null;
+		if(!authorizationManager.canAccessActivity(userInfo, activityId)) { 			
+			throw new UnauthorizedException(userInfo.getUser().getDisplayName() +" lacks access to the requested object.");
+		}
+		return act;
 	}
 
+	@Override
+	public boolean doesActivityExist(String id) {
+		return activityDAO.doesActivityExist(id);
+	}
 	
 	
 	/*

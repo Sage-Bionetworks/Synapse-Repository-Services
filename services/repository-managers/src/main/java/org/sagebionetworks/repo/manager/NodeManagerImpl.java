@@ -57,6 +57,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private NodeInheritanceManager nodeInheritanceManager;	
 	@Autowired
 	private ReferenceDao referenceDao;
+	@Autowired 
+	private ActivityManager activityManager;
 	
 	// for testing (in prod it's autowired)
 	public void setAuthorizationManager(AuthorizationManager authorizationManager) {
@@ -70,13 +72,14 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 */
 	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, 
 			AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper, 
-			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao){
+			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao, ActivityManager activityManager){
 		this.nodeDao = nodeDao;
 		this.authorizationManager = authDoa;
 		this.aclDAO = aclDao;
 		this.entityBootstrapper = entityBootstrapper;
 		this.nodeInheritanceManager = nodeInheritanceManager;
 		this.referenceDao = referenceDao;
+		this.activityManager = activityManager;
 	}
 	
 	/**
@@ -122,6 +125,15 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// check whether the user is allowed to create this type of node
 		if (!authorizationManager.canCreate(userInfo, newNode)) {
 			throw new UnauthorizedException(userInfo.getUser().getUserId()+" is not allowed to create items of type "+newNode.getNodeType());
+		}
+
+		// check whether the user is allowed to connect to the specified activity
+		String activityId = newNode.getActivityId();
+		if(activityId != null) {
+			if(!activityManager.doesActivityExist(activityId)) 
+				throw new NotFoundException("Activity id " + activityId + " not found.");
+			if(!authorizationManager.canAccessActivity(userInfo, activityId))
+				throw new UnauthorizedException(userInfo.getUser().getUserId() +" lacks change access to the specified activity object.");
 		}
 
 		// If they are allowed then let them create the node
@@ -285,6 +297,16 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(updatedAnnos != null){
 			if(!updatedNode.getETag().equals(updatedAnnos.getEtag())) throw new IllegalArgumentException("The passed node and annotations do not have the same eTag");
 		}
+		
+		// check whether the user is allowed to connect to the specified activity
+		String activityId = updatedNode.getActivityId();
+		if(activityId != null) {
+			if(!activityManager.doesActivityExist(activityId)) 
+				throw new NotFoundException("Activity id " + activityId + " not found.");
+			if(!authorizationManager.canAccessActivity(userInfo, activityId))
+				throw new UnauthorizedException(userInfo.getUser().getUserId() +" lacks change access to the specified activity object.");
+		}
+		
 		// Now lock this node
 		String nextETag = nodeDao.lockNodeAndIncrementEtag(updatedNode.getId(), updatedNode.getETag());
 		

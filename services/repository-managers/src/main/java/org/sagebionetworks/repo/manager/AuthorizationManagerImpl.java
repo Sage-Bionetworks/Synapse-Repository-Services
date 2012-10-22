@@ -1,11 +1,7 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_ID;
-
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -140,6 +136,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 
 	@Override
 	public boolean canAccessActivity(UserInfo userInfo, String activityId) {
+		if(userInfo.isAdmin()) return true;
+		
 		List<Reference> generatedBy = activityDAO.getEntitiesGeneratedBy(activityId);				
 		// check if has read access to any in result set
 		for(Reference ref : generatedBy) {

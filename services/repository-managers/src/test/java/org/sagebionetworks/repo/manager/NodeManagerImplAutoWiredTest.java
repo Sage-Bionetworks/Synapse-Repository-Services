@@ -70,6 +70,9 @@ public class NodeManagerImplAutoWiredTest {
 	@Autowired
 	AuthorizationManager authorizationManager;
 	
+	@Autowired
+	ActivityManager activityManager;
+	
 	List<String> nodesToDelete;
 	
 	private UserInfo testUser;
@@ -525,7 +528,7 @@ public class NodeManagerImplAutoWiredTest {
 		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		
 		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, 
-				aclDAO, entityBootstrapper, mockNodeInheritanceManager, null);		
+				aclDAO, entityBootstrapper, mockNodeInheritanceManager, null, activityManager);		
 		
 		//set child's parentId to the newProject
 		fetchedChild.setParentId(newProjectId);
@@ -564,7 +567,7 @@ public class NodeManagerImplAutoWiredTest {
 		NodeInheritanceManager mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		
 		NodeManager nodeManagerWMocks = new NodeManagerImpl(mockNodeDao, authorizationManager, 
-				aclDAO, entityBootstrapper, mockNodeInheritanceManager, null);	
+				aclDAO, entityBootstrapper, mockNodeInheritanceManager, null, activityManager);	
 		
 		//make a non parentId change to the child
 		Node fetchedNode = nodeManager.get(testUser, childId);

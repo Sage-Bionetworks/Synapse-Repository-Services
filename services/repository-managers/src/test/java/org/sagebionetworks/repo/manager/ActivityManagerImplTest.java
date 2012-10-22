@@ -40,6 +40,7 @@ public class ActivityManagerImplTest {
 	ActivityDAO mockActivityDAO;
 	AuthorizationManager mockAuthorizationManager;	
 	ActivityManager activityManager;
+	UserInfo normalUserInfo;
 	UserInfo adminUserInfo;
 	
 	AdapterFactory adapterFactory = new AdapterFactoryImpl();
@@ -50,18 +51,20 @@ public class ActivityManagerImplTest {
 		mockIdGenerator = mock(IdGenerator.class);
 		mockActivityDAO = mock(ActivityDAO.class);
 		mockAuthorizationManager = mock(AuthorizationManager.class);
+		normalUserInfo = new UserInfo(false);
 		adminUserInfo = new UserInfo(true);
-		configureAdminUser();
+		configureUser(adminUserInfo, "1", "userId1");
+		configureUser(normalUserInfo, "2", "userId2");
 		 
 		activityManager = new ActivityManagerImpl(mockIdGenerator, mockActivityDAO, mockAuthorizationManager);
 	}
 
 	@Test
 	public void testCreateActivity() throws Exception {
-		Long id = new Long(123);
-		when(mockIdGenerator.generateNewId()).thenReturn(id);
+		String id = "123";
+		when(mockIdGenerator.generateNewId()).thenReturn(new Long(id));
 		
-		activityManager.createActivity(adminUserInfo, new Activity());
+		activityManager.createActivity(normalUserInfo, new Activity());
 		
 		ArgumentCaptor<Activity> captor = ArgumentCaptor.forClass(Activity.class);
 		verify(mockActivityDAO).create(captor.capture());
@@ -79,8 +82,34 @@ public class ActivityManagerImplTest {
 	public void testUpdateActivity() throws Exception {
 		String id = "123";
 		Activity act = newTestActivity(id);
-		act.setCreatedBy(adminUserInfo.getUser().getId());
-		act.setModifiedBy(adminUserInfo.getUser().getId());
+		act.setCreatedBy(normalUserInfo.getUser().getId());
+		act.setModifiedBy(normalUserInfo.getUser().getId());
+		when(mockActivityDAO.get(anyString())).thenReturn(act);
+		
+		// deep copy so we modify a different object that what is returned by the DAO
+		Activity actToUpdate = new Activity(act.writeToJSONObject(adapterFactory.createNew()));
+		assertTrue(actToUpdate.getActivityType() != ActivityType.MANUAL); // just to be sure
+
+		Thread.sleep(100L); // ensure that the 'modifiedOn' date is later
+		long actModifiedOn = actToUpdate.getModifiedOn().getTime();
+		actToUpdate.setActivityType(ActivityType.MANUAL);
+		activityManager.updateActivity(normalUserInfo, actToUpdate);
+		
+		verify(mockActivityDAO).lockActivityAndIncrementEtag(id.toString(), actToUpdate.getEtag(), ChangeType.UPDATE);
+		ArgumentCaptor<Activity> captor = ArgumentCaptor.forClass(Activity.class);
+		verify(mockActivityDAO).update(captor.capture());
+		Activity actUpdated = captor.getValue();
+
+		assertTrue(actUpdated.getModifiedOn().getTime()-actModifiedOn>0);
+		assertTrue(actUpdated.getActivityType() == ActivityType.MANUAL);
+	}
+	
+	@Test
+	public void testUpdateActivityAdmin() throws Exception {
+		String id = "123";
+		Activity act = newTestActivity(id);
+		act.setCreatedBy(normalUserInfo.getUser().getId());
+		act.setModifiedBy(normalUserInfo.getUser().getId());
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 		
 		// deep copy so we modify a different object that what is returned by the DAO
@@ -100,6 +129,7 @@ public class ActivityManagerImplTest {
 		assertTrue(actUpdated.getModifiedOn().getTime()-actModifiedOn>0);
 		assertTrue(actUpdated.getActivityType() == ActivityType.MANUAL);
 	}
+
 	
 	@Test(expected=UnauthorizedException.class)
 	public void testUpdateActivityAccessDenied() throws Exception {
@@ -109,7 +139,7 @@ public class ActivityManagerImplTest {
 		act.setModifiedBy("someOtherUser");
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 		
-		activityManager.updateActivity(adminUserInfo, act);
+		activityManager.updateActivity(normalUserInfo, act);
 		fail("Should throw UnathorizedException due to invalid user for update");
 	}
 	
@@ -117,8 +147,22 @@ public class ActivityManagerImplTest {
 	public void testDeleteActivity() throws Exception { 
 		String id = "123";
 		Activity act = newTestActivity(id);
-		act.setCreatedBy(adminUserInfo.getUser().getId());
-		act.setModifiedBy(adminUserInfo.getUser().getId());
+		act.setCreatedBy(normalUserInfo.getUser().getId());
+		act.setModifiedBy(normalUserInfo.getUser().getId());
+		when(mockActivityDAO.get(anyString())).thenReturn(act);
+
+		activityManager.deleteActivity(normalUserInfo, id.toString());
+		
+		verify(mockActivityDAO).lockActivityAndIncrementEtag(id.toString(), act.getEtag(), ChangeType.DELETE);		
+		verify(mockActivityDAO).delete(id.toString());
+	}
+	
+	@Test
+	public void testDeleteActivityAdmin() throws Exception { 
+		String id = "123";
+		Activity act = newTestActivity(id);
+		act.setCreatedBy(normalUserInfo.getUser().getId());
+		act.setModifiedBy(normalUserInfo.getUser().getId());
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 
 		activityManager.deleteActivity(adminUserInfo, id.toString());
@@ -135,9 +179,20 @@ public class ActivityManagerImplTest {
 		act.setModifiedBy("someOtherUser");
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 
-		activityManager.deleteActivity(adminUserInfo, id.toString());
+		activityManager.deleteActivity(normalUserInfo, id.toString());
 		verify(mockActivityDAO).delete(id.toString());
 		fail("Should throw UnathorizedException due to invalid user for delete");
+	}
+
+	@Test
+	public void testActivityExists() {
+		String id = "123";
+		when(mockActivityDAO.doesActivityExist(id)).thenReturn(true);
+		assertTrue(activityManager.doesActivityExist(id));
+		reset(mockActivityDAO);
+		when(mockActivityDAO.doesActivityExist(id)).thenReturn(false);
+		assertFalse(activityManager.doesActivityExist(id));
+	
 	}
 	
 	/*
@@ -165,15 +220,15 @@ public class ActivityManagerImplTest {
 		return act;
 	}
 
-	private void configureAdminUser() {
+	private void configureUser(UserInfo userInfo, String userGroupId, String userId) {
 		UserGroup userGroup = new UserGroup();
-		userGroup.setId("1");
+		userGroup.setId(userGroupId);
 		userGroup.setIsIndividual(true);
 		userGroup.setName("Admin@sagebase.org");
 		userGroup.setCreationDate(new Date());
-		adminUserInfo.setIndividualGroup(userGroup);
+		userInfo.setIndividualGroup(userGroup);
 		User user = new User();
-		user.setId("userId");
+		user.setId(userId);
 		user.setUserId("userId");
 		user.setAgreesToTermsOfUse(true);
 		user.setEtag("0");
@@ -181,7 +236,7 @@ public class ActivityManagerImplTest {
 		user.setFname("Admin");
 		user.setLname("User");
 		user.setCreationDate(new Date());
-		adminUserInfo.setUser(user);
+		userInfo.setUser(user);
 	}
 		
 

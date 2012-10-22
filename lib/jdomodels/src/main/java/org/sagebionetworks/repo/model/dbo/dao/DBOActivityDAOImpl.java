@@ -71,6 +71,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 															 " WHERE " + COL_REVISION_ACTIVITY_ID + " = :" + COL_REVISION_ACTIVITY_ID; 
 
 	
+	public DBOActivityDAOImpl() { }
 	
 	public DBOActivityDAOImpl(TagMessenger tagMessenger, DBOBasicDao basicDao,
 			SimpleJdbcTemplate simpleJdbcTemplate) {

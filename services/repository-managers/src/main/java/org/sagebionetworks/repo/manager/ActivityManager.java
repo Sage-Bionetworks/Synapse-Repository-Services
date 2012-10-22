@@ -57,5 +57,12 @@ public interface ActivityManager {
 	 * @throws ForbiddenException
 	 */
 	public Activity getActivity(UserInfo userInfo, String activityId) throws DatastoreException, NotFoundException, UnauthorizedException;
+	
+	/**
+	 * returns true if activity exists
+	 * @param id
+	 * @return
+	 */
+	public boolean doesActivityExist(String id);
 
 }
