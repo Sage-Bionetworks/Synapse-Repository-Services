@@ -133,7 +133,7 @@ public class TransactionalMessengerImplTest {
 		first.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
 		first.setObjectEtag("etag");
 		first.setObjectId("syn456");
-		// first.setParentId("syn789"); // parent id can be null
+		first.setParentId(null); // parent id can be null
 		first.setObjectType(ObjectType.ENTITY);
 		first.setChangeType(ChangeType.DELETE);
 		
