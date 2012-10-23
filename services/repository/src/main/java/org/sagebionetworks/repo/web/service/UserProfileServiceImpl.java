@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -13,6 +14,7 @@ import javax.servlet.http.HttpServletRequest;
 import org.ardverk.collection.PatriciaTrie;
 import org.ardverk.collection.StringKeyAnalyzer;
 import org.ardverk.collection.Trie;
+import org.ardverk.collection.Tries;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -54,7 +56,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 * request.
 	 * 
 	 * The cache objects may be *replaced* by new cache objects created in the
-	 * refreshCache() method, but existing cache objects should NOT be modified.
+	 * refreshCache() method, but existing cache objects can NOT be modified.
+	 * This is to avoid corruption of cache state during multithreaded read
+	 * operations.
 	 */
 	private volatile Long cachesLastUpdated = 0L;
 	private volatile Trie<String, Collection<UserGroupHeader>> userGroupHeadersNamePrefixCache;
@@ -197,8 +201,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 				addToIdCache(tempIdCache, header);
 			}
 		}
-		userGroupHeadersNamePrefixCache = tempPrefixCache;
-		userGroupHeadersIdCache = tempIdCache;
+		userGroupHeadersNamePrefixCache = Tries.unmodifiableTrie(tempPrefixCache);
+		userGroupHeadersIdCache = Collections.unmodifiableMap(tempIdCache);
 		cachesLastUpdated = System.currentTimeMillis();		
 	}
 	

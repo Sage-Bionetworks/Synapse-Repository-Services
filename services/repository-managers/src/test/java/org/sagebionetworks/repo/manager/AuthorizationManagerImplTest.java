@@ -227,6 +227,38 @@ public class AuthorizationManagerImplTest {
 		assertTrue(b);
 	}
 	
+	@Test 
+	public void testCanPublicRead() throws Exception {
+		// verify that anonymous user can't initially access
+		UserInfo anonInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.READ);
+		assertFalse(b);
+		
+		//so public can't read, no matter who is requesting
+		UserEntityPermissions uep = authorizationManager.getUserPermissionsForEntity(adminInfo,  node.getId());
+		assertFalse(uep.getCanPublicRead());
+		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		assertFalse(uep.getCanPublicRead());
+		uep = authorizationManager.getUserPermissionsForEntity(anonInfo,  node.getId());
+		assertFalse(uep.getCanPublicRead());
+		
+		//update so that public group CAN read
+		AccessControlList acl = permissionsManager.getACL(node.getId(), userInfo);
+		assertNotNull(acl);
+		UserGroup pg = userManager.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
+		acl = AuthorizationHelper.addToACL(acl, pg, ACCESS_TYPE.READ);
+		acl = permissionsManager.updateACL(acl, adminUser);
+		
+		//now verify that public can read is true (no matter who requests)
+		uep = authorizationManager.getUserPermissionsForEntity(adminInfo,  node.getId());
+		assertTrue(uep.getCanPublicRead());
+		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		assertTrue(uep.getCanPublicRead());
+		uep = authorizationManager.getUserPermissionsForEntity(anonInfo,  node.getId());
+		assertTrue(uep.getCanPublicRead());
+	}
+	
 	@Test
 	public void testCanAccessInherited() throws Exception {		
 		// no access yet to parent

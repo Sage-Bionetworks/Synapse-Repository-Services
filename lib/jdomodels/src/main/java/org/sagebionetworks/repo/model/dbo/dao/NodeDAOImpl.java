@@ -199,6 +199,23 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
 		node.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
 
+		// Set the parent and benefactor
+		if(dto.getParentId() != null){
+			// Get the parent
+			DBONode parent = getNodeById(KeyFactory.stringToKey(dto.getParentId()));
+			node.setParentId(parent.getId());
+			// By default a node should inherit from the same 
+			// benefactor as its parent
+			node.setBenefactorId(parent.getBenefactorId());
+		}
+		if(node.getBenefactorId() == null){
+			// For nodes that have no parent, they are
+			// their own benefactor. We have to wait until
+			// after the makePersistent() call to set a node to point 
+			// to itself.
+			node.setBenefactorId(node.getId());
+		}
+
 		if(forceEtag){
 			if(dto.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
 			// See PLFM-845.  We need to be able to force the use of an eTag when created from a backup.
@@ -209,23 +226,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			// Start it with a new e-tag
 			tagMessenger.generateEtagAndSendMessage(node, ChangeType.CREATE);
 		}
-		// Set the parent and benefactor
-		if(dto.getParentId() != null){
-			// Get the parent
-			DBONode parent = getNodeById(KeyFactory.stringToKey(dto.getParentId()));
-			node.setParentId(parent.getId());
-			// By default a node should inherit from the same 
-			// benefactor as its parent
-			node.setBenefactorId(parent.getBenefactorId());
-		}
-		
-		if(node.getBenefactorId() == null){
-			// For nodes that have no parent, they are
-			// their own benefactor. We have to wait until
-			// after the makePersistent() call to set a node to point 
-			// to itself.
-			node.setBenefactorId(node.getId());
-		}
+
 		// Now create the revision
 		rev.setOwner(node.getId());
 		// Now save the node and revision

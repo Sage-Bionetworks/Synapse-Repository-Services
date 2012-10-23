@@ -14,7 +14,12 @@ public interface ObservableEntity  extends TaggableEntity {
 	 * @return
 	 */
 	public String getIdString();
-	
+
+	/**
+	 * The id of its parent.
+	 */
+	public String getParentIdString();
+
 	/**
 	 * The etag of this object.
 	 * @param newEtag
