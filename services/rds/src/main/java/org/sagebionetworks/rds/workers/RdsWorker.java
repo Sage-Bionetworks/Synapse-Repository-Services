@@ -25,6 +25,7 @@ public class RdsWorker implements Callable<List<Message>> {
 		if(messages == null) throw new IllegalArgumentException("Messages cannot be null");
 		if(asynchronousManager == null) throw new IllegalArgumentException("AsynchronousManager cannot be null");
 		this.messages = messages;
+		this.asynchronousManager = asynchronousManager;
 	}
 
 	@Override

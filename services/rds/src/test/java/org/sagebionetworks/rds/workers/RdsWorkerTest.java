@@ -11,6 +11,7 @@ import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -49,5 +50,62 @@ public class RdsWorkerTest {
 		verify(mockManager, never()).createEntity(any(String.class));
 		verify(mockManager, never()).updateEntity(any(String.class));
 		verify(mockManager, never()).deleteEntity(any(String.class));
+	}
+	
+	@Test
+	public void testCreateEntity() throws Exception{
+		ChangeMessage message = new ChangeMessage();
+		message.setObjectType(ObjectType.ENTITY);
+		message.setChangeType(ChangeType.CREATE);
+		message.setObjectId("123");
+		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
+		List<Message> list = new LinkedList<Message>();
+		list.add(awsMessage);
+		// Make the call
+		RdsWorker worker = new RdsWorker(list, mockManager);
+		list = worker.call();
+		assertNotNull(list);
+		// the manager should not be called
+		verify(mockManager, times(1)).createEntity(message.getObjectId());
+		verify(mockManager, never()).updateEntity(any(String.class));
+		verify(mockManager, never()).deleteEntity(any(String.class));
+	}
+	
+	@Test
+	public void testUpdateEntity() throws Exception{
+		ChangeMessage message = new ChangeMessage();
+		message.setObjectType(ObjectType.ENTITY);
+		message.setChangeType(ChangeType.UPDATE);
+		message.setObjectId("123");
+		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
+		List<Message> list = new LinkedList<Message>();
+		list.add(awsMessage);
+		// Make the call
+		RdsWorker worker = new RdsWorker(list, mockManager);
+		list = worker.call();
+		assertNotNull(list);
+		// the manager should not be called
+		verify(mockManager, never()).createEntity(any(String.class));
+		verify(mockManager, times(1)).updateEntity(message.getObjectId());
+		verify(mockManager, never()).deleteEntity(any(String.class));
+	}
+	
+	@Test
+	public void testDeleteEntity() throws Exception{
+		ChangeMessage message = new ChangeMessage();
+		message.setObjectType(ObjectType.ENTITY);
+		message.setChangeType(ChangeType.DELETE);
+		message.setObjectId("123");
+		Message awsMessage = MessageUtils.createMessage(message, "abc", "handle");
+		List<Message> list = new LinkedList<Message>();
+		list.add(awsMessage);
+		// Make the call
+		RdsWorker worker = new RdsWorker(list, mockManager);
+		list = worker.call();
+		assertNotNull(list);
+		// the manager should not be called
+		verify(mockManager, never()).createEntity(any(String.class));
+		verify(mockManager, never()).updateEntity(any(String.class));
+		verify(mockManager, times(1)).deleteEntity(message.getObjectId());
 	}
 }
