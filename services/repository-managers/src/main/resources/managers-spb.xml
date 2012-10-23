@@ -23,7 +23,6 @@
 	<!-- The Entity manager -->
 	<bean id="entityManager" class="org.sagebionetworks.repo.manager.EntityManagerImpl" />
 
-
 	<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
 

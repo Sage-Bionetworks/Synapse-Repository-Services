@@ -10,6 +10,7 @@ import org.junit.Test;
 import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -23,11 +24,11 @@ import com.amazonaws.services.sqs.model.Message;
  */
 public class RdsWorkerTest {
 	
-	AsynchronousManager mockManager;
+	AsynchronousDAO mockManager;
 	
 	@Before
 	public void before(){
-		mockManager = Mockito.mock(AsynchronousManager.class);
+		mockManager = Mockito.mock(AsynchronousDAO.class);
 	}
 	
 	/**

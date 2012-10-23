@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -19,9 +20,9 @@ import com.amazonaws.services.sqs.model.Message;
 public class RdsWorker implements Callable<List<Message>> {
 	
 	List<Message> messages;
-	AsynchronousManager asynchronousManager;
+	AsynchronousDAO asynchronousManager;
 
-	public RdsWorker(List<Message> messages, AsynchronousManager asynchronousManager) {
+	public RdsWorker(List<Message> messages, AsynchronousDAO asynchronousManager) {
 		if(messages == null) throw new IllegalArgumentException("Messages cannot be null");
 		if(asynchronousManager == null) throw new IllegalArgumentException("AsynchronousManager cannot be null");
 		this.messages = messages;

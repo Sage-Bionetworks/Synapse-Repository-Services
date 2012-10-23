@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -46,7 +47,8 @@ public class EntityServiceImplAutowiredTest {
 	
 	@Autowired
 	public UserProvider testUserProvider;
-	
+	@Autowired
+	AsynchronousDAO asynchronousDAO;
 	
 	List<String> toDelete = null;
 	
@@ -212,10 +214,24 @@ public class EntityServiceImplAutowiredTest {
 		step.setInput(refs);
 		step = entityController.createEntity(userName, step, mockRequest);
 		toDelete.add(step.getId());
+		// Manually update
+		updateAnnotationsAndReferences();
 		// verify that the Step can be retrieved via its reference
 		ehs = entityController.getEntityReferences(userName, id1, null, null, null, mockRequest);
 		assertEquals(1, ehs.getTotalNumberOfResults());
 		assertEquals(step.getId(), ehs.getResults().iterator().next().getId());
+	}
+	
+	/**
+	 * Since we have moved the annotation updates to an asynchronous process we need to manually
+	 * update the annotations of all nodes for this test. See PLFM-1548
+	 * 
+	 * @throws NotFoundException
+	 */
+	public void updateAnnotationsAndReferences() throws NotFoundException {
+		for(String id: toDelete){
+			asynchronousDAO.createEntity(id);
+		}
 	}
 
 }

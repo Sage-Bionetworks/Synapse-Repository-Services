@@ -13,8 +13,6 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import org.junit.After;
 import org.junit.Before;
@@ -22,6 +20,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -86,6 +85,9 @@ public class JDONodeQueryDAOImplTest {
 	private NodeQueryDao nodeQueryDao;
 	
 	@Autowired
+	AsynchronousDAO asynchronousDAO;
+	
+	@Autowired
 	private NodeDAO nodeDao;
 	
 	@Autowired
@@ -121,6 +123,7 @@ public class JDONodeQueryDAOImplTest {
 		}
 		
 		// Create a few datasets
+		List<String> idsToUpdate = new LinkedList<String>();
 		nodeIds = new ArrayList<String>();
 		for (int i = 0; i < totalNumberOfDatasets; i++) {
 			Node parent = NodeTestUtils.createNew("dsName" + i, createdBy);
@@ -133,6 +136,7 @@ public class JDONodeQueryDAOImplTest {
 			String parentId = nodeDao.createNew(parent);
 			idToNameMap.put(parentId, parent.getName());
 			nodeIds.add(parentId);
+			idsToUpdate.add(parentId);
 			NamedAnnotations named = nodeDao.getAnnotations(parentId);
 			Annotations parentAnnos = named.getAdditionalAnnotations();
 			parentAnnos.addAnnotation(attOnall,
@@ -162,6 +166,7 @@ public class JDONodeQueryDAOImplTest {
 			// Add a layer attribute
 			String childId = nodeDao.createNew(child);
 			idToNameMap.put(childId, child.getName());
+			idsToUpdate.add(childId);
 			NamedAnnotations childNamed = nodeDao.getAnnotations(childId);
 			Annotations childAnnos = childNamed.getPrimaryAnnotations();
 			childAnnos.addAnnotation("layerAnnotation", "layerAnnotValue"+i);
@@ -178,6 +183,11 @@ public class JDONodeQueryDAOImplTest {
 			nodeDao.updateAnnotations(childId, childNamed);
 
 //			Thread.sleep(1000);
+		}
+		// since we have moved the annotation updates to an asynchronous process we need to manually
+		// update the annotations of all nodes for this test. See PLFM-1548
+		for(String id: idsToUpdate){
+			asynchronousDAO.createEntity(id);
 		}
 	}
 	
