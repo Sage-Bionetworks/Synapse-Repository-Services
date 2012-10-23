@@ -232,7 +232,11 @@
 			<artifactId>services-search</artifactId>
 			<type>war</type>
 		</dependency>
-
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>services-rds</artifactId>
+			<type>war</type>
+		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-models</artifactId>
