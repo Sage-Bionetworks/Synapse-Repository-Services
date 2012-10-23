@@ -30,4 +30,6 @@ public interface ServiceProvider {
 
 	public SearchService getSearchService();
 
+	public ActivityService getActivityService();
+
 }

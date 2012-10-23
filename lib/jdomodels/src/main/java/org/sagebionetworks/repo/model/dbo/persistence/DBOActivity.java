@@ -1,7 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_SERIALIZED_OBJECT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_ACTIVITY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACTIVITY;
@@ -23,11 +27,19 @@ import org.sagebionetworks.repo.model.message.ObjectType;
 public class DBOActivity implements DatabaseObject<DBOActivity>, ObservableEntity {
 	private Long id;
 	private String eTag;
+	private Long createdBy;
+	private Long createdOn;
+	private Long modifiedBy;
+	private Long modifiedOn;
 	private byte[] serializedObject;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_ACTIVITY_ID, true),
 		new FieldColumn("eTag", COL_ACTIVITY_ETAG),
+		new FieldColumn("createdBy", COL_ACTIVITY_CREATED_BY),
+		new FieldColumn("createdOn", COL_ACTIVITY_CREATED_ON),
+		new FieldColumn("modifiedBy", COL_ACTIVITY_MODIFIED_BY),
+		new FieldColumn("modifiedOn", COL_ACTIVITY_MODIFIED_ON),
 		new FieldColumn("serializedObject", COL_ACTIVITY_SERIALIZED_OBJECT)
 		};
 
@@ -37,14 +49,18 @@ public class DBOActivity implements DatabaseObject<DBOActivity>, ObservableEntit
 			// Map a result set to this object
 			@Override
 			public DBOActivity mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOActivity ar = new DBOActivity();
-				ar.setId(rs.getLong(COL_ACTIVITY_ID));
-				ar.seteTag(rs.getString(COL_ACTIVITY_ETAG));
+				DBOActivity act = new DBOActivity();
+				act.setId(rs.getLong(COL_ACTIVITY_ID));
+				act.seteTag(rs.getString(COL_ACTIVITY_ETAG));
+				act.setCreatedBy(rs.getLong(COL_ACTIVITY_CREATED_BY));
+				act.setCreatedOn(rs.getLong(COL_ACTIVITY_CREATED_ON));
+				act.setModifiedBy(rs.getLong(COL_ACTIVITY_MODIFIED_BY));
+				act.setModifiedOn(rs.getLong(COL_ACTIVITY_MODIFIED_ON));
 				java.sql.Blob blob = rs.getBlob(COL_ACTIVITY_SERIALIZED_OBJECT);
 				if(blob != null){
-					ar.setSerializedObject(blob.getBytes(1, (int) blob.length()));
+					act.setSerializedObject(blob.getBytes(1, (int) blob.length()));
 				}
-				return ar;
+				return act;
 			}
 
 			@Override
@@ -85,6 +101,38 @@ public class DBOActivity implements DatabaseObject<DBOActivity>, ObservableEntit
 		this.eTag = eTag;
 	}
 
+	public Long getCreatedBy() {
+		return createdBy;
+	}
+
+	public void setCreatedBy(Long createdBy) {
+		this.createdBy = createdBy;
+	}
+
+	public Long getCreatedOn() {
+		return createdOn;
+	}
+
+	public void setCreatedOn(Long createdOn) {
+		this.createdOn = createdOn;
+	}
+
+	public Long getModifiedBy() {
+		return modifiedBy;
+	}
+
+	public void setModifiedBy(Long modifiedBy) {
+		this.modifiedBy = modifiedBy;
+	}
+
+	public Long getModifiedOn() {
+		return modifiedOn;
+	}
+
+	public void setModifiedOn(Long modifiedOn) {
+		this.modifiedOn = modifiedOn;
+	}
+
 	public byte[] getSerializedObject() {
 		return serializedObject;
 	}
@@ -101,13 +149,21 @@ public class DBOActivity implements DatabaseObject<DBOActivity>, ObservableEntit
 	public String getIdString() {
 		return id.toString();
 	}
-	
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result
+				+ ((createdBy == null) ? 0 : createdBy.hashCode());
+		result = prime * result
+				+ ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result
+				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
+		result = prime * result
+				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result + Arrays.hashCode(serializedObject);
 		return result;
 	}
@@ -121,6 +177,16 @@ public class DBOActivity implements DatabaseObject<DBOActivity>, ObservableEntit
 		if (getClass() != obj.getClass())
 			return false;
 		DBOActivity other = (DBOActivity) obj;
+		if (createdBy == null) {
+			if (other.createdBy != null)
+				return false;
+		} else if (!createdBy.equals(other.createdBy))
+			return false;
+		if (createdOn == null) {
+			if (other.createdOn != null)
+				return false;
+		} else if (!createdOn.equals(other.createdOn))
+			return false;
 		if (eTag == null) {
 			if (other.eTag != null)
 				return false;
@@ -131,6 +197,16 @@ public class DBOActivity implements DatabaseObject<DBOActivity>, ObservableEntit
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
+		if (modifiedBy == null) {
+			if (other.modifiedBy != null)
+				return false;
+		} else if (!modifiedBy.equals(other.modifiedBy))
+			return false;
+		if (modifiedOn == null) {
+			if (other.modifiedOn != null)
+				return false;
+		} else if (!modifiedOn.equals(other.modifiedOn))
+			return false;
 		if (!Arrays.equals(serializedObject, other.serializedObject))
 			return false;
 		return true;
@@ -138,9 +214,12 @@ public class DBOActivity implements DatabaseObject<DBOActivity>, ObservableEntit
 
 	@Override
 	public String toString() {
-		return "DBOActivity [id=" + id + ", eTag=" + eTag
+		return "DBOActivity [id=" + id + ", eTag=" + eTag + ", createdBy="
+				+ createdBy + ", createdOn=" + createdOn + ", modifiedBy="
+				+ modifiedBy + ", modifiedOn=" + modifiedOn
 				+ ", serializedObject=" + Arrays.toString(serializedObject)
 				+ "]";
 	}
+	
 
 }

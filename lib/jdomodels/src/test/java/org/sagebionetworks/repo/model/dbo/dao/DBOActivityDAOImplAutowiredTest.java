@@ -116,7 +116,7 @@ public class DBOActivityDAOImplAutowiredTest {
 	@Test 
 	public void testCreate() throws Exception{
 		long initialCount = activityDao.getCount();
-		Activity toCreate = newTestActivity(idGenerator.generateNewId().toString());		
+		Activity toCreate = newTestActivity(idGenerator.generateNewId().toString());
 		Activity actCreated = activityDao.create(toCreate);		
 		String id = actCreated.getId().toString();
 		assertEquals(1+initialCount, activityDao.getCount()); 
@@ -271,9 +271,9 @@ public class DBOActivityDAOImplAutowiredTest {
 		act.setId(id);
 		act.setEtag("0");	
 		act.setDescription("description");
-		act.setCreatedBy("555");
+		act.setCreatedBy(altUserGroupId.toString());
 		act.setCreatedOn(new Date());
-		act.setModifiedBy("666");
+		act.setModifiedBy(altUserGroupId.toString());
 		act.setModifiedOn(new Date());
 		act.setActivityType(ActivityType.UNDEFINED);
 		Reference ref = new Reference();

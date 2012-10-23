@@ -107,7 +107,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	private <T extends Activity> T update(T dto, boolean fromBackup) throws DatastoreException,
 			InvalidModelException,NotFoundException, ConflictingUpdateException {		
 		if(!doesActivityExist(dto.getId())) throw new NotFoundException("Activity with id " + dto.getId() + " could not be found.");
-		DBOActivity dbo = new DBOActivity();
+		DBOActivity dbo = getDBO(dto.getId());
 		ActivityUtils.copyDtoToDbo(dto, dbo);
 		boolean success = basicDao.update(dbo);
 

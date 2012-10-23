@@ -226,6 +226,10 @@ public class SqlConstants {
 	public static final String TABLE_ACTIVITY 					= "ACTIVITY";
 	public static final String COL_ACTIVITY_ID 					= "ID";
 	public static final String COL_ACTIVITY_ETAG 				= "ETAG";
+	public static final String COL_ACTIVITY_CREATED_BY			= "CREATED_BY";
+	public static final String COL_ACTIVITY_CREATED_ON			= "CREATED_ON";
+	public static final String COL_ACTIVITY_MODIFIED_BY			= "MODIFIED_BY";
+	public static final String COL_ACTIVITY_MODIFIED_ON			= "MODIFIED_ON";
 	public static final String COL_ACTIVITY_SERIALIZED_OBJECT 	= "SERIALIZED_OBJECT";
 	public static final String DDL_FILE_ACTIVITY = "schema/Activity-ddl.sql";
 	

@@ -136,7 +136,9 @@ public class UrlHelpers {
 	public static final String ENTITY	 = PrefixConst.ENTITY;
 	public static final String USER_PROFILE  = PrefixConst.USER_PROFILE;
 	public static final String HEALTHCHECK = PrefixConst.HEALTHCHECK;
-	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;	
+	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;
+	public static final String ACTIVITY    = PrefixConst.ACTIVITY;
+	
 	/**
 	 * All of the base URLs for Synapse object batch requests
 	 */
@@ -154,6 +156,11 @@ public class UrlHelpers {
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
+	
+	/**
+	 * Activity URLs
+	 */
+	public static final String ACTIVITY_ID = ACTIVITY+ID;
 	
 	/**
 	 * Used to get an entity attachment token
