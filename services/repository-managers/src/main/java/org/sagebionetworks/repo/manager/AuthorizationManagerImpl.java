@@ -32,6 +32,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	NodeQueryDao nodeQueryDao;	
 	@Autowired
 	NodeDAO nodeDAO;
+	@Autowired
+	private UserManager userManager;
 
 	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
 		User user = userInfo.getUser();
@@ -101,7 +103,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		Node node = nodeDAO.getNode(entityId);
 		permission.setOwnerPrincipalId(node.getCreatedByPrincipalId());
 		boolean parentIsRoot = nodeDAO.isNodesParentRoot(entityId);
-		
+		// must look-up access (at least to determine if the anonymous user can view)
+		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(entityId);
+		UserInfo anonymousUser = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		permission.setCanPublicRead(this.accessControlListDAO.canAccess(anonymousUser.getGroups(), permissionsBenefactor, ACCESS_TYPE.READ));
 		boolean isCreator = node.getCreatedByPrincipalId().equals(Long.parseLong(userInfo.getIndividualGroup().getId()));
 		// Admin and owner/creator get all
 		if (userInfo.isAdmin() || isCreator) {
@@ -114,8 +119,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			permission.setCanEnableInheritance(!parentIsRoot);
 			return permission;
 		}
-		// must look-up access
-		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(entityId);
 		// Child can be added if this entity is not null
 		permission.setCanAddChild(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CREATE));
 		permission.setCanChangePermissions(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CHANGE_PERMISSIONS));
