@@ -8,6 +8,7 @@
   </parent>
   <artifactId>services-rds</artifactId>
   <name>rds</name>
+  <packaging>war</packaging>
   <description>Asynchronous processing for RDS tables</description>
   
   	<dependencies>

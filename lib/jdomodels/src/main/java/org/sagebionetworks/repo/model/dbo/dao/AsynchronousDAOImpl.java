@@ -64,16 +64,18 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void createEntity(String id) throws DatastoreException, NotFoundException {
+	public boolean createEntity(String id) throws DatastoreException, NotFoundException {
 		// Replace all
 		replaceAll(id);
+		return true;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void updateEntity(String id) throws NotFoundException {
+	public boolean updateEntity(String id) throws NotFoundException {
 		// Replace all
 		replaceAll(id);
+		return true;
 	}
 	
 	/**
@@ -106,8 +108,9 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	}
 
 	@Override
-	public void deleteEntity(String id) {
+	public boolean deleteEntity(String id) {
 		// Currently we are using cascade deletes at the database level.
+		return true;
 	}
 
 }

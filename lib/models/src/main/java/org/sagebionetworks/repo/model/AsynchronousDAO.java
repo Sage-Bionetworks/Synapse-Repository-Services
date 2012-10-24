@@ -18,18 +18,18 @@ public interface AsynchronousDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public void createEntity(String id) throws NotFoundException;
+	public boolean createEntity(String id) throws NotFoundException;
 	
 	/**
 	 * Called when an entity is updated.
 	 * @param id
 	 * @throws NotFoundException 
 	 */
-	public void updateEntity(String id) throws NotFoundException;
+	public boolean updateEntity(String id) throws NotFoundException;
 	
 	/**
 	 * Called when an entity is deleted.
 	 * @param id
 	 */
-	public void deleteEntity(String id);
+	public boolean deleteEntity(String id);
 }
