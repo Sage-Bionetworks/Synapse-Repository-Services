@@ -20,6 +20,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+
 import org.apache.http.HttpException;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -41,6 +43,7 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Data;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -79,6 +82,8 @@ import org.sagebionetworks.utils.HttpClientHelper;
 public class IT500SynapseJavaClient {
 	
 	public static final int PREVIEW_TIMOUT = 10*1000;
+	
+	public static final int RDS_WORKER_TIMEOUT = 1000*60; // One min
 	
 	private List<String> toDelete = null;
 
@@ -1094,9 +1099,10 @@ public class IT500SynapseJavaClient {
 	 * PLFM-1212 Links need to return what they reference.
 	 * @throws SynapseException 
 	 * @throws JSONException 
+	 * @throws InterruptedException 
 	 */
 	@Test 
-	public void testPLFM_1212() throws SynapseException, JSONException{
+	public void testPLFM_1212() throws SynapseException, JSONException, InterruptedException{
 		// The dataset should start with no references
 		PaginatedResults<EntityHeader> refs = synapse.getEntityReferencedBy(dataset);
 		assertNotNull(refs);
@@ -1111,6 +1117,7 @@ public class IT500SynapseJavaClient {
 		// Create the link
 		link = synapse.createEntity(link);
 		// Get 
+		waitForReferencesBy(dataset);
 		refs = synapse.getEntityReferencedBy(dataset);
 		assertNotNull(refs);
 		assertEquals(1l, refs.getTotalNumberOfResults());
@@ -1119,6 +1126,61 @@ public class IT500SynapseJavaClient {
 		// Test that the hack for PLFM-1287 is still in place.
 		assertEquals(project.getId(), refs.getResults().get(0).getId());
 		
+	}
+	/**
+	 * Helper to wait for references to be update.
+	 * @param entity
+	 * @throws SynapseException
+	 * @throws InterruptedException
+	 */
+	private void waitForReferencesBy(Entity toWatch) throws SynapseException, InterruptedException{
+		// Wait for the references to appear
+		PaginatedResults<EntityHeader> refs = synapse.getEntityReferencedBy(toWatch);
+		long start = System.currentTimeMillis();
+		while(refs.getTotalNumberOfResults() < 1){
+			System.out.println("Waiting for refrences to be published for entity: "+toWatch.getId());
+			Thread.sleep(1000);
+			long elapse = System.currentTimeMillis() - start;
+			assertTrue("Timed out waiting for refernces to be published for entity: "+toWatch.getId(), elapse < RDS_WORKER_TIMEOUT);
+			refs = synapse.getEntityReferencedBy(toWatch);
+		}
+	}
+	
+	@Test
+	public void testPLFM_1548() throws SynapseException, InterruptedException, JSONException{
+		// Add a unique annotation and query for it
+		String key = "keyPLFM_1548";
+		String value = UUID.randomUUID().toString();
+		Annotations annos = synapse.getAnnotations(dataset.getId());
+		annos.addAnnotation(key, value);
+		synapse.updateAnnotations(dataset.getId(), annos);
+		String queryString = "select id from entity where entity."+key+" == '"+value+"'";
+		// Wait for the query
+		waitForQuery(queryString);
+	}
+	
+	/**
+	 * Helper 
+	 * @param queryString
+	 * @throws SynapseException
+	 * @throws InterruptedException
+	 * @throws JSONException
+	 */
+	private void waitForQuery(String queryString) throws SynapseException, InterruptedException, JSONException{
+		// Wait for the references to appear
+		JSONObject results = synapse.query(queryString);
+		assertNotNull(results);
+		assertTrue(results.has("totalNumberOfResults"));
+		assertNotNull(results.getLong("totalNumberOfResults"));
+		long start = System.currentTimeMillis();
+		while(results.getLong("totalNumberOfResults") < 1){
+			System.out.println("Waiting for query: "+queryString);
+			Thread.sleep(1000);
+			long elapse = System.currentTimeMillis() - start;
+			assertTrue("Timed out waiting for annotations to be published for query: "+queryString, elapse < RDS_WORKER_TIMEOUT);
+			results = synapse.query(queryString);
+			System.out.println(results);
+		}
 	}
 	
 	/**
