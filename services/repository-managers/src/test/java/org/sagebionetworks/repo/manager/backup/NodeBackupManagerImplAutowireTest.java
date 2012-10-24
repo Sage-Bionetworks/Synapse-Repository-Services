@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -54,6 +55,9 @@ public class NodeBackupManagerImplAutowireTest {
 	
 	@Autowired
 	NodeQueryDao nodeQueryDao;
+	
+	@Autowired
+	AsynchronousDAO asynchronousDAO;
 	
 	@Autowired
 	private IdGenerator idGenerator;
@@ -119,6 +123,12 @@ public class NodeBackupManagerImplAutowireTest {
 		randomNode.setVersionLabel("2.0");
 		// Now create a new version of the node
 		randomNode = nodeManager.update(nonAdminUser, randomNode, named, true);
+		
+		// since we have moved the annotation updates to an asynchronous process we need to manually
+		// update the annotations of all nodes for this test. See PLFM-1548
+		for(String id: nodesToDelete){
+			asynchronousDAO.createEntity(id);
+		}
 		
 		// We should be able to find this node with this query
 		queryForNode = new BasicQuery();
@@ -246,6 +256,8 @@ public class NodeBackupManagerImplAutowireTest {
 			NodeRevisionBackup rev = backupManager.getNodeRevision(newNodeId, revNumer);
 			cloneRevision.add(rev);
 		}
+		// We need to update the annotation tables
+		asynchronousDAO.updateEntity(newNodeId);
 		// Make sure they are in the same order before comparing them.
 		Collections.sort(revisions, comp);
 		Collections.sort(cloneRevision, comp);

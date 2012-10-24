@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +21,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
+import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -63,6 +65,9 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 	
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;
+	
+	@Autowired
+	AsynchronousDAO asynchronousDAO;
 	
 	private volatile static JDONodeQueryAuthorizationTest instance = null;
 
@@ -394,6 +399,8 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 			return;
 		}
 		instance = this;
+		// These are all of the nodes we need to update.
+		List<String> toUpdate = new LinkedList<String>();
 		// Keeps track of the users to delete
 		nodesToDelete = new ArrayList<String>();
 		groupsToDelete = new ArrayList<String>();
@@ -437,6 +444,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		projectA = NodeTestUtils.createNew("projectA", creatorUserGroupId);
 		projectA.setNodeType(EntityType.project.name());
 		String id = nodeDao.createNew(projectA);
+		toUpdate.add(id);
 		nodesToDelete.add(id);
 		projectA = nodeDao.getNode(id);
 		// Create the ACL for this node.
@@ -453,6 +461,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 		projectB.setNodeType(EntityType.project.name());
 		id = nodeDao.createNew(projectB);
 		nodesToDelete.add(id);
+		toUpdate.add(id);
 		projectB = nodeDao.getNode(id);
 		// Create the ACL for this node.
 		acl = AccessControlListUtil.createACLToGrantAll(id, adminUser);
@@ -471,6 +480,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 			node.setNodeType(EntityType.dataset.name());
 			node.setParentId(projectA.getId());
 			id = nodeDao.createNew(node);
+			toUpdate.add(id);
 //			nodesToDelete.add(id);
 			node = nodeDao.getNode(id);
 			nodesInProjectA.put(node.getId(), node);
@@ -483,6 +493,7 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 			node.setNodeType(EntityType.dataset.name());
 			node.setParentId(projectB.getId());
 			id = nodeDao.createNew(node);
+			toUpdate.add(id);
 //			nodesToDelete.add(id);
 			node = nodeDao.getNode(id);
 			nodesInProjectB.put(node.getId(), node);
@@ -492,6 +503,11 @@ public class JDONodeQueryAuthorizationTest implements InitializingBean{
 //			fieldTypeDao.addNewType(attributeName, FieldType.LONG_ATTRIBUTE);
 			annos.getAdditionalAnnotations().addAnnotation(attributeName, new Long(i));
 			nodeDao.updateAnnotations(id, annos);
+		}
+		// since we have moved the annotation updates to an asynchronous process we need to manually
+		// update the annotations of all nodes for this test. See PLFM-1548
+		for(String entityId: toUpdate){
+			asynchronousDAO.createEntity(entityId);
 		}
 	}
 

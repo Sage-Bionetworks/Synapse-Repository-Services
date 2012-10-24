@@ -60,6 +60,23 @@ public class JDOSecondaryPropertyUtils {
 	}
 	
 	/**
+	 * Prepare annotations to be written to the database.
+	 * 
+	 * @param annos
+	 * @param ownerId
+	 * @return
+	 */
+	public static Annotations prepareAnnotationsForDBReplacement(
+			NamedAnnotations annos, String ownerId) {
+		// Replace the annotations in the tables
+		Annotations merged = JDOSecondaryPropertyUtils.mergeAnnotations(annos);
+		merged.setId(ownerId);
+		// We need to add all data types to the strings, to support mixed query
+		merged = JDOSecondaryPropertyUtils.addAllToStrings(merged);
+		return merged;
+	}
+	
+	/**
 	 * Add all annotaions to strings.
 	 * @param annos
 	 * @return

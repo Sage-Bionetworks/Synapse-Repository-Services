@@ -656,4 +656,12 @@ public class StackConfiguration {
 	public String getDynamoUpdateQueueName() {
 		return String.format(StackConstants.DYNAMO_QUEUE_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
 	}
+	
+	/**
+	 * The name of the AWS SQS where search updates are pushed.
+	 * @return
+	 */
+	public String getRdsUpdateQueueName(){
+		return String.format(StackConstants.RDS_QUEUE_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
+	}
 }

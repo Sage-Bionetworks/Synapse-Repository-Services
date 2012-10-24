@@ -136,6 +136,11 @@
 					</container>
 					<configuration>
 						<properties>
+						    <cargo.jvmargs>
+								-Xmx1024m
+								-Xms128m
+								-XX:MaxPermSize=256m
+							</cargo.jvmargs>
 							<!-- Add the following to 'remote debug' the entire deployment stack
 							<cargo.jvmargs>
 								-Xdebug
@@ -153,19 +158,11 @@
 							<groupId>org.sagebionetworks</groupId>
 							<artifactId>services-authentication</artifactId>
 							<type>war</type>
-							<!-- url to ping to know if deployable is done or not -->
-							<!-- <pingURL>${tomcat.endpoint}/${org.sagebionetworks.auth.context}</pingURL> -->
-							<!-- How long do we wait until the we timeout (in ms) -->
-							<!-- <pingTimeout>2000</pingTimeout> -->
 						</deployable>
 						<deployable>
 							<groupId>org.sagebionetworks</groupId>
 							<artifactId>services-repository</artifactId>
 							<type>war</type>
-							<!-- url to ping to know if deployable is done or not -->
-							<!-- <pingURL>${org.sagebionetworks.repository.service.base.url}/dataset/test</pingURL> -->
-							<!-- How long do we wait until the we timeout (in ms) -->
-							<!-- <pingTimeout>2000</pingTimeout> -->
 						</deployable>
 						<deployable>
 							<groupId>org.sagebionetworks</groupId>
@@ -175,6 +172,11 @@
 						<deployable>
 							<groupId>org.sagebionetworks</groupId>
 							<artifactId>services-dynamo</artifactId>
+							<type>war</type>
+						</deployable>
+						<deployable>
+							<groupId>org.sagebionetworks</groupId>
+							<artifactId>services-rds</artifactId>
 							<type>war</type>
 						</deployable>
 					</deployables>
@@ -237,7 +239,11 @@
 			<artifactId>services-search</artifactId>
 			<type>war</type>
 		</dependency>
-
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>services-rds</artifactId>
+			<type>war</type>
+		</dependency>
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>services-dynamo</artifactId>

@@ -20,6 +20,7 @@
     <module>auth</module>
     <module>search</module>
     <module>dynamo</module>
+    <module>rds</module>
   </modules>
 
 </project>
