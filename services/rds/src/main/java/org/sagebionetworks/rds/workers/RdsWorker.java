@@ -68,6 +68,9 @@ public class RdsWorker implements Callable<List<Message>> {
 					// Something went wrong and we did not process the message.
 					log.error("Failed to process message", e);
 				}
+			}else{
+				// Non-entity messages must be returned so they can be removed from the queue.
+				processedMessages.add(message);
 			}
 		}
 		return processedMessages;
