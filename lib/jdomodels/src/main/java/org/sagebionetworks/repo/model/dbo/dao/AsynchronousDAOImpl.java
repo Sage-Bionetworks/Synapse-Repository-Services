@@ -84,7 +84,7 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	 * @param id
 	 * @throws NotFoundException
 	 */
-	public void replaceAll(String id) throws NotFoundException {
+	void replaceAll(String id) throws NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		Long nodeId = KeyFactory.stringToKey(id);
 		// When an entity is created we need to update all daos.
