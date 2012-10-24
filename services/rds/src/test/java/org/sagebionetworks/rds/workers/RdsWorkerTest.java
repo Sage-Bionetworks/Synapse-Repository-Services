@@ -46,8 +46,10 @@ public class RdsWorkerTest {
 		list.add(awsMessage);
 		// Make the call
 		RdsWorker worker = new RdsWorker(list, mockManager);
-		list = worker.call();
-		assertNotNull(list);
+		List<Message> resultList = worker.call();
+		assertNotNull(resultList);
+		// Non-entity messages should be returned so they can be removed from the queue.
+		assertEquals("Non-entity messages must be returned so they can be removed from the queue!",list, resultList);
 		// the manager should not be called
 		verify(mockManager, never()).createEntity(any(String.class));
 		verify(mockManager, never()).updateEntity(any(String.class));
