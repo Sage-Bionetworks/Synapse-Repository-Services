@@ -1132,8 +1132,6 @@ public class NodeDAOImplTest {
 		currentRev.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "newValue");
 		currentRev.setLabel("2.0");
 		nodeBackupDao.updateRevisionFromBackup(currentRev);
-		// Since we added this annotation to the current version it should be query-able
-//		assertTrue(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
 		
 		// Get it back
 		NodeRevisionBackup clone = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
@@ -1151,16 +1149,12 @@ public class NodeDAOImplTest {
 		// Clear the string annotations.
 		clone.getNamedAnnotations().getAdditionalAnnotations().setStringAnnotations(new HashMap<String, List<String>>());
 		nodeBackupDao.updateRevisionFromBackup(clone);
-		// The string annotation should no longer be query-able
-//		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
-		
+	
 		// Finally, update the first version again, adding back the string property
 		// but this time since this is not the current version it should not be query-able
 		clone = nodeBackupDao.getNodeRevision(id, v1Number);
 		clone.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "updatedValue");
 		nodeBackupDao.updateRevisionFromBackup(clone);
-		// This annotation should not be query-able
-//		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
 	}
 	
 	@Test
@@ -1199,12 +1193,8 @@ public class NodeDAOImplTest {
 		newRev.setModifiedOn(new Date());
 		newRev.setReferences(new HashMap<String, Set<Reference>>());
 
-		// This annotation should not be query-able
-//		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnNewVersion));
 		// Now create the version
 		nodeBackupDao.createNewRevisionFromBackup(newRev);
-		// This annotation should still not be query-able because it is not on the current version.
-//		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnNewVersion));
 		
 		// Get the older version
 		NodeRevisionBackup clone = nodeBackupDao.getNodeRevision(id, newVersionNumber);
