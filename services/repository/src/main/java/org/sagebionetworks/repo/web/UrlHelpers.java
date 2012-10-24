@@ -48,6 +48,8 @@ public class UrlHelpers {
 	public static final String ACCESS_TYPE_PARAM	= "accessType";
 	
 	public static final String BUNDLE				= "/bundle";
+	
+	public static final String GENERATED_BY			= "/generatedBy";
 
 	/**
 	 * URL prefix for all objects that are referenced by their ID.
@@ -221,6 +223,16 @@ public class UrlHelpers {
 	 */
 	public static final String ENTITY_VERSION_NUMBER_BUNDLE = ENTITY_VERSION_NUMBER+BUNDLE;
 
+	/**
+	 * Get the generating activity for the current version of an entity
+	 */
+	public static final String ENTITY_GENERATED_BY = ENTITY_ID+GENERATED_BY;
+	
+	/**
+	 * Get the generating activity for a specific version of an entity
+	 */
+	public static final String ENTITY_VERSION_GENERATED_BY = ENTITY_VERSION_NUMBER+GENERATED_BY;
+	
 	/**
 	 * URL path for query controller
 	 * 

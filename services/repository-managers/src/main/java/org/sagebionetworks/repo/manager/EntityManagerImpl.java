@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -551,6 +552,31 @@ public class EntityManagerImpl implements EntityManager {
 	public boolean doesEntityHaveChildren(UserInfo userInfo, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException {
 		validateReadAccess(userInfo, entityId);
 		return nodeManager.doesNodeHaveChildren(entityId);
+	}
+
+	@Override
+	public Activity getActivityForEntity(UserInfo userInfo, String entityId,
+			Long versionNumber) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		return nodeManager.getActivityForNode(userInfo, entityId, versionNumber);		
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override	
+	public Activity setActivityForEntity(UserInfo userInfo, String entityId,
+			String activityId) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		validateUpdateAccess(userInfo, entityId);
+		nodeManager.setActivityForNode(userInfo, entityId, activityId);
+		return nodeManager.getActivityForNode(userInfo, entityId, null);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteActivityForEntity(UserInfo userInfo, String entityId)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		validateUpdateAccess(userInfo, entityId);
+		nodeManager.deleteActivityLinkToNode(userInfo, entityId);
 	}
 
 }

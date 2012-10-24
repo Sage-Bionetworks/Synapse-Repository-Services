@@ -1,5 +1,5 @@
 package org.sagebionetworks.repo.manager;
-
+  
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
@@ -540,6 +541,35 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
 		return nodeDao.getVersionsOfEntity(entityId, offset, limit);
+	}
+
+	@Override
+	public Activity getActivityForNode(UserInfo userInfo, String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
+		String activityId = null;
+		if(versionNumber != null)
+			activityId = nodeDao.getActivityId(nodeId, versionNumber);
+		else 
+			activityId = nodeDao.getActivityId(nodeId);
+		return activityManager.getActivity(userInfo, activityId);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void setActivityForNode(UserInfo userInfo, String nodeId,
+			String activityId) throws NotFoundException, UnauthorizedException,
+			DatastoreException {
+		Node toUpdate = get(userInfo, nodeId);
+		toUpdate.setActivityId(activityId);
+		update(userInfo, toUpdate);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
+			throws NotFoundException, UnauthorizedException, DatastoreException {
+		Node toUpdate = get(userInfo, nodeId);
+		toUpdate.setActivityId(null);
+		update(userInfo, toUpdate);
 	}
 
 }

@@ -26,7 +26,7 @@ public interface ActivityService {
 
 	public void deleteActivity(String userId, String activityId)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
-
+	
 	public PaginatedResults<Activity> getActivitys(HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException, ForbiddenException;

@@ -7,14 +7,15 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeManager {
@@ -237,5 +238,40 @@ public interface NodeManager {
 
 	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
 			String entityId, long offset, long limit) throws NotFoundException, UnauthorizedException, DatastoreException;
+
+	/**
+	 * Gets the activity that generated the Node
+	 * @param userInfo
+	 * @param nodeId
+	 * @param versionNumber
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public Activity getActivityForNode(UserInfo userInfo, String nodeId, Long versionNumber) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Sets the activity that generated the current version of the node
+	 * @param userInfo
+	 * @param nodeId
+	 * @param activityId
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 */
+	public void setActivityForNode(UserInfo userInfo, String nodeId,
+			String activityId) throws NotFoundException, UnauthorizedException,
+			DatastoreException;
+
+	/**
+	 * Deletes the generatedBy relationship between the entity and its activity
+	 * @param userInfo
+	 * @param nodeId
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 */
+	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
+			throws NotFoundException, UnauthorizedException, DatastoreException;
 	
 }
