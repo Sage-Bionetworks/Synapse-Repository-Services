@@ -7,6 +7,7 @@ import static org.junit.Assert.fail;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -69,6 +71,8 @@ public class DefaultControllerAutowiredTest {
 
 	@Autowired
 	public UserManager userManager;
+	@Autowired
+	AsynchronousDAO asynchronousDAO;
 
 	static private Log log = LogFactory
 			.getLog(DefaultControllerAutowiredTest.class);
@@ -334,7 +338,7 @@ public class DefaultControllerAutowiredTest {
 	}
 
 	@Test
-	public void testGetEntityReferences() throws ServletException, IOException, JSONException {
+	public void testGetEntityReferences() throws ServletException, IOException, JSONException, NotFoundException {
 		// Create project
 		Project project = new Project();
 		project.setName("testProject");
@@ -382,8 +386,8 @@ public class DefaultControllerAutowiredTest {
 			// NOTE:  Since we don't specify the version of the target, it is automatically set to the current version!
 			assertEquals(clone.getVersionNumber(), ref2.getTargetVersionNumber());
 		}
-
-		// get references
+		// manual update
+		updateAnnotationsAndReferences();
 		prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
 		ehs = prs.getResults();
 		assertEquals(1, ehs.size());
@@ -402,23 +406,37 @@ public class DefaultControllerAutowiredTest {
 			stepClone = ServletTestHelper.createEntity(dispatchServlet, step, userName);
 			toDelete.add(stepClone.getId());
 		}
-
+		// manual update
+		updateAnnotationsAndReferences();
 		// both Steps refer to some version of the Project
 		prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), userId);
 		ehs = prs.getResults();
 		assertEquals(ehs.toString(), 2, ehs.size());
-
+		// manual update
+		updateAnnotationsAndReferences();
 		// only one step refers to version 1 of the Project
 		prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v, userId);
 		ehs = prs.getResults();
 		assertEquals(ehs.toString(), 1, ehs.size());
-
+		// manual update
+		updateAnnotationsAndReferences();
 		// No Step refers to version 100 of the Project
 		prs = ServletTestHelper.getEntityReferences(dispatchServlet, clone.getId(), v+99, userId);
 		ehs = prs.getResults();
 		assertEquals(0, ehs.size());
 
+	}
 
+	/**
+	 * Since we have moved the annotation updates to an asynchronous process we need to manually
+	 * update the annotations of all nodes for this test. See PLFM-1548
+	 * 
+	 * @throws NotFoundException
+	 */
+	public void updateAnnotationsAndReferences() throws NotFoundException {
+		for(String id: toDelete){
+			asynchronousDAO.createEntity(id);
+		}
 	}
 
 	@Test

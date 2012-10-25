@@ -643,6 +643,8 @@ public class NodeDAOImplTest {
 		Annotations annos = named.getAdditionalAnnotations();
 		assertNotNull(annos);
 		assertNotNull(annos.getEtag());
+		assertEquals(node.getCreatedByPrincipalId(), named.getCreatedBy());
+		assertEquals(id, named.getId());
 		// Now add some annotations to this node.
 		annos.addAnnotation("stringOne", "one");
 		annos.addAnnotation("doubleKey", new Double(23.5));
@@ -1112,6 +1114,7 @@ public class NodeDAOImplTest {
 		assertEquals(childIds, fromDao);
 	}
 	
+	
 	@Test
 	public void testUpdateRevision() throws NotFoundException, DatastoreException, InvalidModelException {
 		Node node = privateCreateNew("parent");
@@ -1129,8 +1132,6 @@ public class NodeDAOImplTest {
 		currentRev.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "newValue");
 		currentRev.setLabel("2.0");
 		nodeBackupDao.updateRevisionFromBackup(currentRev);
-		// Since we added this annotation to the current version it should be query-able
-		assertTrue(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
 		
 		// Get it back
 		NodeRevisionBackup clone = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
@@ -1145,19 +1146,15 @@ public class NodeDAOImplTest {
 		node = nodeDao.getNode(id);
 		// Get the latest
 		clone = nodeBackupDao.getNodeRevision(id, node.getVersionNumber());
-		// Clear the string annoations.
+		// Clear the string annotations.
 		clone.getNamedAnnotations().getAdditionalAnnotations().setStringAnnotations(new HashMap<String, List<String>>());
 		nodeBackupDao.updateRevisionFromBackup(clone);
-		// The string annotation should no longer be query-able
-		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
-		
+	
 		// Finally, update the first version again, adding back the string property
 		// but this time since this is not the current version it should not be query-able
 		clone = nodeBackupDao.getNodeRevision(id, v1Number);
 		clone.getNamedAnnotations().getAdditionalAnnotations().addAnnotation(keyOnFirstVersion, "updatedValue");
 		nodeBackupDao.updateRevisionFromBackup(clone);
-		// This annotation should not be query-able
-		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnFirstVersion));
 	}
 	
 	@Test
@@ -1196,12 +1193,8 @@ public class NodeDAOImplTest {
 		newRev.setModifiedOn(new Date());
 		newRev.setReferences(new HashMap<String, Set<Reference>>());
 
-		// This annotation should not be query-able
-		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnNewVersion));
 		// Now create the version
 		nodeBackupDao.createNewRevisionFromBackup(newRev);
-		// This annotation should still not be query-able because it is not on the current version.
-		assertFalse(nodeDao.isStringAnnotationQueryable(id, keyOnNewVersion));
 		
 		// Get the older version
 		NodeRevisionBackup clone = nodeBackupDao.getNodeRevision(id, newVersionNumber);
@@ -1209,6 +1202,68 @@ public class NodeDAOImplTest {
 		assertEquals("value on new", clone.getNamedAnnotations().getAnnotationsForName("newNamed").getSingleValue(keyOnNewVersion));
 		assertEquals("1.0", clone.getLabel());
 		assertEquals(newRev, clone);
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetRefrenceDoesNotExist() throws DatastoreException, InvalidModelException, NotFoundException{
+		// This should throw a not found exception.
+		nodeDao.getNodeReferences("syn123");
+	}
+	
+	@Test
+	public void testGetRefrenceNull() throws DatastoreException, InvalidModelException, NotFoundException{
+		// Create a new node
+		Node node = privateCreateNew("parent");
+		node.setNodeType(EntityType.project.name());
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		// This should be empty but not null
+		Map<String, Set<Reference>> refs = nodeDao.getNodeReferences(id);
+		assertNotNull(refs);
+		assertEquals(0, refs.size());
+	}
+	
+	@Test
+	public void testGetRefrence() throws DatastoreException, InvalidModelException, NotFoundException{
+		// Create a new node
+		Node node = privateCreateNew("parent");
+		node.setNodeType(EntityType.project.name());
+		String parentId = nodeDao.createNew(node);
+		toDelete.add(parentId);
+		// Create a child with a refrence to the parent
+		node = privateCreateNew("child");
+		node.setParentId(parentId);
+		node.setNodeType(EntityType.dataset.name());
+		// Add a reference
+		node.setReferences(new HashMap<String, Set<Reference>>());
+		HashSet<Reference> set = new HashSet<Reference>();
+		Reference ref = new Reference();
+		ref.setTargetId(parentId);
+		set.add(ref);
+		String typeKey = "some_type";
+		node.getReferences().put(typeKey, set);
+		String id = nodeDao.createNew(node);
+		// This should be empty but not null
+		Map<String, Set<Reference>> refs = nodeDao.getNodeReferences(id);
+		assertNotNull(refs);
+		assertEquals(1, refs.size());
+		assertEquals(node.getReferences(), refs);
+		// Now create a new revision and make sure we get the latest only
+		node = nodeDao.getNode(id);
+		ref = new Reference();
+		ref.setTargetId(id);
+		ref.setTargetVersionNumber(node.getVersionNumber());
+		node.getReferences().get(typeKey).add(ref);
+		node.setVersionLabel("v2");
+		nodeDao.createNewVersion(node);
+		// Now get the current references
+		refs = nodeDao.getNodeReferences(id);
+		assertNotNull(refs);
+		assertEquals(1, refs.size());
+		Set<Reference> someType = refs.get(typeKey);
+		assertNotNull(someType);
+		assertEquals(2, someType.size());
+		assertTrue(someType.contains(ref));
 	}
 
 	@Test
@@ -1253,6 +1308,7 @@ public class NodeDAOImplTest {
 		assertEquals(10, storedNode.getReferences().get("referees").size());
 		Object[] storedRefs = storedNode.getReferences().get("referees").toArray();
 		assertEquals(null, ((Reference)storedRefs[0]).getTargetVersionNumber());
+		
 		
 		// Make sure our reference Ids have the syn prefix
 		for(Reference ref : storedNode.getReferences().get("referees")) {

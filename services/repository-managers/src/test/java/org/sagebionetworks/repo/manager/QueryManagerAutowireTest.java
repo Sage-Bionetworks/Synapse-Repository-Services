@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +21,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -53,6 +55,8 @@ public class QueryManagerAutowireTest {
 	public UserProvider testUserProvider;
 	@Autowired
 	NodeQueryDao nodeQueryDao;
+	@Autowired
+	AsynchronousDAO asynchronousDAO;
 	
 	List<String> toDelete = null;
 	
@@ -79,6 +83,8 @@ public class QueryManagerAutowireTest {
 		project.setId(id);
 		toDelete.add(project.getId());
 		
+		List<String> toUpdate = new LinkedList<String>();
+		toUpdate.add(project.getId());
 		// Create some datasets
 		for(int i=0; i<totalEntities; i++){
 			Study ds = createForTest(i);
@@ -88,6 +94,7 @@ public class QueryManagerAutowireTest {
 			assertNotNull(ds);
 			assertNotNull(ds.getId());
 			toDelete.add(ds.getId());
+			toUpdate.add(ds.getId());
 			Annotations annos = entityManager.getAnnotations(userInfo, ds.getId());
 			assertNotNull(annos);
 			// Add some annotations
@@ -104,6 +111,12 @@ public class QueryManagerAutowireTest {
 			inLayer.setParentId(ds.getId());
 			String lid = entityManager.createEntity(userInfo, inLayer);
 			inLayer.setId(id);
+		}
+		
+		// since we have moved the annotation updates to an asynchronous process we need to manually
+		// update the annotations of all nodes for this test. See PLFM-1548
+		for(String entityId: toUpdate){
+			asynchronousDAO.createEntity(entityId);
 		}
 	}
 	
