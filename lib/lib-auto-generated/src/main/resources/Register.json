@@ -176,7 +176,8 @@
 		},
 		{
 			"validParentTypes":[
-				"org.sagebionetworks.repo.model.Folder"
+				"org.sagebionetworks.repo.model.Folder",
+				"org.sagebionetworks.repo.model.Project"
 			],
 			"name": "file",
 			"entityType": "org.sagebionetworks.repo.model.File",
