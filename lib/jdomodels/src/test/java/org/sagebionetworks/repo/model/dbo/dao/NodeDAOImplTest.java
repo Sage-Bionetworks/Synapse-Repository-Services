@@ -89,7 +89,7 @@ public class NodeDAOImplTest {
 	
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
-	
+	List<String> activitiesToDelete = new ArrayList<String>();
 	
 	private Long creatorUserGroupId = null;	
 	private Long altUserGroupId = null;
@@ -108,12 +108,8 @@ public class NodeDAOImplTest {
 		assertNotNull(nodeInheritanceDAO);
 		toDelete = new ArrayList<String>();
 		
-		Activity act = new Activity();
-		act.setId("1");
-		testActivity = activityDAO.create(act);		
-		Activity act2 = new Activity();
-		act2.setId("2");
-		testActivity2 = activityDAO.create(act2);		
+		testActivity = createTestActivity(1L);		
+		testActivity2 = createTestActivity(2L);		
 	}
 	
 	@After
@@ -128,10 +124,14 @@ public class NodeDAOImplTest {
 				}
 			}
 		}
-		
-		if(testActivity != null && activityDAO != null) {
-			activityDAO.delete(testActivity.getId());
-			activityDAO.delete(testActivity2.getId());
+		if(activitiesToDelete != null & activityDAO != null) {
+			for(String id : activitiesToDelete) {
+				try {
+					activityDAO.delete(id);
+				} catch (NotFoundException e) {
+					// thats ok too
+				}			
+			}
 		}
 	}
 	
@@ -1949,5 +1949,21 @@ public class NodeDAOImplTest {
 		// The root should have children but the child should not
 		assertTrue(nodeDao.doesNodeHaveChildren(parentId));
 		assertFalse(nodeDao.doesNodeHaveChildren(child1Id));
+	}
+
+	
+	/*
+	 * Private Methods
+	 */
+	private Activity createTestActivity(Long id) {
+		Activity act = new Activity();
+		act.setId(id.toString());
+		act.setCreatedBy(creatorUserGroupId.toString());
+		act.setCreatedOn(new Date(System.currentTimeMillis()));
+		act.setModifiedBy(creatorUserGroupId.toString());
+		act.setModifiedOn(new Date(System.currentTimeMillis()));
+		Activity created = activityDAO.create(act);
+		activitiesToDelete.add(created.getId());
+		return created;
 	}
 }

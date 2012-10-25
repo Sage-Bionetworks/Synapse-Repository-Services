@@ -121,6 +121,10 @@
 		class="org.sagebionetworks.repo.manager.backup.AccessRequirementBackupDriver"
 		scope="singleton" />
 
+	<bean id="activityBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.ActivityBackupDriver"
+		scope="singleton" />
+
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />
 
@@ -189,6 +193,9 @@
 				<entry key="ACCESSREQUIREMENT">
 					<ref bean="accessRequirementBackupDriver" />
 				</entry>
+				<entry key="ACTIVITY">
+					<ref bean="activityBackupDriver" />
+				</entry>
 			</map>
 		</property>
 	</bean>
@@ -200,6 +207,7 @@
 				<ref bean="userGroupDAO"/>
 				<ref bean="nodeDao"/>
 				<ref bean="accessRequirementDAO"/>
+				<ref bean="activityDao"/>
 			</list>
 		</property>
 	</bean>

@@ -56,7 +56,7 @@
 			"enum": [
 				"CODE_EXECUTION", 
 				"MANUAL", 
-				"UNDEFINED", 
+				"UNDEFINED" 
 			]
 		},
 		"used": {

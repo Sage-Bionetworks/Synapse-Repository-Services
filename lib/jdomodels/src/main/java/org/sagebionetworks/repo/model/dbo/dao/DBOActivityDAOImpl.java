@@ -100,6 +100,13 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		return update(dto, false);
 	}
 
+	@Override
+	public <T extends Activity> T updateFromBackup(T dto)
+			throws InvalidModelException, NotFoundException,
+			ConflictingUpdateException, DatastoreException {
+		return update(dto, true);
+	}
+
 	/**
 	 * @param fromBackup Whether we are updating from backup.
 	 *                   Skip optimistic locking and accept the backup e-tag when restoring from backup.

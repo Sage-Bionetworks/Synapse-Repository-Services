@@ -28,6 +28,19 @@ public interface ActivityDAO extends MigratableDAO {
 			NotFoundException, ConflictingUpdateException, DatastoreException;
 
 	/**
+	 * Updates the 'shallow' properties of an object from backup.
+	 * @param <T>
+	 * @param activity
+	 * @return
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 */
+	public <T extends Activity> T updateFromBackup(T activity) throws InvalidModelException,
+	NotFoundException, ConflictingUpdateException, DatastoreException;
+	
+	/**
 	 * Retrieves the object given its id
 	 * 
 	 * @param id

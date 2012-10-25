@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -138,8 +139,18 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	public boolean canAccessActivity(UserInfo userInfo, String activityId) {
 		if(userInfo.isAdmin()) return true;
 		
+		// check if owner
+		Activity act;
+		try {
+			act = activityDAO.get(activityId);
+			if(act.getCreatedBy().equals(userInfo.getIndividualGroup().getId()))
+				return true;
+		} catch (Exception e) {
+			return false;
+		}
+		
+		// check if user has read access to any in result set (could be empty)
 		List<Reference> generatedBy = activityDAO.getEntitiesGeneratedBy(activityId);				
-		// check if has read access to any in result set
 		for(Reference ref : generatedBy) {
 			if(ref.getTargetId() == null) continue;
 			try {
