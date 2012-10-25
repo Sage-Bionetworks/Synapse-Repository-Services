@@ -17,18 +17,18 @@
             "type":"string",
             "description":"The user defined version label of the entity"            
         },
+        "modifiedBy": {
+            "type":"string",
+            "description":"The display name of the user that last modified this entity."
+        },
         "modifiedByPrincipalId": {
 						"type": "string",
-						"description": "The user that last modified this entity.",
-						"title": "Modified By",
-						"transient": true
+						"description": "The user that last modified this entity."
 				},
 				"modifiedOn": {
 					"type": "string",
 					"format": "date-time",
-					"description": "The date this entity was last modified.",
-					"title": "Modified On",
-					"transient": true
+					"description": "The date this entity was last modified."
 				}				
     }
 }
