@@ -1175,10 +1175,4 @@ public class IT500SynapseJavaClient {
 		assertEquals(expected,results);
 		
 	}
-	
-	@Ignore
-	@Test
-	public void testGetMigratableObjectCounts() throws SynapseException {
-		
-	}
 }

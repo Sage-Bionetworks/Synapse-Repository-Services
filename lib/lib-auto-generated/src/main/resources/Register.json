@@ -173,6 +173,14 @@
 			"name": "genomicdata",
 			"entityType": "org.sagebionetworks.repo.model.GenomicData",
 			"defaultParentPath": "/root"
+		},
+		{
+			"validParentTypes":[
+				"org.sagebionetworks.repo.model.Folder"
+			],
+			"name": "file",
+			"entityType": "org.sagebionetworks.repo.model.File",
+			"defaultParentPath": "/root"
 		}
     ]
 }
