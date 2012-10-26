@@ -101,7 +101,11 @@ public class DynamoSetupImpl implements DynamoSetup {
 		long endTime = startTime + timeoutInMillis;
 		while (System.currentTimeMillis() < endTime) {
 
-			try {Thread.sleep(delay);} catch (InterruptedException e) {}
+			try {
+				Thread.sleep(delay);
+			} catch (InterruptedException e) {
+				throw new RuntimeException(e);
+			}
 
 			// Check readiness
 			boolean allActive = true;
