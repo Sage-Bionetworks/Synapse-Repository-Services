@@ -5,6 +5,7 @@
     "enum":[
         "OPEN",
         "CLOSED",
-        "SCORED"
+        "SCORED",
+        "INVALID"
     ]
 }

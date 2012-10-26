@@ -38,7 +38,7 @@ public class CompetitionDBO implements DatabaseObject<CompetitionDBO>, TaggableE
 			new FieldColumn("ownerId", COL_COMPETITION_OWNER_ID),
 			new FieldColumn("createdOn", COL_COMPETITION_CREATED_ON),
 			new FieldColumn("contentSource", COL_COMPETITION_CONTENT_SOURCE),
-			new FieldColumn("status", COL_COMPETITION_STATUS),
+			new FieldColumn("status", COL_COMPETITION_STATUS)
 			};
 
 	public TableMapping<CompetitionDBO> getTableMapping() {
@@ -219,7 +219,7 @@ public class CompetitionDBO implements DatabaseObject<CompetitionDBO>, TaggableE
 		return "DBOCompetition [id=" + id + ", name=" + name + ", eTag=" + eTag 
 				+ ", description=" + description + ", ownerId=" + ownerId 
 				+ ", createdOn=" + createdOn + ", contentSource=" 
-				+ contentSource + ", status=" + status + "]";
+				+ contentSource + ", status=" + CompetitionStatus.values()[status].toString() + "]";
 	}
 
 }
