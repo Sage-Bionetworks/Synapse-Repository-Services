@@ -118,22 +118,6 @@ public class DynamoSetupImplTest {
 		when(ltResult.getTableNames()).thenReturn(new ArrayList<String>());
 		when(this.mockDynamoClient.listTables()).thenReturn(ltResult);
 
-		/*
-		DescribeTableRequest dtRequest = new DescribeTableRequest().withTableName(
-				StackConfiguration.getStack() + "-" + tableName);
-
-		ProvisionedThroughputDescription throughputDesc = new ProvisionedThroughputDescription()
-				.withReadCapacityUnits(1L)
-				.withWriteCapacityUnits(2L);
-		TableDescription tableDesc = new TableDescription()
-				.withKeySchema(keySchema)
-				.withProvisionedThroughput(throughputDesc)
-				.withTableStatus(TableStatus.CREATING);
-		DescribeTableResult dtResult = mock(DescribeTableResult.class);
-		when(dtResult.getTable()).thenReturn(tableDesc);
-		when(this.mockDynamoClient.describeTable(dtRequest)).thenReturn(dtResult);
-		*/
-
 		DynamoKey hashKey = new DynamoKey("hash", ScalarAttributeType.N);
 		DynamoKey rangeKey = new DynamoKey("range", ScalarAttributeType.S);
 		DynamoKeySchema kSchema = new DynamoKeySchema(hashKey, rangeKey);
