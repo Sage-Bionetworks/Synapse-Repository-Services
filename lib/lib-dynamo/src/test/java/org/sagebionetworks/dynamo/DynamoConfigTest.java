@@ -16,13 +16,13 @@ public class DynamoConfigTest {
 		Assert.assertNotNull(tables);
 		Iterator<DynamoTable> it = tables.iterator();
 		DynamoTable table = it.next();
-		Assert.assertEquals(StackConfiguration.getStack() + "-" + "NodeTree", table.getTableName());
+		Assert.assertEquals(StackConfiguration.getStack() + "-" + "NodePath", table.getTableName());
 		Assert.assertNotNull(table.getKeySchema());
 		Assert.assertNotNull(table.getKeySchema().getHashKey());
-		Assert.assertEquals("NodeId", table.getKeySchema().getHashKey().getKeyName());
-		Assert.assertEquals(ScalarAttributeType.N, table.getKeySchema().getHashKey().getKeyType());
+		Assert.assertEquals("NodeId_PathType", table.getKeySchema().getHashKey().getKeyName());
+		Assert.assertEquals(ScalarAttributeType.S, table.getKeySchema().getHashKey().getKeyType());
 		Assert.assertNotNull(table.getKeySchema().getRangeKey());
-		Assert.assertEquals("PathFromRoot", table.getKeySchema().getRangeKey().getKeyName());
+		Assert.assertEquals("Path", table.getKeySchema().getRangeKey().getKeyName());
 		Assert.assertEquals(ScalarAttributeType.S, table.getKeySchema().getRangeKey().getKeyType());
 		Assert.assertNotNull(table.getThroughput());
 		Assert.assertEquals(1L, table.getThroughput().getReadThroughput().longValue());
