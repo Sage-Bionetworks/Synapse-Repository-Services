@@ -19,10 +19,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface NodeManager {
-	
-	// for testing (in prod it's autowired)
-	public void setAuthorizationManager(AuthorizationManager authorizationManager);
-	
+		
 	/**
 	 * Create a new no
 	 * @param userId

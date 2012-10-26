@@ -234,13 +234,6 @@ public interface EntityManager {
 	public <T extends Entity> T getEntityForVersion(UserInfo userInfo, String entityId, Long versionNumber, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
-	 * Used to override this dao for a test.
-	 * @param mockAuth
-	 */
-	public void overrideAuthDaoForTest(AuthorizationManager mockAuth);
-
-
-	/**
 	 * @param userInfo
 	 * @param entityId
 	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'

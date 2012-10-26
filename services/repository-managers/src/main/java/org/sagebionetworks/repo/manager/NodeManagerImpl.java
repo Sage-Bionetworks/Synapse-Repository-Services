@@ -61,10 +61,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Autowired 
 	private ActivityManager activityManager;
 	
-	// for testing (in prod it's autowired)
-	public void setAuthorizationManager(AuthorizationManager authorizationManager) {
-		 this.authorizationManager =  authorizationManager;
-	}
 	
 	/**
 	 * This is used for unit test.

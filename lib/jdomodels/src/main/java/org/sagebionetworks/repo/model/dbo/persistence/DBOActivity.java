@@ -220,6 +220,11 @@ public class DBOActivity implements DatabaseObject<DBOActivity>, ObservableEntit
 				+ ", serializedObject=" + Arrays.toString(serializedObject)
 				+ "]";
 	}
+
+	@Override
+	public String getParentIdString() {
+		return null;
+	}
 	
 
 }

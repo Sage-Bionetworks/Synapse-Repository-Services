@@ -59,7 +59,6 @@ public class EntityManagerImplAutowireTest {
 		
 		toDelete = new ArrayList<String>();
 		mockAuth = Mockito.mock(AuthorizationManager.class);
-		entityManager.overrideAuthDaoForTest(mockAuth);
 		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
 

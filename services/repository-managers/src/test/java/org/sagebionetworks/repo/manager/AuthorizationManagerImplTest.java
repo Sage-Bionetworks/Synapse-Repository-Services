@@ -18,7 +18,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -57,6 +56,7 @@ public class AuthorizationManagerImplTest {
 	private UserInfo userInfo = null;
 	private UserInfo adminUser;
 	private static final String TEST_USER = "test-user";
+	private Random rand = null;
 	
 	private List<String> usersToDelete;
 	private List<String> activitiesToDelete;
@@ -94,7 +94,7 @@ public class AuthorizationManagerImplTest {
 		adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		usersToDelete.add(adminUser.getIndividualGroup().getId());
 		usersToDelete.add(adminUser.getUser().getId());
-		Random rand = new Random();
+		rand = new Random();
 		// create a resource
 		node = createNode("foo_"+rand.nextLong(), adminUser, 2L, null, null);
 		nodeList.add(node);
@@ -515,20 +515,16 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanEnableInheritance()); // ... except this
 		assertEquals(nodeCreatedByTestUser.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
 	}
-
+	
 	@Test
 	public void testCanAccessActivity() throws Exception {
-		AccessControlList acl = permissionsManager.getACL(node.getId(), userInfo);
-		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
-		acl = permissionsManager.updateACL(acl, adminUser);
-		
 		// create an activity
 		Activity act = activityManager.createActivity(userInfo, new Activity());
 		String activityId = act.getId();
 		assertNotNull(activityId);
 		activitiesToDelete.add(activityId);
-		Node node = createNode("someActNode", userInfo, Long.parseLong(userInfo.getIndividualGroup().getId()), null, activityId);
-		nodeList.add(node);
+		nodeCreatedByTestUser.setActivityId(activityId);
+		nodeManager.update(userInfo, nodeCreatedByTestUser);
 		
 		// test access
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId);		
@@ -537,17 +533,13 @@ public class AuthorizationManagerImplTest {
 	
 	@Test
 	public void testCanAccessActivityFail() throws Exception {
-		AccessControlList acl = permissionsManager.getACL(node.getId(), userInfo);
-		acl = AuthorizationHelper.addToACL(acl, userInfo.getIndividualGroup(), ACCESS_TYPE.READ);
-		acl = permissionsManager.updateACL(acl, adminUser);
-		
 		// create an activity
 		Activity act = activityManager.createActivity(adminUser, new Activity());
 		String activityId = act.getId();
 		assertNotNull(activityId);
 		activitiesToDelete.add(activityId);
-		Node node = createNode("someActNode", adminUser, Long.parseLong(userInfo.getIndividualGroup().getId()), null, activityId);
-		nodeList.add(node);
+		node.setActivityId(activityId);
+		nodeManager.update(adminUser, node);
 		
 		// test access
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId);		

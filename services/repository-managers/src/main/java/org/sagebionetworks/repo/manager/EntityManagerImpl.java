@@ -347,11 +347,6 @@ public class EntityManagerImpl implements EntityManager {
 		annos.setEtag(entity.getEtag());
 	}
 
-	@Override
-	public void overrideAuthDaoForTest(AuthorizationManager mockAuth) {
-		nodeManager.setAuthorizationManager(mockAuth);
-	}
-
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> List<String> aggregateEntityUpdate(
