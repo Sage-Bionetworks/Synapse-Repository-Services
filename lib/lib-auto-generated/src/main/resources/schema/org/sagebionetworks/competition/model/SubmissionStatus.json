@@ -1,0 +1,10 @@
+{
+    "description":"JSON schema for the possible states of a Synapse Submission.",
+    "name": "SubmissionStatus",
+    "type":"string",
+    "enum":[
+        "OPEN",
+        "CLOSED",
+        "SCORED"
+    ]
+}

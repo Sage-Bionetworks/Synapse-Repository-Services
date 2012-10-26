@@ -2,7 +2,7 @@
 	"description": "Schema defining a Participant object in a Synapse Competition.",
 	"name": "Participant",
 	"properties": {
-		"id": {
+		"userId": {
 			"type": "string",
 			"description": "The Synapse ID of this Participant.",
 			"transient": true
@@ -11,6 +11,11 @@
 			"type": "string",
 			"description": "The ID of the Competition in which this Participant is partaking.",
 			"transient": true
+		},
+		"name": {
+			"type": "string",
+			"description": "The display name of this Participant.",
+			"title": "Name"
 		},
 		"createdOn": {
 			"type": "string",

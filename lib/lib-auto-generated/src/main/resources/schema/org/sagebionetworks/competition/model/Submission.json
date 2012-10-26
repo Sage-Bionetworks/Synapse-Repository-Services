@@ -1,0 +1,54 @@
+{
+	"description": "Schema defining a Submission to a Synapse Competition",
+	"name": "Submission",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The unique, immutable Synapse ID of this Submission.",
+			"transient": true
+		},
+		"userId": {
+			"type": "string",
+			"description": "The Synapse ID of the owner of this Submission.",
+			"transient": true
+		},
+		"competitionId": {
+			"type": "string",
+			"description": "The Synapse ID of the Competition this Submission is for.",
+			"transient": true
+		},
+		"entityId": {
+			"type": "string",
+			"description": "The Synapse ID of the Entity in this Submission.",
+			"transient": true
+		},
+		"versionNumber":{
+            "type":"integer",
+            "description":"The version number of the Entity"            
+        },
+		"ownerId": {
+			"type": "string",
+			"description": "The ID of the owner of this Competition.",
+			"transient": true
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date on which Competition was created.",
+			"title": "Created On",
+			"transient": true
+		},
+		"status": {
+			"type": "object",
+			"description": "The current status of this Competition.",
+			"name": "Status",
+			"$ref": "org.sagebionetworks.competition.model.SubmissionStatus"
+		},
+		"score": {
+			"type": "integer",
+			"description": "The score for this Submission.",
+			"title": "Score",
+			"transient": true
+		}
+	}
+}
