@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.competition.dbo.CompetitionDBO;
+import org.sagebionetworks.competition.dbo.DBOConstants;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.query.jdo.SQLConstants;
 import org.sagebionetworks.competition.util.Utility;
@@ -39,12 +40,12 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
-	private static final String ID_PARAM_NAME = "id";
-	private static final String NAME_PARAM_NAME = "name";
+	private static final String ID = DBOConstants.PARAM_COMPETITION_ID;
+	private static final String NAME = DBOConstants.PARAM_COMPETITION_NAME;
 	
 	private static final String SELECT_BY_NAME_SQL = 
 			"SELECT * FROM "+ SQLConstants.TABLE_COMPETITION +
-			" WHERE "+ SQLConstants.COL_COMPETITION_NAME + "=:"+NAME_PARAM_NAME;
+			" WHERE "+ SQLConstants.COL_COMPETITION_NAME + "=:"+NAME;
 	
 	private static final String SELECT_ALL_SQL_PAGINATED = 
 			"SELECT * FROM "+ SQLConstants.TABLE_COMPETITION +
@@ -52,9 +53,9 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 			" OFFSET :" + SQLConstants.OFFSET_PARAM_NAME;
 	
 	private static final String COUNT_COMPETITIONS_BY_ID_SQL = 
-			"SELECT COUNT(" + ID_PARAM_NAME + ") FROM " + 
+			"SELECT COUNT(" + ID + ") FROM " + 
 			SQLConstants.TABLE_COMPETITION + " WHERE "+ 
-			ID_PARAM_NAME + "=:" + ID_PARAM_NAME;
+			ID + "=:" + ID;
 	
 	private static final RowMapper<CompetitionDBO> rowMapper = ((new CompetitionDBO()).getTableMapping());
 
@@ -100,7 +101,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	@Override
 	public Competition get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID, id);
 		CompetitionDBO dbo = basicDao.getObjectById(CompetitionDBO.class, param);
 		Competition dto = new Competition();
 		copyDboToDto(dbo, dto);
@@ -133,7 +134,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	@Override
 	public Competition find(String name) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(NAME_PARAM_NAME, name);
+		param.addValue(NAME, name);
 		List<CompetitionDBO> comps = simpleJdbcTemplate.query(SELECT_BY_NAME_SQL, rowMapper, param);
 		if (comps.size() > 1) 
 			throw new DatastoreException("Expected 0-1 Competitions but found " + comps.size());
@@ -159,14 +160,14 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID_PARAM_NAME, id);
+		param.addValue(ID, id);
 		basicDao.deleteObjectById(CompetitionDBO.class, param);		
 	}
 	
 	@Transactional(readOnly = true)
 	public boolean doesIdExist(Long id) {
 		Map<String, Object> parameters = new HashMap<String, Object>();
-		parameters.put(ID_PARAM_NAME, id);
+		parameters.put(ID, id);
 		try {
 			long count = simpleJdbcTemplate.queryForLong(COUNT_COMPETITIONS_BY_ID_SQL, parameters);
 			return count > 0;

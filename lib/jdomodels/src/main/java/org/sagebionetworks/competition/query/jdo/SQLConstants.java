@@ -29,7 +29,7 @@ public class SQLConstants {
 	// Submission table constants
 	public static final String DDL_FILE_SUBMISSION				= "schema/competition/Submission-ddl.sql";
 	public static final String TABLE_SUBMISSION					= "JDOSUBMISSION";
-	public static final String COL_SUBMISSION_ID 				= "SUBMISSION_ID";
+	public static final String COL_SUBMISSION_ID 				= "ID";
 	public static final String COL_SUBMISSION_COMP_ID 			= "COMPETITION_ID";
 	public static final String COL_SUBMISSION_USER_ID 			= "USER_ID";
 	public static final String COL_SUBMISSION_ENTITY_ID 		= "ENTITY_ID";

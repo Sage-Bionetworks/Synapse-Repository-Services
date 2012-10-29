@@ -1,16 +1,7 @@
 package org.sagebionetworks.competition.dbo;
 
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.DDL_FILE_COMPETITION;
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.TABLE_COMPETITION;
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.COL_COMPETITION_ID;
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.COL_COMPETITION_ETAG;
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.COL_COMPETITION_NAME;
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.COL_COMPETITION_DESCRIPTION;
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.COL_COMPETITION_OWNER_ID;
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.COL_COMPETITION_CREATED_ON;
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.COL_COMPETITION_CONTENT_SOURCE;
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.COL_COMPETITION_STATUS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
+import static org.sagebionetworks.competition.query.jdo.SQLConstants.*;
+import static org.sagebionetworks.competition.dbo.DBOConstants.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -31,14 +22,14 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 public class CompetitionDBO implements DatabaseObject<CompetitionDBO>, TaggableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("id", COL_COMPETITION_ID, true),
-			new FieldColumn("eTag", COL_NODE_ETAG),
-			new FieldColumn("name", COL_COMPETITION_NAME),
-			new FieldColumn("description", COL_COMPETITION_DESCRIPTION),
-			new FieldColumn("ownerId", COL_COMPETITION_OWNER_ID),
-			new FieldColumn("createdOn", COL_COMPETITION_CREATED_ON),
-			new FieldColumn("contentSource", COL_COMPETITION_CONTENT_SOURCE),
-			new FieldColumn("status", COL_COMPETITION_STATUS)
+			new FieldColumn(PARAM_COMPETITION_ID, COL_COMPETITION_ID, true),
+			new FieldColumn(PARAM_COMPETITION_ETAG, COL_COMPETITION_ETAG),
+			new FieldColumn(PARAM_COMPETITION_NAME, COL_COMPETITION_NAME),
+			new FieldColumn(PARAM_COMPETITION_DESCRIPTION, COL_COMPETITION_DESCRIPTION),
+			new FieldColumn(PARAM_COMPETITION_OWNER_ID, COL_COMPETITION_OWNER_ID),
+			new FieldColumn(PARAM_COMPETITION_CREATED_ON, COL_COMPETITION_CREATED_ON),
+			new FieldColumn(PARAM_COMPETITION_CONTENT_SOURCE, COL_COMPETITION_CONTENT_SOURCE),
+			new FieldColumn(PARAM_COMPETITION_STATUS, COL_COMPETITION_STATUS)
 			};
 
 	public TableMapping<CompetitionDBO> getTableMapping() {

@@ -1,11 +1,7 @@
 package org.sagebionetworks.competition.dbo;
 
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.DDL_FILE_PARTICIPANT;
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.TABLE_PARTICIPANT;
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.COL_PARTICIPANT_USER_ID;
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.COL_PARTICIPANT_COMP_ID;
-import static org.sagebionetworks.competition.query.jdo.SQLConstants.COL_PARTICIPANT_CREATED_ON;
-
+import static org.sagebionetworks.competition.query.jdo.SQLConstants.*;
+import static org.sagebionetworks.competition.dbo.DBOConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -25,9 +21,9 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 public class ParticipantDBO implements DatabaseObject<ParticipantDBO>, TaggableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("userId", COL_PARTICIPANT_USER_ID, true),
-			new FieldColumn("compId", COL_PARTICIPANT_COMP_ID, true),
-			new FieldColumn("createdOn", COL_PARTICIPANT_CREATED_ON),
+			new FieldColumn(PARAM_PARTICIPANT_USER_ID, COL_PARTICIPANT_USER_ID, true),
+			new FieldColumn(PARAM_PARTICIPANT_COMP_ID, COL_PARTICIPANT_COMP_ID, true),
+			new FieldColumn(PARAM_PARTICIPANT_CREATED_ON, COL_PARTICIPANT_CREATED_ON),
 			};
 
 	public TableMapping<ParticipantDBO> getTableMapping() {
@@ -89,6 +85,44 @@ public class ParticipantDBO implements DatabaseObject<ParticipantDBO>, TaggableE
 	public String toString() {
 		return "DBOCompetition [userId=" + userId + ", compId=" + compId 
 				+ ", createdOn=" + createdOn + "]";
+	}
+	
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((compId == null) ? 0 : compId.hashCode());
+		result = prime * result
+				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
+		return result;
+	}
+	
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		ParticipantDBO other = (ParticipantDBO) obj;
+		if (compId == null) {
+			if (other.compId != null)
+				return false;
+		} else if (!compId.equals(other.compId))
+			return false;
+		if (createdOn == null) {
+			if (other.createdOn != null)
+				return false;
+		} else if (!createdOn.equals(other.createdOn))
+			return false;
+		if (userId == null) {
+			if (other.userId != null)
+				return false;
+		} else if (!userId.equals(other.userId))
+			return false;
+		return true;
 	}
 
 }

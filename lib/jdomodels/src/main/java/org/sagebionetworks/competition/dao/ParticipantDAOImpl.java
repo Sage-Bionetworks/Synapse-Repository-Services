@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.competition.dbo.CompetitionDBO;
+import org.sagebionetworks.competition.dbo.DBOConstants;
 import org.sagebionetworks.competition.dbo.ParticipantDBO;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.Participant;
@@ -35,22 +36,15 @@ public class ParticipantDAOImpl{
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
-	private static final String ID_PARAM_NAME = "id";
-	private static final String NAME_PARAM_NAME = "name";
-	
-	private static final String SELECT_BY_NAME_SQL = 
-			"SELECT * FROM "+ SQLConstants.TABLE_COMPETITION +
-			" WHERE "+ SQLConstants.COL_COMPETITION_NAME + "=:"+NAME_PARAM_NAME;
-	
 	private static final String SELECT_ALL_SQL_PAGINATED = 
-			"SELECT * FROM "+ SQLConstants.TABLE_COMPETITION +
+			"SELECT * FROM "+ SQLConstants.TABLE_PARTICIPANT +
 			" LIMIT :"+ SQLConstants.LIMIT_PARAM_NAME +
 			" OFFSET :" + SQLConstants.OFFSET_PARAM_NAME;
 	
-	private static final String COUNT_COMPETITIONS_BY_ID_SQL = 
-			"SELECT COUNT(" + ID_PARAM_NAME + ") FROM " + 
-			SQLConstants.TABLE_COMPETITION + " WHERE "+ 
-			ID_PARAM_NAME + "=:" + ID_PARAM_NAME;
+	private static final String SELECT_BY_COMPETITION_SQL = 
+			"SELECT * FROM "+ SQLConstants.TABLE_PARTICIPANT +
+			" WHERE "+ SQLConstants.COL_PARTICIPANT_COMP_ID + "=:"+ 
+			DBOConstants.PARAM_PARTICIPANT_COMP_ID;
 	
 	private static final RowMapper<CompetitionDBO> rowMapper = ((new CompetitionDBO()).getTableMapping());
 
