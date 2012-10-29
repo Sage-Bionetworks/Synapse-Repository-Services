@@ -78,6 +78,8 @@ public class LayerMetadataProvider implements
 	 * 
 	 * These sorts of failures are not fatal and should not cause the user's
 	 * primary request to fail.
+	 * 
+	 * THIS SHOULD BE DELETED FOR ANALYSIS CLEANUP
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	private void updateProvenanceRecord(String stepId, Data entity,
@@ -103,7 +105,7 @@ public class LayerMetadataProvider implements
 			else {
 				log.warning("Failed to update provenance record for unhandled layer event type: " + eventType);
 			}
-			entityManager.updateEntity(user, step, false);
+			entityManager.updateEntity(user, step, false, null);
 		} 
 		// Sorry for the big catch block, its not a good habit to just catch Exception
 		// Note with Java SE 7 we'll be able to catch more than one type of exception with one exception handler 

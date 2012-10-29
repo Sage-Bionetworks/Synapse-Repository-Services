@@ -55,7 +55,7 @@ public class SearchControllerTest {
 		// Create an project
 		project = new Project();
 		project.setName("SearchControllerTest");
-		project = provider.getEntityService().createEntity(TestUserDAO.TEST_USER_NAME, project,  new MockHttpServletRequest());
+		project = provider.getEntityService().createEntity(TestUserDAO.TEST_USER_NAME, project, null, new MockHttpServletRequest());
 		// Push this to the serach index
 		Document doc = documentProvider.formulateSearchDocument(project.getId());
 		searchDao.createOrUpdateSearchDocument(doc);

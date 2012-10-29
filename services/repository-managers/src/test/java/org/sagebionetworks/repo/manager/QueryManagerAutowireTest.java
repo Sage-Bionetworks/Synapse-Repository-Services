@@ -79,7 +79,7 @@ public class QueryManagerAutowireTest {
 		
 		Project project = new Project();
 		project.setName("QueryManagerAutowireTest.rootProject2");
-		String id = entityManager.createEntity(userInfo, project);
+		String id = entityManager.createEntity(userInfo, project, null);
 		project.setId(id);
 		toDelete.add(project.getId());
 		
@@ -89,7 +89,7 @@ public class QueryManagerAutowireTest {
 		for(int i=0; i<totalEntities; i++){
 			Study ds = createForTest(i);
 			ds.setParentId(project.getId());
-			String dsId = entityManager.createEntity(userInfo, ds);
+			String dsId = entityManager.createEntity(userInfo, ds, null);
 			ds.setId(dsId);
 			assertNotNull(ds);
 			assertNotNull(ds.getId());
@@ -109,7 +109,7 @@ public class QueryManagerAutowireTest {
 			// Add a layer to each dataset
 			Data inLayer = createLayerForTest(i);
 			inLayer.setParentId(ds.getId());
-			String lid = entityManager.createEntity(userInfo, inLayer);
+			String lid = entityManager.createEntity(userInfo, inLayer, null);
 			inLayer.setId(id);
 		}
 		

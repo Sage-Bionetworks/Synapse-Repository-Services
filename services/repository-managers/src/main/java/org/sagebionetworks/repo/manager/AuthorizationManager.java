@@ -53,4 +53,12 @@ public interface AuthorizationManager {
 	 */
 	public UserEntityPermissions getUserPermissionsForEntity(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException;
 
+	/**
+	 * 
+	 * @param userInfo UserInfo of the user in question
+	 * @param activityId activity that generated the entities
+	 * @return Returns true if the specified user can read at least one entity with the specified activity Id
+	 */
+	public boolean canAccessActivity(UserInfo userInfo, String activityId);
+	
 }

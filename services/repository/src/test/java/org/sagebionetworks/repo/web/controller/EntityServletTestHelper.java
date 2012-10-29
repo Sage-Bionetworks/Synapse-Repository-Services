@@ -84,7 +84,7 @@ public class EntityServletTestHelper {
 	 * @throws NotFoundException 
 	 * @throws Exception
 	 */
-	public Entity createEntity(Entity entity, String username)
+	public Entity createEntity(Entity entity, String username, String activityId)
 			throws JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException, NameConflictException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -92,6 +92,7 @@ public class EntityServletTestHelper {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
+		request.setParameter(ServiceConstants.GENERATED_BY_PARAM, activityId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		String body = EntityFactory.createJSONStringForEntity(entity);

@@ -1,5 +1,5 @@
 package org.sagebionetworks.repo.manager;
-
+  
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.InitializingBean;
@@ -57,11 +58,9 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private NodeInheritanceManager nodeInheritanceManager;	
 	@Autowired
 	private ReferenceDao referenceDao;
+	@Autowired 
+	private ActivityManager activityManager;
 	
-	// for testing (in prod it's autowired)
-	public void setAuthorizationManager(AuthorizationManager authorizationManager) {
-		 this.authorizationManager =  authorizationManager;
-	}
 	
 	/**
 	 * This is used for unit test.
@@ -70,13 +69,14 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 */
 	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, 
 			AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper, 
-			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao){
+			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao, ActivityManager activityManager){
 		this.nodeDao = nodeDao;
 		this.authorizationManager = authDoa;
 		this.aclDAO = aclDao;
 		this.entityBootstrapper = entityBootstrapper;
 		this.nodeInheritanceManager = nodeInheritanceManager;
 		this.referenceDao = referenceDao;
+		this.activityManager = activityManager;
 	}
 	
 	/**
@@ -122,6 +122,15 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// check whether the user is allowed to create this type of node
 		if (!authorizationManager.canCreate(userInfo, newNode)) {
 			throw new UnauthorizedException(userInfo.getUser().getUserId()+" is not allowed to create items of type "+newNode.getNodeType());
+		}
+
+		// check whether the user is allowed to connect to the specified activity
+		String activityId = newNode.getActivityId();
+		if(activityId != null) {
+			if(!activityManager.doesActivityExist(activityId)) 
+				throw new NotFoundException("Activity id " + activityId + " not found.");
+			if(!authorizationManager.canAccessActivity(userInfo, activityId))
+				throw new UnauthorizedException(userInfo.getUser().getUserId() +" lacks change access to the specified activity object.");
 		}
 
 		// If they are allowed then let them create the node
@@ -285,6 +294,16 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(updatedAnnos != null){
 			if(!updatedNode.getETag().equals(updatedAnnos.getEtag())) throw new IllegalArgumentException("The passed node and annotations do not have the same eTag");
 		}
+		
+		// check whether the user is allowed to connect to the specified activity
+		String activityId = updatedNode.getActivityId();
+		if(activityId != null) {
+			if(!activityManager.doesActivityExist(activityId)) 
+				throw new NotFoundException("Activity id " + activityId + " not found.");
+			if(!authorizationManager.canAccessActivity(userInfo, activityId))
+				throw new UnauthorizedException(userInfo.getUser().getUserId() +" lacks change access to the specified activity object.");
+		}
+		
 		// Now lock this node
 		String nextETag = nodeDao.lockNodeAndIncrementEtag(updatedNode.getId(), updatedNode.getETag());
 		
@@ -518,6 +537,35 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
 		return nodeDao.getVersionsOfEntity(entityId, offset, limit);
+	}
+
+	@Override
+	public Activity getActivityForNode(UserInfo userInfo, String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
+		String activityId = null;
+		if(versionNumber != null)
+			activityId = nodeDao.getActivityId(nodeId, versionNumber);
+		else 
+			activityId = nodeDao.getActivityId(nodeId);
+		return activityManager.getActivity(userInfo, activityId);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void setActivityForNode(UserInfo userInfo, String nodeId,
+			String activityId) throws NotFoundException, UnauthorizedException,
+			DatastoreException {
+		Node toUpdate = get(userInfo, nodeId);
+		toUpdate.setActivityId(activityId);
+		update(userInfo, toUpdate);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
+			throws NotFoundException, UnauthorizedException, DatastoreException {
+		Node toUpdate = get(userInfo, nodeId);
+		toUpdate.setActivityId(null);
+		update(userInfo, toUpdate);
 	}
 
 }

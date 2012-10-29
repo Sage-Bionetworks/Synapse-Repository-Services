@@ -16,8 +16,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ExampleEntity;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.sample.Example;
 import org.sagebionetworks.sample.ExampleContainer;
+import org.sagebionetworks.schema.adapter.AdapterFactory;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -160,5 +162,17 @@ public class JSONEntityHttpMessageConverterTest {
 		adapter.put("entityType", ExampleEntity.class.getName());
 		adapter.put("notAField", "shoudld not exist");
 		JSONEntityHttpMessageConverter.createEntityFromeAdapter(adapter);
+	}
+	
+	@Test
+	public void testReadActivity() throws Exception {
+		Activity act = new Activity();
+		act.setId("123");
+		// To string
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();		
+		String jsonString = act.writeToJSONObject(adapter).toJSONString();
+		StringReader reader = new StringReader(jsonString);
+		Activity clone = JSONEntityHttpMessageConverter.readActivity(reader);
+		assertEquals(act, clone);		
 	}
 }

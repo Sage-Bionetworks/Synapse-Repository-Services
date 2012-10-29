@@ -99,7 +99,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public EntityBundle createEntityBundle(String userId, EntityBundleCreate ebc, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+	public EntityBundle createEntityBundle(String userId, EntityBundleCreate ebc, String activityId, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
 		if (ebc.getEntity() == null) {
 			throw new IllegalArgumentException("Invalid request: no entity to create");
 		}
@@ -109,7 +109,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		// Create the Entity
 		partsMask += EntityBundle.ENTITY;
 		Entity toCreate = ebc.getEntity();
-		Entity entity = serviceProvider.getEntityService().createEntity(userId, toCreate, request);
+		Entity entity = serviceProvider.getEntityService().createEntity(userId, toCreate, activityId, request);
 		
 		// Create the ACL
 		if (ebc.getAccessControlList() != null) {
@@ -132,7 +132,11 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public EntityBundle updateEntityBundle(String userId, String entityId, EntityBundleCreate ebc, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+	public EntityBundle updateEntityBundle(String userId, String entityId,
+			EntityBundleCreate ebc, String activityId, HttpServletRequest request)
+			throws ConflictingUpdateException, DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException,
+			ACLInheritanceException, ParseException {
 		
 		int partsMask = 0;
 		
@@ -145,7 +149,7 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			if (!entityId.equals(ebc.getEntity().getId()))
 				throw new IllegalArgumentException("Entity does not match requested entity ID");
 			partsMask += EntityBundle.ENTITY;			
-			entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, request);
+			entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, activityId, request);
 			
 			// Update etag
 			if (acl != null)

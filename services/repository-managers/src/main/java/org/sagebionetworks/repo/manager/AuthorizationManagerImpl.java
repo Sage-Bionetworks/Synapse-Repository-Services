@@ -7,16 +7,19 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -27,7 +30,9 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;	
 	@Autowired
-	private AccessRequirementDAO  accessRequirementDAO;	
+	private AccessRequirementDAO  accessRequirementDAO;
+	@Autowired
+	private ActivityDAO activityDAO;
 	@Autowired
 	NodeQueryDao nodeQueryDao;	
 	@Autowired
@@ -128,5 +133,35 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		permission.setCanDownload(this.canDownload(userInfo, entityId));
 		permission.setCanEnableInheritance(!parentIsRoot && permission.getCanChangePermissions());
 		return permission;
+	}
+
+	@Override
+	public boolean canAccessActivity(UserInfo userInfo, String activityId) {
+		if(userInfo.isAdmin()) return true;
+		
+		// check if owner
+		Activity act;
+		try {
+			act = activityDAO.get(activityId);
+			if(act.getCreatedBy().equals(userInfo.getIndividualGroup().getId()))
+				return true;
+		} catch (Exception e) {
+			return false;
+		}
+		
+		// check if user has read access to any in result set (could be empty)
+		List<Reference> generatedBy = activityDAO.getEntitiesGeneratedBy(activityId);				
+		for(Reference ref : generatedBy) {
+			if(ref.getTargetId() == null) continue;
+			try {
+				if(canAccess(userInfo, ref.getTargetId(), ACCESS_TYPE.READ)) {
+					return true;
+				}
+			} catch (Exception e) {
+				// do nothing, same as false
+			}
+		}		
+		// no access found to generated entities, no access
+		return false;
 	}
 }
