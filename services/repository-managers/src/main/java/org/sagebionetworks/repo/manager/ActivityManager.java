@@ -16,11 +16,11 @@ public interface ActivityManager {
 	 * @param <T>
 	 * @param userInfo
 	 * @param activity
-	 * @return
+	 * @return the new activity id
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public Activity  createActivity(UserInfo userInfo, Activity activity) throws DatastoreException, InvalidModelException;
+	public String createActivity(UserInfo userInfo, Activity activity) throws DatastoreException, InvalidModelException;
 	
 
 	/**
@@ -45,7 +45,7 @@ public interface ActivityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public void deleteActivity(UserInfo userInfo, String activityId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public void deleteActivity(UserInfo userInfo, String activityId) throws DatastoreException, UnauthorizedException;
 
 	/**
 	 * Get activity for a given activity id

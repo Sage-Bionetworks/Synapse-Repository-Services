@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
@@ -27,8 +28,10 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.provenance.ActivityType;
+import org.sagebionetworks.repo.model.provenance.UsedEntity;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.AdapterFactory;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 
 public class ActivityManagerImplTest {
@@ -72,62 +75,67 @@ public class ActivityManagerImplTest {
 		assertNotNull(createdAct.getCreatedOn());
 		assertNotNull(createdAct.getModifiedBy());
 		assertNotNull(createdAct.getModifiedOn());
-		assertEquals(ActivityType.UNDEFINED, createdAct.getActivityType());
+	}
+
+	@Test
+	public void testCreateActivityFakePeople() throws Exception {
+		String id = "123";
+		when(mockIdGenerator.generateNewId()).thenReturn(new Long(id));
+		Activity act = new Activity();
+		String noOneUserId = "noone!";
+		act.setCreatedBy(noOneUserId);
+		act.setModifiedBy(noOneUserId);
+		activityManager.createActivity(normalUserInfo, act);
+		
+		ArgumentCaptor<Activity> captor = ArgumentCaptor.forClass(Activity.class);
+		verify(mockActivityDAO).create(captor.capture());
+		Activity createdAct = captor.getValue();
+		assertNotNull(createdAct);
+		assertFalse(createdAct.getCreatedBy().equals(noOneUserId));
+		assertFalse(createdAct.getModifiedBy().equals(noOneUserId));
 	}
 	
 	@Test
 	public void testUpdateActivity() throws Exception {
-		String id = "123";
-		Activity act = newTestActivity(id);
-		act.setCreatedBy(normalUserInfo.getUser().getId());
-		act.setModifiedBy(normalUserInfo.getUser().getId());
-		when(mockActivityDAO.get(anyString())).thenReturn(act);
-		
-		// deep copy so we modify a different object that what is returned by the DAO
-		Activity actToUpdate = new Activity(act.writeToJSONObject(adapterFactory.createNew()));
-		assertTrue(actToUpdate.getActivityType() != ActivityType.MANUAL); // just to be sure
-
-		Thread.sleep(100L); // ensure that the 'modifiedOn' date is later
-		long actModifiedOn = actToUpdate.getModifiedOn().getTime();
-		actToUpdate.setActivityType(ActivityType.MANUAL);
-		activityManager.updateActivity(normalUserInfo, actToUpdate);
-		
-		verify(mockActivityDAO).lockActivityAndIncrementEtag(id.toString(), actToUpdate.getEtag(), ChangeType.UPDATE);
-		ArgumentCaptor<Activity> captor = ArgumentCaptor.forClass(Activity.class);
-		verify(mockActivityDAO).update(captor.capture());
-		Activity actUpdated = captor.getValue();
-
-		assertTrue(actUpdated.getModifiedOn().getTime()-actModifiedOn>0);
-		assertTrue(actUpdated.getActivityType() == ActivityType.MANUAL);
+		updateTest(normalUserInfo, normalUserInfo);
 	}
-	
+
 	@Test
 	public void testUpdateActivityAdmin() throws Exception {
+		updateTest(normalUserInfo, adminUserInfo);
+	}
+
+	private void updateTest(UserInfo createWith, UserInfo updateWith) throws NotFoundException,
+			JSONObjectAdapterException, InterruptedException {
 		String id = "123";
+		String firstDesc = "firstDesc";
+		String secondDesc = "secondDesc";
 		Activity act = newTestActivity(id);
-		act.setCreatedBy(normalUserInfo.getUser().getId());
-		act.setModifiedBy(normalUserInfo.getUser().getId());
+		act.setCreatedBy(createWith.getUser().getId());
+		act.setModifiedBy(createWith.getUser().getId());
+		act.setDescription(firstDesc);
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
+		String originalEtag = act.getEtag();
 		
 		// deep copy so we modify a different object that what is returned by the DAO
 		Activity actToUpdate = new Activity(act.writeToJSONObject(adapterFactory.createNew()));
-		assertTrue(actToUpdate.getActivityType() != ActivityType.MANUAL); // just to be sure
+		assertFalse(actToUpdate.getDescription().equals(secondDesc)); // just to be sure
 
 		Thread.sleep(100L); // ensure that the 'modifiedOn' date is later
 		long actModifiedOn = actToUpdate.getModifiedOn().getTime();
-		actToUpdate.setActivityType(ActivityType.MANUAL);
-		activityManager.updateActivity(adminUserInfo, actToUpdate);
+		actToUpdate.setDescription(secondDesc);
+		when(mockActivityDAO.lockActivityAndGenerateEtag(id.toString(), originalEtag, ChangeType.UPDATE)).thenReturn("newETag");
+		when(mockActivityDAO.update(actToUpdate)).thenReturn(actToUpdate);
+		actToUpdate = activityManager.updateActivity(updateWith, actToUpdate);		
 		
-		verify(mockActivityDAO).lockActivityAndIncrementEtag(id.toString(), actToUpdate.getEtag(), ChangeType.UPDATE);
-		ArgumentCaptor<Activity> captor = ArgumentCaptor.forClass(Activity.class);
-		verify(mockActivityDAO).update(captor.capture());
-		Activity actUpdated = captor.getValue();
+		verify(mockActivityDAO).lockActivityAndGenerateEtag(id.toString(), originalEtag, ChangeType.UPDATE);		
+		verify(mockActivityDAO).update(actToUpdate);
 
-		assertTrue(actUpdated.getModifiedOn().getTime()-actModifiedOn>0);
-		assertTrue(actUpdated.getActivityType() == ActivityType.MANUAL);
+		assertTrue(actToUpdate.getModifiedOn().getTime()-actModifiedOn>0);
+		assertTrue(actToUpdate.getDescription().equals(secondDesc));
+		assertFalse(act.getEtag().equals(actToUpdate.getEtag()));
 	}
-
-	
+		
 	@Test(expected=UnauthorizedException.class)
 	public void testUpdateActivityAccessDenied() throws Exception {
 		String id = "123";
@@ -139,6 +147,33 @@ public class ActivityManagerImplTest {
 		activityManager.updateActivity(normalUserInfo, act);
 		fail("Should throw UnathorizedException due to invalid user for update");
 	}
+
+
+	@Test
+	public void testUpdateActivityFakePeople() throws Exception {
+		String id = "123";
+		when(mockIdGenerator.generateNewId()).thenReturn(new Long(id));
+		
+		// from database Activity
+		Activity act = newTestActivity(id);
+		act.setCreatedBy(normalUserInfo.getUser().getId());
+		act.setModifiedBy(normalUserInfo.getUser().getId());
+		String originalEtag = act.getEtag();
+		
+		// Activity to update with changed creator user id
+		String noOneUserId = "noone!";
+		Activity toUpdate = newTestActivity(id);		
+		toUpdate.setCreatedBy(noOneUserId);
+		toUpdate.setModifiedBy(noOneUserId);
+		when(mockActivityDAO.get(anyString())).thenReturn(act);
+		when(mockActivityDAO.lockActivityAndGenerateEtag(id.toString(), originalEtag, ChangeType.UPDATE)).thenReturn("newETag");
+		when(mockActivityDAO.update(toUpdate)).thenReturn(toUpdate);
+
+		Activity updatedActivity = activityManager.updateActivity(normalUserInfo, toUpdate); 					
+		assertNull(updatedActivity.getCreatedBy());
+		assertFalse(updatedActivity.getModifiedBy().equals(noOneUserId));
+	}
+	
 	
 	@Test
 	public void testDeleteActivity() throws Exception { 
@@ -149,8 +184,7 @@ public class ActivityManagerImplTest {
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 
 		activityManager.deleteActivity(normalUserInfo, id.toString());
-		
-		verify(mockActivityDAO).lockActivityAndIncrementEtag(id.toString(), act.getEtag(), ChangeType.DELETE);		
+				
 		verify(mockActivityDAO).delete(id.toString());
 	}
 	
@@ -163,8 +197,7 @@ public class ActivityManagerImplTest {
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 
 		activityManager.deleteActivity(adminUserInfo, id.toString());
-		
-		verify(mockActivityDAO).lockActivityAndIncrementEtag(id.toString(), act.getEtag(), ChangeType.DELETE);		
+				
 		verify(mockActivityDAO).delete(id.toString());
 	}
 	
@@ -191,6 +224,30 @@ public class ActivityManagerImplTest {
 		assertFalse(activityManager.doesActivityExist(id));
 	
 	}
+
+	@Test
+	public void testPopulateCreationFields() throws Exception {
+		Date beforePopulateDate = new Date();
+		Thread.sleep(100L); // ensure that the 'modifiedOn' date is later
+		Activity act = newTestActivity("123");
+		ActivityManagerImpl.populateCreationFields(normalUserInfo, act);
+		assertEquals(normalUserInfo.getIndividualGroup().getId(), act.getCreatedBy());
+		assertEquals(normalUserInfo.getIndividualGroup().getId(), act.getModifiedBy());
+		assertTrue(beforePopulateDate.before(act.getCreatedOn()));
+		assertTrue(beforePopulateDate.before(act.getModifiedOn()));
+	}
+	
+	@Test
+	public void testPopulateModifiedFields() throws Exception {
+		Date beforePopulateDate = new Date();
+		Thread.sleep(100L); // ensure that the 'modifiedOn' date is later
+		Activity act = newTestActivity("123");
+		ActivityManagerImpl.populateModifiedFields(normalUserInfo, act);
+		assertEquals(null, act.getCreatedBy());
+		assertEquals(normalUserInfo.getIndividualGroup().getId(), act.getModifiedBy());
+		assertNull(act.getCreatedOn());
+		assertTrue(beforePopulateDate.before(act.getModifiedOn()));
+	}
 	
 	/*
 	 * Private Methods
@@ -203,17 +260,15 @@ public class ActivityManagerImplTest {
 		act.setCreatedOn(new Date());
 		act.setModifiedBy("666");
 		act.setModifiedOn(new Date());
-		act.setActivityType(ActivityType.CODE_EXECUTION);
+		UsedEntity usedEnt = new UsedEntity();
 		Reference ref = new Reference();
 		ref.setTargetId("syn123");
 		ref.setTargetVersionNumber((long)1);
-		Set<Reference> used = new HashSet<Reference>();
-		used.add(ref);
+		usedEnt.setReference(ref);
+		usedEnt.setWasExecuted(true);
+		Set<UsedEntity> used = new HashSet<UsedEntity>();
+		used.add(usedEnt);
 		act.setUsed(used);
-		Reference executedEntity = new Reference();
-		executedEntity.setTargetId("syn456");
-		executedEntity.setTargetVersionNumber((long)1);
-		act.setExecutedEntity(executedEntity);
 		return act;
 	}
 

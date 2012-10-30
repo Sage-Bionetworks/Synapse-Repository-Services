@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.util.Date;
 import java.util.HashSet;
@@ -11,7 +11,7 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOActivity;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.provenance.ActivityType;
+import org.sagebionetworks.repo.model.provenance.UsedEntity;
 
 public class ActivityUtilsTest {
 
@@ -22,18 +22,16 @@ public class ActivityUtilsTest {
 		dto.setCreatedBy("555");
 		dto.setCreatedOn(new Date());
 		dto.setModifiedBy("666");
-		dto.setModifiedOn(new Date());
-		dto.setActivityType(ActivityType.CODE_EXECUTION);
+		dto.setModifiedOn(new Date());		
+		UsedEntity usedEnt = new UsedEntity();
 		Reference ref = new Reference();
 		ref.setTargetId("syn123");
 		ref.setTargetVersionNumber((long)1);
-		Set<Reference> used = new HashSet<Reference>();
-		used.add(ref);
+		usedEnt.setReference(ref);
+		usedEnt.setWasExecuted(true);
+		Set<UsedEntity> used = new HashSet<UsedEntity>();
+		used.add(usedEnt);
 		dto.setUsed(used);
-		Reference executedEntity = new Reference();
-		executedEntity.setTargetId("syn456");
-		executedEntity.setTargetVersionNumber((long)1);
-		dto.setExecutedEntity(executedEntity);		
 		return dto;
 	}
 	
