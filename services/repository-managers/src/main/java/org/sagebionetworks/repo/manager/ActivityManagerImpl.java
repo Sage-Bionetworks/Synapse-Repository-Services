@@ -48,7 +48,7 @@ public class ActivityManagerImpl implements ActivityManager {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Activity> T createActivity(UserInfo userInfo, T activity)
+	public Activity createActivity(UserInfo userInfo, Activity activity)
 			throws DatastoreException, InvalidModelException {		
 
 		// for idGenerator based id on create, regardless of what is passed
@@ -62,7 +62,7 @@ public class ActivityManagerImpl implements ActivityManager {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Activity> T updateActivity(UserInfo userInfo, T activity)
+	public Activity updateActivity(UserInfo userInfo, Activity activity)
 			throws InvalidModelException, NotFoundException,
 			ConflictingUpdateException, DatastoreException,
 			UnauthorizedException {

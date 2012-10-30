@@ -20,7 +20,7 @@ public interface ActivityManager {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public <T extends Activity> T  createActivity(UserInfo userInfo, T activity) throws DatastoreException, InvalidModelException;
+	public Activity  createActivity(UserInfo userInfo, Activity activity) throws DatastoreException, InvalidModelException;
 	
 
 	/**
@@ -35,7 +35,7 @@ public interface ActivityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Activity> T  updateActivity(UserInfo userInfo, T activity) throws InvalidModelException, NotFoundException, ConflictingUpdateException, DatastoreException, UnauthorizedException;
+	public Activity  updateActivity(UserInfo userInfo, Activity activity) throws InvalidModelException, NotFoundException, ConflictingUpdateException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * delete an Activity

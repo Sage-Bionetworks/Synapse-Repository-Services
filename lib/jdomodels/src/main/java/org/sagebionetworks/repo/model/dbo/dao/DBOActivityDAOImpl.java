@@ -83,25 +83,25 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Activity> T create(T dto) throws DatastoreException, InvalidModelException {	
+	public Activity create(Activity dto) throws DatastoreException, InvalidModelException {	
 		DBOActivity dbo = new DBOActivity();
 		ActivityUtils.copyDtoToDbo(dto, dbo);
 		// add eTag
 		tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
 		dbo = basicDao.createNew(dbo);		
-		T result = ActivityUtils.copyDboToDto(dbo);
+		Activity result = ActivityUtils.copyDboToDto(dbo);
 		return result;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Activity> T update(T dto) throws DatastoreException,
+	public Activity update(Activity dto) throws DatastoreException,
 			InvalidModelException,NotFoundException, ConflictingUpdateException {
 		return update(dto, false);
 	}
 
 	@Override
-	public <T extends Activity> T updateFromBackup(T dto)
+	public Activity updateFromBackup(Activity dto)
 			throws InvalidModelException, NotFoundException,
 			ConflictingUpdateException, DatastoreException {
 		return update(dto, true);
@@ -111,7 +111,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	 * @param fromBackup Whether we are updating from backup.
 	 *                   Skip optimistic locking and accept the backup e-tag when restoring from backup.
 	 */
-	private <T extends Activity> T update(T dto, boolean fromBackup) throws DatastoreException,
+	private Activity update(Activity dto, boolean fromBackup) throws DatastoreException,
 			InvalidModelException,NotFoundException, ConflictingUpdateException {		
 		if(!doesActivityExist(dto.getId())) throw new NotFoundException("Activity with id " + dto.getId() + " could not be found.");
 		DBOActivity dbo = getDBO(dto.getId());
@@ -119,7 +119,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		boolean success = basicDao.update(dbo);
 
 		if (!success) throw new DatastoreException("Unsuccessful updating user Activity in database.");
-		T updatedActivity = ActivityUtils.copyDboToDto(dbo);
+		Activity updatedActivity = ActivityUtils.copyDboToDto(dbo);
 
 		return updatedActivity;
 	} // the 'commit' is implicit in returning from a method annotated 'Transactional'
