@@ -16,7 +16,7 @@ public interface ActivityDAO extends MigratableDAO {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public <T extends Activity> T create(T dto) throws DatastoreException, InvalidModelException;
+	public Activity create(Activity dto) throws DatastoreException, InvalidModelException;
 
 	/**
 	 * Updates the object.
@@ -24,7 +24,7 @@ public interface ActivityDAO extends MigratableDAO {
 	 * @param dto
 	 * @throws DatastoreException
 	 */
-	public <T extends Activity> T update(T activity) throws InvalidModelException,
+	public Activity update(Activity activity) throws InvalidModelException,
 			NotFoundException, ConflictingUpdateException, DatastoreException;
 
 	/**
@@ -37,7 +37,7 @@ public interface ActivityDAO extends MigratableDAO {
 	 * @throws ConflictingUpdateException
 	 * @throws DatastoreException
 	 */
-	public <T extends Activity> T updateFromBackup(T activity) throws InvalidModelException,
+	public Activity updateFromBackup(Activity activity) throws InvalidModelException,
 	NotFoundException, ConflictingUpdateException, DatastoreException;
 	
 	/**
