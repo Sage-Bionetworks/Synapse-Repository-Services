@@ -67,6 +67,7 @@ public class DatabasePreparation {
 		if("bamboo".equals(stack)) return true;
 		if("dev".equals(stack)) return true;
 		if("hudson".equals(stack)) return true;
+		if("hud".equals(stack)) return true;
 		return false;
 	}
 
