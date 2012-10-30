@@ -26,9 +26,9 @@ public class ActivityUtils {
 		copyToSerializedField(dto, dbo);
 	}
 
-	public static <T extends Activity> T copyDboToDto(DBOActivity dbo) throws DatastoreException {
+	public static Activity copyDboToDto(DBOActivity dbo) throws DatastoreException {
 		if(dbo.getId() == null) throw new IllegalArgumentException("id can not be null");
-		T dto = copyFromSerializedField(dbo);
+		Activity dto = copyFromSerializedField(dbo);
 		dto.setId(dbo.getId().toString());
 		dto.setEtag(dbo.geteTag());
 		dto.setCreatedBy(dbo.getCreatedBy().toString());
@@ -47,9 +47,9 @@ public class ActivityUtils {
 	}
 	
 	@SuppressWarnings("unchecked")
-	private static <T extends Activity> T copyFromSerializedField(DBOActivity dbo) throws DatastoreException {
+	private static Activity copyFromSerializedField(DBOActivity dbo) throws DatastoreException {
 		try {
-			return (T)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedObject());
+			return (Activity)JDOSecondaryPropertyUtils.decompressedObject(dbo.getSerializedObject());
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
