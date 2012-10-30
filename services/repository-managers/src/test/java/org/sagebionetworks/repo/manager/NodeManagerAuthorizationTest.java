@@ -41,6 +41,7 @@ public class NodeManagerAuthorizationTest {
 	private UserInfo mockUserInfo;	
 	private EntityBootstrapper mockEntityBootstrapper;
 	private NodeInheritanceManager mockInheritanceManager;
+	private ActivityManager mockActivityManager;
 
 	@Before
 	public void before() throws NotFoundException, DatastoreException{
@@ -50,8 +51,9 @@ public class NodeManagerAuthorizationTest {
 		mockAclDao = Mockito.mock(AccessControlListDAO.class);
 		mockEntityBootstrapper = Mockito.mock(EntityBootstrapper.class);
 		mockInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
+		mockActivityManager = Mockito.mock(ActivityManager.class);
 		// Create the manager dao with mocked dependent daos.
-		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockAclDao, mockEntityBootstrapper, mockInheritanceManager, null );
+		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockAclDao, mockEntityBootstrapper, mockInheritanceManager, null, mockActivityManager);
 		// The mocks user for tests
 		mockNode = Mockito.mock(Node.class);
 		when(mockNode.getNodeType()).thenReturn(EntityType.project.name());

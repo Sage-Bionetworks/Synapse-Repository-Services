@@ -12,6 +12,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityClassHelper;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -208,6 +209,23 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 			throw new IllegalArgumentException("Unknown entity type: "+typeClassName+". Message: "+e.getMessage());
 		}
 		// Populate the new instance with the JSON.
+		newInstance.initializeFromJSONObject(adapter);
+		return newInstance;
+	}
+
+	/**
+	 * Read an activity from the reader.
+	 * @param reader
+	 * @return Activity object
+	 * @throws IOException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public static Activity readActivity(Reader reader) throws IOException, JSONObjectAdapterException {
+		// First read in the string
+		String jsonString = readToString(reader);
+		// Read it into an adapter
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonString);
+		Activity newInstance = new Activity();
 		newInstance.initializeFromJSONObject(adapter);
 		return newInstance;
 	}

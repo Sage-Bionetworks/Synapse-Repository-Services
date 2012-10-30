@@ -14,6 +14,9 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TY
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
@@ -94,6 +97,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String ERROR_RESOURCE_NOT_FOUND = "The resource you are attempting to access cannot be found";
 	private static final String SQL_SELECT_TYPE_FOR_ALIAS = "SELECT DISTINCT "+COL_OWNER_TYPE+" FROM "+TABLE_NODE_TYPE_ALIAS+" WHERE "+COL_NODE_TYPE_ALIAS+" = ?";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
+	private static final String GET_REV_ACTIVITY_ID_SQL = "SELECT "+COL_REVISION_ACTIVITY_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	private static final String GET_NODE_CREATED_BY_SQL = "SELECT "+COL_NODE_CREATED_BY+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_COUNT_NODES = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
@@ -284,6 +288,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			// version labels should NOT be prefixed with syn (per PLFM-1408).
 			newVersion.setVersionLabel(newRev.getRevisionNumber().toString());
 		}
+		
 		// Now update the new revision and node
 		NodeUtils.updateFromDto(newVersion, jdo, newRev);
 		// The new revision becomes the current version
@@ -953,7 +958,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		DBORevision rev = getNodeRevisionById(KeyFactory.stringToKey(nodeId), revisionId);
 		return JDORevisionUtils.createDtoFromJdo(rev);
 	}
-
+	
 	@Override
 	public long getTotalNodeCount() {
 		return simpleJdbcTemplate.queryForLong(SQL_COUNT_NODES, new HashMap<String, String>());
@@ -1027,6 +1032,22 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}catch(EmptyResultDataAccessException e){
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
+	}
+	
+	@Override
+	public String getActivityId(String nodeId) throws NotFoundException, DatastoreException {
+		return getActivityId(nodeId, getCurrentRevisionNumber(nodeId));	
+	}
+
+	@Override
+	public String getActivityId(String nodeId, Long revNumber) throws NotFoundException, DatastoreException {
+		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
+		try{
+			Long activityId = this.simpleJdbcTemplate.queryForLong(GET_REV_ACTIVITY_ID_SQL, KeyFactory.stringToKey(nodeId), revNumber);			
+			return activityId == 0 ? null : activityId.toString(); // queryForLong returns 0 instead of NULL
+		}catch(EmptyResultDataAccessException e){
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+		}		
 	}
 	
 	@Override

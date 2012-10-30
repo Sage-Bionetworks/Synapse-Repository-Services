@@ -80,7 +80,7 @@ public class EntityBundleControllerTest {
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
-		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 		String id = p2.getId();
 		toDelete.add(id);
 		
@@ -88,14 +88,14 @@ public class EntityBundleControllerTest {
 		s1.setName(DUMMY_STUDY_1);
 		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
-		s1 = (Study) entityServletHelper.createEntity(s1, TEST_USER1);
+		s1 = (Study) entityServletHelper.createEntity(s1, TEST_USER1, null);
 		toDelete.add(s1.getId());
 		
 		Study s2 = new Study();
 		s2.setName(DUMMY_STUDY_2);
 		s2.setEntityType(s2.getClass().getName());
 		s2.setParentId(id);
-		s2 = (Study) entityServletHelper.createEntity(s2, TEST_USER1);
+		s2 = (Study) entityServletHelper.createEntity(s2, TEST_USER1, null);
 		toDelete.add(s2.getId());
 		
 		// Get/add/update annotations for this entity
@@ -147,7 +147,7 @@ public class EntityBundleControllerTest {
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
-		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 		String id = p2.getId();
 		toDelete.add(id);
 		
@@ -155,7 +155,7 @@ public class EntityBundleControllerTest {
 		s1.setName(DUMMY_STUDY_1);
 		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
-		s1 = (Study) entityServletHelper.createEntity(s1, TEST_USER1);
+		s1 = (Study) entityServletHelper.createEntity(s1, TEST_USER1, null);
 		toDelete.add(s1.getId());
 		
 		// Get the bundle, verify contents
@@ -185,7 +185,7 @@ public class EntityBundleControllerTest {
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
-		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 		String parentId = p2.getId();
 		toDelete.add(parentId);
 		
@@ -198,7 +198,7 @@ public class EntityBundleControllerTest {
 		d1Location.setType(LocationTypeNames.external);		
 		d1.setLocations(Arrays.asList(new LocationData[] { d1Location }));
 		d1.setMd5("c88c3db97754be31f9242eb3c08382ee");
-		d1 = (Data) entityServletHelper.createEntity(d1, TEST_USER1);
+		d1 = (Data) entityServletHelper.createEntity(d1, TEST_USER1, null);
 		toDelete.add(d1.getId());
 		
 		// Get/add/update annotations for this entity
@@ -251,7 +251,7 @@ public class EntityBundleControllerTest {
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
-		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 		String id = p2.getId();
 		toDelete.add(id);
 		

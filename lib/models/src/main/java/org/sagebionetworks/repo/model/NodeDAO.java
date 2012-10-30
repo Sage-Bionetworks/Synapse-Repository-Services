@@ -264,6 +264,21 @@ public interface NodeDAO extends MigratableDAO {
 	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException, DatastoreException;
 	
 	/**
+	 * Get the activity id for the current version of the node. 
+	 * @param nodeId
+	 * @return
+	 */
+	public String getActivityId(String nodeId) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Get the activity id for a specific version of the node.
+	 * @param nodeId
+	 * @param revNumber
+	 * @return
+	 */
+	public String getActivityId(String nodeId, Long revNumber) throws NotFoundException, DatastoreException;
+	
+	/**
 	 * Get the Synapse ID of the creator of a node.
 	 * @throws DatastoreException 
 	 */

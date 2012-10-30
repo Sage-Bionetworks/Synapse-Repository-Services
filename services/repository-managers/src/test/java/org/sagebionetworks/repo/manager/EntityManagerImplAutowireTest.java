@@ -59,7 +59,6 @@ public class EntityManagerImplAutowireTest {
 		
 		toDelete = new ArrayList<String>();
 		mockAuth = Mockito.mock(AuthorizationManager.class);
-		entityManager.overrideAuthDaoForTest(mockAuth);
 		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
 
@@ -78,9 +77,9 @@ public class EntityManagerImplAutowireTest {
 	
 	@Test
 	public void testAllInOne() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException, ConflictingUpdateException{
-		// Create a datset
+		// Create a datset		
 		Study ds = createDataset();
-		String id = entityManager.createEntity(userInfo, ds);
+		String id = entityManager.createEntity(userInfo, ds, null);
 		assertNotNull(id);
 		toDelete.add(id);
 		// Get another copy
@@ -108,7 +107,7 @@ public class EntityManagerImplAutowireTest {
 		// Now update the dataset
 		fetched = entityManager.getEntity(userInfo, id, Study.class);
 		fetched.setName("myNewName");
-		entityManager.updateEntity(userInfo, fetched, false);
+		entityManager.updateEntity(userInfo, fetched, false, null);
 		fetched = entityManager.getEntity(userInfo, id, Study.class);
 		assertNotNull(fetched);
 		assertEquals("myNewName", fetched.getName());
@@ -117,7 +116,7 @@ public class EntityManagerImplAutowireTest {
 	@Test
 	public void testAggregateUpdate() throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
 		Study ds = createDataset();
-		String parentId = entityManager.createEntity(userInfo, ds);
+		String parentId = entityManager.createEntity(userInfo, ds, null);
 		assertNotNull(parentId);
 		toDelete.add(parentId);
 		List<Data> layerList = new ArrayList<Data>();
@@ -163,7 +162,7 @@ public class EntityManagerImplAutowireTest {
 		Study ds = createDataset();
 		// This primary field is stored as an annotation.
 		ds.setDisease("disease");
-		String id = entityManager.createEntity(userInfo, ds);
+		String id = entityManager.createEntity(userInfo, ds, null);
 		assertNotNull(id);
 		toDelete.add(id);
 		// Ge the annotations of the datasets
@@ -187,7 +186,7 @@ public class EntityManagerImplAutowireTest {
 		assertEquals(ds.getDisease(), clone.getDisease());
 		// Now change the primary field
 		clone.setDisease("disease2");
-		entityManager.updateEntity(userInfo, clone, false);
+		entityManager.updateEntity(userInfo, clone, false, null);
 		clone = entityManager.getEntity(userInfo, id, Study.class);
 		assertNotNull(clone);
 		assertEquals("disease2", clone.getDisease());
@@ -202,7 +201,7 @@ public class EntityManagerImplAutowireTest {
 	public void testPLFM_1283() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
 		Data study = new Data();
 		study.setName("test PLFM-1283");
-		String id = entityManager.createEntity(userInfo, study);
+		String id = entityManager.createEntity(userInfo, study, null);
 		assertNotNull(id);
 		toDelete.add(id);
 		try{

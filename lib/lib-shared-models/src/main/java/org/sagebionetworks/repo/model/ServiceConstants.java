@@ -187,6 +187,12 @@ public class ServiceConstants {
 	public static final String ACCEPTS_TERMS_OF_USE_REQUIRED_TOKEN = "TermsOfUseAcceptanceRequired";
 
 	/**
+	 * The generatedBy provenance parameter
+	 */
+	public static final String GENERATED_BY_PARAM = "generatedBy";
+
+	
+	/**
 	 * Utility method to sanity check pagination parameters
 	 * <p>
 	 * 
