@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:aop="http://www.springframework.org/schema/aop"
+	xmlns:tx="http://www.springframework.org/schema/tx" xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="
+       http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd
+       http://www.springframework.org/schema/tx http://www.springframework.org/schema/tx/spring-tx-3.0.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-3.0.xsd
+       http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util.xsd">
+
+	<!-- Turn on Spring's autoproxy using AspectJ's @Aspect annotations. -->
+	<aop:aspectj-autoproxy />
+
+	<import resource="classpath:concept-dao-beans.spb.xml" />
+	<import resource="classpath:dao-beans.spb.xml" />
+	<import resource="classpath:aws-topic-publisher.spb.xml" />
+
+	<!-- The real Node DAO -->
+	<bean id="nodeManager" class="org.sagebionetworks.repo.manager.NodeManagerImpl" />
+	<bean id="nodeInheritanceManager"
+		class="org.sagebionetworks.repo.manager.NodeInheritanceManagerImpl" />
+
+	<!-- The Entity manager -->
+	<bean id="entityManager" class="org.sagebionetworks.repo.manager.EntityManagerImpl" />
+
+
+	<!-- The Location helper -->
+	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
+
+	<bean id="referenceUtil" class="org.sagebionetworks.repo.util.ReferenceUtilImpl" />
+
+	<bean id="authorizationManager"
+		class="org.sagebionetworks.repo.manager.AuthorizationManagerImpl" />
+
+	<bean id="permissionsManager" class="org.sagebionetworks.repo.manager.PermissionsManagerImpl" />
+
+	<bean id="userProfileManager" class="org.sagebionetworks.repo.manager.UserProfileManagerImpl" />
+
+	<bean id="accessRequirementManager" class="org.sagebionetworks.repo.manager.AccessRequirementManagerImpl" />
+
+	<bean id="accessApprovalManager" class="org.sagebionetworks.repo.manager.AccessApprovalManagerImpl" />
+
+	<bean id="amazonClientFactory" class="org.sagebionetworks.repo.util.AmazonClientFactoryImpl"
+		scope="singleton" />
+
+	<bean id="userManager" class="org.sagebionetworks.repo.manager.UserManagerImpl" />
+
+	<bean id="userDAO" class="org.sagebionetworks.repo.util.UserDAOProxy"
+		scope="singleton" />
+	<bean id="userDAOImpl" class="org.sagebionetworks.authutil.CrowdUserDAO"
+		scope="singleton" />
+
+	<bean id="backupManager"
+		class="org.sagebionetworks.repo.manager.backup.NodeBackupManagerImpl"
+		scope="singleton" />
+
+	<bean id="nodeOwnerMigrator"
+		class="org.sagebionetworks.repo.manager.backup.migration.NodeOwnerMigratorImpl"
+		scope="singleton" />
+
+	<bean id="migrationDriver"
+		class="org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl"
+		scope="singleton">
+		<property name="revisionSteps">
+			<list>
+				<bean
+					class="org.sagebionetworks.repo.manager.backup.migration.ApplyMigrationData">
+					<constructor-arg>
+						<bean
+							class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+							<property name="targetClass">
+								<value>org.sagebionetworks.repo.model.registry.MigrationDataLoaderImpl
+								</value>
+							</property>
+							<property name="targetMethod">
+								<value>getMigrationData</value>
+							</property>
+						</bean>
+					</constructor-arg>
+				</bean>
+				<bean
+					class="org.sagebionetworks.repo.manager.backup.migration.GenericMigrator">
+					<constructor-arg>
+						<bean id="migrationSpecData"
+							class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+							<property name="targetClass">
+								<value>org.sagebionetworks.repo.model.registry.MigrationSpecDataLoaderImpl
+								</value>
+							</property>
+							<property name="targetMethod">
+								<value>getMigrationSpecData</value>
+							</property>
+						</bean>
+					</constructor-arg>
+				</bean>
+				<bean
+					class="org.sagebionetworks.repo.manager.backup.migration.DataTypeMigrator">
+				</bean>
+				<bean
+					class="org.sagebionetworks.repo.manager.backup.migration.NodeOwnerMigratorImpl">
+				</bean>
+			</list>
+		</property>
+	</bean>
+
+	<bean id="nodeSerializer"
+		class="org.sagebionetworks.repo.manager.backup.NodeSerializerImpl"
+		scope="singleton" />
+
+	<bean id="entityBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.NodeBackupDriverImpl"
+		scope="singleton" />
+
+	<bean id="principalBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.PrincipalBackupDriver"
+		scope="singleton" />
+
+	<bean id="accessRequirementBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.AccessRequirementBackupDriver"
+		scope="singleton" />
+
+	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
+		scope="singleton" />
+
+	<bean id="conceptCache"
+		class="org.sagebionetworks.repo.manager.ontology.ConceptCacheLocalImpl"
+		scope="singleton" />
+
+	<bean id="conceptManager"
+		class="org.sagebionetworks.repo.manager.ontology.ConceptManagerImpl"
+		scope="singleton" />
+
+	<bean id="s3TokenManager" class="org.sagebionetworks.repo.manager.S3TokenManagerImpl"
+		scope="singleton" />
+
+	<bean id="s3Utility" class="org.sagebionetworks.repo.manager.AmazonS3UtilityImpl"
+		scope="singleton" />
+
+	<bean id="storageUsageManager"
+		class="org.sagebionetworks.repo.manager.StorageUsageManagerImpl"
+		scope="singleton" />
+
+	<bean id="attachmentManager" class="org.sagebionetworks.repo.manager.AttachmentManagerImpl"
+		scope="singleton" />
+
+	<bean id="schemaManager" class="org.sagebionetworks.repo.manager.SchemaManagerImpl"
+		scope="singleton" />
+
+	<!-- The thread pool used by the backup/restore daemons -->
+	<bean id="backupDaemonThreadPool"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetClass">
+			<value>java.util.concurrent.Executors</value>
+		</property>
+		<property name="targetMethod">
+			<value>newFixedThreadPool</value>
+		</property>
+		<property name="arguments"
+			ref="stackConfiguration.backupRestoreThreadPoolMaximum" />
+	</bean>
+
+	<!-- The second thread pool used by the backup/restore daemons -->
+	<bean id="backupDaemonThreadPool2"
+		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+		<property name="targetClass">
+			<value>java.util.concurrent.Executors</value>
+		</property>
+		<property name="targetMethod">
+			<value>newFixedThreadPool</value>
+		</property>
+		<property name="arguments"
+			ref="stackConfiguration.backupRestoreThreadPoolMaximum" />
+	</bean>
+
+	<bean id="backupDaemonLauncher"
+		class="org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncherImpl"
+		scope="singleton" >
+		<!--  the keys in this map  match the enum MigratableObjectType -->
+		<property name="backupDriverMap">
+			<map>
+				<entry key="PRINCIPAL">
+					<ref bean="principalBackupDriver" />
+				</entry>
+				<entry key="ENTITY">
+					<ref bean="entityBackupDriver" />
+				</entry>
+				<entry key="ACCESSREQUIREMENT">
+					<ref bean="accessRequirementBackupDriver" />
+				</entry>
+			</map>
+		</property>
+	</bean>
+
+	<!-- A manager that returns all system objects and their dependencies. -->
+	<bean id="dependencyManager" class="org.sagebionetworks.repo.manager.backup.migration.DependencyManagerImpl">
+		<property name="migratableDaos">
+			<list>
+				<ref bean="userGroupDAO"/>
+				<ref bean="nodeDao"/>
+				<ref bean="accessRequirementDAO"/>
+			</list>
+		</property>
+	</bean>
+	
+		<!-- Used to read document from repo -->
+	<bean id="searchDocumentDriver"
+		class="org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl"
+		scope="singleton" />
+
+</beans>

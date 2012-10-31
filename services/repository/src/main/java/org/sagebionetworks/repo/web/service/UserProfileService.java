@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -108,6 +109,15 @@ public interface UserProfileService {
 			UnauthorizedException, InvalidModelException;
 
 	/**
+	 * Batch get headers for users matching a list of supplied Synapse IDs.
+	 * 
+	 * @param ids
+	 * @return
+	 */
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids)
+			throws DatastoreException, NotFoundException ;
+
+	/**
 	 * Get headers for users whose names begin with the supplied prefix.
 	 * 
 	 * @param id
@@ -127,8 +137,7 @@ public interface UserProfileService {
 			throws DatastoreException, NotFoundException;
 
 	/**
-	 * Populate a cache of headers for all Synapse users, to support fast
-	 * prefix matching by user name.
+	 * Populate a cache of headers for all Synapse users.
 	 * 
 	 * @throws DatastoreException
 	 * @throws NotFoundException

@@ -5,12 +5,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import javax.servlet.ServletException;
 
 import org.junit.After;
@@ -31,8 +29,6 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.UserGroup;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -45,6 +41,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @MockWebApplication
 public class EntityBundleControllerTest {
 	
+	private static final String DUMMY_STUDY_2 = "Test Study 2";
+	private static final String DUMMY_STUDY_1 = "Test Study 1";
+	private static final String DUMMY_PROJECT = "Test Project";
+
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
 	
@@ -78,21 +78,21 @@ public class EntityBundleControllerTest {
 	public void testGetEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
 		// Create an entity
 		Project p = new Project();
-		p.setName("Dummy Project");
+		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
 		String id = p2.getId();
 		toDelete.add(id);
 		
 		Study s1 = new Study();
-		s1.setName("Dummy Study 1");
+		s1.setName(DUMMY_STUDY_1);
 		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
 		s1 = (Study) entityServletHelper.createEntity(s1, TEST_USER1);
 		toDelete.add(s1.getId());
 		
 		Study s2 = new Study();
-		s2.setName("Dummy Study 2");
+		s2.setName(DUMMY_STUDY_2);
 		s2.setEntityType(s2.getClass().getName());
 		s2.setParentId(id);
 		s2 = (Study) entityServletHelper.createEntity(s2, TEST_USER1);
@@ -110,10 +110,8 @@ public class EntityBundleControllerTest {
 					EntityBundle.PERMISSIONS |
 					EntityBundle.ENTITY_PATH |
 					EntityBundle.ENTITY_REFERENCEDBY |
-					EntityBundle.CHILD_COUNT |
-					EntityBundle.ACL |
-					EntityBundle.USERS |
-					EntityBundle.GROUPS;
+					EntityBundle.HAS_CHILDREN |
+					EntityBundle.ACL;
 		EntityBundle eb = entityServletHelper.getEntityBundle(id, mask, TEST_USER1);
 		Project p3 = (Project) eb.getEntity();
 		assertFalse("Etag should have been updated, but was not", p3.getEtag().equals(p2.getEtag()));
@@ -135,32 +133,26 @@ public class EntityBundleControllerTest {
 		PaginatedResults<EntityHeader> rb = eb.getReferencedBy();
 		assertNotNull("ReferencedBy was requested, but null in bundle", rb);
 		
-		Long cc = eb.getChildCount();
-		assertNotNull("ChildCount was requested, but null in bundle", cc);
-		assertEquals("Incorrect ChildCount", 2, cc.intValue());
+		Boolean hasChildren = eb.getHasChildren();
+		assertNotNull("HasChildren was requested, but null in bundle", hasChildren);
+		assertEquals("HasChildren incorrect", Boolean.TRUE, hasChildren);
 		
 		AccessControlList acl = eb.getAccessControlList();
 		assertNotNull("AccessControlList was requested, but null in bundle", acl);
-		
-		PaginatedResults<UserProfile> up = eb.getUsers();
-		assertNotNull("Users was requested, but null in bundle", up);
-		
-		PaginatedResults<UserGroup> ug = eb.getGroups();
-		assertNotNull("UserGroups was requested, but null in bundle", ug);
 	}
 	
 	@Test
 	public void testGetEntityBundleInheritedACL() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
 		// Create an entity
 		Project p = new Project();
-		p.setName("Dummy Project");
+		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
 		String id = p2.getId();
 		toDelete.add(id);
 		
 		Study s1 = new Study();
-		s1.setName("Dummy Study 1");
+		s1.setName(DUMMY_STUDY_1);
 		s1.setEntityType(s1.getClass().getName());
 		s1.setParentId(id);
 		s1 = (Study) entityServletHelper.createEntity(s1, TEST_USER1);
@@ -191,7 +183,7 @@ public class EntityBundleControllerTest {
 	public void testGetEntityBundleForVersion() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {		
 		// Create an entity
 		Project p = new Project();
-		p.setName("Dummy Project");
+		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
 		String parentId = p2.getId();
@@ -208,6 +200,7 @@ public class EntityBundleControllerTest {
 		d1.setMd5("c88c3db97754be31f9242eb3c08382ee");
 		d1 = (Data) entityServletHelper.createEntity(d1, TEST_USER1);
 		toDelete.add(d1.getId());
+		
 		// Get/add/update annotations for this entity
 		Annotations a1 = entityServletHelper.getEntityAnnotaions(d1.getId(), TEST_USER1);
 		a1.addAnnotation("v1", new Long(1));
@@ -256,7 +249,7 @@ public class EntityBundleControllerTest {
 	public void testGetPartialEntityBundle() throws NameConflictException, JSONObjectAdapterException, ServletException, IOException, NotFoundException, DatastoreException {
 		// Create an entity
 		Project p = new Project();
-		p.setName("Dummy Project");
+		p.setName(DUMMY_PROJECT);
 		p.setEntityType(p.getClass().getName());
 		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1);
 		String id = p2.getId();
@@ -288,16 +281,11 @@ public class EntityBundleControllerTest {
 		PaginatedResults<EntityHeader> rb = eb.getReferencedBy();
 		assertNull("ReferencedBy was not requested, but were returned in bundle", rb);
 		
-		Long cc = eb.getChildCount();
-		assertNull("ChildCount was not requested, but were returned in bundle", cc);
+		Boolean hasChildren = eb.getHasChildren();
+		assertNull("HasChildren was not requested, but were returned in bundle", hasChildren);
 		
 		AccessControlList acl = eb.getAccessControlList();
 		assertNull("AccessControlList was not requested, but were returned in bundle", acl);
-		
-		PaginatedResults<UserProfile> up = eb.getUsers();
-		assertNull("Users were not requested, but were returned in bundle", up);
-		
-		PaginatedResults<UserGroup> ug = eb.getGroups();
-		assertNull("UserGroups were not requested, but were returned in bundle", ug);
 	}
+
 }

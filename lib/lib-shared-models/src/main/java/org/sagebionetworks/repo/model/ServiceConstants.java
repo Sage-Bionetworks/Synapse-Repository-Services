@@ -57,8 +57,7 @@ public class ServiceConstants {
 	public static final String DEFAULT_PAGINATION_LIMIT_PARAM = "10";
 	public static final Integer DEFAULT_PAGINATION_LIMIT_PARAM_INT = Integer
 			.parseInt(DEFAULT_PAGINATION_LIMIT_PARAM);
-	
-	
+
 	/**
 	 * Default value for limit parameter
 	 */
@@ -125,6 +124,17 @@ public class ServiceConstants {
 	public static final String BATCH_PARAM_VALUE_SEPARATOR = ",";
 
 	/**
+	 * Parameter name for the aggregating dimensions. To use more then one aggregation dimension,
+	 * Concatenate the values by using the separator below.
+	 */
+	public static final String AGGREGATION_DIMENSION = "aggregation";
+
+	/**
+	 * Separator to concatenate values for aggregating dimensions.
+	 */
+	public static final String AGGREGATION_DIMENSION_VALUE_SEPARATOR = ",";
+
+	/**
 	 * Request parameter specific to GET requests for layer locations so that we
 	 * can return a presigned URL for an S3 GET, HEAD, or DELETE operation
 	 */
@@ -175,7 +185,7 @@ public class ServiceConstants {
 	 * 
 	 */
 	public static final String ACCEPTS_TERMS_OF_USE_REQUIRED_TOKEN = "TermsOfUseAcceptanceRequired";
-	
+
 	/**
 	 * Utility method to sanity check pagination parameters
 	 * <p>
@@ -201,4 +211,6 @@ public class ServiceConstants {
 
 	public static final String TERMS_OF_USE_ERROR_MESSAGE = "You need to sign the Synapse Terms of Use.   This may be done by logging in to Synapse on the Web.";
 	
+	public static final int DEFAULT_CONNECT_TIMEOUT_MSEC = 5000;
+	public static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 20000;
 }

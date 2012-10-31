@@ -47,6 +47,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -204,23 +205,9 @@ public class NodeDAOImplTest {
 		for (MigratableObjectData od : ods) {
 			if (od.getId().getId().equals(id)) {
 				foundId=true;
-				// since there's no parent or ACL, the only dependency is on the creator/modifier
+				// since there's no parent or ACL, the only dependency size is zero.
 				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
-				boolean foundCreator = false;
-				boolean foundModifier = false;
-				for (MigratableObjectDescriptor mod : deps) {
-					if (mod.getId().equals(creatorUserGroupId.toString())) {
-						foundCreator = true;
-						assertEquals(MigratableObjectType.PRINCIPAL, mod.getType());
-					}
-					if (mod.getId().equals(altUserGroupId.toString())) {
-						foundModifier = true;
-						assertEquals(MigratableObjectType.PRINCIPAL, mod.getType());
-					}
-				}
-				assertTrue(foundCreator);
-				assertTrue(foundModifier);
+				assertEquals("id: "+id+" dependencies: "+deps.toString(), 0, deps.size());
 			}
 			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
 		}
@@ -408,44 +395,47 @@ public class NodeDAOImplTest {
 				foundId=true;
 				// dependencies are the creator/modifier and the parent/benefactor
 				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
-				boolean foundCreator = false;
+				assertEquals("id: "+id+" dependencies: "+deps.toString(), 1, deps.size());
 				boolean foundParent = false;
 				for (MigratableObjectDescriptor d : deps) {
-					if (creatorUserGroupId.toString().equals(d.getId())) {
-						foundCreator=true;
-						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
-					} else if (parentId.equals(d.getId())) {
+					if (parentId.equals(d.getId())) {
 						foundParent=true;
 						assertEquals(MigratableObjectType.ENTITY, d.getType());
 					}
 				}
-				assertTrue(foundCreator);
 				assertTrue(foundParent);
 			}
 			if (od.getId().getId().equals(parentId)) {
 				foundParentId = true;
 				// dependencies are the creator/modifier and the parent/benefactor
 				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
-				boolean foundCreator = false;
-				boolean foundACLmember = false;
-				for (MigratableObjectDescriptor d : deps) {
-					if (creatorUserGroupId.toString().equals(d.getId())) {
-						foundCreator=true;
-						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
-					} else if (altUserGroupId.toString().equals(d.getId())) { // referenced in the ACL
-						foundACLmember=true;
-						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
-					}
-				}
-				assertTrue(foundCreator);
-				assertTrue(foundACLmember);
-			
+				assertEquals("id: "+id+" dependencies: "+deps.toString(), 0, deps.size());
 			}
 		}
 		assertTrue(foundId);
 		assertTrue(foundParentId);
+	}
+	
+	/**
+	 * This is a check for PLFM-1537
+	 * @param id
+	 * @throws Exception
+	 */
+	public void checkMigrationDependenciesWithMultipleRevisions(String id) throws Exception {
+		// first check what happens if dependencies are NOT requested
+		QueryResults<MigratableObjectData> results = nodeDao.getMigrationObjectData(0, 10000, false);
+		List<MigratableObjectData> ods = results.getResults();
+		assertEquals(ods.size(), results.getTotalNumberOfResults());
+		assertTrue(ods.size()>0);
+		int count = 0;
+		for (MigratableObjectData od : ods) {
+			if (od.getId().getId().equals(id)) {
+				count++;
+			}
+			assertEquals(MigratableObjectType.ENTITY, od.getId().getType());
+			
+		}
+		assertEquals("An entity with multiple revsions should be listed once and only onces in the migration data.",1, count);
 	}
 	
 	public void checkMigrationDependenciesWithGrandParent(String id, String parentId, String grandParentId) throws Exception {
@@ -458,17 +448,13 @@ public class NodeDAOImplTest {
 		for (MigratableObjectData od : ods) {
 			if (od.getId().getId().equals(id)) {
 				foundId=true;
-				// dependencies are the creator/modifier, the parent and the grandparent/benefactor
+				// dependencies are the parent and the grandparent/benefactor
 				Collection<MigratableObjectDescriptor> deps = od.getDependencies();
-				assertEquals("id: "+id+" dependencies: "+deps.toString(), 3, deps.size());
-				boolean foundCreator = false;
+				assertEquals("id: "+id+" dependencies: "+deps.toString(), 2, deps.size());
 				boolean foundParent = false;
 				boolean foundBenefactor = false;
 				for (MigratableObjectDescriptor d : deps) {
-					if (creatorUserGroupId.toString().equals(d.getId())) {
-						foundCreator=true;
-						assertEquals(MigratableObjectType.PRINCIPAL, d.getType());
-					} else if (parentId.equals(d.getId())) {
+					if (parentId.equals(d.getId())) {
 						foundParent=true;
 						assertEquals(MigratableObjectType.ENTITY, d.getType());
 					} else if (grandParentId.equals(d.getId())) {
@@ -476,7 +462,6 @@ public class NodeDAOImplTest {
 						assertEquals(MigratableObjectType.ENTITY, d.getType());
 					}
 				}
-				assertTrue(foundCreator);
 				assertTrue(foundParent);
 				assertTrue(foundBenefactor);
 			}
@@ -749,7 +734,7 @@ public class NodeDAOImplTest {
 			fail("This should have failed due to a duplicate version label");
 		}catch(IllegalArgumentException e){
 			// Expected
-			System.out.println(e.getMessage());
+//			System.out.println(e.getMessage());
 		}
 		// Since creation of a new version failed we should be back to one version
 		loaded = nodeDao.getNode(id);
@@ -771,6 +756,10 @@ public class NodeDAOImplTest {
 		assertEquals(newRev.getVersionComment(), loaded.getVersionComment());
 		assertEquals(newRev.getVersionLabel(), loaded.getVersionLabel());
 		assertEquals(newRev.getModifiedByPrincipalId(), newRev.getModifiedByPrincipalId());
+		
+		// Validate that a node with multiple revisions is only listed once.
+		// This was added for PLFM-1537
+		checkMigrationDependenciesWithMultipleRevisions(id);
 	}
 	
 	@Test
@@ -796,9 +785,21 @@ public class NodeDAOImplTest {
 		loaded = nodeDao.getNode(id);
 		assertNotNull(loaded);
 		assertEquals(node.getVersionComment(), loaded.getVersionComment());
-		assertEquals(KeyFactory.keyToString(newNumber), loaded.getVersionLabel());
+		assertEquals(newNumber.toString(), loaded.getVersionLabel());
 	}
 	
+	@Test public void testCreateVersionDefaults() throws Exception {
+		Node node = privateCreateNew("testCreateNewVersion");
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		Node loaded = nodeDao.getNode(id);
+		assertNotNull(loaded);
+		assertEquals(null, loaded.getVersionComment());
+		assertEquals(NodeConstants.DEFAULT_VERSION_LABEL, loaded.getVersionLabel());
+		assertEquals(NodeConstants.DEFAULT_VERSION_NUMBER, loaded.getVersionNumber());
+	}
+
 	@Test
 	public void testNewVersionAnnotations() throws Exception {
 		Node node = privateCreateNew("testCreateAnnotations");
@@ -890,6 +891,34 @@ public class NodeDAOImplTest {
 		}
 	}
 	
+	@Test
+	public void testGetVersionInfo() throws Exception {
+		// Create a number of versions
+		int numberVersions = 10;
+		String id = createNodeWithMultipleVersions(numberVersions);
+		// Now list the versions
+		QueryResults<VersionInfo> versionsOfEntity = nodeDao.getVersionsOfEntity(id, 0, 10);
+		assertNotNull(versionsOfEntity);
+		assertEquals(numberVersions,versionsOfEntity.getResults().size());
+		assertEquals(new Long(numberVersions), versionsOfEntity.getResults().get(0).getVersionNumber());
+		assertEquals(new Long(1), versionsOfEntity.getResults().get(versionsOfEntity.getResults().size()-1).getVersionNumber());
+		for (VersionInfo vi : versionsOfEntity.getResults()) {
+			Node node = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
+			Date modDate = node.getModifiedOn();
+			assertEquals(modDate, vi.getModifiedOn());
+		}
+	}
+
+	@Test
+	public void testVersionCount() throws Exception {
+		// Create a number of versions
+		int numberVersions = 10;
+		String id = createNodeWithMultipleVersions(numberVersions);
+		// Now list the versions
+		long numVersions = nodeDao.getVersionCount(id);
+		assertEquals(numberVersions, numVersions);
+	}
+
 	@Test
 	public void testDeleteCurrentVersion() throws Exception {
 		// Create a number of versions
@@ -1132,7 +1161,7 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
-	public void testCreateRevision() throws NotFoundException, DatastoreException, InvalidModelException {
+	public void testCreateRevision() throws Exception {
 		Long currentVersionNumver = new Long(8);
 		Node node = privateCreateNew("parent");
 		// Start with a node already on an advanced version
@@ -1179,7 +1208,7 @@ public class NodeDAOImplTest {
 		assertNotNull(clone);
 		assertEquals("value on new", clone.getNamedAnnotations().getAnnotationsForName("newNamed").getSingleValue(keyOnNewVersion));
 		assertEquals("1.0", clone.getLabel());
-		assertEquals(newRev, clone);		
+		assertEquals(newRev, clone);
 	}
 
 	@Test
@@ -1658,6 +1687,23 @@ public class NodeDAOImplTest {
 	}
 	
 	@Test
+	public void testGetCreatedBy() throws NotFoundException, DatastoreException, InvalidModelException {
+		Node node = privateCreateNew("foobar");
+		node.setNodeType(EntityType.project.name());
+		String id = nodeDao.createNew(node);
+		toDelete.add(id);
+		assertNotNull(id);
+		Long createdBy = nodeDao.getCreatedBy(id);
+		assertEquals(creatorUserGroupId, createdBy);
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetCreatedByDoesNotExist() throws NotFoundException, DatastoreException{
+		// This should throw a NotFoundException exception
+		Long createdBy = nodeDao.getCreatedBy(KeyFactory.keyToString(new Long(-12)));
+	}
+	
+	@Test
 	public void testGetAllNodeTypesForAlias(){
 		// This should return all entity types.
 		List<Short> expected = new ArrayList<Short>();
@@ -1682,7 +1728,7 @@ public class NodeDAOImplTest {
 		
 		ids = nodeDao.getAllNodeTypesForAlias("layer");
 		assertNotNull(ids);
-		assertEquals(4, ids.size());
+		assertEquals(5, ids.size());
 		assertEquals(new Short(EntityType.layer.getId()), ids.get(0));
 		
 		ids = nodeDao.getAllNodeTypesForAlias("data");
@@ -1754,4 +1800,26 @@ public class NodeDAOImplTest {
 		assertFalse(nodeDao.isNodesParentRoot(grandkidId));
 	}
 	
+	@Test
+	public void testHasChildren() throws DatastoreException, InvalidModelException, NotFoundException{
+		//make root node
+		Node node = privateCreateNew("root");
+		node.setNodeType(EntityType.project.name());
+		String parentId = nodeDao.createNew(node);
+		toDelete.add(parentId);
+		assertNotNull(parentId);
+		assertFalse(nodeDao.isNodesParentRoot(parentId));
+		
+		//add a child to the root	
+		node = privateCreateNew("child1");
+		node.setNodeType(EntityType.dataset.name());
+		node.setParentId(parentId);
+		String child1Id = nodeDao.createNew(node);
+		toDelete.add(child1Id);
+		assertTrue(nodeDao.isNodesParentRoot(child1Id));
+		
+		// The root should have children but the child should not
+		assertTrue(nodeDao.doesNodeHaveChildren(parentId));
+		assertFalse(nodeDao.doesNodeHaveChildren(child1Id));
+	}
 }

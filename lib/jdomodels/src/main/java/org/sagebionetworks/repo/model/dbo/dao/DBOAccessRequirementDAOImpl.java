@@ -36,6 +36,7 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -61,16 +62,15 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
-	@Autowired
-	private DBOBasicDao basicDao;
 	
+	@Autowired
+	private DBOBasicDao basicDao;	
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
 	private ETagGenerator eTagGenerator;
-
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	private static final String SELECT_ALL_IDS_SQL = "SELECT "+SqlConstants.COL_ACCESS_REQUIREMENT_ID+" FROM "+SqlConstants.TABLE_ACCESS_REQUIREMENT;
 	
@@ -120,14 +120,13 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	private static final RowMapper<DBOAccessRequirement> accessRequirementRowMapper = (new DBOAccessRequirement()).getTableMapping();
 	private static final RowMapper<DBONodeAccessRequirement> nodeAccessRequirementRowMapper = (new DBONodeAccessRequirement()).getTableMapping();
 
-	@Transactional(readOnly = true)
 	@Override
 	public List<Long> unmetAccessRequirements(String nodeId, Collection<Long> principalIds, ACCESS_TYPE accessType) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_NODE_ACCESS_REQUIREMENT_NODE_ID, KeyFactory.stringToKey(nodeId));
 		param.addValue(COL_ACCESS_APPROVAL_ACCESSOR_ID, principalIds);
 		param.addValue(COL_ACCESS_REQUIREMENT_ACCESS_TYPE, accessType.name());
-		List<Long> arIds = simpleJdbcTempalte.query(SELECT_UNMET_REQUIREMENTS_SQL, new RowMapper<Long>(){
+		List<Long> arIds = simpleJdbcTemplate.query(SELECT_UNMET_REQUIREMENTS_SQL, new RowMapper<Long>(){
 
 			@Override
 			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
@@ -168,6 +167,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		return result;
 	}
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void populateNodeAccessRequirement(Long accessRequirementId, List<String> entityIds) throws DatastoreException {
 		if (entityIds==null || entityIds.isEmpty()) return;
 		List<DBONodeAccessRequirement> batch = new ArrayList<DBONodeAccessRequirement>();
@@ -181,7 +181,6 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		basicDao.createBatch(batch);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public AccessRequirement get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -193,10 +192,9 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	}
 	
 	// TODO migrate this to 'basicDao' so many DAOs can use it
-	@Transactional(readOnly = true)
 	@Override
 	public List<String> getIds() {
-		return simpleJdbcTempalte.query(SELECT_ALL_IDS_SQL, new RowMapper<String>() {
+		return simpleJdbcTemplate.query(SELECT_ALL_IDS_SQL, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return rs.getString(SqlConstants.COL_ACCESS_REQUIREMENT_ID);
@@ -207,22 +205,17 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	public List<Long> getEntities(Long accessRequirementId) {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID, accessRequirementId);
-		List<DBONodeAccessRequirement> nars = simpleJdbcTempalte.query(SELECT_FOR_NAR_SQL, nodeAccessRequirementRowMapper, param);
+		List<DBONodeAccessRequirement> nars = simpleJdbcTemplate.query(SELECT_FOR_NAR_SQL, nodeAccessRequirementRowMapper, param);
 		List<Long> ans = new ArrayList<Long>();	
 		for (DBONodeAccessRequirement nar: nars) ans.add(nar.getNodeId());
 		return ans;
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public long getCount() throws DatastoreException {
 		return basicDao.getCount(DBOAccessRequirement.class);
 	}
 
-	/**
-	 * 
-	 */
-	@Transactional(readOnly = true)
 	@Override
 	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies) throws DatastoreException {
 		// (1) get one 'page' of AccessRequirements (just their IDs and Etags)
@@ -231,7 +224,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			MapSqlParameterSource param = new MapSqlParameterSource();
 			param.addValue(OFFSET_PARAM_NAME, offset);
 			param.addValue(LIMIT_PARAM_NAME, limit);
-			ods = simpleJdbcTempalte.query(SELECT_FOR_RANGE_SQL, new RowMapper<MigratableObjectData>() {
+			ods = simpleJdbcTemplate.query(SELECT_FOR_RANGE_SQL, new RowMapper<MigratableObjectData>() {
 
 				@Override
 				public MigratableObjectData mapRow(ResultSet rs, int rowNum)
@@ -260,7 +253,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 			{
 				MapSqlParameterSource param = new MapSqlParameterSource();
 				param.addValue(COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID, arMap.keySet());
-				nars = simpleJdbcTempalte.query(SELECT_FOR_MULTIPLE_NAR_SQL, nodeAccessRequirementRowMapper, param);
+				nars = simpleJdbcTemplate.query(SELECT_FOR_MULTIPLE_NAR_SQL, nodeAccessRequirementRowMapper, param);
 			}
 
 			// (3) add the dependencies to the objects
@@ -282,7 +275,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	public List<AccessRequirement> getForNode(String nodeId) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_NODE_ACCESS_REQUIREMENT_NODE_ID, KeyFactory.stringToKey(nodeId));
-		List<DBOAccessRequirement> dbos = simpleJdbcTempalte.query(SELECT_FOR_NODE_SQL, accessRequirementRowMapper, param);
+		List<DBOAccessRequirement> dbos = simpleJdbcTemplate.query(SELECT_FOR_NODE_SQL, accessRequirementRowMapper, param);
 		List<AccessRequirement>  dtos = new ArrayList<AccessRequirement>();
 		for (DBOAccessRequirement dbo : dbos) {
 			AccessRequirement dto = AccessRequirementUtils.copyDboToDto(dbo, getEntities(dbo.getId()));
@@ -316,7 +309,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		param.addValue(COL_ACCESS_REQUIREMENT_ID, dto.getId());
 		List<DBOAccessRequirement> ars = null;
 		try{
-			ars = simpleJdbcTempalte.query(SELECT_FOR_UPDATE_SQL, new RowMapper<DBOAccessRequirement>() {
+			ars = simpleJdbcTemplate.query(SELECT_FOR_UPDATE_SQL, new RowMapper<DBOAccessRequirement>() {
 				@Override
 				public DBOAccessRequirement mapRow(ResultSet rs, int rowNum)
 						throws SQLException {
@@ -363,9 +356,13 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		// delete the existing node-access-requirement records...
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID, acessRequirementId);
-		simpleJdbcTempalte.update(DELETE_NODE_ACCESS_REQUIREMENT_SQL, param);
+		simpleJdbcTemplate.update(DELETE_NODE_ACCESS_REQUIREMENT_SQL, param);
 		// ... now populate with the updated values
 		populateNodeAccessRequirement(acessRequirementId, entityIds);
+	}
+	
+	public MigratableObjectType getMigratableObjectType() {
+		return MigratableObjectType.ACCESSREQUIREMENT;
 	}
 	
 }

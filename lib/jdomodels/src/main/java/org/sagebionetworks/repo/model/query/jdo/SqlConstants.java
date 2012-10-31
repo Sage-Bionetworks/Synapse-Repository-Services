@@ -97,6 +97,17 @@ public class SqlConstants {
 	public static final String COL_ACCESS_APPROVAL_ENTITY_TYPE		= "ENTITY_TYPE";
 	public static final String COL_ACCESS_APPROVAL_SERIALIZED_ENTITY= "SERIALIZED_ENTITY";
 	public static final String DDL_FILE_ACCESS_APPROVAL				= "schema/AccessApproval-ddl.sql";
+	
+	// The CHANGES table
+	public static final String TABLE_CHANGES						= "CHANGES";
+	public static final String COL_CHANGES_CHANGE_NUM				= "CHANGE_NUM";
+	public static final String COL_CHANGES_TIME_STAMP				= "TIME_STAMP";
+	public static final String COL_CHANGES_OBJECT_ID				= "OBJECT_ID";
+	public static final String COL_CHANGES_PARENT_ID                = "PARENT_ID";
+	public static final String COL_CHANGES_OBJECT_TYPE				= "OBJECT_TYPE";
+	public static final String COL_CHANGES_OBJECT_ETAG				= "OBJECT_ETAG";
+	public static final String COL_CHANGES_CHANGE_TYPE				= "CHANGE_TYPE";
+	public static final String DDL_CHANGES							= "schema/Changes-ddl.sql";
 
 	// 
 	public static final String COL_STACK_STATUS_STATUS				= "STATUS";
@@ -115,7 +126,20 @@ public class SqlConstants {
 	public static final String DDL_FILE_LONG_ANNOTATION			= "schema/LongAnnotation-ddl.sql";
 	public static final String DDL_FILE_DATE_ANNOTATION			= "schema/DateAnnotation-ddl.sql";
 	public static final String DDL_FILE_DOUBLE_ANNOTATION		= "schema/DoubleAnnotation-ddl.sql";
-	
+
+	// The table of storage locations
+    public static final String DDL_FILE_STORAGE_LOCATION             = "schema/StorageLocation-ddl.sql";
+    public static final String TABLE_STORAGE_LOCATION                = "STORAGE_LOCATION";
+    public static final String COL_STORAGE_LOCATION_ID               = "ID";
+    public static final String COL_STORAGE_LOCATION_NODE_ID          = "NODE_ID";
+    public static final String COL_STORAGE_LOCATION_USER_ID          = "USER_ID";
+    public static final String COL_STORAGE_LOCATION_LOCATION         = "LOCATION";
+    public static final String COL_STORAGE_LOCATION_IS_ATTACHMENT    = "IS_ATTACHMENT";
+    public static final String COL_STORAGE_LOCATION_STORAGE_PROVIDER = "STORAGE_PROVIDER";
+    public static final String COL_STORAGE_LOCATION_CONTENT_TYPE     = "CONTENT_TYPE";
+    public static final String COL_STORAGE_LOCATION_CONTENT_SIZE     = "CONTENT_SIZE";
+    public static final String COL_STORAGE_LOCATION_CONTENT_MD5      = "CONTENT_MD5";
+
 	// The name of the node type table.
 	public static final String TABLE_NODE_TYPE				= "NODE_TYPE";
 	public static final String COL_NODE_TYPE_NAME 			= "NAME";
@@ -219,7 +243,7 @@ public class SqlConstants {
 	
 	static {
 		Field[] fields = Node.class.getDeclaredFields();
-		PRIMARY_FIELDS = new String[fields.length];
+		PRIMARY_FIELDS = new String[fields.length+1];
 		for(int i=0; i<fields.length; i++){
 			PRIMARY_FIELDS[i] = fields[i].getName();
 		}

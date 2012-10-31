@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -228,7 +229,7 @@ public class EntityController extends BaseController{
 //		Entity entity = (Entity) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
 		Entity entity =  JSONEntityHttpMessageConverter.readEntity(request.getReader());
 		if(etag != null){
-			entity.setEtag(etag.toString());
+			entity.setEtag(etag);
 		}
 		// validate the entity
 		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersion, request);
@@ -270,7 +271,7 @@ public class EntityController extends BaseController{
 		// Read the entity from the body
 		Entity entity =  JSONEntityHttpMessageConverter.readEntity(request.getReader());
 		if(etag != null){
-			entity.setEtag(etag.toString());
+			entity.setEtag(etag);
 		}
 		// validate the entity
 		entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, request);
@@ -588,7 +589,15 @@ public class EntityController extends BaseController{
 		// This is a fix for PLFM-621
 		updatedACL.setId(id);
 		// pass it along.
-		return serviceProvider.getEntityService().updateEntityACL(userId, updatedACL, recursive, request);
+		return serviceProvider.getEntityService().updateEntityACL(userId, updatedACL, null, request);
+		
+		/* 
+		 * DEV NOTE (10/15/12): Recursive application disabled to prevent users
+		 * from inadvertently deleting permissions. This feature (and its UI 
+		 * implementation) should be throughly evaluated before being enabled.
+		 * 
+		 * See also IT500SynapseJavaClient.testUpdateACLRecursive()
+		 */
 	}
 	
 	/**
@@ -673,7 +682,7 @@ public class EntityController extends BaseController{
 			UrlHelpers.ENTITY_VERSION
 		}, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<Versionable> getAllVersionsOfEntity(
+	PaginatedResults<VersionInfo> getAllVersionsOfEntity(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) Integer offset,
@@ -687,7 +696,7 @@ public class EntityController extends BaseController{
 
 		// Determine the object type from the url.
 		@SuppressWarnings("unchecked")
-		PaginatedResults<Versionable> results = serviceProvider.getEntityService().getAllVerionsOfEntity(userId, offset, limit, id, request);
+		PaginatedResults<VersionInfo> results = serviceProvider.getEntityService().getAllVersionsOfEntity(userId, offset, limit, id, request);
 		// Return the result
 		return results;
 	}

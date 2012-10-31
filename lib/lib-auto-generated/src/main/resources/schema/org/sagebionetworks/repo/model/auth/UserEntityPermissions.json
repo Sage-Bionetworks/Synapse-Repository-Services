@@ -33,6 +33,11 @@
 		"ownerPrincipalId": {
 			"type": "integer",
 			"description": "The principal ID of the entity's owner (i.e. the entity's 'createdBy')"
+		},
+		"canPublicRead": {
+			"type": "boolean",
+			"description": "Is this entity considered public?"
 		}
+		
 	}
 }

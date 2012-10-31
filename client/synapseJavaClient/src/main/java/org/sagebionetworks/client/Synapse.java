@@ -46,6 +46,7 @@ import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.LocationData;
@@ -56,10 +57,11 @@ import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -68,7 +70,7 @@ import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
+import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -78,6 +80,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
+import org.sagebionetworks.repo.model.ServiceConstants;
 
 /**
  * Low-level Java Client API for Synapse REST APIs
@@ -85,8 +88,6 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 public class Synapse {
 
 	protected static final Logger log = Logger.getLogger(Synapse.class.getName());
-
-	protected static final int DEFAULT_TIMEOUT_MSEC = 5000;
 
 	protected static final int JSON_INDENT = 2;
 	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.sagebase.org/repo/v1";
@@ -111,9 +112,12 @@ public class Synapse {
 	protected static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
 	protected static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
 	protected static final String ENTITY_BUNDLE_PATH = "/bundle?mask=";
+	protected static final String BUNDLE = "/bundle";
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
+	
+	protected static final String USER_GROUP_HEADER_BATCH_PATH = "/userGroupHeaders/batch?ids=";
 
 	protected static final String TOTAL_NUM_RESULTS = "totalNumberOfResults";
 	
@@ -178,13 +182,12 @@ public class Synapse {
 		defaultPOSTPUTHeaders.put("Content-Type", "application/json");
 
 		this.clientProvider = clientProvider;
-		clientProvider.setGlobalConnectionTimeout(DEFAULT_TIMEOUT_MSEC);
-		clientProvider.setGlobalSocketTimeout(DEFAULT_TIMEOUT_MSEC);
-
+		clientProvider.setGlobalConnectionTimeout(ServiceConstants.DEFAULT_CONNECT_TIMEOUT_MSEC);
+		clientProvider.setGlobalSocketTimeout(ServiceConstants.DEFAULT_SOCKET_TIMEOUT_MSEC);
+		
 		this.dataUploader = dataUploader;
 		
 		requestProfile = false;
-
 	}
 
 	/**
@@ -442,6 +445,58 @@ public class Synapse {
 	}
 
 	/**
+	 * Create an Entity, Annotations, and ACL with a single call.
+	 * 
+	 * @param ebc
+	 * @return
+	 * @throws SynapseException
+	 */
+	public EntityBundle createEntityBundle(EntityBundleCreate ebc) throws SynapseException {
+		if (ebc == null)
+			throw new IllegalArgumentException("EntityBundle cannot be null");
+		String url = ENTITY_URI_PATH + BUNDLE;
+		JSONObject jsonObject;
+		try {
+			// Convert to JSON
+			jsonObject = EntityFactory.createJSONObjectForEntity(ebc);
+			// Create
+			jsonObject = createEntity(url, jsonObject);
+			// Convert returned JSON to EntityBundle
+			return EntityFactory.createEntityFromJSONObject(jsonObject,	EntityBundle.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	/**
+	 * Update an Entity, Annotations, and ACL with a single call.
+	 * 
+	 * @param ebc
+	 * @return
+	 * @throws SynapseException
+	 */
+	public EntityBundle updateEntityBundle(String entityId, EntityBundleCreate ebc) throws SynapseException {
+		if (ebc == null)
+			throw new IllegalArgumentException("EntityBundle cannot be null");
+		String url = ENTITY_URI_PATH + "/" + entityId + BUNDLE;
+		JSONObject jsonObject;
+		try {
+			// Convert to JSON
+			jsonObject = EntityFactory.createJSONObjectForEntity(ebc);
+			
+			// Update. Bundles do not have their own etags, so we use an
+			// empty requestHeaders object.
+			Map<String, String> requestHeaders = new HashMap<String, String>();
+			jsonObject = putSynapseEntity(repoEndpoint, url, jsonObject, requestHeaders);
+			
+			// Convert returned JSON to EntityBundle
+			return EntityFactory.createEntityFromJSONObject(jsonObject,	EntityBundle.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	/**
 	 * Get a dataset, layer, preview, annotations, etc...
 	 * 
 	 * @param uri
@@ -547,38 +602,18 @@ public class Synapse {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedResults<EntityHeader> getEntityVersions(String entityId) throws SynapseException {
+	public PaginatedResults<VersionInfo> getEntityVersions(String entityId, int offset, int limit) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
-		String url = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION;				
+		String url = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION +
+				"?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
-		JSONObjectAdapter results = new JSONObjectAdapterImpl(jsonObj);		
-		try {			
-			// TODO : transfer to a paginated list of entityheader. this code can go away with above service change
-			List<EntityHeader> headerList = new ArrayList<EntityHeader>();
-			if(results.has("results")) {
-				JSONArrayAdapter list = results.getJSONArray("results");
-				for(int i=0; i<list.length(); i++) {
-					JSONObjectAdapter entity = list.getJSONObject(i);
-					EntityHeader header = new EntityHeader();
-					header.setId(entity.getString("id"));
-					header.setName(entity.getString("name"));
-					header.setType(entity.getString("entityType"));
-					if(entity.has("versionNumber")) {
-						header.setVersionNumber(entity.getLong("versionNumber"));
-						header.setVersionLabel(entity.getString("versionLabel"));
-					} else {
-						header.setVersionNumber(new Long(1));
-						header.setVersionLabel("1");						
-					}
-					headerList.add(header);
-				}			
-			}
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<VersionInfo> results = new PaginatedResults<VersionInfo>(VersionInfo.class);
 
-			PaginatedResults<EntityHeader> versions = new PaginatedResults<EntityHeader>(EntityHeader.class);
-			versions.setTotalNumberOfResults(results.getInt("totalNumberOfResults"));			
-			versions.setResults(headerList);
-			return versions;
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -635,6 +670,32 @@ public class Synapse {
 		String uri = USER_PROFILE_PATH + "/" + ownerId;
 		JSONObject json = getEntity(uri);
 		return initializeFromJSONObject(json, UserProfile.class);
+	}
+	
+	/**
+	 * Batch get headers for users/groups matching a list of Synapse IDs.
+	 * 
+	 * @param ids
+	 * @return
+	 * @throws JSONException 
+	 * @throws SynapseException 
+	 */
+	public UserGroupHeaderResponsePage getUserGroupHeadersByIds(List<String> ids) throws SynapseException {
+		String uri = listToString(ids);
+		JSONObject json = getEntity(uri);
+		return initializeFromJSONObject(json, UserGroupHeaderResponsePage.class);
+	}
+
+	private String listToString(List<String> ids) {
+		StringBuilder sb = new StringBuilder();
+		sb.append(USER_GROUP_HEADER_BATCH_PATH);
+		for (String id : ids) {
+			sb.append(id);
+			sb.append(',');
+		}
+		// Remove the trailing comma
+		sb.deleteCharAt(sb.length() - 1);
+		return sb.toString();
 	}
 	
 	/**
@@ -1257,6 +1318,42 @@ public class Synapse {
 		return putEntity(locationable);
 	}
 	
+	
+
+	/**
+	 * Update the locationable to point to the given external url
+	 * @param locationable
+	 * @param externalUrl
+	 * @return the updated locationable
+	 * @throws SynapseException
+	 */
+	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
+			String externalUrl) throws SynapseException {
+		return updateExternalLocationableToSynapse(locationable, externalUrl, null);
+	}
+	
+	/**
+	 * Update the locationable to point to the given external url
+	 * @param locationable
+	 * @param externalUrl
+	 * @param md5 the calculated md5 checksum for the file referenced by the external url
+	 * @return the updated locationable
+	 * @throws SynapseException
+	 */
+	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
+			String externalUrl, String md5) throws SynapseException {
+		// set the upload location in the locationable so that Synapse
+		// is aware of the new data
+		LocationData location = new LocationData();
+		location.setPath(externalUrl);
+		location.setType(LocationTypeNames.external);
+		locationable.setMd5(md5);
+		List<LocationData> locations = new ArrayList<LocationData>();
+		locations.add(location);
+		locationable.setLocations(locations);
+		return putEntity(locationable);
+	}
+	
 	/**
 	 * This version will use the file name for the file name.
 	 * @param entityId
@@ -1476,7 +1573,6 @@ public class Synapse {
 		downloadFromSynapse(url, null, destFile);
 	}
 	
-	
 	/**
 	 * Downlaod a preview to the passed file.
 	 * @param entityId
@@ -1614,10 +1710,8 @@ public class Synapse {
 		}
 		if (null == uri) {
 			throw new IllegalArgumentException("must provide uri");
-		}
-
-		return signAndDispatchSynapseRequest(endpoint, uri, "GET", null,
-				defaultGETDELETEHeaders);
+		}		
+		return signAndDispatchSynapseRequest(endpoint, uri, "GET", null, defaultGETDELETEHeaders);
 	}
 
 	/**
@@ -1826,7 +1920,7 @@ public class Synapse {
 				requestHeaders.remove(REQUEST_PROFILE_DATA);
 		}
 		
-		// remove session tken if it is null
+		// remove session token if it is null
 		if(requestHeaders.containsKey(SESSION_TOKEN_HEADER) && requestHeaders.get(SESSION_TOKEN_HEADER) == null) {
 			requestHeaders.remove(SESSION_TOKEN_HEADER);
 		}
@@ -1972,13 +2066,13 @@ public class Synapse {
 	
 	public SearchResults search(SearchQuery searchQuery) throws SynapseException, UnsupportedEncodingException, JSONObjectAdapterException {
 		SearchResults searchResults = null;		
-		String uri = "/search?q=" + URLEncoder.encode(SearchUtil.generateQueryString(searchQuery), "UTF-8");
-		JSONObject obj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
+		String uri = "/search";
+		String jsonBody = EntityFactory.createJSONStringForEntity(searchQuery);
+		JSONObject obj = signAndDispatchSynapseRequest(repoEndpoint, uri, "POST", jsonBody, defaultPOSTPUTHeaders);
 		if(obj != null) {
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(obj);
 			searchResults = new SearchResults(adapter);
 		}
-
 		return searchResults;
 	}
 	
@@ -2061,11 +2155,11 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
-	public VersionInfo getVersionInfo() throws SynapseException,
+	public SynapseVersionInfo getVersionInfo() throws SynapseException,
 			JSONObjectAdapterException {
 		JSONObject json = getEntity(VERSION_INFO);
 		return EntityFactory
-				.createEntityFromJSONObject(json, VersionInfo.class);
+				.createEntityFromJSONObject(json, SynapseVersionInfo.class);
 	}
 
 }

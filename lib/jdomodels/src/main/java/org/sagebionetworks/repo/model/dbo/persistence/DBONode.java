@@ -17,10 +17,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 
-import org.sagebionetworks.ids.TaggableEntity;
+import org.sagebionetworks.repo.model.ObservableEntity;
+import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ObjectType;
 
 /**
  * The database object for a node.
@@ -28,7 +31,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  * @author jmhill
  *
  */
-public class DBONode implements DatabaseObject<DBONode>, TaggableEntity {
+public class DBONode implements DatabaseObject<DBONode>, TaggableEntity, ObservableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_NODE_ID, true),
@@ -260,6 +263,17 @@ public class DBONode implements DatabaseObject<DBONode>, TaggableEntity {
 				+ ", nodeType=" + nodeType + ", benefactorId=" + benefactorId
 				+ "]";
 	}
-
+	@Override
+	public ObjectType getObjectType() {
+		return ObjectType.ENTITY;
+	}
+	@Override
+	public String getIdString() {
+		return KeyFactory.keyToString(id);
+	}
+	@Override
+	public String getParentIdString() {
+		return KeyFactory.keyToString(parentId);
+	}
 
 }

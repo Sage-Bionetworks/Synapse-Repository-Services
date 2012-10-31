@@ -31,6 +31,19 @@ public class StackConstants {
 	
 	static final String DATABASE_URL_PROPERTY = "connection.url";
 	
+	/**
+	 * Template used the name of the AWS topic where repository changes messages are published.
+	 */
+	public static final String TOPIC_NAME_TEMPLATE = "%1$s-%2$s-repo-changes";
 	
+	/**
+	 * Template used for the name of the AWS SQS where search updates are pushed.
+	 */
+	public static final String SEARCH_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-search-update-queue";
+
+	/**
+	 * Template used for the name of the AWS SQS where dynamo updates are pushed.
+	 */
+	public static final String DYNAMO_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-dynamo-update-queue";
 
 }

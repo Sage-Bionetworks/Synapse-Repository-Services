@@ -24,22 +24,24 @@ import org.sagebionetworks.repo.model.Versionable;
 /**
  * UrlHelpers is responsible for the formatting of all URLs exposed by the
  * service.
- * 
+ *
  * The various controllers should not be formatting URLs. They should instead
  * call methods in this helper. Its important to keep URL formulation logic in
  * one place to ensure consistency across the space of URLs that this service
  * supports.
- * 
+ *
  * @author deflaux
- * 
  */
-
 public class UrlHelpers {
 
-	private static final Logger log = Logger.getLogger(UrlHelpers.class
-			.getName());
+	private static final Logger log = Logger.getLogger(UrlHelpers.class.getName());
 	
 	public static final String ACCESS 				= "/access";
+	
+	/**
+	 * Used for batch requests
+	 */
+	public static final String BATCH				= "/batch";
 	
 	public static final String PERMISSIONS 			= "/permissions";
 
@@ -53,6 +55,8 @@ public class UrlHelpers {
 	 */
 	public static final String ID_PATH_VARIABLE = "id";
 	public static final String ID = "/{"+ID_PATH_VARIABLE+"}";
+	
+	public static final String IDS_PATH_VARIABLE = "ids";
 	
 	/**
 	 * URL prefix for all objects that are referenced by their ID.
@@ -146,6 +150,7 @@ public class UrlHelpers {
 	public static final String ENTITY_ID	= ENTITY+ID;
 	public static final String USER_PROFILE_ID		= USER_PROFILE+PROFILE_ID;
 	
+	public static final String ENTITY_BUNDLE = ENTITY+BUNDLE;
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
@@ -261,22 +266,65 @@ public class UrlHelpers {
 	public static final String DAEMON 						= ADMIN+"/daemon";
 	public static final String BACKUP						= "/backup";
 	public static final String RESTORE						= "/restore";
-	public static final String SEARCH_DOCUMENT 				= "/searchDocument";
 	public static final String DAEMON_ID					= "/{daemonId}";
 	public static final String ENTITY_BACKUP_DAMEON			= DAEMON+BACKUP;
 	public static final String ENTITY_RESTORE_DAMEON		= DAEMON+RESTORE;
-	public static final String ENTITY_SEARCH_DOCUMENT_DAMEON = DAEMON+SEARCH_DOCUMENT;
 	public static final String ENTITY_DAEMON_ID				= DAEMON+DAEMON_ID;
 	
 	public static final String CONCEPT	= "/concept";
 	public static final String CONCEPT_ID	= CONCEPT+ID;
 	public static final String CHILDERN_TRANSITIVE = "/childrenTransitive";
 	public static final String CONCEPT_ID_CHILDERN_TRANSITIVE	= CONCEPT_ID+CHILDERN_TRANSITIVE;
-	
+
+	/**
+	 * Storage usage summary for the current user.
+	 */
+	public static final String STORAGE_SUMMARY = "/storageSummary";
+
+	/**
+	 * Itemized storage usage for the current user.
+	 */
+	public static final String STORAGE_DETAILS = "/storageDetails";
+
+	/**
+	 * The user whose storage usage is queried.
+	 */
+	public static final String STORAGE_USER_ID = "userId";
+
+	/**
+	 * Storage usage summary for the specified user.
+	 */
+	public static final String STORAGE_SUMMARY_USER_ID = STORAGE_SUMMARY + "/{" + STORAGE_USER_ID + "}";
+
+	/**
+	 * Itemized storage usage for the specified user.
+	 */
+	public static final String STORAGE_DETAILS_USER_ID = STORAGE_DETAILS + "/{" + STORAGE_USER_ID + "}";
+
+	/**
+	 * Storage usage summary for administrators.
+	 */
+	public static final String ADMIN_STORAGE_SUMMARY = ADMIN + STORAGE_SUMMARY;
+
+	/**
+	 * Storage usage summaries, aggregated by users, for administrators.
+	 */
+	public static final String ADMIN_STORAGE_SUMMARY_PER_USER = ADMIN_STORAGE_SUMMARY + "/perUser";
+
+	/**
+	 * Storage usage summaries, aggregated by entities, for administrators.
+	 */
+	public static final String ADMIN_STORAGE_SUMMARY_PER_ENTITY = ADMIN_STORAGE_SUMMARY + "/perEntity";
+
 	/**
 	 * Public access for Synapse user and group info
 	 */
 	public static final String USER_GROUP_HEADERS = "/userGroupHeaders";
+	
+	/**
+	 * Public batch request access for Synapse user and group info
+	 */
+	public static final String USER_GROUP_HEADERS_BATCH = USER_GROUP_HEADERS + BATCH;
 	
 	/**
 	 * The name of the query parameter for a prefix filter.
@@ -305,6 +353,7 @@ public class UrlHelpers {
 	public static final String RESOURCE_ID = "resourceId";
 	
 	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
+	public static final String GET_ALL_BACKUP_OBJECTS_COUNTS = "/backupObjectsCounts";
 
 	/**
 	 * Used by AdministrationController service to say whether object dependencies should be calculated

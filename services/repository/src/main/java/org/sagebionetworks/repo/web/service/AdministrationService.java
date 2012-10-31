@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -23,6 +24,10 @@ public interface AdministrationService {
 			Boolean includeDependencies) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 
+	public PaginatedResults<MigratableObjectCount> getAllBackupObjectsCounts(String userId)
+			throws DatastoreException,
+			UnauthorizedException, NotFoundException;
+	
 	/**
 	 * Start a backup daemon.  Monitor the status of the daemon with the getStatus method.
 	 * @param userId
@@ -80,25 +85,6 @@ public interface AdministrationService {
 	 */
 	public void deleteMigratableObject(String userId, String objectId,
 			String type, HttpHeaders header, HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException,
-			ConflictingUpdateException;
-
-	/**
-	 * Start a search document daemon.  Monitor the status of the daemon with the getStatus method.
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	public BackupRestoreStatus startSearchDocument(String userId,
-			HttpHeaders header, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException,
 			ConflictingUpdateException;

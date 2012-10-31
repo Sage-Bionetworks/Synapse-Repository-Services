@@ -11,7 +11,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.tool.migration.ClientFactoryImpl;
 import org.sagebionetworks.tool.migration.SynapseConnectionInfo;
@@ -97,7 +99,7 @@ public class StackStatusPresenter implements Runnable{
 		 * @param type
 		 * @param count
 		 */
-		public void setEntityTypeCount(MigratableObjectType objType, EntityType type, long count);
+		public void setEntityTypeCount(MigratableObjectType objType, long count);
 		
 		/**
 		 * Listener for the start button.
@@ -178,15 +180,17 @@ public class StackStatusPresenter implements Runnable{
 				setStackStatus(status.getStatus().name());
 				
 				QueryRunner queryRunner = new QueryRunnerImpl(client);
-				// Get each entity type
-				for(EntityType type: EntityType.values()){
-					// Make some progress
-					setProgressValue(current++, "Querying for "+type.name()+" count...");
-					long count = queryRunner.getCountForType(type);
-					setCountForEntity(MigratableObjectType.ENTITY, type, count);
+
+//				Per discussion with John, don't get counts / type
+				// TODO: Move to query runner to remove dependency on PaginatedResults/MigratableObjectCount
+				try {
+					PaginatedResults<MigratableObjectCount> moc = client.getMigratableObjectCounts();
+					for (MigratableObjectCount oc: moc.getResults()) {
+						setCountForEntity(MigratableObjectType.valueOf(oc.getObjectType()), oc.getCount());
+					}
+				} catch (Exception e) {
+					log.debug("API getMigratableObjectCounts not implemented on repository" + client.getRepoEndpoint());
 				}
-				
-				// now get the other types...
 				
 				// Make some progress
 				setProgressValue(current++, "Querying for total entity count...");
@@ -275,11 +279,11 @@ public class StackStatusPresenter implements Runnable{
 		});
 	}
 	
-	private void setCountForEntity(final MigratableObjectType objType, final EntityType entityType, final long count) {
+	private void setCountForEntity(final MigratableObjectType objType, final long count) {
 		SwingUtilities.invokeLater(new Runnable() {
 			@Override
 			public void run() {
-				view.setEntityTypeCount(objType, entityType, count);
+				view.setEntityTypeCount(objType, count);
 			}
 		});
 	}

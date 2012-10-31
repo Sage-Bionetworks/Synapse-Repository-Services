@@ -26,21 +26,11 @@ public class EntityCountModel extends AbstractTableModel {
 	
 	public EntityCountModel(){
 		int i=0;
-		for (EntityType entityType : EntityType.values()) {
-			rowIndex.put(entityType.name(), i);
-			reverseRowIndex.put(i, entityType.name());
+		for (MigratableObjectType objType : MigratableObjectType.values()) {
+			rowIndex.put(objType.name(), i);
+			reverseRowIndex.put(i, objType.name());
 			map.put(i, "unknown");
 			i++;
-		}
-		for (MigratableObjectType objType : MigratableObjectType.values()) {
-			if (objType.equals(MigratableObjectType.ENTITY)) {
-				// skip it
-			} else {
-				rowIndex.put(objType.name(), i);
-				reverseRowIndex.put(i, objType.name());
-				map.put(i, "unknown");
-				i++;
-			}
 		}
 	}
 	
@@ -50,9 +40,8 @@ public class EntityCountModel extends AbstractTableModel {
 	 * @param entityType if objType==ENTITY, this is the sub-type, else null
 	 * @param count
 	 */
-	public void setValue(MigratableObjectType objType, EntityType entityType, long count){
+	public void setValue(MigratableObjectType objType, long count){
 		String typeName = objType.name();
-		if (objType.equals(MigratableObjectType.ENTITY)) typeName=entityType.name();
 		int r = rowIndex.get(typeName);
 		map.put(r, String.format(LONG_WITH_COMMA_FORMAT, count));
 		// Fire the change.

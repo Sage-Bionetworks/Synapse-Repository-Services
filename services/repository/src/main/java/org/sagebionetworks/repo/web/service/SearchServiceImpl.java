@@ -1,28 +1,29 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.LinkedList;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.http.client.ClientProtocolException;
-import org.apache.http.client.HttpClient;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.log4j.Logger;
 import org.json.JSONException;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
+import org.sagebionetworks.repo.manager.search.SearchHelper;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.search.AwesomeSearchFactory;
+import org.sagebionetworks.repo.model.search.Hit;
 import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.repo.util.SearchHelper;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
-import org.sagebionetworks.utils.HttpClientHelper;
+import org.sagebionetworks.search.SearchConstants;
+import org.sagebionetworks.search.SearchDao;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.ModelAndView;
 
@@ -41,55 +42,126 @@ import org.springframework.web.servlet.ModelAndView;
 public class SearchServiceImpl implements SearchService {
 	private static final Logger log = Logger.getLogger(SearchServiceImpl.class
 			.getName());
-	private static final String CLOUD_SEARCH_ENDPOINT = StackConfiguration
-			.getSearchServiceEndpoint();
-
-	private static final AwesomeSearchFactory searchResultsFactory = new AwesomeSearchFactory(new AdapterFactoryImpl());
-	private static final HttpClient httpClient;
-
-	static {
-		httpClient = HttpClientHelper.createNewClient(true);
-		ThreadSafeClientConnManager manager = (ThreadSafeClientConnManager) httpClient
-				.getConnectionManager();
-		// ensure that we can have *many* simultaneous connections to
-		// CloudSearch
-		manager.setDefaultMaxPerRoute(StackConfiguration
-				.getHttpClientMaxConnsPerRoute());
-	}
+	
+	@Autowired
+	SearchDao searchDao;
 
 	@Autowired
 	UserManager userManager;
+	
+	@Autowired
+	private SearchDocumentDriver searchDocumentDriver;
+
+	public SearchServiceImpl(){}
+	/**
+	 * For tests
+	 * @param searchDao
+	 * @param userManager
+	 * @param searchDocumentDriver
+	 */
+	public SearchServiceImpl(SearchDao searchDao, UserManager userManager,
+			SearchDocumentDriver searchDocumentDriver) {
+		super();
+		this.searchDao = searchDao;
+		this.userManager = userManager;
+		this.searchDocumentDriver = searchDocumentDriver;
+	}
 
 	/* (non-Javadoc)
 	 * @see org.sagebionetworks.repo.web.service.SearchService#proxySearch(java.lang.String, java.lang.String, javax.servlet.http.HttpServletRequest)
 	 */
 	@Override
 	public @ResponseBody
-	SearchResults proxySearch(String userId, String searchQuery, HttpServletRequest request) 
+	SearchResults proxySearch(String userId, SearchQuery searchQuery) 
 			throws ClientProtocolException,	IOException, HttpClientHelperException,
 			DatastoreException, NotFoundException {
-
-		log.debug("Got raw query " + searchQuery);
-
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		if (!userInfo.isAdmin()) {
-			searchQuery += "&" + SearchHelper.formulateAuthorizationFilter(userInfo);
-		}
+		return proxySearch(userInfo, searchQuery);
+	}
 
+	/**
+	 * @param userInfo
+	 * @param searchQuery
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws HttpClientHelperException
+	 */
+	public SearchResults proxySearch(UserInfo userInfo, SearchQuery searchQuery)	throws UnsupportedEncodingException, ClientProtocolException,
+			IOException, HttpClientHelperException {
+		boolean includePath = false;
+		if(searchQuery.getReturnFields() != null && searchQuery.getReturnFields().contains(SearchConstants.FIELD_PATH)){
+			includePath = true;
+			// We do not want to pass path along to the search index as it is not there.
+			searchQuery.getReturnFields().remove(SearchConstants.FIELD_PATH);
+		}
+		// Create the query string
+		String cleanedSearchQuery = createQueryString(userInfo, searchQuery);
+		SearchResults results = searchDao.executeSearch(cleanedSearchQuery);
+		// Add any extra return results to the hits
+		if(results != null && results.getHits() != null){
+			addReturnDataToHits(results.getHits(), includePath);
+		}
+		return results;
+	}
+	
+	/**
+	 * Add extra return results to the hit list.
+	 * @param hits
+	 * @param includePath
+	 */
+	public void addReturnDataToHits(List<Hit> hits, boolean includePath) {
+		List<Hit> toRemove = new LinkedList<Hit>();
+		if(hits != null){
+			// For each hit we need to add the path
+			for(Hit hit: hits){
+				if(includePath){
+					try {
+						EntityPath path = searchDocumentDriver.getEntityPath(hit.getId());
+						hit.setPath(path);
+					} catch (NotFoundException e) {
+						// Add a warning and remove it from the hits
+						log.warn("Found a search document that did not exist in the reposiroty: "+hit, e);
+						// We need to remove this from the hits
+						toRemove.add(hit);
+					}
+				}
+			}
+		}
+		if(!toRemove.isEmpty()){
+			hits.removeAll(toRemove);
+		}
+	}
+	/**
+	 * @param userInfo
+	 * @param searchQuery
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 */
+	public String createQueryString(UserInfo userInfo, SearchQuery searchQuery)
+			throws UnsupportedEncodingException {
+		String serchQueryString = SearchUtil.generateQueryString(searchQuery);
+		serchQueryString = filterSeachForAuthorization(userInfo, serchQueryString);
 		// Merge boolean queries as needed and escape them
-		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(searchQuery);
+		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(serchQueryString);
+		return cleanedSearchQuery;
+	}
 
-		String url = CLOUD_SEARCH_ENDPOINT + "?" + cleanedSearchQuery;
-
-		log.debug("About to request from CloudSearch: " + url);
-		String response = HttpClientHelper.getContent(httpClient, url);
-		log.debug("Response from CloudSearch: " + response);
-
-		try {
-			return searchResultsFactory.fromAwesomeSearchResults(response);
-		} catch (JSONObjectAdapterException e) {
-			throw new DatastoreException("Results conversion failed for request " + url + " with response " + response, e);
+	/**
+	 * @param userInfo
+	 * @param searchQuery
+	 * @return
+	 */
+	public String filterSeachForAuthorization(UserInfo userInfo,String searchQuery) {
+		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if (!userInfo.isAdmin()) {
+			StringBuilder builder = new StringBuilder(searchQuery);
+			builder.append("&");
+			builder.append(SearchHelper.formulateAuthorizationFilter(userInfo));
+			searchQuery = builder.toString();
 		}
+		return searchQuery;
 	}
 
 	/* (non-Javadoc)
@@ -104,21 +176,30 @@ public class SearchServiceImpl implements SearchService {
 		log.debug("Got raw query " + searchQuery);
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		if (!userInfo.isAdmin()) {
-			searchQuery += "&" + SearchHelper.formulateAuthorizationFilter(userInfo);
-		}
+		return proxyRawSearch(searchQuery, userInfo);
+	}
+
+	/**
+	 * @param searchQuery
+	 * @param userInfo
+	 * @return
+	 * @throws UnsupportedEncodingException
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws HttpClientHelperException
+	 */
+	public ModelAndView proxyRawSearch(String searchQuery, UserInfo userInfo)
+			throws UnsupportedEncodingException, ClientProtocolException,
+			IOException, HttpClientHelperException {
+		searchQuery = filterSeachForAuthorization(userInfo, searchQuery);
 
 		// Merge boolean queries as needed and escape them
 		String cleanedSearchQuery = SearchHelper.cleanUpSearchQueries(searchQuery);
-
-		String url = CLOUD_SEARCH_ENDPOINT + "?" + cleanedSearchQuery;
-		log.debug("About to request " + url);
-
-		String response = HttpClientHelper.getContent(httpClient, url);
+		String response = searchDao.executeRawSearch(cleanedSearchQuery);
 
 		ModelAndView mav = new ModelAndView();
 		mav.addObject("result", response);
-		mav.addObject("url", url);
+		mav.addObject("url", "private");
 		return mav;
 	}
 }

@@ -97,6 +97,10 @@ public class StackConfiguration {
 	public static String getRepositoryServiceEndpoint() {
 		return configuration.getRepositoryServiceEndpoint();
 	}
+	
+	public static String getSearchServiceEndpoint() {
+		return configuration.getSearchServiceEndpoint();
+	}
 
 	public static String getPortalEndpoint() {
 		return configuration.getPortalEndpoint();
@@ -104,16 +108,6 @@ public class StackConfiguration {
 
 	public static String getCrowdEndpoint() {
 		return configuration.getProperty("org.sagebionetworks.crowd.endpoint");
-	}
-
-	public static String getSearchServiceEndpoint() {
-		return configuration
-				.getProperty("org.sagebionetworks.cloudsearch.searchservice.endpoint");
-	}
-
-	public static String getDocumentServiceEndpoint() {
-		return configuration
-				.getProperty("org.sagebionetworks.cloudsearch.documentservice.endpoint");
 	}
 
 	/**
@@ -640,4 +634,26 @@ public class StackConfiguration {
 		return address;
 	}
 
+	/**
+	 * The name of the AWS topic where repository changes messages are published.
+	 * @return
+	 */
+	public String getRepositoryChangeTopicName(){
+		return String.format(StackConstants.TOPIC_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
+	}
+
+	/**
+	 * The name of the AWS SQS where search updates are pushed.
+	 * @return
+	 */
+	public String getSearchUpdateQueueName(){
+		return String.format(StackConstants.SEARCH_QUEUE_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
+	}
+
+	/**
+	 * The name of the AWS SQS where dynamo updates are pushed.
+	 */
+	public String getDynamoUpdateQueueName() {
+		return String.format(StackConstants.DYNAMO_QUEUE_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
+	}
 }

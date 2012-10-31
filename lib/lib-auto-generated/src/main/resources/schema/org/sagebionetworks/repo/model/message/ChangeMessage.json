@@ -1,0 +1,48 @@
+{
+	"title": "ChangeMessage",
+	"description": "JSON schema for a change message",
+	"properties": {
+		"changeNumber": {
+			"type": "integer",
+			"description":"The application change number created as a result of this change."
+		},
+		"timestamp": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this change was originally committed."
+		},		
+		"objectId": {
+			"type": "string",
+			"description":"The unique identifier of the object that changed."
+		},
+		"parentId": {
+			"type": "string",
+			"description": "The unique identifier of the parent object."
+		},
+		"objectEtag": {
+			"type": "string",
+			"description":"The new Etag of the changed object"
+		},
+		"objectType": {
+			"type": "string",
+			"description": "The type of the object that changed",
+			"name": "ObjectType",
+			"id": "org.sagebionetworks.repo.model.message.ObjectType",
+			"enum": [
+				"ENTITY",
+				"PRINCIPAL"
+			]
+		},
+		"changeType": {
+			"type": "string",
+			"description": "The type of change that occurred",
+			"name": "ChangeType",
+			"id": "org.sagebionetworks.repo.model.message.ChangeType",
+			"enum": [
+				"CREATE",
+				"UPDATE",
+				"DELETE"
+			]
+		}
+	}
+}

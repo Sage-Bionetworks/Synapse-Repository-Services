@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -43,6 +44,7 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -53,8 +55,9 @@ import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.search.SearchResults;
+import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
-import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
+import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.EntityService;
@@ -742,7 +745,6 @@ public class ServletTestHelper {
 	/**
 	 * Get all objects of type.
 	 * 
-	 * @param <T>
 	 * @param requestUrl
 	 * @param clazz
 	 * @return
@@ -751,10 +753,10 @@ public class ServletTestHelper {
 	 * @throws JSONException
 	 * @throws Exception
 	 */
-	public static <T extends Versionable> PaginatedResults<T> getAllVersionsOfEntity(
-			HttpServlet dispatchServlet, Class<? extends T> clazz,
-			String entityId, Integer offset, Integer limit, String userId)
-			throws ServletException, IOException, JSONException {
+	public static PaginatedResults<VersionInfo> getAllVersionsOfEntity(
+			HttpServlet dispatchServlet, String entityId, Integer offset,
+			Integer limit, String userId) throws ServletException, IOException,
+			JSONException {
 		if (dispatchServlet == null)
 			throw new IllegalArgumentException("Servlet cannot be null");
 		MockHttpServletRequest request = new MockHttpServletRequest();
@@ -778,7 +780,7 @@ public class ServletTestHelper {
 			throw new ServletTestHelperException(response);
 		}
 		return createPaginatedResultsFromJSON(response.getContentAsString(),
-				clazz);
+				VersionInfo.class);
 	}
 
 	/**
@@ -1946,8 +1948,33 @@ public class ServletTestHelper {
 				MigratableObjectData.class);
 	}
 
-	public VersionInfo getVersionInfo() throws ServletException, IOException {
-		VersionInfo vi;
+	public static PaginatedResults<MigratableObjectCount> getMigratableObjectsCounts(
+			HttpServlet dispatchServlet,
+			long offset,
+			long limit,
+			String userId) throws Exception {
+
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+
+		request.setRequestURI(UrlHelpers.GET_ALL_BACKUP_OBJECTS_COUNTS);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, ""+offset);
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, ""+limit);
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return createPaginatedResultsFromJSON(response.getContentAsString(),
+				MigratableObjectCount.class);
+	}
+
+	public SynapseVersionInfo getVersionInfo() throws ServletException, IOException {
+		SynapseVersionInfo vi;
 		
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
@@ -1960,8 +1987,9 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.OK.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		vi = (VersionInfo) objectMapper.readValue(
-				response.getContentAsString(), VersionInfo.class);
+		vi = (SynapseVersionInfo) objectMapper.readValue(
+				response.getContentAsString(), SynapseVersionInfo.class);
 		return vi;
 	}
+
 }

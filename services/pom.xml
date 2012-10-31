@@ -14,9 +14,12 @@
   <name>Services</name>
 
   <modules>
+    <module>repository-managers</module>
     <module>authutil</module>
     <module>repository</module>
     <module>auth</module>
+    <module>search</module>
+    <module>dynamo</module>
   </modules>
 
 </project>

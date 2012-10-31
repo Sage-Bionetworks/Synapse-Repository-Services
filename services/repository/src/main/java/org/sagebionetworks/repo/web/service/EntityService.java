@@ -14,13 +14,12 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.PaginatedParameters;
@@ -42,7 +41,7 @@ public interface EntityService {
 	 * 
 	 * @param userId
 	 * @param offset
-	 *            1-Entityd pagination offset
+	 *            1-Entity pagination offset
 	 * @param limit
 	 *            maximum number of results to return
 	 * @param sort
@@ -58,24 +57,6 @@ public interface EntityService {
 			PaginatedParameters paging,
 			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
-	
-	/**
-	 * Get all versions of an entity.  This list will be sorted on version number descending.
-	 * @param <T>
-	 * @param userId
-	 * @param offest
-	 * @param limmit
-	 * @param entityId
-	 * @param request
-	 * @param clazz
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
-			HttpServletRequest request, Class<? extends T> clazz) throws DatastoreException,
-			UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get all versions of an entity.  This list will be sorted on version number descending.
@@ -91,10 +72,9 @@ public interface EntityService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public <T extends Entity> PaginatedResults<T> getAllVerionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
+	public PaginatedResults<VersionInfo> getAllVersionsOfEntity(String userId, Integer offset, Integer limit, String entityId,
 			HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
-
 
 	/**
 	 * Get a specific entity
@@ -407,8 +387,8 @@ public interface EntityService {
 	throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException;
 	
 	/**
-	 * Update an entity ACL. If 'recursive' is true, then the ACL will be applied
-	 * to all child entities via inheritance.
+	 * Update an entity ACL. If the String 'recursive' is "true", then the ACL 
+	 * will be applied to all child entities via inheritance.
 	 * @param userId
 	 * @param updated
 	 * @param recursive
@@ -422,6 +402,26 @@ public interface EntityService {
 		DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException, ConflictingUpdateException;
 	
 	/**
+	 * Update an entity ACL. If no such ACL exists, then create it.
+	 * 
+	 * If the String 'recursive' is "true", then the ACL will be applied to all
+	 * child entities via inheritance.
+	 * 
+	 * @param userId
+	 * @param acl
+	 * @param recursive
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException
+	 */
+	public AccessControlList createOrUpdateEntityACL(String userId,	AccessControlList acl, String recursive, HttpServletRequest request)
+			throws DatastoreException, NotFoundException, InvalidModelException, UnauthorizedException,	ConflictingUpdateException;
+
+	/**
 	 * Delete a specific entity
 	 * <p>
 	 * 
@@ -434,20 +434,6 @@ public interface EntityService {
 	 */
 	public void deleteEntityACL(String userId, String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException;
-
-	/**
-	 * Execute a query and include the annotations for each entity.
-	 * @param <T>
-	 * @param userInfo
-	 * @param query
-	 * @param clazz
-	 * @param request
-	 * @return
-	 * @throws NotFoundException 
-	 * @throws DatastoreException 
-	 * @throws UnauthorizedException 
-	 */
-	public QueryResults executeQueryWithAnnotations(String userId, BasicQuery query, HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * determine whether a user has the given access type for a given entity
@@ -566,23 +552,6 @@ public interface EntityService {
 			String tokenID) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 
 	/**
-	 * Perform a query.
-	 * 
-	 * @param userId
-	 * @param query
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws ParseException
-	 * @throws NotFoundException
-	 * @throws UnauthorizedException
-	 */
-	public QueryResults query(String userId, String query, HttpServletRequest request)
-			throws DatastoreException, ParseException, NotFoundException,
-			UnauthorizedException;
-
-	
-	/**
 	 * Get the number of children that this entity has.
 	 * 
 	 * @param userId
@@ -594,8 +563,7 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
-	public Long getChildCount(String userId, String entityId,
+	public boolean doesEntityHaveChildren(String userId, String entityId,
 			HttpServletRequest request) throws DatastoreException,
 			ParseException, NotFoundException, UnauthorizedException;
-	
 }

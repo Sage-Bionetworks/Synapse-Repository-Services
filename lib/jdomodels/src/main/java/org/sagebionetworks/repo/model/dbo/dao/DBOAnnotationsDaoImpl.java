@@ -24,11 +24,11 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@Transactional(readOnly = true)
 public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 	
 	private static String[] ANNOTATION_TABLES = new String[]{
@@ -37,15 +37,6 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		TABLE_DOUBLE_ANNOTATIONS,
 		TABLE_DATE_ANNOTATIONS,
 	};
-	
-	private static String DELETE_SQL_FORMAT = "DELETE FROM `%1$s` WHERE "+ANNOTATION_OWNER_ID_COLUMN+" = ?";
-	// Contains all of the delete sql
-	private static String[] ALL_DELETE_SQL = new String[ANNOTATION_TABLES.length];
-	static{
-		for(int i=0; i<ANNOTATION_TABLES.length; i++){
-			ALL_DELETE_SQL[i] = String.format(DELETE_SQL_FORMAT, ANNOTATION_TABLES[i]);
-		}
-	}
 	
 	private static String SELECT_FORMAT = "SELECT "+ANNOTATION_ATTRIBUTE_COLUMN+", "+ANNOTATION_VALUE_COLUMN+" FROM `%1$s` WHERE "+ANNOTATION_OWNER_ID_COLUMN+" = ?";
 	
@@ -58,17 +49,15 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 	private static String SELECT_DATE_ANNOS = String.format(SELECT_FORMAT, TABLE_DATE_ANNOTATIONS);
 	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
-
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 	@Autowired
 	DBOBasicDao dboBasicDao;
 	
-	@Transactional(readOnly = true)
 	@Override
 	public Annotations getAnnotations(Long owner) {
 		final Annotations results = new Annotations();
 		// First select the string annotations
-		simpleJdbcTempalte.query(SELECT_STRING_ANNOS, new RowMapper<String>() {
+		simpleJdbcTemplate.query(SELECT_STRING_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String key = rs.getString(ANNOTATION_ATTRIBUTE_COLUMN);
@@ -78,7 +67,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 			}
 		}, owner);
 		// Get the longs
-		simpleJdbcTempalte.query(SELECT_LONG_ANNOS, new RowMapper<String>() {
+		simpleJdbcTemplate.query(SELECT_LONG_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String key = rs.getString(ANNOTATION_ATTRIBUTE_COLUMN);
@@ -91,7 +80,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 			}
 		}, owner);
 		// Get the doubles
-		simpleJdbcTempalte.query(SELECT_DOUBLE_ANNOS, new RowMapper<String>() {
+		simpleJdbcTemplate.query(SELECT_DOUBLE_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String key = rs.getString(ANNOTATION_ATTRIBUTE_COLUMN);
@@ -104,7 +93,7 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 			}
 		}, owner);
 		// Get the dates
-		simpleJdbcTempalte.query(SELECT_DATE_ANNOS, new RowMapper<String>() {
+		simpleJdbcTemplate.query(SELECT_DATE_ANNOS, new RowMapper<String>() {
 			@Override
 			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
 				String key = rs.getString(ANNOTATION_ATTRIBUTE_COLUMN);
@@ -124,9 +113,10 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		if(annotations.getId() == null) throw new IllegalArgumentException("Annotations owner id cannot be null");
 		Long ownerId = KeyFactory.stringToKey(annotations.getId());
 		// First we must delete all annotations for this node.
-		for(String deleteSql: ALL_DELETE_SQL){
-			simpleJdbcTempalte.update(deleteSql, ownerId);
+		for(String tableName: ANNOTATION_TABLES){
+			deleteWithoutGapLockFromTable(tableName, ownerId);
 		}
+		
 		// Create the string.
 		Map<String, List<String>> stringAnnos = annotations.getStringAnnotations();
 		if(stringAnnos != null && stringAnnos.size() > 0){
@@ -152,6 +142,28 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 			List<DBODateAnnotation> batch = AnnotationUtils.createDateAnnotations(ownerId, dateAnnos);
 			dboBasicDao.createBatch(batch);
 		}
+	}
+	
+	/**
+	 * In order to avoid MySQL gap locks which cause deadlock, we need to delete by a unique key.
+	 * This means we need to first for row IDs that match the owner.  We then use the ids to
+	 * delete the rows.  
+	 * @param tableName
+	 * @param ownerId
+	 */
+	private void deleteWithoutGapLockFromTable(String tableName, Long ownerId){
+		// First get all IDs for rows that belong to the passed owner.
+		List<Long> idsToDelete = simpleJdbcTemplate.query("SELECT ID FROM "+tableName+" WHERE "+ANNOTATION_OWNER_ID_COLUMN+" = ? ORDER BY ID ASC", new RowMapper<Long>(){
+			@Override
+			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getLong("ID");
+			}}, ownerId);
+		// Prepare to batch delete the rows by their primary key.
+		MapSqlParameterSource[] params = new MapSqlParameterSource[idsToDelete.size()];
+		for(int i=0; i<idsToDelete.size(); i++){
+			params[i] = new MapSqlParameterSource("idParam", idsToDelete.get(i));
+		}
+		simpleJdbcTemplate.batchUpdate("DELETE FROM "+tableName+" WHERE ID = :idParam", params);
 	}
 
 }

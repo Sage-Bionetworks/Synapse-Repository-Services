@@ -13,6 +13,7 @@ import org.apache.http.entity.StringEntity;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Study;
@@ -52,5 +53,14 @@ public class SynapseAdministrationTest {
 		assertEquals(p, clone);
 	}
 	
-
+	@Test
+	public void testGetMigratableObjectCounts() throws Exception {
+		PaginatedResults<MigratableObjectCount> p = new PaginatedResults<MigratableObjectCount>();
+		String expectedJSONResult = EntityFactory.createJSONStringForEntity(p);
+		StringEntity responseEntity = new StringEntity(expectedJSONResult);
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		PaginatedResults<MigratableObjectCount> oc = synapse.getMigratableObjectCounts();
+		assertNotNull(oc);
+		assertEquals(p, oc);
+	}
 }

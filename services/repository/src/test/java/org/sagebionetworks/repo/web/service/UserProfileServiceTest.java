@@ -9,15 +9,16 @@ import static org.mockito.Mockito.*;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import javax.servlet.ServletException;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -28,16 +29,12 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class UserProfileServiceTest {
 	
-	@Autowired
-	UserProfileService userProfileService;
+	private static final String EXTRA_USER_ID = "foo";
+
+	private UserProfileService userProfileService = new UserProfileServiceImpl();
 	
 	private PermissionsManager mockPermissionsManager;
 	private UserProfileManager mockUserProfileManager;
@@ -72,12 +69,74 @@ public class UserProfileServiceTest {
 		list.add(p);
 		QueryResults<UserProfile> profiles = new QueryResults<UserProfile>(list, list.size());
 		
+		UserProfile extraProfile = new UserProfile();
+		extraProfile.setOwnerId(EXTRA_USER_ID);
+		extraProfile.setDisplayName("This UserProfile was created after the cache was last refreshed.");
+		
 		when(mockPermissionsManager.getGroups()).thenReturn(groups);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong(), eq(true))).thenReturn(profiles);
+		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID))).thenReturn(extraProfile);
 		
 		userProfileService.setPermissionsManager(mockPermissionsManager);
 		userProfileService.setUserProfileManager(mockUserProfileManager);
+	}
+	
+	@Test
+	public void testGetUserGroupHeadersById() throws DatastoreException, NotFoundException {
+		List<String> ids = new ArrayList<String>();
+		ids.add("g0");
+		ids.add("g1");
+		ids.add("g2");
+		
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
+		for (UserGroupHeader ugh : response.getChildren())
+			headers.put(ugh.getOwnerId(), ugh);
+		assertEquals(3, headers.size());
+		assertTrue(headers.containsKey("g0"));
+		assertTrue(headers.containsKey("g1"));
+		assertTrue(headers.containsKey("g2"));
+	}
+	
+	@Test
+	public void testGetUserGroupHeadersByIdNotInCache() throws DatastoreException, NotFoundException {
+		List<String> ids = new ArrayList<String>();
+		ids.add("g0");
+		ids.add("g1");
+		ids.add("g2");
+		ids.add(EXTRA_USER_ID); // should require fetch from repo
+		
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
+		for (UserGroupHeader ugh : response.getChildren())
+			headers.put(ugh.getOwnerId(), ugh);
+		assertEquals(4, headers.size());
+		assertTrue(headers.containsKey("g0"));
+		assertTrue(headers.containsKey("g1"));
+		assertTrue(headers.containsKey("g2"));
+		assertTrue(headers.containsKey(EXTRA_USER_ID));
+		
+		verify(mockUserProfileManager).getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID));
+	}
+	
+	@Test(expected = NotFoundException.class)
+	public void testGetUserGroupHeadersByIdDoesNotExist() throws DatastoreException, NotFoundException {
+		List<String> ids = new ArrayList<String>();
+		ids.add("g0");
+		ids.add("g1");
+		ids.add("g2");
+		ids.add("g10"); // should not exist
+		
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByIds(ids);
+		Map<String, UserGroupHeader> headers = new HashMap<String, UserGroupHeader>();
+		for (UserGroupHeader ugh : response.getChildren())
+			headers.put(ugh.getOwnerId(), ugh);
+		assertEquals(3, headers.size());
+		assertTrue(headers.containsKey("g0"));
+		assertTrue(headers.containsKey("g1"));
+		assertTrue(headers.containsKey("g2"));
+		assertFalse(headers.containsKey("g10"));
 	}
 	
 	@Test
@@ -105,7 +164,7 @@ public class UserProfileServiceTest {
 	
 	
 	@Test
-	public void testGeUserGroupHeadersWithSameCaseFilter() throws ServletException, IOException, DatastoreException, NotFoundException {
+	public void testGetUserGroupHeadersWithSameCaseFilter() throws ServletException, IOException, DatastoreException, NotFoundException {
 		String prefix = "Gro";
 		int limit = Integer.MAX_VALUE;
 		int offset = 0;
@@ -129,7 +188,7 @@ public class UserProfileServiceTest {
 	}
 	
 	@Test
-	public void testGeUserGroupHeadersWithDifferentCaseFilter() throws ServletException, IOException, DatastoreException, NotFoundException {
+	public void testGetUserGroupHeadersWithDifferentCaseFilter() throws ServletException, IOException, DatastoreException, NotFoundException {
 		String prefix = "gRoUp";
 		int limit = Integer.MAX_VALUE;
 		int offset = 0;
@@ -153,7 +212,7 @@ public class UserProfileServiceTest {
 	}
 	
 	@Test
-	public void testGeUserGroupHeadersWithFilterSameName() throws ServletException, IOException, DatastoreException, NotFoundException {
+	public void testGetUserGroupHeadersWithFilterSameName() throws ServletException, IOException, DatastoreException, NotFoundException {
 		String prefix = "user 0";
 		int limit = Integer.MAX_VALUE;
 		int offset = 0;

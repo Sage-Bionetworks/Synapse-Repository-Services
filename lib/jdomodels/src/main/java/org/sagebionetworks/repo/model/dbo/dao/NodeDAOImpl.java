@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ACL_OWNER_ID_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_OWNER_ID_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
@@ -13,18 +12,17 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TYPE;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_TYPE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STRING_ANNOTATIONS;
 
@@ -32,7 +30,6 @@ import java.io.IOException;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,7 +37,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -50,6 +46,7 @@ import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
@@ -59,6 +56,10 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.StorageLocationDAO;
+import org.sagebionetworks.repo.model.StorageLocations;
+import org.sagebionetworks.repo.model.TagMessenger;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONodeType;
@@ -68,7 +69,10 @@ import org.sagebionetworks.repo.model.jdo.JDORevisionUtils;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.ObjectDescriptorUtils;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -85,18 +89,24 @@ import org.springframework.transaction.annotation.Transactional;
  * @author jmhill
  *
  */
-@Transactional(readOnly = true)
 public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
-	
+
+	private static final String ERROR_RESOURCE_NOT_FOUND = "The resource you are attempting to access cannot be found";
 	private static final String SQL_SELECT_TYPE_FOR_ALIAS = "SELECT DISTINCT "+COL_OWNER_TYPE+" FROM "+TABLE_NODE_TYPE_ALIAS+" WHERE "+COL_NODE_TYPE_ALIAS+" = ?";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
+	private static final String GET_NODE_CREATED_BY_SQL = "SELECT "+COL_NODE_CREATED_BY+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_COUNT_NODES = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String SQL_COUNT_STRING_ANNOTATIONS_FOR_NODE = "SELECT COUNT("+ANNOTATION_OWNER_ID_COLUMN+") FROM "+TABLE_STRING_ANNOTATIONS+" WHERE "+ANNOTATION_OWNER_ID_COLUMN+" = ? AND "+ANNOTATION_ATTRIBUTE_COLUMN+" = ?";
-		
+	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
 	
+	/**
+	 * To determine if a node has children we fetch the first child ID.
+	 */
+	private static final String SQL_GET_FIRST_CHILD = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? LIMIT 1 OFFSET 0";
+
 	// get all ids, paginated
 	private static final String SQL_GET_NODES_PAGINATED =
 		"SELECT n."+COL_NODE_ID+", n."+COL_NODE_ETAG+
@@ -104,56 +114,52 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		" ORDER BY n."+COL_NODE_ID+
 		" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 	
-	// select n.id, n.created_by, n.etag, n.parent_id, n.benefactor_id, r.modified_by
-	// from jdonode n, jdorevison r
-	// where n.id=r.owner_node_id order by n.id limit L offset O
-	private static final String SQL_GET_NODES_AND_DEPENDENCIES_PAGINATED =
-		"SELECT n."+COL_NODE_ID+", n."+COL_NODE_CREATED_BY+", n."+COL_NODE_ETAG+", n."+COL_NODE_PARENT_ID+
-			", n."+COL_NODE_BENEFACTOR_ID+", r."+COL_REVISION_MODIFIED_BY+
-			" FROM "+TABLE_NODE+" n, "+TABLE_REVISION+" r "+
-			" WHERE n."+COL_NODE_ID+"=r."+COL_REVISION_OWNER_NODE+" ORDER BY n."+COL_NODE_ID+
-			" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-	
-	// find the principal dependencies created by the ACLs on auth benefactor nodes
-	// Note, we identify the benefactor nodes by the fact that they are their own benefactor
-	// below 'LIST' is the list of ids returned by the paginated query above
-	//
-	// select n.id, ra.group_id
-	// from jdonode n, acl acl, jdoresourceaccess ra
-	// where n.id=acl.owner_id_column and ra.owner_id=acl.id and n.id=n.benefactor_id AND n.id in (:LIST)
-	private static final String SQL_GET_BENEFACTORS_DEPENDENCIES =
-		"SELECT n."+COL_NODE_ID+", ra."+COL_RESOURCE_ACCESS_GROUP_ID+
-		" FROM "+TABLE_NODE+" n, "+TABLE_ACCESS_CONTROL_LIST+" acl, "+TABLE_RESOURCE_ACCESS+" ra "+
-		" WHERE n."+COL_NODE_ID+"=acl."+ACL_OWNER_ID_COLUMN+" and ra."+COL_RESOURCE_ACCESS_OWNER+"=acl."+ACL_OWNER_ID_COLUMN+
-		" AND n."+COL_NODE_ID+"=n."+COL_NODE_BENEFACTOR_ID+" AND n."+COL_NODE_ID+" in (:"+COL_NODE_ID+")";
-	
+	// get all dependencies , paginated
+	private static final String SQL_GET_NODES_PAGINATED_DEPENDENCIES =
+		"SELECT n."+COL_NODE_ID+", n."+COL_NODE_ETAG+", n."+COL_NODE_PARENT_ID+", n."+COL_NODE_BENEFACTOR_ID+
+		" FROM "+TABLE_NODE+" n "+
+		" ORDER BY n."+COL_NODE_ID+
+		" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+
+	private static String SQL_GET_ALL_VERSION_INFO_PAGINATED = "SELECT "
+			+ COL_REVISION_NUMBER + ", " + COL_REVISION_LABEL + ", "
+			+ COL_REVISION_COMMENT + ", " + COL_REVISION_MODIFIED_BY + ", "
+			+ COL_REVISION_MODIFIED_ON + " FROM " + TABLE_REVISION + " WHERE "
+			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME+" ORDER BY " + COL_REVISION_NUMBER
+			+ " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+
 	// This is better suited for simple JDBC query.
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
-	
+
 	@Autowired
 	private IdGenerator idGenerator;
 	@Autowired
-	private ETagGenerator eTagGenerator;
-	
+	private TagMessenger tagMessenger;
+
 	@Autowired
-	DBOReferenceDao dboReferenceDao;
+	private DBOBasicDao dboBasicDao;
 	@Autowired
-	DBOBasicDao dboBasicDao;
+	private DBOReferenceDao dboReferenceDao;
 	@Autowired
-	DBOAnnotationsDao dboAnnotationsDao;
-	
+	private DBOAnnotationsDao dboAnnotationsDao;
+	@Autowired
+	private StorageLocationDAO storageLocationDao;
+
 	private static String BIND_ID_KEY = "bindId";
 	private static String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE ID = ?";
 	private static String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";
 	
 	private static String SQL_GET_ALL_VERSION_NUMBERS = "SELECT "+COL_REVISION_NUMBER+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE +" = ? ORDER BY "+COL_REVISION_NUMBER+" DESC";
+
 	
 	private static String SQL_COUNT_ALL = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
 	// Used to determine if a node id already exists
 	private static String SQL_COUNT_NODE_ID = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID +" = :"+BIND_ID_KEY;
 	private static String SQL_COUNT_REVISON_ID = "SELECT COUNT("+COL_REVISION_OWNER_NODE+") FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE +" = ? AND "+COL_REVISION_NUMBER+" = ?";
-
+	private static String SQL_COUNT_REVISONS = "SELECT COUNT("
+			+ COL_REVISION_NUMBER+ ") FROM " + TABLE_REVISION + " WHERE "
+			+ COL_REVISION_OWNER_NODE + " = ?";
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -200,14 +206,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
 		node.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
 
-		if(forceEtag){
-			if(dto.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
-			// See PLFM-845.  We need to be able to force the use of an eTag when created from a backup.
-			node.seteTag(KeyFactory.urlDecode(dto.getETag()));
-		}else{
-			// Start it with a new e-tag
-			node.seteTag(eTagGenerator.generateETag(node));
-		}
 		// Set the parent and benefactor
 		if(dto.getParentId() != null){
 			// Get the parent
@@ -217,7 +215,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			// benefactor as its parent
 			node.setBenefactorId(parent.getBenefactorId());
 		}
-		
 		if(node.getBenefactorId() == null){
 			// For nodes that have no parent, they are
 			// their own benefactor. We have to wait until
@@ -225,6 +222,18 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			// to itself.
 			node.setBenefactorId(node.getId());
 		}
+
+		if(forceEtag){
+			if(dto.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
+			// See PLFM-845.  We need to be able to force the use of an eTag when created from a backup.
+			node.seteTag(KeyFactory.urlDecode(dto.getETag()));
+			// Send a message without changing the etag;
+			tagMessenger.sendMessage(node, ChangeType.CREATE);
+		}else{
+			// Start it with a new e-tag
+			tagMessenger.generateEtagAndSendMessage(node, ChangeType.CREATE);
+		}
+
 		// Now create the revision
 		rev.setOwner(node.getId());
 		// Now save the node and revision
@@ -239,6 +248,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(dto.getReferences() != null){
 			dboReferenceDao.replaceReferences(node.getId(), dto.getReferences());
 		}
+		
 		return KeyFactory.keyToString(node.getId());
 	}
 
@@ -283,17 +293,15 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		// Make a copy of the current revision with an incremented the version number
 		DBORevision newRev = JDORevisionUtils.makeCopyForNewVersion(rev);
 		if(newVersion.getVersionLabel() == null) {
-			// This is a fix for PLFM-995
-			newVersion.setVersionLabel(KeyFactory.keyToString(newRev.getRevisionNumber()));
+			// This is a fix for PLFM-995.  This was modified not to use the KeyFactory because
+			// version labels should NOT be prefixed with syn (per PLFM-1408).
+			newVersion.setVersionLabel(newRev.getRevisionNumber().toString());
 		}
 		// Now update the new revision and node
 		NodeUtils.updateFromDto(newVersion, jdo, newRev);
 		// The new revision becomes the current version
 		jdo.setCurrentRevNumber(newRev.getRevisionNumber());
-		if(newVersion.getVersionLabel() == null) {
-			// This is a fix for PLFM-995
-			newRev.setLabel(KeyFactory.keyToString(newRev.getRevisionNumber()));
-		}
+
 		// Save the change to the node
 		dboBasicDao.update(jdo);
 		dboBasicDao.createNew(newRev);
@@ -301,7 +309,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return newRev.getRevisionNumber();
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public Node getNode(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
@@ -325,6 +332,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	public boolean delete(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
 		MapSqlParameterSource prams = getNodeParameters(KeyFactory.stringToKey(id));
+		// Send a delete message
+		tagMessenger.sendDeleteMessage(id, ObjectType.ENTITY);
 		return dboBasicDao.deleteObjectById(DBONode.class, prams);
 	}
 	
@@ -356,8 +365,9 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @param rev
 	 * @throws DatastoreException
 	 */
-	public void replaceAnnotationsAndReferencesIfCurrent(Long currentRev, DBORevision rev) throws DatastoreException {
+	private void replaceAnnotationsAndReferencesIfCurrent(Long currentRev, DBORevision rev) throws DatastoreException {
 		if(currentRev.equals(rev.getRevisionNumber())){
+
 			// Update the references
 			try {
 				if(rev.getReferences() != null){
@@ -369,14 +379,21 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			} catch (IOException e) {
 				throw new DatastoreException(e);
 			}
-			// Update the annotations
+
+			// Update the annotations and the location data
 			try {
-				NamedAnnotations nammedAnnos = JDOSecondaryPropertyUtils.decompressedAnnotations(rev.getAnnotations());
-				Annotations forDb = prepareAnnotationsForDBReplacement(nammedAnnos, KeyFactory.keyToString(rev.getOwner()));
+				final NamedAnnotations namedAnnos = JDOSecondaryPropertyUtils.decompressedAnnotations(rev.getAnnotations());
+				final Long node = rev.getOwner();
+				final Long user = rev.getModifiedBy();
+				StorageLocations sl = JDOSecondaryPropertyUtils.getStorageLocations(namedAnnos, node, user);
+				storageLocationDao.replaceLocationData(sl);
+				Annotations forDb = prepareAnnotationsForDBReplacement(namedAnnos, KeyFactory.keyToString(node));
 				dboAnnotationsDao.replaceAnnotations(forDb);
 			} catch (IOException e) {
 				throw new DatastoreException(e);
-			}			
+			} catch (JSONObjectAdapterException e) {
+				throw new DatastoreException(e);
+			}
 		}
 	}
 	
@@ -427,7 +444,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return params;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public NamedAnnotations getAnnotations(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
@@ -457,7 +473,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return annos;
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException {
 		Long nodeId = KeyFactory.stringToKey(id);
@@ -467,7 +482,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return getAnnotations(jdo, rev);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public Set<Node> getChildren(String id) throws NotFoundException, DatastoreException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
@@ -489,11 +503,14 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return new HashSet<String>(ids);
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public String peekCurrentEtag(String id) throws NotFoundException, DatastoreException {
-		String currentTag = simpleJdbcTemplate.queryForObject(SQL_ETAG_WITHOUT_LOCK, String.class, KeyFactory.stringToKey(id));
-		return currentTag;
+		try{
+			return simpleJdbcTemplate.queryForObject(SQL_ETAG_WITHOUT_LOCK, String.class, KeyFactory.stringToKey(id));
+		}catch(EmptyResultDataAccessException e){
+			// Occurs if there are no results
+			throw new NotFoundException("Cannot find a node with id: "+id);
+		}
 	}
 
 	/**
@@ -516,13 +533,14 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 		// Get a new e-tag
 		DBONode node = getNodeById(longId);
-		currentTag = eTagGenerator.generateETag(node);
-		node.seteTag(currentTag);
+		tagMessenger.generateEtagAndSendMessage(node, ChangeType.UPDATE);
+		currentTag = node.geteTag();
 		// Update the etag
 		int updated = simpleJdbcTemplate.update(UPDATE_ETAG_SQL, currentTag, longId);
 		if(updated != 1) throw new ConflictingUpdateException("Failed to lock Node: "+longId);
+		
 		// Return the new tag
-		return String.valueOf(currentTag);
+		return currentTag;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -589,10 +607,13 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void updateAnnotations(String nodeId, NamedAnnotations updatedAnnos) throws NotFoundException, DatastoreException {
+
 		if(updatedAnnos == null) throw new IllegalArgumentException("Updateded Annotations cannot be null");
 		if(updatedAnnos.getId() == null) throw new IllegalArgumentException("Node ID cannot be null");
 		if(updatedAnnos.getEtag() == null) throw new IllegalArgumentException("Annotations must have a valid eTag");
-		DBONode jdo =  getNodeById(KeyFactory.stringToKey(nodeId));
+
+		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		DBONode jdo =  getNodeById(nodeIdLong);
 		DBORevision rev = getCurrentRevision(jdo);
 
 		// now update the annotations from the passed values.
@@ -602,14 +623,21 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			rev.setAnnotations(newAnnos);
 			// Save the change
 			dboBasicDao.update(rev);
+
+			final Long user = rev.getModifiedBy();
+			StorageLocations sl = JDOSecondaryPropertyUtils.getStorageLocations(updatedAnnos, nodeIdLong, user);
+			storageLocationDao.replaceLocationData(sl);
+
 			// Prepare the annotations for the database.
 			Annotations forDb = prepareAnnotationsForDBReplacement(updatedAnnos, KeyFactory.keyToString(rev.getOwner()));
 			dboAnnotationsDao.replaceAnnotations(forDb);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new DatastoreException(e);
 		}
 	}
-	
+
 	/**
 	 * Prepare annotations to be written to the database.
 	 * @param annos
@@ -625,7 +653,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return merged;
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public List<Long> getVersionNumbers(String id) throws NotFoundException, DatastoreException {
 		List<Long> list = new ArrayList<Long>();
@@ -635,6 +662,43 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			list.add(revId);
 		}
 		return list;
+	}
+
+	@Override
+	public long getVersionCount(String entityId) throws NotFoundException,
+			DatastoreException {
+		return simpleJdbcTemplate.queryForLong(SQL_COUNT_REVISONS, KeyFactory.stringToKey(entityId));
+	}
+
+	@Override
+	public QueryResults<VersionInfo> getVersionsOfEntity(final String entityId, long offset,
+			long limit) throws NotFoundException, DatastoreException {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(OWNER_ID_PARAM_NAME, KeyFactory.stringToKey(entityId));
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);
+
+		QueryResults<VersionInfo> queryResults = new QueryResults<VersionInfo>();
+
+		queryResults.setTotalNumberOfResults(getVersionCount(entityId));
+		queryResults.setResults(simpleJdbcTemplate.query(SQL_GET_ALL_VERSION_INFO_PAGINATED, new RowMapper<VersionInfo>() {
+
+			@Override
+			public VersionInfo mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				VersionInfo info = new VersionInfo();
+				info.setId(entityId);
+				info.setModifiedByPrincipalId(rs.getString(COL_REVISION_MODIFIED_BY));
+				info.setModifiedOn(new Date(rs.getLong(COL_REVISION_MODIFIED_ON)));
+				info.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
+				info.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+				info.setVersionComment(rs.getString(COL_REVISION_COMMENT));
+				return info;
+			}
+
+		}, params));
+
+		return queryResults;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -682,7 +746,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return dboBasicDao.getObjectById(DBONodeType.class, params);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public boolean doesNodeExist(Long nodeId) {
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -696,13 +759,11 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public long getCount() {
 		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL);
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public boolean doesNodeRevisionExist(String nodeId, Long revNumber) {
 		try{
@@ -714,7 +775,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException {
 		// Fetch the basic data for an entity.
@@ -789,7 +849,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
 		// Call the recursive method
@@ -817,7 +876,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public String getNodeIdForPath(String path) throws DatastoreException {
 		// Get the names
@@ -914,7 +972,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return resutls;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public List<String> getChildrenIdsAsList(String id) throws DatastoreException {
 		List<String> list = new ArrayList<String>();
@@ -926,7 +983,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return list;
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public NodeRevisionBackup getNodeRevision(String nodeId, Long revisionId) throws NotFoundException, DatastoreException {
 		if(nodeId == null) throw new IllegalArgumentException("nodeId cannot be null");
@@ -935,7 +991,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return JDORevisionUtils.createDtoFromJdo(rev);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public long getTotalNodeCount() {
 		return simpleJdbcTemplate.queryForLong(SQL_COUNT_NODES, new HashMap<String, String>());
@@ -976,11 +1031,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		replaceAnnotationsAndReferencesIfCurrent(owner.getCurrentRevNumber(), dboRev);
 	}
 
-	/**
-	 * Determ
-	 * @throws DatastoreException 
-	 */
-	@Transactional(readOnly = true)
 	@Override
 	public boolean isStringAnnotationQueryable(String nodeId, String annotationKey) throws DatastoreException {
 		// Count how many annotations this node has with this 
@@ -988,9 +1038,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return count > 0;
 	}
 
-
-	
-	@Transactional(readOnly = true)
 	@Override
 	public String getParentId(String nodeId) throws NumberFormatException, NotFoundException, DatastoreException{
 		ParentTypeName nodeParent = getParentTypeName(KeyFactory.stringToKey(nodeId));
@@ -1020,17 +1067,23 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return true;
 	}
 	
-	/**
-	 * Get the current revision number of a node.
-	 * @throws DatastoreException 
-	 */
-	@Transactional(readOnly = true)
+	@Override
 	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException, DatastoreException{
 		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
 		try{
 			return this.simpleJdbcTemplate.queryForLong(GET_CURRENT_REV_NUMBER_SQL, KeyFactory.stringToKey(nodeId));
 		}catch(EmptyResultDataAccessException e){
-			throw new NotFoundException("The resource you are attempting to access cannot be found");
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+		}
+	}
+	
+	@Override
+	public Long getCreatedBy(String nodeId) throws NotFoundException, DatastoreException{
+		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
+		try{
+			return this.simpleJdbcTemplate.queryForLong(GET_NODE_CREATED_BY_SQL, KeyFactory.stringToKey(nodeId));
+		}catch(EmptyResultDataAccessException e){
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
 	}
 
@@ -1086,7 +1139,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return queryResults;
 	}
 	
-	@Transactional(readOnly = true)
 	@Override
 	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset,
 			long limit, boolean includeDependencies) throws DatastoreException {
@@ -1094,87 +1146,56 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		// if we don't want dependencies then use an alternate, faster query
 		if (!includeDependencies) return getMigrationObjectDataWithoutDependencies(offset, limit);
 		
-		// for each node, need to get its ID, etag, parent, creator, modifier, and everything referenced by its ACL
-		// first get all the dependencies EXCEPT those of the ACL (include the auth-benefactor dependency which
-		// implicitly makes the node dependent on its ACL)
-		// select n.id, n.created_by, n.etag, n.parent_id, n.benefactor_id, r.modified_by
-		// from jdonode n, jdorevison r
-		// where n.id=r.owner_node_id order by n.id limit L offset O
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
-
-		final List<Long> benefactorIDList = new ArrayList<Long>();
-
-		List<MigratableObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_AND_DEPENDENCIES_PAGINATED, new RowMapper<MigratableObjectData>() {
+		// Note: our goal here is not to list every dependency, but rather just the entity dependencies.
+		List<MigratableObjectData> ods = this.simpleJdbcTemplate.query(SQL_GET_NODES_PAGINATED_DEPENDENCIES, new RowMapper<MigratableObjectData>() {
 			@Override
 			public MigratableObjectData mapRow(ResultSet rs, int rowNum) throws SQLException {
 				MigratableObjectData data = new MigratableObjectData();
 				long nodeId = rs.getLong(COL_NODE_ID);
 				data.setId(ObjectDescriptorUtils.createEntityObjectDescriptor(nodeId));
 				data.setEtag(rs.getString(COL_NODE_ETAG));
-				Set<MigratableObjectDescriptor> dependencies = new HashSet<MigratableObjectDescriptor>();
-
-				long createdBy = rs.getLong(COL_NODE_CREATED_BY);
-				dependencies.add(ObjectDescriptorUtils.createPrincipalObjectDescriptor(createdBy));
-				long modifiedBy = rs.getLong(COL_REVISION_MODIFIED_BY);
-				dependencies.add(ObjectDescriptorUtils.createPrincipalObjectDescriptor(modifiedBy));					
-				long parentId = rs.getLong(COL_NODE_PARENT_ID); // can be null (in which case it's set to 0)
-				if (!rs.wasNull()) {
-					dependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(parentId));
+				// add the parent and benefactor as a dependency
+				Set<MigratableObjectDescriptor> dependependencies = new HashSet<MigratableObjectDescriptor>(2);
+				// this is null for the root node
+				Long parentId = rs.getLong(COL_NODE_PARENT_ID);
+				if(!rs.wasNull()){
+					// We had a parent id so add it as a dependency.
+					dependependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(parentId));
 				}
-				long benefactorId = rs.getLong(COL_NODE_BENEFACTOR_ID); // can be null (in which case it's set to 0)
-				if (!rs.wasNull()) {
-					if (benefactorId==nodeId) {
-						// the node is a permissions benefactor
-						benefactorIDList.add(nodeId);
-					} else {
-						// the node has a benefactor which is some other node
-						dependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(benefactorId));
-					}
+				// Add the benefactor if it is not this node.
+				long benefactorId = rs.getLong(COL_NODE_BENEFACTOR_ID);
+				if(nodeId != benefactorId){
+					dependependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(benefactorId));
 				}
-				data.setDependencies(dependencies);
-				return data;
+				data.setDependencies(dependependencies);
+				return  data;
 			}
 		}, params);
-		
-		if (!benefactorIDList.isEmpty()) {
-			// build up a map to let us find MigratableObjectData from a (benefactor) node Id
-			final Map<Long, MigratableObjectData> benefactorMODMap = new HashMap<Long, MigratableObjectData>();
-			for (MigratableObjectData od : ods) {
-				Long id = KeyFactory.stringToKey(od.getId().getId());
-				if (benefactorIDList.contains((id))) { // just for the benefactors!
-					benefactorMODMap.put(id, od);
-				}
-			}
-			
-			params = new MapSqlParameterSource();
-			params.addValue(COL_NODE_ID, benefactorIDList);		
-			
-			// now find the principal dependencies created by the ACLs on auth benefactor nodes
-			// Note, we identify the benefactor nodes by the fact that they are their own benefactor
-			// below 'LIST' is the list of ids returned by the paginated query above (just the benefactor nodes)
-			//
-			// select n.id, ra.group_id
-			// from jdonode n, acl acl, jdoresourceaccess ra
-			// where n.id=acl.owner_id_column and ra.owner_id=acl.id and n.id=n.benefactor_id AND n.id in (:LIST)
-			this.simpleJdbcTemplate.query(SQL_GET_BENEFACTORS_DEPENDENCIES, new RowMapper<Integer>() {
-				@Override
-				public Integer mapRow(ResultSet rs, int rowNum) throws SQLException {
-					long nodeId = rs.getLong(COL_NODE_ID);
-					MigratableObjectData od = benefactorMODMap.get(nodeId);
-					if (od==null) throw new IllegalStateException("Node "+nodeId+" missing from "+benefactorMODMap.keySet());
-					Collection<MigratableObjectDescriptor> dependencies = od.getDependencies();
-					MigratableObjectDescriptor aclMember = ObjectDescriptorUtils.createPrincipalObjectDescriptor(rs.getLong(COL_RESOURCE_ACCESS_GROUP_ID));
-					if (!dependencies.contains(aclMember)) dependencies.add(aclMember);
-					return 0;
-				}
-			}, params);
-		}
-		
 		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
 		queryResults.setResults(ods);
 		queryResults.setTotalNumberOfResults((int)getCount());
 		return queryResults;
 	}
+
+	@Override
+	public boolean doesNodeHaveChildren(String nodeId) {
+		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
+		try{
+			long id = this.simpleJdbcTemplate.queryForLong(SQL_GET_FIRST_CHILD, KeyFactory.stringToKey(nodeId));
+			// At least one node has this parent id.
+			return true;
+		}catch(EmptyResultDataAccessException e){
+			// Nothing has that parent id.
+			return false;
+		}
+	}
+	
+	@Override
+	public MigratableObjectType getMigratableObjectType() {
+		return MigratableObjectType.ENTITY;
+	}
+
 }

@@ -5,7 +5,7 @@ package org.sagebionetworks.repo.web;
  * 
  * 
  */
-public class ForbiddenException extends Exception {
+public class ForbiddenException extends RuntimeException {
 
 	private static final long serialVersionUID = 2L;
 	private static final String DEFAULT_MESSAGE = "The resource you are attempting to access is forbidden.";

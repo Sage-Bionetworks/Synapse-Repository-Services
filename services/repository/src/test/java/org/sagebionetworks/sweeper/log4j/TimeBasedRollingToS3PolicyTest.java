@@ -10,6 +10,7 @@ import org.apache.log4j.rolling.helper.CompositeAction;
 import org.apache.log4j.rolling.helper.FileRenameAction;
 import org.apache.log4j.rolling.helper.GZCompressAction;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.amazonaws.services.s3.AmazonS3;
@@ -69,16 +70,6 @@ public class TimeBasedRollingToS3PolicyTest {
 		assertEquals(TEST_AFN, initialize.getActiveFileName());
 		assertNull(initialize.getSynchronous());
 		assertNull(initialize.getAsynchronous());
-	}
-
-	@Test
-	public void testRolloverTooSoon() {
-		setupStackConfigDefaults(true, false, TEST_BUCKET);
-		setDefaultPolicyOptions();
-		RolloverDescription initialize = testingPolicy.initialize(TEST_AFN, true);
-		RolloverDescription rollover = testingPolicy.rollover(TEST_AFN);
-		assertNotNull("initialize should not be null", initialize);
-		assertNull("Rollover should be null", rollover);
 	}
 
 	@Test

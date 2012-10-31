@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.utils.HttpClientHelperException;
 import org.springframework.beans.TypeMismatchException;
 import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -617,5 +618,20 @@ public abstract class BaseController {
 		}
 		return baos.toString();
 	}
+	
+	@ExceptionHandler(HttpClientHelperException.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public @ResponseBody
+	ErrorResponse handleExceptionHttpClientHelperExceptio(HttpClientHelperException ex, HttpServletRequest request) {
+		// Convert to a DatastoreException
+		int index = ex.getMessage().indexOf("\"message\":");
+		String message = "Unknown";
+		if(index > 0){
+			message = ex.getMessage().substring(index, ex.getMessage().length());
+		}
+		IllegalArgumentException ds = new IllegalArgumentException("Invalid request: "+message);
+		return handleException(ds, request);
+	}
+	
 
 }

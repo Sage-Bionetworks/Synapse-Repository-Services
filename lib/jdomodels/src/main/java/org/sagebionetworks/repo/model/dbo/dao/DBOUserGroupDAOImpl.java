@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -47,12 +48,10 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 
 	@Autowired
 	private DBOBasicDao basicDao;
-
 	@Autowired
-	private IdGenerator idGenerator;
-	
+	private IdGenerator idGenerator;	
 	@Autowired
-	private SimpleJdbcTemplate simpleJdbcTempalte;
+	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	private static final String ID_PARAM_NAME = "id";
 	private static final String NAME_PARAM_NAME = "name";
@@ -116,7 +115,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(NAME_PARAM_NAME, name);
 		param.addValue(IS_INDIVIDUAL_PARAM_NAME, isIndividual);		
-		List<DBOUserGroup> ugs = simpleJdbcTempalte.query(SELECT_BY_NAME_AND_IS_INDIVID_SQL, userGroupRowMapper, param);
+		List<DBOUserGroup> ugs = simpleJdbcTemplate.query(SELECT_BY_NAME_AND_IS_INDIVID_SQL, userGroupRowMapper, param);
 		if (ugs.size()>1) throw new DatastoreException("Expected 0-1 UserGroups but found "+ugs.size());
 		if (ugs.size()==0) return null;
 		UserGroup dto = new UserGroup();
@@ -132,7 +131,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(NAME_PARAM_NAME, groupName);	
 		try {
-			List<DBOUserGroup> dbos = simpleJdbcTempalte.query(SELECT_MULTI_BY_NAME_SQL, userGroupRowMapper, param);
+			List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_MULTI_BY_NAME_SQL, userGroupRowMapper, param);
 			for (DBOUserGroup dbo : dbos) {
 				UserGroup dto = new UserGroup();
 				UserGroupUtils.copyDboToDto(dbo, dto);
@@ -149,7 +148,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(IS_INDIVIDUAL_PARAM_NAME, isIndividual);		
-		List<DBOUserGroup> dbos = simpleJdbcTempalte.query(SELECT_BY_IS_INDIVID_SQL, userGroupRowMapper, param);
+		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_BY_IS_INDIVID_SQL, userGroupRowMapper, param);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
 		for (DBOUserGroup dbo : dbos) {
 			UserGroup dto = new UserGroup();
@@ -162,7 +161,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 
 
 	@Override
-	@Transactional(readOnly = true)
 	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies)
 			throws DatastoreException {
 		// get a page of user groups
@@ -171,7 +169,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			MapSqlParameterSource param = new MapSqlParameterSource();
 			param.addValue(OFFSET_PARAM_NAME, offset);		
 			param.addValue(LIMIT_PARAM_NAME, limit);		
-			ods = simpleJdbcTempalte.query(SELECT_ALL_PAGINATED_WITH_ETAG, new RowMapper<MigratableObjectData>() {
+			ods = simpleJdbcTemplate.query(SELECT_ALL_PAGINATED_WITH_ETAG, new RowMapper<MigratableObjectData>() {
 
 				@Override
 				public MigratableObjectData mapRow(ResultSet rs, int rowNum)
@@ -213,7 +211,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(IS_INDIVIDUAL_PARAM_NAME, isIndividual);		
 		param.addValue(NAME_PARAM_NAME, groupNamesToOmit);
-		List<DBOUserGroup> dbos = simpleJdbcTempalte.query(SELECT_BY_IS_INDIVID_OMITTING_SQL, userGroupRowMapper, param);
+		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_BY_IS_INDIVID_OMITTING_SQL, userGroupRowMapper, param);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
 		for (DBOUserGroup dbo : dbos) {
 			UserGroup dto = new UserGroup();
@@ -232,7 +230,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		long limit = toExcl - fromIncl;
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		List<DBOUserGroup> dbos = simpleJdbcTempalte.query(SELECT_BY_IS_INDIVID_SQL_PAGINATED, userGroupRowMapper, param);
+		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_BY_IS_INDIVID_SQL_PAGINATED, userGroupRowMapper, param);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
 		for (DBOUserGroup dbo : dbos) {
 			UserGroup dto = new UserGroup();
@@ -255,7 +253,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		if (limit<=0) throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
 		param.addValue(LIMIT_PARAM_NAME, limit);	
 		param.addValue(NAME_PARAM_NAME, groupNamesToOmit);
-		List<DBOUserGroup> dbos = simpleJdbcTempalte.query(SELECT_BY_IS_INDIVID_OMITTING_SQL_PAGINATED, userGroupRowMapper, param);
+		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_BY_IS_INDIVID_OMITTING_SQL_PAGINATED, userGroupRowMapper, param);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
 		for (DBOUserGroup dbo : dbos) {
 			UserGroup dto = new UserGroup();
@@ -268,7 +266,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	public DBOUserGroup findGroup(String name) throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(NAME_PARAM_NAME, name);	
-		List<DBOUserGroup> ugs = simpleJdbcTempalte.query(SELECT_BY_NAME_SQL, userGroupRowMapper, param);
+		List<DBOUserGroup> ugs = simpleJdbcTemplate.query(SELECT_BY_NAME_SQL, userGroupRowMapper, param);
 		if (ugs.size()>1) throw new DatastoreException("Expected 0-1 UserGroups but found "+ugs.size());
 		if (ugs.size()==0) return null;
 		return ugs.iterator().next();
@@ -318,12 +316,11 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		}
 	}
 
-	@Transactional(readOnly = true)
 	public boolean doesIdExist(Long id) {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(ID_PARAM_NAME, id);
 		try{
-			long count = simpleJdbcTempalte.queryForLong(SQL_COUNT_USER_GROUPS, parameters);
+			long count = simpleJdbcTemplate.queryForLong(SQL_COUNT_USER_GROUPS, parameters);
 			return count > 0;
 		}catch(Exception e){
 			// Can occur when the schema does not exist.
@@ -345,7 +342,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	@Override
 	public Collection<UserGroup> getAll() throws DatastoreException {
 		MapSqlParameterSource param = new MapSqlParameterSource();	
-		List<DBOUserGroup> dbos = simpleJdbcTempalte.query(SELECT_ALL, userGroupRowMapper, param);
+		List<DBOUserGroup> dbos = simpleJdbcTemplate.query(SELECT_ALL, userGroupRowMapper, param);
 		List<UserGroup> dtos = new ArrayList<UserGroup>();
 		for (DBOUserGroup dbo : dbos) {
 			UserGroup dto = new UserGroup();
@@ -412,6 +409,8 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 		}
 	}
 
-
+	public MigratableObjectType getMigratableObjectType() {
+		return MigratableObjectType.PRINCIPAL;
+	}
 
 }

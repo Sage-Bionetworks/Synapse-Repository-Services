@@ -134,7 +134,6 @@
 	<servlet-mapping>
 		<servlet-name>repository</servlet-name>
 		<url-pattern>/repo/v1/*</url-pattern>
-
 	</servlet-mapping>
 
 </web-app>

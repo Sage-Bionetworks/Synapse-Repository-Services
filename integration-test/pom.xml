@@ -9,17 +9,17 @@
 		<version>develop-SNAPSHOT</version>
 	</parent>
 
-	<groupId>org.sagebionetworks</groupId>
 	<artifactId>integration-test</artifactId>
 	<packaging>jar</packaging>
 	<name>Integration Tests for All services</name>
 
 	<properties>
-		<tomcat-version>6.0.32</tomcat-version>
+		<tomcat-version>7.0.32</tomcat-version>
 		<tomcat-file>apache-tomcat-${tomcat-version}</tomcat-file>
 		<org.sagebionetworks.authenticationservice.privateendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.privateendpoint>
 		<org.sagebionetworks.authenticationservice.publicendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.publicendpoint>
 		<org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
+		<org.sagebionetworks.searchservice.endpoint>http://localhost:8080/repository-search-${project.version}/search/v1</org.sagebionetworks.searchservice.endpoint>
 		<org.sagebionetworks.portal.endpoint>http://localhost:8080/portal-${project.version}/Portal</org.sagebionetworks.portal.endpoint>
 		<!-- This is where the repository war will be deployed -->
 		<org.sagebionetworks.auth.context>services-authentication-${project.version}</org.sagebionetworks.auth.context>
@@ -57,8 +57,9 @@
 			<!-- This allows use to run the servlet container from maven via mvn tomcat:run
 				or deploy to a local tomcat via tomcat:deploy -->
 			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>tomcat-maven-plugin</artifactId>
+				<groupId>org.apache.tomcat.maven</groupId>
+				<artifactId>tomcat7-maven-plugin</artifactId>
+				<version>2.0</version>
 				<configuration>
 					<!-- Deploy this as the root application -->
 					<path>/</path>
@@ -111,17 +112,17 @@
 			<plugin>
 				<groupId>org.codehaus.cargo</groupId>
 				<artifactId>cargo-maven2-plugin</artifactId>
-				<version>1.1.1</version>
+				<version>1.2.4</version>
 				<configuration>
 					<wait>${org.sagebionetworks.integration.debug}</wait>
 					<!-- Container configuration -->
 					<container>
 						<timeout>240000</timeout>
-						<containerId>tomcat6x</containerId>
+						<containerId>tomcat7x</containerId>
 						<!-- Download and install tomcat -->
 						<zipUrlInstaller>
-							<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local/apache/tomcat/${tomcat-version}/tomcat-${tomcat-version}.zip</url>
-							<installDir>${project.build.directory}/tomcat6x/container</installDir>
+							<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local/apache-tomcat/apache-tomcat/${tomcat-version}/apache-tomcat-${tomcat-version}.zip</url>
+							<extractDir>${project.build.directory}/tomcat7x/container</extractDir>
 						</zipUrlInstaller>
 						<systemProperties>
 							<org.sagebionetworks.stackEncryptionKey>${org.sagebionetworks.stackEncryptionKey}</org.sagebionetworks.stackEncryptionKey>
@@ -134,41 +135,49 @@
 						</systemProperties>
 					</container>
 					<configuration>
-						<type>standalone</type>
-						<home>${project.build.directory}/tomcat6x/container/${tomcat-file}/bin</home>
-						<deployables>
-							<deployable>
-								<groupId>org.sagebionetworks</groupId>
-								<artifactId>services-authentication</artifactId>
-								<type>war</type>
-								<!-- url to ping to know if deployable is done or not -->
-								<!-- <pingURL>${tomcat.endpoint}/${org.sagebionetworks.auth.context}</pingURL> -->
-								<!-- How long do we wait until the we timeout (in ms) -->
-								<!-- <pingTimeout>2000</pingTimeout> -->
-							</deployable>
-							<deployable>
-								<groupId>org.sagebionetworks</groupId>
-								<artifactId>services-repository</artifactId>
-								<type>war</type>
-								<!-- url to ping to know if deployable is done or not -->
-								<!-- <pingURL>${org.sagebionetworks.repository.service.base.url}/dataset/test</pingURL> -->
-								<!-- How long do we wait until the we timeout (in ms) -->
-								<!-- <pingTimeout>2000</pingTimeout> -->
-							</deployable>
-						</deployables>
 						<properties>
-<!-- 							Add the following to 'remote debug' the entire deployment stack -->
-<!-- 
-							<cargo.jvmargs> 
-							-Xdebug
-							-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8989
-							-Xnoagent
-							-Djava.compiler=NONE
+							<!-- Add the following to 'remote debug' the entire deployment stack
+							<cargo.jvmargs>
+								-Xdebug
+								-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=8989
+								-Xnoagent
+								-Djava.compiler=NONE
 							</cargo.jvmargs>
- -->							
- 						</properties>
+							-->
+						</properties>
 					</configuration>
-
+					<type>standalone</type>
+					<home>${project.build.directory}/tomcat7x/container/${tomcat-file}/bin</home>
+					<deployables>
+						<deployable>
+							<groupId>org.sagebionetworks</groupId>
+							<artifactId>services-authentication</artifactId>
+							<type>war</type>
+							<!-- url to ping to know if deployable is done or not -->
+							<!-- <pingURL>${tomcat.endpoint}/${org.sagebionetworks.auth.context}</pingURL> -->
+							<!-- How long do we wait until the we timeout (in ms) -->
+							<!-- <pingTimeout>2000</pingTimeout> -->
+						</deployable>
+						<deployable>
+							<groupId>org.sagebionetworks</groupId>
+							<artifactId>services-repository</artifactId>
+							<type>war</type>
+							<!-- url to ping to know if deployable is done or not -->
+							<!-- <pingURL>${org.sagebionetworks.repository.service.base.url}/dataset/test</pingURL> -->
+							<!-- How long do we wait until the we timeout (in ms) -->
+							<!-- <pingTimeout>2000</pingTimeout> -->
+						</deployable>
+						<deployable>
+							<groupId>org.sagebionetworks</groupId>
+							<artifactId>services-search</artifactId>
+							<type>war</type>
+						</deployable>
+						<deployable>
+							<groupId>org.sagebionetworks</groupId>
+							<artifactId>services-dynamo</artifactId>
+							<type>war</type>
+						</deployable>
+					</deployables>
 				</configuration>
 
 				<executions>
@@ -214,13 +223,24 @@
 		<dependency>
 			<groupId>javax.servlet</groupId>
 			<artifactId>com.springsource.javax.servlet</artifactId>
-			<version>2.5.0</version>
 			<scope>provided</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
 			<artifactId>services-repository</artifactId>
+			<type>war</type>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>services-search</artifactId>
+			<type>war</type>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>services-dynamo</artifactId>
 			<type>war</type>
 		</dependency>
 

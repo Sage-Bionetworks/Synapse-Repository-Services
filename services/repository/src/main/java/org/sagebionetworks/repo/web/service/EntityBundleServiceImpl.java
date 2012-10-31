@@ -5,31 +5,48 @@ import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public class EntityBundleServiceImpl implements EntityBundleService {
 	
 	@Autowired
 	ServiceProvider serviceProvider;
-
+	
+	public EntityBundleServiceImpl() {}
+	
+	/**
+	 * Direct constructor (for testing purposes)
+	 * 
+	 * @param serviceProvider
+	 */
+	public EntityBundleServiceImpl(ServiceProvider serviceProvider) {
+		this.serviceProvider = serviceProvider;
+	}
+	
 	@Override
-	public EntityBundle getEntityBundle(String userId, String entityId, int mask, HttpServletRequest request, 
-			Integer offset, Integer limit, String sort, Boolean ascending)
+	public EntityBundle getEntityBundle(String userId, String entityId, int mask, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return getEntityBundle(userId, entityId, null, mask, request, offset, limit, sort, ascending);
+		return getEntityBundle(userId, entityId, null, mask, request);
 	}
 
 	@Override
 	public EntityBundle getEntityBundle(String userId, String entityId,
-			Long versionNumber, int mask, HttpServletRequest request,
-			Integer offset, Integer limit, String sort, Boolean ascending)
+			Long versionNumber, int mask, HttpServletRequest request)
 			throws NotFoundException, DatastoreException,
 			UnauthorizedException, ACLInheritanceException, ParseException {
 
@@ -60,13 +77,8 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		if ((mask & EntityBundle.ENTITY_REFERENCEDBY) > 0) {
 			eb.setReferencedBy(serviceProvider.getEntityService().getEntityReferences(userId, entityId, null, null, null, request));
 		}
-		if ((mask & EntityBundle.CHILD_COUNT) > 0) {
-			try {
-				eb.setChildCount(serviceProvider.getEntityService().getChildCount(userId, entityId, request));
-			} catch (ParseException e) {
-				eb.setChildCount(null);
-				throw e;
-			}
+		if ((mask & EntityBundle.HAS_CHILDREN) > 0) {
+			eb.setHasChildren(serviceProvider.getEntityService().doesEntityHaveChildren(userId, entityId, request));
 		}
 		if ((mask & EntityBundle.ACL) > 0) {
 			try {
@@ -75,17 +87,91 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 				// ACL is inherited from benefactor. Set ACL to null.
 				eb.setAccessControlList(null);
 			}
-		}
-		
-		// TODO : these do not belong in the entity bundle
-		if ((mask & EntityBundle.USERS) > 0) {
-			eb.setUsers(serviceProvider.getUserProfileService().getUserProfilesPaginated(request, userId, offset, limit, sort, ascending));
-		}
-		if ((mask & EntityBundle.GROUPS) > 0) {
-			eb.setGroups(serviceProvider.getUserGroupService().getUserGroups(request, userId, offset, limit, sort, ascending));
+		}		
+		if ((mask & EntityBundle.ACCESS_REQUIREMENTS) > 0) {
+			eb.setAccessRequirements(serviceProvider.getAccessRequirementService().getAccessRequirements(userId, entityId, request).getResults());
+		}		
+		if ((mask & EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
+			eb.setUnmetAccessRequirements(serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, entityId, request).getResults());
 		}
 		return eb;
-
 	}	
-
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public EntityBundle createEntityBundle(String userId, EntityBundleCreate ebc, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+		if (ebc.getEntity() == null) {
+			throw new IllegalArgumentException("Invalid request: no entity to create");
+		}
+		
+		int partsMask = 0;
+		
+		// Create the Entity
+		partsMask += EntityBundle.ENTITY;
+		Entity toCreate = ebc.getEntity();
+		Entity entity = serviceProvider.getEntityService().createEntity(userId, toCreate, request);
+		
+		// Create the ACL
+		if (ebc.getAccessControlList() != null) {
+			partsMask += EntityBundle.ACL;
+			AccessControlList acl = ebc.getAccessControlList();
+			acl.setId(entity.getId());
+			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null, request);
+		}
+		
+		// Create the Annotations
+		if (ebc.getAnnotations() != null) {
+			partsMask += EntityBundle.ANNOTATIONS;
+			Annotations annos = serviceProvider.getEntityService().getEntityAnnotations(userId, entity.getId(), request);
+			annos.addAll(ebc.getAnnotations());
+			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entity.getId(), annos, request);
+		}
+		
+		return getEntityBundle(userId, entity.getId(), partsMask, request);
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public EntityBundle updateEntityBundle(String userId, String entityId, EntityBundleCreate ebc, HttpServletRequest request) throws ConflictingUpdateException, DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+		
+		int partsMask = 0;
+		
+		Entity entity = ebc.getEntity();
+		AccessControlList acl = ebc.getAccessControlList();
+		Annotations annos = ebc.getAnnotations();
+		
+		// Update the Entity
+		if (ebc.getEntity() != null) {
+			if (!entityId.equals(ebc.getEntity().getId()))
+				throw new IllegalArgumentException("Entity does not match requested entity ID");
+			partsMask += EntityBundle.ENTITY;			
+			entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, request);
+			
+			// Update etag
+			if (acl != null)
+				acl.setEtag(entity.getEtag());
+		}
+			
+		// Update the ACL
+		if (ebc.getAccessControlList() != null) {
+			if (!entityId.equals(ebc.getAccessControlList().getId()))
+				throw new IllegalArgumentException("ACL does not match requested entity ID");
+			partsMask += EntityBundle.ACL;
+			
+			acl = serviceProvider.getEntityService().createOrUpdateEntityACL(userId, acl, null, request);
+		}
+		
+		// Update the Annotations
+		if (ebc.getAnnotations() != null) {
+			if (!entityId.equals(ebc.getAnnotations().getId()))
+				throw new IllegalArgumentException("Annotations do not match requested entity ID");
+			partsMask += EntityBundle.ANNOTATIONS;
+			Annotations toUpdate = serviceProvider.getEntityService().getEntityAnnotations(userId, entityId, request);
+			toUpdate.addAll(annos);
+			annos = serviceProvider.getEntityService().updateEntityAnnotations(userId, entityId, toUpdate, request);
+		}
+		
+		return getEntityBundle(userId, entityId, partsMask, request);
+	}
+	
 }

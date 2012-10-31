@@ -1,0 +1,12 @@
+{
+	"description": "Count of objects for each (MigratableObjectType, EntityType)",
+ 	"properties":{
+ 		"objectType": {
+ 			"type": "string",
+ 			"description": "Type of migratable object"},
+ 		"count": {
+ 			"type": "integer",
+ 			"description": "Number of objects"
+ 		}
+	}	
+}

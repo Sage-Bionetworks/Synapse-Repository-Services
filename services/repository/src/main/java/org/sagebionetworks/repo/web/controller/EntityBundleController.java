@@ -4,8 +4,11 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityBundleCreate;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -16,6 +19,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -53,14 +57,10 @@ public class EntityBundleController extends BaseController {
 	EntityBundle getEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id, 
-			@RequestParam int mask, HttpServletRequest request,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
-			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending
+			@RequestParam int mask, HttpServletRequest request
 			)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, mask, request, offset, limit, sort, ascending);
+		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, mask, request);
 	}	
 
 	/**
@@ -85,14 +85,77 @@ public class EntityBundleController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id,
 			@PathVariable Long versionNumber,
-			@RequestParam int mask, HttpServletRequest request,
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
-			@RequestParam(value = ServiceConstants.SORT_BY_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_SORT_BY_PARAM) String sort,
-			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending
+			@RequestParam int mask, HttpServletRequest request
 			)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, versionNumber, mask, request, offset, limit, sort, ascending);
+		return serviceProvider.getEntityBundleService().getEntityBundle(userId, id, versionNumber, mask, request);
 	}	
+	
+	/**
+	 * Create an entity and associated components with a single POST.
+	 * Specifically, this operation supports creation of an Entity, its
+	 * Annotations, and its ACL.
+	 * 
+	 * Upon successful creation, an EntityBundle is returned containing the
+	 * requested components, as defined by the partsMask.
+	 * 
+	 * @param userId
+	 * @param ebc
+	 * @param request
+	 * @return
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws ACLInheritanceException
+	 * @throws ParseException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_BUNDLE, method = RequestMethod.POST)
+	public @ResponseBody
+	EntityBundle createEntityBundle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestBody EntityBundleCreate ebc,
+			HttpServletRequest request
+			)
+			throws ConflictingUpdateException, DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, request);
+	}
+	
+	/**
+	 * Update an entity and associated components with a single POST.
+	 * Specifically, this operation supports update of an Entity, its
+	 * Annotations, and its ACL.
+	 * 
+	 * Upon successful creation, an EntityBundle is returned containing the
+	 * requested components, as defined by the partsMask.
+	 * 
+	 * @param userId
+	 * @param ebc
+	 * @param request
+	 * @return
+	 * @throws ConflictingUpdateException
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws ParseException 
+	 * @throws ACLInheritanceException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_ID_BUNDLE, method = RequestMethod.PUT)
+	public @ResponseBody
+	EntityBundle updateEntityBundle(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@PathVariable String id,
+			@RequestBody EntityBundleCreate ebc,
+			HttpServletRequest request
+			)
+			throws ConflictingUpdateException, DatastoreException,
+			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
+		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, request);
+	}
 
 }

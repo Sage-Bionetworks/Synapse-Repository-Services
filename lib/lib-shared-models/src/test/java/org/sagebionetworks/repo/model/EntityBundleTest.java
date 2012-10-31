@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
@@ -68,12 +69,10 @@ public class EntityBundleTest {
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
 		joa = entityBundle.writeToJSONObject(joa);
 		String json = joa.toJSONString();
-		System.out.println(json);
 		assertNotNull(json);
 		
 		EntityBundle clone = new EntityBundle();
 		clone.initializeFromJSONObject(joa.createNew(json));
-		System.out.println(clone.toString());
 		assertEquals(entityBundle, clone);		
 	}
 	
@@ -118,7 +117,7 @@ public class EntityBundleTest {
 		acl.setId("syn456");
 		
 		// Child Count
-		Long childCount = 12L;
+		Boolean hasChildren = true;
 		
 		// Annotations
 		Annotations annotations = new Annotations();
@@ -145,50 +144,23 @@ public class EntityBundleTest {
 				"name",
 				true);
 		
-		// Users
-		List<UserProfile> us = new ArrayList<UserProfile>(NUM_PAGINATED_RESULTS);
-		for (int i = 0; i < NUM_PAGINATED_RESULTS; i++) {
-			UserProfile up = (UserProfile) autoGenFactory.newInstance(UserProfile.class.getName());
-			up.setFirstName("First" + i);
-			up.setLastName("Last" + i);
-			us.add(up);
-		}
-		PaginatedResults<UserProfile> users = 
-			new PaginatedResults<UserProfile>(
-				"dummy_uri",
-				us,
-				101,
-				4,
-				14,
-				"name",
-				true);
-		
-		// Groups
-		List<UserGroup> gr = new ArrayList<UserGroup>(NUM_PAGINATED_RESULTS);
-		for (int i = 0; i < NUM_PAGINATED_RESULTS; i++) {
-			UserGroup ug = (UserGroup) autoGenFactory.newInstance(UserGroup.class.getName());
-			ug.setId("group" + i);
-			ug.setName("name" + i);
-			gr.add(ug);
-		}
-		PaginatedResults<UserGroup> groups = new PaginatedResults<UserGroup>(
-				"dummy_uri",
-				gr,
-				101,
-				4,
-				14,
-				"name",
-				true);
+		List<AccessRequirement> accessRequirements = new ArrayList<AccessRequirement>();
+		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
+		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
+		ar.setEntityIds(Arrays.asList(new String[]{"101", "102"}));
+		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
+		ar.setTermsOfUse("foo");
+		accessRequirements.add(ar);
 
 		EntityBundle entityBundle = new EntityBundle();
 		entityBundle.setEntity(project);
 		entityBundle.setPermissions(permissions);
 		entityBundle.setPath(path);
 		entityBundle.setReferencedBy(referencedBy);
-		entityBundle.setChildCount(childCount);
+		entityBundle.setHasChildren(hasChildren);
 		entityBundle.setAccessControlList(acl);
-		entityBundle.setUsers(users);
-		entityBundle.setGroups(groups);
+		entityBundle.setAccessRequirements(accessRequirements);
+		entityBundle.setUnmetAccessRequirements(accessRequirements);
 		
 		return entityBundle;
 	}

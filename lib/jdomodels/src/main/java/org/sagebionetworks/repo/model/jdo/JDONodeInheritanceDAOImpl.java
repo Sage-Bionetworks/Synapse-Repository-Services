@@ -12,8 +12,10 @@ import java.util.Set;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
@@ -23,15 +25,17 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-@Transactional(readOnly = true)
 public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	
 	private static final String SELECT_BENEFICIARIES = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_BENEFACTOR_ID+" = ?";
 	private static final String SELECT_BENEFACTOR = "SELECT "+COL_NODE_BENEFACTOR_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
+	
 	@Autowired
 	DBOBasicDao dboBasicDao;
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	@Autowired
+	private TagMessenger tagMessenger;
 	
 	/**
 	 * Try to get a node, and throw a NotFoundException if it fails.
@@ -47,7 +51,6 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		return dboBasicDao.getObjectById(DBONode.class, params);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public Set<String> getBeneficiaries(String benefactorId) throws NotFoundException, DatastoreException {
 		Long id = KeyFactory.stringToKey(benefactorId);
@@ -59,7 +62,6 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		return new HashSet<String>(list);
 	}
 
-	@Transactional(readOnly = true)
 	@Override
 	public String getBenefactor(String beneficiaryId) throws NotFoundException, DatastoreException {
 		try{
@@ -72,9 +74,26 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException {
+		// By default we do not want to keep the etag
+		boolean keepOldEtag = false;
+		addBeneficiary(beneficiaryId, toBenefactorId, keepOldEtag);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void addBeneficiary(String beneficiaryId, String toBenefactorId,
+			boolean keepOldEtag) throws NotFoundException, DatastoreException {
 		DBONode benefactor = getNodeById(KeyFactory.stringToKey(toBenefactorId));
 		DBONode beneficiary = getNodeById(KeyFactory.stringToKey(beneficiaryId));
 		beneficiary.setBenefactorId(benefactor.getId());
+		// Make sure the etag changes. See PLFM-1467 and PLFM-1517.
+		if(!keepOldEtag){
+			// Update the etag and send the message.
+			tagMessenger.generateEtagAndSendMessage(beneficiary, ChangeType.UPDATE);
+		}else{
+			// Just send the message
+			tagMessenger.sendMessage(beneficiary, ChangeType.UPDATE);
+		}
 		dboBasicDao.update(beneficiary);
 	}
 

@@ -37,4 +37,14 @@ public interface NodeInheritanceDAO {
 	 * @throws DatastoreException 
 	 */
 	public void addBeneficiary(String beneficiaryId, String toBenefactorId) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Add a node as beneficiary to a given benefactor
+	 * @param beneficiaryId
+	 * @param toBenefactorId
+	 * @param keepOldEtag - set to true to prevent this call from changing the ETag.  This should only occur for migration.
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public void addBeneficiary(String beneficiaryId, String toBenefactorId, boolean keepOldEtag) throws NotFoundException, DatastoreException;
 }

@@ -7,6 +7,7 @@ import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -32,12 +33,12 @@ public class SynapseAdministration extends Synapse {
 	public static final String DAEMON = ADMIN + "/daemon";
 	public static final String BACKUP = "/backup";
 	public static final String RESTORE = "/restore";
-	public static final String SEARCH_DOCUMENT = "/searchDocument";
+//	public static final String SEARCH_DOCUMENT = "/searchDocument";
 	public static final String DAEMON_BACKUP = DAEMON + BACKUP;
 	public static final String DAEMON_RESTORE = DAEMON + RESTORE;
-	public static final String DAEMON_SEARCH_DOCUMENT = DAEMON + SEARCH_DOCUMENT;
 	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
 	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
+	public static final String GET_ALL_BACKUP_COUNTS = "/backupObjectsCounts";
 	
 	public SynapseAdministration() {
 		super();
@@ -63,6 +64,19 @@ public class SynapseAdministration extends Synapse {
 		}
 	}
 	
+	public PaginatedResults<MigratableObjectCount> getMigratableObjectCounts() throws SynapseException {
+		String uri = GET_ALL_BACKUP_COUNTS;
+		JSONObject o = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(o);
+		PaginatedResults<MigratableObjectCount> rs = new PaginatedResults<MigratableObjectCount>(MigratableObjectCount.class);
+		try {
+			rs.initializeFromJSONObject(adapter);
+			return rs;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
 	public void deleteObject(MigratableObjectDescriptor mod)  throws SynapseNotFoundException, SynapseException {
 		deleteEntity(DAEMON_RESTORE+"?migrationType="+mod.getType()+"&id="+mod.getId());
 	}
@@ -77,20 +91,6 @@ public class SynapseAdministration extends Synapse {
 			throws JSONObjectAdapterException, SynapseException {
 		JSONObject json = EntityFactory.createJSONObjectForEntity(submission);
 		json = createEntity(DAEMON_BACKUP+"?migrationType="+migrationType, json);
-		return EntityFactory.createEntityFromJSONObject(json,
-				BackupRestoreStatus.class);
-	}
-
-	/**
-	 * @param submission
-	 * @return status
-	 * @throws JSONObjectAdapterException
-	 * @throws SynapseException
-	 */
-	public BackupRestoreStatus startSearchDocumentDaemon(BackupSubmission submission)
-			throws JSONObjectAdapterException, SynapseException {
-		JSONObject json = EntityFactory.createJSONObjectForEntity(submission);
-		json = createEntity(DAEMON_SEARCH_DOCUMENT, json);
 		return EntityFactory.createEntityFromJSONObject(json,
 				BackupRestoreStatus.class);
 	}

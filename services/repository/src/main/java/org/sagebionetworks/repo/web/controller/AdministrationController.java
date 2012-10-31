@@ -7,6 +7,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
@@ -52,6 +53,14 @@ public class AdministrationController extends BaseController {
 
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getAdministrationService().getAllBackupObjects(userId, offset, limit, includeDependencies);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.GET_ALL_BACKUP_OBJECTS_COUNTS, method = RequestMethod.GET)
+	public @ResponseBody PaginatedResults<MigratableObjectCount> getAllBackupObjectsCounts(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId
+			) throws DatastoreException, UnauthorizedException, NotFoundException {
+		return serviceProvider.getAdministrationService().getAllBackupObjectsCounts(userId);
 	}
 	
 	
@@ -147,34 +156,7 @@ public class AdministrationController extends BaseController {
 		serviceProvider.getAdministrationService().deleteMigratableObject(userId, objectId, type, header, request);
 	}
 	
-	/**
-	 * Start a search document daemon.  Monitor the status of the daemon with the getStatus method.
-	 * @param userId
-	 * @param header
-	 * @param request
-	 * @return
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ConflictingUpdateException
-	 */
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = { 
-			UrlHelpers.ENTITY_SEARCH_DOCUMENT_DAMEON
-			}, method = RequestMethod.POST)
-	public @ResponseBody
-	BackupRestoreStatus startSearchDocument(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestHeader HttpHeaders header,
-			HttpServletRequest request)
-			throws DatastoreException, InvalidModelException,
-			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
-		
-		return serviceProvider.getAdministrationService().startSearchDocument(userId, header, request);
-	}
-	
+
 	/**
 	 * Get the status of a running daemon (either a backup or restore)
 	 * @param daemonId

@@ -1,7 +1,6 @@
 package org.sagebionetworks.client;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -25,6 +24,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -39,13 +39,9 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
-import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.web.ForbiddenException;
+import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
-import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.model.versionInfo.VersionInfo;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -290,12 +286,12 @@ public class SynapseTest {
 	
 	@Test
 	public void testGetVersionInfo() throws Exception {
-		VersionInfo expectedVersion = new VersionInfo();
+		SynapseVersionInfo expectedVersion = new SynapseVersionInfo();
 		expectedVersion.setVersion("versionString");
 		String jsonString = EntityFactory.createJSONStringForEntity(expectedVersion);
 		StringEntity responseEntity = new StringEntity(jsonString);
 		when(mockResponse.getEntity()).thenReturn(responseEntity);
-		VersionInfo vi = synapse.getVersionInfo();
+		SynapseVersionInfo vi = synapse.getVersionInfo();
 		assertNotNull(vi);
 		assertEquals(vi, expectedVersion);
 	};
@@ -344,6 +340,9 @@ public class SynapseTest {
 		
 		EntityPath path = eb2.getPath();
 		assertNull("Path was not requested, but was returned in bundle", path);
+		
+		List<AccessRequirement> ars = eb2.getAccessRequirements();
+		assertNull("Access Requirements were not requested, but were returned in bundle", path);
 	}
 
 }
