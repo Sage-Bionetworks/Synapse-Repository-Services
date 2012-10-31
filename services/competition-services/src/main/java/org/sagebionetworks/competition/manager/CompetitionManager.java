@@ -61,5 +61,7 @@ public interface CompetitionManager {
 	 * @return
 	 */
 	public boolean isCompAdmin(String userId, Competition comp);
+
+	public boolean isCompAdmin(String userId, String compId) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 }

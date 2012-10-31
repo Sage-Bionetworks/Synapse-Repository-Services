@@ -80,6 +80,11 @@ public class CompetitionManagerImpl implements CompetitionManager {
 	}
 	
 	@Override
+	public boolean isCompAdmin(String userId, String compId) throws DatastoreException, UnauthorizedException, NotFoundException {
+		return isCompAdmin(userId, getCompetition(compId));
+	}
+	
+	@Override
 	public boolean isCompAdmin(String userId, Competition comp) {
 		if (userId.equals(comp.getOwnerId())) return true;
 		
