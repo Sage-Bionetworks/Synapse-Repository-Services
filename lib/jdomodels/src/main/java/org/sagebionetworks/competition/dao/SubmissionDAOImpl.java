@@ -2,7 +2,10 @@ package org.sagebionetworks.competition.dao;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+
 import org.sagebionetworks.competition.dbo.DBOConstants;
 import org.sagebionetworks.competition.dbo.SubmissionDBO;
 import org.sagebionetworks.competition.model.Submission;
@@ -44,6 +47,10 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION +
 			" WHERE "+ SQLConstants.COL_SUBMISSION_COMP_ID + "=:"+ COMP_ID +
 			" AND " + SQLConstants.COL_SUBMISSION_STATUS + "=:" + STATUS;
+	
+	private static final String COUNT_BY_COMPETITION_SQL = 
+			"SELECT COUNT * FROM " +  SQLConstants.TABLE_SUBMISSION +
+			" WHERE "+ SQLConstants.COL_PARTICIPANT_COMP_ID + "=:" + COMP_ID;
 	
 	private static final RowMapper<SubmissionDBO> rowMapper = ((new SubmissionDBO()).getTableMapping());
 
@@ -122,6 +129,13 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			dtos.add(dto);
 		}
 		return dtos;
+	}
+	
+	@Override
+	public long getCountByCompetition(String compId) throws DatastoreException, NotFoundException {
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put(COMP_ID, compId);
+		return simpleJdbcTemplate.queryForLong(COUNT_BY_COMPETITION_SQL, parameters);
 	}
 	
 	@Override
