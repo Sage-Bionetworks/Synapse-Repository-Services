@@ -79,11 +79,16 @@ public class CompetitionManagerImpl implements CompetitionManager {
 		competitionDAO.delete(id);			
 	}
 	
-	private void validateAdminAccess(String userId, Competition comp) {
-		if (userId.equals(comp.getOwnerId())) return;
+	@Override
+	public boolean isCompAdmin(String userId, Competition comp) {
+		if (userId.equals(comp.getOwnerId())) return true;
 		
-		/*TODO: check list of admins*/
-		if (true)
+		// TODO: check list of admins
+		return false;
+	}
+	
+	private void validateAdminAccess(String userId, Competition comp) {
+		if (!isCompAdmin(userId, comp))
 			throw new UnauthorizedException("User ID " + userId +
 					" is not authorized to modify Competition ID " + comp.getId() +
 					" (" + comp.getName() + ")");

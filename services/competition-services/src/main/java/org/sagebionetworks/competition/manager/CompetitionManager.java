@@ -52,5 +52,14 @@ public interface CompetitionManager {
 	 */
 	public void deleteCompetition(String userId, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
+
+	/**
+	 * Check whether a given user is an adminsitrator of a given Competition.
+	 * 
+	 * @param userId
+	 * @param comp
+	 * @return
+	 */
+	public boolean isCompAdmin(String userId, Competition comp);
 	
 }

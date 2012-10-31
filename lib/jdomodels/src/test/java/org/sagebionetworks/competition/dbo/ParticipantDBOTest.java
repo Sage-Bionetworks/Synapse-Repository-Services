@@ -2,8 +2,6 @@ package org.sagebionetworks.competition.dbo;
 
 import static org.junit.Assert.*;
 
-import java.util.Date;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -34,7 +32,7 @@ public class ParticipantDBOTest {
         competition.seteTag("etag");
         competition.setName("name");
         competition.setOwnerId(userId);
-        competition.setCreatedOn(new Date(System.currentTimeMillis()));
+        competition.setCreatedOn(System.currentTimeMillis());
         competition.setContentSource("foobar");
         competition.setStatusEnum(CompetitionStatus.PLANNED);
         dboBasicDao.createNew(competition);
@@ -60,7 +58,7 @@ public class ParticipantDBOTest {
         ParticipantDBO participant = new ParticipantDBO();
         participant.setUserId(userId);
         participant.setCompId(compId);
-        participant.setCreatedOn(new Date(System.currentTimeMillis()));
+        participant.setCreatedOn(System.currentTimeMillis());
  
         // Create it
         ParticipantDBO clone = dboBasicDao.createNew(participant);

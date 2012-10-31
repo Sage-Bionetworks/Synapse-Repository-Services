@@ -5,9 +5,6 @@ import static org.sagebionetworks.competition.dbo.DBOConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Date;
-
 import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -33,8 +30,7 @@ public class ParticipantDBO implements DatabaseObject<ParticipantDBO>, TaggableE
 				ParticipantDBO part = new ParticipantDBO();
 				part.setUserId(rs.getLong(COL_PARTICIPANT_USER_ID));
 				part.setCompId(rs.getLong(COL_PARTICIPANT_COMP_ID));
-				Timestamp ts = rs.getTimestamp(COL_PARTICIPANT_CREATED_ON);
-				part.setCreatedOn(ts==null ? null : new Date(ts.getTime()));
+				part.setCreatedOn(rs.getLong(COL_PARTICIPANT_CREATED_ON));
 				return part;
 			}
 
@@ -58,7 +54,7 @@ public class ParticipantDBO implements DatabaseObject<ParticipantDBO>, TaggableE
 	
 	private Long userId;
 	private Long compId;
-	private Date createdOn;
+	private Long createdOn;
 
 	public Long getUserId() {
 		return userId;
@@ -74,10 +70,10 @@ public class ParticipantDBO implements DatabaseObject<ParticipantDBO>, TaggableE
 		this.compId = compId;
 	}
 
-	public Date getCreatedOn() {
+	public Long getCreatedOn() {
 		return createdOn;
 	}
-	public void setCreatedOn(Date createdOn) {
+	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
 	}
 

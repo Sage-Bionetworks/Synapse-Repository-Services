@@ -2,8 +2,6 @@ package org.sagebionetworks.competition.dbo;
 
 import static org.junit.Assert.*;
 
-import java.util.Date;
-
 import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -44,7 +42,7 @@ public class CompetitionDBOTest {
         competition.seteTag(eTag);
         competition.setName(name);
         competition.setOwnerId(ownerId);
-        competition.setCreatedOn(new Date(System.currentTimeMillis()));
+        competition.setCreatedOn(System.currentTimeMillis());
         competition.setContentSource(contentSource);
         competition.setStatusEnum(CompetitionStatus.PLANNED);
  
@@ -85,7 +83,7 @@ public class CompetitionDBOTest {
         competition.seteTag(eTag);
         competition.setName(name);
         competition.setOwnerId(ownerId);
-        competition.setCreatedOn(new Date(System.currentTimeMillis()));
+        competition.setCreatedOn(System.currentTimeMillis());
         competition.setContentSource(contentSource);
         competition.setStatusEnum(CompetitionStatus.PLANNED);
  

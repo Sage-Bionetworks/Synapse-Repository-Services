@@ -4,10 +4,7 @@ import static org.sagebionetworks.competition.query.jdo.SQLConstants.*;
 import static org.sagebionetworks.competition.dbo.DBOConstants.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
 import java.util.Arrays;
-import java.util.Date;
-
 import org.sagebionetworks.competition.model.CompetitionStatus;
 import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
@@ -45,8 +42,7 @@ public class CompetitionDBO implements DatabaseObject<CompetitionDBO>, TaggableE
 					comp.setDescription(blob.getBytes(1, (int) blob.length()));
 				}
 				comp.setOwnerId(rs.getLong(COL_COMPETITION_OWNER_ID));
-				Timestamp ts = rs.getTimestamp(COL_COMPETITION_CREATED_ON);
-				comp.setCreatedOn(ts==null ? null : new Date(ts.getTime()));
+				comp.setCreatedOn(rs.getLong(COL_COMPETITION_CREATED_ON));
 				comp.setContentSource(rs.getString(COL_COMPETITION_CONTENT_SOURCE));
 				comp.setStatus(rs.getInt(COL_COMPETITION_STATUS));
 				return comp;
@@ -75,7 +71,7 @@ public class CompetitionDBO implements DatabaseObject<CompetitionDBO>, TaggableE
 	private String name;
 	private byte[] description;
 	private Long ownerId;
-	private Date createdOn;
+	private Long createdOn;
 	private String contentSource;
 	private int status;
 	
@@ -114,10 +110,10 @@ public class CompetitionDBO implements DatabaseObject<CompetitionDBO>, TaggableE
 		this.ownerId = ownerId;
 	}
 
-	public Date getCreatedOn() {
+	public Long getCreatedOn() {
 		return createdOn;
 	}
-	public void setCreatedOn(Date createdOn) {
+	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
 	}
 

@@ -2,8 +2,6 @@ package org.sagebionetworks.competition.dbo;
 
 import static org.junit.Assert.*;
 
-import java.util.Date;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -39,7 +37,7 @@ public class SubmissionDBOTest {
         competition.seteTag("etag");
         competition.setName("name");
         competition.setOwnerId(userId);
-        competition.setCreatedOn(new Date(System.currentTimeMillis()));
+        competition.setCreatedOn(System.currentTimeMillis());
         competition.setContentSource("foobar");
         competition.setStatusEnum(CompetitionStatus.PLANNED);
         dboBasicDao.createNew(competition);        
@@ -70,7 +68,7 @@ public class SubmissionDBOTest {
         submission.setUserId(userId);
         submission.setCompId(compId);
         submission.setScore(score);
-        submission.setCreatedOn(new Date(System.currentTimeMillis()));
+        submission.setCreatedOn(System.currentTimeMillis());
  
         // Create it
         SubmissionDBO clone = dboBasicDao.createNew(submission);
@@ -82,8 +80,6 @@ public class SubmissionDBOTest {
         params.addValue("id",submissionId);
         SubmissionDBO clone2 = dboBasicDao.getObjectById(SubmissionDBO.class, params);
         assertNotNull(clone2);
-        // workaround for bug (?) in Date.equals()
-        clone2.setCreatedOn(submission.getCreatedOn());
         assertEquals(submission, clone2);
         
 		// Update it
@@ -96,7 +92,6 @@ public class SubmissionDBOTest {
 		params = new MapSqlParameterSource();
 		params.addValue("id", submissionId);
 		SubmissionDBO clone3 = dboBasicDao.getObjectById(SubmissionDBO.class, params);
-		clone3.setCreatedOn(clone.getCreatedOn());
 		assertEquals(clone, clone3);      
         
         // Delete it

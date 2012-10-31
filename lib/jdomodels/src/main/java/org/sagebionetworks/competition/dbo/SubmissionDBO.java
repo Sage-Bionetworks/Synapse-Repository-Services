@@ -5,9 +5,6 @@ import static org.sagebionetworks.competition.dbo.DBOConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.Date;
-
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
@@ -42,8 +39,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				sub.setCompId(rs.getLong(COL_SUBMISSION_COMP_ID));
 				sub.setEntityId(rs.getLong(COL_SUBMISSION_ENTITY_ID));
 				sub.setName(rs.getString(COL_SUBMISSION_NAME));
-				Timestamp ts = rs.getTimestamp(COL_SUBMISSION_CREATED_ON);
-				sub.setCreatedOn(ts==null ? null : new Date(ts.getTime()));
+				sub.setCreatedOn(rs.getLong(COL_SUBMISSION_CREATED_ON));
 				sub.setStatus(rs.getInt(COL_SUBMISSION_STATUS));
 				sub.setScore(rs.getLong(COL_SUBMISSION_SCORE));
 				return sub;
@@ -71,7 +67,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 	private Long userId;
 	private Long compId;
 	private Long entityId;
-	private Date createdOn;
+	private Long createdOn;
 	private String name;
 	private int status;
 	private Long score;
@@ -104,10 +100,10 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 		this.entityId = entityId;
 	}
 	
-	public Date getCreatedOn() {
+	public Long getCreatedOn() {
 		return createdOn;
 	}
-	public void setCreatedOn(Date createdOn) {
+	public void setCreatedOn(Long createdOn) {
 		this.createdOn = createdOn;
 	}
 	

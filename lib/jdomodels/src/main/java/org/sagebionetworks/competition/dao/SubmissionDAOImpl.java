@@ -64,7 +64,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		copyDtoToDbo(dto, dbo);
 			
 		// Set creation date
-		dbo.setCreatedOn(new Date());
+		dbo.setCreatedOn(System.currentTimeMillis());
 		
 		// Ensure DBO has required information
 		verifySubmissionDBO(dbo);
@@ -160,7 +160,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static void copyDtoToDbo(Submission dto, SubmissionDBO dbo) {		
 		dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
 		dbo.setUserId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getUserId()));
-		dbo.setCreatedOn(dto.getCreatedOn());
+		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 	}
 	
 	/**
@@ -176,7 +176,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dto.setCompetitionId(dbo.getCompId() == null ? null : dbo.getCompId().toString());
 		dto.setEntityId(dbo.getEntityId() == null ? null : dbo.getEntityId().toString());
 		dto.setScore(dbo.getScore());
-		dto.setCreatedOn(dbo.getCreatedOn());
+		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 	}
 
 	/**

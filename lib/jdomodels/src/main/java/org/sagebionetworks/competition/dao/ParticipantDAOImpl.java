@@ -54,7 +54,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 		copyDtoToDbo(dto, dbo);
 			
 		// Set creation date
-		dbo.setCreatedOn(new Date());
+		dbo.setCreatedOn(System.currentTimeMillis());
 		
 		// Ensure DBO has required information
 		verifyParticipantDBO(dbo);
@@ -135,7 +135,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	private static void copyDtoToDbo(Participant dto, ParticipantDBO dbo) {		
 		dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
 		dbo.setUserId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getUserId()));
-		dbo.setCreatedOn(dto.getCreatedOn());
+		dbo.setCreatedOn(dto.getCreatedOn().getTime());
 	}
 	
 	/**
@@ -148,7 +148,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	private static void copyDboToDto(ParticipantDBO dbo, Participant dto) throws DatastoreException {		
 		dto.setCompetitionId(dbo.getCompId() == null ? null : dbo.getCompId().toString());
 		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
-		dto.setCreatedOn(dbo.getCreatedOn());
+		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 	}
 
 	/**

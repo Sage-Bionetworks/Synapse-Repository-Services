@@ -84,7 +84,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 		if (dbo.geteTag() == null) dbo.seteTag(eTagGenerator.generateETag(dbo));
 		
 		// Set creation date
-		dbo.setCreatedOn(new Date());
+		dbo.setCreatedOn(System.currentTimeMillis());
 		
 		// Ensure DBO has required information
 		verifyCompetitionDBO(dbo);
@@ -189,7 +189,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 		dbo.setName(dto.getName());
 		dbo.setDescription(dto.getDescription() == null ? null : dto.getDescription().getBytes());
 		dbo.setOwnerId(dto.getOwnerId() == null ? null : Long.parseLong(dto.getOwnerId()));
-		dbo.setCreatedOn(dto.getCreatedOn());
+		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
 		dbo.setContentSource(dto.getContentSource());
 		dbo.setStatusEnum(dto.getStatus());
 	}
@@ -215,7 +215,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 			dto.setDescription(null);
 		}
 		dto.setOwnerId(dbo.getOwnerId().toString());
-		dto.setCreatedOn(dbo.getCreatedOn());
+		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setContentSource(dbo.getContentSource());
 		dto.setStatus(dbo.getStatusEnum());
 	}
