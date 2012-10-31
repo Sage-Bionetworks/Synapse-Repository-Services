@@ -1,0 +1,17 @@
+<html>
+<head>
+<title>Synapse File Proxy</title>
+</head>
+<body>
+	<h1>Upload a file</h1>
+	<form name="form_" method="post" id="upload" action="/services-file/upload/v1/test" enctype="multipart/form-data">
+		<label for="sessionToken">Synapse Session Token</label>
+		<input type="text" name="sessionToken" required="required"/>
+		<br/><br/>
+		<label for="fileField">Upload</label>
+		<input	type="file" name="fileField" required="required">
+		<br/><br/>
+		<input type="submit" name="submit" value="Submit">
+	</form>
+</body>
+</html>
