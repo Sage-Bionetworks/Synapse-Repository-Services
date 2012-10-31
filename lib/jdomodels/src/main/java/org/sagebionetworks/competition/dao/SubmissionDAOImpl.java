@@ -19,7 +19,7 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-public class SubmissionDAOImpl {
+public class SubmissionDAOImpl implements SubmissionDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -27,10 +27,10 @@ public class SubmissionDAOImpl {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
-	public static final String ID = DBOConstants.PARAM_SUBMISSION_ID;
-	public static final String USER_ID = DBOConstants.PARAM_SUBMISSION_USER_ID;
-	public static final String COMP_ID = DBOConstants.PARAM_SUBMISSION_COMP_ID;
-	public static final String STATUS = DBOConstants.PARAM_SUBMISSION_STATUS;
+	private static final String ID = DBOConstants.PARAM_SUBMISSION_ID;
+	private static final String USER_ID = DBOConstants.PARAM_SUBMISSION_USER_ID;
+	private static final String COMP_ID = DBOConstants.PARAM_SUBMISSION_COMP_ID;
+	private static final String STATUS = DBOConstants.PARAM_SUBMISSION_STATUS;
 	
 	private static final String SELECT_BY_USER_SQL = 
 			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION +
@@ -47,6 +47,10 @@ public class SubmissionDAOImpl {
 	
 	private static final RowMapper<SubmissionDBO> rowMapper = ((new SubmissionDBO()).getTableMapping());
 
+	/* (non-Javadoc)
+	 * @see org.sagebionetworks.competition.dao.SubmissionDAO#create(org.sagebionetworks.competition.model.Submission)
+	 */
+	@Override
 	public void create(Submission dto) throws DatastoreException {		
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
@@ -67,6 +71,7 @@ public class SubmissionDAOImpl {
 		}
 	}
 
+	@Override
 	public Submission get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
@@ -76,6 +81,7 @@ public class SubmissionDAOImpl {
 		return dto;
 	}
 	
+	@Override
 	public List<Submission> getAllByUser(String userId) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(USER_ID, userId);		
@@ -89,6 +95,7 @@ public class SubmissionDAOImpl {
 		return dtos;
 	}
 	
+	@Override
 	public List<Submission> getAllByCompetition(String compId) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COMP_ID, compId);		
@@ -102,6 +109,7 @@ public class SubmissionDAOImpl {
 		return dtos;
 	}
 	
+	@Override
 	public List<Submission> getAllByCompetitionAndStatus(String compId, SubmissionStatus status) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COMP_ID, compId);
@@ -116,10 +124,12 @@ public class SubmissionDAOImpl {
 		return dtos;
 	}
 	
+	@Override
 	public long getCount() throws DatastoreException, NotFoundException {
 		return basicDao.getCount(SubmissionDBO.class);
 	}
 
+	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
@@ -134,7 +144,7 @@ public class SubmissionDAOImpl {
 	 * @param dbo
 	 */
 	private static void copyDtoToDbo(Submission dto, SubmissionDBO dbo) {		
-		dbo.setCompetitionId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
+		dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
 		dbo.setUserId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getUserId()));
 		dbo.setCreatedOn(dto.getCreatedOn());
 	}
@@ -149,7 +159,7 @@ public class SubmissionDAOImpl {
 	private static void copyDboToDto(SubmissionDBO dbo, Submission dto) throws DatastoreException {
 		dto.setId(dbo.getId() == null ? null : dbo.getId().toString());
 		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
-		dto.setCompetitionId(dbo.getCompetitionId() == null ? null : dbo.getCompetitionId().toString());
+		dto.setCompetitionId(dbo.getCompId() == null ? null : dbo.getCompId().toString());
 		dto.setEntityId(dbo.getEntityId() == null ? null : dbo.getEntityId().toString());
 		dto.setScore(dbo.getScore());
 		dto.setCreatedOn(dbo.getCreatedOn());
@@ -161,7 +171,7 @@ public class SubmissionDAOImpl {
 	 * @param dbo
 	 */
 	private void verifySubmissionDBO(SubmissionDBO dbo) {
-		Utility.ensureNotNull(dbo.getCompetitionId(), dbo.getUserId(), 
+		Utility.ensureNotNull(dbo.getCompId(), dbo.getUserId(), 
 								dbo.getEntityId(), dbo.getId(), dbo.getCreatedOn()
 							);
 	}

@@ -39,7 +39,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				SubmissionDBO sub = new SubmissionDBO();
 				sub.setId(rs.getLong(COL_SUBMISSION_ID));
 				sub.setUserId(rs.getLong(COL_SUBMISSION_USER_ID));
-				sub.setCompetitionId(rs.getLong(COL_SUBMISSION_COMP_ID));
+				sub.setCompId(rs.getLong(COL_SUBMISSION_COMP_ID));
 				sub.setEntityId(rs.getLong(COL_SUBMISSION_ENTITY_ID));
 				sub.setName(rs.getString(COL_SUBMISSION_NAME));
 				Timestamp ts = rs.getTimestamp(COL_SUBMISSION_CREATED_ON);
@@ -90,10 +90,10 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 		this.userId = userId;
 	}
 
-	public Long getCompetitionId() {
+	public Long getCompId() {
 		return compId;
 	}
-	public void setCompetitionId(Long compId) {
+	public void setCompId(Long compId) {
 		this.compId = compId;
 	}
 	

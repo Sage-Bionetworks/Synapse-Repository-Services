@@ -124,7 +124,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	 * @param dbo
 	 */
 	private static void copyDtoToDbo(Participant dto, ParticipantDBO dbo) {		
-		dbo.setCompetitionId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
+		dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
 		dbo.setUserId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getUserId()));
 		dbo.setCreatedOn(dto.getCreatedOn());
 	}
@@ -137,7 +137,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	 * @throws DatastoreException
 	 */
 	private static void copyDboToDto(ParticipantDBO dbo, Participant dto) throws DatastoreException {		
-		dto.setCompetitionId(dbo.getCompetitionId() == null ? null : dbo.getCompetitionId().toString());
+		dto.setCompetitionId(dbo.getCompId() == null ? null : dbo.getCompId().toString());
 		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
 		dto.setCreatedOn(dbo.getCreatedOn());
 	}
@@ -148,7 +148,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	 * @param dbo
 	 */
 	private void verifyParticipantDBO(ParticipantDBO dbo) {
-		Utility.ensureNotNull(dbo.getCompetitionId(), dbo.getUserId(), dbo.getCreatedOn());
+		Utility.ensureNotNull(dbo.getCompId(), dbo.getUserId(), dbo.getCreatedOn());
 	}
 	
 }

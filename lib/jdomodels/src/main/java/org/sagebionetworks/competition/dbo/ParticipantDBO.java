@@ -32,7 +32,7 @@ public class ParticipantDBO implements DatabaseObject<ParticipantDBO>, TaggableE
 			public ParticipantDBO mapRow(ResultSet rs, int rowNum)	throws SQLException {
 				ParticipantDBO part = new ParticipantDBO();
 				part.setUserId(rs.getLong(COL_PARTICIPANT_USER_ID));
-				part.setCompetitionId(rs.getLong(COL_PARTICIPANT_COMP_ID));
+				part.setCompId(rs.getLong(COL_PARTICIPANT_COMP_ID));
 				Timestamp ts = rs.getTimestamp(COL_PARTICIPANT_CREATED_ON);
 				part.setCreatedOn(ts==null ? null : new Date(ts.getTime()));
 				return part;
@@ -67,10 +67,10 @@ public class ParticipantDBO implements DatabaseObject<ParticipantDBO>, TaggableE
 		this.userId = userId;
 	}
 
-	public Long getCompetitionId() {
+	public Long getCompId() {
 		return compId;
 	}
-	public void setCompetitionId(Long compId) {
+	public void setCompId(Long compId) {
 		this.compId = compId;
 	}
 
