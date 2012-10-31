@@ -74,7 +74,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 			dbo.setId(idGenerator.generateNewId());
 		} else {
 			// If an id was provided then it must not already exist
-			if (doesIdExist(dbo.getId()))
+			if (doesIdExist(dbo.getId().toString()))
 				throw new IllegalArgumentException("The id: "+dbo.getId()+" already exists, so a Competition cannot be created using that id.");
 			// Make sure the ID generator has reserved this ID.
 			idGenerator.reserveId(dbo.getId());
@@ -164,7 +164,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 		basicDao.deleteObjectById(CompetitionDBO.class, param);		
 	}
 
-	public boolean doesIdExist(Long id) {
+	public boolean doesIdExist(String id) {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(ID, id);
 		try {
