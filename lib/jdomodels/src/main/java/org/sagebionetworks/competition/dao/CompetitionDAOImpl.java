@@ -163,8 +163,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 		param.addValue(ID, id);
 		basicDao.deleteObjectById(CompetitionDBO.class, param);		
 	}
-	
-	@Transactional(readOnly = true)
+
 	public boolean doesIdExist(Long id) {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(ID, id);

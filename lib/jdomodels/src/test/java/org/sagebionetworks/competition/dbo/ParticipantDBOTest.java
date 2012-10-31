@@ -59,7 +59,7 @@ public class ParticipantDBOTest {
         // Initialize a new Participant
         ParticipantDBO participant = new ParticipantDBO();
         participant.setUserId(userId);
-        participant.setCompId(compId);
+        participant.setCompetitionId(compId);
         participant.setCreatedOn(new Date(System.currentTimeMillis()));
  
         // Create it
@@ -74,7 +74,7 @@ public class ParticipantDBOTest {
         clone = dboBasicDao.getObjectById(ParticipantDBO.class, params);
         assertNotNull(clone);
         assertEquals(participant.getUserId(), clone.getUserId());
-        assertEquals(participant.getCompId(), clone.getCompId());
+        assertEquals(participant.getCompetitionId(), clone.getCompetitionId());
         
         // Delete it
         boolean result = dboBasicDao.deleteObjectById(ParticipantDBO.class,  params);
