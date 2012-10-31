@@ -3,7 +3,6 @@ package org.sagebionetworks.competition.dao;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import org.sagebionetworks.competition.dbo.CompetitionDBO;
 import org.sagebionetworks.competition.dbo.DBOConstants;
 import org.sagebionetworks.competition.dbo.ParticipantDBO;
 import org.sagebionetworks.competition.model.Participant;
@@ -106,7 +105,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	
 	@Override
 	public long getCount() throws DatastoreException, NotFoundException {
-		return basicDao.getCount(CompetitionDBO.class);
+		return basicDao.getCount(ParticipantDBO.class);
 	}
 
 	@Override
@@ -149,9 +148,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	 * @param dbo
 	 */
 	private void verifyParticipantDBO(ParticipantDBO dbo) {
-		Utility.ensureNotNull(dbo.getCompetitionId(), "Competition ID");
-		Utility.ensureNotNull(dbo.getUserId(), "User ID");
-		Utility.ensureNotNull(dbo.getCreatedOn(), "Participant join date");
+		Utility.ensureNotNull(dbo.getCompetitionId(), dbo.getUserId(), dbo.getCreatedOn());
 	}
 	
 }

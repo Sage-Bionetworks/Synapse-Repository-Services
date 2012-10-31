@@ -225,13 +225,10 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	 * @param dbo
 	 */
 	private void verifyCompetitionDBO(CompetitionDBO dbo) {
-		Utility.ensureNotNull(dbo.getId(), "Competition ID");
-		Utility.ensureNotNull(dbo.geteTag(), "Competition eTag");
-		Utility.ensureNotNull(dbo.getName(), "Competition name");
-		Utility.ensureNotNull(dbo.getOwnerId(), "Competition owner ID");
-		Utility.ensureNotNull(dbo.getCreatedOn(), "Competition creation date");
-		Utility.ensureNotNull(dbo.getContentSource(), "Competition content source");
-		Utility.ensureNotNull(dbo.getStatusEnum(), "Competition status");
+		Utility.ensureNotNull(dbo.getId(), dbo.geteTag(), dbo.getName(), 
+								dbo.getOwnerId(), dbo.getCreatedOn(), 
+								dbo.getContentSource(), dbo.getStatusEnum()
+							);
 	}
 	
 }

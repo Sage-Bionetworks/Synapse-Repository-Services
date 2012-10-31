@@ -26,21 +26,16 @@
             "type":"integer",
             "description":"The version number of the Entity"            
         },
-		"ownerId": {
-			"type": "string",
-			"description": "The ID of the owner of this Competition.",
-			"transient": true
-		},
 		"createdOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date on which Competition was created.",
+			"description": "The date on which Submission was created.",
 			"title": "Created On",
 			"transient": true
 		},
 		"status": {
 			"type": "object",
-			"description": "The current status of this Competition.",
+			"description": "The current status of this Submission.",
 			"name": "Status",
 			"$ref": "org.sagebionetworks.competition.model.SubmissionStatus"
 		},

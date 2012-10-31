@@ -29,7 +29,7 @@ public class SubmissionDBOTest {
     private long compId = 2;
     private long entityId = 4;
     private String name = "test submission";
-    private int score = 0;
+    private Long score = 0L;
     
     @Before
     public void setUp() {    	
@@ -68,7 +68,7 @@ public class SubmissionDBOTest {
         submission.setEntityId(entityId);
         submission.setStatusEnum(SubmissionStatus.OPEN);
         submission.setUserId(userId);
-        submission.setCompId(compId);
+        submission.setCompetitionId(compId);
         submission.setScore(score);
         submission.setCreatedOn(new Date(System.currentTimeMillis()));
  
@@ -85,7 +85,7 @@ public class SubmissionDBOTest {
         assertEquals(submission, clone2);
         
 		// Update it
-        int newScore = score + 100;
+        Long newScore = score + 100;
 		clone.setScore(newScore);
 		boolean result = dboBasicDao.update(clone);
 		assertTrue(result);

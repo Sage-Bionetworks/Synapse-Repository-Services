@@ -39,13 +39,13 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				SubmissionDBO sub = new SubmissionDBO();
 				sub.setId(rs.getLong(COL_SUBMISSION_ID));
 				sub.setUserId(rs.getLong(COL_SUBMISSION_USER_ID));
-				sub.setCompId(rs.getLong(COL_SUBMISSION_COMP_ID));
+				sub.setCompetitionId(rs.getLong(COL_SUBMISSION_COMP_ID));
 				sub.setEntityId(rs.getLong(COL_SUBMISSION_ENTITY_ID));
 				sub.setName(rs.getString(COL_SUBMISSION_NAME));
 				Timestamp ts = rs.getTimestamp(COL_SUBMISSION_CREATED_ON);
 				sub.setCreatedOn(ts==null ? null : new Date(ts.getTime()));
 				sub.setStatus(rs.getInt(COL_SUBMISSION_STATUS));
-				sub.setScore(rs.getInt(COL_SUBMISSION_SCORE));
+				sub.setScore(rs.getLong(COL_SUBMISSION_SCORE));
 				return sub;
 			}
 
@@ -74,7 +74,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 	private Date createdOn;
 	private String name;
 	private int status;
-	private int score;
+	private Long score;
 
 	public Long getId() {
 		return id;
@@ -90,10 +90,10 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 		this.userId = userId;
 	}
 
-	public Long getCompId() {
+	public Long getCompetitionId() {
 		return compId;
 	}
-	public void setCompId(Long compId) {
+	public void setCompetitionId(Long compId) {
 		this.compId = compId;
 	}
 	
@@ -133,10 +133,10 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 		setStatus(ss.ordinal());
 	}
 
-	public int getScore() {
+	public Long getScore() {
 		return score;
 	}
-	public void setScore(int score) {
+	public void setScore(Long score) {
 		this.score = score;
 	}
 	
@@ -158,7 +158,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				+ ((entityId == null) ? 0 : entityId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + score;
+		result = prime * result + ((score == null) ? 0 : score.hashCode());
 		result = prime * result + status;
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
 		return result;
