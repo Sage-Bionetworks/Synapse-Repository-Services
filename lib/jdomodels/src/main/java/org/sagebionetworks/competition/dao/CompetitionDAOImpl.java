@@ -164,6 +164,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 		basicDao.deleteObjectById(CompetitionDBO.class, param);		
 	}
 
+	@Override
 	public boolean doesIdExist(String id) {
 		Map<String, Object> parameters = new HashMap<String, Object>();
 		parameters.put(ID, id);

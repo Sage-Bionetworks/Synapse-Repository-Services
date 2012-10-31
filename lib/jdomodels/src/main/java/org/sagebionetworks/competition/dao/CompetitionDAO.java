@@ -85,4 +85,12 @@ public interface CompetitionDAO {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Check whether there exists a Competition with the given ID
+	 * 
+	 * @param id
+	 * @return
+	 */
+	boolean doesIdExist(String id);
 }
