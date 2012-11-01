@@ -30,7 +30,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 	
 	private static final String USER_ID = DBOConstants.PARAM_PARTICIPANT_USER_ID;
-	private static final String COMP_ID = DBOConstants.PARAM_PARTICIPANT_USER_ID;
+	private static final String COMP_ID = DBOConstants.PARAM_PARTICIPANT_COMP_ID;
 	
 	private static final String SELECT_ALL_SQL_PAGINATED = 
 			"SELECT * FROM "+ SQLConstants.TABLE_PARTICIPANT +

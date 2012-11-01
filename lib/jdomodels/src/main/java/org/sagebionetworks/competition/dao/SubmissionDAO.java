@@ -95,4 +95,12 @@ public interface SubmissionDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void delete(String id) throws DatastoreException, NotFoundException;
 
+	/**
+	 * Check whether a Submission exists with the given ID
+	 * 
+	 * @param id
+	 * @return
+	 */
+	public boolean doesIdExist(String id);
+
 }

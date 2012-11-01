@@ -109,5 +109,8 @@
 
 	<bean id="competitionDao" class="org.sagebionetworks.competition.dao.CompetitionDAOImpl"
 		depends-on="idGenerator" />
+	<bean id="participantDao" class="org.sagebionetworks.competition.dao.ParticipantDAOImpl" />
+	<bean id="submissionDao" class="org.sagebionetworks.competition.dao.SubmissionDAOImpl"
+		depends-on="idGenerator" />
 
 </beans>
