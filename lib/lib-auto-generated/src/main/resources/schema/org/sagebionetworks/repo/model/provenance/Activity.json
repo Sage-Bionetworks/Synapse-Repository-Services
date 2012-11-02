@@ -1,21 +1,22 @@
 {
 	"title": "Activity",
-	"description": "Interface for JSON schema for AccessRequirement POJO",
+	"description": "Interface for JSON schema for Activity POJO.",
 	"properties": {
 		"id": {
 			"type": "string",
 			"description": "The unique immutable ID",
 			"transient": true
-		},		
+		},
+		"name": {
+			"type": "string",
+			"description": "A name for this Activity.",
+			"title": "Name",
+			"transient": true
+		},
 		"description": {
 			"type": "string",
 			"description": "A description of this Activity.",
 			"title": "Description",
-			"transient": true
-		},
-		"uri": {
-			"type": "string",
-			"description": "The Uniform Resource Identifier (URI) for this object.",
 			"transient": true
 		},
 		"etag": {
@@ -49,30 +50,14 @@
 			"title": "Modified By",
 			"transient": true
 		},
-		"activityType": {
-			"description": "The type of this Activity",
-			"type": "string",
-			"name": "ActivityType",
-			"enum": [
-				"CODE_EXECUTION", 
-				"MANUAL", 
-				"UNDEFINED" 
-			]
-		},
 		"used": {
 			"type": "array",
 			"description": "The entity references used by this Activity.",
 			"uniqueItems": true,
 			"contentEncoding": "binary",
 			"items": {
-				"$ref": "org.sagebionetworks.repo.model.Reference"
+				"$ref": "org.sagebionetworks.repo.model.provenance.UsedEntity"
 			}
-		},
-        "executedEntity":{
-            "type":"object",
-            "$ref":"org.sagebionetworks.repo.model.Reference",
-            "description":"The Synapse entity executed during this Activity",
-            "title":"Executed Entity"
-        }
+		}
 	}
 }

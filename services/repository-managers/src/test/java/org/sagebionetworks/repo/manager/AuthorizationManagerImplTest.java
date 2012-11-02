@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,8 +17,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -518,9 +521,8 @@ public class AuthorizationManagerImplTest {
 	
 	@Test
 	public void testCanAccessActivity() throws Exception {
-		// create an activity
-		Activity act = activityManager.createActivity(userInfo, new Activity());
-		String activityId = act.getId();
+		// create an activity 
+		String activityId = activityManager.createActivity(userInfo, new Activity());
 		assertNotNull(activityId);
 		activitiesToDelete.add(activityId);
 		nodeCreatedByTestUser.setActivityId(activityId);
@@ -533,9 +535,8 @@ public class AuthorizationManagerImplTest {
 	
 	@Test
 	public void testCanAccessActivityFail() throws Exception {
-		// create an activity
-		Activity act = activityManager.createActivity(adminUser, new Activity());
-		String activityId = act.getId();
+		// create an activity		
+		String activityId = activityManager.createActivity(adminUser, new Activity());
 		assertNotNull(activityId);
 		activitiesToDelete.add(activityId);
 		node.setActivityId(activityId);
@@ -544,6 +545,6 @@ public class AuthorizationManagerImplTest {
 		// test access
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId);		
 		assertFalse(canAccess);
-	}
-	
+	}	
+		
 }
