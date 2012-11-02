@@ -21,7 +21,7 @@ public class ParticipantDBOTest {
     @Autowired
     DBOBasicDao dboBasicDao;
  
-    private long userId = 1;
+    private long userId = 0;
     private long compId = 2;
     
     @Before

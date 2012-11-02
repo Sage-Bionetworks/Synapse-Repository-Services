@@ -28,9 +28,9 @@ public class SubmissionDAOImplTest {
     CompetitionDAO competitionDAO;
  
     private String submissionId = null;
-    private String userId = "1";
+    private String userId = "0";
     private String compId = "2";
-    private String entityId = "4";
+    private String entityId = "819";
     private String name = "test submission";
     private Long score = 0L;
     

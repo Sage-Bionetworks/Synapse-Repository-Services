@@ -25,5 +25,9 @@
 		<groupId>org.sagebionetworks</groupId>
 		<artifactId>lib-jdomodels</artifactId>
 	</dependency>
+	<dependency>
+		<groupId>org.sagebionetworks</groupId>
+		<artifactId>repository-managers</artifactId>
+	</dependency>
   </dependencies>
 </project>

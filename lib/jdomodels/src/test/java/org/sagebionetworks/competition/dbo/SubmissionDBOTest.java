@@ -23,9 +23,9 @@ public class SubmissionDBOTest {
     DBOBasicDao dboBasicDao;
  
     private long submissionId = 2000;
-    private long userId = 1;
+    private long userId = 0;
     private long compId = 2;
-    private long entityId = 4;
+    private long entityId = 819;
     private String name = "test submission";
     private Long score = 0L;
     

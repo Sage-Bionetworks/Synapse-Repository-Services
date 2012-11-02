@@ -23,7 +23,7 @@ public class CompetitionDBOTest {
     private long id = 1000;
     private String name = "Foo";
     private String eTag = "Bar";
-    private long ownerId = 1;
+    private long ownerId = 0;
     private String contentSource = "Baz";
  
     @After

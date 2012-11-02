@@ -25,7 +25,7 @@ public class ParticipantDAOImplTest {
     @Autowired
     private CompetitionDAO competitionDAO;
         
-    private String userId = "1";
+    private String userId = "0";
     private String compId = "2";
     
     @Before

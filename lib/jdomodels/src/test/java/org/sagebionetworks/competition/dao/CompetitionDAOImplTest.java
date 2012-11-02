@@ -34,7 +34,7 @@ public class CompetitionDAOImplTest {
 	
 	private static final String COMPETITION_NAME = "test-competition";
 	private static final String COMPETITION_NAME_2 = "test-competition-2";
-    private static final String COMPETITION_OWNER_ID = "1";
+    private static final String COMPETITION_OWNER_ID = "0";
     private static final String COMPETITION_CONTENT_SOURCE = "Baz";
 
 	@Before
