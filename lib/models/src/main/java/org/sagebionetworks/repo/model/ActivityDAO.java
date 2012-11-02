@@ -77,7 +77,7 @@ public interface ActivityDAO extends MigratableDAO {
 	 * @param id
 	 * @param changeType
 	 */
-	public void lockAndSendDeleteMessage(String id);
+	public void sendDeleteMessage(String id);
 	
 	/**
 	 * @param id

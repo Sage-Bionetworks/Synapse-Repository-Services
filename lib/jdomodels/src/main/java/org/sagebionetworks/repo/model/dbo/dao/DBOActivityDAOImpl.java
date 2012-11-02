@@ -216,8 +216,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
 	@Override
-	public void lockAndSendDeleteMessage(String id) {
-		lockActivity(id);
+	public void sendDeleteMessage(String id) {
 		tagMessenger.sendDeleteMessage(id, ObjectType.ACTIVITY);		
 	}
 		

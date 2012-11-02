@@ -5,50 +5,42 @@
 		"id": {
 			"type": "string",
 			"description": "The unique immutable ID",
-			"transient": true
 		},
 		"name": {
 			"type": "string",
 			"description": "A name for this Activity.",
 			"title": "Name",
-			"transient": true
 		},
 		"description": {
 			"type": "string",
 			"description": "A description of this Activity.",
 			"title": "Description",
-			"transient": true
 		},
 		"etag": {
 			"type": "string",
 			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an object is out-of-date.",
-			"transient": true
 		},
 		"createdOn": {
 			"type": "string",
 			"format": "date-time",
 			"description": "The date this object was created.",
 			"title": "Created On",
-			"transient": true
 		},
 		"modifiedOn": {
 			"type": "string",
 			"format": "date-time",
 			"description": "The date this object was last modified.",
 			"title": "Modified On",
-			"transient": true
 		},
 		"createdBy": {
 			"type": "string",
 			"description": "The user that created this object.",
 			"title": "Created By",
-			"transient": true
 		},
 		"modifiedBy": {
 			"type": "string",
 			"description": "The user that last modified this object.",
 			"title": "Modified By",
-			"transient": true
 		},
 		"used": {
 			"type": "array",
