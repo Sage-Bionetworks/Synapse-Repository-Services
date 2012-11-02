@@ -205,9 +205,9 @@
 		<property name="migratableDaos">
 			<list>
 				<ref bean="userGroupDAO"/>
+				<ref bean="activityDao"/>
 				<ref bean="nodeDao"/>
 				<ref bean="accessRequirementDAO"/>
-				<ref bean="activityDao"/>
 			</list>
 		</property>
 	</bean>

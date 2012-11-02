@@ -164,15 +164,4 @@ public class JSONEntityHttpMessageConverterTest {
 		JSONEntityHttpMessageConverter.createEntityFromeAdapter(adapter);
 	}
 	
-	@Test
-	public void testReadActivity() throws Exception {
-		Activity act = new Activity();
-		act.setId("123");
-		// To string
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();		
-		String jsonString = act.writeToJSONObject(adapter).toJSONString();
-		StringReader reader = new StringReader(jsonString);
-		Activity clone = JSONEntityHttpMessageConverter.readActivity(reader);
-		assertEquals(act, clone);		
-	}
 }

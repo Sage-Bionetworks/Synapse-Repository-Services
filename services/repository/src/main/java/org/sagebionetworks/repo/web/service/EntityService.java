@@ -658,6 +658,21 @@ public interface EntityService {
 	 * @throws NotFoundException
 	 * @throws UnauthorizedException
 	 */
+	public Activity getActivityForEntity(String userId, String entityId, HttpServletRequest request)
+			throws DatastoreException, NotFoundException, UnauthorizedException;
+
+	/**
+	 * Gets the activity for the given Entity version
+	 * 
+	 * @param userId
+	 * @param entityId
+	 * @param versionNumber
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 */
 	public Activity getActivityForEntity(String userId, String entityId,
 			Long versionNumber, HttpServletRequest request)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
