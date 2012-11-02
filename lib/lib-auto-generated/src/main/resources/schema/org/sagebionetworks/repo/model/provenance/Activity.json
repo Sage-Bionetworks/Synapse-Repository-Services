@@ -4,43 +4,43 @@
 	"properties": {
 		"id": {
 			"type": "string",
-			"description": "The unique immutable ID",
+			"description": "The unique immutable ID"
 		},
 		"name": {
 			"type": "string",
 			"description": "A name for this Activity.",
-			"title": "Name",
+			"title": "Name"
 		},
 		"description": {
 			"type": "string",
 			"description": "A description of this Activity.",
-			"title": "Description",
+			"title": "Description"
 		},
 		"etag": {
 			"type": "string",
-			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an object is out-of-date.",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an object is out-of-date."
 		},
 		"createdOn": {
 			"type": "string",
 			"format": "date-time",
 			"description": "The date this object was created.",
-			"title": "Created On",
+			"title": "Created On"
 		},
 		"modifiedOn": {
 			"type": "string",
 			"format": "date-time",
 			"description": "The date this object was last modified.",
-			"title": "Modified On",
+			"title": "Modified On"
 		},
 		"createdBy": {
 			"type": "string",
 			"description": "The user that created this object.",
-			"title": "Created By",
+			"title": "Created By"
 		},
 		"modifiedBy": {
 			"type": "string",
 			"description": "The user that last modified this object.",
-			"title": "Modified By",
+			"title": "Modified By"
 		},
 		"used": {
 			"type": "array",
