@@ -26,6 +26,11 @@
             "type":"integer",
             "description":"The version number of the Entity"            
         },
+        "name": {
+			"type": "string",
+			"description": "The Synapse ID of the Competition this Submission is for.",
+			"transient": true
+		},
 		"createdOn": {
 			"type": "string",
 			"format": "date-time",

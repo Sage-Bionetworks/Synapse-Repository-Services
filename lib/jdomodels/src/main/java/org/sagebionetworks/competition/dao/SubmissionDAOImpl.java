@@ -13,7 +13,9 @@ import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.query.jdo.SQLConstants;
 import org.sagebionetworks.competition.util.Utility;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,7 +66,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static final RowMapper<SubmissionDBO> rowMapper = ((new SubmissionDBO()).getTableMapping());
 
 	@Override
-	public void create(Submission dto) throws DatastoreException {		
+	public Submission create(Submission dto) throws DatastoreException {		
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
 		copyDtoToDbo(dto, dbo);
@@ -89,6 +91,9 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		// Create DBO
 		try {
 			dbo = basicDao.createNew(dbo);
+			dto = new Submission();
+			copyDboToDto(dbo, dto);
+			return dto;
 		} catch (Exception e) {
 			throw new DatastoreException("id=" + dbo.getId() + " userId=" + 
 						dto.getUserId() + " entityId=" + dto.getEntityId(), e);
@@ -159,6 +164,15 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	public long getCount() throws DatastoreException, NotFoundException {
 		return basicDao.getCount(SubmissionDBO.class);
 	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void update(Submission dto) throws DatastoreException, InvalidModelException, NotFoundException, ConflictingUpdateException {		
+		SubmissionDBO dbo = new SubmissionDBO();
+		copyDtoToDbo(dto, dbo);
+		verifySubmissionDBO(dbo);
+		basicDao.update(dbo);
+	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -192,8 +206,10 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dbo.setUserId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getUserId()));
 		dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
 		dbo.setEntityId(dto.getEntityId() == null ? null : Long.parseLong(dto.getEntityId()));
+		dbo.setName(dto.getName());
 		dbo.setScore(dto.getScore());
-		dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		dbo.setStatusEnum(dto.getStatus());
+		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
 	}
 	
 	/**
@@ -208,7 +224,9 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
 		dto.setCompetitionId(dbo.getCompId() == null ? null : dbo.getCompId().toString());
 		dto.setEntityId(dbo.getEntityId() == null ? null : dbo.getEntityId().toString());
+		dto.setName(dbo.getName());
 		dto.setScore(dbo.getScore());
+		dto.setStatus(dbo.getStatusEnum());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 	}
 

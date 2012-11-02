@@ -51,6 +51,7 @@ public class ParticipantDAOImplTest {
 			competitionDAO.delete(compId);
 		} catch (NotFoundException e) {};
     }
+    
     @Test
     public void testCRD() throws Exception{
         // Initialize a new Participant

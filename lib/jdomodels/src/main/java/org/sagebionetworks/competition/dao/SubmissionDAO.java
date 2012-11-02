@@ -4,7 +4,9 @@ import java.util.List;
 
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,7 +19,7 @@ public interface SubmissionDAO {
 	 * @param dto
 	 * @throws DatastoreException
 	 */
-	public void create(Submission dto) throws DatastoreException;
+	public Submission create(Submission dto) throws DatastoreException;
 
 	/**
 	 * Get a Submission by ID
@@ -84,6 +86,10 @@ public interface SubmissionDAO {
 	 * @throws NotFoundException
 	 */
 	public long getCount() throws DatastoreException, NotFoundException;
+
+	void update(Submission dto) throws DatastoreException,
+	InvalidModelException, NotFoundException,
+	ConflictingUpdateException;
 
 	/**
 	 * Delete a Submission
