@@ -30,7 +30,8 @@
 			"id": "org.sagebionetworks.repo.model.message.ObjectType",
 			"enum": [
 				"ENTITY",
-				"PRINCIPAL"
+				"PRINCIPAL",
+				"ACTIVITY"
 			]
 		},
 		"changeType": {

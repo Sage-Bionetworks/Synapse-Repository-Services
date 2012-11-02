@@ -53,7 +53,7 @@ public class SearchWorkerIntegrationTest {
 		project = new Project();
 		project.setName("SearchIntegrationTest.Project");
 		// this should trigger create messaage.
-		String id = entityManager.createEntity(info, project);
+		String id = entityManager.createEntity(info, project, null);
 		project = entityManager.getEntity(info, id, Project.class);
 	}
 

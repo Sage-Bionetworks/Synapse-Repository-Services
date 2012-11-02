@@ -1,7 +1,9 @@
 package org.sagebionetworks.search;
 
 import java.net.UnknownHostException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -150,15 +152,19 @@ public class SearchDomainSetupImpl implements SearchDomainSetup {
 	 */
 	private void defineAndValidateSchema(String domainName) {
 		// Now make sure all of the fields are configured.
-		List<IndexField> indexList = SearchSchemaLoader
-				.loadSearchDomainSchema();
+		DescribeIndexFieldsResult difrr = awsSearchClient.describeIndexFields(new DescribeIndexFieldsRequest().withDomainName(domainName));
+		// Map all of the existing fields
+		Map<String, IndexField> currentFieldsMap = new HashMap<String, IndexField>();
+		for(IndexFieldStatus status: difrr.getIndexFields()){
+			IndexField field = status.getOptions();
+			currentFieldsMap.put(field.getIndexFieldName(), field);
+		}
+		// The the expected schema.
+		List<IndexField> indexList = SearchSchemaLoader.loadSearchDomainSchema();
 		for (IndexField field : indexList) {
 			// Determine if this field already exists
-			DescribeIndexFieldsResult difr = awsSearchClient
-					.describeIndexFields(new DescribeIndexFieldsRequest()
-							.withDomainName(domainName).withFieldNames(
-									field.getIndexFieldName()));
-			if (difr.getIndexFields().size() < 1) {
+			IndexField currentField = currentFieldsMap.get(field.getIndexFieldName());
+			if (currentField == null) {
 				// We need to create it.
 				log.info("IndexField: " + field.getIndexFieldName()
 						+ " does not exist, so it will be created...");
@@ -166,22 +172,14 @@ public class SearchDomainSetupImpl implements SearchDomainSetup {
 				awsSearchClient.defineIndexField(new DefineIndexFieldRequest()
 						.withDomainName(domainName).withIndexField(field));
 			} else {
-				if (difr.getIndexFields().size() != 1)
-					throw new IllegalStateException(
-							"Expected one and only one IndexField with the name: "
-									+ field.getIndexFieldName()
-									+ " but found: "
-									+ difr.getIndexFields().size());
 				// It already exists
 				log.info("IndexField: " + field.getIndexFieldName()
 						+ " already exists");
-				// Validate the field has not changed
-				IndexFieldStatus status = difr.getIndexFields().get(0);
 				// Is the existing field different than the expected.
-				if (!status.getOptions().equals(field)) {
+				if (!currentField.equals(field)) {
 					log.warn(String
 							.format("IndexField already exists and does not match the expected value.  Expected: %1$s Actual: %2$s",
-									field.toString(), status.getOptions()
+									field.toString(), currentField
 											.toString()));
 					log.info("Updating IndexField: "
 							+ field.getIndexFieldName());
@@ -193,13 +191,10 @@ public class SearchDomainSetupImpl implements SearchDomainSetup {
 			}
 		}
 		// Delete any index field that should not be in the schema
-		DescribeIndexFieldsResult difr = awsSearchClient
-				.describeIndexFields(new DescribeIndexFieldsRequest()
-						.withDomainName(domainName));
-		for(IndexFieldStatus is: difr.getIndexFields()){
+		for(IndexField is: currentFieldsMap.values()){
 			// Remove any field that is not used.
-			if(!indexList.contains(is.getOptions())){
-				awsSearchClient.deleteIndexField(new DeleteIndexFieldRequest().withDomainName(domainName).withIndexFieldName(is.getOptions().getIndexFieldName()));
+			if(!indexList.contains(is)){
+				awsSearchClient.deleteIndexField(new DeleteIndexFieldRequest().withDomainName(domainName).withIndexFieldName(is.getIndexFieldName()));
 			}
 		}
 	}

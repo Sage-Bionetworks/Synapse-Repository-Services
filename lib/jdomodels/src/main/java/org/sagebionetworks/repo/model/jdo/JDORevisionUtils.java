@@ -30,6 +30,7 @@ public class JDORevisionUtils {
 			// Make a copy of the references.
 			copy.setReferences(Arrays.copyOf(toCopy.getReferences(), toCopy.getReferences().length));
 		}
+		// do not copy over Activity id!
 		return copy;
 	}
 	
@@ -50,6 +51,9 @@ public class JDORevisionUtils {
 		rev.setLabel(jdo.getLabel());
 		rev.setModifiedByPrincipalId(jdo.getModifiedBy());
 		rev.setModifiedOn(new Date(jdo.getModifiedOn()));
+		if(jdo.getActivityId() != null) {
+			rev.setActivityId(jdo.getActivityId().toString());
+		}
 		try {
 			rev.setNamedAnnotations(JDOSecondaryPropertyUtils.decompressedAnnotations(jdo.getAnnotations()));
 			rev.setReferences(JDOSecondaryPropertyUtils.decompressedReferences(jdo.getReferences()));
@@ -73,6 +77,9 @@ public class JDORevisionUtils {
 			jdo.setModifiedOn(dto.getModifiedOn().getTime());
 		}
 		jdo.setRevisionNumber(dto.getRevisionNumber());
+		if(dto.getActivityId() != null) {
+			jdo.setActivityId(Long.parseLong(dto.getActivityId()));
+		}
 		try {
 			jdo.setAnnotations(JDOSecondaryPropertyUtils.compressAnnotations(dto.getNamedAnnotations()));
 			jdo.setReferences(JDOSecondaryPropertyUtils.compressReferences(dto.getReferences()));

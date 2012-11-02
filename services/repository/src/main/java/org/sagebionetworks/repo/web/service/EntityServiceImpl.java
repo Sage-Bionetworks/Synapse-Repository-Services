@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.BasicQuery;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -216,7 +217,7 @@ public class EntityServiceImpl implements EntityService {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Entity> T createEntity(String userId, T newEntity, HttpServletRequest request)
+	public <T extends Entity> T createEntity(String userId, T newEntity, String activityId, HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException {
 		// Determine the object type from the url.
@@ -231,7 +232,7 @@ public class EntityServiceImpl implements EntityService {
 		EventType eventType = EventType.CREATE;
 		// Fire the event
 		fireValidateEvent(userInfo, eventType, newEntity, type);
-		String id = entityManager.createEntity(userInfo, newEntity);
+		String id = entityManager.createEntity(userInfo, newEntity, activityId);
 		// Return the resulting entity.
 		return getEntity(userInfo, id, request, clazz, eventType);
 	}
@@ -279,7 +280,7 @@ public class EntityServiceImpl implements EntityService {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> T updateEntity(String userId,
-			T updatedEntity, boolean newVersion, HttpServletRequest request)
+			T updatedEntity, boolean newVersion, String activityId, HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException {
 		if(updatedEntity == null) throw new IllegalArgumentException("Entity cannot be null");
@@ -296,7 +297,7 @@ public class EntityServiceImpl implements EntityService {
 		// Keep the entity id
 		String entityId = updatedEntity.getId();
 		// Now do the update
-		entityManager.updateEntity(userInfo, updatedEntity, newVersion);
+		entityManager.updateEntity(userInfo, updatedEntity, newVersion, activityId);
 		// Return the udpated entity
 		return getEntity(userInfo, entityId, request, clazz, eventType);
 	}
@@ -444,6 +445,9 @@ public class EntityServiceImpl implements EntityService {
 //		return qr.getTotalNumberOfResults();
 //	}
 
+	/*
+	 * TODO : dead code, remove?
+	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,	HttpServletRequest request) throws NotFoundException,
@@ -630,5 +634,40 @@ public class EntityServiceImpl implements EntityService {
 		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.doesEntityHaveChildren(userInfo, entityId);
-	}	
+	}
+	
+	@Override
+	public Activity getActivityForEntity(String userId, String entityId, Long versionNumber,
+			HttpServletRequest request) throws DatastoreException,
+			NotFoundException, UnauthorizedException {
+		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getActivityForEntity(userInfo, entityId, versionNumber);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public Activity setActivityForEntity(String userId, String entityId,
+			String activityId, HttpServletRequest request)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
+		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		if(activityId == null) throw new IllegalArgumentException("Activity Id can not be null");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.setActivityForEntity(userInfo, entityId, activityId);		
+	}
+
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteActivityForEntity(String userId, String entityId,
+			HttpServletRequest request) throws DatastoreException,
+			NotFoundException, UnauthorizedException {
+		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		entityManager.deleteActivityForEntity(userInfo, entityId);				
+	}
+
 }

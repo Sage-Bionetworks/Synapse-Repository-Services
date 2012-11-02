@@ -34,6 +34,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private UserProfileService userProfileService;
 	@Autowired
 	SearchService searchService;
+	@Autowired
+	private ActivityService activityService;
 	
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -71,5 +73,9 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public SearchService getSearchService() {
 		return searchService;
+	}
+	@Override
+	public ActivityService getActivityService() {
+		return activityService;
 	}
 }

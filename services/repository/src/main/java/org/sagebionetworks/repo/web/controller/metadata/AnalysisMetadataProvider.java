@@ -71,7 +71,11 @@ public class AnalysisMetadataProvider implements
 	 * 
 	 * These sorts of failures are not fatal and should not cause the user's
 	 * primary request to fail.
+	 * 
+	 * THIS SHOULD BE DELETED FOR ANALYSIS CLEANUP
 	 */
+	
+	@Deprecated
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	private void updateProvenanceRecord(String stepId, Analysis entity,
 			UserInfo user, EventType eventType) {
@@ -85,7 +89,7 @@ public class AnalysisMetadataProvider implements
 			Step step = entityManager.getEntity(user, stepId,
 					Step.class);
 			step.setParentId(entity.getId());
-			entityManager.updateEntity(user, step, false);
+			entityManager.updateEntity(user, step, false, null);
 			permissionsManager.restoreInheritance(stepId, user);
 		}
 		// Sorry for the big catch block, its not a good habit to just catch

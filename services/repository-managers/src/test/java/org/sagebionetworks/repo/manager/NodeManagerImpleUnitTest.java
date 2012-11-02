@@ -1,12 +1,13 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -33,6 +34,7 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -50,6 +52,7 @@ public class NodeManagerImpleUnitTest {
 	private EntityBootstrapper mockEntityBootstrapper;
 	private NodeInheritanceManager mockNodeInheritanceManager = null;
 	private ReferenceDao mockReferenceDao = null;
+	private ActivityManager mockActivityManager;
 		
 	private final UserInfo mockUserInfo = new UserInfo(false);
 	private final UserInfo anonUserInfo = new UserInfo(false);
@@ -62,9 +65,10 @@ public class NodeManagerImpleUnitTest {
 		mockEntityBootstrapper = Mockito.mock(EntityBootstrapper.class);
 		mockNodeInheritanceManager = Mockito.mock(NodeInheritanceManager.class);
 		mockReferenceDao = Mockito.mock(ReferenceDao.class);
+		mockActivityManager = Mockito.mock(ActivityManager.class);
 		// Create the manager dao with mocked dependent daos.
 		nodeManager = new NodeManagerImpl(mockNodeDao, mockAuthDao, mockAclDao, 
-				mockEntityBootstrapper, mockNodeInheritanceManager, mockReferenceDao);
+				mockEntityBootstrapper, mockNodeInheritanceManager, mockReferenceDao, mockActivityManager);
 
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("2");
@@ -182,6 +186,126 @@ public class NodeManagerImpleUnitTest {
 		assertNotNull(processedNode.getModifiedByPrincipalId());
 	}
 
+	@Test
+	public void testCreateNodeActivity404() throws Exception {
+		// Test creating a new node with nothing but the name and type set
+		Node newNode = new Node();
+		newNode.setName("testCreateNode");
+		newNode.setNodeType(EntityType.folder.name());
+		when(mockAuthDao.canCreate(eq(mockUserInfo), (Node)any())).thenReturn(true);
+		String activityId = "8439208403928402";
+		newNode.setActivityId(activityId);
+		when(mockEntityBootstrapper.getChildAclSchemeForPath("/root")).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
+		
+		// not found
+		try {
+			when(mockActivityManager.doesActivityExist(activityId)).thenReturn(false);		
+			nodeManager.createNewNode(newNode, mockUserInfo);
+			fail("node should not have been created");
+		} catch (NotFoundException e) {
+			// good.
+		}
+		
+		// found
+		reset(mockAuthDao);
+		when(mockActivityManager.doesActivityExist(activityId)).thenReturn(true);
+		when(mockAuthDao.canAccessActivity(mockUserInfo, activityId)).thenReturn(true);
+		when(mockAuthDao.canCreate(eq(mockUserInfo), (Node)any())).thenReturn(true);
+		when(mockNodeDao.createNew(any(Node.class))).thenReturn("101");
+		nodeManager.createNewNode(newNode, mockUserInfo);		
+		verify(mockNodeDao).createNew(newNode);
+	}
+	
+	@Test
+	public void testCreateNodeActivity403() throws Exception {
+		// Test creating a new node with nothing but the name and type set
+		Node newNode = new Node();
+		newNode.setName("testCreateNode");
+		newNode.setNodeType(EntityType.folder.name());
+		when(mockAuthDao.canCreate(eq(mockUserInfo), (Node)any())).thenReturn(true);
+		String activityId = "8439208403928402";
+		newNode.setActivityId(activityId);
+		when(mockEntityBootstrapper.getChildAclSchemeForPath("/root")).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
+		when(mockActivityManager.doesActivityExist(activityId)).thenReturn(true);
+		
+		// fail authorization
+		try {
+			when(mockAuthDao.canAccessActivity(mockUserInfo, activityId)).thenReturn(false);		
+			nodeManager.createNewNode(newNode, mockUserInfo);
+			fail("node should not have been created");
+		} catch (UnauthorizedException e) {
+			// good.
+		}
+		
+		// pass authorization
+		reset(mockAuthDao);
+		when(mockAuthDao.canAccessActivity(mockUserInfo, activityId)).thenReturn(true);
+		when(mockAuthDao.canCreate(eq(mockUserInfo), (Node)any())).thenReturn(true);
+		when(mockNodeDao.createNew(any(Node.class))).thenReturn("101");
+		nodeManager.createNewNode(newNode, mockUserInfo);		
+		verify(mockNodeDao).createNew(newNode);
+	} 
+		
+	@Test
+	public void testUpdateNodeActivity404() throws Exception {
+		// Test creating a new node with nothing but the name and type set
+		Node node = new Node();
+		node.setId("123");
+		node.setName("testUpdateNode");
+		node.setNodeType(EntityType.folder.name());		
+		String activityId = "8439208403928402";
+		node.setActivityId(activityId);		
+		when(mockAuthDao.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+		
+		// not found
+		try {
+			when(mockActivityManager.doesActivityExist(activityId)).thenReturn(false);		
+			nodeManager.update(mockUserInfo, node);
+			fail("node should not have been updated");
+		} catch (NotFoundException e) {
+			// good.
+		}
+		
+		// found
+		reset(mockAuthDao);
+		when(mockActivityManager.doesActivityExist(activityId)).thenReturn(true);
+		when(mockAuthDao.canAccessActivity(mockUserInfo, activityId)).thenReturn(true);
+		when(mockAuthDao.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+		when(mockAuthDao.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		nodeManager.update(mockUserInfo, node);		
+		verify(mockNodeDao).updateNode(node);		
+	}
+	
+	@Test
+	public void testUpdateNodeActivity403() throws Exception {
+		// Test creating a new node with nothing but the name and type set
+		Node node = new Node();
+		node.setId("123");
+		node.setName("testUpdateNode");
+		node.setNodeType(EntityType.folder.name());		
+		String activityId = "8439208403928402";
+		node.setActivityId(activityId);		
+		when(mockAuthDao.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+		when(mockActivityManager.doesActivityExist(activityId)).thenReturn(true);		
+		
+		// fail authZ
+		try {
+			when(mockAuthDao.canAccessActivity(mockUserInfo, activityId)).thenReturn(false);
+			nodeManager.update(mockUserInfo, node);
+			fail("node should not have been updated");
+		} catch (UnauthorizedException e) {
+			// good.
+		}
+		
+		// pass authZ
+		reset(mockAuthDao);
+		when(mockActivityManager.doesActivityExist(activityId)).thenReturn(true);
+		when(mockAuthDao.canAccessActivity(mockUserInfo, activityId)).thenReturn(true);
+		when(mockAuthDao.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+		when(mockAuthDao.canAccess(eq(mockUserInfo), eq(node.getId()), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		nodeManager.update(mockUserInfo, node);		
+		verify(mockNodeDao).updateNode(node);		
+	}
 	
 	@Test
 	public void testGetAnnotations() throws NotFoundException, DatastoreException, UnauthorizedException{
@@ -220,5 +344,110 @@ public class NodeManagerImpleUnitTest {
 		assertTrue(NodeManagerImpl.isParenIdChange("two", "one"));
 		assertFalse(NodeManagerImpl.isParenIdChange(null, null));
 		assertFalse(NodeManagerImpl.isParenIdChange("one", "one"));
+	}
+	
+	@Test
+	public void testGetActivityForNode() throws Exception {		
+		String nodeId = "123";
+		String activityId = "1";
+		Activity act = new Activity();
+		act.setId(activityId);
+		when(mockActivityManager.getActivity(mockUserInfo, activityId)).thenReturn(act);
+		
+		// test activity not found		
+		when(mockNodeDao.getActivityId(nodeId)).thenThrow(new NotFoundException());
+		try {
+			nodeManager.getActivityForNode(mockUserInfo, nodeId, null);
+			fail("method is swallowing not found exception");
+		} catch (NotFoundException e) {
+			// good
+		}
+		
+		// test current version
+		reset(mockNodeDao);
+		when(mockNodeDao.getActivityId(nodeId)).thenReturn(activityId);		
+		Activity actCurrent = nodeManager.getActivityForNode(mockUserInfo, nodeId, null);
+		assertEquals(act, actCurrent);
+		
+		// test specific version
+		reset(mockNodeDao);
+		Long versionNumber = 1L;
+		when(mockNodeDao.getActivityId(nodeId, versionNumber)).thenReturn(activityId);
+		Activity actVersion = nodeManager.getActivityForNode(mockUserInfo, nodeId, versionNumber);
+		assertEquals(act, actVersion);
+	}
+
+	@Test
+	public void testSetActivityForNode() throws Exception {
+		String nodeId = "123";
+		String activityId = "1";
+		Activity act = new Activity();
+		act.setId(activityId);
+		Node node = mock(Node.class);
+		
+		when(node.getId()).thenReturn(nodeId);
+		when(node.getNodeType()).thenReturn(EntityType.project.toString());
+		when(node.getName()).thenReturn("some name");
+		when(mockActivityManager.getActivity(mockUserInfo, activityId)).thenReturn(act);
+		when(mockNodeDao.getNode(nodeId)).thenReturn(node);
+		when(mockAuthDao.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.UPDATE))).thenReturn(false);
+		when(mockAuthDao.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		
+		// unathorized
+		try {
+			nodeManager.setActivityForNode(mockUserInfo, nodeId, activityId);
+			fail("Should not have allowed update");
+		} catch (UnauthorizedException e) {
+			// good
+		}
+
+		reset(node);
+		when(node.getId()).thenReturn(nodeId);
+		when(node.getNodeType()).thenReturn(EntityType.project.toString());
+		when(node.getName()).thenReturn("some name");
+		
+		// update for real
+		when(mockAuthDao.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+		
+		nodeManager.setActivityForNode(mockUserInfo, nodeId, activityId);
+		verify(node).setActivityId(activityId);		
+		verify(mockNodeDao).updateNode(node);		
+	}
+
+	@Test
+	public void testDeleteActivityForNode() throws Exception {
+		String nodeId = "123";
+		String activityId = "1";
+		Activity act = new Activity();
+		act.setId(activityId);
+		Node node = mock(Node.class);
+		
+		when(node.getId()).thenReturn(nodeId);
+		when(node.getNodeType()).thenReturn(EntityType.project.toString());
+		when(node.getName()).thenReturn("some name");
+		when(mockActivityManager.getActivity(mockUserInfo, activityId)).thenReturn(act);
+		when(mockNodeDao.getNode(nodeId)).thenReturn(node);
+		when(mockAuthDao.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.UPDATE))).thenReturn(false);
+		when(mockAuthDao.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		
+		// unathorized
+		try {
+			nodeManager.deleteActivityLinkToNode(mockUserInfo, nodeId);
+			fail("Should not have allowed update");
+		} catch (UnauthorizedException e) {
+			// good
+		}
+
+		reset(node);
+		when(node.getId()).thenReturn(nodeId);
+		when(node.getNodeType()).thenReturn(EntityType.project.toString());
+		when(node.getName()).thenReturn("some name");
+		
+		// update for real
+		when(mockAuthDao.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+		
+		nodeManager.deleteActivityLinkToNode(mockUserInfo, nodeId);
+		verify(node).setActivityId(null);		
+		verify(mockNodeDao).updateNode(node);		
 	}
 }

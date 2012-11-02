@@ -61,7 +61,7 @@ public class RdsWorkerIntegrationTest {
 		project = new Project();
 		project.setName("RdsWorkerIntegrationTest.Project");
 		// this should trigger create message.
-		String id = entityManager.createEntity(info, project);
+		String id = entityManager.createEntity(info, project, null);
 		project = entityManager.getEntity(info, id, Project.class);
 		// Add an annotation to query for
 		Annotations annos = entityManager.getAnnotations(info, id);

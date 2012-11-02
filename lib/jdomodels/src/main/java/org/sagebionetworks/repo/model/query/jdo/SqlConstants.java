@@ -35,6 +35,7 @@ public class SqlConstants {
 	public static final String TABLE_REVISION 			= "JDOREVISION";
 	public static final String COL_REVISION_OWNER_NODE	= "OWNER_NODE_ID";
 	public static final String COL_REVISION_NUMBER		= "NUMBER";
+	public static final String COL_REVISION_ACTIVITY_ID	= "ACTIVITY_ID";
 	public static final String COL_REVISION_LABEL		= "LABEL";
 	public static final String COL_REVISION_COMMENT		= "COMMENT";
 	public static final String COL_REVISION_ANNOS_BLOB	= "ANNOTATIONS";
@@ -221,6 +222,16 @@ public class SqlConstants {
 	// This constraint ensure that children names are unique within their parent.
 	public static final String CONSTRAINT_UNIQUE_CHILD_NAME = "NODE_UNIQUE_CHILD_NAME";
 	
+	// The ACCESS_REQUIREMENT table
+	public static final String TABLE_ACTIVITY 					= "ACTIVITY";
+	public static final String COL_ACTIVITY_ID 					= "ID";
+	public static final String COL_ACTIVITY_ETAG 				= "ETAG";
+	public static final String COL_ACTIVITY_CREATED_BY			= "CREATED_BY";
+	public static final String COL_ACTIVITY_CREATED_ON			= "CREATED_ON";
+	public static final String COL_ACTIVITY_MODIFIED_BY			= "MODIFIED_BY";
+	public static final String COL_ACTIVITY_MODIFIED_ON			= "MODIFIED_ON";
+	public static final String COL_ACTIVITY_SERIALIZED_OBJECT 	= "SERIALIZED_OBJECT";
+	public static final String DDL_FILE_ACTIVITY = "schema/Activity-ddl.sql";
 	
 	// The alias used for the dataset table.
 	public static final String NODE_ALIAS					= "nod";
