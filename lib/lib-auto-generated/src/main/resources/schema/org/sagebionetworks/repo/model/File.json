@@ -1,0 +1,9 @@
+{
+    "title":"File",
+    "description":"JSON schema for File POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Locationable"
+        }
+    ]    
+}
