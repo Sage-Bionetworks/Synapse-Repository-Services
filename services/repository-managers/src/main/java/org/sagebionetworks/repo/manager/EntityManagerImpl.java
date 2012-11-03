@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -57,7 +58,7 @@ public class EntityManagerImpl implements EntityManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity)
+	public <T extends Entity> String createEntity(UserInfo userInfo, T newEntity, String activityId)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException {
 		if (newEntity == null)
@@ -67,6 +68,7 @@ public class EntityManagerImpl implements EntityManager {
 		// Set the type for this object
 		node.setNodeType(EntityType.getNodeTypeForClass(newEntity.getClass())
 				.name());
+		node.setActivityId(activityId);
 		NamedAnnotations annos = new NamedAnnotations();
 		// Now add all of the annotations and references from the entity
 		NodeTranslationUtils.updateNodeSecondaryFieldsFromObject(newEntity,
@@ -286,7 +288,7 @@ public class EntityManagerImpl implements EntityManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> void updateEntity(UserInfo userInfo, T updated,
-			boolean newVersion) throws NotFoundException, DatastoreException,
+			boolean newVersion, String activityId) throws NotFoundException, DatastoreException,
 			UnauthorizedException, ConflictingUpdateException,
 			InvalidModelException {
 
@@ -302,6 +304,12 @@ public class EntityManagerImpl implements EntityManager {
 				updated.getId());
 		annos.setEtag(updated.getEtag());
 
+		
+		// Set activityId if new version or if not changing versions and activityId is defined 
+		if(newVersion || (!newVersion && activityId != null)) {
+			node.setActivityId(activityId);
+		} 
+		
 		// Auto-version locationable entities
 		if (!newVersion && (updated instanceof Locationable)) {
 			Locationable locationable = (Locationable) updated;
@@ -339,11 +347,6 @@ public class EntityManagerImpl implements EntityManager {
 		annos.setEtag(entity.getEtag());
 	}
 
-	@Override
-	public void overrideAuthDaoForTest(AuthorizationManager mockAuth) {
-		nodeManager.setAuthorizationManager(mockAuth);
-	}
-
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> List<String> aggregateEntityUpdate(
@@ -370,10 +373,10 @@ public class EntityManagerImpl implements EntityManager {
 			// Update each child.
 			String id = null;
 			if (child.getId() == null) {
-				id = this.createEntity(userInfo, child);
+				id = this.createEntity(userInfo, child, null);
 			} else {
 				id = child.getId();
-				updateEntity(userInfo, child, false);
+				updateEntity(userInfo, child, false, null);
 			}
 			ids.add(id);
 		}
@@ -423,7 +426,11 @@ public class EntityManagerImpl implements EntityManager {
 			long offset, long limit) throws DatastoreException,
 			UnauthorizedException, NotFoundException {
 		// pass through
-		return nodeManager.getVersionsOfEntity(userInfo, entityId, offset, limit);
+		QueryResults<VersionInfo> versionsOfEntity = nodeManager.getVersionsOfEntity(userInfo, entityId, offset, limit);
+		for (VersionInfo version : versionsOfEntity.getResults()) {
+			version.setModifiedBy(userManager.getDisplayName(Long.parseLong(version.getModifiedByPrincipalId())));
+		}
+		return versionsOfEntity;
 	}
 
 	@Override
@@ -540,6 +547,31 @@ public class EntityManagerImpl implements EntityManager {
 	public boolean doesEntityHaveChildren(UserInfo userInfo, String entityId) throws DatastoreException, UnauthorizedException, NotFoundException {
 		validateReadAccess(userInfo, entityId);
 		return nodeManager.doesNodeHaveChildren(entityId);
+	}
+
+	@Override
+	public Activity getActivityForEntity(UserInfo userInfo, String entityId,
+			Long versionNumber) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		return nodeManager.getActivityForNode(userInfo, entityId, versionNumber);		
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override	
+	public Activity setActivityForEntity(UserInfo userInfo, String entityId,
+			String activityId) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		validateUpdateAccess(userInfo, entityId);
+		nodeManager.setActivityForNode(userInfo, entityId, activityId);
+		return nodeManager.getActivityForNode(userInfo, entityId, null);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteActivityForEntity(UserInfo userInfo, String entityId)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		validateUpdateAccess(userInfo, entityId);
+		nodeManager.deleteActivityLinkToNode(userInfo, entityId);
 	}
 
 }

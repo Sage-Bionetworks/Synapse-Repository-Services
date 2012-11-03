@@ -63,6 +63,7 @@ public class SynapseLoggingUtilsTest {
 
 	private static final String VALID_DATE = "2012-08-06 18:36:22,961";
 	private static final String VALID_LEVEL = " [TRACE] - ";
+	private static final String VALID_LEVEL_ALT = " TRACE [    http-8080-1] [profiler.org.sagebionetworks.usagemetrics.ActivityLogger] - ";
 	private static final String VALID_CONTROLLER = "AFakeController/andFakeMethod";
 	private static final String VALID_PROPERTIES = "?fakeProp=true&testProp=%.-*_+abcABC123";
 
@@ -74,33 +75,46 @@ public class SynapseLoggingUtilsTest {
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testParseEventFailLevel() throws UnsupportedEncodingException {
-		String line = VALID_DATE+VALID_LEVEL; 
+		String line = VALID_DATE+VALID_LEVEL;
 		SynapseLoggingUtils.parseSynapseEvent(line);
+		String line2 = VALID_DATE+VALID_LEVEL_ALT;
+		SynapseLoggingUtils.parseSynapseEvent(line2);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testParseEventFailController() throws UnsupportedEncodingException {
-		String line = VALID_DATE+VALID_LEVEL+VALID_CONTROLLER; 
+		String line = VALID_DATE+VALID_LEVEL+VALID_CONTROLLER;
 		SynapseLoggingUtils.parseSynapseEvent(line);
+		String line2 = VALID_DATE+VALID_LEVEL_ALT+VALID_CONTROLLER;
+		SynapseLoggingUtils.parseSynapseEvent(line2);
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testParseEventFailProperties() throws UnsupportedEncodingException {
 		String line = VALID_DATE+VALID_LEVEL+VALID_CONTROLLER+VALID_PROPERTIES; 
 		SynapseLoggingUtils.parseSynapseEvent(line);
+		String line2 = VALID_DATE+VALID_LEVEL_ALT+VALID_CONTROLLER+VALID_PROPERTIES;
+		SynapseLoggingUtils.parseSynapseEvent(line2);
 	}
 	
+	private String buildSynapseEventString(String date, String level, String controller, String method, int latency, Map<String, String> propertyMap) throws UnsupportedEncodingException {
+		StringBuilder builder = new StringBuilder(String.format(
+				"%s%s%s/%s?latency=%d", date, level, controller, method, latency));
+		for (Entry<String, String> entry : propertyMap.entrySet()) {
+			builder.append("&");
+			builder.append(entry.getKey());
+			builder.append("=");
+			builder.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
+		}
+
+		return builder.toString();
+	}
+
 	@Test
 	public void testParseSynapseEvent() throws UnsupportedEncodingException {
 		String controller = "AccessRequirementController";
 		String method = "getUnfulfilledAccessRequirement";
-
-		StringBuilder builder = new StringBuilder(String.format(
-				"%s%s%s/%s?", VALID_DATE, VALID_LEVEL, controller, method));
-
-		String latencyLabel = "latency";
 		int latencyValue = 6;
-		builder.append(String.format("%s=%d", latencyLabel, latencyValue));
 
 		Map<String, String> propMap = new HashMap<String, String>();
 		propMap.put("userId", "Geoff.Shannon@sagebase.org");
@@ -108,15 +122,12 @@ public class SynapseLoggingUtilsTest {
 		propMap.put("request",
 				"org.sagebionetworks.authutil.ModParamHttpServletRequest@5cba727");
 		propMap.put("header", "header={sessiontoken=[0BMBOTJ7Wvvhz0Y4d1RMnw00], content-type=[application/json], accept=[application/json], content-length=[92], host=[localhost:8080], connection=[Keep-Alive]}");
-		for (Entry<String, String> entry : propMap.entrySet()) {
-			builder.append("&");
-			builder.append(entry.getKey());
-			builder.append("=");
-			builder.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
-		}
 
-		String line = builder.toString();
+		String line = buildSynapseEventString(VALID_DATE, VALID_LEVEL, controller, method, latencyValue, propMap);
 		SynapseEvent event = SynapseLoggingUtils.parseSynapseEvent(line);
+
+		String line_alt = buildSynapseEventString(VALID_DATE, VALID_LEVEL_ALT, controller, method, latencyValue, propMap);
+		SynapseEvent event_alt = SynapseLoggingUtils.parseSynapseEvent(line_alt);
 
 		DateTimeFormatter dateFormatter = SynapseLoggingUtils.DATE_FORMATTER;
 		DateTime time = dateFormatter.parseDateTime(VALID_DATE);
@@ -126,8 +137,14 @@ public class SynapseLoggingUtilsTest {
 		assertEquals(controller, event.getController());
 		assertEquals(method, event.getMethodName());
 
+		assertEquals(time, event_alt.getTimeStamp());
+		assertEquals(latencyValue, event_alt.getLatency());
+		assertEquals(controller, event_alt.getController());
+		assertEquals(method, event_alt.getMethodName());
+
 		for (String key : propMap.keySet()) {
 			assertEquals(propMap.get(key), URLDecoder.decode(event.getProperties().get(key), "UTF-8"));
+			assertEquals(propMap.get(key), URLDecoder.decode(event_alt.getProperties().get(key), "UTF-8"));
 		}
 	}
 

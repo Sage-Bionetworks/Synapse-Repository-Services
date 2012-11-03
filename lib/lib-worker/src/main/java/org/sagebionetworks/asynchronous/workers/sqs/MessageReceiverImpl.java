@@ -188,7 +188,7 @@ public class MessageReceiverImpl implements MessageReceiver {
 		// Validate all config.
 		verifyConfig();
 		// When the timer is fired we receive messages from AWS SQS.
-		// Note: The max number of messages is the maxNumberOfWorkerThreads*maxMessagePerWorker as each worker is expcted to handle a batch of messags.
+		// Note: The max number of messages is the maxNumberOfWorkerThreads*maxMessagePerWorker as each worker is expected to handle a batch of messages.
 		int maxMessages = maxNumberOfWorkerThreads*maxMessagePerWorker;
 		ReceiveMessageResult result = awsSQSClient.receiveMessage(new ReceiveMessageRequest(messageQueue.getQueueUrl()).withMaxNumberOfMessages(maxMessages).withVisibilityTimeout(visibilityTimeoutSec));
 		if(result.getMessages().size() < 1) return 0;
@@ -269,7 +269,6 @@ public class MessageReceiverImpl implements MessageReceiver {
 	 */
 	private void verifyConfig() {
 		if(awsSQSClient == null) throw new IllegalStateException("awsSQSClient cannot be null");
-		if(maxNumberOfWorkerThreads == null) throw new IllegalStateException("maxNumberOfWorkerThreads cannot be null");
 		if(maxNumberOfWorkerThreads == null) throw new IllegalStateException("maxNumberOfWorkerThreads cannot be null");
 		if(visibilityTimeoutSec == null) throw new IllegalStateException("visibilityTimeout cannot be null");
 		if(messageQueue == null) throw new IllegalStateException("messageQueue cannot be null");

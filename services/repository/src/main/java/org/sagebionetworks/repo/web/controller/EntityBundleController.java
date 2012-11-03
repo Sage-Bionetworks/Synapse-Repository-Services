@@ -116,12 +116,13 @@ public class EntityBundleController extends BaseController {
 	public @ResponseBody
 	EntityBundle createEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
 			@RequestBody EntityBundleCreate ebc,
 			HttpServletRequest request
 			)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, request);
+		return serviceProvider.getEntityBundleService().createEntityBundle(userId, ebc, activityId, request);
 	}
 	
 	/**
@@ -149,13 +150,14 @@ public class EntityBundleController extends BaseController {
 	public @ResponseBody
 	EntityBundle updateEntityBundle(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
 			@PathVariable String id,
 			@RequestBody EntityBundleCreate ebc,
 			HttpServletRequest request
 			)
 			throws ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, NotFoundException, ACLInheritanceException, ParseException {
-		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, request);
+		return serviceProvider.getEntityBundleService().updateEntityBundle(userId, id, ebc, activityId, request);
 	}
 
 }

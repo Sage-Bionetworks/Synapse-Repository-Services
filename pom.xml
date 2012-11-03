@@ -332,6 +332,18 @@
 			</dependency>
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
+				<artifactId>services-dynamo</artifactId>
+				<version>${project.version}</version>
+				<type>war</type>
+			</dependency>
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>services-rds</artifactId>
+				<version>${project.version}</version>
+				<type>war</type>
+			</dependency>
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-auto-generated</artifactId>
 				<version>${project.version}</version>
 			</dependency>

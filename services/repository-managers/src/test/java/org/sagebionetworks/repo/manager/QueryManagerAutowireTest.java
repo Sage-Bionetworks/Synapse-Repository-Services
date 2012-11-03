@@ -9,6 +9,7 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -20,6 +21,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -53,6 +55,8 @@ public class QueryManagerAutowireTest {
 	public UserProvider testUserProvider;
 	@Autowired
 	NodeQueryDao nodeQueryDao;
+	@Autowired
+	AsynchronousDAO asynchronousDAO;
 	
 	List<String> toDelete = null;
 	
@@ -75,19 +79,22 @@ public class QueryManagerAutowireTest {
 		
 		Project project = new Project();
 		project.setName("QueryManagerAutowireTest.rootProject2");
-		String id = entityManager.createEntity(userInfo, project);
+		String id = entityManager.createEntity(userInfo, project, null);
 		project.setId(id);
 		toDelete.add(project.getId());
 		
+		List<String> toUpdate = new LinkedList<String>();
+		toUpdate.add(project.getId());
 		// Create some datasets
 		for(int i=0; i<totalEntities; i++){
 			Study ds = createForTest(i);
 			ds.setParentId(project.getId());
-			String dsId = entityManager.createEntity(userInfo, ds);
+			String dsId = entityManager.createEntity(userInfo, ds, null);
 			ds.setId(dsId);
 			assertNotNull(ds);
 			assertNotNull(ds.getId());
 			toDelete.add(ds.getId());
+			toUpdate.add(ds.getId());
 			Annotations annos = entityManager.getAnnotations(userInfo, ds.getId());
 			assertNotNull(annos);
 			// Add some annotations
@@ -102,8 +109,14 @@ public class QueryManagerAutowireTest {
 			// Add a layer to each dataset
 			Data inLayer = createLayerForTest(i);
 			inLayer.setParentId(ds.getId());
-			String lid = entityManager.createEntity(userInfo, inLayer);
+			String lid = entityManager.createEntity(userInfo, inLayer, null);
 			inLayer.setId(id);
+		}
+		
+		// since we have moved the annotation updates to an asynchronous process we need to manually
+		// update the annotations of all nodes for this test. See PLFM-1548
+		for(String entityId: toUpdate){
+			asynchronousDAO.createEntity(entityId);
 		}
 	}
 	

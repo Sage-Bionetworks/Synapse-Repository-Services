@@ -28,6 +28,7 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -163,6 +164,7 @@ public class EntityController extends BaseController{
 	public @ResponseBody
 	Entity createEntity(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
@@ -171,7 +173,7 @@ public class EntityController extends BaseController{
 		// Read the entity from the body
 		Entity entity =  JSONEntityHttpMessageConverter.readEntity(request.getReader());
 		// Now create the entity
-		Entity createdEntity = serviceProvider.getEntityService().createEntity(userId, entity, request);
+		Entity createdEntity = serviceProvider.getEntityService().createEntity(userId, entity, activityId, request);
 		// Finally, add the type specific metadata.
 		return createdEntity;
 	}
@@ -195,6 +197,7 @@ public class EntityController extends BaseController{
 	public @ResponseBody
 	Versionable createNewVersion(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
 			@RequestHeader HttpHeaders header,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
 			HttpServletRequest request)
@@ -202,7 +205,7 @@ public class EntityController extends BaseController{
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException, JSONObjectAdapterException {
 
 		// This is simply an update with a new version created.
-		return (Versionable) updateEntityImpl(userId, header, etag, true, request);
+		return (Versionable) updateEntityImpl(userId, header, etag, true, activityId, request);
 	}
 	
 
@@ -222,7 +225,7 @@ public class EntityController extends BaseController{
 	 * @throws UnauthorizedException
 	 */
 	private Entity updateEntityImpl(String userId, HttpHeaders header,
-			String etag, boolean newVersion, HttpServletRequest request) throws IOException,
+			String etag, boolean newVersion, String activityId, HttpServletRequest request) throws IOException,
 			NotFoundException, ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, JSONObjectAdapterException {
 		@SuppressWarnings("unchecked")
@@ -232,7 +235,7 @@ public class EntityController extends BaseController{
 			entity.setEtag(etag);
 		}
 		// validate the entity
-		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersion, request);
+		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersion, activityId, request);
 		// Return the result
 		return entity;
 	}
@@ -262,6 +265,7 @@ public class EntityController extends BaseController{
 	Entity updateEntity(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
 			@RequestHeader HttpHeaders header,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
 			HttpServletRequest request)
@@ -274,7 +278,7 @@ public class EntityController extends BaseController{
 			entity.setEtag(etag);
 		}
 		// validate the entity
-		entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, request);
+		entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, activityId, request);
 		// Return the result
 		return entity;
 	}
@@ -848,4 +852,101 @@ public class EntityController extends BaseController{
 		// Pass it along.
 		return serviceProvider.getEntityService().getAttachmentUrl(userId, id, url.getTokenID());
 	}
+	
+	/**
+	 * Get an existing activity for the current version of an Entity with a GET.
+	 * @param id - The ID of the activity to fetch.
+	 * @param userId -The user that is doing the get.
+	 * @param request
+	 * @return The requested Activity if it exists.
+	 * @throws NotFoundException - Thrown if the requested activity does not exist.
+	 * @throws DatastoreException - Thrown when an there is a server failure. 
+	 * @throws UnauthorizedException - Thrown if specified user is unauthorized to access this activity.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.ENTITY_GENERATED_BY
+			}, method = RequestMethod.GET)
+	public @ResponseBody
+	Activity getActivityForEntity(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getEntityService().getActivityForEntity(userId, id, request);	
+	}
+	
+	/**
+	 * Get an existing activity for a specific version of an Entity with a GET.
+	 * @param id - The ID of the entity to fetch.
+	 * @param versionNumber the version of the entity
+	 * @param userId -The user that is doing the get.
+	 * @param request
+	 * @return The requested Activity if it exists.
+	 * @throws NotFoundException - Thrown if the requested activity does not exist.
+	 * @throws DatastoreException - Thrown when an there is a server failure. 
+	 * @throws UnauthorizedException - Thrown if specified user is unauthorized to access this activity.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.ENTITY_VERSION_GENERATED_BY
+			}, method = RequestMethod.GET)
+	public @ResponseBody
+	Activity getActivityForEntityVersion(
+			@PathVariable String id,
+			@PathVariable Long versionNumber, 
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getEntityService().getActivityForEntity(userId, id, versionNumber, request);	
+	}
+	
+	/**
+	 * Sets the genratedBy relationship for the current version of an Entity with a PUT
+	 * @param id - The ID of the entity to fetch.
+	 * @param activityId the id of the activity to connect to the entity
+	 * @param userId -The user that is doing the get.
+	 * @param request
+	 * @return The requested Activity if it exists.
+	 * @throws NotFoundException - Thrown if the requested activity does not exist.
+	 * @throws DatastoreException - Thrown when an there is a server failure. 
+	 * @throws UnauthorizedException - Thrown if specified user is unauthorized to access this activity.
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { 
+			UrlHelpers.ENTITY_GENERATED_BY
+			}, method = RequestMethod.PUT)
+	public @ResponseBody
+	Activity updateActivityForEntity(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM) String activityId,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getEntityService().setActivityForEntity(userId, id, activityId, request);	
+	}
+
+	
+	/**
+	 * Deletes the genratedBy relationship for the current version of an Entity with a DELETE
+	 * @param id - The ID of the activity to fetch.
+	 * @param userId -The user that is doing the get.
+	 * @param request
+	 * @return The requested Activity if it exists.
+	 * @throws NotFoundException - Thrown if the requested activity does not exist.
+	 * @throws DatastoreException - Thrown when an there is a server failure. 
+	 * @throws UnauthorizedException - Thrown if specified user is unauthorized to access this activity.
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = { 
+			UrlHelpers.ENTITY_GENERATED_BY
+			}, method = RequestMethod.DELETE)
+	public void deleteActivityForEntity(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		serviceProvider.getEntityService().deleteActivityForEntity(userId, id, request);	
+	}
+	
 }

@@ -80,7 +80,7 @@ public class QueryControllerAutowireTest {
 		Project p = new Project();
 		p.setEntityType(Project.class.getName());
 		p.setName("name");
-		String id = entityManager.createEntity(user, p);
+		String id = entityManager.createEntity(user, p, null);
 		p.setId(id);
 		toDelete.add(p.getId());
 		// Now add a data object 
@@ -88,7 +88,7 @@ public class QueryControllerAutowireTest {
 		data.setParentId(p.getId());
 		data.setName("data");
 		data.setEntityType(Data.class.getName());
-		id = entityManager.createEntity(user, data);
+		id = entityManager.createEntity(user, data, null);
 		data.setId(id);
 		// Now query for the data object
 		String queryString = "SELECT id, name FROM data WHERE data.parentId == \""+p.getId()+"\"";
@@ -108,7 +108,7 @@ public class QueryControllerAutowireTest {
 		Project p = new Project();
 		p.setEntityType(Project.class.getName());
 		p.setName("name");
-		String id = entityManager.createEntity(user, p);
+		String id = entityManager.createEntity(user, p, null);
 		p.setId(id);
 		toDelete.add(p.getId());
 		// Now query for the data object

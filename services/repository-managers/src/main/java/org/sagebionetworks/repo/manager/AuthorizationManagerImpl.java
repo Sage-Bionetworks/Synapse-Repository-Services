@@ -7,16 +7,20 @@ import java.util.Set;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
+import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
+import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -27,11 +31,34 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private AccessControlListDAO accessControlListDAO;	
 	@Autowired
-	private AccessRequirementDAO  accessRequirementDAO;	
+	private AccessRequirementDAO  accessRequirementDAO;
+	@Autowired
+	private ActivityDAO activityDAO;
 	@Autowired
 	NodeQueryDao nodeQueryDao;	
 	@Autowired
 	NodeDAO nodeDAO;
+	@Autowired
+	private UserManager userManager;
+
+	public AuthorizationManagerImpl() {}
+	
+	/**
+	 * For testing only
+	 */
+	AuthorizationManagerImpl(NodeInheritanceDAO nodeInheritanceDAO,
+			AccessControlListDAO accessControlListDAO,
+			AccessRequirementDAO accessRequirementDAO, ActivityDAO activityDAO,
+			NodeQueryDao nodeQueryDao, NodeDAO nodeDAO, UserManager userManager) {
+		super();
+		this.nodeInheritanceDAO = nodeInheritanceDAO;
+		this.accessControlListDAO = accessControlListDAO;
+		this.accessRequirementDAO = accessRequirementDAO;
+		this.activityDAO = activityDAO;
+		this.nodeQueryDao = nodeQueryDao;
+		this.nodeDAO = nodeDAO;
+		this.userManager = userManager;
+	}
 
 	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
 		User user = userInfo.getUser();
@@ -101,7 +128,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		Node node = nodeDAO.getNode(entityId);
 		permission.setOwnerPrincipalId(node.getCreatedByPrincipalId());
 		boolean parentIsRoot = nodeDAO.isNodesParentRoot(entityId);
-		
+		// must look-up access (at least to determine if the anonymous user can view)
+		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(entityId);
+		UserInfo anonymousUser = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		permission.setCanPublicRead(this.accessControlListDAO.canAccess(anonymousUser.getGroups(), permissionsBenefactor, ACCESS_TYPE.READ));
 		boolean isCreator = node.getCreatedByPrincipalId().equals(Long.parseLong(userInfo.getIndividualGroup().getId()));
 		// Admin and owner/creator get all
 		if (userInfo.isAdmin() || isCreator) {
@@ -114,8 +144,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			permission.setCanEnableInheritance(!parentIsRoot);
 			return permission;
 		}
-		// must look-up access
-		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(entityId);
 		// Child can be added if this entity is not null
 		permission.setCanAddChild(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CREATE));
 		permission.setCanChangePermissions(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CHANGE_PERMISSIONS));
@@ -125,5 +153,41 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		permission.setCanDownload(this.canDownload(userInfo, entityId));
 		permission.setCanEnableInheritance(!parentIsRoot && permission.getCanChangePermissions());
 		return permission;
+	}
+
+	@Override
+	public boolean canAccessActivity(UserInfo userInfo, String activityId) {
+		if(userInfo.isAdmin()) return true;
+		
+		// check if owner
+		Activity act;
+		try {
+			act = activityDAO.get(activityId);
+			if(act.getCreatedBy().equals(userInfo.getIndividualGroup().getId()))
+				return true;
+		} catch (Exception e) {
+			return false;
+		}
+		
+		// check if user has read access to any in result set (could be empty)
+		int limit = 1000;
+		int offset = 0;
+		long remaining = 1; // just to get things started
+		while(remaining > 0) {			
+			QueryResults<String> generatedBy = activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
+			remaining = generatedBy.getTotalNumberOfResults() - (offset+limit);
+			for(String nodeId : generatedBy.getResults()) {
+				try {
+					if(canAccess(userInfo, nodeId, ACCESS_TYPE.READ)) {
+						return true;
+					}
+				} catch (Exception e) {
+					// do nothing, same as false
+				}
+			}
+			offset += limit; 
+		}
+		// no access found to generated entities, no access
+		return false;
 	}
 }

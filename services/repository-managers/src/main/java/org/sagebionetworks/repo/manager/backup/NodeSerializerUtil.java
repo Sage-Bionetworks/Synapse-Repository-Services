@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.thoughtworks.xstream.XStream;
@@ -33,6 +34,7 @@ public class NodeSerializerUtil  {
 	private static final String ALIAS_NODE_REVISION = "node-revision";
 	private static final String ALIAS_ANNOTATIONS = "annotations";
 	private static final String ALIAS_NAME_SPACE = "name-space";
+	private static final String ALIAS_ACTIVITY = "activity";
 
 
 	/**
@@ -130,6 +132,18 @@ public class NodeSerializerUtil  {
 		return (AccessRequirementBackup)xstream.fromXML(reader);
 	}
 
+	public static void writeActivityBackup(Activity act, OutputStream out) {
+		OutputStreamWriter writer = new OutputStreamWriter(out);
+		XStream xstream = createXStream();
+		xstream.toXML(act, writer);
+	}
+	
+	public static Activity readActivityBackup(InputStream in) {
+		InputStreamReader reader = new InputStreamReader(in);
+		XStream xstream = createXStream();
+		return (Activity)xstream.fromXML(reader);
+	}
+
 	private static XStream createXStream(){
 		XStream xstream = new XStream();
 		xstream.alias(ALIAS_NODE_BACKUP, NodeBackup.class);
@@ -138,6 +152,7 @@ public class NodeSerializerUtil  {
 		xstream.alias(ALIAS_NODE_REVISION, NodeRevisionBackup.class);
 		xstream.alias(ALIAS_ANNOTATIONS, Annotations.class);
 		xstream.alias(ALIAS_NAME_SPACE, NamedAnnotations.class);
+		xstream.alias(ALIAS_ACTIVITY, Activity.class);
 		return xstream;
 	}
 

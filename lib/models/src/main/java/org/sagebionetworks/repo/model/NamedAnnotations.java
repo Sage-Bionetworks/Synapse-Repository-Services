@@ -25,6 +25,7 @@ public class NamedAnnotations {
 	private String id; // for its parent entity
 	private String etag;
 	private Date creationDate;
+	private Long createdBy;
 	private Map<String, Annotations> map;
 	
 	public NamedAnnotations(){
@@ -108,6 +109,14 @@ public class NamedAnnotations {
 
 	public void setCreationDate(Date creationDate) {
 		this.creationDate = creationDate;
+	}
+
+	public Long getCreatedBy() {
+		return createdBy;
+	}
+
+	public void setCreatedBy(Long createdBy) {
+		this.createdBy = createdBy;
 	}
 
 	/**

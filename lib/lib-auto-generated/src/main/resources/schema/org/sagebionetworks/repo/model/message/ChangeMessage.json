@@ -13,7 +13,11 @@
 		},		
 		"objectId": {
 			"type": "string",
-			"description":"The unique identifier of the object that changed"
+			"description":"The unique identifier of the object that changed."
+		},
+		"parentId": {
+			"type": "string",
+			"description": "The unique identifier of the parent object."
 		},
 		"objectEtag": {
 			"type": "string",
@@ -26,7 +30,8 @@
 			"id": "org.sagebionetworks.repo.model.message.ObjectType",
 			"enum": [
 				"ENTITY",
-				"PRINCIPAL"
+				"PRINCIPAL",
+				"ACTIVITY"
 			]
 		},
 		"changeType": {

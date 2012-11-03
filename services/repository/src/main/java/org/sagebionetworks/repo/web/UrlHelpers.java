@@ -48,6 +48,8 @@ public class UrlHelpers {
 	public static final String ACCESS_TYPE_PARAM	= "accessType";
 	
 	public static final String BUNDLE				= "/bundle";
+	
+	public static final String GENERATED_BY			= "/generatedBy";
 
 	/**
 	 * URL prefix for all objects that are referenced by their ID.
@@ -136,7 +138,9 @@ public class UrlHelpers {
 	public static final String ENTITY	 = PrefixConst.ENTITY;
 	public static final String USER_PROFILE  = PrefixConst.USER_PROFILE;
 	public static final String HEALTHCHECK = PrefixConst.HEALTHCHECK;
-	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;	
+	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;
+	public static final String ACTIVITY    = PrefixConst.ACTIVITY;
+	
 	/**
 	 * All of the base URLs for Synapse object batch requests
 	 */
@@ -154,6 +158,11 @@ public class UrlHelpers {
 	public static final String ENTITY_ID_BUNDLE = ENTITY_ID+BUNDLE;
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
+	
+	/**
+	 * Activity URLs
+	 */
+	public static final String ACTIVITY_ID = ACTIVITY+ID;
 	
 	/**
 	 * Used to get an entity attachment token
@@ -214,6 +223,16 @@ public class UrlHelpers {
 	 */
 	public static final String ENTITY_VERSION_NUMBER_BUNDLE = ENTITY_VERSION_NUMBER+BUNDLE;
 
+	/**
+	 * Get the generating activity for the current version of an entity
+	 */
+	public static final String ENTITY_GENERATED_BY = ENTITY_ID+GENERATED_BY;
+	
+	/**
+	 * Get the generating activity for a specific version of an entity
+	 */
+	public static final String ENTITY_VERSION_GENERATED_BY = ENTITY_VERSION_NUMBER+GENERATED_BY;
+	
 	/**
 	 * URL path for query controller
 	 * 

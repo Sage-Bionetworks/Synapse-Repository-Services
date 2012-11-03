@@ -66,7 +66,13 @@ class NodeUtils {
 		rev.setComment(dto.getVersionComment());
 		if(dto.getVersionLabel() != null){
 			rev.setLabel(dto.getVersionLabel());
+		} 	
+		
+		// bring in activity id, if set
+		if(dto.getActivityId() != null) {
+			rev.setActivityId(Long.parseLong(dto.getActivityId()));
 		}
+
 		try {
 			rev.setReferences(JDOSecondaryPropertyUtils.compressReferences(dto.getReferences()));
 		} catch (IOException e) {
@@ -148,6 +154,11 @@ class NodeUtils {
 		if(rev.getRevisionNumber() != null){
 			dto.setVersionNumber(rev.getRevisionNumber());
 		}
+
+		if(rev.getActivityId() != null) {
+			dto.setActivityId(rev.getActivityId().toString());
+		} 
+		
 		try {
 			dto.setReferences(JDOSecondaryPropertyUtils.decompressedReferences(rev.getReferences()));
 		} catch (IOException e) {

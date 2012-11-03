@@ -137,4 +137,5 @@ public class AuthorizationConstants {
 	 * The default auth cache invalidation interval
 	 */
 	public static final long AUTH_CACHE_TIMEOUT_DEFAULT = 60000L;
+	
 }

@@ -16,8 +16,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ExampleEntity;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.sample.Example;
 import org.sagebionetworks.sample.ExampleContainer;
+import org.sagebionetworks.schema.adapter.AdapterFactory;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -161,4 +163,5 @@ public class JSONEntityHttpMessageConverterTest {
 		adapter.put("notAField", "shoudld not exist");
 		JSONEntityHttpMessageConverter.createEntityFromeAdapter(adapter);
 	}
+	
 }

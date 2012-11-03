@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -215,15 +216,6 @@ public interface NodeDAO extends MigratableDAO {
 	boolean doesNodeRevisionExist(String nodeId, Long revNumber);
 	
 	/**
-	 * Only the annotations of the current version are query-able.
-	 * @param nodeId
-	 * @param annotationKey
-	 * @return whether or not the annotation is queryable
-	 * @throws DatastoreException 
-	 */
-	public boolean isStringAnnotationQueryable(String nodeId, String annotationKey) throws DatastoreException;
-	
-	/**
 	 * Returns string of parentId for a Node
 	 * @param nodeId
 	 *@return String node's parentId
@@ -272,6 +264,21 @@ public interface NodeDAO extends MigratableDAO {
 	public Long getCurrentRevisionNumber(String nodeId) throws NotFoundException, DatastoreException;
 	
 	/**
+	 * Get the activity id for the current version of the node. 
+	 * @param nodeId
+	 * @return
+	 */
+	public String getActivityId(String nodeId) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Get the activity id for a specific version of the node.
+	 * @param nodeId
+	 * @param revNumber
+	 * @return
+	 */
+	public String getActivityId(String nodeId, Long revNumber) throws NotFoundException, DatastoreException;
+	
+	/**
 	 * Get the Synapse ID of the creator of a node.
 	 * @throws DatastoreException 
 	 */
@@ -316,5 +323,14 @@ public interface NodeDAO extends MigratableDAO {
 			long limit) throws NotFoundException, DatastoreException;
 
 	public long getVersionCount(String entityId) throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Get a node's references.
+	 * @param nodeId - The id of the node.
+	 * @return
+	 * @throws NotFoundException - Thrown if the node does not exist.
+	 * @throws DatastoreException - Thrown if there is a database error.
+	 */
+	public Map<String, Set<Reference>> getNodeReferences(String nodeId) throws NotFoundException, DatastoreException;
 
 }

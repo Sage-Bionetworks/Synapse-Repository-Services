@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
@@ -11,6 +12,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
@@ -30,6 +32,7 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("owner", COL_REVISION_OWNER_NODE, true),
 		new FieldColumn("revisionNumber", COL_REVISION_NUMBER, true),
+		new FieldColumn("activityId", COL_REVISION_ACTIVITY_ID),
 		new FieldColumn("label", COL_REVISION_LABEL),
 		new FieldColumn("comment", COL_REVISION_COMMENT),
 		new FieldColumn("modifiedBy", COL_REVISION_MODIFIED_BY),
@@ -45,7 +48,9 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 			public DBORevision mapRow(ResultSet rs, int rowNum)	throws SQLException {
 				DBORevision rev = new DBORevision();
 				rev.setOwner(rs.getLong(COL_REVISION_OWNER_NODE));
-				rev.setRevisionNumber(rs.getLong(COL_REVISION_NUMBER));
+				rev.setRevisionNumber(rs.getLong(COL_REVISION_NUMBER));						
+				rev.setActivityId(rs.getLong(COL_REVISION_ACTIVITY_ID)); 
+				if(rs.wasNull()) rev.setActivityId(null); // getLong returns 0 instead of null
 				rev.setLabel(rs.getString(COL_REVISION_LABEL));
 				rev.setComment(rs.getString(COL_REVISION_COMMENT));
 				rev.setModifiedBy(rs.getLong(COL_REVISION_MODIFIED_BY));
@@ -84,6 +89,7 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 	
 	private Long owner;
 	private Long revisionNumber;
+	private Long activityId;
 	private String label;
 	private String comment;
 	private Long modifiedBy;
@@ -138,11 +144,19 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 	}
 	public void setReferences(byte[] references) {
 		this.references = references;
+	}	
+	public Long getActivityId() {
+		return activityId;
+	}
+	public void setActivityId(Long activityId) {
+		this.activityId = activityId;
 	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
+		result = prime * result
+				+ ((activityId == null) ? 0 : activityId.hashCode());
 		result = prime * result + Arrays.hashCode(annotations);
 		result = prime * result + ((comment == null) ? 0 : comment.hashCode());
 		result = prime * result + ((label == null) ? 0 : label.hashCode());
@@ -165,6 +179,11 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 		if (getClass() != obj.getClass())
 			return false;
 		DBORevision other = (DBORevision) obj;
+		if (activityId == null) {
+			if (other.activityId != null)
+				return false;
+		} else if (!activityId.equals(other.activityId))
+			return false;
 		if (!Arrays.equals(annotations, other.annotations))
 			return false;
 		if (comment == null) {
@@ -204,10 +223,12 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 	@Override
 	public String toString() {
 		return "DBORevision [owner=" + owner + ", revisionNumber="
-				+ revisionNumber + ", label=" + label + ", comment=" + comment
-				+ ", modifiedBy=" + modifiedBy + ", modifiedOn=" + modifiedOn
-				+ ", annotations=" + Arrays.toString(annotations)
-				+ ", references=" + Arrays.toString(references) + "]";
+				+ revisionNumber + ", activityId=" + activityId + ", label="
+				+ label + ", comment=" + comment + ", modifiedBy=" + modifiedBy
+				+ ", modifiedOn=" + modifiedOn + ", annotations="
+				+ Arrays.toString(annotations) + ", references="
+				+ Arrays.toString(references) + "]";
 	}
 
+	
 }

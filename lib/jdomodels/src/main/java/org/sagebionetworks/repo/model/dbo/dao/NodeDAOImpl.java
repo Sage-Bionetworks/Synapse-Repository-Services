@@ -1,11 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ACL_OWNER_ID_COLUMN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_OWNER_ID_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
@@ -13,29 +11,29 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_REFS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_CONTROL_LIST;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_TYPE_ALIAS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_STRING_ANNOTATIONS;
 
 import java.io.IOException;
+import java.sql.Blob;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -44,13 +42,11 @@ import java.util.Map;
 import java.util.Set;
 
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -63,7 +59,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.StorageLocations;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -78,7 +73,6 @@ import org.sagebionetworks.repo.model.jdo.ObjectDescriptorUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -97,15 +91,18 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
+	private static final String SELECT_REVISIONS_ONLY = "SELECT R."+COL_REVISION_REFS_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER+" = N."+COL_CURRENT_REV;
+	private static final String SELECT_ANNOTATIONS_ONLY_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", N."+COL_NODE_CREATED_ON+", N."+COL_NODE_CREATED_BY+", R."+COL_REVISION_ANNOS_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER;
+	private static final String CANNOT_FIND_A_NODE_WITH_ID = "Cannot find a node with id: ";
 	private static final String ERROR_RESOURCE_NOT_FOUND = "The resource you are attempting to access cannot be found";
 	private static final String SQL_SELECT_TYPE_FOR_ALIAS = "SELECT DISTINCT "+COL_OWNER_TYPE+" FROM "+TABLE_NODE_TYPE_ALIAS+" WHERE "+COL_NODE_TYPE_ALIAS+" = ?";
 	private static final String GET_CURRENT_REV_NUMBER_SQL = "SELECT "+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
+	private static final String GET_REV_ACTIVITY_ID_SQL = "SELECT "+COL_REVISION_ACTIVITY_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	private static final String GET_NODE_CREATED_BY_SQL = "SELECT "+COL_NODE_CREATED_BY+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_NODE+" SET "+COL_NODE_ETAG+" = ? WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_COUNT_NODES = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
-	private static final String SQL_COUNT_STRING_ANNOTATIONS_FOR_NODE = "SELECT COUNT("+ANNOTATION_OWNER_ID_COLUMN+") FROM "+TABLE_STRING_ANNOTATIONS+" WHERE "+ANNOTATION_OWNER_ID_COLUMN+" = ? AND "+ANNOTATION_ATTRIBUTE_COLUMN+" = ?";
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
 	
 	/**
@@ -145,12 +142,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 	@Autowired
 	private DBOBasicDao dboBasicDao;
-	@Autowired
-	private DBOReferenceDao dboReferenceDao;
-	@Autowired
-	private DBOAnnotationsDao dboAnnotationsDao;
-	@Autowired
-	private StorageLocationDAO storageLocationDao;
 
 	private static String BIND_ID_KEY = "bindId";
 	private static String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_NODE_ETAG+" FROM "+TABLE_NODE+" WHERE ID = ?";
@@ -212,6 +203,23 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(dto.getNodeType() == null) throw new IllegalArgumentException("Node type cannot be null");
 		node.setNodeType(EntityType.valueOf(dto.getNodeType()).getId());
 
+		// Set the parent and benefactor
+		if(dto.getParentId() != null){
+			// Get the parent
+			DBONode parent = getNodeById(KeyFactory.stringToKey(dto.getParentId()));
+			node.setParentId(parent.getId());
+			// By default a node should inherit from the same 
+			// benefactor as its parent
+			node.setBenefactorId(parent.getBenefactorId());
+		}
+		if(node.getBenefactorId() == null){
+			// For nodes that have no parent, they are
+			// their own benefactor. We have to wait until
+			// after the makePersistent() call to set a node to point 
+			// to itself.
+			node.setBenefactorId(node.getId());
+		}
+
 		if(forceEtag){
 			if(dto.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
 			// See PLFM-845.  We need to be able to force the use of an eTag when created from a backup.
@@ -222,23 +230,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			// Start it with a new e-tag
 			tagMessenger.generateEtagAndSendMessage(node, ChangeType.CREATE);
 		}
-		// Set the parent and benefactor
-		if(dto.getParentId() != null){
-			// Get the parent
-			DBONode parent = getNodeById(KeyFactory.stringToKey(dto.getParentId()));
-			node.setParentId(parent.getId());
-			// By default a node should inherit from the same 
-			// benefactor as its parent
-			node.setBenefactorId(parent.getBenefactorId());
-		}
-		
-		if(node.getBenefactorId() == null){
-			// For nodes that have no parent, they are
-			// their own benefactor. We have to wait until
-			// after the makePersistent() call to set a node to point 
-			// to itself.
-			node.setBenefactorId(node.getId());
-		}
+
 		// Now create the revision
 		rev.setOwner(node.getId());
 		// Now save the node and revision
@@ -247,13 +239,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}catch(IllegalArgumentException e){
 			checkExceptionDetails(node.getName(), KeyFactory.keyToString(node.getParentId()), e);
 		}
-		dboBasicDao.createNew(rev);
-		
-		// Create references found in dto, if applicable
-		if(dto.getReferences() != null){
-			dboReferenceDao.replaceReferences(node.getId(), dto.getReferences());
-		}
-		
+		dboBasicDao.createNew(rev);		
 		return KeyFactory.keyToString(node.getId());
 	}
 
@@ -302,6 +288,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			// version labels should NOT be prefixed with syn (per PLFM-1408).
 			newVersion.setVersionLabel(newRev.getRevisionNumber().toString());
 		}
+		
 		// Now update the new revision and node
 		NodeUtils.updateFromDto(newVersion, jdo, newRev);
 		// The new revision becomes the current version
@@ -310,7 +297,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		// Save the change to the node
 		dboBasicDao.update(jdo);
 		dboBasicDao.createNew(newRev);
-		replaceAnnotationsAndReferencesIfCurrent(jdo.getCurrentRevNumber(), newRev);
 		return newRev.getRevisionNumber();
 	}
 
@@ -359,46 +345,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			// Make sure the node is still pointing the the current version
 			node.setCurrentRevNumber(versions.get(0));
 			dboBasicDao.update(node);
-			DBORevision rev = getNodeRevisionById(id, node.getCurrentRevNumber());
-			replaceAnnotationsAndReferencesIfCurrent(node.getCurrentRevNumber(), rev);
-		}
-	}
-
-	/**
-	 * Replace the annotations and references if the revision is the current revision.
-	 * @param currentRev
-	 * @param rev
-	 * @throws DatastoreException
-	 */
-	private void replaceAnnotationsAndReferencesIfCurrent(Long currentRev, DBORevision rev) throws DatastoreException {
-		if(currentRev.equals(rev.getRevisionNumber())){
-
-			// Update the references
-			try {
-				if(rev.getReferences() != null){
-					Map<String, Set<Reference>> newRef = JDOSecondaryPropertyUtils.decompressedReferences(rev.getReferences());
-					if(newRef != null){
-						dboReferenceDao.replaceReferences(rev.getOwner(), newRef);	
-					}
-				}
-			} catch (IOException e) {
-				throw new DatastoreException(e);
-			}
-
-			// Update the annotations and the location data
-			try {
-				final NamedAnnotations namedAnnos = JDOSecondaryPropertyUtils.decompressedAnnotations(rev.getAnnotations());
-				final Long node = rev.getOwner();
-				final Long user = rev.getModifiedBy();
-				StorageLocations sl = JDOSecondaryPropertyUtils.getStorageLocations(namedAnnos, node, user);
-				storageLocationDao.replaceLocationData(sl);
-				Annotations forDb = prepareAnnotationsForDBReplacement(namedAnnos, KeyFactory.keyToString(node));
-				dboAnnotationsDao.replaceAnnotations(forDb);
-			} catch (IOException e) {
-				throw new DatastoreException(e);
-			} catch (JSONObjectAdapterException e) {
-				throw new DatastoreException(e);
-			}
 		}
 	}
 	
@@ -451,40 +397,84 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 	@Override
 	public NamedAnnotations getAnnotations(String id) throws NotFoundException, DatastoreException {
-		if(id == null) throw new IllegalArgumentException("Id cannot be null");
-		DBONode jdo =  getNodeById(KeyFactory.stringToKey(id));
-		DBORevision rev = getCurrentRevision(jdo);
-		return getAnnotations(jdo, rev);
+		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
+		// Select just the references, not the entire node.
+		try{
+			return simpleJdbcTemplate.queryForObject(SELECT_ANNOTATIONS_ONLY_PREFIX + " = N."+COL_CURRENT_REV,	new AnnotationRowMapper(), KeyFactory.stringToKey(id));
+		}catch (EmptyResultDataAccessException e){
+			// Occurs if there are no results
+			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
+		}
 	}
 
-	/**
-	 * Helper method to create the annotations from a given a given revision.
-	 * @param jdo
-	 * @param rev
-	 * @return
-	 * @throws DatastoreException
-	 */
-	private NamedAnnotations getAnnotations(DBONode jdo, DBORevision rev) throws DatastoreException {
-		// Get the annotations and make a copy
-		NamedAnnotations annos = new NamedAnnotations();;
-		try {
-			annos = JDOSecondaryPropertyUtils.createFromJDO(rev);
-		} catch (IOException e) {
-			throw new DatastoreException(e);
+	@Override
+	public NamedAnnotations getAnnotationsForVersion(final String id, Long versionNumber) throws NotFoundException, DatastoreException {
+		if(id == null) throw new IllegalArgumentException("NodeId cannot be null");
+		if(versionNumber == null) throw new IllegalArgumentException("VersionNumber cannot be null");
+		// Select just the references, not the entire node.
+		try{
+			return simpleJdbcTemplate.queryForObject(SELECT_ANNOTATIONS_ONLY_PREFIX + " = ?",	new AnnotationRowMapper(), KeyFactory.stringToKey(id), versionNumber);
+		}catch (EmptyResultDataAccessException e){
+			// Occurs if there are no results
+			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
 		}
-		annos.setEtag(jdo.geteTag());
-		annos.setId(KeyFactory.keyToString(jdo.getId()));
-		annos.setCreationDate(new Date(jdo.getCreatedOn()));
-		return annos;
+	}
+	
+	/**
+	 * A RowMapper that extracts NamedAnnotations from a result set.
+	 * The result set must COL_REVISION_ANNOS_BLOB, COL_NODE_ETAG, COL_NODE_CREATED_ON, COL_NODE_ID, COL_NODE_CREATED_BY
+	 *
+	 */
+	private class AnnotationRowMapper implements RowMapper<NamedAnnotations>{
+		@Override
+		public NamedAnnotations mapRow(ResultSet rs, int rowNum)	throws SQLException {
+			NamedAnnotations annos = null;
+			Blob blob = rs.getBlob(COL_REVISION_ANNOS_BLOB);
+			if(blob != null){
+				byte[] bytes = blob.getBytes(1, (int) blob.length());
+				try {
+					annos = JDOSecondaryPropertyUtils.decompressedAnnotations(bytes);
+				} catch (IOException e) {
+					throw new DatastoreException(e);
+				}
+			}else{
+				// If there is no annotations blob then create a new one.
+				annos = new NamedAnnotations();
+			}
+			// Pull out the rest of the data.
+			annos.setEtag(rs.getString(COL_NODE_ETAG));
+			annos.setCreationDate(new Date(rs.getLong(COL_NODE_CREATED_ON)));
+			annos.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+			annos.setCreatedBy(rs.getLong(COL_NODE_CREATED_BY));
+			return annos;
+		}
 	}
 	
 	@Override
-	public NamedAnnotations getAnnotationsForVersion(String id, Long versionNumber) throws NotFoundException, DatastoreException {
-		Long nodeId = KeyFactory.stringToKey(id);
-		DBONode jdo =  getNodeById(nodeId);
-		// Get a particular version.
-		DBORevision rev = getNodeRevisionById(nodeId, versionNumber);
-		return getAnnotations(jdo, rev);
+	public Map<String, Set<Reference>> getNodeReferences(String nodeId)	throws NotFoundException, DatastoreException {
+		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+		// Select just the references, not the entire node.
+		try{
+			return simpleJdbcTemplate.queryForObject(SELECT_REVISIONS_ONLY, new RowMapper<Map<String, Set<Reference>>>() {
+				@Override
+				public Map<String, Set<Reference>> mapRow(ResultSet rs, int rowNum)	throws SQLException {
+					Blob blob = rs.getBlob(COL_REVISION_REFS_BLOB);
+					if(blob != null){
+						byte[] bytes = blob.getBytes(1, (int) blob.length());
+						try {
+							return JDOSecondaryPropertyUtils.decompressedReferences(bytes);
+						} catch (IOException e) {
+							throw new DatastoreException(e);
+						}
+					}
+					// it is null so return an empty map
+					return new HashMap<String, Set<Reference>>(0);
+				}
+			}, KeyFactory.stringToKey(nodeId));
+		}catch (EmptyResultDataAccessException e){
+			// Occurs if there are no results
+			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
+		}
 	}
 
 	@Override
@@ -514,7 +504,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			return simpleJdbcTemplate.queryForObject(SQL_ETAG_WITHOUT_LOCK, String.class, KeyFactory.stringToKey(id));
 		}catch(EmptyResultDataAccessException e){
 			// Occurs if there are no results
-			throw new NotFoundException("Cannot find a node with id: "+id);
+			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
 		}
 	}
 
@@ -587,8 +577,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 		
 		dboBasicDao.update(revToUpdate);
-		// But we also need to create any new references or delete removed references, as applicable
-		replaceAnnotationsAndReferencesIfCurrent(jdoToUpdate.getCurrentRevNumber(), revToUpdate);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -628,34 +616,9 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			rev.setAnnotations(newAnnos);
 			// Save the change
 			dboBasicDao.update(rev);
-
-			final Long user = rev.getModifiedBy();
-			StorageLocations sl = JDOSecondaryPropertyUtils.getStorageLocations(updatedAnnos, nodeIdLong, user);
-			storageLocationDao.replaceLocationData(sl);
-
-			// Prepare the annotations for the database.
-			Annotations forDb = prepareAnnotationsForDBReplacement(updatedAnnos, KeyFactory.keyToString(rev.getOwner()));
-			dboAnnotationsDao.replaceAnnotations(forDb);
 		} catch (IOException e) {
 			throw new DatastoreException(e);
-		} catch (JSONObjectAdapterException e) {
-			throw new DatastoreException(e);
-		}
-	}
-
-	/**
-	 * Prepare annotations to be written to the database.
-	 * @param annos
-	 * @param ownerId
-	 * @return
-	 */
-	protected static Annotations prepareAnnotationsForDBReplacement(NamedAnnotations annos, String ownerId){
-		// Replace the annotations in the tables
-		Annotations merged = JDOSecondaryPropertyUtils.mergeAnnotations(annos);
-		merged.setId(ownerId);
-		// We need to add all data types to the strings, to support mixed query
-		merged = JDOSecondaryPropertyUtils.addAllToStrings(merged);
-		return merged;
+		} 
 	}
 	
 	@Override
@@ -821,7 +784,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			return results;
 		}catch(EmptyResultDataAccessException e){
 			// Occurs if there are no results
-			throw new NotFoundException("Cannot find a node with id: "+nodeId);
+			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId);
 		}
 	}
 	
@@ -995,7 +958,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		DBORevision rev = getNodeRevisionById(KeyFactory.stringToKey(nodeId), revisionId);
 		return JDORevisionUtils.createDtoFromJdo(rev);
 	}
-
+	
 	@Override
 	public long getTotalNodeCount() {
 		return simpleJdbcTemplate.queryForLong(SQL_COUNT_NODES, new HashMap<String, String>());
@@ -1020,8 +983,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
 		// Save the new revision
 		dboBasicDao.update(dboRev);
-		// If this is the current revision then we also need to update all of the annotation tables
-		replaceAnnotationsAndReferencesIfCurrent(owner.getCurrentRevNumber(), dboRev);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -1032,15 +993,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		DBORevision dboRev = new DBORevision();
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
 		dboBasicDao.createNew(dboRev);
-		// If this is the current revision then we also need to update all of the annotation tables
-		replaceAnnotationsAndReferencesIfCurrent(owner.getCurrentRevNumber(), dboRev);
-	}
-
-	@Override
-	public boolean isStringAnnotationQueryable(String nodeId, String annotationKey) throws DatastoreException {
-		// Count how many annotations this node has with this 
-		long count= simpleJdbcTemplate.queryForLong(SQL_COUNT_STRING_ANNOTATIONS_FOR_NODE, KeyFactory.stringToKey(nodeId), annotationKey);
-		return count > 0;
 	}
 
 	@Override
@@ -1080,6 +1032,22 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}catch(EmptyResultDataAccessException e){
 			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
 		}
+	}
+	
+	@Override
+	public String getActivityId(String nodeId) throws NotFoundException, DatastoreException {
+		return getActivityId(nodeId, getCurrentRevisionNumber(nodeId));	
+	}
+
+	@Override
+	public String getActivityId(String nodeId, Long revNumber) throws NotFoundException, DatastoreException {
+		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
+		try{
+			Long activityId = this.simpleJdbcTemplate.queryForLong(GET_REV_ACTIVITY_ID_SQL, KeyFactory.stringToKey(nodeId), revNumber);			
+			return activityId == 0 ? null : activityId.toString(); // queryForLong returns 0 instead of NULL
+		}catch(EmptyResultDataAccessException e){
+			throw new NotFoundException(ERROR_RESOURCE_NOT_FOUND);
+		}		
 	}
 	
 	@Override

@@ -33,6 +33,8 @@
 
 	<alias name="nodeDao" alias="nodeBackupDao"/>
 
+	<bean id="activityDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOActivityDAOImpl" depends-on="idGenerator"/>
+
 	<!-- Controls how nodes inherit their permissions -->
 	<bean id="nodeInheritanceDao"
 		class="org.sagebionetworks.repo.model.jdo.JDONodeInheritanceDAOImpl" />
@@ -101,5 +103,8 @@
 		
 	<bean id="stackStatusDao"
 		class="org.sagebionetworks.repo.model.jdo.StackStatusDaoImpl" scope="singleton"/>
+	
+	<!-- DAO used by asynchronous RDS works to update RDS tables acting as indicies -->
+	<bean id="asynchronousDAO" class="org.sagebionetworks.repo.model.dbo.dao.AsynchronousDAOImpl" />
 
 </beans>

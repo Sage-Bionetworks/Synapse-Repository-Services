@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -16,8 +17,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
+import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
@@ -26,6 +29,7 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -39,13 +43,13 @@ public class AuthorizationManagerImplTest {
 	@Autowired
 	NodeManager nodeManager;
 	@Autowired
-	private UserManager userManager;
-	
+	private UserManager userManager;	
 	@Autowired
-	PermissionsManager permissionsManager;
-	
+	PermissionsManager permissionsManager;	
 	@Autowired
 	NodeDAO nodeDao;
+	@Autowired
+	ActivityManager activityManager;
 	
 		
 	private Collection<Node> nodeList = new ArrayList<Node>();
@@ -55,10 +59,12 @@ public class AuthorizationManagerImplTest {
 	private UserInfo userInfo = null;
 	private UserInfo adminUser;
 	private static final String TEST_USER = "test-user";
+	private Random rand = null;
 	
 	private List<String> usersToDelete;
+	private List<String> activitiesToDelete;
 	
-	private Node createDTO(String name, Long createdBy, Long modifiedBy, String parentId) {
+	private Node createDTO(String name, Long createdBy, Long modifiedBy, String parentId, String activityId) {
 		Node node = new Node();
 		node.setName(name);
 		node.setCreatedOn(new Date());
@@ -66,12 +72,13 @@ public class AuthorizationManagerImplTest {
 		node.setModifiedOn(new Date());
 		node.setModifiedByPrincipalId(modifiedBy);
 		node.setNodeType(EntityType.project.name());
+		node.setActivityId(activityId);
 		if (parentId!=null) node.setParentId(parentId);
 		return node;
 	}
 	
-	private Node createNode(String name, UserInfo creator, Long modifiedBy, String parentId) throws Exception {
-		Node node = createDTO(name, Long.parseLong(creator.getIndividualGroup().getId()), modifiedBy, parentId);
+	private Node createNode(String name, UserInfo creator, Long modifiedBy, String parentId, String activityId) throws Exception {
+		Node node = createDTO(name, Long.parseLong(creator.getIndividualGroup().getId()), modifiedBy, parentId, activityId);
 		String nodeId = nodeManager.createNewNode(node, creator);
 		assertNotNull(nodeId);
 		node = nodeManager.get(creator, nodeId);
@@ -90,15 +97,17 @@ public class AuthorizationManagerImplTest {
 		adminUser = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 		usersToDelete.add(adminUser.getIndividualGroup().getId());
 		usersToDelete.add(adminUser.getUser().getId());
-		Random rand = new Random();
+		rand = new Random();
 		// create a resource
-		node = createNode("foo_"+rand.nextLong(), adminUser, 2L, null);
+		node = createNode("foo_"+rand.nextLong(), adminUser, 2L, null, null);
 		nodeList.add(node);
 				
-		childNode = createNode("foo2_"+rand.nextLong(), adminUser, 4L, node.getId());
+		childNode = createNode("foo2_"+rand.nextLong(), adminUser, 4L, node.getId(), null);
 
 		Long testUserPrincipalId = Long.parseLong(userInfo.getIndividualGroup().getId());
-		nodeCreatedByTestUser = createNode("bar_"+rand.nextLong(), userInfo, testUserPrincipalId, null);
+		nodeCreatedByTestUser = createNode("bar_"+rand.nextLong(), userInfo, testUserPrincipalId, null, null);
+		
+		activitiesToDelete = new ArrayList<String>();
 		
 		nodeList.add(nodeCreatedByTestUser);
 	}
@@ -115,6 +124,11 @@ public class AuthorizationManagerImplTest {
 			}
 		}
 		
+		if(activitiesToDelete != null && activityManager != null) {
+			for(String activityId : activitiesToDelete) {
+				activityManager.deleteActivity(adminUser, activityId);
+			}
+		}
 	}
 	
 	// test that removing a user from the ACL for their own node doesn't remove their access
@@ -227,6 +241,38 @@ public class AuthorizationManagerImplTest {
 		assertTrue(b);
 	}
 	
+	@Test 
+	public void testCanPublicRead() throws Exception {
+		// verify that anonymous user can't initially access
+		UserInfo anonInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
+		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.READ);
+		assertFalse(b);
+		
+		//so public can't read, no matter who is requesting
+		UserEntityPermissions uep = authorizationManager.getUserPermissionsForEntity(adminInfo,  node.getId());
+		assertFalse(uep.getCanPublicRead());
+		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		assertFalse(uep.getCanPublicRead());
+		uep = authorizationManager.getUserPermissionsForEntity(anonInfo,  node.getId());
+		assertFalse(uep.getCanPublicRead());
+		
+		//update so that public group CAN read
+		AccessControlList acl = permissionsManager.getACL(node.getId(), userInfo);
+		assertNotNull(acl);
+		UserGroup pg = userManager.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
+		acl = AuthorizationHelper.addToACL(acl, pg, ACCESS_TYPE.READ);
+		acl = permissionsManager.updateACL(acl, adminUser);
+		
+		//now verify that public can read is true (no matter who requests)
+		uep = authorizationManager.getUserPermissionsForEntity(adminInfo,  node.getId());
+		assertTrue(uep.getCanPublicRead());
+		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
+		assertTrue(uep.getCanPublicRead());
+		uep = authorizationManager.getUserPermissionsForEntity(anonInfo,  node.getId());
+		assertTrue(uep.getCanPublicRead());
+	}
+	
 	@Test
 	public void testCanAccessInherited() throws Exception {		
 		// no access yet to parent
@@ -304,7 +350,7 @@ public class AuthorizationManagerImplTest {
 		// now they should be able to access
 		assertTrue(authorizationManager.canAccess(userInfo, node.getId(), ACCESS_TYPE.READ));				
 		// but can't add a child 
-		Node child = createDTO("child", 10L, 11L, node.getId());
+		Node child = createDTO("child", 10L, 11L, node.getId(), null);
 		assertFalse(authorizationManager.canCreate(userInfo, child));
 		
 		// but give them create access to the parent
@@ -320,7 +366,7 @@ public class AuthorizationManagerImplTest {
 	public void testCreateSpecialUsers() throws Exception {
 		// admin always has access 
 		UserInfo adminInfo = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
-		Node child = createDTO("child", 10L, 11L, node.getId());
+		Node child = createDTO("child", 10L, 11L, node.getId(), null);
 		assertTrue(authorizationManager.canCreate(adminInfo, child));
 
 		// allow some access
@@ -340,7 +386,7 @@ public class AuthorizationManagerImplTest {
 	public void testCreateNoParent() throws Exception {
 	
 		// try to create node with no parent.  should fail
-		Node orphan = createDTO("orphan", 10L, 11L, null);
+		Node orphan = createDTO("orphan", 10L, 11L, null, null);
 		assertFalse(authorizationManager.canCreate(userInfo, orphan));
 		
 		// admin creates a node with no parent.  should work
@@ -472,5 +518,33 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanEnableInheritance()); // ... except this
 		assertEquals(nodeCreatedByTestUser.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
 	}
-
+	
+	@Test
+	public void testCanAccessActivity() throws Exception {
+		// create an activity 
+		String activityId = activityManager.createActivity(userInfo, new Activity());
+		assertNotNull(activityId);
+		activitiesToDelete.add(activityId);
+		nodeCreatedByTestUser.setActivityId(activityId);
+		nodeManager.update(userInfo, nodeCreatedByTestUser);
+		
+		// test access
+		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId);		
+		assertTrue(canAccess);
+	}
+	
+	@Test
+	public void testCanAccessActivityFail() throws Exception {
+		// create an activity		
+		String activityId = activityManager.createActivity(adminUser, new Activity());
+		assertNotNull(activityId);
+		activitiesToDelete.add(activityId);
+		node.setActivityId(activityId);
+		nodeManager.update(adminUser, node);
+		
+		// test access
+		boolean canAccess = authorizationManager.canAccessActivity(userInfo, activityId);		
+		assertFalse(canAccess);
+	}	
+		
 }

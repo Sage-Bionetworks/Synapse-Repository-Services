@@ -85,7 +85,10 @@ public class CodeMetadataProvider implements
 	 * 
 	 * These sorts of failures are not fatal and should not cause the user's
 	 * primary request to fail.
+	 * 
+	 * THIS SHOULD BE DELETED FOR ANALYSIS CLEANUP
 	 */
+	@Deprecated
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	private void updateProvenanceRecord(String stepId, Code entity,
 			UserInfo user, EventType eventType) {
@@ -107,7 +110,7 @@ public class CodeMetadataProvider implements
 			} else {
 				log.warning("Failed to update provenance record for unhandled Code event type: " + eventType);
 			}
-			entityManager.updateEntity(user, step, false);
+			entityManager.updateEntity(user, step, false, null);
 		} 
 		catch (NotFoundException e) {
 			log.log(Level.WARNING, "Failed to update provenance record "

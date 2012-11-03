@@ -21,7 +21,7 @@ import org.joda.time.format.DateTimeFormatter;
 public class SynapseLoggingUtils {
 
 	private static final Pattern DATE_PATTERN = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})");
-	private static final Pattern LEVEL_PATTERN = Pattern.compile(" \\[\\w+\\] - ");
+	private static final Pattern LEVEL_PATTERN = Pattern.compile(" \\[\\w+\\] - | \\w+ \\[ *[-\\w]+ *\\] \\[ *[.\\w]+ *\\] - ");
 	private static final Pattern CONTROLLER_METHOD_PATTERN = Pattern.compile("(\\w+)/(\\w+)");
 	private static final Pattern PROPERTIES_PATTERN = Pattern.compile("\\?((?:\\w+=[\\w%.\\-*_+]+&?)+)$");
 

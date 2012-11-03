@@ -13,9 +13,9 @@ import org.junit.Test;
 import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
+import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.search.SearchDao;
-import org.sagebionetworks.search.service.SearchDocumentDriver;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -35,8 +35,8 @@ public class SearchQueueWorkerTest {
 	@Test
 	public void testDelete() throws Exception{
 		// create a few delete messages.
-		messageList.add(MessageUtils.buildDeleteEntityMessage("one", "1", "handle1"));
-		messageList.add(MessageUtils.buildDeleteEntityMessage("two", "2", "handle2"));
+		messageList.add(MessageUtils.buildDeleteEntityMessage("one", "parent1", "1", "handle1"));
+		messageList.add(MessageUtils.buildDeleteEntityMessage("two", "parent2", "2", "handle2"));
 		
 		SearchQueueWorker worker = new SearchQueueWorker(mockSeachDao, mockDocumentProvider, messageList);
 		List<Message> results = worker.call();
@@ -55,8 +55,8 @@ public class SearchQueueWorkerTest {
 	@Test
 	public void testCreate() throws Exception{
 		// create a few delete messages.
-		messageList.add(MessageUtils.buildCreateEntityMessage("one", "etag1", "1", "handle1"));
-		messageList.add(MessageUtils.buildCreateEntityMessage("two", "etag2", "1", "handle2"));
+		messageList.add(MessageUtils.buildCreateEntityMessage("one", "parent1", "etag1", "1", "handle1"));
+		messageList.add(MessageUtils.buildCreateEntityMessage("two", "parent2", "etag2", "1", "handle2"));
 		
 		Document docOne = new Document();
 		docOne.setId("one");
@@ -94,7 +94,7 @@ public class SearchQueueWorkerTest {
 	@Test
 	public void testCreateAlreadyInSearchIndex() throws Exception{
 		// create a few delete messages.
-		messageList.add(MessageUtils.buildCreateEntityMessage("one", "etag1", "1", "handle1"));
+		messageList.add(MessageUtils.buildCreateEntityMessage("one", "parent1", "etag1", "1", "handle1"));
 		
 		// Create only occurs if the document exists in the repository
 		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(true);
@@ -121,7 +121,7 @@ public class SearchQueueWorkerTest {
 	@Test
 	public void testCreateDoesNotExistInReposiroty() throws Exception{
 		// create a few delete messages.
-		messageList.add(MessageUtils.buildCreateEntityMessage("one", "etag1", "1", "handle1"));
+		messageList.add(MessageUtils.buildCreateEntityMessage("one", "parent1", "etag1", "1", "handle1"));
 		
 		// Create only occurs if the document exists in the repository
 		when(mockDocumentProvider.doesDocumentExist("one", "etag1")).thenReturn(false);

@@ -73,8 +73,8 @@ public class EntityControllerTest {
 	public void testCRUDEntity() throws Exception{
 		Project p = new Project();
 		p.setName("Create without entity type");
-		p.setEntityType(p.getClass().getName());
-		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		p.setEntityType(p.getClass().getName());		
+		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 		String id = clone.getId();
 		toDelete.add(id);
 		assertEquals(p.getName(), clone.getName());
@@ -106,7 +106,7 @@ public class EntityControllerTest {
 		Project p = new Project();
 		p.setName("AnnotCrud");
 		p.setEntityType(p.getClass().getName());
-		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 		String id = clone.getId();
 		toDelete.add(id);
 		// Get the annotaions for this entity
@@ -131,7 +131,7 @@ public class EntityControllerTest {
 		Project p = new Project();
 		p.setName("UserEntityPermissions");
 		p.setEntityType(p.getClass().getName());
-		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 		String id = clone.getId();
 		toDelete.add(id);
 		UserEntityPermissions uep = entityServletHelper.getUserEntityPermissions(id, TEST_USER1);
@@ -146,7 +146,7 @@ public class EntityControllerTest {
 			Project p = new Project();
 			p.setName("EntityTypeBatchItem" + i);
 			p.setEntityType(p.getClass().getName());
-			Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+			Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 			String id = clone.getId();
 			toDelete.add(id);
 			ids.add(id);
@@ -168,7 +168,7 @@ public class EntityControllerTest {
 		Project p = new Project();
 		p.setName("EntityPath");
 		p.setEntityType(p.getClass().getName());
-		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 		String id = clone.getId();
 		toDelete.add(id);
 		EntityPath path = entityServletHelper.getEntityPath(id, TEST_USER1);
@@ -219,20 +219,20 @@ public class EntityControllerTest {
 		Project p = new Project();
 		p.setName("Create without entity type");
 		p.setEntityType(p.getClass().getName());
-		p = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		p = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 		toDelete.add(p.getId());
 		
 		Study one = new Study();
 		one.setName("one");
 		one.setParentId(p.getId());
 		one.setEntityType(Study.class.getName());
-		one = (Study) entityServletHelper.createEntity(one, TEST_USER1);
+		one = (Study) entityServletHelper.createEntity(one, TEST_USER1, null);
 		// Now try to re-use the name
 		Study two = new Study();
 		two.setName("one");
 		two.setParentId(p.getId());
 		two.setEntityType(Study.class.getName());
-		two = (Study) entityServletHelper.createEntity(two, TEST_USER1);
+		two = (Study) entityServletHelper.createEntity(two, TEST_USER1, null);
 	}
 
 	@Test
@@ -240,21 +240,21 @@ public class EntityControllerTest {
 		Project p = new Project();
 		p.setName("Create without entity type");
 		p.setEntityType(p.getClass().getName());
-		p = (Project) entityServletHelper.createEntity(p, TEST_USER1);
+		p = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 		toDelete.add(p.getId());
 		
 		Study one = new Study();
 		one.setName("one");
 		one.setParentId(p.getId());
 		one.setEntityType(Study.class.getName());
-		one = (Study) entityServletHelper.createEntity(one, TEST_USER1);
+		one = (Study) entityServletHelper.createEntity(one, TEST_USER1, null);
 		// Now try to re-use the name
 		Code two = new Code();
 		two.setName("code");
 		two.setParentId(one.getId());
 		two.setEntityType(Code.class.getName());
 		try{
-			two = (Code) entityServletHelper.createEntity(two, TEST_USER1);
+			two = (Code) entityServletHelper.createEntity(two, TEST_USER1, null);
 			fail("Code cannot have a parent of type Study");
 		}catch(IllegalArgumentException e){
 			System.out.println(e.getMessage());
@@ -263,5 +263,18 @@ public class EntityControllerTest {
 		}
 		
 	}
+
+	@Test(expected=NotFoundException.class)
+	public void testActivityId404() throws Exception{
+		Project p = new Project();
+		p.setName("Create without entity type");
+		p.setEntityType(p.getClass().getName());		
+		String activityId = "123456789";
+		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1, activityId);
+		String id = clone.getId();
+		toDelete.add(id);
+	}
+	
+	
 	
 }

@@ -17,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -46,7 +47,8 @@ public class EntityServiceImplAutowiredTest {
 	
 	@Autowired
 	public UserProvider testUserProvider;
-	
+	@Autowired
+	AsynchronousDAO asynchronousDAO;
 	
 	List<String> toDelete = null;
 	
@@ -56,6 +58,7 @@ public class EntityServiceImplAutowiredTest {
 	
 	private String userName;
 	private UserInfo userInfo;
+	private String activityId;
 	
 	HttpServletRequest mockRequest;
 
@@ -70,13 +73,14 @@ public class EntityServiceImplAutowiredTest {
 		UserInfo.validateUserInfo(userInfo);
 		userName = userInfo.getUser().getUserId();
 		mockRequest = Mockito.mock(HttpServletRequest.class);
+		activityId = null;
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		
 		toDelete = new ArrayList<String>();
 		// Create a project to hold the datasets
 		Project project = new Project();
 		project.setName("projectRoot");
-		project = entityController.createEntity(userName, project, mockRequest);
+		project = entityController.createEntity(userName, project, activityId, mockRequest);
 		assertNotNull(project);
 
 		
@@ -84,7 +88,7 @@ public class EntityServiceImplAutowiredTest {
 		for(int i=0; i<totalEntities; i++){
 			Study ds = createForTest(i);
 			ds.setParentId(project.getId());
-			ds = entityController.createEntity(userName, ds, mockRequest);
+			ds = entityController.createEntity(userName, ds, activityId, mockRequest);
 			for(int layer=0; layer<layers; layer++){
 				Data inLayer = createLayerForTest(i*10+layer);
 				inLayer.setParentId(ds.getId());
@@ -95,7 +99,7 @@ public class EntityServiceImplAutowiredTest {
 					LocationData loca = createLayerLocatoinsForTest(i*10+layer*10+loc);
 					locationDatas.add(loca);
 				}
-				inLayer = entityController.createEntity(userName, inLayer, mockRequest);
+				inLayer = entityController.createEntity(userName, inLayer, activityId, mockRequest);
 			}
 			toDelete.add(ds.getId());
 		}
@@ -199,7 +203,7 @@ public class EntityServiceImplAutowiredTest {
 	@Test
 	public void testGetReferences() throws Exception {
 		// get an entity
-		String id1 = toDelete.get(0);
+		String id1 = toDelete.get(0);		
 		// verify that nothing refers to it
 		PaginatedResults<EntityHeader> ehs = entityController.getEntityReferences(userName, id1, null, null, null, mockRequest);
 		assertEquals(0, ehs.getTotalNumberOfResults());
@@ -210,12 +214,26 @@ public class EntityServiceImplAutowiredTest {
 		Set<Reference> refs = new HashSet<Reference>();
 		refs.add(ref);
 		step.setInput(refs);
-		step = entityController.createEntity(userName, step, mockRequest);
+		step = entityController.createEntity(userName, step, null, mockRequest);
 		toDelete.add(step.getId());
+		// Manually update
+		updateAnnotationsAndReferences();
 		// verify that the Step can be retrieved via its reference
 		ehs = entityController.getEntityReferences(userName, id1, null, null, null, mockRequest);
 		assertEquals(1, ehs.getTotalNumberOfResults());
 		assertEquals(step.getId(), ehs.getResults().iterator().next().getId());
+	}
+	
+	/**
+	 * Since we have moved the annotation updates to an asynchronous process we need to manually
+	 * update the annotations of all nodes for this test. See PLFM-1548
+	 * 
+	 * @throws NotFoundException
+	 */
+	public void updateAnnotationsAndReferences() throws NotFoundException {
+		for(String id: toDelete){
+			asynchronousDAO.createEntity(id);
+		}
 	}
 
 }
