@@ -873,7 +873,7 @@ public class EntityController extends BaseController{
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		return serviceProvider.getEntityService().getActivityForEntity(userId, id, null, request);	
+		return serviceProvider.getEntityService().getActivityForEntity(userId, id, request);	
 	}
 	
 	/**

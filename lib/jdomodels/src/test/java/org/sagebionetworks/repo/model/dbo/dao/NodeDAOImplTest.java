@@ -126,11 +126,7 @@ public class NodeDAOImplTest {
 		}
 		if(activitiesToDelete != null & activityDAO != null) {
 			for(String id : activitiesToDelete) {
-				try {
-					activityDAO.delete(id);
-				} catch (NotFoundException e) {
-					// thats ok too
-				}			
+				activityDAO.delete(id);
 			}
 		}
 	}
@@ -1962,8 +1958,8 @@ public class NodeDAOImplTest {
 		act.setCreatedOn(new Date(System.currentTimeMillis()));
 		act.setModifiedBy(creatorUserGroupId.toString());
 		act.setModifiedOn(new Date(System.currentTimeMillis()));
-		Activity created = activityDAO.create(act);
-		activitiesToDelete.add(created.getId());
-		return created;
+		activityDAO.create(act);
+		activitiesToDelete.add(act.getId());
+		return act;
 	}
 }

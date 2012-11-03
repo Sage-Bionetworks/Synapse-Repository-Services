@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -39,6 +40,25 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	NodeDAO nodeDAO;
 	@Autowired
 	private UserManager userManager;
+
+	public AuthorizationManagerImpl() {}
+	
+	/**
+	 * For testing only
+	 */
+	AuthorizationManagerImpl(NodeInheritanceDAO nodeInheritanceDAO,
+			AccessControlListDAO accessControlListDAO,
+			AccessRequirementDAO accessRequirementDAO, ActivityDAO activityDAO,
+			NodeQueryDao nodeQueryDao, NodeDAO nodeDAO, UserManager userManager) {
+		super();
+		this.nodeInheritanceDAO = nodeInheritanceDAO;
+		this.accessControlListDAO = accessControlListDAO;
+		this.accessRequirementDAO = accessRequirementDAO;
+		this.activityDAO = activityDAO;
+		this.nodeQueryDao = nodeQueryDao;
+		this.nodeDAO = nodeDAO;
+		this.userManager = userManager;
+	}
 
 	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
 		User user = userInfo.getUser();
@@ -150,17 +170,23 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}
 		
 		// check if user has read access to any in result set (could be empty)
-		List<Reference> generatedBy = activityDAO.getEntitiesGeneratedBy(activityId);				
-		for(Reference ref : generatedBy) {
-			if(ref.getTargetId() == null) continue;
-			try {
-				if(canAccess(userInfo, ref.getTargetId(), ACCESS_TYPE.READ)) {
-					return true;
+		int limit = 1000;
+		int offset = 0;
+		long remaining = 1; // just to get things started
+		while(remaining > 0) {			
+			QueryResults<String> generatedBy = activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
+			remaining = generatedBy.getTotalNumberOfResults() - (offset+limit);
+			for(String nodeId : generatedBy.getResults()) {
+				try {
+					if(canAccess(userInfo, nodeId, ACCESS_TYPE.READ)) {
+						return true;
+					}
+				} catch (Exception e) {
+					// do nothing, same as false
 				}
-			} catch (Exception e) {
-				// do nothing, same as false
 			}
-		}		
+			offset += limit; 
+		}
 		// no access found to generated entities, no access
 		return false;
 	}

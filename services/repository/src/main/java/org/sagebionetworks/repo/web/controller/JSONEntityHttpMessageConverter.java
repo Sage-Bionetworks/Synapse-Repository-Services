@@ -213,21 +213,4 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 		return newInstance;
 	}
 
-	/**
-	 * Read an activity from the reader.
-	 * @param reader
-	 * @return Activity object
-	 * @throws IOException 
-	 * @throws JSONObjectAdapterException 
-	 */
-	public static Activity readActivity(Reader reader) throws IOException, JSONObjectAdapterException {
-		// First read in the string
-		String jsonString = readToString(reader);
-		// Read it into an adapter
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonString);
-		Activity newInstance = new Activity();
-		newInstance.initializeFromJSONObject(adapter);
-		return newInstance;
-	}
-
 }

@@ -637,6 +637,16 @@ public class EntityServiceImpl implements EntityService {
 	}
 	
 	@Override
+	public Activity getActivityForEntity(String userId, String entityId,
+			HttpServletRequest request) throws DatastoreException,
+			NotFoundException, UnauthorizedException {
+		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return entityManager.getActivityForEntity(userInfo, entityId, null);
+	}
+	
+	@Override
 	public Activity getActivityForEntity(String userId, String entityId, Long versionNumber,
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException {

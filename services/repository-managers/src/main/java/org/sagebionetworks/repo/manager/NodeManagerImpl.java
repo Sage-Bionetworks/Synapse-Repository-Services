@@ -125,13 +125,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 
 		// check whether the user is allowed to connect to the specified activity
-		String activityId = newNode.getActivityId();
-		if(activityId != null) {
-			if(!activityManager.doesActivityExist(activityId)) 
-				throw new NotFoundException("Activity id " + activityId + " not found.");
-			if(!authorizationManager.canAccessActivity(userInfo, activityId))
-				throw new UnauthorizedException(userInfo.getUser().getUserId() +" lacks change access to the specified activity object.");
-		}
+		canConnectToActivity(newNode.getActivityId(), userInfo);
 
 		// If they are allowed then let them create the node
 		String id = nodeDao.createNew(newNode);
@@ -158,7 +152,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		return id;
 	}
-
 	
 	/**
 	 * Validate a node
@@ -296,13 +289,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 		
 		// check whether the user is allowed to connect to the specified activity
-		String activityId = updatedNode.getActivityId();
-		if(activityId != null) {
-			if(!activityManager.doesActivityExist(activityId)) 
-				throw new NotFoundException("Activity id " + activityId + " not found.");
-			if(!authorizationManager.canAccessActivity(userInfo, activityId))
-				throw new UnauthorizedException(userInfo.getUser().getUserId() +" lacks change access to the specified activity object.");
-		}
+		canConnectToActivity(updatedNode.getActivityId(), userInfo);
 		
 		// Now lock this node
 		String nextETag = nodeDao.lockNodeAndIncrementEtag(updatedNode.getId(), updatedNode.getETag());
@@ -554,7 +541,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public void setActivityForNode(UserInfo userInfo, String nodeId,
 			String activityId) throws NotFoundException, UnauthorizedException,
 			DatastoreException {
-		Node toUpdate = get(userInfo, nodeId);
+		Node toUpdate = get(userInfo, nodeId);		
 		toUpdate.setActivityId(activityId);
 		update(userInfo, toUpdate);
 	}
@@ -566,6 +553,19 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		Node toUpdate = get(userInfo, nodeId);
 		toUpdate.setActivityId(null);
 		update(userInfo, toUpdate);
+	}
+
+	
+	/*
+	 * Private Methods
+	 */	
+	private void canConnectToActivity(String activityId, UserInfo userInfo) throws NotFoundException {		
+		if(activityId != null) {
+			if(!activityManager.doesActivityExist(activityId)) 
+				throw new NotFoundException("Activity id " + activityId + " not found.");
+			if(!authorizationManager.canAccessActivity(userInfo, activityId))
+				throw new UnauthorizedException(userInfo.getUser().getUserId() +" lacks change access to the specified activity object.");
+		}
 	}
 
 }

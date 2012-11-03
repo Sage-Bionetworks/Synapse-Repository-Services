@@ -20,6 +20,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -60,13 +61,10 @@ public class ActivityController extends BaseController{
 	public @ResponseBody
 	Activity createActivity(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestHeader HttpHeaders header,
+			@RequestBody Activity activity,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, JSONObjectAdapterException {
-
-		// Read the activity from the body
-		Activity activity =  JSONEntityHttpMessageConverter.readActivity(request.getReader());
 		return serviceProvider.getActivityService().createActivity(userId, activity);
 	}
 	
@@ -118,13 +116,12 @@ public class ActivityController extends BaseController{
 	Activity updateActivity(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestHeader HttpHeaders header,
+			@RequestBody Activity activity,
 			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException, JSONObjectAdapterException {
 		
-		Activity activity = JSONEntityHttpMessageConverter.readActivity(request.getReader());
 		if(etag != null){
 			activity.setEtag(etag);
 		}
