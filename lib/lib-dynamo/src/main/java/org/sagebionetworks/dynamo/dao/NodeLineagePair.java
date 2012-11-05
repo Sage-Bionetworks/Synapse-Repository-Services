@@ -46,15 +46,15 @@ class NodeLineagePair {
 					"Root must have the same ancestor and descendant and the distance must be 0.");
 		}
 
-		this.ancId = ancestorId;
+		if (distance == 0) {
+			this.ancId = NodeLineage.ROOT_ID;
+		} else {
+			this.ancId = ancestorId;
+		}
 		this.descId = descendantId;
 
-		if (distance == 0) {
-			this.a2d = null;
-		} else {
-			this.a2d = new NodeLineage(ancestorId, descendantId, LineageType.DESCENDANT, distance, ancTimestamp);
-		}
-		this.d2a = new NodeLineage(descendantId, ancestorId, LineageType.ANCESTOR, distance, descTimestamp);
+		this.a2d = new NodeLineage(this.ancId, this.descId, LineageType.DESCENDANT, distance, ancTimestamp);
+		this.d2a = new NodeLineage(this.descId, this.ancId, LineageType.ANCESTOR, distance, descTimestamp);
 
 		this.depth = ancestorDepth;
 		this.distance = distance;

@@ -35,9 +35,7 @@ class LineagePairCreate extends LineagePairWriteOperation {
 	public boolean write() {
 		try {
 			NodeLineage a2d = this.toSave.getAncestor2Descendant();
-			if (a2d != null) { // if not the root
-				this.a2dOriginal = this.createNodeLineage(a2d);
-			}
+			this.a2dOriginal = this.createNodeLineage(a2d);
 			NodeLineage d2a = this.toSave.getDescendant2Ancestor();
 			this.d2aOriginal = this.createNodeLineage(d2a);
 			return true;
@@ -50,9 +48,7 @@ class LineagePairCreate extends LineagePairWriteOperation {
 	@Override
 	public void restore() {
 		NodeLineage a2d = this.toSave.getAncestor2Descendant();
-		if (a2d != null) { // if not the root
-			this.deleteNodeLineage(this.a2dOriginal, a2d);
-		}
+		this.deleteNodeLineage(this.a2dOriginal, a2d);
 		NodeLineage d2a = this.toSave.getDescendant2Ancestor();
 		this.deleteNodeLineage(this.d2aOriginal, d2a);
 	}

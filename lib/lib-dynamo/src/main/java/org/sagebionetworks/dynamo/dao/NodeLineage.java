@@ -23,6 +23,7 @@ public class NodeLineage implements DynamoTable {
 	public static final String TABLE_NAME = "NodeLineage";
 	public static final String HASH_KEY = "NodeId" + KeyValueSplitter.SEPARATOR + "LineageType";
 	public static final String RANGE_KEY = "Distance" + KeyValueSplitter.SEPARATOR + "NodeId";
+	public static final String ROOT_ID = "ROOT";
 
 	// Needed by Dynamo mapper to load from DynamoDB
 	public NodeLineage() {}
