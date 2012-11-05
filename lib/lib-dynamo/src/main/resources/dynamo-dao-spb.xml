@@ -26,6 +26,6 @@
 		<constructor-arg ref="awsCredentials" />
 	</bean>
 
-	<bean id="dynamoSetup" class="org.sagebionetworks.dynamo.DynamoSetupImpl" init-method="initialize" scope="singleton" />
+	<bean id="dynamoSetup" class="org.sagebionetworks.dynamo.config.DynamoSetupImpl" init-method="initialize" scope="singleton" />
 
 </beans>

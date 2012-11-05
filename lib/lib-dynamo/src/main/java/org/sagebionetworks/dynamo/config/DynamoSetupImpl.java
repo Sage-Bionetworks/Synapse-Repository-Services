@@ -1,13 +1,14 @@
-package org.sagebionetworks.dynamo;
+package org.sagebionetworks.dynamo.config;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.dynamo.DynamoTable.DynamoKey;
-import org.sagebionetworks.dynamo.DynamoTable.DynamoKeySchema;
-import org.sagebionetworks.dynamo.DynamoTable.DynamoThroughput;
+import org.sagebionetworks.dynamo.DynamoTimeoutException;
+import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKey;
+import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKeySchema;
+import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoThroughput;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
@@ -53,8 +54,8 @@ public class DynamoSetupImpl implements DynamoSetup {
 
 		// Create or update tables
 		Set<String> existingTables = this.getNamesOfExistingTables();
-		Iterable<DynamoTable> configTables = config.listTables();
-		for (DynamoTable configTable : configTables) {
+		Iterable<DynamoTableConfig> configTables = config.listTables();
+		for (DynamoTableConfig configTable : configTables) {
 			String tableName = configTable.getTableName();
 			if (!existingTables.contains(tableName)) {
 				// If the table does not exist in DynamoDB, create it
@@ -134,7 +135,7 @@ public class DynamoSetupImpl implements DynamoSetup {
 	 * Creates a new table. The table must not already exist. This methods does not block.
 	 * It returns while the table is being created.
 	 */
-	void createTable(DynamoTable table) {
+	void createTable(DynamoTableConfig table) {
 
 		if (table == null) {
 			throw new NullPointerException();
@@ -156,7 +157,7 @@ public class DynamoSetupImpl implements DynamoSetup {
 	 * Updates an existing table. This methods does not block.
 	 * It returns while the table is being updated.
 	 */
-	void updateProvisionedThroughput(DynamoTable table) {
+	void updateProvisionedThroughput(DynamoTableConfig table) {
 
 		if (table == null) {
 			throw new NullPointerException();
@@ -173,7 +174,7 @@ public class DynamoSetupImpl implements DynamoSetup {
 	/**
 	 * Maps DynamoKeySchema to DynamoDB's KeySchema.
 	 */
-	private KeySchema getKeySchema(DynamoTable table) {
+	private KeySchema getKeySchema(DynamoTableConfig table) {
 
 		assert table != null;
 
@@ -198,7 +199,7 @@ public class DynamoSetupImpl implements DynamoSetup {
 	/**
 	 * Maps DynamoThroughput to DynamoDB's ProvisionedThroughput.
 	 */
-	private ProvisionedThroughput getProvisionedThroughput(DynamoTable table) {
+	private ProvisionedThroughput getProvisionedThroughput(DynamoTableConfig table) {
 
 		assert table != null;
 
@@ -244,7 +245,7 @@ public class DynamoSetupImpl implements DynamoSetup {
 	/**
 	 * Whether the existing table and the table defined in configuration has the same key schema.
 	 */
-	private boolean hasSameKeySchema(TableDescription existingTable, DynamoTable configTable) {
+	private boolean hasSameKeySchema(TableDescription existingTable, DynamoTableConfig configTable) {
 
 		assert existingTable != null;
 		assert configTable != null;
@@ -258,7 +259,7 @@ public class DynamoSetupImpl implements DynamoSetup {
 	/**
 	 * Whether the existing table and the table defined in configuration has the same throughput.
 	 */
-	private boolean hasSameThroughput(TableDescription existingTable, DynamoTable configTable) {
+	private boolean hasSameThroughput(TableDescription existingTable, DynamoTableConfig configTable) {
 
 		assert existingTable != null;
 		assert configTable != null;
