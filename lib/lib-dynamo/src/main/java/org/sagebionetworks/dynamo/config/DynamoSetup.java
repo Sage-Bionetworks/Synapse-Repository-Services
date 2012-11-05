@@ -1,16 +1,18 @@
-package org.sagebionetworks.dynamo;
+package org.sagebionetworks.dynamo.config;
+
+import org.sagebionetworks.dynamo.DynamoTimeoutException;
 
 /**
  * Sets up DynamoDB.
  *
- * @author ewu
+ * @author Eric Wu
  */
 public interface DynamoSetup {
 
 	/**
 	 * The default timeout to wait for DynamoDB to create or update tables.
 	 */
-	public static final long TIMEOUT_IN_MILLIS = 30 * 60 * 1000; // 30 minitues
+	public static final long TIMEOUT_IN_MILLIS = 10 * 60 * 1000; // 30 minitues
 
 	/**
 	 * Creates and updates tables according to configuration. If a table

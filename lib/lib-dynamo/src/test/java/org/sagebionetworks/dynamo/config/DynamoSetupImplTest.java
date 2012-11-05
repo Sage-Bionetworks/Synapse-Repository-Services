@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo;
+package org.sagebionetworks.dynamo.config;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
@@ -11,9 +11,14 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.dynamo.DynamoTable.DynamoKey;
-import org.sagebionetworks.dynamo.DynamoTable.DynamoKeySchema;
-import org.sagebionetworks.dynamo.DynamoTable.DynamoThroughput;
+import org.sagebionetworks.dynamo.DynamoTimeoutException;
+import org.sagebionetworks.dynamo.config.DynamoConfig;
+import org.sagebionetworks.dynamo.config.DynamoSetupImpl;
+import org.sagebionetworks.dynamo.config.DynamoTableConfig;
+import org.sagebionetworks.dynamo.config.DynamoTableExistsException;
+import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKey;
+import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKeySchema;
+import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoThroughput;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
@@ -55,7 +60,7 @@ public class DynamoSetupImplTest {
 		Long write = Long.valueOf(2L);
 		DynamoThroughput throughput = new DynamoThroughput(read, write);
 
-		DynamoTable table = new DynamoTable(tableName, keySchema, throughput);
+		DynamoTableConfig table = new DynamoTableConfig(tableName, keySchema, throughput);
 		this.dynamoSetup.createTable(table);
 
 		KeySchemaElement hashKeyElement = new KeySchemaElement()
@@ -95,7 +100,7 @@ public class DynamoSetupImplTest {
 		Long write = Long.valueOf(2L);
 		DynamoThroughput throughput = new DynamoThroughput(read, write);
 
-		DynamoTable table = new DynamoTable(tableName, keySchema, throughput);
+		DynamoTableConfig table = new DynamoTableConfig(tableName, keySchema, throughput);
 		this.dynamoSetup.updateProvisionedThroughput(table);
 
 		ProvisionedThroughput pThroughput = new ProvisionedThroughput()
@@ -124,8 +129,8 @@ public class DynamoSetupImplTest {
 		Long read = Long.valueOf(1L);
 		Long write = Long.valueOf(2L);
 		DynamoThroughput throughput = new DynamoThroughput(read, write);
-		DynamoTable tableFromConfig = new DynamoTable(tableName, kSchema, throughput);
-		List<DynamoTable> tablesFromConfig = new ArrayList<DynamoTable>();
+		DynamoTableConfig tableFromConfig = new DynamoTableConfig(tableName, kSchema, throughput);
+		List<DynamoTableConfig> tablesFromConfig = new ArrayList<DynamoTableConfig>();
 		tablesFromConfig.add(tableFromConfig);
 		DynamoConfig config = mock(DynamoConfig.class);
 		when(config.listTables()).thenReturn(tablesFromConfig);
@@ -189,8 +194,8 @@ public class DynamoSetupImplTest {
 		Long read = Long.valueOf(1L);
 		Long write = Long.valueOf(3L); // Different write throughput -- increase by 1
 		DynamoThroughput throughput = new DynamoThroughput(read, write);
-		DynamoTable tableFromConfig = new DynamoTable(tableName, kSchema, throughput);
-		List<DynamoTable> tablesFromConfig = new ArrayList<DynamoTable>();
+		DynamoTableConfig tableFromConfig = new DynamoTableConfig(tableName, kSchema, throughput);
+		List<DynamoTableConfig> tablesFromConfig = new ArrayList<DynamoTableConfig>();
 		tablesFromConfig.add(tableFromConfig);
 		DynamoConfig config = mock(DynamoConfig.class);
 		when(config.listTables()).thenReturn(tablesFromConfig);
@@ -249,8 +254,8 @@ public class DynamoSetupImplTest {
 		Long read = Long.valueOf(1L);
 		Long write = Long.valueOf(2L);
 		DynamoThroughput throughput = new DynamoThroughput(read, write);
-		DynamoTable tableFromConfig = new DynamoTable(tableName, kSchema, throughput);
-		List<DynamoTable> tablesFromConfig = new ArrayList<DynamoTable>();
+		DynamoTableConfig tableFromConfig = new DynamoTableConfig(tableName, kSchema, throughput);
+		List<DynamoTableConfig> tablesFromConfig = new ArrayList<DynamoTableConfig>();
 		tablesFromConfig.add(tableFromConfig);
 		DynamoConfig config = mock(DynamoConfig.class);
 		when(config.listTables()).thenReturn(tablesFromConfig);
@@ -296,8 +301,8 @@ public class DynamoSetupImplTest {
 		Long read = Long.valueOf(2L); // Different throughput -- increase read by 1
 		Long write = Long.valueOf(2L);
 		DynamoThroughput throughput = new DynamoThroughput(read, write);
-		DynamoTable tableFromConfig = new DynamoTable(tableName, kSchema, throughput);
-		List<DynamoTable> tablesFromConfig = new ArrayList<DynamoTable>();
+		DynamoTableConfig tableFromConfig = new DynamoTableConfig(tableName, kSchema, throughput);
+		List<DynamoTableConfig> tablesFromConfig = new ArrayList<DynamoTableConfig>();
 		tablesFromConfig.add(tableFromConfig);
 		DynamoConfig config = mock(DynamoConfig.class);
 		when(config.listTables()).thenReturn(tablesFromConfig);
@@ -328,8 +333,8 @@ public class DynamoSetupImplTest {
 		Long read = Long.valueOf(1L);
 		Long write = Long.valueOf(2L);
 		DynamoThroughput throughput = new DynamoThroughput(read, write);
-		DynamoTable tableFromConfig = new DynamoTable(tableName, kSchema, throughput);
-		List<DynamoTable> tablesFromConfig = new ArrayList<DynamoTable>();
+		DynamoTableConfig tableFromConfig = new DynamoTableConfig(tableName, kSchema, throughput);
+		List<DynamoTableConfig> tablesFromConfig = new ArrayList<DynamoTableConfig>();
 		tablesFromConfig.add(tableFromConfig);
 		DynamoConfig config = mock(DynamoConfig.class);
 		when(config.listTables()).thenReturn(tablesFromConfig);
