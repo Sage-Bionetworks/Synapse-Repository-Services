@@ -34,6 +34,18 @@ class NodeLineageWriteExecutor implements DynamoWriteExecutor {
 	private final Logger logger = Logger.getLogger(NodeLineageWriteExecutor.class);
 
 	@Override
+	public boolean execute(DynamoWriteOperation op) {
+
+		if (op == null) {
+			throw new NullPointerException();
+		}
+
+		List<DynamoWriteOperation> opList = new ArrayList<DynamoWriteOperation>(1);
+		opList.add(op);
+		return this.execute(opList);
+	}
+
+	@Override
 	public boolean execute(List<DynamoWriteOperation> opList) {
 
 		if (opList == null) {
