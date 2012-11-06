@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo;
+package org.sagebionetworks.dynamo.config;
 
 import junit.framework.Assert;
 
@@ -18,17 +18,14 @@ import com.amazonaws.services.dynamodb.model.TableStatus;
 public class DynamoSetupImplAutowireTest {
 
 	@Autowired
-	private DynamoSetup dynamoSetup;
-
-	@Autowired
 	private AmazonDynamoDB dynamoClient;
 
 	@Test
 	public void testSetup() {
 		// At this point, DynamoSetup has been initialized, all the tables should be ACTIVE
 		DynamoConfig config = new DynamoConfig();
-		Iterable<DynamoTable> tables = config.listTables();
-		for (DynamoTable table : tables) {
+		Iterable<DynamoTableConfig> tables = config.listTables();
+		for (DynamoTableConfig table : tables) {
 			String tableName = table.getTableName();
 			DescribeTableRequest dtRequest = new DescribeTableRequest().withTableName(tableName);
 			TableDescription tableDesc = this.dynamoClient.describeTable(dtRequest).getTable();
