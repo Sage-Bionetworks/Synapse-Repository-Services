@@ -68,6 +68,11 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			" FROM " + TABLE_STORAGE_LOCATION +
 			" WHERE " + COL_STORAGE_LOCATION_USER_ID + " = :" + COL_STORAGE_LOCATION_USER_ID;
 
+	private static final String SELECT_COUNT_FOR_NODE =
+			"SELECT COUNT(" + COL_STORAGE_LOCATION_ID + ")" +
+			" FROM " + TABLE_STORAGE_LOCATION +
+			" WHERE " + COL_STORAGE_LOCATION_NODE_ID + " = :" + COL_STORAGE_LOCATION_NODE_ID;
+
 	private static final String COL_SUM_SIZE = "SUM_SIZE";
 	private static final String COL_COUNT_ID = "COUNT_ID";
 	private static final String SELECT_AGGREGATED_USAGE_PART_1 =
@@ -90,6 +95,12 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			"SELECT *" +
 			" FROM " + TABLE_STORAGE_LOCATION +
 			" WHERE " + COL_STORAGE_LOCATION_USER_ID + " = :" + COL_STORAGE_LOCATION_USER_ID +
+			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
+
+	private static final String SELECT_STORAGE_LOCATION_FOR_NODE_PAGINATED =
+			"SELECT *" +
+			" FROM " + TABLE_STORAGE_LOCATION +
+			" WHERE " + COL_STORAGE_LOCATION_NODE_ID + " = :" + COL_STORAGE_LOCATION_NODE_ID +
 			" LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 
 	private static final RowMapper<DBOStorageLocation> rowMapper = (new DBOStorageLocation()).getTableMapping();
@@ -178,6 +189,20 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 	}
 
 	@Override
+	public Long getTotalCountForNode(String nodeId) throws DatastoreException {
+
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new NullPointerException();
+		}
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		paramMap.addValue(COL_STORAGE_LOCATION_NODE_ID, nodeIdLong);
+		Long count = simpleJdbcTemplate.queryForLong(SELECT_COUNT_FOR_NODE, paramMap);
+		return count;
+	}
+
+	@Override
 	public StorageUsageSummaryList getAggregatedUsage(
 			List<StorageUsageDimension> dimensionList)
 			throws DatastoreException, InvalidModelException {
@@ -219,10 +244,10 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		}
 
 		if (beginIncl >= endExcl) {
-			String msg = "begin must be greater than end (begin = " + beginIncl;
-			msg += "; end = ";
+			String msg = "begin must be greater than end [begin=" + beginIncl;
+			msg += ", end=";
 			msg += endExcl;
-			msg += ")";
+			msg += "]";
 			throw new IllegalArgumentException(msg);
 		}
 
@@ -233,6 +258,49 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		paramMap.addValue(COL_STORAGE_LOCATION_USER_ID, userIdLong);
 		List<DBOStorageLocation> dboList = simpleJdbcTemplate.query(
 				SELECT_STORAGE_LOCATION_FOR_USER_PAGINATED, rowMapper, paramMap);
+
+		List<StorageUsage> usageList = new ArrayList<StorageUsage>();
+		for (DBOStorageLocation dbo : dboList) {
+			StorageUsage su = new StorageUsage();
+			usageList.add(su);
+			su.setId(dbo.getId().toString());
+			su.setNodeId(KeyFactory.keyToString(dbo.getNodeId()));
+			su.setUserId(dbo.getUserId().toString());
+			su.setIsAttachment(dbo.getIsAttachment());
+			su.setLocation(dbo.getLocation());
+			su.setStorageProvider(LocationTypeNames.valueOf(dbo.getStorageProvider()));
+			su.setContentType(dbo.getContentType());
+			su.setContentSize(dbo.getContentSize());
+			su.setContentMd5(dbo.getContentMd5());
+		}
+
+		usageList = Collections.unmodifiableList(usageList);
+		return usageList;
+	}
+
+	@Override
+	public List<StorageUsage> getUsageInRangeForNode(String nodeId, long beginIncl, long endExcl)
+			throws DatastoreException {
+
+		if (nodeId == null || nodeId.isEmpty()) {
+			throw new NullPointerException();
+		}
+
+		if (beginIncl >= endExcl) {
+			String msg = "begin must be greater than end [begin=" + beginIncl;
+			msg += ", end=";
+			msg += endExcl;
+			msg += "]";
+			throw new IllegalArgumentException(msg);
+		}
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue(OFFSET_PARAM_NAME, beginIncl);
+		paramMap.addValue(LIMIT_PARAM_NAME, endExcl - beginIncl);
+		Long nodeIdLong = KeyFactory.stringToKey(nodeId);
+		paramMap.addValue(COL_STORAGE_LOCATION_NODE_ID, nodeIdLong);
+		List<DBOStorageLocation> dboList = simpleJdbcTemplate.query(
+				SELECT_STORAGE_LOCATION_FOR_NODE_PAGINATED, rowMapper, paramMap);
 
 		List<StorageUsage> usageList = new ArrayList<StorageUsage>();
 		for (DBOStorageLocation dbo : dboList) {

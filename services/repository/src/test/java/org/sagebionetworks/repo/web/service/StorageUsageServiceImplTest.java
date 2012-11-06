@@ -7,8 +7,10 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.StorageUsageManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -27,6 +29,7 @@ public class StorageUsageServiceImplTest {
 	private final StorageUsageService suService = new StorageUsageServiceImpl();
 	private final Integer offset = Integer.valueOf(0);
 	private final Integer limit = Integer.valueOf(1);
+	private final String nodeId = "nodeId";
 
 	@Before
 	public void before() throws Exception {
@@ -46,6 +49,9 @@ public class StorageUsageServiceImplTest {
 		Mockito.when(userMan.getUserInfo(userId)).thenReturn(userInfo);
 		Mockito.when(userMan.getUserInfo(adminUserId)).thenReturn(adminUserInfo);
 
+		AuthorizationManager auMan = Mockito.mock(AuthorizationManager.class);
+		Mockito.when(auMan.canAccess(userInfo, nodeId, ACCESS_TYPE.READ)).thenReturn(false);
+
 		StorageUsageManager suMan = Mockito.mock(StorageUsageManager.class);
 		Mockito.when(suMan.getUsage(dList)).thenReturn(susList);
 		Mockito.when(suMan.getUsageForUser(userId, dList)).thenReturn(susList);
@@ -59,6 +65,7 @@ public class StorageUsageServiceImplTest {
 			srv = (StorageUsageService)target;
 		}
 		ReflectionTestUtils.setField(srv, "userManager", userMan);
+		ReflectionTestUtils.setField(srv, "authorizationManager", auMan);
 		ReflectionTestUtils.setField(srv, "storageUsageManager", suMan);
 	}
 
@@ -122,5 +129,15 @@ public class StorageUsageServiceImplTest {
 		List<StorageUsageDimension> dList = new ArrayList<StorageUsageDimension>();
 		dList.add(StorageUsageDimension.NODE_ID);
 		suService.getUsage(adminUserId, dList);
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testGetUsageInRangeForUser() throws Exception {
+		suService.getUsageInRangeForUser(userId, adminUserId, 0, 10, "");
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testGetUsageInRangeForNode() throws Exception {
+		suService.getUsageInRangeForNode(userId, nodeId, 0, 10, "");
 	}
 }
