@@ -48,12 +48,14 @@ public class StorageUsageManagerImplTest {
 		Assert.assertEquals(storageList.size(), results.getResults().size());
 		Assert.assertEquals(s1, results.getResults().get(0));
 		Assert.assertEquals(s2, results.getResults().get(1));
+		Mockito.verify(mockDao, Mockito.times(1)).getUsageInRangeForUser(userId, offset, offset + limit);
 
 		results = man.getUsageInRangeForNode(nodeId, offset, limit);
 		Assert.assertEquals(total, results.getTotalNumberOfResults());
 		Assert.assertEquals(storageList.size(), results.getResults().size());
 		Assert.assertEquals(s1, results.getResults().get(0));
 		Assert.assertEquals(s2, results.getResults().get(1));
+		Mockito.verify(mockDao, Mockito.times(1)).getUsageInRangeForNode(nodeId, offset, offset + limit);
 	}
 
 	private StorageUsageManager unwrap(StorageUsageManager man) throws Exception {
