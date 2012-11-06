@@ -139,7 +139,7 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 
 		checkAuthorization(currUserName, nodeId);
 
-		QueryResults<StorageUsage> queryResults = storageUsageManager.getUsageInRangeForUser(nodeId, offset, limit);
+		QueryResults<StorageUsage> queryResults = storageUsageManager.getUsageInRangeForNode(nodeId, offset, limit);
 		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>(urlPath, 
 				queryResults.getResults(), queryResults.getTotalNumberOfResults(), 
 				offset, limit, null, true);

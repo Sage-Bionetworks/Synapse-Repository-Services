@@ -28,7 +28,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class StorageUsageControllerTest {
+public class StorageUsageControllerAutowireTest {
 
 	@Autowired
 	private EntityService entityController;
@@ -43,13 +43,11 @@ public class StorageUsageControllerTest {
 		HttpServlet dispatchServlet = DispatchServletSingleton.getInstance();
 		testEntity = ServletTestHelper.createEntity(dispatchServlet, testEntity, userName);
 		Assert.assertNotNull(testEntity);
-		System.out.println("before(): " + testEntity.getId());
 	}
 
 	@After
 	public void after() throws Exception {
 		if (testEntity != null) {
-			System.out.println("after(): " + testEntity.getId());
 			entityController.deleteEntity(userName, testEntity.getId());
 		}
 	}
