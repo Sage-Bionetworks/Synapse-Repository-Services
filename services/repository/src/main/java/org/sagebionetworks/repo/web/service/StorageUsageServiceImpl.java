@@ -2,8 +2,10 @@ package org.sagebionetworks.repo.web.service;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.StorageUsageManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -21,6 +23,9 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	private UserManager userManager;
 
 	@Autowired
+	private AuthorizationManager authorizationManager;
+
+	@Autowired
 	private StorageUsageManager storageUsageManager;
 
 	@Override
@@ -36,7 +41,6 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 			throw new UnauthorizedException("Only administrators are allowed.");
 		}
 
-		// this will throw IllegalArgumentException
 		validateDimensionList(dimensionList);
 
 		StorageUsageSummaryList results = storageUsageManager.getUsage(dimensionList);
@@ -56,9 +60,7 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 		}
 
 		boolean isAdmin = isAdmin(currUserName);
-		// this will throw UnauthorizedException
-		checkUserAuthorization(isAdmin, currUserName, userName);
-		// this will throw IllegalArgumentException
+		checkAuthorization(isAdmin, currUserName, userName);
 		validateDimensionList(dimensionList);
 
 		String userId = getUserId(userName);
@@ -113,14 +115,35 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 		}
 
 		boolean isAdmin = isAdmin(currUserName);
-		// this will throw UnauthorizedException
-		checkUserAuthorization(isAdmin, currUserName, userName);
+		checkAuthorization(isAdmin, currUserName, userName);
 
 		String userId = getUserId(userName);
 		QueryResults<StorageUsage> queryResults = storageUsageManager.getUsageInRangeForUser(userId, offset, limit);
 		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>(urlPath, 
 				queryResults.getResults(), queryResults.getTotalNumberOfResults(), 
 				offset, limit, null, true);
+		return results;
+	}
+
+	@Override
+	public PaginatedResults<StorageUsage> getUsageInRangeForNode(
+			String currUserName, String nodeId, Integer offset, Integer limit,
+			String urlPath) throws NotFoundException, UnauthorizedException, DatastoreException {
+
+		if (currUserName == null) {
+			throw new NullPointerException();
+		}
+		if (nodeId == null) {
+			throw new NullPointerException();
+		}
+
+		checkAuthorization(currUserName, nodeId);
+
+		QueryResults<StorageUsage> queryResults = storageUsageManager.getUsageInRangeForUser(nodeId, offset, limit);
+		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>(urlPath, 
+				queryResults.getResults(), queryResults.getTotalNumberOfResults(), 
+				offset, limit, null, true);
+
 		return results;
 	}
 
@@ -145,11 +168,32 @@ public class StorageUsageServiceImpl implements StorageUsageService {
 	 *
 	 * @throws UnauthorizedException When current user is not authorized to view another user
 	 */
-	private void checkUserAuthorization(boolean isAdmin, String currUserName, String userName)
+	private void checkAuthorization(boolean isAdmin, String currUserName, String userName)
 			throws DatastoreException, UnauthorizedException {
 		if (!currUserName.equals(userName)) {
 			if (!isAdmin) {
-				throw new UnauthorizedException("Only administrator is allowed to view other user's storage usage.");
+				throw new UnauthorizedException(
+						"Only administrator is allowed to view other user's storage usage.");
+			}
+		}
+	}
+
+	/**
+	 * 
+	 * @throws UnauthorizedException When the current user is not authorized to view the node
+	 */
+	private void checkAuthorization(String currUserName, String nodeId)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
+
+		UserInfo currUserInfo = this.userManager.getUserInfo(currUserName);
+		if (currUserInfo == null) {
+			throw new UnauthorizedException("User " + currUserName + " does not exist.");
+		}
+		if (!currUserInfo.isAdmin()) {
+			if (!this.authorizationManager.canAccess(
+					currUserInfo, nodeId, ACCESS_TYPE.READ)) {
+				throw new UnauthorizedException(
+						currUserName+" does not have read access to the requested entity.");
 			}
 		}
 	}

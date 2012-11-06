@@ -20,6 +20,7 @@ public class StorageUsageManagerImplTest {
 	public void testGetStorageUsage() throws Exception {
 
 		String userId = "0";
+		String nodeId = "1";
 		int offset = 1;
 		int limit = 2;
 		long total = 100;
@@ -34,6 +35,8 @@ public class StorageUsageManagerImplTest {
 		StorageLocationDAO mockDao = Mockito.mock(StorageLocationDAO.class);
 		Mockito.when(mockDao.getUsageInRangeForUser(userId, offset, offset + limit)).thenReturn(storageList);
 		Mockito.when(mockDao.getTotalCountForUser(userId)).thenReturn(total);
+		Mockito.when(mockDao.getUsageInRangeForNode(nodeId, offset, offset + limit)).thenReturn(storageList);
+		Mockito.when(mockDao.getTotalCountForNode(nodeId)).thenReturn(total);
 
 		StorageUsageManager man = new StorageUsageManagerImpl();
 		man = unwrap(man);
@@ -41,6 +44,12 @@ public class StorageUsageManagerImplTest {
 
 		// Test
 		QueryResults<StorageUsage> results = man.getUsageInRangeForUser(userId, offset, limit);
+		Assert.assertEquals(total, results.getTotalNumberOfResults());
+		Assert.assertEquals(storageList.size(), results.getResults().size());
+		Assert.assertEquals(s1, results.getResults().get(0));
+		Assert.assertEquals(s2, results.getResults().get(1));
+
+		results = man.getUsageInRangeForNode(nodeId, offset, limit);
 		Assert.assertEquals(total, results.getTotalNumberOfResults());
 		Assert.assertEquals(storageList.size(), results.getResults().size());
 		Assert.assertEquals(s1, results.getResults().get(0));
