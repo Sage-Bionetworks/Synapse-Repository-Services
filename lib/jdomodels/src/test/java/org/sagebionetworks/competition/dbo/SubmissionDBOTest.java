@@ -9,7 +9,12 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.competition.model.CompetitionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.test.context.ContextConfiguration;
@@ -21,16 +26,24 @@ public class SubmissionDBOTest {
  
     @Autowired
     DBOBasicDao dboBasicDao;
+	@Autowired
+	NodeDAO nodeDAO;
  
+    private String nodeId = null;
     private long submissionId = 2000;
     private long userId = 0;
     private long compId = 2;
-    private long entityId = 819;
     private String name = "test submission";
     private Long score = 0L;
     
     @Before
-    public void setUp() {    	
+    public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {    	
+    	// create a node
+  		Node toCreate = NodeTestUtils.createNew(name, userId);
+    	toCreate.setVersionComment("This is the first version of the first node ever!");
+    	toCreate.setVersionLabel("0.0.1");
+    	nodeId = nodeDAO.createNew(toCreate).substring(3); // trim "syn" from node ID
+    	
         // Initialize a new competition
         CompetitionDBO competition = new CompetitionDBO();
         competition.setId(compId);
@@ -56,6 +69,9 @@ public class SubmissionDBOTest {
             params.addValue("id", compId);
             dboBasicDao.deleteObjectById(CompetitionDBO.class, params);
         }
+    	try {
+    		nodeDAO.delete(nodeId);
+    	} catch (NotFoundException e) {};
     }
     @Test
     public void testCRUD() throws Exception{
@@ -63,7 +79,7 @@ public class SubmissionDBOTest {
         SubmissionDBO submission = new SubmissionDBO();
         submission.setId(submissionId);
         submission.setName(name);
-        submission.setEntityId(entityId);
+        submission.setEntityId(Long.parseLong(nodeId));
         submission.setStatusEnum(SubmissionStatus.OPEN);
         submission.setUserId(userId);
         submission.setCompId(compId);
