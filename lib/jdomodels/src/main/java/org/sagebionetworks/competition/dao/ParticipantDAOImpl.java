@@ -135,7 +135,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	private static void copyDtoToDbo(Participant dto, ParticipantDBO dbo) {		
 		dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
 		dbo.setUserId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getUserId()));
-		dbo.setCreatedOn(dto.getCreatedOn().getTime());
+		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
 	}
 	
 	/**
