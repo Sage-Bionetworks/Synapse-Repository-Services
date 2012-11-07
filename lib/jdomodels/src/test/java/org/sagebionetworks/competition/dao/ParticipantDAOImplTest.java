@@ -58,11 +58,11 @@ public class ParticipantDAOImplTest {
         Participant participant = new Participant();
         participant.setUserId(userId);
         participant.setCompetitionId(compId);
-        participant.setCreatedOn(new Date());
  
         // Create and fetch it
         participantDAO.create(participant);
         Participant clone = participantDAO.get(userId, compId);
+        participant.setCreatedOn(clone.getCreatedOn());
         assertNotNull(clone);
         assertEquals(participant, clone);
         
