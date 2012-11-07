@@ -13,6 +13,10 @@ import org.sagebionetworks.competition.model.CompetitionStatus;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -26,16 +30,24 @@ public class SubmissionDAOImplTest {
     SubmissionDAO submissionDAO;
     @Autowired
     CompetitionDAO competitionDAO;
+	@Autowired
+	NodeDAO nodeDAO;
  
+	private String nodeId = null;
     private String submissionId = null;
     private String userId = "0";
     private String compId = "2";
-    private String entityId = "819";
     private String name = "test submission";
     private Long score = 0L;
     
     @Before
-    public void setUp() {    	
+    public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
+    	// create a node
+  		Node toCreate = NodeTestUtils.createNew(name, Long.parseLong(userId));
+    	toCreate.setVersionComment("This is the first version of the first node ever!");
+    	toCreate.setVersionLabel("0.0.1");
+    	nodeId = nodeDAO.createNew(toCreate).substring(3); // trim "syn" from node ID
+    	
     	// create a competition
         Competition competition = new Competition();
         competition.setId(compId);
@@ -50,6 +62,9 @@ public class SubmissionDAOImplTest {
     
     @After
     public void after() throws DatastoreException {
+    	try {
+    		nodeDAO.delete(nodeId);
+    	} catch (NotFoundException e) {};
 		try {
 			submissionDAO.delete(submissionId);
 		} catch (NotFoundException e)  {};
@@ -64,7 +79,7 @@ public class SubmissionDAOImplTest {
         Submission submission = new Submission();
         submission.setId(submissionId);
         submission.setName(name);
-        submission.setEntityId(entityId);
+        submission.setEntityId(nodeId);
         submission.setStatus(SubmissionStatus.OPEN);
         submission.setUserId(userId);
         submission.setCompetitionId(compId);
