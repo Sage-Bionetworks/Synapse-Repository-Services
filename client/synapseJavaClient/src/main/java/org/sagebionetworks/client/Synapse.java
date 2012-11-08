@@ -2352,4 +2352,18 @@ public class Synapse {
 		deleteUri(uri);
 	}
 	
+	public <T extends Entity> void deleteEntityVersion(T entity, Long versionNumber) throws SynapseException {
+		if (entity == null)
+			throw new IllegalArgumentException("Entity cannot be null");
+		deleteEntityVersionById(entity.getId(), versionNumber);
+	}
+
+	public void deleteEntityVersionById(String entityId, Long versionNumber) throws SynapseException {
+		if (entityId == null)
+			throw new IllegalArgumentException("EntityId cannot be null");
+		if (versionNumber == null)
+			throw new IllegalArgumentException("VersionNumber cannot be null");
+		String uri = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION + "/" + versionNumber;
+		deleteUri(uri);
+	}
 }
