@@ -3,7 +3,7 @@ package org.sagebionetworks.dynamo;
 /**
  * When Dynamo fails to complete within the specified time.
  *
- * @author ewu
+ * @author Eric Wu
  */
 public class DynamoTimeoutException extends RuntimeException {
 

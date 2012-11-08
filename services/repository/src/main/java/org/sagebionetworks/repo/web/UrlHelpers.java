@@ -321,6 +321,11 @@ public class UrlHelpers {
 	public static final String STORAGE_DETAILS_USER_ID = STORAGE_DETAILS + "/{" + STORAGE_USER_ID + "}";
 
 	/**
+	 * Itemized storage usage for the specified NODE.
+	 */
+	public static final String STORAGE_DETAILS_ENTITY_ID = STORAGE_DETAILS + ENTITY_ID;
+
+	/**
 	 * Storage usage summary for administrators.
 	 */
 	public static final String ADMIN_STORAGE_SUMMARY = ADMIN + STORAGE_SUMMARY;
