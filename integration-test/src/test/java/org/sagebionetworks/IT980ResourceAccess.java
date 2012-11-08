@@ -46,8 +46,8 @@ public class IT980ResourceAccess {
 		JSONObject obj = new JSONObject();
 		obj.put("userName", resourceUserName);
 		obj.put("userData", USER_DATA);
-		synapse.createSynapseEntity(authEndpoint, "/resourceAccess/"+RESOURCE_NAME, obj);
-		synapse.deleteSynapseEntity(authEndpoint, "/resourceAccess/"+RESOURCE_NAME+
+		synapse.createJSONObjectEntity(authEndpoint, "/resourceAccess/"+RESOURCE_NAME, obj);
+		synapse.deleteUri(authEndpoint, "/resourceAccess/"+RESOURCE_NAME+
 				"?resourceUserName="+URLEncoder.encode(resourceUserName, "UTF-8"));
 	}
 	
@@ -62,13 +62,13 @@ public class IT980ResourceAccess {
 		JSONObject obj = new JSONObject();
 		obj.put("userName", resourceUserName);
 		obj.put("userData", USER_DATA);
-		synapse.createSynapseEntity(authEndpoint, "/resourceAccess/"+RESOURCE_NAME, obj);
+		synapse.createJSONObjectEntity(authEndpoint, "/resourceAccess/"+RESOURCE_NAME, obj);
 		
 		// now create the session
 		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
 				StackConfiguration.getIntegrationTestUserOnePassword());
 		JSONObject empty = new JSONObject();
-		JSONObject session = synapse.createSynapseEntity(authEndpoint, "/resourceSession/"+RESOURCE_NAME, empty);
+		JSONObject session = synapse.createJSONObjectEntity(authEndpoint, "/resourceSession/"+RESOURCE_NAME, empty);
 		assertTrue(session.has("resourceAccessToken"));
 		String resourceAccessToken = session.getString("resourceAccessToken");
 		
@@ -87,7 +87,7 @@ public class IT980ResourceAccess {
 		// finally, delete the resource-access record
 		synapse.login(StackConfiguration.getIntegrationTestUserAdminName(),
 				StackConfiguration.getIntegrationTestUserAdminPassword());
-		synapse.deleteSynapseEntity(authEndpoint, "/resourceAccess/"+RESOURCE_NAME+
+		synapse.deleteUri(authEndpoint, "/resourceAccess/"+RESOURCE_NAME+
 				"?resourceUserName="+URLEncoder.encode(resourceUserName, "UTF-8"));
 	}
 	
