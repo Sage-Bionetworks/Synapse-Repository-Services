@@ -1,15 +1,9 @@
 package org.sagebionetworks.file.controller;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.UnsupportedEncodingException;
-import java.util.Enumeration;
-import java.util.List;
 
-import javax.servlet.ServletInputStream;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.validation.constraints.Min;
 
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
@@ -18,20 +12,24 @@ import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.file.services.FileUploadService;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.ResponseBody;
-import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Controller
-public class UploadController {
+public class UploadController extends BaseController {
 
-	static private Log log = LogFactory.getLog(UploadController.class);
+	static private Log log = LogFactory.getLog(UploadController.class);	
+	
+	@Autowired
+	FileUploadService fileService;
 
 	@RequestMapping("/echo")
 	void echo(HttpServletRequest request, HttpServletResponse response, @RequestHeader HttpHeaders headers)	throws FileUploadException, IOException {
@@ -99,12 +97,23 @@ public class UploadController {
 	 * @param headers
 	 * @throws FileUploadException
 	 * @throws IOException
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
 	@RequestMapping("/single")
-	void single(HttpServletRequest request, HttpServletResponse response, @RequestHeader HttpHeaders headers)	throws FileUploadException, IOException {
-		
+	void single(HttpServletRequest request, HttpServletResponse response, @RequestHeader HttpHeaders headers)	throws FileUploadException, IOException, DatastoreException, NotFoundException {
+		// Get the user ID
+		String userId = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
+		if(userId == null) throw new UnauthorizedException("The user must be authenticated");
+		LogUtils.logRequest(log, request);
+		// Maker sure this is a multipart
+		if(!ServletFileUpload.isMultipartContent(request)){
+			throw new IllegalArgumentException("This service only supports: content-type = multipart/form-data");
+		}
+		// Pass it along.
+		fileService.uploadFiles(userId, new ServletFileUpload().getItemIterator(request));
+		response.setStatus(201);
+		response.getWriter().append("ok");
 	}
-
-
-
+	
 }

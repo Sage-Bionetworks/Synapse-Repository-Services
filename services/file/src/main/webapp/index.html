@@ -4,14 +4,21 @@
 </head>
 <body>
 	<h1>Upload a file</h1>
-	<form name="form_" method="post" id="upload" action="/services-file/upload/v1/echo" enctype="multipart/form-data">
-		<label for="sessionToken">Synapse Session Token</label>
-		<input type="text" name="sessionToken" required="required"/>
-		<br/><br/>
-		<label for="fileField">Upload</label>
-		<input	type="file" name="fileField" required="required">
-		<br/><br/>
-		<input type="submit" name="submit" value="Submit">
-	</form>
+	<ol>
+		<li><a href="/services-file/login.html">login</a></li>
+		<li>
+			<!-- The session token must be added as cookie in order for this form submit to work. Expected cookie:
+				name=sessionToken
+				value=<your_session_token>
+				path=/
+			  -->
+			<form name="form" method="post" id="upload" action="/services-file/upload/v1/single" enctype="multipart/form-data">
+				<label for="fileField">Upload</label>
+				<input	type="file" name="fileField" required="required">
+				<br/><br/>
+				<input type="submit" name="submit" value="Submit">
+			</form>
+		</li>
+</ol> 
 </body>
 </html>
