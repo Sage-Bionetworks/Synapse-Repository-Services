@@ -41,9 +41,8 @@ abstract class LineagePairWriteOperation implements DynamoWriteOperation {
 					" cannot be compared against " + this.getClass().getName());
 		}
 
+		// Sort the write operations so that they are executed in a predetermined order down the tree
 		LineagePairWriteOperation that = (LineagePairWriteOperation)lineagePairWriteOp;
-
-		// Sort the write operations so that they are executed down the tree
 		int sort = this.getAncestorDepth() - that.getAncestorDepth();
 		if (sort == 0) {
 			sort = this.getAncestorId().compareTo(that.getAncestorId());

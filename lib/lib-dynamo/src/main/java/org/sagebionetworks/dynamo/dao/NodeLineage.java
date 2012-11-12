@@ -2,69 +2,57 @@ package org.sagebionetworks.dynamo.dao;
 
 import java.util.Date;
 
-import org.sagebionetworks.dynamo.DynamoTable;
 import org.sagebionetworks.dynamo.KeyValueSplitter;
 
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBAttribute;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBHashKey;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBIgnore;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBRangeKey;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBTable;
-import com.amazonaws.services.dynamodb.datamodeling.DynamoDBVersionAttribute;
-
 /**
- * Lineage between two nodes, where one is the ancestor and the other is the descendant.
+ * Defines lineage between two nodes, where one is the ancestor and the other is the descendant.
+ * This mirrors {@link DboNodeLineage} but holds the discrete parts of the composite keys.
  *
  * @author Eric Wu
  */
-@DynamoDBTable(tableName=NodeLineage.TABLE_NAME)
-public class NodeLineage implements DynamoTable {
+class NodeLineage {
 
-	public static final String TABLE_NAME = "NodeLineage";
-	public static final String HASH_KEY = "NodeId" + KeyValueSplitter.SEPARATOR + "LineageType";
-	public static final String RANGE_KEY = "Distance" + KeyValueSplitter.SEPARATOR + "NodeId";
-	public static final String ROOT_ID = "ROOT";
+	/**
+	 * Creates from the dbo.
+	 */
+	NodeLineage(DboNodeLineage dbo) {
 
-	// Needed by Dynamo mapper to load from DynamoDB
-	public NodeLineage() {}
+		if (dbo == null) {
+			throw new NullPointerException();
+		}
+		String hashKey = dbo.getHashKey();
+		if (hashKey == null) {
+			throw new IllegalArgumentException("Hash key not initialized.");
+		}
+		String rangeKey = dbo.getRangeKey();
+		if (rangeKey == null) {
+			throw new IllegalArgumentException("Range key not initialized.");
+		}
 
-	@DynamoDBHashKey(attributeName=NodeLineage.HASH_KEY)
-	public String getHashKey() {
-		return this.nodeIdLineageType;
-	}
-	public void setHashKey(String nodeIdLineageType) {
-		this.nodeIdLineageType = nodeIdLineageType;
-	}
+		String[] splits = KeyValueSplitter.split(hashKey);
+		this.nodeId = splits[0];
+		this.lineageType = LineageType.fromString(splits[1]);
 
-	@DynamoDBRangeKey(attributeName=NodeLineage.RANGE_KEY)
-	public String getRangeKey() {
-		return this.distanceNodeId;
-	}
-	public void setRangeKey(String distanceNodeId) {
-		this.distanceNodeId = distanceNodeId;
-	}
+		splits = KeyValueSplitter.split(rangeKey);
+		this.distance = Integer.parseInt(splits[0]);
+		this.ancOrDescNodeId = splits[1];
 
-	@DynamoDBVersionAttribute
-	public Long getVersion() {
-		return this.version;
-	}
-	public void setVersion(Long version) {
-		this.version = version;
-	}
-
-	@DynamoDBAttribute
-	public Date getTimestamp() {
-		return this.timestamp;
-	}
-	public void setTimestamp(Date timestamp) {
-		this.timestamp = timestamp;
+		this.version = dbo.getVersion();
+		this.timestamp = dbo.getTimestamp();
 	}
 
 	/**
-	 * For the root node, make the ancestor/descendant ID the same as this node's ID and
-	 * lineage type must be ancestor.
+	 * For the root node, pass in {@link DboNodeLineage#ROOT} as the ancestor.
 	 */
-	NodeLineage(String nodeId, String ancOrDescId, LineageType lineageType, int distance, Date timestamp) {
+	NodeLineage(String nodeId, LineageType lineageType, int distance, String ancOrDescId, Date timestamp) {
+		this(nodeId, lineageType, distance, ancOrDescId, timestamp, null);
+	}
+
+	/**
+	 * For the root node, pass in {@link DboNodeLineage#ROOT} as the ancestor.
+	 */
+	NodeLineage(String nodeId, LineageType lineageType, int distance, String ancOrDescId,
+			Date timestamp, Long version) {
 
 		if (nodeId == null) {
 			throw new NullPointerException();
@@ -72,37 +60,43 @@ public class NodeLineage implements DynamoTable {
 		if (ancOrDescId == null) {
 			throw new NullPointerException();
 		}
+		if (nodeId.equals(ancOrDescId)) {
+			throw new IllegalArgumentException("Cannot have a self-lineage.");
+		}
 		if (lineageType == null) {
 			throw new NullPointerException();
 		}
-		if (distance < 0) {
-			throw new IllegalArgumentException("Distance cannot be negative. Distance is " + distance);
-		}
-		if (nodeId.equals(ancOrDescId) && !LineageType.ANCESTOR.equals(lineageType)) {
-			throw new IllegalArgumentException("Root must use the ancestor lineage type.");
-		}
-		if (nodeId.equals(ancOrDescId) && distance != 0) {
-			throw new IllegalArgumentException("Root must have 0 distance to itself.");
-		}
-		if (timestamp == null) {
-			throw new NullPointerException();
+		if (distance <= 0) {
+			throw new IllegalArgumentException("Distance must be greater than 0. Distance is " + distance);
 		}
 
-		this.nodeIdLineageType = nodeId + KeyValueSplitter.SEPARATOR + lineageType.getType();
-		this.distanceNodeId = distance + KeyValueSplitter.SEPARATOR + ancOrDescId;
+		this.nodeId = nodeId;
+		this.lineageType = lineageType;
+		this.distance = distance;
+		this.ancOrDescNodeId = ancOrDescId;
 		this.timestamp = timestamp;
+		this.version = version;
+	}
+
+	/**
+	 * Creates the dbo.
+	 */
+	DboNodeLineage createDbo() {
+		DboNodeLineage dbo = new DboNodeLineage();
+		String hashKey = DboNodeLineage.createHashKey(this.nodeId, this.lineageType);
+		dbo.setHashKey(hashKey);
+		String rangeKey = DboNodeLineage.createRangeKey(this.distance, this.ancOrDescNodeId);
+		dbo.setRangeKey(rangeKey);
+		dbo.setTimestamp(this.timestamp);
+		dbo.setVersion(this.version);
+		return dbo;
 	}
 
 	/**
 	 * The ID of node U in the lineage tuple (U, V).
 	 */
-	@DynamoDBIgnore
 	String getNodeId() {
-		if (this.nodeIdLineageType == null) {
-			throw new NullPointerException();
-		}
-		String splits[] = KeyValueSplitter.split(this.nodeIdLineageType);
-		return splits[0];
+		return this.nodeId;
 	}
 
 	/**
@@ -110,44 +104,56 @@ public class NodeLineage implements DynamoTable {
 	 * In the lineage tuple (U, V), if the type is descendant, then U is
 	 * a descendant of V.
 	 */
-	@DynamoDBIgnore
 	LineageType getLineageType() {
-		if (this.nodeIdLineageType == null) {
-			throw new NullPointerException();
-		}
-		String splits[] = KeyValueSplitter.split(this.nodeIdLineageType);
-		LineageType type = LineageType.fromString(splits[1]);
-		return type;
+		return this.lineageType;
 	}
 
 	/**
 	 * The ID of node V in the lineage tuple (U, V).
 	 */
-	@DynamoDBIgnore
 	String getAncestorOrDescendantId() {
-		if (this.distanceNodeId == null) {
-			throw new NullPointerException();
-		}
-		String splits[] = KeyValueSplitter.split(this.distanceNodeId);
-		return splits[1];
+		return this.ancOrDescNodeId;
 	}
 
 	/**
 	 * The distance of node V from node U in the node tuple (U, V).
 	 * For example, if U is the parent of V, the distance is 1.
 	 */
-	@DynamoDBIgnore
 	int getDistance() {
-		if (this.distanceNodeId == null) {
-			throw new NullPointerException();
-		}
-		String splits[] = KeyValueSplitter.split(this.distanceNodeId);
-		int distance = Integer.parseInt(splits[0]);
-		return distance;
+		return this.distance;
 	}
 
-	private String nodeIdLineageType;
-	private String distanceNodeId;
-	private Long version;
-	private Date timestamp;
+	/**
+	 * The timestamp. Can be null.
+	 * @return
+	 */
+	Date getTimestamp() {
+		return this.timestamp;
+	}
+
+	/**
+	 * The version, set by DynamoDB. Can be null for new object.
+	 */
+	Long getVersion() {
+		return this.version;
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("NodeLineage [nodeId=").append(nodeId)
+				.append(", lineageType=").append(lineageType)
+				.append(", distance=").append(distance)
+				.append(", ancOrDescNodeId=").append(ancOrDescNodeId)
+				.append(", version=").append(version).append(", timestamp=")
+				.append(timestamp).append("]");
+		return builder.toString();
+	}
+
+	private final String nodeId;
+	private final LineageType lineageType;
+	private final int distance;
+	private final String ancOrDescNodeId;
+	private final Long version;
+	private final Date timestamp;
 }
