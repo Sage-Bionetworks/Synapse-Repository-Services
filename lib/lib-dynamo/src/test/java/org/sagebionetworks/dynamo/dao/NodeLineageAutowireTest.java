@@ -4,6 +4,7 @@ import java.util.Date;
 
 import junit.framework.Assert;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -24,28 +25,53 @@ public class NodeLineageAutowireTest {
 	private AmazonDynamoDB dynamoClient;
 	private DynamoDBMapper mapper;
 
+	private NodeLineage u2vLineage;
+	private NodeLineage v2uLineage;
+	private DboNodeLineage u2vSavedDbo;
+	private DboNodeLineage v2uSavedDbo;
+
 	@Before
-	public void before() {
+	public void before() throws Exception {
 		DynamoDBMapperConfig mapperConfig = NodeLineageMapperConfig.getMapperConfigWithConsistentReads();
 		this.mapper = new DynamoDBMapper(this.dynamoClient, mapperConfig);
+		String u = DynamoTestUtil.nextRandomId();
+		String v = DynamoTestUtil.nextRandomId();
+		u2vLineage = new NodeLineage(u, LineageType.DESCENDANT, 1, v, new Date());
+		v2uLineage = new NodeLineage(v, LineageType.ANCESTOR, 1, u, new Date());
+		DboNodeLineage u2vDbo = u2vLineage.createDbo();
+		DboNodeLineage v2uDbo = v2uLineage.createDbo();
+		this.mapper.save(u2vDbo);
+		Thread.sleep(5000);       // Sleep 5 seconds
+		this.mapper.save(u2vDbo); // Note that put with null version skips optimistic locking
+		this.mapper.save(v2uDbo);
+		u2vSavedDbo = this.mapper.load(DboNodeLineage.class,
+				u2vDbo.getHashKey(), u2vDbo.getRangeKey());
+		v2uSavedDbo = this.mapper.load(DboNodeLineage.class,
+				v2uDbo.getHashKey(), v2uDbo.getRangeKey());
+	}
+
+	@After
+	public void after() {
+		if (u2vSavedDbo != null) {
+			this.mapper.delete(u2vSavedDbo);
+		}
+		if (v2uSavedDbo != null) {
+			this.mapper.delete(v2uSavedDbo);
+		}
+		// Delete more than once will get 400 ConditionalCheckFailedException
+		// The following deletes would fail:
+		// this.mapper.delete(u2vSavedDbo);
+		// this.mapper.delete(u2vDbo);
+		DboNodeLineage u2vDbo = this.mapper.load(DboNodeLineage.class,
+				u2vSavedDbo.getHashKey(), u2vSavedDbo.getRangeKey());
+		DboNodeLineage v2uDbo = this.mapper.load(DboNodeLineage.class,
+				v2uSavedDbo.getHashKey(), v2uSavedDbo.getRangeKey());
+		Assert.assertNull(u2vDbo);
+		Assert.assertNull(v2uDbo);
 	}
 
 	@Test
 	public void testRoundTrip() throws Exception {
-		String u = DynamoTestUtil.nextRandomId();
-		String v = DynamoTestUtil.nextRandomId();
-		NodeLineage u2vLineage = new NodeLineage(u, LineageType.DESCENDANT, 1, v, new Date());
-		NodeLineage v2uLineage = new NodeLineage(v, LineageType.ANCESTOR, 1, u, new Date());
-		DboNodeLineage u2vDbo = u2vLineage.createDbo();
-		DboNodeLineage v2uDbo = v2uLineage.createDbo();
-		this.mapper.save(u2vDbo);
-		Thread.sleep(6000);       // Sleep 6 seconds
-		this.mapper.save(u2vDbo); // Note that put with null version skips optimistic locking
-		this.mapper.save(v2uDbo);
-		DboNodeLineage u2vSavedDbo = this.mapper.load(DboNodeLineage.class,
-				u2vDbo.getHashKey(), u2vDbo.getRangeKey());
-		DboNodeLineage v2uSavedDbo = this.mapper.load(DboNodeLineage.class,
-				v2uDbo.getHashKey(), v2uDbo.getRangeKey());
 		NodeLineage u2vSaved = new NodeLineage(u2vSavedDbo);
 		NodeLineage v2uSaved = new NodeLineage(v2uSavedDbo);
 		Assert.assertEquals(u2vLineage.getNodeId(), u2vSaved.getNodeId());
@@ -60,17 +86,5 @@ public class NodeLineageAutowireTest {
 		Assert.assertEquals(v2uLineage.getAncestorOrDescendantId(), v2uSaved.getAncestorOrDescendantId());
 		Assert.assertEquals(1L, v2uSaved.getVersion().longValue());
 		Assert.assertEquals(v2uLineage.getTimestamp(), v2uSaved.getTimestamp());
-		this.mapper.delete(u2vSavedDbo);
-		this.mapper.delete(v2uSavedDbo);
-		// Delete more than once will get 400 ConditionalCheckFailedException
-		// The following deletes would fail:
-		// this.mapper.delete(u2vSavedDbo);
-		// this.mapper.delete(u2vDbo);
-		u2vSavedDbo = this.mapper.load(DboNodeLineage.class,
-				u2vSavedDbo.getHashKey(), u2vSavedDbo.getRangeKey());
-		v2uSavedDbo = this.mapper.load(DboNodeLineage.class,
-				v2uSavedDbo.getHashKey(), v2uSavedDbo.getRangeKey());
-		Assert.assertNull(u2vSavedDbo);
-		Assert.assertNull(v2uSavedDbo);
 	}
 }

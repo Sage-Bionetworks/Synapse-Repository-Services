@@ -73,7 +73,7 @@ public class NodeLineagePairTest {
 	}
 
 	@Test
-	public void test() {
+	public void testConstructor() {
 	
 		String ancId = "123";
 		String descId = "321";

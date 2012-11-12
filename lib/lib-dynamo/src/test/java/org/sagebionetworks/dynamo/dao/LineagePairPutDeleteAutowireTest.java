@@ -4,6 +4,7 @@ import java.util.Date;
 
 import junit.framework.Assert;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -23,23 +24,29 @@ public class LineagePairPutDeleteAutowireTest {
 	private AmazonDynamoDB dynamoClient;
 	private DynamoDBMapper dynamoMapper;
 
+	private String ancId;
+	private String descId;
+	private Date timestamp;
+	private int depth;
+	private int distance;
+	private DboNodeLineage a2dDboSaved;
+	private DboNodeLineage d2aDboSaved;
+
 	@Before
 	public void before() {
+
 		this.dynamoMapper = new DynamoDBMapper(this.dynamoClient,
 				NodeLineageMapperConfig.getMapperConfigWithConsistentReads());
-	}
 
-	@Test
-	public void test() {
-
-		String ancId = DynamoTestUtil.nextRandomId();
-		String descId = DynamoTestUtil.nextRandomId();
-		Date timestamp = new Date();
-		int depth = 3;
-		int distance = 96;
+		// Create a pair of random nodes
+		ancId = DynamoTestUtil.nextRandomId();
+		descId = DynamoTestUtil.nextRandomId();
+		timestamp = new Date();
+		depth = 3;
+		distance = 96;
 		NodeLineagePair pairToPut = new NodeLineagePair(ancId, descId, depth, distance, timestamp);
 
-		// Test put
+		// Put to DynamoDB
 		LineagePairPut put = new LineagePairPut(pairToPut, this.dynamoMapper);
 		Assert.assertEquals(ancId, put.getAncestorId());
 		Assert.assertEquals(descId, put.getDescendantId());
@@ -48,10 +55,34 @@ public class LineagePairPutDeleteAutowireTest {
 		put.write(0);
 		DboNodeLineage a2dDbo = pairToPut.getAncestor2Descendant();
 		DboNodeLineage d2aDbo = pairToPut.getDescendant2Ancestor();
-		DboNodeLineage a2dDboSaved = this.dynamoMapper.load(DboNodeLineage.class,
+		a2dDboSaved = this.dynamoMapper.load(DboNodeLineage.class,
 				a2dDbo.getHashKey(), a2dDbo.getRangeKey());
-		DboNodeLineage d2aDboSaved = this.dynamoMapper.load(DboNodeLineage.class,
+		d2aDboSaved = this.dynamoMapper.load(DboNodeLineage.class,
 				d2aDbo.getHashKey(), d2aDbo.getRangeKey());
+	}
+
+	@After
+	public void after() {
+
+		if (a2dDboSaved != null) {
+			NodeLineagePair pairToDelete = new NodeLineagePair(a2dDboSaved, depth);
+			LineagePairDelete delete = new LineagePairDelete(pairToDelete, this.dynamoMapper);
+			Assert.assertEquals(ancId, delete.getAncestorId());
+			Assert.assertEquals(descId, delete.getDescendantId());
+			Assert.assertEquals(depth, delete.getAncestorDepth());
+			Assert.assertEquals(distance, delete.getDistance());
+			delete.write(0);
+			DboNodeLineage a2dDboDeleted = this.dynamoMapper.load(DboNodeLineage.class,
+					a2dDboSaved.getHashKey(), a2dDboSaved.getRangeKey());
+			DboNodeLineage d2aDboDeleted = this.dynamoMapper.load(DboNodeLineage.class,
+					d2aDboSaved.getHashKey(), d2aDboSaved.getRangeKey());
+			Assert.assertNull(a2dDboDeleted);
+			Assert.assertNull(d2aDboDeleted);
+		}
+	}
+
+	@Test
+	public void test() {
 		Assert.assertNotNull(a2dDboSaved);
 		Assert.assertNotNull(d2aDboSaved);
 		NodeLineage a2dSaved = new NodeLineage(a2dDboSaved);
@@ -68,20 +99,5 @@ public class LineagePairPutDeleteAutowireTest {
 		Assert.assertEquals(ancId, d2aSaved.getAncestorOrDescendantId());
 		Assert.assertEquals(timestamp, d2aSaved.getTimestamp());
 		Assert.assertEquals(1L, d2aSaved.getVersion().longValue());
-
-		// Test delete
-		NodeLineagePair pairToDelete = new NodeLineagePair(a2dDboSaved, depth);
-		LineagePairDelete delete = new LineagePairDelete(pairToDelete, this.dynamoMapper);
-		Assert.assertEquals(ancId, delete.getAncestorId());
-		Assert.assertEquals(descId, delete.getDescendantId());
-		Assert.assertEquals(depth, delete.getAncestorDepth());
-		Assert.assertEquals(distance, delete.getDistance());
-		delete.write(0);
-		DboNodeLineage a2dDboDeleted = this.dynamoMapper.load(DboNodeLineage.class,
-				a2dDboSaved.getHashKey(), a2dDboSaved.getRangeKey());
-		DboNodeLineage d2aDboDeleted = this.dynamoMapper.load(DboNodeLineage.class,
-				d2aDboSaved.getHashKey(), d2aDboSaved.getRangeKey());
-		Assert.assertNull(a2dDboDeleted);
-		Assert.assertNull(d2aDboDeleted);
 	}
 }
