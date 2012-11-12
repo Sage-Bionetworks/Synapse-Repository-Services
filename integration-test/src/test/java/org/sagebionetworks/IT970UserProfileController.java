@@ -37,7 +37,7 @@ public class IT970UserProfileController {
 		// now update the fields
 		userProfile.put("firstName", "foo");
 		userProfile.put("lastName", "bar");
-		synapse.putEntity("/userProfile", userProfile);
+		synapse.putJSONObject("/userProfile", userProfile, null);
 	}
 	
 
