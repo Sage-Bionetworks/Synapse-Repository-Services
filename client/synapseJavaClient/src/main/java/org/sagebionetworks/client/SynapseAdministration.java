@@ -78,7 +78,7 @@ public class SynapseAdministration extends Synapse {
 	}
 	
 	public void deleteObject(MigratableObjectDescriptor mod)  throws SynapseNotFoundException, SynapseException {
-		deleteEntity(DAEMON_RESTORE+"?migrationType="+mod.getType()+"&id="+mod.getId());
+		deleteUri(DAEMON_RESTORE+"?migrationType="+mod.getType()+"&id="+mod.getId());
 	}
 
 	/**
@@ -90,7 +90,7 @@ public class SynapseAdministration extends Synapse {
 	public BackupRestoreStatus startBackupDaemon(BackupSubmission submission, MigratableObjectType migrationType)
 			throws JSONObjectAdapterException, SynapseException {
 		JSONObject json = EntityFactory.createJSONObjectForEntity(submission);
-		json = createEntity(DAEMON_BACKUP+"?migrationType="+migrationType, json);
+		json = createJSONObject(DAEMON_BACKUP+"?migrationType="+migrationType, json);
 		return EntityFactory.createEntityFromJSONObject(json,
 				BackupRestoreStatus.class);
 	}
@@ -124,7 +124,7 @@ public class SynapseAdministration extends Synapse {
 		JSONObject jsonObject = EntityFactory
 				.createJSONObjectForEntity(submission);
 		// Create the entity
-		jsonObject = createEntity(DAEMON_RESTORE+"?migrationType="+migrationType, jsonObject);
+		jsonObject = createJSONObject(DAEMON_RESTORE+"?migrationType="+migrationType, jsonObject);
 		return EntityFactory.createEntityFromJSONObject(jsonObject,
 				BackupRestoreStatus.class);
 	}

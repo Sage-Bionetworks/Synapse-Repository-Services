@@ -292,7 +292,7 @@ public class WikiGenerator {
 		log.info("*Response* {code}");
 
 		try {
-			JSONObject results = synapse.createEntity(uri, entity);
+			JSONObject results = synapse.createJSONObject(uri, entity);
 			log.info(results.toString(JSON_INDENT) + "{code}");
 			return results;
 		} catch (Exception e) {
@@ -341,7 +341,7 @@ public class WikiGenerator {
 		log.info("*Response* {code}");
 
 		try {
-			JSONObject results = synapse.putEntity(uri, entity);
+			JSONObject results = synapse.putJSONObject(uri, entity, null);
 			log.info(results.toString(JSON_INDENT) + "{code}");
 			return results;
 		} catch (Exception e) {
@@ -386,7 +386,7 @@ public class WikiGenerator {
 		log.info("*Response* {code}");
 
 		try {
-			synapse.deleteEntity(uri);
+			synapse.deleteUri(uri);
 			log.info("{code}");
 			return;
 		} catch (Exception e) {
