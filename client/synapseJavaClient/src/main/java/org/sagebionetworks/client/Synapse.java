@@ -2363,7 +2363,8 @@ public class Synapse {
 			throw new IllegalArgumentException("EntityId cannot be null");
 		if (versionNumber == null)
 			throw new IllegalArgumentException("VersionNumber cannot be null");
-		String uri = ENTITY_URI_PATH + "/" + entityId + REPO_SUFFIX_VERSION + "/" + versionNumber;
+		String uri = createEntityUri(ENTITY_URI_PATH, entityId);
+		uri += REPO_SUFFIX_VERSION + "/" + versionNumber;
 		deleteUri(uri);
 	}
 }
