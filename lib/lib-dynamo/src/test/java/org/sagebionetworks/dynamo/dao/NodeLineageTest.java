@@ -2,118 +2,128 @@ package org.sagebionetworks.dynamo.dao;
 
 import java.util.Date;
 
-import junit.framework.Assert;
-
+import org.junit.Assert;
 import org.junit.Test;
-import org.sagebionetworks.dynamo.KeyValueSplitter;
 
 public class NodeLineageTest {
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testConstructorDboIllegalArgumentException1() {
+		DboNodeLineage dbo = new DboNodeLineage();
+		dbo.setRangeKey("003#98931");
+		NodeLineage lineage = new NodeLineage(dbo);
+		Assert.assertNull(lineage);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testConstructorDboIllegalArgumentException2() {
+		DboNodeLineage dbo = new DboNodeLineage();
+		dbo.setHashKey("29201#D");
+		NodeLineage lineage = new NodeLineage(dbo);
+		Assert.assertNull(lineage);
+	}
+
+	@Test
+	public void testConstructorDbo() {
+		DboNodeLineage dbo = new DboNodeLineage();
+		dbo.setHashKey("29201#D");
+		dbo.setRangeKey("003#98931");
+		Date date = new Date();
+		dbo.setTimestamp(date);
+		Long version = 5L;
+		dbo.setVersion(version);
+		NodeLineage lineage = new NodeLineage(dbo);
+		Assert.assertNotNull(lineage);
+		Assert.assertEquals("29201", lineage.getNodeId());
+		Assert.assertEquals(LineageType.DESCENDANT, lineage.getLineageType());
+		Assert.assertEquals(3, lineage.getDistance());
+		Assert.assertEquals("98931", lineage.getAncestorOrDescendantId());
+		Assert.assertEquals(date, lineage.getTimestamp());
+		Assert.assertEquals(version, lineage.getVersion());
+	}
 
 	@Test
 	public void testConstructor() {
 		String nodeId = "M";
+		LineageType lineageType = LineageType.ANCESTOR;
+		int distance = 3;
 		String ancestorId = "N";
-		LineageType lineage = LineageType.ANCESTOR;
-		int depth = 3;
 		Date timestamp = new Date();
-		NodeLineage pair = new NodeLineage(nodeId, ancestorId, lineage, depth, timestamp);
-		Assert.assertEquals(nodeId, pair.getNodeId());
-		Assert.assertEquals(ancestorId, pair.getAncestorOrDescendantId());
-		Assert.assertEquals(lineage, pair.getLineageType());
-		Assert.assertEquals(depth, pair.getDistance());
-		Assert.assertEquals(timestamp, pair.getTimestamp());
+		Long version = 5L;
+		NodeLineage lineage = new NodeLineage(nodeId, lineageType, distance, ancestorId, timestamp, version);
+		Assert.assertEquals(nodeId, lineage.getNodeId());
+		Assert.assertEquals(lineageType, lineage.getLineageType());
+		Assert.assertEquals(distance, lineage.getDistance());
+		Assert.assertEquals(ancestorId, lineage.getAncestorOrDescendantId());
+		Assert.assertEquals(timestamp, lineage.getTimestamp());
+		Assert.assertEquals(version, lineage.getVersion());
 	}
 
 	@Test
 	public void testConstructorRoot() {
 		String nodeId = "M";
-		String ancestorId = "M";
-		LineageType lineage = LineageType.ANCESTOR;
-		int depth = 0;
+		String ancestorId = DboNodeLineage.ROOT;
+		LineageType lineageType = LineageType.ANCESTOR;
+		int distance = 1;
 		Date timestamp = new Date();
-		NodeLineage pair = new NodeLineage(nodeId, ancestorId, lineage, depth, timestamp);
-		Assert.assertEquals(nodeId, pair.getNodeId());
-		Assert.assertEquals(ancestorId, pair.getAncestorOrDescendantId());
-		Assert.assertEquals(lineage, pair.getLineageType());
-		Assert.assertEquals(depth, pair.getDistance());
-		Assert.assertEquals(timestamp, pair.getTimestamp());
+		NodeLineage lineage = new NodeLineage(nodeId, lineageType, distance, ancestorId, timestamp);
+		Assert.assertEquals(nodeId, lineage.getNodeId());
+		Assert.assertEquals(lineageType, lineage.getLineageType());
+		Assert.assertEquals(distance, lineage.getDistance());
+		Assert.assertEquals(ancestorId, lineage.getAncestorOrDescendantId());
+		Assert.assertEquals(timestamp, lineage.getTimestamp());
+		Assert.assertEquals(null, lineage.getVersion());
 	}
 
 	@Test(expected=NullPointerException.class)
 	public void testConstructorNullPointerException1() {
-		NodeLineage pair = new NodeLineage(null, "N",  LineageType.ANCESTOR, 0, new Date());
-		Assert.assertNull(pair);
+		NodeLineage lineage = new NodeLineage(null, LineageType.ANCESTOR, 0, "N", null);
+		Assert.assertNull(lineage);
 	}
 
 	@Test(expected=NullPointerException.class)
 	public void testConstructorNullPointerException2() {
-		NodeLineage pair = new NodeLineage("M", null,  LineageType.ANCESTOR, 0, new Date());
-		Assert.assertNull(pair);
+		NodeLineage lineage = new NodeLineage("M", LineageType.ANCESTOR, 0, null, null, null);
+		Assert.assertNull(lineage);
 	}
 
 	@Test(expected=NullPointerException.class)
 	public void testConstructorNullPointerException3() {
-		NodeLineage pair = new NodeLineage("M", "N", null, 0, new Date());
-		Assert.assertNull(pair);
-	}
-
-	@Test(expected=NullPointerException.class)
-	public void testConstructorNullPointerException4() {
-		NodeLineage pair = new NodeLineage("M", "N", LineageType.DESCENDANT, 0, null);
-		Assert.assertNull(pair);
+		NodeLineage lineage = new NodeLineage("M", null, 0, "N", null, null);
+		Assert.assertNull(lineage);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testConstructorIllegalArgumentException1() {
-		NodeLineage pair = new NodeLineage("M", "N", LineageType.ANCESTOR, -1, new Date());
-		Assert.assertNull(pair);
+		NodeLineage lineage = new NodeLineage("M", LineageType.ANCESTOR, -1, "N", new Date());
+		Assert.assertNull(lineage);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testConstructorIllegalArgumentException2() {
-		NodeLineage pair = new NodeLineage("M", "M", LineageType.DESCENDANT, 0, new Date());
-		Assert.assertNull(pair);
+		NodeLineage lineage = new NodeLineage("M", LineageType.DESCENDANT, 0, "N", new Date());
+		Assert.assertNull(lineage);
 	}
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testConstructorIllegalArgumentException3() {
-		NodeLineage pair = new NodeLineage("M", "M", LineageType.ANCESTOR, 1, new Date());
-		Assert.assertNull(pair);
+		NodeLineage lineage = new NodeLineage("M", LineageType.ANCESTOR, 1, "M", new Date(), null);
+		Assert.assertNull(lineage);
 	}
 
 	@Test
-	public void testGetSetNodeIdLineageType() {
-		NodeLineage pair = new NodeLineage();
-		Assert.assertNull(pair.getHashKey());
-		String nodeIdLineageType = "M" + KeyValueSplitter.SEPARATOR + LineageType.ANCESTOR;
-		pair.setHashKey(nodeIdLineageType);
-		Assert.assertEquals(nodeIdLineageType, pair.getHashKey());
-	}
-
-	@Test
-	public void testGetSetDepthNodeId() {
-		NodeLineage pair = new NodeLineage();
-		Assert.assertNull(pair.getRangeKey());
-		String depthNodeId = 0 + KeyValueSplitter.SEPARATOR + "N";
-		pair.setRangeKey(depthNodeId);
-		Assert.assertEquals(depthNodeId, pair.getRangeKey());
-	}
-
-	@Test
-	public void testGetSetVersion() {
-		NodeLineage pair = new NodeLineage();
-		Assert.assertNull(pair.getVersion());
-		Long version = 2L;
-		pair.setVersion(version);
-		Assert.assertEquals(version, pair.getVersion());
-	}
-
-	@Test
-	public void testGetSetTimestamp() {
-		NodeLineage pair = new NodeLineage();
-		Assert.assertNull(pair.getTimestamp());
+	public void testCreateDbo() {
+		String nodeId = "M";
+		LineageType lineageType = LineageType.ANCESTOR;
+		int distance = 3;
+		String ancestorId = "N";
 		Date timestamp = new Date();
-		pair.setTimestamp(timestamp);
-		Assert.assertEquals(timestamp, pair.getTimestamp());
+		Long version = 5L;
+		NodeLineage lineage = new NodeLineage(nodeId, lineageType, distance, ancestorId, timestamp, version);
+		DboNodeLineage dbo = lineage.createDbo();
+		Assert.assertEquals(DboNodeLineage.createHashKey(nodeId, lineageType), dbo.getHashKey());
+		Assert.assertEquals(DboNodeLineage.createRangeKey(distance, ancestorId), dbo.getRangeKey());
+		Assert.assertEquals(timestamp, dbo.getTimestamp());
+		Assert.assertEquals(version, dbo.getVersion());
 	}
 }
