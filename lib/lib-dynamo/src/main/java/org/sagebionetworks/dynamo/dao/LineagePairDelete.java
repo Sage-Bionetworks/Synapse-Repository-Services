@@ -3,6 +3,7 @@ package org.sagebionetworks.dynamo.dao;
 import org.apache.log4j.Logger;
 
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
+import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 
 /**
  * Deletes a pair of node lineage.
@@ -15,8 +16,6 @@ class LineagePairDelete extends LineagePairWriteOperation {
 
 	private final DynamoDBMapper dynamoMapper;
 	private final NodeLineagePair toDelete;
-	private NodeLineage a2dOriginal;
-	private NodeLineage d2aOriginal;
 
 	LineagePairDelete(NodeLineagePair toDelete, DynamoDBMapper dynamoMapper) {
 
@@ -29,28 +28,6 @@ class LineagePairDelete extends LineagePairWriteOperation {
 
 		this.dynamoMapper = dynamoMapper;
 		this.toDelete = toDelete;
-	}
-
-	@Override
-	public boolean write() {
-		try {
-			NodeLineage a2d = this.toDelete.getAncestor2Descendant();
-			this.a2dOriginal = this.deleteNodeLineage(a2d);
-			NodeLineage d2a = this.toDelete.getDescendant2Ancestor();
-			this.d2aOriginal = this.deleteNodeLineage(d2a);
-			return true;
-		} catch (Throwable t) {
-			logger.error("DynamoDB DELETE failed with exception. " + t);
-			return false;
-		}
-	}
-
-	@Override
-	public void restore() {
-		NodeLineage a2d = this.toDelete.getAncestor2Descendant();
-		this.createNodeLineage(this.a2dOriginal, a2d);
-		NodeLineage d2a = this.toDelete.getDescendant2Ancestor();
-		this.createNodeLineage(this.d2aOriginal, d2a);
 	}
 
 	@Override
@@ -73,27 +50,40 @@ class LineagePairDelete extends LineagePairWriteOperation {
 		return this.toDelete.getDescendantId();
 	}
 
-	private NodeLineage deleteNodeLineage(NodeLineage toDelete) {
-		assert toDelete != null;
-		String hashKey = toDelete.getHashKey();
-		String rangeKey = toDelete.getRangeKey();
-		NodeLineage original = this.dynamoMapper.load(NodeLineage.class, hashKey, rangeKey);
-		if (original != null) {
-			// Not already deleted
-			this.dynamoMapper.delete(original);
-		}
-		return original;
+	@Override
+	public boolean write(final int step) {
+		// Enforce an order such that a2d is execute first before d2a
+		DboNodeLineage a2d = this.toDelete.getAncestor2Descendant();
+		boolean a2dSuccess = this.deleteNodeLineage(a2d);
+		DboNodeLineage d2a = this.toDelete.getDescendant2Ancestor();
+		boolean d2aSuccess = this.deleteNodeLineage(d2a);
+		return a2dSuccess && d2aSuccess;
 	}
 
-	private void createNodeLineage(NodeLineage original, NodeLineage toDelete) {
+	@Override
+	public void restore(final int step) {
+		//
+		// No restore until we are sure:
+		// 1) Restore does not write incorrect data
+		// 2) Restore does cause race conditions or deadlocks
+		//
+		// This restore shouldn't be triggered with the following measures in place:
+		// 1) Writes are executed in predetermined order from the root
+		// 2) Writing a child-to-parent pair requires a complete path from the root to the parent
+		// We are logging it in case it happens
+		//
+		logger.info("Restoring at step " + step + " for node lineage pair " + this.toDelete);
+	}
+
+	private boolean deleteNodeLineage(final DboNodeLineage toDelete) {
 		assert toDelete != null;
-		if (original != null) {
-			String hashKey = toDelete.getHashKey();
-			String rangeKey = toDelete.getRangeKey();
-			NodeLineage deleted = this.dynamoMapper.load(NodeLineage.class, hashKey, rangeKey);
-			if (deleted == null) {
-				this.dynamoMapper.save(original);
-			}
+		// TODO: What happens when another thread already deletes the record?
+		try {
+			this.dynamoMapper.delete(toDelete);
+			return true;
+		} catch (ConditionalCheckFailedException e) {
+			logger.error("DELETE failed for NodeLineage " + toDelete);
+			return false;
 		}
 	}
 }

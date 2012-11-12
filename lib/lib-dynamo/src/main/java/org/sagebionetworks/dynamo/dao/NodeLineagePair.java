@@ -2,10 +2,49 @@ package org.sagebionetworks.dynamo.dao;
 
 import java.util.Date;
 
+/**
+ * Wraps a pair of lineage pointers between two nodes. One is the downward pointer
+ * from ancestor to descendant, the other is the upward pointer from descendant
+ * to ancestor.
+ *
+ * @author Eric Wu
+ */
 class NodeLineagePair {
 
-	NodeLineagePair(String ancestorId, Date ancTimestamp, String descendantId,
-			Date descTimestamp, int ancestorDepth, int distance) {
+	NodeLineagePair(DboNodeLineage dbo, int ancestorDepth) {
+
+		if (dbo == null) {
+			throw new NullPointerException();
+		}
+
+		NodeLineage lineage = new NodeLineage(dbo);
+		String ancId = lineage.getNodeId();
+		String descId = lineage.getAncestorOrDescendantId();
+		if (LineageType.ANCESTOR.equals(lineage.getLineageType())) {
+			String id = ancId;
+			ancId = descId;
+			descId = id;
+		}
+
+		Date timestamp = lineage.getTimestamp();
+		int distance = lineage.getDistance();
+		Long version = lineage.getVersion();
+
+		this.ancId = ancId;
+		this.descId = descId;
+		this.a2d = new NodeLineage(this.ancId, LineageType.DESCENDANT,
+				distance, this.descId, timestamp, version);
+		this.d2a = new NodeLineage(this.descId,  LineageType.ANCESTOR,
+				distance, this.ancId, timestamp, version);
+		this.depth = ancestorDepth;
+		this.distance = distance;
+	}
+
+	/**
+	 * Creates a lineage pair. For the root, pass in {@link DboNodeLineage#ROOT} as the ancestor.
+	 */
+	NodeLineagePair(String ancestorId, String descendantId,
+			int ancestorDepth, int distance, Date timestamp) {
 
 		if (ancestorId == null) {
 			throw new NullPointerException();
@@ -13,59 +52,39 @@ class NodeLineagePair {
 		if (descendantId == null) {
 			throw new NullPointerException();
 		}
-
-		if (ancTimestamp == null) {
-			throw new NullPointerException();
-		}
-		if (descTimestamp == null) {
+		if (timestamp == null) {
 			throw new NullPointerException();
 		}
 
 		Date now = new Date();
-		if (now.before(ancTimestamp)) {
-			throw new IllegalArgumentException("Ancestor timestamp " + ancTimestamp + " is after present time.");
-		}
-		if (now.before(descTimestamp)) {
-			throw new IllegalArgumentException("Descendant timestamp " + descTimestamp + " is after present time.");
+		if (now.before(timestamp)) {
+			throw new IllegalArgumentException("Timestamp "+ timestamp
+					+ " is after present time.");
 		}
 
 		if (ancestorDepth < 0) {
 			throw new IllegalArgumentException("Ancestor depth must be at least 0.");
 		}
-		if (distance < 0) {
-			throw new IllegalArgumentException("Distance must be at least 0.");
+		if (distance <= 0) {
+			throw new IllegalArgumentException("Distance must be greater than 0.");
 		}
 
-		if (distance == 0) {
-			if (!ancestorId.equals(descendantId)) {
-				throw new IllegalArgumentException(
-						"Root must have the same ancestor and descendant and the distance must be 0.");
-			}
-		} else if (ancestorId.equals(descendantId)) {
-			throw new IllegalArgumentException(
-					"Root must have the same ancestor and descendant and the distance must be 0.");
-		}
-
-		if (distance == 0) {
-			this.ancId = NodeLineage.ROOT_ID;
-		} else {
-			this.ancId = ancestorId;
-		}
+		this.ancId = ancestorId;
 		this.descId = descendantId;
-
-		this.a2d = new NodeLineage(this.ancId, this.descId, LineageType.DESCENDANT, distance, ancTimestamp);
-		this.d2a = new NodeLineage(this.descId, this.ancId, LineageType.ANCESTOR, distance, descTimestamp);
-
+		this.a2d = new NodeLineage(this.ancId, LineageType.DESCENDANT,
+				distance, this.descId, timestamp);
+		this.d2a = new NodeLineage(this.descId,  LineageType.ANCESTOR,
+				distance, this.ancId, timestamp);
 		this.depth = ancestorDepth;
 		this.distance = distance;
 	}
 
-	NodeLineage getAncestor2Descendant() {
-		return this.a2d;
+	DboNodeLineage getAncestor2Descendant() {
+		return this.a2d.createDbo();
 	}
 
-	NodeLineage getDescendant2Ancestor() {
-		return this.d2a;
+	DboNodeLineage getDescendant2Ancestor() {
+		return this.d2a.createDbo();
 	}
 
 	int getAncestorDepth() {
@@ -84,10 +103,20 @@ class NodeLineagePair {
 		return this.descId;
 	}
 
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("NodeLineagePair [ancId=").append(ancId)
+				.append(", descId=").append(descId).append(", depth=")
+				.append(depth).append(", distance=").append(distance)
+				.append("]");
+		return builder.toString();
+	}
+
 	private final NodeLineage a2d;
 	private final NodeLineage d2a;
-	private final int depth;
-	private final int distance;
 	private final String ancId;
 	private final String descId;
+	private final int depth;
+	private final int distance;
 }

@@ -7,7 +7,7 @@ import java.util.List;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKey;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKeySchema;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoThroughput;
-import org.sagebionetworks.dynamo.dao.NodeLineage;
+import org.sagebionetworks.dynamo.dao.DboNodeLineage;
 
 import com.amazonaws.services.dynamodb.model.ScalarAttributeType;
 
@@ -21,9 +21,9 @@ class DynamoConfig {
 
 		List<DynamoTableConfig> tableList = new ArrayList<DynamoTableConfig>();
 
-		String tableName = NodeLineage.TABLE_NAME;
-		DynamoKey hashKey = new DynamoKey(NodeLineage.HASH_KEY, ScalarAttributeType.S);
-		DynamoKey rangeKey = new DynamoKey(NodeLineage.RANGE_KEY, ScalarAttributeType.S);
+		String tableName = DboNodeLineage.TABLE_NAME;
+		DynamoKey hashKey = new DynamoKey(DboNodeLineage.HASH_KEY_NAME, ScalarAttributeType.S);
+		DynamoKey rangeKey = new DynamoKey(DboNodeLineage.RANGE_KEY_NAME, ScalarAttributeType.S);
 		DynamoKeySchema keySchema = new DynamoKeySchema(hashKey, rangeKey);
 		DynamoThroughput throughput = new DynamoThroughput(15L, 5L);
 		DynamoTableConfig table = new DynamoTableConfig(tableName, keySchema, throughput);
