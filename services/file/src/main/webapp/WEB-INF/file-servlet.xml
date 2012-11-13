@@ -13,6 +13,6 @@
     <!-- Discover all our controllers -->
 	<context:component-scan base-package="org.sagebionetworks.file.controller" />
 
-<!-- 	<import resource="classpath:sqs-manager-spb.xml" /> -->
+	<import resource="classpath:file-services-spb.xml" />
 
 </beans>
