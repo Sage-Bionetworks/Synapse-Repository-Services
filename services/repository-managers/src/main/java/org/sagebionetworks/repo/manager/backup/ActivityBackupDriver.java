@@ -6,8 +6,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -15,9 +13,6 @@ import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.repo.model.AccessApproval;
-import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AccessRequirementBackup;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -29,7 +24,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 public class ActivityBackupDriver implements GenericBackupDriver {
 	
 	@Autowired
-	private ActivityDAO activityDAO;
+	private ActivityDAO activityDAO;	
 
 	public ActivityBackupDriver() {}
 
@@ -57,24 +52,15 @@ public class ActivityBackupDriver implements GenericBackupDriver {
 					"Destination file does not exist: "
 							+ destination.getAbsolutePath());
 
-		// get the Activities for the given IDs
-		Set<String> activityIds = null;
-		if (activityIdsToBackup==null) {
-			// get all the ids in the system
-			activityIds = new HashSet<String>(activityDAO.getIds());
-		} else {
-			activityIds = new HashSet<String>(activityIdsToBackup);
-		}
-
 		log.info("Starting a backup to file: " + destination.getAbsolutePath());
 		progress.appendLog("Starting a backup to file: " + destination.getAbsolutePath());
-		progress.setTotalCount(activityIds.size());
+		progress.setTotalCount(activityIdsToBackup.size());
 		// First write to the file
 		FileOutputStream fos = new FileOutputStream(destination);
 		ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(fos));
 		try {
 			progress.appendLog("Processing activities:");
-			for(String idToBackup: activityIds){
+			for(String idToBackup: activityIdsToBackup){
 				Thread.yield();
 				progress.appendLog(idToBackup);
 				progress.setMessage(idToBackup);
@@ -85,11 +71,11 @@ public class ActivityBackupDriver implements GenericBackupDriver {
 				NodeSerializerUtil.writeActivityBackup(activity, zos);
 				progress.incrementProgress();
 				if(progress.shouldTerminate()){
-					throw new InterruptedException("Access Requirement Backup terminated by the user.");
+					throw new InterruptedException("Activities Backup terminated by the user.");
 				}
 			}
 			zos.close();
-			progress.appendLog("Finished processing access requirement.");
+			progress.appendLog("Finished processing Activities.");
 		} finally {
 			if (fos != null) {
 				fos.flush();
@@ -148,17 +134,18 @@ public class ActivityBackupDriver implements GenericBackupDriver {
 	
 	private void createOrUpdateActivity(Activity act) throws DatastoreException, NotFoundException, InvalidModelException, ConflictingUpdateException {
 		// create the activity		
-		Activity actFromSystem = null;
+		Activity existingActivity = null;
 		try {
-			actFromSystem = activityDAO.get(act.getId().toString());
+			existingActivity = activityDAO.get(act.getId().toString());
 		} catch (NotFoundException e) {
-			actFromSystem = null;
+			existingActivity = null;
 		}
-		if (null==actFromSystem) {
-			act = activityDAO.create(act);
+		if (null==existingActivity) {
+			// create
+			activityDAO.create(act);
 		} else {
 			// Update only when backup is different from the current system
-			if (!actFromSystem.getEtag().equals(act.getEtag())) {
+			if (!existingActivity.getEtag().equals(act.getEtag())) {
 				act = activityDAO.updateFromBackup(act);
 			}
 		}		

@@ -45,7 +45,7 @@ public class PERF1000RepoSvc {
         
         private static void cleanup(int rootProjectId) throws Exception {
             if (rootProjectId > 0) {
-                synapse.deleteEntity("/project/" + rootProjectId);
+                synapse.deleteUri("/project/" + rootProjectId);
             } else {
                 int np = 1;
                 while (np > 0) {
@@ -53,7 +53,7 @@ public class PERF1000RepoSvc {
                     np = rs.getInt("totalNumberOfResults");
                     JSONArray projects = rs.getJSONArray("results");
                     for (int p = 0; p < projects.length(); p++) {
-                        synapse.deleteEntity(projects.getJSONObject(p).getString("uri"));
+                        synapse.deleteUri(projects.getJSONObject(p).getString("uri"));
                     }
                 }
             }
@@ -115,7 +115,7 @@ public class PERF1000RepoSvc {
                 if (parentId > 0) {
                     entitySpec.put("parentId", parentId);
                 }
-                entity = synapse.createEntity(uri, entitySpec);
+                entity = synapse.createJSONObject(uri, entitySpec);
                 createdEntityIds[i] = entity.getInt("id");
                 addAnnotations(entity, numAnnotations);
             }
@@ -175,7 +175,7 @@ public class PERF1000RepoSvc {
             for (int n =1; n < 10; n++) {
                 // Create new entitity
                 startTime = System.nanoTime();
-                entity = synapse.createEntity(uri, entitySpec);
+                entity = synapse.createJSONObject(uri, entitySpec);
                 assertTrue(null != entity);
                 elapsedTimeCreate += System.nanoTime() - startTime;
                 startTime = System.nanoTime();
@@ -190,7 +190,7 @@ public class PERF1000RepoSvc {
                 
                 // Delete entity
                 startTime = System.nanoTime();
-                synapse.deleteEntity(entity.getString("uri"));
+                synapse.deleteUri(entity.getString("uri"));
                 elapsedTimeDelete += System.nanoTime() - startTime;
             }
             elapsedTimeCreate = elapsedTimeCreate / 10;

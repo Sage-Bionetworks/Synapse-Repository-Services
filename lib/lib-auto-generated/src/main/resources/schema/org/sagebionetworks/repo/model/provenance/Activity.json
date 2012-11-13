@@ -1,63 +1,46 @@
 {
 	"title": "Activity",
-	"description": "Interface for JSON schema for AccessRequirement POJO",
+	"description": "Interface for JSON schema for Activity POJO.",
 	"properties": {
 		"id": {
 			"type": "string",
-			"description": "The unique immutable ID",
-			"transient": true
-		},		
+			"description": "The unique immutable ID"
+		},
+		"name": {
+			"type": "string",
+			"description": "A name for this Activity.",
+			"title": "Name"
+		},
 		"description": {
 			"type": "string",
 			"description": "A description of this Activity.",
-			"title": "Description",
-			"transient": true
-		},
-		"uri": {
-			"type": "string",
-			"description": "The Uniform Resource Identifier (URI) for this object.",
-			"transient": true
+			"title": "Description"
 		},
 		"etag": {
 			"type": "string",
-			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an object is out-of-date.",
-			"transient": true
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an object is out-of-date."
 		},
 		"createdOn": {
 			"type": "string",
 			"format": "date-time",
 			"description": "The date this object was created.",
-			"title": "Created On",
-			"transient": true
+			"title": "Created On"
 		},
 		"modifiedOn": {
 			"type": "string",
 			"format": "date-time",
 			"description": "The date this object was last modified.",
-			"title": "Modified On",
-			"transient": true
+			"title": "Modified On"
 		},
 		"createdBy": {
 			"type": "string",
 			"description": "The user that created this object.",
-			"title": "Created By",
-			"transient": true
+			"title": "Created By"
 		},
 		"modifiedBy": {
 			"type": "string",
 			"description": "The user that last modified this object.",
-			"title": "Modified By",
-			"transient": true
-		},
-		"activityType": {
-			"description": "The type of this Activity",
-			"type": "string",
-			"name": "ActivityType",
-			"enum": [
-				"CODE_EXECUTION", 
-				"MANUAL", 
-				"UNDEFINED" 
-			]
+			"title": "Modified By"
 		},
 		"used": {
 			"type": "array",
@@ -65,14 +48,8 @@
 			"uniqueItems": true,
 			"contentEncoding": "binary",
 			"items": {
-				"$ref": "org.sagebionetworks.repo.model.Reference"
+				"$ref": "org.sagebionetworks.repo.model.provenance.UsedEntity"
 			}
-		},
-        "executedEntity":{
-            "type":"object",
-            "$ref":"org.sagebionetworks.repo.model.Reference",
-            "description":"The Synapse entity executed during this Activity",
-            "title":"Executed Entity"
-        }
+		}
 	}
 }

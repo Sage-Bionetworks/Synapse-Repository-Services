@@ -22,6 +22,7 @@
     <module>dynamo</module>
     <module>rds</module>
     <module>file</module>
+    <module>competition-services</module>
   </modules>
 
 </project>

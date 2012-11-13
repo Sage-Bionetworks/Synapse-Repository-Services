@@ -118,7 +118,7 @@ public class IT990CrowdAuthentication {
 		// revalidate
 		session = new JSONObject();
 		session.put(SESSION_TOKEN_LABEL, token);
-		synapse.putSynapseEntity(authEndpoint, "/session", session, new HashMap<String,String>());
+		synapse.putJSONObject(authEndpoint, "/session", session, new HashMap<String,String>());
 	}
 	
 	@Test(expected=SynapseNotFoundException.class)
@@ -138,7 +138,7 @@ public class IT990CrowdAuthentication {
 		session = new JSONObject();
 		session.put(SESSION_TOKEN_LABEL, "invalid-session-token");
 		
-		synapse.putSynapseEntity(authEndpoint, "/session", session, new HashMap<String,String>());
+		synapse.putJSONObject(authEndpoint, "/session", session, new HashMap<String,String>());
 	}
 	
 	@Test
@@ -149,7 +149,7 @@ public class IT990CrowdAuthentication {
 
 		synapse.login(username, password);
 		// logout
-		synapse.deleteSynapseEntity(authEndpoint, "/session");
+		synapse.deleteUri(authEndpoint, "/session");
 	}
 	
 	
@@ -179,7 +179,7 @@ public class IT990CrowdAuthentication {
 		String password = StackConfiguration.getIntegrationTestUserThreePassword();
 		synapse.login(username, password);
 		// this says 'delete me'.  It only works for the specified integration test user
-		synapse.deleteSynapseEntity(authEndpoint, "/user");
+		synapse.deleteUri(authEndpoint, "/user");
 		
 		// verify that can't log in
 		// expect exception
@@ -230,7 +230,7 @@ public class IT990CrowdAuthentication {
 		
 		// to check the password, we have to try to log-in:
 		// logout...
-		synapse.deleteSynapseEntity(authEndpoint, "/session");
+		synapse.deleteUri(authEndpoint, "/session");
 		// ... login
 		synapse.login(username, testNewPassword);
 		
@@ -302,7 +302,7 @@ public class IT990CrowdAuthentication {
 		assertNotNull(secretKey);
 	
 		// now invalidate the key
-		synapse.deleteSynapseEntity(authEndpoint, "/secretKey");
+		synapse.deleteUri(authEndpoint, "/secretKey");
 		
 		// now get the key again...
 		response = synapse.getSynapseEntity(authEndpoint, "/secretKey");

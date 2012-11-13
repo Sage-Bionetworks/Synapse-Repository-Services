@@ -6,9 +6,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyObject;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,6 +42,7 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -345,4 +348,102 @@ public class SynapseTest {
 		assertNull("Access Requirements were not requested, but were returned in bundle", path);
 	}
 
+	
+	@Test
+	public void testGetActivity() throws Exception {
+		Activity act = new Activity();
+		String id = "123";
+		StringEntity responseEntity = createActivityStringEntity(id, act);
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		
+		Activity clone = synapse.getActivity(id);
+		assertNotNull(clone);
+		assertEquals(act, clone);
+	}	
+	
+	@Test
+	public void testPutActivity() throws Exception {
+		Activity act = new Activity();
+		String id = "123";
+		StringEntity responseEntity = createActivityStringEntity(id, act);
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		
+		Activity clone = synapse.putActivity(act);
+		assertNotNull(clone);
+		assertEquals(act, clone);
+	}	
+		
+	@Test
+	public void testDeleteActivity() throws Exception {
+		String id = "123";
+		synapse.deleteActivity(id);		
+		verify(mockResponse).getEntity();
+	}		
+	
+	@Test
+	public void testGetActivityForEntity() throws Exception {
+		Activity act = new Activity();
+		String id = "123";
+		StringEntity responseEntity = createActivityStringEntity(id, act);
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		
+		String entityId = "syn456";
+		Activity clone = synapse.getActivityForEntity(entityId); 
+		assertNotNull(clone);
+		assertEquals(act, clone);		
+	}
+
+	@Test
+	public void testGetActivityForEntityVersion() throws Exception {
+		Activity act = new Activity();
+		String id = "123";
+		StringEntity responseEntity = createActivityStringEntity(id, act);
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		
+		String entityId = "syn456";
+		Activity clone = synapse.getActivityForEntityVersion(entityId, 1L); 
+		assertNotNull(clone);
+		assertEquals(act, clone);		
+	}
+
+	@Test
+	public void testSetActivityForEntity() throws Exception {
+		Activity act = new Activity();
+		String id = "123";
+		StringEntity responseEntity = createActivityStringEntity(id, act);
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		
+		String entityId = "syn456";
+		Activity clone = synapse.setActivityForEntity(entityId, id); 
+		assertNotNull(clone);
+		assertEquals(act, clone);				
+	}
+
+	@Test
+	public void testDeleteGeneratedByForEntity() throws Exception {
+		Activity act = new Activity();
+		String id = "123";
+		StringEntity responseEntity = createActivityStringEntity(id, act);
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		
+		String entityId = "syn456";
+		synapse.deleteGeneratedByForEntity(entityId); 
+		verify(mockResponse, atLeast(1)).getEntity();
+	}
+	
+	
+	
+	/*
+	 * Private methods
+	 */
+	private StringEntity createActivityStringEntity(String id, Activity act)
+			throws JSONObjectAdapterException, UnsupportedEncodingException {
+		act.setId(id);
+		// Setup return
+		JSONObjectAdapter adapter = act.writeToJSONObject(new JSONObjectAdapterImpl());
+		String jsonString = adapter.toJSONString();
+		StringEntity responseEntity = new StringEntity(jsonString);
+		return responseEntity;
+	}
+	
 }
