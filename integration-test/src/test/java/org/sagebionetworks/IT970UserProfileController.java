@@ -40,7 +40,6 @@ public class IT970UserProfileController {
 		userProfile.put("firstName", "foo");
 		userProfile.put("lastName", "bar");
 		Map<String,String> headers = new HashMap<String, String>();
-		headers.put("ETag", userProfile.getString("etag"));
 		synapse.putJSONObject("/userProfile", userProfile, headers);
 	}
 	

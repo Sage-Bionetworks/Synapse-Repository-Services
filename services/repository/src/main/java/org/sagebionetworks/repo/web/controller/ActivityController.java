@@ -117,14 +117,9 @@ public class ActivityController extends BaseController{
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestBody Activity activity,
-			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException, JSONObjectAdapterException {
-		
-		if(etag != null){
-			activity.setEtag(etag);
-		}
 		return serviceProvider.getActivityService().updateActivity(userId, activity);
 	}
 	

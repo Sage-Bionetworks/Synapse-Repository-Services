@@ -137,7 +137,6 @@ public class EntityController extends BaseController{
 	Annotations updateEntityAnnotations(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
 			@RequestBody Annotations updatedAnnotations,
 			HttpServletRequest request) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		// Pass it along
@@ -199,13 +198,12 @@ public class EntityController extends BaseController{
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
 			@RequestHeader HttpHeaders header,
-			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
 			HttpServletRequest request)
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException, JSONObjectAdapterException {
 
 		// This is simply an update with a new version created.
-		return (Versionable) updateEntityImpl(userId, header, etag, true, activityId, request);
+		return (Versionable) updateEntityImpl(userId, header, true, activityId, request);
 	}
 	
 
@@ -224,16 +222,12 @@ public class EntityController extends BaseController{
 	 * @throws InvalidModelException
 	 * @throws UnauthorizedException
 	 */
-	private Entity updateEntityImpl(String userId, HttpHeaders header,
-			String etag, boolean newVersion, String activityId, HttpServletRequest request) throws IOException,
+	private Entity updateEntityImpl(String userId, HttpHeaders header, boolean newVersion, String activityId, HttpServletRequest request) throws IOException,
 			NotFoundException, ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, JSONObjectAdapterException {
 		@SuppressWarnings("unchecked")
 //		Entity entity = (Entity) objectTypeSerializer.deserialize(request.getInputStream(), header, type.getClassForType(), header.getContentType());
 		Entity entity =  JSONEntityHttpMessageConverter.readEntity(request.getReader());
-		if(etag != null){
-			entity.setEtag(etag);
-		}
 		// validate the entity
 		entity = serviceProvider.getEntityService().updateEntity(userId, entity, newVersion, activityId, request);
 		// Return the result
@@ -267,16 +261,12 @@ public class EntityController extends BaseController{
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.GENERATED_BY_PARAM, required = false) String activityId,
 			@RequestHeader HttpHeaders header,
-			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException, JSONObjectAdapterException {
 		// Note that we auto-version for locationable entities whose md5 checksums have changed.
 		// Read the entity from the body
 		Entity entity =  JSONEntityHttpMessageConverter.readEntity(request.getReader());
-		if(etag != null){
-			entity.setEtag(etag);
-		}
 		// validate the entity
 		entity = serviceProvider.getEntityService().updateEntity(userId, entity, false, activityId, request);
 		// Return the result
