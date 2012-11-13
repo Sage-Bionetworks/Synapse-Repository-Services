@@ -707,7 +707,9 @@ public class Synapse {
 	public void updateMyProfile(UserProfile userProfile) throws SynapseException {
 		try {
 			String uri = USER_PROFILE_PATH;
-			putJSONObject(uri, EntityFactory.createJSONObjectForEntity(userProfile), null);
+			Map<String,String> headers = new HashMap<String, String>();
+			headers.put(PARAM_ETAG, userProfile.getEtag());
+			putJSONObject(uri, EntityFactory.createJSONObjectForEntity(userProfile), headers);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
@@ -885,7 +887,9 @@ public class Synapse {
 			String url = ENTITY_URI_PATH + "/" + entityId+"/annotations";
 			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(updated);
 			// Update
-			jsonObject = putJSONObject(url, jsonObject, null);
+			Map<String,String> headers = new HashMap<String, String>();
+			headers.put(PARAM_ETAG, updated.getEtag());
+			jsonObject = putJSONObject(url, jsonObject, headers);
 			// Parse the results
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
 			Annotations annos = new Annotations();
@@ -2352,19 +2356,4 @@ public class Synapse {
 		deleteUri(uri);
 	}
 	
-	public <T extends Entity> void deleteEntityVersion(T entity, Long versionNumber) throws SynapseException {
-		if (entity == null)
-			throw new IllegalArgumentException("Entity cannot be null");
-		deleteEntityVersionById(entity.getId(), versionNumber);
-	}
-
-	public void deleteEntityVersionById(String entityId, Long versionNumber) throws SynapseException {
-		if (entityId == null)
-			throw new IllegalArgumentException("EntityId cannot be null");
-		if (versionNumber == null)
-			throw new IllegalArgumentException("VersionNumber cannot be null");
-		String uri = createEntityUri(ENTITY_URI_PATH, entityId);
-		uri += REPO_SUFFIX_VERSION + "/" + versionNumber;
-		deleteUri(uri);
-	}
 }
