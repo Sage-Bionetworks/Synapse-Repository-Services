@@ -577,7 +577,6 @@ public class ServletTestHelper {
 		request.setRequestURI(UrlHelpers.ENTITY + "/" + updatedAnnos.getId()
 				+ UrlHelpers.ANNOTATIONS);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.addHeader(ServiceConstants.ETAG_HEADER, updatedAnnos.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, updatedAnnos);
@@ -640,7 +639,6 @@ public class ServletTestHelper {
 				request.setParameter(param.getKey(), param.getValue());
 			}
 		}
-		request.addHeader(ServiceConstants.ETAG_HEADER, entity.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, entity);
@@ -680,7 +678,6 @@ public class ServletTestHelper {
 		request.setRequestURI(UrlHelpers.ENTITY + "/" + entity.getId()
 				+ UrlHelpers.VERSION);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.addHeader(ServiceConstants.ETAG_HEADER, entity.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, entity);
@@ -1024,7 +1021,6 @@ public class ServletTestHelper {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY + "/" + id + UrlHelpers.ACL);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
-		request.addHeader(ServiceConstants.ETAG_HEADER, entityACL.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, entityACL);
@@ -2067,7 +2063,6 @@ public class ServletTestHelper {
 				request.setParameter(param.getKey(), param.getValue());
 			}
 		}
-		request.addHeader(ServiceConstants.ETAG_HEADER, activity.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		objectMapper.writeValue(out, activity);
