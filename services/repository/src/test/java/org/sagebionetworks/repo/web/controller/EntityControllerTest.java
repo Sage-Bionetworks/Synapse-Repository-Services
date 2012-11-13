@@ -263,5 +263,18 @@ public class EntityControllerTest {
 		}
 		
 	}
+
+	@Test(expected=NotFoundException.class)
+	public void testActivityId404() throws Exception{
+		Project p = new Project();
+		p.setName("Create without entity type");
+		p.setEntityType(p.getClass().getName());		
+		String activityId = "123456789";
+		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1, activityId);
+		String id = clone.getId();
+		toDelete.add(id);
+	}
+	
+	
 	
 }

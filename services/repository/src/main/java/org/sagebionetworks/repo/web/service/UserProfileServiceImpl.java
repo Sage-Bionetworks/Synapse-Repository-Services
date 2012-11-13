@@ -98,14 +98,10 @@ public class UserProfileServiceImpl implements UserProfileService {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public UserProfile updateUserProfile(String userId, HttpHeaders header, 
-			String etag, HttpServletRequest request) throws NotFoundException, ConflictingUpdateException,
+	public UserProfile updateUserProfile(String userId, HttpHeaders header, HttpServletRequest request) throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
-		if(etag != null){
-			entity.setEtag(etag.toString());
-		}
 		return userProfileManager.updateUserProfile(userInfo, entity);
 	}
 

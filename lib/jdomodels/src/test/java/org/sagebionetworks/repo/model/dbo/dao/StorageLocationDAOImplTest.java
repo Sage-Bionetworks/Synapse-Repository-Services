@@ -186,6 +186,15 @@ public class StorageLocationDAOImplTest {
 	}
 
 	@Test
+	public void testGetTotalCountForNode() throws Exception {
+		addTestNode();
+		dao.replaceLocationData(locations);
+		Assert.assertEquals(countTotal, dao.getTotalCountForNode(nodeId).longValue());
+		Assert.assertEquals(0L, dao.getTotalCountForNode("syn9293829999990").longValue()); // fake node
+		removeTestNode();
+	}
+
+	@Test
 	public void testGetAggregatedUsage() throws Exception {
 
 		addTestNode();
@@ -350,6 +359,75 @@ public class StorageLocationDAOImplTest {
 		beginIncl = 1;
 		endExcl = 3;
 		suList = dao.getUsageInRangeForUser(userId, beginIncl, endExcl);
+		Assert.assertEquals(2, suList.size());
+
+		removeTestNode();
+	}
+
+	@Test
+	public void testGetStorageUsageInRangeForNode() throws Exception {
+
+		addTestNode();
+		dao.replaceLocationData(locations);
+
+		int beginIncl = 0;
+		int endExcl = 1000;
+		List<StorageUsage> suList = dao.getUsageInRangeForNode(nodeId, beginIncl, endExcl);
+
+		Assert.assertEquals(4, suList.size());
+		Map<String, StorageUsage> suMap = new HashMap<String, StorageUsage>();
+		for (StorageUsage su : suList) {
+			suMap.put(su.getLocation(), su);
+		}
+		Assert.assertEquals(4, suMap.size());
+
+		StorageUsage su = suMap.get("/" + KeyFactory.stringToKey(nodeId) + "/ad1Token");
+		Assert.assertNotNull(su);
+		Assert.assertEquals(userId, su.getUserId());
+		Assert.assertEquals(nodeId, su.getNodeId());
+		Assert.assertTrue(su.getIsAttachment());
+		Assert.assertEquals(LocationTypeNames.awss3, su.getStorageProvider());
+		Assert.assertEquals("/" + KeyFactory.stringToKey(nodeId) + "/ad1Token", su.getLocation());
+		Assert.assertEquals("ad1Code", su.getContentType());
+		Assert.assertEquals(a1Size, su.getContentSize().longValue());
+		Assert.assertEquals("ad1Md5", su.getContentMd5());
+
+		su = suMap.get("/" + KeyFactory.stringToKey(nodeId) + "/ad2Token");
+		Assert.assertNotNull(su);
+		Assert.assertEquals(userId, su.getUserId());
+		Assert.assertEquals(nodeId, su.getNodeId());
+		Assert.assertTrue(su.getIsAttachment());
+		Assert.assertEquals(LocationTypeNames.awss3, su.getStorageProvider());
+		Assert.assertEquals("/" + KeyFactory.stringToKey(nodeId) + "/ad2Token", su.getLocation());
+		Assert.assertEquals("ad2Code", su.getContentType());
+		Assert.assertEquals(a2Size, su.getContentSize().longValue());
+		Assert.assertEquals("ad2Md5", su.getContentMd5());
+
+		su = suMap.get("ld1Path");
+		Assert.assertNotNull(su);
+		Assert.assertEquals(userId, su.getUserId());
+		Assert.assertEquals(nodeId, su.getNodeId());
+		Assert.assertFalse(su.getIsAttachment());
+		Assert.assertEquals(LocationTypeNames.external, su.getStorageProvider());
+		Assert.assertEquals("ld1Path", su.getLocation());
+		Assert.assertEquals("ldContentType", su.getContentType());
+		Assert.assertEquals(0L, su.getContentSize().longValue());
+		Assert.assertEquals("ldMd5", su.getContentMd5());
+
+		su = suMap.get("abc/xyz");
+		Assert.assertNotNull(su);
+		Assert.assertEquals(userId, su.getUserId());
+		Assert.assertEquals(nodeId, su.getNodeId());
+		Assert.assertFalse(su.getIsAttachment());
+		Assert.assertEquals(LocationTypeNames.awss3, su.getStorageProvider());
+		Assert.assertEquals("abc/xyz", su.getLocation());
+		Assert.assertEquals("ldContentType", su.getContentType());
+		Assert.assertEquals(l2Size, su.getContentSize().longValue());
+		Assert.assertEquals("ldMd5", su.getContentMd5());
+
+		beginIncl = 1;
+		endExcl = 3;
+		suList = dao.getUsageInRangeForNode(nodeId, beginIncl, endExcl);
 		Assert.assertEquals(2, suList.size());
 
 		removeTestNode();

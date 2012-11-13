@@ -2,15 +2,17 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACTIVITY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
-import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashMap;
@@ -26,15 +28,16 @@ import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOActivity;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -55,20 +58,28 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;	
 	
-	private static final String SELECT_ALL_IDS_SQL = "SELECT " + SqlConstants.COL_ACTIVITY_ID + " FROM " + SqlConstants.TABLE_ACTIVITY;
-
-	private static final String SELECT_FOR_RANGE_SQL = "SELECT * FROM " + TABLE_ACTIVITY 
-			+ " ORDER BY " + COL_ACTIVITY_ID 
-			+ " LIMIT :" + LIMIT_PARAM_NAME 
-			+ " OFFSET :" + OFFSET_PARAM_NAME;
+	private static final String SELECT_FOR_RANGE_SQL = "SELECT " + COL_ACTIVITY_ID +", "+ COL_ACTIVITY_ETAG 
+													+ " FROM " + TABLE_ACTIVITY 
+													+ " ORDER BY " + COL_ACTIVITY_ID 
+													+ " LIMIT :" + LIMIT_PARAM_NAME 
+													+ " OFFSET :" + OFFSET_PARAM_NAME;
 
 	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_ACTIVITY_ETAG+" FROM "+TABLE_ACTIVITY+" WHERE ID = ?";
 	private static final String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK+" FOR UPDATE";
-	private static final String UPDATE_ETAG_SQL = "UPDATE "+TABLE_ACTIVITY+" SET "+COL_ACTIVITY_ETAG+" = ? WHERE "+COL_ACTIVITY_ID+" = ?";
 	private static final String SQL_COUNT_ACTIVITY_ID = "SELECT COUNT("+COL_ACTIVITY_ID+") FROM "+TABLE_ACTIVITY+" WHERE "+COL_ACTIVITY_ID +" = :"+COL_ACTIVITY_ID;
-	private static final String SQL_GET_NODES_FOR_ACTIVITY = "SELECT " + COL_REVISION_OWNER_NODE + ", " + COL_REVISION_NUMBER +
-															 " FROM " + TABLE_REVISION + 
-															 " WHERE " + COL_REVISION_ACTIVITY_ID + " = :" + COL_REVISION_ACTIVITY_ID; 
+	private static final String SQL_OFFSET_AND_LIMIT =	" LIMIT :" + LIMIT_PARAM_NAME +
+														" OFFSET :" + OFFSET_PARAM_NAME;
+	private static final String SQL_GET_NODES_FOR_ACTIVITY_FROMWHERE =
+ 															 " FROM " + TABLE_NODE + " n, " + TABLE_REVISION + " r" +
+ 															 " WHERE r." + COL_REVISION_NUMBER + " = n." + COL_CURRENT_REV + 
+ 															 " AND r." + COL_REVISION_ACTIVITY_ID + " = :" + COL_REVISION_ACTIVITY_ID; 															
+	private static final String SQL_GET_NODES_FOR_ACTIVITY = "SELECT DISTINCT r." + COL_REVISION_OWNER_NODE + 
+																SQL_GET_NODES_FOR_ACTIVITY_FROMWHERE +
+																" ORDER BY n." + COL_NODE_ID + SQL_OFFSET_AND_LIMIT; 
+	private static final String SQL_GET_NODES_FOR_ACTIVITY_COUNT = "SELECT COUNT(DISTINCT r." + COL_REVISION_OWNER_NODE + ")" + SQL_GET_NODES_FOR_ACTIVITY_FROMWHERE;
+
+		
+	private static final String ACTIVITY_NOT_FOUND = "Activity with id '%1$s' could not be found."; 
 
 	
 	public DBOActivityDAOImpl() { }
@@ -83,14 +94,13 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Activity create(Activity dto) throws DatastoreException, InvalidModelException {	
+	public String create(Activity dto) throws DatastoreException, InvalidModelException {	
 		DBOActivity dbo = new DBOActivity();
 		ActivityUtils.copyDtoToDbo(dto, dbo);
 		// add eTag
 		tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
-		dbo = basicDao.createNew(dbo);		
-		Activity result = ActivityUtils.copyDboToDto(dbo);
-		return result;
+		basicDao.createNew(dbo);				
+		return dbo.getIdString();
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -100,6 +110,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		return update(dto, false);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Activity updateFromBackup(Activity dto)
 			throws InvalidModelException, NotFoundException,
@@ -112,10 +123,14 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	 *                   Skip optimistic locking and accept the backup e-tag when restoring from backup.
 	 */
 	private Activity update(Activity dto, boolean fromBackup) throws DatastoreException,
-			InvalidModelException,NotFoundException, ConflictingUpdateException {		
-		if(!doesActivityExist(dto.getId())) throw new NotFoundException("Activity with id " + dto.getId() + " could not be found.");
+			InvalidModelException,NotFoundException, ConflictingUpdateException {				
 		DBOActivity dbo = getDBO(dto.getId());
 		ActivityUtils.copyDtoToDbo(dto, dbo);
+		
+		if(fromBackup) {			
+			lockAndSendTagMessage(dbo, ChangeType.UPDATE); // keep same eTag but send message of update
+		}
+		
 		boolean success = basicDao.update(dbo);
 
 		if (!success) throw new DatastoreException("Unsuccessful updating user Activity in database.");
@@ -124,33 +139,20 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		return updatedActivity;
 	} // the 'commit' is implicit in returning from a method annotated 'Transactional'
 	
-	
 	@Override
-	public Activity get(String id) throws DatastoreException, NotFoundException {
-		if(!doesActivityExist(id)) throw new NotFoundException("Activity with id " + id + " could not be found.");
+	public Activity get(String id) throws DatastoreException, NotFoundException {				
 		DBOActivity dbo = getDBO(id);		
 		return ActivityUtils.copyDboToDto(dbo);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void delete(String id) throws DatastoreException, NotFoundException {
-		if(!doesActivityExist(id)) throw new NotFoundException("Activity with id " + id + " could not be found.");
+	public void delete(String id) throws DatastoreException {				
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACTIVITY_ID.toLowerCase(), id);
 		basicDao.deleteObjectById(DBOActivity.class, param);
 	}
-	
-	@Override
-	public List<String> getIds() {		
-		return simpleJdbcTemplate.query(SELECT_ALL_IDS_SQL, new RowMapper<String>() {
-			@Override
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return rs.getString(SqlConstants.COL_ACTIVITY_ID);
-			}
-		});
-	}
-		
+			
 	@Override
 	public long getCount() throws DatastoreException {
 		return basicDao.getCount(DBOActivity.class);
@@ -158,6 +160,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 
 	@Override
 	public QueryResults<MigratableObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies) throws DatastoreException {
+		if(limit < 0 || offset < 0) throw new IllegalArgumentException("limit and offset must be greater than 0");
 		// get one 'page' of Activities (just their IDs and Etags)
 		List<MigratableObjectData> ods = null;
 		{
@@ -196,40 +199,27 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		return MigratableObjectType.ACTIVITY;
 	}
 	
-	/**
-	 * Note: You cannot call this method outside of a transaction.
-	 * @param id
-	 * @param eTag
-	 * @return
-	 * @throws NotFoundException
-	 * @throws ConflictingUpdateException
-	 * @throws DatastoreException
-	 */
 	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
 	@Override
-	public String lockActivityAndIncrementEtag(String id, String eTag, ChangeType changeType)
+	public String lockActivityAndGenerateEtag(String id, String eTag, ChangeType changeType)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
-		// Create a Select for update query
-		final Long longId = new Long(id);
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("bindId", longId);
+		String currentTag = lockActivity(id);
 		// Check the eTags
-		String currentTag = simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, longId);
 		if(!currentTag.equals(eTag)){
 			throw new ConflictingUpdateException("Node: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
 		// Get a new e-tag
 		DBOActivity dbo = getDBO(id);
 		tagMessenger.generateEtagAndSendMessage(dbo, changeType);
-		currentTag = dbo.geteTag();
-		// Update the etag
-		int updated = simpleJdbcTemplate.update(UPDATE_ETAG_SQL, currentTag, longId);
-		if(updated != 1) throw new ConflictingUpdateException("Failed to lock Node: "+longId);
-		
-		// Return the new tag
-		return String.valueOf(currentTag);
+		return dbo.geteTag();
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
+	@Override
+	public void sendDeleteMessage(String id) {
+		tagMessenger.sendDeleteMessage(id, ObjectType.ACTIVITY);		
+	}
+		
 	@Override
 	public boolean doesActivityExist(String id) {
 		Map<String, Object> parameters = new HashMap<String, Object>();
@@ -244,23 +234,35 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	}
 
 	@Override
-	public List<Reference> getEntitiesGeneratedBy(String id) {
-		Map<String, Object> parameters = new HashMap<String, Object>();
-		parameters.put(COL_REVISION_ACTIVITY_ID, id);
-		List<Reference> generatedBy = null;
-		generatedBy = simpleJdbcTemplate.query(SQL_GET_NODES_FOR_ACTIVITY, new RowMapper<Reference>() {
+	public QueryResults<String> getEntitiesGeneratedBy(String activityId, int limit, int offset) {
+		if(activityId == null) throw new IllegalArgumentException("Activity id can not be null");
+		if(limit < 0 || offset < 0) throw new IllegalArgumentException("limit and offset must be greater than 0");
+		// get one page of node ids
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_REVISION_ACTIVITY_ID, activityId);
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);
+
+		List<String> generatedBy = null;
+		generatedBy = simpleJdbcTemplate.query(SQL_GET_NODES_FOR_ACTIVITY, new RowMapper<String>() {
 			@Override
-			public Reference mapRow(ResultSet rs, int rowNum)
-					throws SQLException {
-				BigDecimal targetId = rs.getBigDecimal(COL_REVISION_OWNER_NODE);
-				BigDecimal targetVersionNumber = rs.getBigDecimal(COL_REVISION_NUMBER);
-				Reference ref = new Reference();
-				ref.setTargetId(targetId.toPlainString());
-				ref.setTargetVersionNumber(targetVersionNumber.longValue());
-				return ref;
-			}
-		}, parameters);	
-		return generatedBy;
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				Long targetId = rs.getLong(COL_REVISION_OWNER_NODE);
+				return KeyFactory.keyToString(targetId);
+			}		
+		}, params);
+			
+		// return the page of objects, along with the total result count
+		QueryResults<String> queryResults = new QueryResults<String>();
+		queryResults.setResults(generatedBy);
+		long totalCount = 0;
+		try {
+			totalCount = simpleJdbcTemplate.queryForLong(SQL_GET_NODES_FOR_ACTIVITY_COUNT, params);		
+		} catch (EmptyResultDataAccessException e) {
+			// count = 0
+		}
+		queryResults.setTotalNumberOfResults(totalCount);
+		return queryResults;	
 	}
 
 
@@ -271,8 +273,23 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	private DBOActivity getDBO(String id) throws NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACTIVITY_ID.toLowerCase(), id);
-		DBOActivity dbo = basicDao.getObjectById(DBOActivity.class, param);
-		return dbo;
+		try {
+			DBOActivity dbo = basicDao.getObjectById(DBOActivity.class, param);
+			return dbo;
+		} catch (NotFoundException e) {
+			throw new NotFoundException(String.format(ACTIVITY_NOT_FOUND, id));
+		}
+	}
+
+	private String lockActivity(String id) {
+		// Create a Select for update query
+		return simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, id);
 	}
 	
+	private void lockAndSendTagMessage(DBOActivity dbo, ChangeType changeType) {
+		lockActivity(dbo.getIdString());
+		tagMessenger.sendMessage(dbo, changeType);		
+	}
+
+
 }
