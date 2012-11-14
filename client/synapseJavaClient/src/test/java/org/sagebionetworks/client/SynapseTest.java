@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -432,6 +433,38 @@ public class SynapseTest {
 	}
 	
 	
+	@Test
+	public void testGetItemizedStorageUsageForNode() throws Exception {							
+		Long contentSize = 125l;
+		String entityId = "111";
+		StorageUsage usage = new StorageUsage();
+		usage.setContentSize(contentSize);
+		usage.setNodeId(entityId);
+		usage.setId("4");
+		usage.setLocation("invalidLocation");
+		usage.setUserId("invalidUserId");
+		usage.setIsAttachment(false);
+		
+		List<StorageUsage> usageList = new ArrayList<StorageUsage>();
+		usageList.add(usage);		
+		
+		PaginatedResults<StorageUsage> paginatedResult = new PaginatedResults<StorageUsage>();
+		paginatedResult.setResults(usageList);
+		paginatedResult.setTotalNumberOfResults(1);
+		paginatedResult.setPaging(new HashMap<String, String>());
+				
+		// setup mock
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl();
+		paginatedResult.writeToJSONObject(adapter);		
+		StringEntity responseEntity = new StringEntity(adapter.toJSONString());
+		when(mockResponse.getEntity()).thenReturn(responseEntity);
+		
+		PaginatedResults<StorageUsage> realResults = synapse.getItemizedStorageUsageForNode(entityId, 0, 1);
+		
+		assertEquals(1, realResults.getTotalNumberOfResults());
+		StorageUsage firstUsage = realResults.getResults().get(0);
+		assertEquals(usage, firstUsage);
+	}		
 	
 	/*
 	 * Private methods
@@ -445,5 +478,7 @@ public class SynapseTest {
 		StringEntity responseEntity = new StringEntity(jsonString);
 		return responseEntity;
 	}
+	
+	
 	
 }
