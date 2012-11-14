@@ -273,11 +273,6 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
-			<artifactId>wikiutil</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-communicationUtilities</artifactId>
 		</dependency>
 
