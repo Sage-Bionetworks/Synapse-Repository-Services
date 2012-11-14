@@ -66,8 +66,7 @@ public interface UserProfileService {
 	 * @return The updated UserProfile
 	 * @throws DatastoreException - Thrown when there is a server-side problem.
 	 */
-	public UserProfile updateUserProfile(String userId, HttpHeaders header,
-			String etag, HttpServletRequest request) throws NotFoundException,
+	public UserProfile updateUserProfile(String userId, HttpHeaders header, HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
 			InvalidModelException, UnauthorizedException, IOException;
 
