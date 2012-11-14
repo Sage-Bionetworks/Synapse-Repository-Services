@@ -87,8 +87,6 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  */
 public class Synapse {
 
-	private static final String PARAM_ETAG = "ETag";
-
 	protected static final Logger log = Logger.getLogger(Synapse.class.getName());
 
 	protected static final int JSON_INDENT = 2;
@@ -708,7 +706,6 @@ public class Synapse {
 		try {
 			String uri = USER_PROFILE_PATH;
 			Map<String,String> headers = new HashMap<String, String>();
-			headers.put(PARAM_ETAG, userProfile.getEtag());
 			putJSONObject(uri, EntityFactory.createJSONObjectForEntity(userProfile), headers);
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
@@ -888,7 +885,6 @@ public class Synapse {
 			JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(updated);
 			// Update
 			Map<String,String> headers = new HashMap<String, String>();
-			headers.put(PARAM_ETAG, updated.getEtag());
 			jsonObject = putJSONObject(url, jsonObject, headers);
 			// Parse the results
 			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
@@ -1072,7 +1068,6 @@ public class Synapse {
 		if (entity == null)
 			throw new IllegalArgumentException("Entity cannot be null");		
 		Map<String,String> headers = new HashMap<String, String>();
-		headers.put(PARAM_ETAG, entity.getEtag()); 
 		try {
 			String uri = createEntityUri(ENTITY_URI_PATH, entity.getId());
 			if(activityId != null) 
@@ -1113,7 +1108,6 @@ public class Synapse {
 			throw new IllegalArgumentException("Entity cannot be null");
 
 		Map<String,String> headers = new HashMap<String, String>();
-		headers.put(PARAM_ETAG, entity.getEtag()); 
 		try {
 			String uri = createEntityUri(ENTITY_URI_PATH, entity.getId()) + REPO_SUFFIX_VERSION;
 			if(activityId != null) 
