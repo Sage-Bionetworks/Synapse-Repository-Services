@@ -730,6 +730,11 @@
 	<reporting>
 		<plugins>
 			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jxr-plugin</artifactId>
+				<version>2.3</version>
+			</plugin>
+			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>findbugs-maven-plugin</artifactId>
 				<version>${findbugs-maven-plugin.version}</version>
@@ -738,6 +743,18 @@
 				<groupId>com.atlassian.maven.plugins</groupId>
 				<artifactId>maven-clover2-plugin</artifactId>
 				<version>${maven-clover2-plugin.version}</version>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-pmd-plugin</artifactId>
+				<version>2.7.1</version>
+				<configuration>
+					<linkXref>true</linkXref>
+					<targetJdk>1.6</targetJdk>
+					<excludes>
+						<exclude>**/generated/*.java</exclude>
+					</excludes>
+				</configuration>
 			</plugin>
 		</plugins>
 	</reporting>
