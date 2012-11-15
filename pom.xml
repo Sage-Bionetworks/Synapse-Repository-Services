@@ -654,6 +654,7 @@
 							<exclude>**/*Test.java</exclude>
 							<exclude>**/org/sagebionetworks/repo/model/bootstrap/DatabasePreparation.java</exclude>
 							<exclude>**/org/sagebionetworks/ResourceEncoder.java</exclude>
+							<exclude>**/org/sagebionetworks/ResourceUtils.java</exclude>
 						</excludes>
 						<jdk>1.6</jdk>
 						<flushPolicy>threaded</flushPolicy>
