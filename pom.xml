@@ -653,6 +653,10 @@
 						<excludes>
 							<exclude>**/*Test.java</exclude>
 							<exclude>**/org/sagebionetworks/repo/model/bootstrap/DatabasePreparation.java</exclude>
+							<exclude>**/org/sagebionetworks/StackConfiguration.java</exclude>
+							<exclude>**/org/sagebionetworks/TemplatedConfigurationImpl.java</exclude>
+							<exclude>**/org/sagebionetworks/SettingsLoader.java</exclude>
+							<exclude>**/org/sagebionetworks/StringEncrypter.java</exclude>
 							<exclude>**/org/sagebionetworks/ResourceEncoder.java</exclude>
 							<exclude>**/org/sagebionetworks/ResourceUtils.java</exclude>
 						</excludes>
