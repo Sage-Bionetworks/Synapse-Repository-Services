@@ -8,6 +8,7 @@
 		<relativePath>..</relativePath>
 	</parent>
 	<artifactId>lib-worker</artifactId>
+	<name>lib-worker</name>
 	<dependencies>
 
 		<dependency>

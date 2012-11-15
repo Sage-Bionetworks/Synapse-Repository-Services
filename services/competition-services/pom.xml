@@ -6,6 +6,7 @@
     <version>develop-SNAPSHOT</version>
   </parent>
   <artifactId>competition-services</artifactId>
+  <name>competition-services</name>
   <dependencies>
   	<dependency>
   		<groupId>org.sagebionetworks</groupId>
