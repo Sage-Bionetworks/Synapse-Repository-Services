@@ -3,6 +3,7 @@ package org.sagebionetworks.competition.dao;
 import java.util.List;
 
 import org.sagebionetworks.competition.model.Competition;
+import org.sagebionetworks.competition.model.CompetitionStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -11,13 +12,13 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface CompetitionDAO {	
 	
 	/**
-	 * Find a Competition by name.
+	 * Lookup a Competition ID by name. Returns null if the name is not in use.
 	 * 
 	 * @param name
 	 * @return
 	 * @throws DatastoreException 
 	 */
-	public Competition find(String name) throws DatastoreException;
+	public String lookupByName(String name) throws DatastoreException;
 
 	/**
 	 * Create a new Competition
@@ -27,7 +28,7 @@ public interface CompetitionDAO {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public String create(Competition dto) throws DatastoreException,
+	public String create(Competition dto, String ownerId) throws DatastoreException,
 			InvalidModelException;
 
 	/**
@@ -41,8 +42,8 @@ public interface CompetitionDAO {
 	public Competition get(String id) throws DatastoreException, NotFoundException;
 	
 	/**
-	 * 
-	 * Get all Competitions, in a given range
+	 * Get all Competitions, in a given range. Note that Competitions of all
+	 * states are returned.
 	 * 
 	 * @param startIncl
 	 * @param endExcl
@@ -55,6 +56,20 @@ public interface CompetitionDAO {
 	 */
 	public List<Competition> getInRange(long startIncl, long endExcl) throws DatastoreException, NotFoundException;
 
+	/**
+	 * Get all Competitions, in a given range, filtered by CompetitionStatus.
+	 * 
+	 * @param startIncl
+	 * @param endExcl
+	 * @param sort
+	 * @param ascending
+	 * @param schema
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public List<Competition> getInRange(long startIncl, long endExcl, CompetitionStatus status) throws DatastoreException, NotFoundException;
+	
 	/**
 	 * Get the total count of Competitions in the system
 	 * 

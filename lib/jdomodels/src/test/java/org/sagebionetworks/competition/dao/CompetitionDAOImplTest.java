@@ -40,10 +40,6 @@ public class CompetitionDAOImplTest {
 	@Before
 	public void setUp() throws Exception {
 		toDelete = new ArrayList<String>();
-		Competition comp = competitionDAO.find(COMPETITION_NAME);
-		if(comp != null){
-			competitionDAO.delete(comp.getId());
-		}
 	}
 
 	@After
@@ -64,13 +60,12 @@ public class CompetitionDAOImplTest {
 		// Initialize Competition
 		Competition comp = new Competition();
 		comp.setName(COMPETITION_NAME);
-		comp.setOwnerId(COMPETITION_OWNER_ID);
         comp.setContentSource(COMPETITION_CONTENT_SOURCE);
         comp.setStatus(CompetitionStatus.PLANNED);
         
         // Create it
 		long initialCount = competitionDAO.getCount();
-		String compId = competitionDAO.create(comp);
+		String compId = competitionDAO.create(comp, COMPETITION_OWNER_ID);
 		assertNotNull(compId);
 		toDelete.add(compId);
 		
@@ -92,7 +87,7 @@ public class CompetitionDAOImplTest {
 		
 		// Delete it
 		assertNotNull(competitionDAO.get(compId));
-		assertNotNull(competitionDAO.find(updated.getName()));
+		assertNotNull(competitionDAO.lookupByName(updated.getName()));
 		competitionDAO.delete(compId);
 		try {
 			competitionDAO.get(compId);
@@ -100,7 +95,7 @@ public class CompetitionDAOImplTest {
 		} catch (NotFoundException e) {
 			// Expected
 		}
-		assertNull(competitionDAO.find(updated.getName()));
+		assertNull(competitionDAO.lookupByName(updated.getName()));
 	}
 
 	@Test
@@ -108,18 +103,17 @@ public class CompetitionDAOImplTest {
 		// Initialize Competition
 		Competition comp = new Competition();
 		comp.setName(COMPETITION_NAME);
-		comp.setOwnerId(COMPETITION_OWNER_ID);
         comp.setContentSource(COMPETITION_CONTENT_SOURCE);
         comp.setStatus(CompetitionStatus.PLANNED);
         
         // Create it
-		String compId = competitionDAO.create(comp);
+		String compId = competitionDAO.create(comp, COMPETITION_OWNER_ID);
 		assertNotNull(compId);
 		toDelete.add(compId);
 		
 		// Find it
-		assertNotNull(competitionDAO.find(COMPETITION_NAME));		
-		assertNull(competitionDAO.find("" + (new Random()).nextLong()));
+		assertEquals(compId, competitionDAO.lookupByName(COMPETITION_NAME));		
+		assertNull(competitionDAO.lookupByName("" + (new Random()).nextLong()));
 	}
 	
     @Test
@@ -127,13 +121,12 @@ public class CompetitionDAOImplTest {
         // Initialize a new competition
 		Competition comp = new Competition();
 		comp.setName(COMPETITION_NAME);
-		comp.setOwnerId(COMPETITION_OWNER_ID);
         comp.setContentSource(COMPETITION_CONTENT_SOURCE);
         comp.setStatus(CompetitionStatus.PLANNED);
  
         // Create it
 		long initialCount = competitionDAO.getCount();
-		String compId = competitionDAO.create(comp);
+		String compId = competitionDAO.create(comp, COMPETITION_OWNER_ID);
 		assertNotNull(compId);
 		toDelete.add(compId);
 		
@@ -149,11 +142,21 @@ public class CompetitionDAOImplTest {
 		// Create clone with same name
 		clone.setId(compId + 1);		
         try {
-        	competitionDAO.create(clone);
+        	competitionDAO.create(clone, COMPETITION_OWNER_ID);
         	fail("Should not be able to create two Competitions with the same name");
         } catch (IllegalArgumentException e) {
         	// Expected name conflict
         }
+    }
+    
+    @Test
+    public void testDtoToDbo() {
+    	//TODO
+    }
+    
+    @Test
+    public void testDboToDto() {
+    	//TODO
     }
 
 }

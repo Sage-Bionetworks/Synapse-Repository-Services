@@ -10,8 +10,9 @@ import java.util.Map;
 import org.sagebionetworks.competition.dbo.CompetitionDBO;
 import org.sagebionetworks.competition.dbo.DBOConstants;
 import org.sagebionetworks.competition.model.Competition;
+import org.sagebionetworks.competition.model.CompetitionStatus;
 import org.sagebionetworks.competition.query.jdo.SQLConstants;
-import org.sagebionetworks.competition.util.Utility;
+import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
@@ -20,6 +21,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -44,7 +46,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	private static final String NAME = DBOConstants.PARAM_COMPETITION_NAME;
 	
 	private static final String SELECT_BY_NAME_SQL = 
-			"SELECT * FROM "+ SQLConstants.TABLE_COMPETITION +
+			"SELECT ID FROM "+ SQLConstants.TABLE_COMPETITION +
 			" WHERE "+ SQLConstants.COL_COMPETITION_NAME + "=:"+NAME;
 	
 	private static final String SELECT_ALL_SQL_PAGINATED = 
@@ -60,28 +62,27 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	private static final RowMapper<CompetitionDBO> rowMapper = ((new CompetitionDBO()).getTableMapping());
 
 	@Override
-	public String create(Competition dto) throws DatastoreException {		
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public String create(Competition dto, String ownerId) throws DatastoreException {
+		CompetitionUtils.ensureNotNull(dto, "Competition object");
+		CompetitionUtils.ensureNotNull(ownerId, "Owner ID");
+		
 		// Convert to DBO
 		CompetitionDBO dbo = new CompetitionDBO();
 		copyDtoToDbo(dto, dbo);
 		
 		// Ensure name is not taken
-		if (find(dto.getName()) != null)
+		if (lookupByName(dto.getName()) != null)
 			throw new IllegalArgumentException("Sorry, a Competition already exists with the name " + dto.getName());
 		
-		// Validate or create ID
-		if (dbo.getId() == null) {
-			dbo.setId(idGenerator.generateNewId());
-		} else {
-			// If an id was provided then it must not already exist
-			if (doesIdExist(dbo.getId().toString()))
-				throw new IllegalArgumentException("The id: "+dbo.getId()+" already exists, so a Competition cannot be created using that id.");
-			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(dbo.getId());
-		}
+		// Generate ID
+		dbo.setId(idGenerator.generateNewId());
 		
-		// Generate eTag
-		if (dbo.geteTag() == null) dbo.seteTag(eTagGenerator.generateETag(dbo));
+		// TODO: Generate eTag
+		dbo.seteTag(eTagGenerator.generateETag(dbo));
+		
+		// set Owner ID
+		dbo.setOwnerId(Long.parseLong(ownerId));
 		
 		// Set creation date
 		dbo.setCreatedOn(System.currentTimeMillis());
@@ -109,6 +110,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	}
 
 	@Override
+	//TODO: filter by Competition status
 	public List<Competition> getInRange(long startIncl, long endExcl) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(SQLConstants.OFFSET_PARAM_NAME, startIncl);
@@ -127,22 +129,16 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	}
 
 	@Override
-	public long getCount() throws DatastoreException, NotFoundException {
-		return basicDao.getCount(CompetitionDBO.class);
+	public List<Competition> getInRange(long startIncl, long endExcl,
+			CompetitionStatus status) throws DatastoreException,
+			NotFoundException {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	@Override
-	public Competition find(String name) throws DatastoreException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(NAME, name);
-		List<CompetitionDBO> comps = simpleJdbcTemplate.query(SELECT_BY_NAME_SQL, rowMapper, param);
-		if (comps.size() > 1) 
-			throw new DatastoreException("Expected 0-1 Competitions but found " + comps.size());
-		if (comps.size() == 0) 
-			return null;
-		Competition dto = new Competition();
-		copyDboToDto(comps.iterator().next(), dto);
-		return dto;
+	public long getCount() throws DatastoreException, NotFoundException {
+		return basicDao.getCount(CompetitionDBO.class);
 	}
 
 	@Override
@@ -162,6 +158,19 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
 		basicDao.deleteObjectById(CompetitionDBO.class, param);		
+	}
+
+	@Override
+	public String lookupByName(String name) throws DatastoreException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(NAME, name);
+		try {
+			Long id = simpleJdbcTemplate.queryForLong(SELECT_BY_NAME_SQL, param);		
+			return id.toString();
+		} catch (EmptyResultDataAccessException e) {
+			// name is not in use
+			return null;
+		}
 	}
 
 	@Override
@@ -226,10 +235,13 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	 * @param dbo
 	 */
 	private void verifyCompetitionDBO(CompetitionDBO dbo) {
-		Utility.ensureNotNull(dbo.getId(), dbo.geteTag(), dbo.getName(), 
-								dbo.getOwnerId(), dbo.getCreatedOn(), 
-								dbo.getContentSource(), dbo.getStatusEnum()
-							);
+		CompetitionUtils.ensureNotNull(dbo.getId(), "ID");
+		CompetitionUtils.ensureNotNull(dbo.geteTag(), "eTag");
+		CompetitionUtils.ensureNotNull(dbo.getName(), "name");
+		CompetitionUtils.ensureNotNull(dbo.getOwnerId(), "ownerID");
+		CompetitionUtils.ensureNotNull(dbo.getCreatedOn(), "creation date");
+		CompetitionUtils.ensureNotNull(dbo.getContentSource(), "content source");
+		CompetitionUtils.ensureNotNull(dbo.getStatusEnum(), "status");
 	}
 	
 }

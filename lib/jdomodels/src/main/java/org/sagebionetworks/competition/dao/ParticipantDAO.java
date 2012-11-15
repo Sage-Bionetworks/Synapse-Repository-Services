@@ -70,7 +70,6 @@ public interface ParticipantDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void delete(String userId, String compId) throws DatastoreException,
 			NotFoundException;
 
