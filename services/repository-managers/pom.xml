@@ -8,6 +8,7 @@
 		<relativePath>..</relativePath>
 	</parent>
 	<artifactId>repository-managers</artifactId>
+	<name>repository-managers</name>
 
 	<dependencies>
 
