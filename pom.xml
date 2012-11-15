@@ -649,6 +649,25 @@
 					<groupId>com.atlassian.maven.plugins</groupId>
 					<artifactId>maven-clover2-plugin</artifactId>
 					<version>${maven-clover2-plugin.version}</version>
+					<configuration>
+						<excludes>
+							<exclude>**/*Test.java</exclude>
+							<exclude>**/org/sagebionetworks/repo/model/bootstrap/DatabasePreparation.java</exclude>
+							<exclude>**/org/sagebionetworks/ResourceEncoder.java</exclude>
+						</excludes>
+						<jdk>1.6</jdk>
+						<flushPolicy>threaded</flushPolicy>
+						<flushInterval>300</flushInterval>
+					</configuration>
+					<executions>
+						<execution>
+							<phase>pre-site</phase>
+							<goals>
+								<goal>instrument</goal>
+								<goal>aggregate</goal>
+							</goals>
+						</execution>
+					</executions>
 				</plugin>
 				<plugin>
 					<groupId>org.sagebionetworks</groupId>
@@ -661,14 +680,6 @@
 			<plugin>
 				<groupId>com.atlassian.maven.plugins</groupId>
 				<artifactId>maven-clover2-plugin</artifactId>
-				<executions>
-					<execution>
-						<phase>pre-site</phase>
-						<goals>
-							<goal>setup</goal>
-						</goals>
-					</execution>
-				</executions>
 			</plugin>
 		</plugins>
 	</build>
@@ -752,7 +763,7 @@
 					<linkXref>true</linkXref>
 					<targetJdk>1.6</targetJdk>
 					<excludes>
-						<exclude>**/generated/*.java</exclude>
+						<exclude>**/*generated*/*.java</exclude>
 					</excludes>
 				</configuration>
 			</plugin>
