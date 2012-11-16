@@ -104,6 +104,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
+	private static final String SQL_SELECT_VERSION_LABEL = "SELECT "+COL_REVISION_LABEL+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	
 	/**
 	 * To determine if a node has children we fetch the first child ID.
@@ -744,12 +745,29 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	}
 
 	@Override
-	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException {
+	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
 		// Fetch the basic data for an entity.
 		Long id = KeyFactory.stringToKey(nodeId);
 		ParentTypeName ptn = getParentTypeName(id);
-		EntityHeader header = createHeaderFromParentTypeName(nodeId, ptn);
+		String versionLabel = null;		
+		if(versionNumber != null) {
+			versionLabel = getVersionLabel(nodeId, versionNumber);
+		}
+		EntityHeader header = createHeaderFromParentTypeName(nodeId, ptn, versionNumber, versionLabel);
 		return header;
+	}
+	
+	@Override
+	public String getVersionLabel(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
+		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
+		try{
+			Map<String, Object> row = simpleJdbcTemplate.queryForMap(SQL_SELECT_VERSION_LABEL, nodeId, versionNumber);
+			return (String) row.get(COL_REVISION_LABEL);
+		}catch(EmptyResultDataAccessException e){
+			// Occurs if there are no results
+			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId + ", version: " + versionNumber);
+		}
 	}
 
 	/**
@@ -759,10 +777,12 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @return the entity header
 	 */
 	public static EntityHeader createHeaderFromParentTypeName(String nodeId,
-			ParentTypeName ptn) {
+			ParentTypeName ptn, Long versionNumber, String versionLabel) {
 		EntityHeader header = new EntityHeader();
 		header.setId(nodeId);
 		header.setName(ptn.getName());
+		header.setVersionNumber(versionNumber);
+		header.setVersionLabel(versionLabel);
 		EntityType type = EntityType.getTypeForId(ptn.getType());
 		header.setType(type.getEntityType());
 		return header;
@@ -835,7 +855,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private void appendPath(List<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
 		// First Build the entity header for this node
 		ParentTypeName ptn = getParentTypeName(nodeId);
-		EntityHeader header = createHeaderFromParentTypeName(KeyFactory.keyToString(nodeId), ptn);
+		EntityHeader header = createHeaderFromParentTypeName(KeyFactory.keyToString(nodeId), ptn, null, null);
 		// Add at the front
 		results.add(0, header);
 		if(ptn.getParentId() != null){

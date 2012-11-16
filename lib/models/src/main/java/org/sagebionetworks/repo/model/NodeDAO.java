@@ -172,7 +172,17 @@ public interface NodeDAO extends MigratableDAO {
 	 * @throws DatastoreException 
 	 * @throws NotFoundException 
 	 */
-	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException;
+	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get the version label for a node
+	 * @param nodeId
+	 * @param versionNumber
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public String getVersionLabel(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException; 
 	
 	/**
 	 * Get the full path for an entity.

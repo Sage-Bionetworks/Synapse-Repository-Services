@@ -496,14 +496,14 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
-	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId)
+	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
 		if (!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
-		return nodeDao.getEntityHeader(entityId);
+		return nodeDao.getEntityHeader(entityId, versionNumber);
 	}
 
 	@Override

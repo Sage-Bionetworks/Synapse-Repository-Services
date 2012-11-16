@@ -1037,7 +1037,7 @@ public class NodeDAOImplTest {
 		toDelete.add(parentId);
 		assertNotNull(parentId);
 		// Get the header of this node
-		EntityHeader parentHeader = nodeDao.getEntityHeader(parentId);
+		EntityHeader parentHeader = nodeDao.getEntityHeader(parentId, null);
 		assertNotNull(parentHeader);
 		assertEquals(EntityType.project.getEntityType(), parentHeader.getType());
 		assertEquals("parent", parentHeader.getName());
@@ -1050,7 +1050,7 @@ public class NodeDAOImplTest {
 		toDelete.add(childId);
 		assertNotNull(childId);
 		// Get the header of this node
-		EntityHeader childHeader = nodeDao.getEntityHeader(childId);
+		EntityHeader childHeader = nodeDao.getEntityHeader(childId, null);
 		assertNotNull(childHeader);
 		assertEquals(EntityType.dataset.getEntityType(), childHeader.getType());
 		assertEquals("child", childHeader.getName());
@@ -1061,7 +1061,7 @@ public class NodeDAOImplTest {
 	public void testGetEntityHeaderDoesNotExist() throws NotFoundException, DatastoreException{
 		// There should be no node with this id.
 		long id = idGenerator.generateNewId();
-		nodeDao.getEntityHeader(KeyFactory.keyToString(id));
+		nodeDao.getEntityHeader(KeyFactory.keyToString(id), null);
 	}
 	
 	@Test
@@ -1088,9 +1088,9 @@ public class NodeDAOImplTest {
 		
 		// Get the individual headers
 		EntityHeader[] array = new EntityHeader[3];;
-		array[0] = nodeDao.getEntityHeader(parentId);
-		array[1] = nodeDao.getEntityHeader(childId);
-		array[2] = nodeDao.getEntityHeader(grandId);
+		array[0] = nodeDao.getEntityHeader(parentId, null);
+		array[1] = nodeDao.getEntityHeader(childId, null);
+		array[2] = nodeDao.getEntityHeader(grandId, null);
 		
 		// Now get the path for each node
 		List<EntityHeader> path = nodeDao.getEntityPath(grandId);

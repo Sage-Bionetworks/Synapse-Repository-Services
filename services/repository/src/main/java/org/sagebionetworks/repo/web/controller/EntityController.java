@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -30,6 +31,7 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
+import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -369,7 +371,7 @@ public class EntityController extends BaseController{
 			@PathVariable String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		// Get the type of an entity by ID.
-		return serviceProvider.getEntityService().getEntityHeader(userId, id);
+		return serviceProvider.getEntityService().getEntityHeader(userId, id, null);
 	}
 
     /**
@@ -401,8 +403,51 @@ public class EntityController extends BaseController{
             List<EntityHeader> entityHeaders = new ArrayList<EntityHeader>();
             for (String id : ids) {
                     // Get the type of an entity by ID.
-                    EntityHeader entityHeader = serviceProvider.getEntityService().getEntityHeader(userId, id);
+                    EntityHeader entityHeader = serviceProvider.getEntityService().getEntityHeader(userId, id, null);
                     entityHeaders.add(entityHeader);
+            }
+
+            BatchResults<EntityHeader> results = new BatchResults<EntityHeader>();
+            results.setResults(entityHeaders);
+            results.setTotalNumberOfResults(entityHeaders.size());
+            return results;
+    }
+	
+    /**
+     * Get the EntityHeader for a list of references with a POST.  If any item in the batch fails (e.g., with a 404) it will be EXCLUDED in the result set.
+     * 
+     * @param userId
+     *            -The user that is doing the get.
+     * @param batch
+     *            - The comma-separated list of IDs of the entity to fetch.
+     * @param request
+     * @return The requested Entity if it exists.
+     * @throws DatastoreException
+     *             - Thrown when an there is a server failure.
+     * @throws UnauthorizedException
+     */
+    @ResponseStatus(HttpStatus.OK)
+    @RequestMapping(value = { UrlHelpers.ENTITY_TYPE_HEADER }, method = RequestMethod.POST)
+    public @ResponseBody
+    BatchResults<EntityHeader> getEntityVersionedTypeBatch(
+                    @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+                    @RequestParam(value = ServiceConstants.BATCH_PARAM, required = true) String batch,
+                    @RequestBody ReferenceList referenceList,
+                    HttpServletRequest request) throws DatastoreException, UnauthorizedException {
+
+            
+
+            List<EntityHeader> entityHeaders = new ArrayList<EntityHeader>();
+            if(referenceList.getReferences() != null) {	            	
+	            for (Reference ref : referenceList.getReferences()) {
+                    // Get the type of an entity by ID.
+                    try {
+                    	EntityHeader entityHeader = serviceProvider.getEntityService().getEntityHeader(userId, ref.getTargetId(), ref.getTargetVersionNumber());
+                    	entityHeaders.add(entityHeader);
+                    } catch (NotFoundException e) {
+                    	// skip
+					}
+	            }
             }
 
             BatchResults<EntityHeader> results = new BatchResults<EntityHeader>();
