@@ -23,6 +23,11 @@
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-communicationUtilities</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
 			<artifactId>lib-securityUtilities</artifactId>
 		</dependency>
 
@@ -79,13 +84,6 @@
 		<dependency>
 			<groupId>commons-logging</groupId>
 			<artifactId>commons-logging</artifactId>
-		</dependency>
-
-		<dependency>
-			<groupId>org.openid4java</groupId>
-			<artifactId>openid4java-consumer</artifactId>
-			<version>0.9.6</version>
-			<type>pom</type>
 		</dependency>
 
 		<dependency>

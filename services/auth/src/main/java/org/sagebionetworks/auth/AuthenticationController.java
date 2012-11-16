@@ -1,7 +1,6 @@
 package org.sagebionetworks.auth;
 
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCEPTS_TERMS_OF_USE_ATTRIBUTE;
-import static org.sagebionetworks.repo.model.ServiceConstants.ACCEPTS_TERMS_OF_USE_PARAM;
 
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -11,18 +10,12 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Random;
-import java.util.Set;
-import java.util.logging.Logger;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.openid4java.consumer.ConsumerManager;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.StringEncrypter;
 import org.sagebionetworks.authutil.AuthenticationException;
@@ -31,8 +24,8 @@ import org.sagebionetworks.authutil.SendMail;
 import org.sagebionetworks.authutil.Session;
 import org.sagebionetworks.authutil.User;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ChangeUserPassword;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -48,9 +41,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 
 @Controller
-public class AuthenticationController extends BaseController {
-	private static final Logger log = Logger.getLogger(AuthenticationController.class
-			.getName());
+public class AuthenticationController extends BaseController {	
+	private Random rand = new Random();
 	
 	private static Map<User,Session> sessionCache = null;
 	private static Long cacheTimeout = null;
@@ -105,39 +97,6 @@ public class AuthenticationController extends BaseController {
         setIntegrationTestUser(StackConfiguration.getIntegrationTestUserThreeName());
 	}
 	
-	public static boolean getAcceptsTermsOfUse(String userId) throws NotFoundException, IOException {
-		Map<String,Collection<String>> attributes = CrowdAuthUtil.getUserAttributes(userId);
-		Collection<String> values = attributes.get(ACCEPTS_TERMS_OF_USE_ATTRIBUTE);
-		return values!=null && values.size()>0 && Boolean.parseBoolean(values.iterator().next());
-	}
-	
-	public static void setAcceptsTermsOfUse(String userId, boolean accepts) throws IOException {
-		Map<String,Collection<String>> attributes = new HashMap<String,Collection<String>>();
-		attributes.put(ACCEPTS_TERMS_OF_USE_ATTRIBUTE, Arrays.asList(new String[]{""+accepts}));
-		CrowdAuthUtil.setUserAttributes(userId, attributes);
-	}
-	
-	/**
-	 * 
-	 * @param userId -- the ID/email address of the user
-	 * @param acceptsTermsOfUse -- says whether the request explicitly accepts the terms (false=acceptance is omitted in request, may have been given previously)
-	 * @throws NotFoundException
-	 * @throws IOException
-	 * @throws ForbiddenException thrown if user doesn't accept terms in this request or previously
-	 */
-	public static boolean acceptsTermsOfUse(String userId, Boolean acceptsTermsOfUse) throws NotFoundException, IOException {
-		if (CrowdAuthUtil.isAdmin(userId)) return true; // administrator need not sign terms of use
-		if (!getAcceptsTermsOfUse(userId)) {
-			if (acceptsTermsOfUse!=null && acceptsTermsOfUse==true) {
-				setAcceptsTermsOfUse(userId, true);
-				return true;
-			} else {
-				return false;
-			}
-		}	
-		return true;
-	}
-	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/session", method = RequestMethod.POST)
 	public @ResponseBody
@@ -151,146 +110,13 @@ public class AuthenticationController extends BaseController {
 			}
 			if (session==null) { // not using cache or not found in cache
 				session = CrowdAuthUtil.authenticate(credentials, true);
-				if (!acceptsTermsOfUse(credentials.getEmail(), credentials.isAcceptsTermsOfUse()))
+				if (!CrowdAuthUtil.acceptsTermsOfUse(credentials.getEmail(), credentials.isAcceptsTermsOfUse()))
 					throw new ForbiddenException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
 				if (cacheTimeout>0) {
 					sessionCache.put(credentials, session);
 				}
 			}
 			return session;
-		} catch (AuthenticationException ae) {
-			// include the URL used to authenticate
-			ae.setAuthURL(request.getRequestURL().toString());
-			throw ae;
-		}
-	}
-	
-	private static final String OPEN_ID_URI = "/openid";
-	
-	private static final String OPENID_CALLBACK_URI = "/openidcallback";
-	
-	private static final String OPEN_ID_PROVIDER = "OPEN_ID_PROVIDER";
-	// 		e.g. https://www.google.com/accounts/o8/id
-	
-	// this is the parameter name for the value of the final redirect
-	private static final String RETURN_TO_URL_PARAM = "RETURN_TO_URL";
-	
-	private static final String OPEN_ID_ATTRIBUTE = "OPENID";
-	
-	private static final String RETURN_TO_URL_COOKIE_NAME = "org.sagebionetworks.auth.returnToUrl";
-	private static final String ACCEPTS_TERMS_OF_USE_COOKIE_NAME = "org.sagebionetworks.auth.acceptsTermsOfUse";
-	private static final int RETURN_TO_URL_COOKIE_MAX_AGE_SECONDS = 60; // seconds
-	
-	private static final String authenticationServicePublicEndpoint = StackConfiguration.getAuthenticationServicePublicEndpoint();
-	
-	@ResponseStatus(HttpStatus.CREATED)
-	@RequestMapping(value = OPEN_ID_URI, method = RequestMethod.POST)
-	public void openID(
-			@RequestParam(value = OPEN_ID_PROVIDER, required = true) String openIdProvider,
-			@RequestParam(value = ACCEPTS_TERMS_OF_USE_PARAM, required = false) Boolean acceptsTermsOfUse,
-			@RequestParam(value = RETURN_TO_URL_PARAM, required = true) String returnToURL,
-              HttpServletRequest request,
-              HttpServletResponse response) throws Exception {
-
-		HttpServlet servlet = null;
-		
-		ConsumerManager manager = new ConsumerManager();
-		SampleConsumer sampleConsumer = new SampleConsumer(manager);
-		
-		String thisUrl = request.getRequestURL().toString();
-		int i = thisUrl.indexOf(OPEN_ID_URI);
-		if (i<0) throw new RuntimeException("Current URI, "+OPEN_ID_URI+", not found in "+thisUrl);
-		String openIDCallbackURL = authenticationServicePublicEndpoint+OPENID_CALLBACK_URI;
-//	    Here is an alternate way to do it which makes sure that the domain of the call back URL matches
-//		that of the incoming request:
-//		String openIDCallbackURL = thisUrl.substring(0, i)+OPENID_CALLBACK_URI;
-		Cookie cookie = new Cookie(RETURN_TO_URL_COOKIE_NAME, returnToURL);
-		cookie.setMaxAge(RETURN_TO_URL_COOKIE_MAX_AGE_SECONDS);
-		response.addCookie(cookie);
-		
-		cookie = new Cookie(ACCEPTS_TERMS_OF_USE_COOKIE_NAME, ""+acceptsTermsOfUse);
-		cookie.setMaxAge(RETURN_TO_URL_COOKIE_MAX_AGE_SECONDS);
-		response.addCookie(cookie);
-		
-		sampleConsumer.authRequest(openIdProvider, openIDCallbackURL, servlet, request, response);
-	}
-
-	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = OPENID_CALLBACK_URI, method = RequestMethod.GET)
-	public
-	void openIDCallback(
-			HttpServletRequest request,
-			HttpServletResponse response) throws Exception {
-		try {
-			
-			ConsumerManager manager = new ConsumerManager();
-			
-			SampleConsumer sampleConsumer = new SampleConsumer(manager);
-
-			OpenIDInfo openIDInfo = sampleConsumer.verifyResponse(request);
-			String openID = openIDInfo.getIdentifier();
-						
-			List<String> emails = openIDInfo.getMap().get(SampleConsumer.AX_EMAIL);
-			String email = (emails==null || emails.size()<1 ? null : emails.get(0));
-			List<String> fnames = openIDInfo.getMap().get(SampleConsumer.AX_FIRST_NAME);
-			String fname = (fnames==null || fnames.size()<1 ? null : fnames.get(0));
-			List<String> lnames = openIDInfo.getMap().get(SampleConsumer.AX_LAST_NAME);
-			String lname = (lnames==null || lnames.size()<1 ? null : lnames.get(0));
-			
-			if (email==null) throw new AuthenticationException(400, "Unable to authenticate", null);
-			
-			User credentials = new User();			
-			credentials.setEmail(email);
-
-			Map<String,Collection<String>> attrs = null;
-			try {
-				attrs = new HashMap<String,Collection<String>>(CrowdAuthUtil.getUserAttributes(email));
-			} catch (NotFoundException nfe) {
-				// user doesn't exist yet, so create them
-				credentials.setPassword((new Long(rand.nextLong())).toString());
-				credentials.setFirstName(fname);
-				credentials.setLastName(lname);
-				if (fname!=null && lname!=null) credentials.setDisplayName(fname+" "+lname);
-				CrowdAuthUtil.createUser(credentials);
-				attrs = new HashMap<String,Collection<String>>(CrowdAuthUtil.getUserAttributes(email));
-			}
-			// save the OpenID in Crowd
-			Collection<String> openIDs = attrs.get(OPEN_ID_ATTRIBUTE);
-			if (openIDs==null) {
-				attrs.put(OPEN_ID_ATTRIBUTE, Arrays.asList(new String[]{openID}));
-			} else {
-				Set<String> modOpenIDs = new HashSet<String>(openIDs);
-				modOpenIDs.add(openID);
-				attrs.put(OPEN_ID_ATTRIBUTE, modOpenIDs);
-			}
-
-			CrowdAuthUtil.setUserAttributes(email, attrs);
-			
-			Session crowdSession = CrowdAuthUtil.authenticate(credentials, false);
-
-
-			String returnToURL = null;
-			Boolean acceptsTermsOfUse = null;
-			Cookie[] cookies = request.getCookies();
-			for (Cookie c : cookies) {
-				if (RETURN_TO_URL_COOKIE_NAME.equals(c.getName())) {
-					returnToURL = c.getValue();
-				}
-				if (ACCEPTS_TERMS_OF_USE_COOKIE_NAME.equals(c.getName())) {
-					acceptsTermsOfUse = Boolean.parseBoolean(c.getValue());
-				}
-			}
-			if (returnToURL==null) throw new RuntimeException("Missing required return-to URL.");
-			
-			String redirectUrl = returnToURL+":";
-			if (acceptsTermsOfUse(email, acceptsTermsOfUse)) {
-				redirectUrl += crowdSession.getSessionToken();
-			} else {
-				redirectUrl += ServiceConstants.ACCEPTS_TERMS_OF_USE_REQUIRED_TOKEN;
-			}
-			String location = response.encodeRedirectURL(redirectUrl);
-			response.sendRedirect(location);
-			
 		} catch (AuthenticationException ae) {
 			// include the URL used to authenticate
 			ae.setAuthURL(request.getRequestURL().toString());
@@ -313,7 +139,7 @@ public class AuthenticationController extends BaseController {
 	@RequestMapping(value = "/session", method = RequestMethod.PUT)
 	public void revalidate(@RequestBody Session session) throws Exception {
 		String userId = CrowdAuthUtil.revalidate(session.getSessionToken());
-		if (!acceptsTermsOfUse(userId, false /*i.e. may have accepted TOU previously, but acceptance is not given in this request*/)) {
+		if (!CrowdAuthUtil.acceptsTermsOfUse(userId, false /*i.e. may have accepted TOU previously, but acceptance is not given in this request*/)) {
 			throw new ForbiddenException(ServiceConstants.TERMS_OF_USE_ERROR_MESSAGE);
 		}
 	}
@@ -337,8 +163,6 @@ public class AuthenticationController extends BaseController {
 				}
 			}
 	}
-	
-	private Random rand = new Random();
 	
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = "/user", method = RequestMethod.POST)
