@@ -1,0 +1,40 @@
+{
+	"description": "JSON schema for file metadata.",
+	"type": "interface",
+	"properties": {
+		"id": {
+			"description": "The id of the file.",
+			"type": "string",
+			"required": true
+		},"previewId": {
+			"description": "If this file has a preview, then this will be the file ID of the preview.",
+			"type": "string",
+			"required": true
+		},
+		"createdByPrincipalId": {
+			"description": "The user that created this file.",
+			"type": "integer",
+			"required": true
+		},
+		"implementationType": {
+			"description": "Full name of the implementation type",
+			"type": "string",
+			"required": true
+		},
+		"contentType": {
+			"description": "Must be: http://en.wikipedia.org/wiki/Internet_media_type",
+			"type": "string",
+			"required": false
+		},
+		"contentSize": {
+			"description": "The size in bytes.",
+			"type": "integer",
+			"required": false
+		},
+		"contentMd5": {
+			"description": "MD5 on the content.",
+			"type": "string",
+			"required": false
+		}
+	}
+}

@@ -1,0 +1,14 @@
+{
+	"description": "JSON schema for S3 File metadata",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.FileMetadata"
+		}
+	],
+	"properties": {
+		"externalURL": {
+			"type": "string",
+			"description": "The external URL of this file."
+		}
+	}
+}

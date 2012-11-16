@@ -1,0 +1,18 @@
+{
+	"description": "JSON schema for S3 File metadata",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.FileMetadata"
+		}
+	],
+	"properties": {
+		"bucketName": {
+			"type": "string",
+			"description": "The name of the S3 bucket for this file"
+		},
+		"key": {
+			"type": "string",
+			"description": "The S3 key for this object"
+		}
+	}
+}
