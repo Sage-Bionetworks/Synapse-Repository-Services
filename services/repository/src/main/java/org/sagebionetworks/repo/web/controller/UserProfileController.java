@@ -107,11 +107,10 @@ public class UserProfileController extends BaseController {
 	UserProfile updateUserProfile(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
-			@RequestHeader(ServiceConstants.ETAG_HEADER) String etag,
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
 			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
-		return serviceProvider.getUserProfileService().updateUserProfile(userId, header, etag, request);
+		return serviceProvider.getUserProfileService().updateUserProfile(userId, header, request);
 	}
 
 	/**

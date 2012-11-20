@@ -244,7 +244,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
 		if (!authorizationManager.canAccess(userInfo, nodeId, ACCESS_TYPE.READ)) {
-			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
+			throw new UnauthorizedException(userName + " lacks read access to the requested object.");
 		}
 		
 		Node result = nodeDao.getNode(nodeId);
@@ -310,7 +310,11 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		//updatedNode's parentId with the parentId our node is showing in database
 		//change in database, and update benefactorID/permissions
 		String parentInDatabase = nodeDao.getParentId(updatedNode.getId());
-		if (isParenIdChange(parentInDatabase, updatedNode.getParentId())){
+		String parentInUpdate = updatedNode.getParentId();
+		if (isParenIdChange(parentInDatabase, parentInUpdate)) {
+			if (!authorizationManager.canAccess(userInfo, parentInUpdate, ACCESS_TYPE.CREATE)) {
+				throw new UnauthorizedException(userInfo.getUser().getDisplayName() + " is not authorized to create an entity here.");
+			}
 			nodeDao.changeNodeParent(updatedNode.getId(), updatedNode.getParentId());
 			nodeInheritanceManager.nodeParentChanged(updatedNode.getId(), updatedNode.getParentId());
 		}

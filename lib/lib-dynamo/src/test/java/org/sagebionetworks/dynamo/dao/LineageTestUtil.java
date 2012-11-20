@@ -7,10 +7,15 @@ import java.util.regex.Pattern;
 
 import org.sagebionetworks.dynamo.KeyValueSplitter;
 
+/**
+ * Test utils.
+ *
+ * @author Eric Wu
+ */
 class LineageTestUtil {
 
 	/**
-	 * Accepts strings like "a#D 1#b" which is a root-to-child pointer from root a to child b.
+	 * Accepts strings like "a#D 1#b" which is a parent-to-child pointer from parent a to child b.
 	 */
 	static final Pattern LINEAGE_PAIR_SINGLE_LETTER_PATTERN = Pattern.compile(
 			"(\\w" + KeyValueSplitter.SEPARATOR +
@@ -18,7 +23,8 @@ class LineageTestUtil {
 			"])\\s+(\\d" + KeyValueSplitter.SEPARATOR + "\\w)");
 
 	/**
-	 * Accepts strings like "a#D 1#b" which is a root-to-child pointer from root a to child b.
+	 * Accepts strings like "a#D 1#b" which is a parent-to-child pointer from parent a to child b.
+	 * Node IDs will be replaced by those mapped in the hash map.
 	 */
 	static NodeLineagePair parse(String lineagePairStr, int ancestorDepth, Map<String, String> idMap) {
 
@@ -34,9 +40,10 @@ class LineageTestUtil {
 			throw new IllegalArgumentException(lineagePairStr);
 		}
 
-		NodeLineage lineage = new NodeLineage();
-		lineage.setHashKey(matcher.group(1));
-		lineage.setRangeKey(matcher.group(2));
+		DboNodeLineage dbo = new DboNodeLineage();
+		dbo.setHashKey(matcher.group(1));
+		dbo.setRangeKey(matcher.group(2));
+		NodeLineage lineage = new NodeLineage(dbo);
 
 		// Replace with random IDs
 		String nodeId = lineage.getNodeId();
@@ -69,7 +76,7 @@ class LineageTestUtil {
 			descendantId = newTargetId;
 		}
 
-		return new NodeLineagePair(ancestorId, new Date(), descendantId, new Date(),
-				ancestorDepth, lineage.getDistance());
+		return new NodeLineagePair(ancestorId, descendantId,
+				ancestorDepth, lineage.getDistance(), new Date());
 	}
 }

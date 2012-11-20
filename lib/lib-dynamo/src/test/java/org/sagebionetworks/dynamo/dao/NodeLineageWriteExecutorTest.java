@@ -7,9 +7,10 @@ import junit.framework.Assert;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.dynamo.DynamoWriteExecution;
 import org.sagebionetworks.dynamo.DynamoWriteOperation;
 
-public class LineagePairWriteExecutorTest {
+public class NodeLineageWriteExecutorTest {
 
 	private final MockOp op1 = new MockOp("a", "d", 1, 3, false);
 	private final MockOp op2 = new MockOp("b", "e", 1, 3, false);
@@ -53,18 +54,8 @@ public class LineagePairWriteExecutorTest {
 	public void testOpList1() {
 
 		NodeLineageWriteExecutor executor = new NodeLineageWriteExecutor();
-		executor.execute(opList1);
-
-		// Verify sorting by depth
-		Assert.assertEquals(this.op1, this.opList1.get(0));
-		Assert.assertEquals(this.op2, this.opList1.get(1));
-		Assert.assertEquals(this.op3, this.opList1.get(2));
-		Assert.assertEquals(this.op4, this.opList1.get(3));
-		Assert.assertEquals(this.op5, this.opList1.get(4));
-		Assert.assertEquals(this.op6, this.opList1.get(5));
-		Assert.assertEquals(this.op7, this.opList1.get(6));
-		Assert.assertEquals(this.op8, this.opList1.get(7));
-		Assert.assertEquals(this.op9, this.opList1.get(8));
+		DynamoWriteExecution exe1 = new DynamoWriteExecution("opList1", opList1);
+		executor.execute(exe1);
 
 		Assert.assertTrue(this.op1.getExecuted());
 		Assert.assertFalse(this.op1.getRestored());
@@ -90,13 +81,8 @@ public class LineagePairWriteExecutorTest {
 	public void testOpList2() {
 
 		NodeLineageWriteExecutor executor = new NodeLineageWriteExecutor();
-		executor.execute(opList2);
-
-		// Verify sorting by depth
-		Assert.assertEquals(this.op26, this.opList2.get(0));
-		Assert.assertEquals(this.op27, this.opList2.get(1));
-		Assert.assertEquals(this.op28, this.opList2.get(2));
-		Assert.assertEquals(this.op29, this.opList2.get(3));
+		DynamoWriteExecution exe2 = new DynamoWriteExecution("opList2", opList2);
+		executor.execute(exe2);
 
 		// Verify restore
 		Assert.assertTrue(this.op26.getExecuted());
@@ -149,7 +135,7 @@ public class LineagePairWriteExecutorTest {
 		}
 
 		@Override
-		public boolean write() {
+		public boolean write(int step) {
 			this.executed = true;
 			if (fail) {
 				return false;
@@ -159,7 +145,7 @@ public class LineagePairWriteExecutorTest {
 		}
 
 		@Override
-		public void restore() {
+		public void restore(int step) {
 			this.restored = true; 
 		}
 

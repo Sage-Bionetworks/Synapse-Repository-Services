@@ -41,7 +41,7 @@ import com.amazonaws.services.cloudsearch.model.OptionState;
 @ContextConfiguration(locations = { "classpath:search-dao.spb.xml" })
 public class SearchDaoImplAutowireTest {
 	
-	public static final long MAX_WAIT_TIME = 60*1000; // one minute
+	public static final long MAX_WAIT_TIME = 60*1000*10; // ten minute
 	
 	@Autowired
 	SearchDao searchDao;

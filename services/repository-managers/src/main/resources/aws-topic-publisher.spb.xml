@@ -30,6 +30,9 @@
 			<ref bean="stackConfiguration.repositoryChangeTopicName" />
 		</constructor-arg>
 	</bean>
+	
+	<!-- This is how messages get rebroadcast -->
+	<bean id="messageSyndication" class="org.sagebionetworks.repo.manager.message.MessageSyndicationImpl" />
 
 	<!-- This timer is used to fire publish events.  This is where messages get published to the AWS topic -->
 	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">

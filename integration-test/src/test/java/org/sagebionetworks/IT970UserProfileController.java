@@ -1,5 +1,7 @@
 package org.sagebionetworks;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.logging.Logger;
 
 import org.json.JSONObject;
@@ -37,7 +39,8 @@ public class IT970UserProfileController {
 		// now update the fields
 		userProfile.put("firstName", "foo");
 		userProfile.put("lastName", "bar");
-		synapse.putEntity("/userProfile", userProfile);
+		Map<String,String> headers = new HashMap<String, String>();
+		synapse.putJSONObject("/userProfile", userProfile, headers);
 	}
 	
 
