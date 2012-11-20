@@ -21,6 +21,7 @@
     <module>search</module>
     <module>dynamo</module>
     <module>rds</module>
+	<module>competition-services</module>
   </modules>
 
 </project>

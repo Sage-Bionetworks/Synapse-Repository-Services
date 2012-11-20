@@ -8,6 +8,7 @@
 		<relativePath>..</relativePath>
 	</parent>
 	<artifactId>services-search</artifactId>
+	<name>services-search</name>
 	<packaging>war</packaging>
 	<dependencies>
 	

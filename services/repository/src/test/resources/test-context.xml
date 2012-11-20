@@ -11,9 +11,6 @@
 
 	<import resource="classpath:repository-servlet.xml" />
 
-	<bean id="helper" class="org.sagebionetworks.repo.web.controller.Helpers"
-		scope="prototype" />
-
 	<bean id="testHelper"
 		class="org.sagebionetworks.repo.web.controller.ServletTestHelper"
 		scope="prototype" />

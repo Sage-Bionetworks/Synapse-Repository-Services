@@ -246,7 +246,6 @@ public class EntityServletTestHelper {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY+"/"+toUpdate.getId());
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
-		request.addHeader(ServiceConstants.ETAG_HEADER, toUpdate.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		String body = EntityFactory.createJSONStringForEntity(toUpdate);
@@ -331,7 +330,6 @@ public class EntityServletTestHelper {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.ENTITY+"/"+annos.getId()+UrlHelpers.ANNOTATIONS);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
-		request.addHeader(ServiceConstants.ETAG_HEADER, annos.getEtag());
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		StringWriter out = new StringWriter();
 		String body = EntityFactory.createJSONStringForEntity(annos);

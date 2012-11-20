@@ -1,0 +1,11 @@
+{
+    "description":"JSON schema for the possible states of a Synapse Competition.",
+    "name": "CompetitionStatus",
+    "type":"string",
+    "enum":[
+        "PLANNED",
+        "OPEN",
+        "CLOSED",
+        "COMPLETED"
+    ]
+}

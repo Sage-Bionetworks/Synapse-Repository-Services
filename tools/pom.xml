@@ -12,9 +12,7 @@
 	<name>Platform Tools</name>
 
     <modules>
-      <module>wikiutil</module>
       <module>bccSetup</module>
-      <module>SynapseDeployer</module>
       <module>tool-migration-utility</module>
       <module>usageMetrics</module>
   </modules>
