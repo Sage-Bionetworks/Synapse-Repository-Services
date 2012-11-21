@@ -10,14 +10,20 @@ import java.util.Date;
  * @author Eric Wu
  */
 class NodeLineagePair {
-
+	
 	NodeLineagePair(DboNodeLineage dbo, int ancestorDepth) {
+		this(new NodeLineage(dbo), ancestorDepth);
+	}
 
-		if (dbo == null) {
+	NodeLineagePair(NodeLineage lineage, int ancestorDepth) {
+
+		if (lineage == null) {
 			throw new NullPointerException();
 		}
+		if (ancestorDepth < 0) {
+			throw new IllegalArgumentException("Depth cannot be negative.");
+		}
 
-		NodeLineage lineage = new NodeLineage(dbo);
 		String ancId = lineage.getNodeId();
 		String descId = lineage.getAncestorOrDescendantId();
 		if (LineageType.ANCESTOR.equals(lineage.getLineageType())) {
