@@ -104,6 +104,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
+	private static final String SQL_SELECT_VERSION_LABEL = "SELECT "+COL_REVISION_LABEL+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
 	
 	/**
 	 * To determine if a node has children we fetch the first child ID.
@@ -131,6 +132,9 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME+" ORDER BY " + COL_REVISION_NUMBER
 			+ " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
+	// the value to pass into the node to remove the generatedBy link between node and activity
+	private static String DELETE_ACTIVITY_VALUE = "-1";
+	
 	// This is better suited for simple JDBC query.
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -188,8 +192,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			rev.setRevisionNumber(dto.getVersionNumber());
 		}
 		DBONode node = new DBONode();
-		node.setCurrentRevNumber(rev.getRevisionNumber());
-		NodeUtils.updateFromDto(dto, node, rev);
+		node.setCurrentRevNumber(rev.getRevisionNumber());		
+		NodeUtils.updateFromDto(dto, node, rev, shouldDeleteActivityId(dto));
 		// If an id was not provided then create one
 		if(node.getId() == null){
 			node.setId(idGenerator.generateNewId());
@@ -290,7 +294,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 		
 		// Now update the new revision and node
-		NodeUtils.updateFromDto(newVersion, jdo, newRev);
+		NodeUtils.updateFromDto(newVersion, jdo, newRev, shouldDeleteActivityId(newVersion));
 		// The new revision becomes the current version
 		jdo.setCurrentRevNumber(newRev.getRevisionNumber());
 
@@ -560,8 +564,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		Long nodeId = KeyFactory.stringToKey(updatedNode.getId());
 		DBONode jdoToUpdate = getNodeById(nodeId);
 		DBORevision revToUpdate = getCurrentRevision(jdoToUpdate);
-		// Update is as simple as copying the values from the passed node.
-		NodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate);	
+		// Update is as simple as copying the values from the passed node.		
+		NodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate, shouldDeleteActivityId(updatedNode));	
 
 		// Should we force the update of the etag?
 		if(forceUseEtag){
@@ -744,12 +748,30 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	}
 
 	@Override
-	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException {
+	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
 		// Fetch the basic data for an entity.
 		Long id = KeyFactory.stringToKey(nodeId);
 		ParentTypeName ptn = getParentTypeName(id);
-		EntityHeader header = createHeaderFromParentTypeName(nodeId, ptn);
+		String versionLabel = null;		
+		if(versionNumber != null) {
+			versionLabel = getVersionLabel(nodeId, versionNumber);
+		}
+		EntityHeader header = createHeaderFromParentTypeName(nodeId, ptn, versionNumber, versionLabel);
 		return header;
+	}
+	
+	@Override
+	public String getVersionLabel(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
+		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
+		Long id = KeyFactory.stringToKey(nodeId);
+		try{
+			Map<String, Object> row = simpleJdbcTemplate.queryForMap(SQL_SELECT_VERSION_LABEL, id, versionNumber);
+			return (String) row.get(COL_REVISION_LABEL);
+		}catch(EmptyResultDataAccessException e){
+			// Occurs if there are no results
+			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId + ", version: " + versionNumber);
+		}
 	}
 
 	/**
@@ -759,10 +781,12 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @return the entity header
 	 */
 	public static EntityHeader createHeaderFromParentTypeName(String nodeId,
-			ParentTypeName ptn) {
+			ParentTypeName ptn, Long versionNumber, String versionLabel) {
 		EntityHeader header = new EntityHeader();
 		header.setId(nodeId);
 		header.setName(ptn.getName());
+		header.setVersionNumber(versionNumber);
+		header.setVersionLabel(versionLabel);
 		EntityType type = EntityType.getTypeForId(ptn.getType());
 		header.setType(type.getEntityType());
 		return header;
@@ -835,7 +859,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private void appendPath(List<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
 		// First Build the entity header for this node
 		ParentTypeName ptn = getParentTypeName(nodeId);
-		EntityHeader header = createHeaderFromParentTypeName(KeyFactory.keyToString(nodeId), ptn);
+		EntityHeader header = createHeaderFromParentTypeName(KeyFactory.keyToString(nodeId), ptn, null, null);
 		// Add at the front
 		results.add(0, header);
 		if(ptn.getParentId() != null){
@@ -1171,4 +1195,17 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return MigratableObjectType.ENTITY;
 	}
 
+	@Override
+	public String getDeleteGeneratedByLinkValue() {
+		return DELETE_ACTIVITY_VALUE;
+	}
+
+
+	/*
+	 * Private Methods
+	 */
+	private boolean shouldDeleteActivityId(Node dto) {
+		return getDeleteGeneratedByLinkValue().equals(dto.getActivityId()) ? true : false;
+	}
+	
 }

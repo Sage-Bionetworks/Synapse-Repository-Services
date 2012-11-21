@@ -38,7 +38,7 @@ class NodeUtils {
 	 * @return
 	 * @throws DatastoreException 
 	 */
-	public static void updateFromDto(Node dto, DBONode jdo, DBORevision rev) throws DatastoreException, InvalidModelException {
+	public static void updateFromDto(Node dto, DBONode jdo, DBORevision rev, boolean deleteActivityId) throws DatastoreException, InvalidModelException {
 		jdo.setName(dto.getName());
 		if(dto.getDescription() !=  null){
 			try {
@@ -69,9 +69,12 @@ class NodeUtils {
 		} 	
 		
 		// bring in activity id, if set
-		if(dto.getActivityId() != null) {
+		if(deleteActivityId) {
+			rev.setActivityId(null);
+		} else if(dto.getActivityId() != null) {
 			rev.setActivityId(Long.parseLong(dto.getActivityId()));
 		}
+		
 
 		try {
 			rev.setReferences(JDOSecondaryPropertyUtils.compressReferences(dto.getReferences()));
