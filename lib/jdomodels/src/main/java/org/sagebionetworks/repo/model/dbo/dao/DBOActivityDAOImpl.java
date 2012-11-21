@@ -271,6 +271,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	 * Private Methods
 	 */
 	private DBOActivity getDBO(String id) throws NotFoundException {
+		if(id == null) throw new NotFoundException("No activity");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACTIVITY_ID.toLowerCase(), id);
 		try {

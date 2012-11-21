@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
@@ -69,6 +70,7 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -1236,6 +1238,25 @@ public class Synapse {
 			return results;
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
+		}
+	}	
+	
+	public BatchResults<EntityHeader> getEntityHeaderBatch(List<Reference> references) throws SynapseException {
+		ReferenceList list = new ReferenceList();
+		list.setReferences(references);
+		String url = ENTITY_URI_PATH + "/header";
+		JSONObject jsonObject;
+		try {
+			jsonObject = EntityFactory.createJSONObjectForEntity(list);
+			// POST
+			jsonObject = createJSONObject(url, jsonObject);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
+			BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(EntityHeader.class);
+			results.initializeFromJSONObject(adapter);
+			return results;
+
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
 		}
 	}	
 	
