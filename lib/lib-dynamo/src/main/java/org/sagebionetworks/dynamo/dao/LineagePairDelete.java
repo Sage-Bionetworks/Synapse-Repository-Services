@@ -82,7 +82,8 @@ class LineagePairDelete extends LineagePairWriteOperation {
 			this.dynamoMapper.delete(toDelete);
 			return true;
 		} catch (ConditionalCheckFailedException e) {
-			logger.error("DELETE failed for NodeLineage " + toDelete);
+			logger.error("DELETE failed for NodeLineage " + toDelete
+					+ ". Got error: " + e.getMessage());
 			return false;
 		}
 	}

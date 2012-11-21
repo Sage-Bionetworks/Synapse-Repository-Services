@@ -86,7 +86,8 @@ class LineagePairPut extends LineagePairWriteOperation {
 			this.dynamoMapper.save(toPut);
 			return true;
 		} catch (ConditionalCheckFailedException e) {
-			logger.error("PUT failed for NodeLineage " + toPut);
+			logger.error("PUT failed for NodeLineage " + toPut
+					+ ". Got error: " + e.getMessage());
 			return false;
 		}
 	}
