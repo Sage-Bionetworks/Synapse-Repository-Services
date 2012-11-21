@@ -551,12 +551,13 @@ public interface EntityService {
 	 * 
 	 * @param userInfo
 	 * @param entityId
+	 * @param vertionNumber (optional) null for current version
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public EntityHeader getEntityHeader(String userId, String entityId)
+	public EntityHeader getEntityHeader(String userId, String entityId, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**

@@ -6,7 +6,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -35,6 +38,7 @@ import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -74,6 +78,7 @@ public class NodeManagerImplAutoWiredTest {
 	ActivityManager activityManager;
 	
 	List<String> nodesToDelete;
+	List<String> activitiesToDelete;
 	
 	private UserInfo testUser;
 	
@@ -81,6 +86,7 @@ public class NodeManagerImplAutoWiredTest {
 	public void before() throws Exception{
 		assertNotNull(nodeManager);
 		nodesToDelete = new ArrayList<String>();
+		activitiesToDelete = new ArrayList<String>();
 		// Make sure we have a valid user.
 		testUser = testUserProvider.getTestAdminUserInfo();
 		UserInfo.validateUserInfo(testUser);
@@ -93,6 +99,15 @@ public class NodeManagerImplAutoWiredTest {
 			for(String id: nodesToDelete){
 				try {
 					nodeManager.delete(testUserProvider.getTestAdminUserInfo(), id);
+				} catch (Exception e) {
+					e.printStackTrace();
+				} 				
+			}
+		}
+		if(activityManager != null && activitiesToDelete != null){
+			for(String id: activitiesToDelete){
+				try {
+					activityManager.deleteActivity(testUserProvider.getTestAdminUserInfo(), id);
 				} catch (Exception e) {
 					e.printStackTrace();
 				} 				
@@ -624,4 +639,41 @@ public class NodeManagerImplAutoWiredTest {
 		assertNotNull(child);
 		assertEquals("Updating a parent object should not have changed the child's etag",childStartEtag, child.getETag());
 	}
+
+	@Test
+	public void testActivityForNodeCrud() throws Exception {
+		Activity activity = new Activity();
+		activity.setName("NodeManagerImplAutoWiredTest.testSetActivityForNode activity");
+		String actId = activityManager.createActivity(testUser, activity);
+		activitiesToDelete.add(actId);
+
+		activity = new Activity();
+		activity.setName("NodeManagerImplAutoWiredTest.testSetActivityForNode activity 2");
+		String act2Id = activityManager.createActivity(testUser, activity);
+		activitiesToDelete.add(act2Id);
+		
+		Node newNode = new Node();
+		newNode.setName("NodeManagerImplAutoWiredTest.testSetActivityForNode");
+		newNode.setNodeType(EntityType.dataset.name());
+		newNode.setActivityId(actId);
+		
+		
+		// create with activity id
+		String nodeId = nodeManager.createNewNode(newNode, testUser);
+		assertNotNull(nodeId);
+		nodesToDelete.add(nodeId);
+		Node createdNode = nodeManager.get(testUser, nodeId);
+		assertEquals(actId, createdNode.getActivityId());
+
+		// update activity id
+		nodeManager.setActivityForNode(testUser, nodeId, act2Id);		
+		Node updatedNode = nodeManager.get(testUser, nodeId);
+		assertEquals(act2Id, updatedNode.getActivityId());
+		
+		// delete
+		nodeManager.deleteActivityLinkToNode(testUser, nodeId);
+		updatedNode = nodeManager.get(testUser, nodeId);
+		assertEquals(null, updatedNode.getActivityId());
+	}
+
 }
