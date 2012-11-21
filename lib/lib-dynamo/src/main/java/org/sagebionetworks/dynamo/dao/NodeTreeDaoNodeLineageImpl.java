@@ -338,7 +338,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		if (nodeId == null) {
 			throw new NullPointerException();
 		}
-		if (pageSize < 0) {
+		if (pageSize <= 0) {
 			throw new IllegalArgumentException("Page size must be greater than 0.");
 		}
 
@@ -360,7 +360,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		if (generation < 1) {
 			throw new IllegalArgumentException("Must be at least 1 generation away.");
 		}
-		if (pageSize < 0) {
+		if (pageSize <= 0) {
 			throw new IllegalArgumentException("Page size must be greater than 0.");
 		}
 
@@ -390,7 +390,9 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 			throw new NullPointerException();
 		}
 		if (nodeX.equals(nodeY)) {
-			return new ArrayList<String>(0);
+			List<String> path = new ArrayList<String>(1);
+			path.add(nodeX);
+			return path;
 		}
 
 		List<NodeLineage> pathX = this.getCompletePathFromRoot(nodeX, this.readMapper);

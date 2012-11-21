@@ -292,6 +292,9 @@ public class NodeTreeDaoReadAutowireTest {
 		Assert.assertEquals(this.idMap.get("u"), path.get(1));
 		Assert.assertEquals(this.idMap.get("j"), path.get(2));
 		Assert.assertEquals(this.idMap.get("m"), path.get(3));
+		path = this.nodeTreeDao.getPath(this.idMap.get("d"), this.idMap.get("d"));
+		Assert.assertEquals(1, path.size());
+		Assert.assertEquals(this.idMap.get("d"), path.get(0));
 		path = this.nodeTreeDao.getPath(this.idMap.get("m"), this.idMap.get("k"));
 		Assert.assertNull(path);
 	}
