@@ -555,7 +555,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 		Node toUpdate = get(userInfo, nodeId);
-		toUpdate.setActivityId(nodeDao.getDeleteGeneratedByLinkValue());
+		toUpdate.setActivityId(NodeDAO.DELETE_ACTIVITY_VALUE);
 		update(userInfo, toUpdate);
 	}	
 	
@@ -564,7 +564,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 */	
 	private void canConnectToActivity(String activityId, UserInfo userInfo) throws NotFoundException {		
 		if(activityId != null) {
-			if(nodeDao.getDeleteGeneratedByLinkValue().equals(activityId)) return;
+			if(NodeDAO.DELETE_ACTIVITY_VALUE.equals(activityId)) return;
 			if(!activityManager.doesActivityExist(activityId)) 
 				throw new NotFoundException("Activity id " + activityId + " not found.");
 			if(!authorizationManager.canAccessActivity(userInfo, activityId))

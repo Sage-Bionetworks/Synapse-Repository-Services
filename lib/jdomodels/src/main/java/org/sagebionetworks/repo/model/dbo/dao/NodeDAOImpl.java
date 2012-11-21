@@ -131,9 +131,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			+ COL_REVISION_MODIFIED_ON + " FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME+" ORDER BY " + COL_REVISION_NUMBER
 			+ " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-
-	// the value to pass into the node to remove the generatedBy link between node and activity
-	private static String DELETE_ACTIVITY_VALUE = "-1";
 	
 	// This is better suited for simple JDBC query.
 	@Autowired
@@ -1195,17 +1192,12 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return MigratableObjectType.ENTITY;
 	}
 
-	@Override
-	public String getDeleteGeneratedByLinkValue() {
-		return DELETE_ACTIVITY_VALUE;
-	}
-
 
 	/*
 	 * Private Methods
 	 */
 	private boolean shouldDeleteActivityId(Node dto) {
-		return getDeleteGeneratedByLinkValue().equals(dto.getActivityId()) ? true : false;
+		return DELETE_ACTIVITY_VALUE.equals(dto.getActivityId()) ? true : false;
 	}
 	
 }

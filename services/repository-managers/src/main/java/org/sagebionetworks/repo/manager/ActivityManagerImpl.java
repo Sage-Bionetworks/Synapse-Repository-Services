@@ -68,7 +68,7 @@ public class ActivityManagerImpl implements ActivityManager {
 		String requestorId = userInfo.getIndividualGroup().getId();
 		String requestorName = userInfo.getIndividualGroup().getName();
 		Activity currentAct = activityDAO.get(activity.getId());
-		if(!currentAct.getCreatedBy().equals(requestorId) && !userInfo.isAdmin()) {
+		if(!userInfo.isAdmin() && !currentAct.getCreatedBy().equals(requestorId)) {
 			throw new UnauthorizedException(requestorName +" lacks change access to the requested object.");
 		}			
 		

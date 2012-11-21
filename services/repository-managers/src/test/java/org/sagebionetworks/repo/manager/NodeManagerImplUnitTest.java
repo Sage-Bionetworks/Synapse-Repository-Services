@@ -447,7 +447,7 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
 		
 		nodeManager.deleteActivityLinkToNode(mockUserInfo, nodeId);
-		verify(node).setActivityId(null);		
+		verify(node).setActivityId(NodeDAO.DELETE_ACTIVITY_VALUE);		
 		verify(mockNodeDao).updateNode(node);		
 	}
 	

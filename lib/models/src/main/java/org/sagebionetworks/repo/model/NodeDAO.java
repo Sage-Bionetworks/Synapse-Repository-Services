@@ -14,6 +14,12 @@ import org.sagebionetworks.repo.web.NotFoundException;
  *
  */
 public interface NodeDAO extends MigratableDAO {
+
+	/**
+	 * the value to pass into the node to remove the generatedBy link between node and activity
+	 * 
+	 */
+	public static String DELETE_ACTIVITY_VALUE = "-1";
 	
 	/**
 	 * Create a new node.
@@ -343,9 +349,4 @@ public interface NodeDAO extends MigratableDAO {
 	 */
 	public Map<String, Set<Reference>> getNodeReferences(String nodeId) throws NotFoundException, DatastoreException;
 
-	/**
-	 * Returns the value one must set activityId to in the node to remove the connection between activity and node
-	 * @return
-	 */
-	public String getDeleteGeneratedByLinkValue();
 }
