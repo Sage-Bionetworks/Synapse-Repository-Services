@@ -25,7 +25,7 @@ class DynamoConfig {
 		DynamoKey hashKey = new DynamoKey(DboNodeLineage.HASH_KEY_NAME, ScalarAttributeType.S);
 		DynamoKey rangeKey = new DynamoKey(DboNodeLineage.RANGE_KEY_NAME, ScalarAttributeType.S);
 		DynamoKeySchema keySchema = new DynamoKeySchema(hashKey, rangeKey);
-		DynamoThroughput throughput = new DynamoThroughput(120L, 90L);
+		DynamoThroughput throughput = new DynamoThroughput(30L, 20L);
 		DynamoTableConfig table = new DynamoTableConfig(tableName, keySchema, throughput);
 		tableList.add(table);
 
