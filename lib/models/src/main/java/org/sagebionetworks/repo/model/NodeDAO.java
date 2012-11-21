@@ -343,4 +343,9 @@ public interface NodeDAO extends MigratableDAO {
 	 */
 	public Map<String, Set<Reference>> getNodeReferences(String nodeId) throws NotFoundException, DatastoreException;
 
+	/**
+	 * Returns the value one must set activityId to in the node to remove the connection between activity and node
+	 * @return
+	 */
+	public String getDeleteGeneratedByLinkValue();
 }

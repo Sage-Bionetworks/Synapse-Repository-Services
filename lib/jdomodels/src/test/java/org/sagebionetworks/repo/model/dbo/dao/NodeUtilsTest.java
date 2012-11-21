@@ -59,7 +59,7 @@ public class NodeUtilsTest {
 		// Now create a revision for this node
 		DBONode jdoNode = new DBONode();
 		DBORevision jdoRev = new DBORevision();
-		NodeUtils.updateFromDto(node, jdoNode, jdoRev);
+		NodeUtils.updateFromDto(node, jdoNode, jdoRev, false);
 		assertEquals("The user cannot change an eTag.", null, jdoNode.geteTag());
 		// Set it to make sure the copy works
 		jdoNode.seteTag("1013");

@@ -44,7 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class NodeManagerImpl implements NodeManager, InitializingBean {
 	
-	static private Log log = LogFactory.getLog(NodeManagerImpl.class);
+	static private Log log = LogFactory.getLog(NodeManagerImpl.class);	
 	
 	@Autowired
 	NodeDAO nodeDao;	
@@ -536,7 +536,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(versionNumber != null)
 			activityId = nodeDao.getActivityId(nodeId, versionNumber);
 		else 
-			activityId = nodeDao.getActivityId(nodeId);
+			activityId = nodeDao.getActivityId(nodeId);		
 		return activityManager.getActivity(userInfo, activityId);
 	}
 
@@ -555,16 +555,16 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 		Node toUpdate = get(userInfo, nodeId);
-		toUpdate.setActivityId(null);
+		toUpdate.setActivityId(nodeDao.getDeleteGeneratedByLinkValue());
 		update(userInfo, toUpdate);
-	}
-
+	}	
 	
 	/*
 	 * Private Methods
 	 */	
 	private void canConnectToActivity(String activityId, UserInfo userInfo) throws NotFoundException {		
 		if(activityId != null) {
+			if(nodeDao.getDeleteGeneratedByLinkValue().equals(activityId)) return;
 			if(!activityManager.doesActivityExist(activityId)) 
 				throw new NotFoundException("Activity id " + activityId + " not found.");
 			if(!authorizationManager.canAccessActivity(userInfo, activityId))

@@ -1050,7 +1050,7 @@ public class NodeDAOImplTest {
 		toDelete.add(childId);
 		assertNotNull(childId);
 		// Get the header of this node
-		EntityHeader childHeader = nodeDao.getEntityHeader(childId, null);
+		EntityHeader childHeader = nodeDao.getEntityHeader(childId, 1L);
 		assertNotNull(childHeader);
 		assertEquals(EntityType.dataset.getEntityType(), childHeader.getType());
 		assertEquals("child", childHeader.getName());

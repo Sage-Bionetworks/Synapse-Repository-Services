@@ -431,22 +431,21 @@ public class EntityController extends BaseController{
     public @ResponseBody
     BatchResults<EntityHeader> getEntityVersionedTypeBatch(
                     @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-                    @RequestParam(value = ServiceConstants.BATCH_PARAM, required = true) String batch,
                     @RequestBody ReferenceList referenceList,
                     HttpServletRequest request) throws DatastoreException, UnauthorizedException {
-
-            
-
             List<EntityHeader> entityHeaders = new ArrayList<EntityHeader>();
             if(referenceList.getReferences() != null) {	            	
 	            for (Reference ref : referenceList.getReferences()) {
                     // Get the type of an entity by ID.
+	            	EntityHeader entityHeader = null;
                     try {
-                    	EntityHeader entityHeader = serviceProvider.getEntityService().getEntityHeader(userId, ref.getTargetId(), ref.getTargetVersionNumber());
-                    	entityHeaders.add(entityHeader);
+                    	entityHeader = serviceProvider.getEntityService().getEntityHeader(userId, ref.getTargetId(), ref.getTargetVersionNumber());
                     } catch (NotFoundException e) {
                     	// skip
+					} catch (UnauthorizedException e) {
+						// skip
 					}
+					if(entityHeader != null) entityHeaders.add(entityHeader);
 	            }
             }
 
@@ -951,7 +950,7 @@ public class EntityController extends BaseController{
 	@RequestMapping(value = { 
 			UrlHelpers.ENTITY_GENERATED_BY
 			}, method = RequestMethod.PUT)
-	public @ResponseBody
+	public @ResponseBody 
 	Activity updateActivityForEntity(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,

@@ -271,5 +271,5 @@ public interface NodeManager {
 	 */
 	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
 			throws NotFoundException, UnauthorizedException, DatastoreException;
-	
+
 }
