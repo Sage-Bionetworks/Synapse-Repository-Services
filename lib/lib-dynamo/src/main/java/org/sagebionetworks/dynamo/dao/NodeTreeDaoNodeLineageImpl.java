@@ -148,6 +148,8 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 				msg = msg + " but on a different node. The root is ";
 				msg = msg + root + ". The change node is " + child;
 				throw new RuntimeException(msg);
+			} else {
+				return this.create(child, parent, timestamp);
 			}
 		}
 
@@ -259,18 +261,18 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		}
 
 		// Create a new list that holds this node and its descendants
-		// These nodes' lineage need to be updated with their ancestors
+		// These nodes lineage with their ancestors will be cleared 
 		List<NodeLineage> descList = this.getDescendants(nodeId, this.writeMapper);
-		final List<String> updateList = new ArrayList<String>(descList.size() + 1);
-		updateList.add(nodeId);
+		final List<String> deleteList = new ArrayList<String>(descList.size() + 1);
+		deleteList.add(nodeId);
 		for (NodeLineage desc : descList) {
-			updateList.add(desc.getAncestorOrDescendantId());
+			deleteList.add(desc.getAncestorOrDescendantId());
 		}
 
 		List<DynamoWriteOperation> deleteOpList = new ArrayList<DynamoWriteOperation>();
-		for (String updateNode : updateList) {
+		for (String deleteNode : deleteList) {
 			// Note we do not check path-from-root for delete
-			String hashKey = DboNodeLineage.createHashKey(updateNode, LineageType.ANCESTOR);
+			String hashKey = DboNodeLineage.createHashKey(deleteNode, LineageType.ANCESTOR);
 			AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
 			DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
 			List<DboNodeLineage> dboList = this.writeMapper.query(DboNodeLineage.class, queryExpression);
