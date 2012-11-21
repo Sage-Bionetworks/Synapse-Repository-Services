@@ -4,21 +4,22 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.log4j.Logger;
 import org.sagebionetworks.dynamo.DynamoWriteExecution;
 import org.sagebionetworks.dynamo.DynamoWriteExecutor;
 import org.sagebionetworks.dynamo.DynamoWriteOperation;
-import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBQueryExpression;
-import com.amazonaws.services.dynamodb.datamodeling.PaginatedQueryList;
 import com.amazonaws.services.dynamodb.model.AttributeValue;
 import com.amazonaws.services.dynamodb.model.ComparisonOperator;
 import com.amazonaws.services.dynamodb.model.Condition;
 import com.amazonaws.services.dynamodb.model.Key;
+import com.amazonaws.services.dynamodb.model.QueryRequest;
+import com.amazonaws.services.dynamodb.model.QueryResult;
 
 /**
  * Implements using the node lineage model.
@@ -29,13 +30,16 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 
 	private final Logger logger = Logger.getLogger(NodeTreeDaoNodeLineageImpl.class);
 
-	@Autowired
-	private AmazonDynamoDB dynamoClient;
+	private final AmazonDynamoDB dynamoClient;
 	private final DynamoDBMapper writeMapper;
 	private final DynamoDBMapper readMapper;
 	private final DynamoWriteExecutor writeExecutor;
 
-	public NodeTreeDaoNodeLineageImpl() {
+	public NodeTreeDaoNodeLineageImpl(AmazonDynamoDB dynamoClient) {
+		if (dynamoClient == null) {
+			throw new NullPointerException();
+		}
+		this.dynamoClient = dynamoClient;
 		this.writeMapper = new DynamoDBMapper(this.dynamoClient,
 				NodeLineageMapperConfig.getMapperConfigWithConsistentReads());
 		this.readMapper = new DynamoDBMapper(this.dynamoClient,
@@ -45,7 +49,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 
 	@Override
 	public boolean create(final String child, final String parent, final Date timestamp)
-			throws ParentNotFoundException, IncompletePathException {
+			throws IncompletePathException {
 
 		if (child == null) {
 			throw new NullPointerException();
@@ -287,18 +291,31 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 	}
 
 	@Override
+	public String getRoot() {
+		List<NodeLineage> descList = this.getDescendants(DboNodeLineage.ROOT, readMapper);
+		if (descList == null || descList.isEmpty()) {
+			return null;
+		}
+		return descList.get(0).getAncestorOrDescendantId();
+	}
+
+	@Override
 	public List<String> getAncestors(String nodeId) throws IncompletePathException {
 
 		if (nodeId == null) {
 			throw new NullPointerException();
 		}
 
-		List<NodeLineage> path = this.getCompletePathFromRoot(nodeId, this.readMapper);
-		List<String> ancestorList = new ArrayList<String>(path.size());
-		for (int i = 0; i < path.size(); i++) {
-			ancestorList.add(path.get(i).getAncestorOrDescendantId());
+		try {
+			List<NodeLineage> path = this.getCompletePathFromRoot(nodeId, this.readMapper);
+			List<String> ancestorList = new ArrayList<String>(path.size());
+			for (int i = 0; i < path.size(); i++) {
+				ancestorList.add(path.get(i).getAncestorOrDescendantId());
+			}
+			return Collections.unmodifiableList(ancestorList);
+		} catch (NoAncestorException e) {
+			return Collections.unmodifiableList(new ArrayList<String>(0));
 		}
-		return Collections.unmodifiableList(ancestorList);
 	}
 
 	@Override
@@ -326,7 +343,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		}
 
 		Key lastKeyEvaluated = this.createKey(nodeId, lastDescIdExcl);
-		List<NodeLineage> descList = this.getDescendants(nodeId, this.readMapper, pageSize, lastKeyEvaluated);
+		List<NodeLineage> descList = this.getDescendants(nodeId, pageSize, lastKeyEvaluated, false);
 		List<String> results = new ArrayList<String>(descList.size());
 		for (NodeLineage desc : descList) {
 			results.add(desc.getAncestorOrDescendantId());
@@ -348,7 +365,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		}
 
 		Key lastKeyEvaluated = this.createKey(nodeId, lastDescIdExcl);
-		List<NodeLineage> descList = this.getDescendants(nodeId, this.readMapper, generation, pageSize, lastKeyEvaluated);
+		List<NodeLineage> descList = this.getDescendants(nodeId, generation, pageSize, lastKeyEvaluated, false);
 		List<String> results = new ArrayList<String>(descList.size());
 		for (NodeLineage desc : descList) {
 			results.add(desc.getAncestorOrDescendantId());
@@ -422,6 +439,12 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		}
 		if (nodeY == null) {
 			throw new NullPointerException();
+		}
+
+		// A special situation where one is the ancestor of another
+		List<String> path = this.getPath(nodeX, nodeY);
+		if (path != null) {
+			return path.get(0);
 		}
 
 		List<NodeLineage> pathX = this.getCompletePathFromRoot(nodeX, this.readMapper);
@@ -510,7 +533,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 			return null;
 		}
 		if (dboList.size() > 1) {
-			throw new RuntimeException(child + " fetch back more than 1 parent.");
+			throw new RuntimeException(child + " fetches back more than 1 parent.");
 		}
 
 		NodeLineage parent = new NodeLineage(dboList.get(0));
@@ -525,7 +548,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 	 *
 	 * @throws IncompletePathException When the path is incomplete
 	 */
-	private List<NodeLineage> getCompletePathFromRoot(String node, DynamoDBMapper mapper)
+	private List<NodeLineage> getCompletePathFromRoot(final String node, DynamoDBMapper mapper)
 			throws IncompletePathException {
 
 		assert node != null;
@@ -540,13 +563,13 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		final List<DboNodeLineage> dboList = mapper.query(DboNodeLineage.class, queryExpression);
 
 		if (dboList == null) {
-			throw new IncompletePathException("Null list of ancestors returned from DynamoDB for node " + node);
+			throw new NoAncestorException("Null list of ancestors returned from DynamoDB for node " + node);
 		}
 
 		final int dboListSize = dboList.size();
 		if (dboListSize == 0) {
 			// We should at least have the actual root or the dummy ROOT.
-			throw new IncompletePathException("Empty list of ancestors returned from DynamoDB for node " + node);
+			throw new NoAncestorException("Empty list of ancestors returned from DynamoDB for node " + node);
 		}
 
 		// Start checking from the root
@@ -580,7 +603,8 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 			NodeLineage lineage = new NodeLineage(dbo);
 			int dist = lineage.getDistance();
 			if (dist != (i + 1)) {
-				throw new IncompletePathException("Missing node at depth " + (dboListSize - i - 1) + " on the path.");
+				throw new IncompletePathException("Missing ancestor at depth " + (dboListSize - i - 1)
+						+ " in the ancestor path for node " + node);
 			}
 			path.add(lineage);
 		}
@@ -596,54 +620,98 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		assert nodeId != null;
 		assert mapper != null;
 
-		List<NodeLineage> result = this.getDescendants(nodeId, mapper, NodeTreeDao.MAX_PAGE_SIZE, null);
-		if (result.size() == NodeTreeDao.MAX_PAGE_SIZE) {
-			// Hints there are more pages. Are we updating the root?
-			logger.error("Max page size arrived for the descendants of node " + nodeId);
-		}
-		return result;
-	}
-
-	private List<NodeLineage> getDescendants(String nodeId, DynamoDBMapper mapper, int pageSize, Key lastKeyEvaluated) {
-
-		assert nodeId != null;
-		assert mapper != null;
-		assert pageSize > 0;
-
 		String hashKey = DboNodeLineage.createHashKey(nodeId, LineageType.DESCENDANT);
 		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr)
-				.withLimit(pageSize)
-				.withExclusiveStartKey(lastKeyEvaluated);
-		PaginatedQueryList<DboNodeLineage> result = mapper.query(DboNodeLineage.class, queryExpression);
-		final List<NodeLineage> descList = new ArrayList<NodeLineage>(result.size());
-		for (DboNodeLineage dbo : result) {
+		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+		List<DboNodeLineage> dboList = mapper.query(DboNodeLineage.class, queryExpression);
+		final List<NodeLineage> descList = new ArrayList<NodeLineage>(dboList.size());
+		for (DboNodeLineage dbo : dboList) {
+			// The query method handles paging internally. It returns a 'lazy-loaded' collection.
+			// That is, it initially returns only one page of results, and then makes a service
+			// call for the next page if needed. Iterating over the list fetches the whole
+			// collection page by page.
 			descList.add(new NodeLineage(dbo));
+			if (descList.size() == NodeTreeDao.MAX_PAGE_SIZE) {
+				// Are we querying the root for its descendants?
+				logger.error("Max page size reached for the descendants of node " + nodeId);
+				break;
+			}
 		}
 		return descList;
 	}
 
-	private List<NodeLineage> getDescendants(String nodeId, DynamoDBMapper mapper, int distance, int pageSize, Key lastKeyEvaluated) {
+	private List<NodeLineage> getDescendants(String nodeId, int pageSize, Key lastKeyEvaluated, boolean consistentRead) {
 
 		assert nodeId != null;
-		assert mapper != null;
+		assert pageSize > 0;
+
+		String hashKey = DboNodeLineage.createHashKey(nodeId, LineageType.DESCENDANT);
+		return this.getDescendants(hashKey, null, pageSize, lastKeyEvaluated, consistentRead);
+	}
+
+	private List<NodeLineage> getDescendants(String nodeId, int distance, int pageSize, Key lastKeyEvaluated,
+			boolean consistentRead) {
+
+		assert nodeId != null;
 		assert distance > 0;
 		assert pageSize > 0;
 
 		String hashKey = DboNodeLineage.createHashKey(nodeId, LineageType.DESCENDANT);
-		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
 		String rangeKeyStart = DboNodeLineage.createRangeKey(distance, "");
 		Condition rangeKeyCondition = new Condition()
 				.withComparisonOperator(ComparisonOperator.BEGINS_WITH)
 				.withAttributeValueList(new AttributeValue().withS(rangeKeyStart));
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr)
-				.withRangeKeyCondition(rangeKeyCondition)
+
+		return this.getDescendants(hashKey, rangeKeyCondition, pageSize, lastKeyEvaluated, consistentRead);
+	}
+
+	/*
+	 * Note that the following is ignored by DynamoDBMapper.query() and thus has no effect:
+	 *
+	 * DynamoDBQueryExpression
+	 *         .withLimit(pageSize)
+	 *         .withExclusiveStartKey(lastKeyEvaluated);
+	 *
+	 * DynamoDBMapper.query() implements lazy-load instead.
+	 *
+	 * Thus we are using the low-level SDK to do the paging.
+	 */
+	private List<NodeLineage> getDescendants(String hashKey, Condition rangeKeyCondition,
+			int pageSize, Key lastKeyEvaluated, boolean consistentRead) {
+
+		assert hashKey != null;
+		assert pageSize > 0;
+
+		if (pageSize > NodeTreeDao.MAX_PAGE_SIZE) {
+			pageSize = NodeTreeDao.MAX_PAGE_SIZE;
+		}
+
+		String tableName = NodeLineageMapperConfig
+				.getMapperConfig().getTableNameOverride().getTableName();
+		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
+		QueryRequest queryRequest = new QueryRequest()
+				.withTableName(tableName)
+				.withHashKeyValue(hashKeyAttr)
 				.withLimit(pageSize)
-				.withExclusiveStartKey(lastKeyEvaluated);
-		PaginatedQueryList<DboNodeLineage> result = mapper.query(DboNodeLineage.class, queryExpression);
-		final List<NodeLineage> descList = new ArrayList<NodeLineage>(result.size());
-		for (DboNodeLineage dbo : result) {
-			descList.add(new NodeLineage(dbo));
+				.withConsistentRead(consistentRead);
+
+		if (rangeKeyCondition != null) {
+			queryRequest.setRangeKeyCondition(rangeKeyCondition);
+		}
+
+		if (lastKeyEvaluated != null) {
+			queryRequest.setExclusiveStartKey(lastKeyEvaluated);
+		}
+
+		QueryResult result = this.dynamoClient.query(queryRequest);
+
+		List<Map<String, AttributeValue>> itemList = result.getItems();
+		List<NodeLineage> descList = new ArrayList<NodeLineage>(itemList.size());
+		for (Map<String, AttributeValue> item : itemList) {
+			// It does not matter which mapper
+			DboNodeLineage dbo = this.readMapper.marshallIntoObject(DboNodeLineage.class, item);
+			NodeLineage lineage = new NodeLineage(dbo);
+			descList.add(lineage);
 		}
 		return descList;
 	}
@@ -664,7 +732,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 			throw new IncompletePathException("Path does not exist between nodes " + nodeId + " and " + descId);
 		}
 
-		int distance = path.size();
+		int distance = path.size() - 1;
 		String hashKey = DboNodeLineage.createHashKey(nodeId, LineageType.DESCENDANT);
 		AttributeValue hashKeyValue = new AttributeValue().withS(hashKey);
 		String rangeKey = DboNodeLineage.createRangeKey(distance, descId);

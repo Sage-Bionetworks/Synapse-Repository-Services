@@ -32,6 +32,11 @@ public interface NodeTreeDao {
 	 * @return True if the delete succeeds; false otherwise.
 	 */
 	boolean delete(String nodeId, Date timestamp);
+	
+	/**
+	 * Gets the root node. Returns null if the root does not exist yet.
+	 */
+	String getRoot();
 
 	/**
 	 * Gets all the ancestors for the specified node. The returned ancestors are
@@ -43,7 +48,7 @@ public interface NodeTreeDao {
 	List<String> getAncestors(String nodeId) throws IncompletePathException;
 
 	/**
-	 * Gets the parent of the specified node. Root will get null.
+	 * Gets the parent of the specified node. Root will get the dummy ROOT as its parent.
 	 *
 	 */
 	String getParent(String nodeId);
@@ -94,9 +99,10 @@ public interface NodeTreeDao {
 	 * @param nodeY
 	 *            ID of node Y
 	 *
-	 * @return The path in between X and Y. Ancestor is the first in the returned list. It is
-	 *         up to the user to check the returned list which (X or Y) is the ancestor and
-	 *         which is the descendant. Null if no path exists between X and Y.
+	 * @return The path in between X and Y. Ancestor is the first in the returned list and descendant
+	 *         is the last in the returned list. It is up to the user to check the returned list
+	 *         which (X or Y) is the ancestor and which is the descendant. Null if no path exists
+	 *         between X and Y.
 	 */
 	List<String> getPath(String nodeX, String nodeY) throws IncompletePathException;
 
