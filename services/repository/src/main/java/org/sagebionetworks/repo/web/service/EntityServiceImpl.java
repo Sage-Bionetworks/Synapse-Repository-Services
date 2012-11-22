@@ -249,21 +249,11 @@ public class EntityServiceImpl implements EntityService {
 	 * @throws InvalidModelException
 	 */
 	private void fireValidateEvent(UserInfo userInfo, EventType eventType, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
-		List<EntityHeader> newParentPath = null;
-		if(entity.getParentId() != null){
-			newParentPath = entityManager.getEntityPathAsAdmin(entity.getParentId());
+		List<EntityHeader> newPath = null;
+		if (entity.getParentId() != null) {
+			newPath = entityManager.getEntityPathAsAdmin(entity.getParentId());
 		}
-		EntityEvent event = new EntityEvent(eventType, newParentPath, userInfo);
-		
-		// If node has a non-root parent, validate that user has update access on the parent
-		if (newParentPath != null && newParentPath.size() > 1) {
-			EntityHeader newParentHeader = newParentPath.get(newParentPath.size() - 1);
-			try {
-				entityManager.validateUpdateAccess(userInfo, newParentHeader.getId());
-			} catch (Exception e) {
-				throw new UnauthorizedException("Insufficient privileges for parent " + newParentHeader.getId());
-			}
-		}		
+		EntityEvent event = new EntityEvent(eventType, newPath, userInfo);
 		
 		// First apply validation that is common to all types.
 		allTypesValidator.validateEntity(entity, event);
