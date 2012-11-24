@@ -28,4 +28,8 @@
 
 	<bean id="dynamoSetup" class="org.sagebionetworks.dynamo.config.DynamoSetupImpl" init-method="initialize" scope="singleton" />
 
+	<bean id="nodeTreeDao" class="org.sagebionetworks.dynamo.dao.NodeTreeDaoNodeLineageImpl">
+		<constructor-arg ref="dynamoClient" />
+	</bean>
+
 </beans>

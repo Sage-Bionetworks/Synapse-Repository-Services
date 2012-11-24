@@ -111,8 +111,8 @@ public class ActivityManagerImplTest {
 		String firstDesc = "firstDesc";
 		String secondDesc = "secondDesc";
 		Activity act = newTestActivity(id);
-		act.setCreatedBy(createWith.getUser().getId());
-		act.setModifiedBy(createWith.getUser().getId());
+		act.setCreatedBy(createWith.getIndividualGroup().getId());
+		act.setModifiedBy(createWith.getIndividualGroup().getId());
 		act.setDescription(firstDesc);
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 		String originalEtag = act.getEtag();
@@ -156,8 +156,8 @@ public class ActivityManagerImplTest {
 		
 		// from database Activity
 		Activity act = newTestActivity(id);
-		act.setCreatedBy(normalUserInfo.getUser().getId());
-		act.setModifiedBy(normalUserInfo.getUser().getId());
+		act.setCreatedBy(normalUserInfo.getIndividualGroup().getId());
+		act.setModifiedBy(normalUserInfo.getIndividualGroup().getId());
 		String originalEtag = act.getEtag();
 		
 		// Activity to update with changed creator user id
@@ -179,8 +179,8 @@ public class ActivityManagerImplTest {
 	public void testDeleteActivity() throws Exception { 
 		String id = "123";
 		Activity act = newTestActivity(id);
-		act.setCreatedBy(normalUserInfo.getUser().getId());
-		act.setModifiedBy(normalUserInfo.getUser().getId());
+		act.setCreatedBy(normalUserInfo.getIndividualGroup().getId());
+		act.setModifiedBy(normalUserInfo.getIndividualGroup().getId());
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 
 		activityManager.deleteActivity(normalUserInfo, id.toString());
@@ -192,8 +192,8 @@ public class ActivityManagerImplTest {
 	public void testDeleteActivityAdmin() throws Exception { 
 		String id = "123";
 		Activity act = newTestActivity(id);
-		act.setCreatedBy(normalUserInfo.getUser().getId());
-		act.setModifiedBy(normalUserInfo.getUser().getId());
+		act.setCreatedBy(normalUserInfo.getIndividualGroup().getId());
+		act.setModifiedBy(normalUserInfo.getIndividualGroup().getId());
 		when(mockActivityDAO.get(anyString())).thenReturn(act);
 
 		activityManager.deleteActivity(adminUserInfo, id.toString());

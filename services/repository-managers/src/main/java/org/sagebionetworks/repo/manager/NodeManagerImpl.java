@@ -44,7 +44,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class NodeManagerImpl implements NodeManager, InitializingBean {
 	
-	static private Log log = LogFactory.getLog(NodeManagerImpl.class);
+	static private Log log = LogFactory.getLog(NodeManagerImpl.class);	
 	
 	@Autowired
 	NodeDAO nodeDao;	
@@ -496,14 +496,14 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
-	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId)
+	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId, Long versionNumber)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo.validateUserInfo(userInfo);
 		String userName = userInfo.getUser().getUserId();
 		if (!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.READ)) {
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
-		return nodeDao.getEntityHeader(entityId);
+		return nodeDao.getEntityHeader(entityId, versionNumber);
 	}
 
 	@Override
@@ -536,7 +536,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(versionNumber != null)
 			activityId = nodeDao.getActivityId(nodeId, versionNumber);
 		else 
-			activityId = nodeDao.getActivityId(nodeId);
+			activityId = nodeDao.getActivityId(nodeId);		
 		return activityManager.getActivity(userInfo, activityId);
 	}
 
@@ -555,16 +555,16 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 		Node toUpdate = get(userInfo, nodeId);
-		toUpdate.setActivityId(null);
+		toUpdate.setActivityId(NodeDAO.DELETE_ACTIVITY_VALUE);
 		update(userInfo, toUpdate);
-	}
-
+	}	
 	
 	/*
 	 * Private Methods
 	 */	
 	private void canConnectToActivity(String activityId, UserInfo userInfo) throws NotFoundException {		
 		if(activityId != null) {
+			if(NodeDAO.DELETE_ACTIVITY_VALUE.equals(activityId)) return;
 			if(!activityManager.doesActivityExist(activityId)) 
 				throw new NotFoundException("Activity id " + activityId + " not found.");
 			if(!authorizationManager.canAccessActivity(userInfo, activityId))

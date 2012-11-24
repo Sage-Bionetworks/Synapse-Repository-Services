@@ -88,12 +88,13 @@ public interface EntityManager {
 	 * Get the entity header.
 	 * @param userInfo
 	 * @param entityId
+	 * @param versionNumber (optional) null means current version.
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public EntityHeader getEntityHeader(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public EntityHeader getEntityHeader(UserInfo userInfo, String entityId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
 	
 	/**
 	 * Get the children of of an entity.

@@ -1,0 +1,15 @@
+{	
+	"name": "ReferenceList",
+	"description": "An array of Reference objects",
+	"properties": {
+		"references": {
+			"type": "array",
+			"description": "The list of references",
+			"uniqueItems": false,
+			"contentEncoding": "binary",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.Reference"
+			}
+		}
+	}
+}

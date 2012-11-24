@@ -74,6 +74,8 @@ public class UrlHelpers {
 //	public static final String TOKEN_ID = "{tokenId}/{filename}.{mimeType}";
 	
 	public static final String TYPE = "/type";
+	public static final String TYPE_HEADER = "/header";
+	
 	/**
 	 * The URL prefix for all object's Access Control List (ACL).
 	 */
@@ -145,6 +147,7 @@ public class UrlHelpers {
 	 * All of the base URLs for Synapse object batch requests
 	 */
 	public static final String ENTITY_TYPE = ENTITY+TYPE;
+	public static final String ENTITY_TYPE_HEADER = ENTITY+TYPE_HEADER;
 	
 
 

@@ -153,5 +153,42 @@ public class EntityManagerImplUnitTest {
 		verify(node).setActivityId(activityId);
 		reset(node);
 	}
+
+	@Test
+	public void testDeleteActivityId() throws Exception {
+		String id = "123";
+		Node node = mock(Node.class);
+		NamedAnnotations annos = new NamedAnnotations();
+		when(mockNodeManager.get(mockUser, id)).thenReturn(node);
+		when(mockNodeManager.getAnnotations(mockUser, id)).thenReturn(annos);
+		Entity entity = mock(Entity.class);
+		when(entity.getId()).thenReturn(id);
+		
+		String activityId;		
+
+		// Update: same version, null activity id. IMPORTANT: Do not overwrite activity id with null!
+		activityId = null;
+		entityManager.updateEntity(mockUser, entity, false, activityId);		
+		verify(node, never()).setActivityId(anyString());
+		reset(node);
+		
+		// Update: same version, defined activity id. 
+		activityId = "1";
+		entityManager.updateEntity(mockUser, entity, false, activityId);		
+		verify(node).setActivityId(activityId);
+		reset(node);
+	
+		// Update: new version, null activity id. 
+		activityId = null;
+		entityManager.updateEntity(mockUser, entity, true, activityId);		
+		verify(node).setActivityId(activityId);
+		reset(node);
+
+		// Update: new version, defined activity id. 
+		activityId = "1";
+		entityManager.updateEntity(mockUser, entity, true, activityId);		
+		verify(node).setActivityId(activityId);
+		reset(node);
+	}
 		
 }

@@ -65,10 +65,10 @@ public class ActivityManagerImpl implements ActivityManager {
 		
 		// only owner can change
 		UserInfo.validateUserInfo(userInfo);
-		String requestorId = userInfo.getUser().getId();
-		String requestorName = userInfo.getUser().getDisplayName();
+		String requestorId = userInfo.getIndividualGroup().getId();
+		String requestorName = userInfo.getIndividualGroup().getName();
 		Activity currentAct = activityDAO.get(activity.getId());
-		if(!currentAct.getCreatedBy().equals(requestorId) && !userInfo.isAdmin()) {
+		if(!userInfo.isAdmin() && !currentAct.getCreatedBy().equals(requestorId)) {
 			throw new UnauthorizedException(requestorName +" lacks change access to the requested object.");
 		}			
 		
@@ -94,8 +94,8 @@ public class ActivityManagerImpl implements ActivityManager {
 			return; // don't bug people with 404s on delete
 		}
 		UserInfo.validateUserInfo(userInfo);
-		String requestorId = userInfo.getUser().getId();
-		String requestorName = userInfo.getUser().getDisplayName();
+		String requestorId = userInfo.getIndividualGroup().getId();
+		String requestorName = userInfo.getIndividualGroup().getName();
 		// only owner can change
 		if(!activity.getCreatedBy().equals(requestorId) && !userInfo.isAdmin()) {
 			throw new UnauthorizedException(requestorName +" lacks change access to the requested object.");
@@ -108,10 +108,11 @@ public class ActivityManagerImpl implements ActivityManager {
 	@Override
 	public Activity getActivity(UserInfo userInfo, String activityId) 
 		throws DatastoreException, NotFoundException, UnauthorizedException {		
+		Activity act = activityDAO.get(activityId);
 		if(!authorizationManager.canAccessActivity(userInfo, activityId)) { 			
-			throw new UnauthorizedException(userInfo.getUser().getDisplayName() +" lacks access to the requested object.");
+			throw new UnauthorizedException(userInfo.getIndividualGroup().getName() +" lacks access to the requested object.");
 		}
-		return activityDAO.get(activityId);
+		return act;
 	}
 
 	@Override
