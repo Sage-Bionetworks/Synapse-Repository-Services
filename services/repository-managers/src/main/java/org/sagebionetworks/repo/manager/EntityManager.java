@@ -345,4 +345,16 @@ public interface EntityManager {
 	 */
 	public void deleteActivityForEntity(UserInfo userInfo, String entityId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * Promotes the specified version to the "most recent" version
+	 * @param userInfo
+	 * @param id
+	 * @param versionNumber
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public void promoteEntityVersion(UserInfo userInfo, String id, Long versionNumber)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
 }

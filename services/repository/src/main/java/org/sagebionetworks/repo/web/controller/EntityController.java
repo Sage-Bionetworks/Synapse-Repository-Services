@@ -323,6 +323,31 @@ public class EntityController extends BaseController{
 	}
 
 	/**
+	 * Promote the specified version number to the "most recent" version
+	 * @param id
+	 * @param userId
+	 * @param versionNumber
+	 * @param request
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws ConflictingUpdateException
+	 */
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = {
+			UrlHelpers.ENTITY_VERSION_NUMBER
+			}, method = RequestMethod.PUT)
+	public void promoteEntityVersion(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable Long versionNumber,
+			HttpServletRequest request) throws NotFoundException,
+			DatastoreException, UnauthorizedException, ConflictingUpdateException {
+		// Determine the object type from the url.
+		serviceProvider.getEntityService().promoteEntityVersion(userId, id, versionNumber);
+	}
+	
+	/**
 	 * Get an existing entity with a GET.
 	 * @param id - The ID of the entity to fetch.
 	 * @param userId -The user that is doing the get.
