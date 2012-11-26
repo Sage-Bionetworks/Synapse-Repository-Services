@@ -670,4 +670,15 @@ public class EntityServiceImpl implements EntityService {
 		entityManager.deleteActivityForEntity(userInfo, entityId);				
 	}
 
+	@Override
+	public void promoteEntityVersion(String userId, String id,
+			Long versionNumber) throws DatastoreException, NotFoundException,
+			UnauthorizedException {
+		if(id == null) throw new IllegalArgumentException("Entity Id cannot be null");
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		if(versionNumber == null) throw new IllegalArgumentException("VersionNumber cannot be null");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		entityManager.promoteEntityVersion(userInfo, id, versionNumber);
+	}
+
 }

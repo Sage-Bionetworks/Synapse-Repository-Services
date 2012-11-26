@@ -572,4 +572,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		}
 	}
 
+	@Override
+	public void promoteEntityVersion(String id, Long versionNumber)
+			throws NotFoundException, UnauthorizedException, DatastoreException {
+		Node nodeForVersion = nodeDao.getNodeForVersion(id, versionNumber);
+		nodeDao.deleteVersion(id, versionNumber);
+		nodeDao.createNewVersion(nodeForVersion);
+	}
+
 }
