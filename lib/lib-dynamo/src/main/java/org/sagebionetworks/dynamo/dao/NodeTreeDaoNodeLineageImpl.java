@@ -74,6 +74,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 				msg = msg + root + ". The change node is " + child;
 				throw new RuntimeException(msg);
 			}
+			this.logger.info("Creating root at node " + child + ".");
 			NodeLineagePair pair = new NodeLineagePair(DboNodeLineage.ROOT, child, 0, 1, timestamp);
 			LineagePairPut put = new LineagePairPut(pair, this.writeMapper);
 			String execId = this.createExecutionId(child, parent, timestamp, "create");
@@ -170,7 +171,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 
 		// To update, make sure we are working with a newer message 
 		if (timestamp.before(parentLineage.getTimestamp())) {
-			throw new RuntimeException("Update message is obsolete.");
+			throw new ObsoleteChangeException("Update message is obsolete.");
 		}
 
 		// To keep the update minimal, we find the part that actually changes
@@ -279,7 +280,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 			for (int i = 0; i < dboList.size(); i++) {
 				DboNodeLineage dbo = dboList.get(i);
 				if (timestamp.before(dbo.getTimestamp())) {
-					throw new RuntimeException("Update message is obsolete.");
+					throw new ObsoleteChangeException("Update message is obsolete.");
 				}
 				NodeLineagePair pair = new NodeLineagePair(dbo, i);
 				LineagePairDelete delete = new LineagePairDelete(pair, this.writeMapper);
@@ -498,8 +499,6 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		List<DboNodeLineage> results = mapper.query(DboNodeLineage.class, queryExpression);
 
 		if (results == null || results.isEmpty()) {
-			// Log as info. This should not happen often.
-			this.logger.info("Root not found.");
 			return null;
 		}
 		if (results.size() > 1) {

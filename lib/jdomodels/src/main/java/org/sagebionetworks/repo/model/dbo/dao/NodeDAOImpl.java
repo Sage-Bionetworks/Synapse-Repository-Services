@@ -37,6 +37,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -841,7 +842,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
 		// Call the recursive method
-		List<EntityHeader> results = new ArrayList<EntityHeader>();
+		LinkedList<EntityHeader> results = new LinkedList<EntityHeader>();
 		appendPath(results, KeyFactory.stringToKey(nodeId));
 		return results;
 	}
@@ -853,7 +854,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	private void appendPath(List<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
+	private void appendPath(LinkedList<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
 		// First Build the entity header for this node
 		ParentTypeName ptn = getParentTypeName(nodeId);
 		EntityHeader header = createHeaderFromParentTypeName(KeyFactory.keyToString(nodeId), ptn, null, null);
