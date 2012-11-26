@@ -336,7 +336,7 @@ public class EntityController extends BaseController{
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = {
 			UrlHelpers.ENTITY_VERSION_NUMBER
-			}, method = RequestMethod.PUT)
+			}, method = RequestMethod.POST)
 	public void promoteEntityVersion(
 			@PathVariable String id,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,

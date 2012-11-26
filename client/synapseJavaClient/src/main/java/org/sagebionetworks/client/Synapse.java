@@ -2412,6 +2412,17 @@ public class Synapse {
 		}
 	}
 
-
+	/**
+	 * Make the given versionNumber the most recent version of this entity.
+	 * @param entityId
+	 * @param versionNumber
+	 * @throws SynapseException
+	 */
+	public void promoteEntityVersion(String entityId, Long versionNumber) throws SynapseException {
+		if (entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
+		if (versionNumber == null) throw new IllegalArgumentException("VersionNumber cannot be null");
+		String uri = createEntityUri(ENTITY_URI_PATH, entityId) + "/version/" + versionNumber;
+		signAndDispatchSynapseRequest(repoEndpoint, uri, "POST", null, null);
+	}
 	
 }
