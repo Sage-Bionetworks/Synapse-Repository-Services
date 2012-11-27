@@ -8,11 +8,21 @@
 		<version>develop-SNAPSHOT</version>
 		<relativePath>..</relativePath>
 	</parent>
-	<name>Synapse DynamoDB Updater</name>
+	<name>DynamoDB Service</name>
 	<artifactId>services-dynamo</artifactId>
 	<packaging>war</packaging>
 
 	<dependencies>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-jdomodels</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-dynamo</artifactId>
+		</dependency>
 
 		<dependency>
 			<groupId>org.sagebionetworks</groupId>
@@ -24,19 +34,34 @@
 			<artifactId>aws-java-sdk</artifactId>
 		</dependency>
 
-		<!-- Spring Framework dependencies -->
+		<!-- Spring -->
 		<dependency>
 			<groupId>org.springframework</groupId>
-			<artifactId>org.springframework.spring-library</artifactId>
-			<type>libd</type>
+			<artifactId>spring-core</artifactId>
+			<version>3.1.2.RELEASE</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
-			<artifactId>org.springframework.web</artifactId>
+			<artifactId>spring-beans</artifactId>
+			<version>3.1.2.RELEASE</version>
 		</dependency>
 		<dependency>
 			<groupId>org.springframework</groupId>
-			<artifactId>spring-aspects</artifactId>
+			<artifactId>spring-context</artifactId>
+			<version>3.1.2.RELEASE</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-test</artifactId>
+		</dependency>
+		<!-- AspectJ -->
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjlib</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.aspectj</groupId>
+			<artifactId>aspectjrt</artifactId>
 		</dependency>
 
 		<!-- Needed for running the tomcat plugin -->
@@ -56,6 +81,11 @@
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
+		</dependency>
+		
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>apache-log4j-extras</artifactId>
 		</dependency>
 
 		<dependency>
