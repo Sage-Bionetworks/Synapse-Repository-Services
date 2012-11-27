@@ -10,6 +10,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.CompetitionStatus;
+import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -29,6 +30,8 @@ public class SubmissionDAOImplTest {
     @Autowired
     SubmissionDAO submissionDAO;
     @Autowired
+    ParticipantDAO participantDAO;
+    @Autowired
     CompetitionDAO competitionDAO;
 	@Autowired
 	NodeDAO nodeDAO;
@@ -36,9 +39,10 @@ public class SubmissionDAOImplTest {
 	private String nodeId = null;
     private String submissionId = null;
     private String userId = "0";
-    private String compId = "2";
+    private String compId;
     private String name = "test submission";
     private Long score = 0L;
+    private Long versionNumber = 1L;
     
     @Before
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
@@ -50,14 +54,19 @@ public class SubmissionDAOImplTest {
     	
     	// create a competition
         Competition competition = new Competition();
-        competition.setId(compId);
         competition.setEtag("etag");
         competition.setName("name");
         competition.setOwnerId(userId);
         competition.setCreatedOn(new Date());
         competition.setContentSource("foobar");
         competition.setStatus(CompetitionStatus.PLANNED);
-        competitionDAO.create(competition);
+        compId = competitionDAO.create(competition, userId);
+        
+        // create a participant
+        Participant participant = new Participant();
+        participant.setUserId(userId);
+        participant.setCompetitionId(compId);
+        participantDAO.create(participant);
     }
     
     @After
@@ -69,6 +78,9 @@ public class SubmissionDAOImplTest {
 			submissionDAO.delete(submissionId);
 		} catch (NotFoundException e)  {};
 		try {
+			participantDAO.delete(userId, compId);
+		} catch (NotFoundException e) {};
+		try {
 			competitionDAO.delete(compId);
 		} catch (NotFoundException e) {};
     }
@@ -79,10 +91,11 @@ public class SubmissionDAOImplTest {
         Submission submission = new Submission();
         submission.setId(submissionId);
         submission.setName(name);
+        submission.setCompetitionId(compId);
         submission.setEntityId(nodeId);
+        submission.setVersionNumber(versionNumber);
         submission.setStatus(SubmissionStatus.OPEN);
         submission.setUserId(userId);
-        submission.setCompetitionId(compId);
         submission.setScore(score);
  
         // Create it
@@ -104,6 +117,8 @@ public class SubmissionDAOImplTest {
 		// Update it
         Long newScore = score + 100;
 		clone.setScore(newScore);
+		Long newVersion = versionNumber + 1;
+		clone.setVersionNumber(newVersion);
 		submissionDAO.update(clone);
 		
 		// Verify it

@@ -32,7 +32,7 @@ public class SubmissionDBOTest {
     private String nodeId = null;
     private long submissionId = 2000;
     private long userId = 0;
-    private long compId = 2;
+    private long compId;
     private String name = "test submission";
     private Long score = 0L;
     
@@ -50,10 +50,17 @@ public class SubmissionDBOTest {
         competition.seteTag("etag");
         competition.setName("name");
         competition.setOwnerId(userId);
-        competition.setCreatedOn(System.currentTimeMillis());
         competition.setContentSource("foobar");
+        competition.setCreatedOn(System.currentTimeMillis());
         competition.setStatusEnum(CompetitionStatus.PLANNED);
-        dboBasicDao.createNew(competition);        
+        compId = dboBasicDao.createNew(competition).getId();
+        
+        // Initialize a new Participant
+        ParticipantDBO participant = new ParticipantDBO();
+        participant.setUserId(userId);
+        participant.setCompId(compId);
+        participant.setCreatedOn(System.currentTimeMillis());
+        dboBasicDao.createNew(participant);
     }
     
     @After
@@ -62,7 +69,13 @@ public class SubmissionDBOTest {
         	// delete submission
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("id", submissionId);
-            dboBasicDao.deleteObjectById(SubmissionDBO.class, params);            
+            dboBasicDao.deleteObjectById(SubmissionDBO.class, params);
+            
+            // delete participant
+            params = new MapSqlParameterSource();
+            params.addValue("userId", userId);
+            params.addValue("compId", compId);
+            dboBasicDao.deleteObjectById(ParticipantDBO.class, params);
             
             // delete competition
             params = new MapSqlParameterSource();
@@ -80,6 +93,7 @@ public class SubmissionDBOTest {
         submission.setId(submissionId);
         submission.setName(name);
         submission.setEntityId(Long.parseLong(nodeId));
+        submission.setVersionNumber(1L);
         submission.setStatusEnum(SubmissionStatus.OPEN);
         submission.setUserId(userId);
         submission.setCompId(compId);

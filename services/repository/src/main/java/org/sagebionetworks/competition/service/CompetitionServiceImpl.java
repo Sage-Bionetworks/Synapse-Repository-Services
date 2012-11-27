@@ -7,7 +7,7 @@ import org.sagebionetworks.competition.manager.ParticipantManager;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
-import org.sagebionetworks.competition.util.Utility;
+import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -31,28 +31,29 @@ public class CompetitionServiceImpl implements CompetitionService {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Competition createCompetition(String userId, Competition comp) throws DatastoreException, NotFoundException {
-		Utility.ensureNotNull(userId);
+		CompetitionUtils.ensureNotNull(userId, "User ID");
 		String compId = competitionManager.createCompetition(userId, comp);
 		return competitionManager.getCompetition(compId);
 	}
 	
 	@Override
 	public Competition getCompetition(String userId, String compId) throws DatastoreException, NotFoundException {
-		Utility.ensureNotNull(userId, compId);
+		CompetitionUtils.ensureNotNull(userId, compId);
 		return competitionManager.getCompetition(compId);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Competition updateCompetition(String userId, Competition comp) throws DatastoreException, UnauthorizedException, NotFoundException {
-		Utility.ensureNotNull(userId, comp);
+		CompetitionUtils.ensureNotNull(userId, "User ID");
+		CompetitionUtils.ensureNotNull(comp, "Competition");
 		return competitionManager.updateCompetition(userId, comp);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void deleteCompetition(String userId, String compId) throws DatastoreException, UnauthorizedException, NotFoundException {
-		Utility.ensureNotNull(userId, compId);
+		CompetitionUtils.ensureNotNull(userId, compId);
 		competitionManager.deleteCompetition(userId, compId);
 	}
 	
