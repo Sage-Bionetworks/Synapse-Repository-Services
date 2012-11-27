@@ -11,7 +11,7 @@ import org.sagebionetworks.competition.dbo.SubmissionDBO;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.query.jdo.SQLConstants;
-import org.sagebionetworks.competition.util.Utility;
+import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -206,6 +206,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dbo.setUserId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getUserId()));
 		dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
 		dbo.setEntityId(dto.getEntityId() == null ? null : Long.parseLong(dto.getEntityId()));
+		dbo.setVersionNumber(dto.getVersionNumber());
 		dbo.setName(dto.getName());
 		dbo.setScore(dto.getScore());
 		dbo.setStatusEnum(dto.getStatus());
@@ -224,6 +225,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
 		dto.setCompetitionId(dbo.getCompId() == null ? null : dbo.getCompId().toString());
 		dto.setEntityId(dbo.getEntityId() == null ? null : dbo.getEntityId().toString());
+		dto.setVersionNumber(dbo.getVersionNumber());
 		dto.setName(dbo.getName());
 		dto.setScore(dbo.getScore());
 		dto.setStatus(dbo.getStatusEnum());
@@ -236,9 +238,11 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	 * @param dbo
 	 */
 	private void verifySubmissionDBO(SubmissionDBO dbo) {
-		Utility.ensureNotNull(dbo.getCompId(), dbo.getUserId(), 
-								dbo.getEntityId(), dbo.getId(), dbo.getCreatedOn()
-							);
+		CompetitionUtils.ensureNotNull(dbo.getCompId(), "Competition ID");
+		CompetitionUtils.ensureNotNull(dbo.getUserId(), "User ID");
+		CompetitionUtils.ensureNotNull(dbo.getEntityId(), "Entity ID");
+		CompetitionUtils.ensureNotNull(dbo.getId(), "Submission ID");
+		CompetitionUtils.ensureNotNull(dbo.getCreatedOn(), "Creation date");
 	}
 	
 }

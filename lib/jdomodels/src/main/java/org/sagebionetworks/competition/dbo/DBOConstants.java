@@ -22,6 +22,7 @@ public class DBOConstants {
 	public static final String PARAM_SUBMISSION_USER_ID = "userId";
 	public static final String PARAM_SUBMISSION_COMP_ID = "compId";
 	public static final String PARAM_SUBMISSION_ENTITY_ID = "entityId";
+	public static final String PARAM_SUBMISSION_ENTITY_VERSION = "versionNumber";
 	public static final String PARAM_SUBMISSION_NAME = "name";
 	public static final String PARAM_SUBMISSION_CREATED_ON = "createdOn";
 	public static final String PARAM_SUBMISSION_STATUS = "status";
