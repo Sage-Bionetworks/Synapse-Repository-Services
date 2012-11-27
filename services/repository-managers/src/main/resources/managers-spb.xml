@@ -157,6 +157,9 @@
 
 	<bean id="schemaManager" class="org.sagebionetworks.repo.manager.SchemaManagerImpl"
 		scope="singleton" />
+		
+	<bean id="competitionManager" class="org.sagebionetworks.competition.manager.CompetitionManagerImpl" 
+		scope="singleton" />
 
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool"
