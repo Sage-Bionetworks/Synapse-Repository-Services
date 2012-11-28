@@ -1954,18 +1954,19 @@ public class NodeDAOImplTest {
 	public void testGetParentRelations() throws DatastoreException, InvalidModelException, NotFoundException {
 
 		Random random = new Random();
-		String name = Long.toString(random.nextLong());
+		String name = Integer.toString(random.nextInt());
 		Node n1 = NodeTestUtils.createNew(name, creatorUserGroupId);
 		String id1 = this.nodeDao.createNew(n1);
 		this.toDelete.add(id1);
-		name = Long.toString(random.nextLong());
+		name = Integer.toString(random.nextInt());
 		Node n2 = NodeTestUtils.createNew(name, creatorUserGroupId, id1);
 		String id2 = this.nodeDao.createNew(n2);
 		this.toDelete.add(id2);
-		name = Long.toString(random.nextLong());
+		name = Integer.toString(random.nextInt());
 		Node n3 = NodeTestUtils.createNew(name, creatorUserGroupId, id1);
 		String id3 = this.nodeDao.createNew(n3);
 		this.toDelete.add(id3);
+		name = Integer.toString(random.nextInt());
 		Node n4 = NodeTestUtils.createNew(name, creatorUserGroupId, id2);
 		String id4 = this.nodeDao.createNew(n4);
 		this.toDelete.add(id4);
