@@ -1,5 +1,6 @@
 package org.sagebionetworks.dynamo.manager;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -12,7 +13,6 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * Default implementation of the node tree update manager.
@@ -23,11 +23,21 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 
 	private final Logger logger = Logger.getLogger(NodeTreeUpdateManagerImpl.class);
 
-	@Autowired
-	private NodeDAO nodeDao;
+	private final NodeTreeDao nodeTreeDao;
+	private final NodeDAO nodeDao;
 
-	@Autowired
-	private NodeTreeDao nodeTreeDao;
+	public NodeTreeUpdateManagerImpl(NodeTreeDao nodeTreeDao, NodeDAO nodeDao) {
+
+		if (nodeTreeDao == null) {
+			throw new NullPointerException();
+		}
+		if (nodeDao == null) {
+			throw new NullPointerException();
+		}
+
+		this.nodeTreeDao = nodeTreeDao;
+		this.nodeDao = nodeDao;
+	}
 
 	@Override
 	public void create(String childId, String parentId, Date timestamp) {
@@ -38,6 +48,9 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		if (parentId == null) {
 			// The root
 			parentId = childId;
+		}
+		if (timestamp == null) {
+			throw new NullPointerException();
 		}
 
 		try {
@@ -56,11 +69,11 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			}
 		} catch (IncompletePathException e) {
 			this.logger.info("Node " + childId + " path is incomplete. Now rebuilding the path.");
-			this.rebuildPath(childId);
+			this.rebuildPath(childId, parentId);
 		} catch (ObsoleteChangeException e) {
 			this.logger.info("Creating node " + childId +
 					" failed because of obsolete timestamp [" + timestamp + "]. Now rebuilding the path.");
-			this.rebuildPath(childId);
+			this.rebuildPath(childId, parentId);
 		}
 	}
 
@@ -73,6 +86,9 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		if (parentId == null) {
 			// The root
 			parentId = childId;
+		}
+		if (timestamp == null) {
+			throw new NullPointerException();
 		}
 
 		try {
@@ -91,16 +107,24 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			}
 		} catch (IncompletePathException e) {
 			this.logger.info("Node " + childId + " path is incomplete. Now rebuilding the path.");
-			this.rebuildPath(childId);
+			this.rebuildPath(childId, parentId);
 		} catch (ObsoleteChangeException e) {
 			this.logger.info("Updating node " + childId +
 					" failed because of obsolete timestamp [" + timestamp + "]. Now rebuilding the path.");
-			this.rebuildPath(childId);
+			this.rebuildPath(childId, parentId);
 		}
 	}
 
 	@Override
 	public void delete(String nodeId,  Date timestamp) {
+
+		if (nodeId == null) {
+			throw new NullPointerException();
+		}
+		if (timestamp == null) {
+			throw new NullPointerException();
+		}
+
 		try {
 			String id = KeyFactory.stringToKey(nodeId).toString();
 			boolean success = this.nodeTreeDao.delete(id, timestamp);
@@ -123,45 +147,50 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	/**
 	 * Calls RDS to re-construct the path from the root to the specified child node.
 	 */
-	private void rebuildPath(String childId) throws DatastoreException {
+	private void rebuildPath(String childId, String parentId) throws DatastoreException {
 		try {
 			this.logger.info("Rebuilding path for node " + childId);
-			List<EntityHeader> path = this.nodeDao.getEntityPath(childId);
+			// Get the path from the root to the parent
+			List<EntityHeader> ehList = this.nodeDao.getEntityPath(parentId);
+			List<String> path = new ArrayList<String>(ehList.size());
+			for (EntityHeader eh : ehList) {
+				path.add(eh.getId());
+			}
+			// Add the child to the path
+			path.add(childId);
 			for (int i = 0; i < path.size(); i++) {
 				if (i == 0) {
 					// Handling the root
-					String rootId = path.get(i).getId();
+					String rootId = path.get(i);
 					String rId = KeyFactory.stringToKey(rootId).toString();
 					this.nodeTreeDao.create(rId, rId, new Date());
 				} else {
-					EntityHeader cEntity = path.get(i);
-					EntityHeader pEntity = path.get(i - 1);
-					String cId = KeyFactory.stringToKey(cEntity.getId()).toString();
-					String pId = KeyFactory.stringToKey(pEntity.getId()).toString();
+					String cId = KeyFactory.stringToKey(path.get(i)).toString();
+					String pId = KeyFactory.stringToKey(path.get(i - 1)).toString();
 					this.nodeTreeDao.create(cId, pId, new Date());
 				}
 			}
 		} catch (NotFoundException e) {
 			// We are getting a broken path anyways
 			// Log an error and drop the message
-			this.logger.error("Node " + childId + " does not have a complete path. Message dropped.", e);
+			this.logger.error("Node " + parentId + " is not on have a complete path. Message dropped.", e);
 		}
 	}
 
 	/**
 	 * Calls RDS to verify and retry delete.
 	 */
-	private void retryDelete(String childId) throws DatastoreException {
+	private void retryDelete(String nodeId) throws DatastoreException {
 		try {
-			this.logger.info("Now retry deleting node " + childId);
-			this.nodeDao.getNode(childId);
-			this.logger.info("Node " + childId + " exists. Aborting the delete message.");
+			this.logger.info("Now retry deleting node " + nodeId);
+			this.nodeDao.getNode(nodeId);
+			this.logger.info("Node " + nodeId + " exists. Aborting the delete message.");
 		} catch (NotFoundException e) {
-			String cId = KeyFactory.stringToKey(childId).toString();
+			String cId = KeyFactory.stringToKey(nodeId).toString();
 			Date timestamp = new Date();
-			this.logger.info("Node " + childId + " does not exist. Deleting it again with timestamp [" + timestamp + "].");
+			this.logger.info("Node " + nodeId + " does not exist. Deleting it again with timestamp [" + timestamp + "].");
 			this.nodeTreeDao.delete(cId, timestamp);
-			this.logger.info("Node " + childId + " successfully deleted.");
+			this.logger.info("Node " + nodeId + " successfully deleted.");
 		}
 	}
 }

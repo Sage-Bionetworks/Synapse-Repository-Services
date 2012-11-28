@@ -77,9 +77,17 @@ public class NodeTreeUpdateManagerImplTest {
 				KeyFactory.stringToKey(this.cSuccess).toString(),
 				KeyFactory.stringToKey(this.pSuccess).toString(),
 				this.tSuccess)).thenReturn(true);
+		when(this.nodeTreeDaoMock.create(
+				KeyFactory.stringToKey(this.cSuccess).toString(),
+				KeyFactory.stringToKey(this.cSuccess).toString(),
+				this.tSuccess)).thenReturn(true);
 		when(this.nodeTreeDaoMock.update(
 				KeyFactory.stringToKey(this.cSuccess).toString(),
 				KeyFactory.stringToKey(this.pSuccess).toString(),
+				this.tSuccess)).thenReturn(true);
+		when(this.nodeTreeDaoMock.update(
+				KeyFactory.stringToKey(this.cSuccess).toString(),
+				KeyFactory.stringToKey(this.cSuccess).toString(),
 				this.tSuccess)).thenReturn(true);
 		when(this.nodeTreeDaoMock.delete(
 				KeyFactory.stringToKey(this.cSuccess).toString(),
@@ -130,19 +138,16 @@ public class NodeTreeUpdateManagerImplTest {
 		eh = mock(EntityHeader.class);
 		when(eh.getId()).thenReturn(this.pIncompletePath);
 		path.add(eh);
-		eh = mock(EntityHeader.class);
-		when(eh.getId()).thenReturn(this.cIncompletePath);
-		path.add(eh);
-		when(this.nodeDaoMock.getEntityPath(this.cIncompletePath)).thenReturn(path);
+		when(this.nodeDaoMock.getEntityPath(this.pIncompletePath)).thenReturn(path);
 
 		path = new ArrayList<EntityHeader>(2);
 		eh = mock(EntityHeader.class);
 		when(eh.getId()).thenReturn(this.root);
 		path.add(eh);
 		eh = mock(EntityHeader.class);
-		when(eh.getId()).thenReturn(this.cObsolete);
+		when(eh.getId()).thenReturn(this.pObsolete);
 		path.add(eh);
-		when(this.nodeDaoMock.getEntityPath(this.cObsolete)).thenReturn(path);
+		when(this.nodeDaoMock.getEntityPath(this.pObsolete)).thenReturn(path);
 
 		when(this.nodeDaoMock.getNode(this.cObsolete)).thenThrow(new NotFoundException());
 	}
@@ -154,7 +159,7 @@ public class NodeTreeUpdateManagerImplTest {
 		this.mockNodeTreeDao();
 		this.mockNodeDao();
 
-		this.man = new NodeTreeUpdateManagerImpl();
+		this.man = new NodeTreeUpdateManagerImpl(this.nodeTreeDaoMock, this.nodeDaoMock);
 		NodeTreeUpdateManager man = this.man;
 		if(AopUtils.isAopProxy(man) && man instanceof Advised) {
 			man = (NodeTreeUpdateManagerImpl)((Advised)man).getTargetSource().getTarget();
@@ -216,8 +221,12 @@ public class NodeTreeUpdateManagerImplTest {
 				eq(KeyFactory.stringToKey(this.root).toString()),
 				any(Date.class));
 		verify(this.nodeTreeDaoMock, times(1)).create(
-				eq(KeyFactory.stringToKey(this.cObsolete).toString()),
+				eq(KeyFactory.stringToKey(this.pObsolete).toString()),
 				eq(KeyFactory.stringToKey(this.root).toString()),
+				any(Date.class));
+		verify(this.nodeTreeDaoMock, times(2)).create(
+				eq(KeyFactory.stringToKey(this.cObsolete).toString()),
+				eq(KeyFactory.stringToKey(this.pObsolete).toString()),
 				any(Date.class));
 	}
 
@@ -274,8 +283,12 @@ public class NodeTreeUpdateManagerImplTest {
 				eq(KeyFactory.stringToKey(this.root).toString()),
 				any(Date.class));
 		verify(this.nodeTreeDaoMock, times(1)).create(
-				eq(KeyFactory.stringToKey(this.cObsolete).toString()),
+				eq(KeyFactory.stringToKey(this.pObsolete).toString()),
 				eq(KeyFactory.stringToKey(this.root).toString()),
+				any(Date.class));
+		verify(this.nodeTreeDaoMock, times(1)).create(
+				eq(KeyFactory.stringToKey(this.cObsolete).toString()),
+				eq(KeyFactory.stringToKey(this.pObsolete).toString()),
 				any(Date.class));
 	}
 
@@ -301,5 +314,23 @@ public class NodeTreeUpdateManagerImplTest {
 		verify(this.nodeTreeDaoMock, times(2)).delete(
 				eq(KeyFactory.stringToKey(this.cObsolete).toString()),
 				any(Date.class));
+	}
+
+	@Test
+	public void testCreateRoot() {
+		this.man.create(this.cSuccess, null, this.tSuccess);
+		verify(this.nodeTreeDaoMock, times(1)).create(
+				KeyFactory.stringToKey(this.cSuccess).toString(),
+				KeyFactory.stringToKey(this.cSuccess).toString(),
+				this.tSuccess);
+	}
+	
+	@Test
+	public void testUpdateRoot() {
+		this.man.update(this.cSuccess, null, this.tSuccess);
+		verify(this.nodeTreeDaoMock, times(1)).update(
+				KeyFactory.stringToKey(this.cSuccess).toString(),
+				KeyFactory.stringToKey(this.cSuccess).toString(),
+				this.tSuccess);
 	}
 }
