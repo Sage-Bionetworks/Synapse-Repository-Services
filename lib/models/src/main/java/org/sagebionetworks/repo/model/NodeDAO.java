@@ -179,7 +179,7 @@ public interface NodeDAO extends MigratableDAO {
 	 * @throws NotFoundException 
 	 */
 	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException;
-	
+
 	/**
 	 * Get the version label for a node
 	 * @param nodeId
@@ -349,4 +349,8 @@ public interface NodeDAO extends MigratableDAO {
 	 */
 	public Map<String, Set<Reference>> getNodeReferences(String nodeId) throws NotFoundException, DatastoreException;
 
+	/**
+	 * Gets a page of parent relations.
+	 */
+	QueryResults<NodeParentRelation> getParentRelations(long offset, long limit) throws DatastoreException;
 }
