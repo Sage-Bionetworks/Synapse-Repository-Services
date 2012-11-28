@@ -30,10 +30,11 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 	@Override
 	public List<Message> call() throws Exception {
 		List<Message> processedMessages = new ArrayList<Message>();
-		for(Message message : this.messages){
+		for (Message message : this.messages) {
 			// Extract the ChangeMessage
 			ChangeMessage change = MessageUtils.extractMessageBody(message);
 			if (ObjectType.ENTITY.equals(change.getObjectType())) {
+				System.out.println(change.getChangeType() + " " + change.getObjectId() + ", " + change.getParentId());
 				try {
 					if (ChangeType.CREATE.equals(change.getChangeType())) {
 						this.nodeTreeManager.create(change.getObjectId(),

@@ -31,22 +31,64 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 
 	@Override
 	public void create(String childId, String parentId, Date timestamp) {
+
+		if (childId == null) {
+			throw new NullPointerException();
+		}
+		if (parentId == null) {
+			// The root
+			parentId = childId;
+		}
+
 		try {
 			String cId = KeyFactory.stringToKey(childId).toString();
 			String pId = KeyFactory.stringToKey(parentId).toString();
-			this.nodeTreeDao.create(cId, pId, timestamp);
+			boolean success = this.nodeTreeDao.create(cId, pId, timestamp);
+			if (!success) {
+				String childParent = "("+ childId + ", " + parentId + ")";
+				// This is due to optimistic locking which should rarely happen
+				// Retry just once
+				this.logger.info("Locking detected. Retry creating child-parent pair " + childParent);
+				success = this.nodeTreeDao.create(cId, pId, timestamp);
+				if (!success) {
+					throw new RuntimeException("Create failed for child-parent pair " + childParent);
+				}
+			}
 		} catch (IncompletePathException e) {
 			this.logger.info("Node " + childId + " path is incomplete. Now rebuilding the path.");
+			this.rebuildPath(childId);
+		} catch (ObsoleteChangeException e) {
+			this.logger.info("Creating node " + childId +
+					" failed because of obsolete timestamp [" + timestamp + "]. Now rebuilding the path.");
 			this.rebuildPath(childId);
 		}
 	}
 
 	@Override
 	public void update(String childId, String parentId,  Date timestamp) {
+
+		if (childId == null) {
+			throw new NullPointerException();
+		}
+		if (parentId == null) {
+			// The root
+			parentId = childId;
+		}
+
 		try {
 			String cId = KeyFactory.stringToKey(childId).toString();
 			String pId = KeyFactory.stringToKey(parentId).toString();
-			this.nodeTreeDao.update(cId, pId, timestamp);
+			boolean success = this.nodeTreeDao.update(cId, pId, timestamp);
+			if (!success) {
+				String childParent = "("+ childId + ", " + parentId + ")";
+				// This is due to optimistic locking which should rarely happen
+				// Retry just once
+				this.logger.info("Locking detected. Retry updating child-parent pair " + childParent);
+				success = this.nodeTreeDao.update(cId, pId, timestamp);
+				if (!success) {
+					throw new RuntimeException("Update failed for child-parent pair " + childParent);
+				}
+			}
 		} catch (IncompletePathException e) {
 			this.logger.info("Node " + childId + " path is incomplete. Now rebuilding the path.");
 			this.rebuildPath(childId);
@@ -58,14 +100,23 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	}
 
 	@Override
-	public void delete(String childId,  Date timestamp) {
+	public void delete(String nodeId,  Date timestamp) {
 		try {
-			String cId = KeyFactory.stringToKey(childId).toString();
-			this.nodeTreeDao.delete(cId, timestamp);
+			String id = KeyFactory.stringToKey(nodeId).toString();
+			boolean success = this.nodeTreeDao.delete(id, timestamp);
+			if (!success) {
+				// This is due to optimistic locking which should rarely happen
+				// Retry just once
+				this.logger.info("Locking detected. Retry deleting node" + nodeId);
+				success = this.nodeTreeDao.delete(id, timestamp);
+				if (!success) {
+					throw new RuntimeException("DELETE failed for node " + nodeId);
+				}
+			}
 		} catch (ObsoleteChangeException e) {
-			this.logger.info("Deleting node " + childId +
+			this.logger.info("Deleting node " + nodeId +
 					" failed because of obsolete timestamp [" + timestamp + "]");
-			this.retryDelete(childId);
+			this.retryDelete(nodeId);
 		}
 	}
 
