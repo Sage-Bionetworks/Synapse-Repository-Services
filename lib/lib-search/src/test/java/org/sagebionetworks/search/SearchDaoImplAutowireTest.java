@@ -110,6 +110,7 @@ public class SearchDaoImplAutowireTest {
 		assertTrue(status.getOptions().indexOf(domainStatus.getSearchService().getArn()) > 0);
 	}
 	
+	@Ignore
 	@Test
 	public void testCRUD() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException{
 		// Before we start this test delete all data in the search index
