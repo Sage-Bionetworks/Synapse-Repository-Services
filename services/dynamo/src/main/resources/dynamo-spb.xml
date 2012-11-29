@@ -16,7 +16,10 @@
 	<import resource="classpath:dynamo-dao-spb.xml" />
 	<import resource="classpath:dao-beans.spb.xml" />
 
-	<bean id="nodeTreeManager" class="org.sagebionetworks.dynamo.manager.NodeTreeManagerImpl" />
+	<bean id="nodeTreeUpdateManager" class="org.sagebionetworks.dynamo.manager.NodeTreeUpdateManagerImpl">
+		<constructor-arg index="0" ref="nodeTreeDao" />
+		<constructor-arg index="1" ref="nodeDao" />
+	</bean>
 
 	<bean id="awsSQSClient"
 			class="com.amazonaws.services.sqs.AmazonSQSClient"
