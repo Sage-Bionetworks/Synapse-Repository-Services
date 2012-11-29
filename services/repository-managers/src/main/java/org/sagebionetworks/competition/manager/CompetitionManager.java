@@ -25,7 +25,7 @@ public interface CompetitionManager {
 	/**
 	 * Get a collection of Competitions, within a given range
 	 */
-	public QueryResults<Competition> getInRange(long startIncl, long endExcl) 
+	public QueryResults<Competition> getInRange(long limit, long offset) 
 			throws DatastoreException, NotFoundException;
 
 	/**

@@ -5,8 +5,6 @@ import java.util.List;
 import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 public interface ParticipantDAO {
 
@@ -33,13 +31,13 @@ public interface ParticipantDAO {
 	/**
 	 * Get all Participants, in a given range
 	 * 
-	 * @param startIncl
-	 * @param endExcl
+	 * @param limit
+	 * @param offset
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<Participant> getInRange(long startIncl, long endExcl)
+	public List<Participant> getInRange(long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**

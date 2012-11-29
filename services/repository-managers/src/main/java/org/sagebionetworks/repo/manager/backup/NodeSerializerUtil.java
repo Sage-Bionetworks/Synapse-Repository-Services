@@ -8,6 +8,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.Collection;
 
+import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementBackup;
 import org.sagebionetworks.repo.model.Annotations;
@@ -142,6 +143,18 @@ public class NodeSerializerUtil  {
 		InputStreamReader reader = new InputStreamReader(in);
 		XStream xstream = createXStream();
 		return (Activity)xstream.fromXML(reader);
+	}
+	
+	public static void writeCompetitionBackup(Competition comp, OutputStream out) {
+		OutputStreamWriter writer = new OutputStreamWriter(out);
+		XStream xstream = createXStream();
+		xstream.toXML(comp, writer);
+	}
+	
+	public static Competition readCompetitionBackup(InputStream in) {
+		InputStreamReader reader = new InputStreamReader(in);
+		XStream xstream = createXStream();
+		return (Competition) xstream.fromXML(reader);
 	}
 
 	private static XStream createXStream(){

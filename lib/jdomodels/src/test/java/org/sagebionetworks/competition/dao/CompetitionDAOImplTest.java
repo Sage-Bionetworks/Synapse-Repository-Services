@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.CompetitionStatus;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -144,9 +146,21 @@ public class CompetitionDAOImplTest {
         try {
         	competitionDAO.create(clone, COMPETITION_OWNER_ID);
         	fail("Should not be able to create two Competitions with the same name");
-        } catch (IllegalArgumentException e) {
+        } catch (DatastoreException e) {
         	// Expected name conflict
+        	assertTrue("Name conflict message should contain the requested name", 
+        			e.getMessage().contains(COMPETITION_NAME));
         }
+    }
+    
+    @Test
+    public void testGetInRange() {
+    	//TODO
+    }
+    
+    @Test
+    public void testGetInRangeByStatus() {
+    	//TODO
     }
     
     @Test

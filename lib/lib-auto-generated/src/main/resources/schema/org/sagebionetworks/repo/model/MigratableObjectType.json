@@ -5,6 +5,8 @@
         "ENTITY",
         "PRINCIPAL",
         "ACCESSREQUIREMENT",
-        "ACTIVITY"
+        "ACTIVITY",
+        "COMPETITION",
+        "SUBMISSION_STATUS"
     ]
 }

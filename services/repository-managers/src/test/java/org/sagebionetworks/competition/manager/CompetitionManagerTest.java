@@ -102,5 +102,10 @@ public class CompetitionManagerTest {
 			// expected
 		}
 	}
+	
+	@Test
+	public void testInvalidName() {
+		// TODO
+	}
 
 }

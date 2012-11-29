@@ -31,7 +31,9 @@
 			"enum": [
 				"ENTITY",
 				"PRINCIPAL",
-				"ACTIVITY"
+				"ACTIVITY",
+				"COMPETITION",
+				"SUBMISSION_STATUS"
 			]
 		},
 		"changeType": {
