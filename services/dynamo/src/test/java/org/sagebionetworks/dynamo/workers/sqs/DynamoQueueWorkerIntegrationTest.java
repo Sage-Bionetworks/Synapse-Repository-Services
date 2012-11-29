@@ -71,10 +71,17 @@ public class DynamoQueueWorkerIntegrationTest {
 
 	@After
 	public void after() throws Exception {
+		// Try to empty the queue
+		int count = this.dynamoQueueMessageRetriever.triggerFired();
+		while (count > 0) {
+			count = this.dynamoQueueMessageRetriever.triggerFired();
+		}
+		// Remove the project
 		if (this.project != null) {
 			this.entityManager.deleteEntity(
 					this.userProvider.getTestAdminUserInfo(), this.project.getId());
 		}
+		// Clear Dynamo
 		String root = this.nodeTreeDao.getRoot();
 		if (root != null) {
 			this.nodeTreeDao.delete(root, new Date());
@@ -83,14 +90,20 @@ public class DynamoQueueWorkerIntegrationTest {
 
 	@Test
 	public void testRoundTrip() throws Exception {
-		// Pause a couple of seconds for eventual consistency
-		Thread.sleep(3000);
-		List<String> results = this.nodeTreeDao.getAncestors(
-				KeyFactory.stringToKey(this.project.getId()).toString());
-		Assert.assertNotNull(results);
-		Assert.assertTrue(results.size() > 0); // At least the root as the ancestor
-		String root = this.nodeTreeDao.getRoot();
-		Assert.assertNotNull(root);
-		Assert.assertEquals(root, results.get(0));
+		for (int i = 0; i < 6; i++) {
+			// Pause 1 second for eventual consistency
+			// Wait at most 9 seconds
+			Thread.sleep(1500);
+			List<String> results = this.nodeTreeDao.getAncestors(
+					KeyFactory.stringToKey(this.project.getId()).toString());
+			Assert.assertNotNull(results);
+			if (results.size() > 0) {
+				// At least the root as the ancestor
+				String root = this.nodeTreeDao.getRoot();
+				Assert.assertNotNull(root);
+				Assert.assertEquals(root, results.get(0));
+				break;
+			}
+		}
 	}
 }

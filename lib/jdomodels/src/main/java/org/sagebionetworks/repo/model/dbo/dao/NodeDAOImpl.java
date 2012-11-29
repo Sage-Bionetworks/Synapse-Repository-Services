@@ -1037,7 +1037,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public void updateRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
-
+		// TODO: Remove this. Not sure if it is called to check exceptions.
+		DBONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		DBORevision dboRev = getNodeRevisionById(KeyFactory.stringToKey(rev.getNodeId()), rev.getRevisionNumber());
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
 		// Save the new revision
@@ -1048,6 +1049,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public void createNewRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
+		// TODO: Remove this. Not sure if it is called to check exceptions.
 		DBONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		DBORevision dboRev = new DBORevision();
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
