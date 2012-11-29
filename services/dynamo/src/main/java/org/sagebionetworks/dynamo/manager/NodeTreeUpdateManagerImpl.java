@@ -29,10 +29,10 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	public NodeTreeUpdateManagerImpl(NodeTreeDao nodeTreeDao, NodeDAO nodeDao) {
 
 		if (nodeTreeDao == null) {
-			throw new NullPointerException();
+			throw new NullPointerException("nodeTreeDao cannot be null");
 		}
 		if (nodeDao == null) {
-			throw new NullPointerException();
+			throw new NullPointerException("nodeDao cannot be null");
 		}
 
 		this.nodeTreeDao = nodeTreeDao;
@@ -43,14 +43,14 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	public void create(String childId, String parentId, Date timestamp) {
 
 		if (childId == null) {
-			throw new NullPointerException();
+			throw new NullPointerException("childId cannot be null");
 		}
 		if (parentId == null) {
 			// The root
 			parentId = childId;
 		}
 		if (timestamp == null) {
-			throw new NullPointerException();
+			throw new NullPointerException("timestamp cannot be null");
 		}
 
 		try {
@@ -81,14 +81,14 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	public void update(String childId, String parentId,  Date timestamp) {
 
 		if (childId == null) {
-			throw new NullPointerException();
+			throw new NullPointerException("childId cannot be null");
 		}
 		if (parentId == null) {
 			// The root
 			parentId = childId;
 		}
 		if (timestamp == null) {
-			throw new NullPointerException();
+			throw new NullPointerException("timestamp cannot be null");
 		}
 
 		try {
@@ -119,10 +119,10 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	public void delete(String nodeId,  Date timestamp) {
 
 		if (nodeId == null) {
-			throw new NullPointerException();
+			throw new NullPointerException("nodeId cannot be null");
 		}
 		if (timestamp == null) {
-			throw new NullPointerException();
+			throw new NullPointerException("timestamp cannot be null");
 		}
 
 		try {
@@ -151,7 +151,7 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		try {
 			this.logger.info("Rebuilding path for node " + childId);
 			// Get the path from the root to the parent
-			List<EntityHeader> ehList = this.nodeDao.getEntityPath(parentId);
+			List<EntityHeader> ehList = this.nodeDao.getEntityPath(childId);
 			List<String> path = new ArrayList<String>(ehList.size());
 			for (EntityHeader eh : ehList) {
 				path.add(eh.getId());

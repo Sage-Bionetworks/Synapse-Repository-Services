@@ -138,7 +138,10 @@ public class NodeTreeUpdateManagerImplTest {
 		eh = mock(EntityHeader.class);
 		when(eh.getId()).thenReturn(this.pIncompletePath);
 		path.add(eh);
-		when(this.nodeDaoMock.getEntityPath(this.pIncompletePath)).thenReturn(path);
+		eh = mock(EntityHeader.class);
+		when(eh.getId()).thenReturn(this.cIncompletePath);
+		path.add(eh);
+		when(this.nodeDaoMock.getEntityPath(this.cIncompletePath)).thenReturn(path);
 
 		path = new ArrayList<EntityHeader>(2);
 		eh = mock(EntityHeader.class);
@@ -147,7 +150,10 @@ public class NodeTreeUpdateManagerImplTest {
 		eh = mock(EntityHeader.class);
 		when(eh.getId()).thenReturn(this.pObsolete);
 		path.add(eh);
-		when(this.nodeDaoMock.getEntityPath(this.pObsolete)).thenReturn(path);
+		eh = mock(EntityHeader.class);
+		when(eh.getId()).thenReturn(this.cObsolete);
+		path.add(eh);
+		when(this.nodeDaoMock.getEntityPath(this.cObsolete)).thenReturn(path);
 
 		when(this.nodeDaoMock.getNode(this.cObsolete)).thenThrow(new NotFoundException());
 	}
