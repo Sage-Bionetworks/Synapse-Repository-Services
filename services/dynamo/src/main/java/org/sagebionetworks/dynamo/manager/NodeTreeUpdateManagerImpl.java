@@ -151,7 +151,7 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		try {
 			this.logger.info("Rebuilding path for node " + childId);
 			// Get the path from the root to the parent
-			List<EntityHeader> ehList = this.nodeDao.getEntityPath(parentId);
+			List<EntityHeader> ehList = this.nodeDao.getEntityPath(childId);
 			List<String> path = new ArrayList<String>(ehList.size());
 			for (EntityHeader eh : ehList) {
 				path.add(eh.getId());
