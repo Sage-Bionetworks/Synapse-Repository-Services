@@ -42,32 +42,10 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 	@Override
 	public List<Message> call() throws Exception {
 		List<Message> processedMessages = new ArrayList<Message>();
-
-		int j = 0;
-		int u = 0;
-		int v = 0;
-		int x = 0;
-		int y = 0;
-
 		for (Message message : this.messages) {
 			// Extract the ChangeMessage
 			ChangeMessage change = MessageUtils.extractMessageBody(message);
 			if (ObjectType.ENTITY.equals(change.getObjectType())) {
-
-				j++;
-				if (change.getTimestamp() == null) {
-					u++;
-					if (change.getChangeNumber() == null) {
-						v++;
-					}
-				}
-				if (change.getChangeNumber() == null) {
-					x++;
-					if (change.getTimestamp() == null) {
-						y++;
-					}
-				}
-				
 				Date timestamp = change.getTimestamp();
 				if (timestamp == null) {
 					// TODO: Not the ideal timestamp.
@@ -105,13 +83,6 @@ public class DynamoQueueWorker implements Callable<List<Message>> {
 				processedMessages.add(message);
 			}
 		}
-
-		System.out.println("j: " + j);
-		System.out.println("u: " + u);
-		System.out.println("v: " + v);
-		System.out.println("x: " + x);
-		System.out.println("y: " + y);
-
 		return processedMessages;
 	}
 }
