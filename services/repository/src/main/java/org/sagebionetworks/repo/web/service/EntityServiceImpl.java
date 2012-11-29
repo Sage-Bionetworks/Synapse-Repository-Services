@@ -136,7 +136,7 @@ public class EntityServiceImpl implements EntityService {
 	@Override
 	public Entity getEntity(String userId, String id, HttpServletRequest request) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		EntityHeader header = entityManager.getEntityHeader(userInfo, id);
+		EntityHeader header = entityManager.getEntityHeader(userInfo, id, null);
 		EntityType type = EntityType.getEntityType(header.getType());
 		return getEntity(userInfo, id, request, type.getClassForType(), EventType.GET);
 	}
@@ -249,21 +249,11 @@ public class EntityServiceImpl implements EntityService {
 	 * @throws InvalidModelException
 	 */
 	private void fireValidateEvent(UserInfo userInfo, EventType eventType, Entity entity, EntityType type) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException{
-		List<EntityHeader> newParentPath = null;
-		if(entity.getParentId() != null){
-			newParentPath = entityManager.getEntityPathAsAdmin(entity.getParentId());
+		List<EntityHeader> newPath = null;
+		if (entity.getParentId() != null) {
+			newPath = entityManager.getEntityPathAsAdmin(entity.getParentId());
 		}
-		EntityEvent event = new EntityEvent(eventType, newParentPath, userInfo);
-		
-		// If node has a non-root parent, validate that user has update access on the parent
-		if (newParentPath != null && newParentPath.size() > 1) {
-			EntityHeader newParentHeader = newParentPath.get(newParentPath.size() - 1);
-			try {
-				entityManager.validateUpdateAccess(userInfo, newParentHeader.getId());
-			} catch (Exception e) {
-				throw new UnauthorizedException("Insufficient privileges for parent " + newParentHeader.getId());
-			}
-		}		
+		EntityEvent event = new EntityEvent(eventType, newPath, userInfo);
 		
 		// First apply validation that is common to all types.
 		allTypesValidator.validateEntity(entity, event);
@@ -540,9 +530,9 @@ public class EntityServiceImpl implements EntityService {
 	}
 
 	@Override
-	public EntityHeader getEntityHeader(String userId, String entityId)	throws NotFoundException, DatastoreException, UnauthorizedException {
+	public EntityHeader getEntityHeader(String userId, String entityId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return entityManager.getEntityHeader(userInfo, entityId);
+		return entityManager.getEntityHeader(userInfo, entityId, versionNumber);
 	}
 
 	@Override
@@ -553,7 +543,7 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		// First get the permissions benefactor
 		String benefactor = permissionsManager.getPermissionBenefactor(entityId, userInfo);
-		return getEntityHeader(userId, benefactor);
+		return getEntityHeader(userId, benefactor, null);
 	}
 
 	@Override

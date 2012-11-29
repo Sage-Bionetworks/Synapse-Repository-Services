@@ -11,12 +11,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
@@ -37,10 +35,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -56,6 +56,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
@@ -104,7 +105,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
-	
+	private static final String SQL_SELECT_VERSION_LABEL = "SELECT "+COL_REVISION_LABEL+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
+
 	/**
 	 * To determine if a node has children we fetch the first child ID.
 	 */
@@ -130,6 +132,12 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			+ COL_REVISION_MODIFIED_ON + " FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME+" ORDER BY " + COL_REVISION_NUMBER
 			+ " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
+
+	private static final String SQL_SELECT_NODE_PARENT_PAGINATED =
+			"SELECT " + COL_NODE_ID + ", " + COL_NODE_PARENT_ID + ", " + COL_NODE_ETAG
+			+ " FROM " + TABLE_NODE
+			+ " LIMIT :" + LIMIT_PARAM_NAME
+			+ " OFFSET :" + OFFSET_PARAM_NAME;
 
 	// This is better suited for simple JDBC query.
 	@Autowired
@@ -188,8 +196,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			rev.setRevisionNumber(dto.getVersionNumber());
 		}
 		DBONode node = new DBONode();
-		node.setCurrentRevNumber(rev.getRevisionNumber());
-		NodeUtils.updateFromDto(dto, node, rev);
+		node.setCurrentRevNumber(rev.getRevisionNumber());		
+		NodeUtils.updateFromDto(dto, node, rev, shouldDeleteActivityId(dto));
 		// If an id was not provided then create one
 		if(node.getId() == null){
 			node.setId(idGenerator.generateNewId());
@@ -290,7 +298,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 		
 		// Now update the new revision and node
-		NodeUtils.updateFromDto(newVersion, jdo, newRev);
+		NodeUtils.updateFromDto(newVersion, jdo, newRev, shouldDeleteActivityId(newVersion));
 		// The new revision becomes the current version
 		jdo.setCurrentRevNumber(newRev.getRevisionNumber());
 
@@ -560,8 +568,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		Long nodeId = KeyFactory.stringToKey(updatedNode.getId());
 		DBONode jdoToUpdate = getNodeById(nodeId);
 		DBORevision revToUpdate = getCurrentRevision(jdoToUpdate);
-		// Update is as simple as copying the values from the passed node.
-		NodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate);	
+		// Update is as simple as copying the values from the passed node.		
+		NodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate, shouldDeleteActivityId(updatedNode));	
 
 		// Should we force the update of the etag?
 		if(forceUseEtag){
@@ -669,6 +677,37 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return queryResults;
 	}
 
+	@Override
+	public QueryResults<NodeParentRelation> getParentRelations(long offset, long limit)
+			throws DatastoreException {
+
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);
+
+		List<NodeParentRelation> results = this.simpleJdbcTemplate.query(
+				SQL_SELECT_NODE_PARENT_PAGINATED,
+				new RowMapper<NodeParentRelation>() {
+
+					@Override
+					public NodeParentRelation mapRow(ResultSet rs, int rowNum) throws SQLException {
+						NodeParentRelation p = new NodeParentRelation();
+						p.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+						p.setParentId(KeyFactory.keyToString(rs.getLong(COL_NODE_PARENT_ID)));
+						p.setETag(rs.getString(COL_NODE_ETAG));
+						p.setTimestamp(DateTime.now());
+						return p;
+					}
+
+				}, params);
+
+		QueryResults<NodeParentRelation> queryResults = new QueryResults<NodeParentRelation>();
+		queryResults.setTotalNumberOfResults(this.getCount());
+		queryResults.setResults(results);
+
+		return queryResults;
+	}
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void afterPropertiesSet() throws Exception {
@@ -744,12 +783,30 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	}
 
 	@Override
-	public EntityHeader getEntityHeader(String nodeId) throws DatastoreException, NotFoundException {
+	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
 		// Fetch the basic data for an entity.
 		Long id = KeyFactory.stringToKey(nodeId);
 		ParentTypeName ptn = getParentTypeName(id);
-		EntityHeader header = createHeaderFromParentTypeName(nodeId, ptn);
+		String versionLabel = null;		
+		if(versionNumber != null) {
+			versionLabel = getVersionLabel(nodeId, versionNumber);
+		}
+		EntityHeader header = createHeaderFromParentTypeName(nodeId, ptn, versionNumber, versionLabel);
 		return header;
+	}
+	
+	@Override
+	public String getVersionLabel(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
+		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
+		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
+		Long id = KeyFactory.stringToKey(nodeId);
+		try{
+			Map<String, Object> row = simpleJdbcTemplate.queryForMap(SQL_SELECT_VERSION_LABEL, id, versionNumber);
+			return (String) row.get(COL_REVISION_LABEL);
+		}catch(EmptyResultDataAccessException e){
+			// Occurs if there are no results
+			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+nodeId + ", version: " + versionNumber);
+		}
 	}
 
 	/**
@@ -759,10 +816,12 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @return the entity header
 	 */
 	public static EntityHeader createHeaderFromParentTypeName(String nodeId,
-			ParentTypeName ptn) {
+			ParentTypeName ptn, Long versionNumber, String versionLabel) {
 		EntityHeader header = new EntityHeader();
 		header.setId(nodeId);
 		header.setName(ptn.getName());
+		header.setVersionNumber(versionNumber);
+		header.setVersionLabel(versionLabel);
 		EntityType type = EntityType.getTypeForId(ptn.getType());
 		header.setType(type.getEntityType());
 		return header;
@@ -820,7 +879,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
 		// Call the recursive method
-		List<EntityHeader> results = new ArrayList<EntityHeader>();
+		LinkedList<EntityHeader> results = new LinkedList<EntityHeader>();
 		appendPath(results, KeyFactory.stringToKey(nodeId));
 		return results;
 	}
@@ -832,10 +891,10 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	private void appendPath(List<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
+	private void appendPath(LinkedList<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
 		// First Build the entity header for this node
 		ParentTypeName ptn = getParentTypeName(nodeId);
-		EntityHeader header = createHeaderFromParentTypeName(KeyFactory.keyToString(nodeId), ptn);
+		EntityHeader header = createHeaderFromParentTypeName(KeyFactory.keyToString(nodeId), ptn, null, null);
 		// Add at the front
 		results.add(0, header);
 		if(ptn.getParentId() != null){
@@ -978,7 +1037,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public void updateRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
-		DBONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
+
 		DBORevision dboRev = getNodeRevisionById(KeyFactory.stringToKey(rev.getNodeId()), rev.getRevisionNumber());
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
 		// Save the new revision
@@ -1090,7 +1149,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
         return parentPtn.parentId == null && "root".equals(parentPtn.name);
 	}
 	
-	public QueryResults<MigratableObjectData> getMigrationObjectDataWithoutDependencies(long offset,
+	private QueryResults<MigratableObjectData> getMigrationObjectDataWithoutDependencies(long offset,
 			long limit) throws DatastoreException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(OFFSET_PARAM_NAME, offset);
@@ -1171,4 +1230,11 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return MigratableObjectType.ENTITY;
 	}
 
+
+	/*
+	 * Private Methods
+	 */
+	private boolean shouldDeleteActivityId(Node dto) {
+		return DELETE_ACTIVITY_VALUE.equals(dto.getActivityId()) ? true : false;
+	}
 }

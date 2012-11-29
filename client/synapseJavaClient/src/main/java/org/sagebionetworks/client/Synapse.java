@@ -53,6 +53,7 @@ import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
@@ -69,9 +70,11 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
 import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
+import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -111,6 +114,7 @@ public class Synapse {
 	protected static final String GENERATED_BY_SUFFIX = "/generatedBy";
 
 	protected static final String ENTITY_URI_PATH = "/entity";
+	protected static final String STORAGE_DETAILS_PATH = "/storageDetails"+ENTITY_URI_PATH;
 	protected static final String ENTITY_ACL_PATH_SUFFIX = "/acl";
 	protected static final String ENTITY_ACL_RECURSIVE_SUFFIX = "?recursive=true";
 	protected static final String ENTITY_BUNDLE_PATH = "/bundle?mask=";
@@ -1177,6 +1181,22 @@ public class Synapse {
 		deleteUri(uri);
 	}
 
+	public <T extends Entity> void deleteEntityVersion(T entity, Long versionNumber) throws SynapseException {
+		if (entity == null)
+			throw new IllegalArgumentException("Entity cannot be null");
+		deleteEntityVersionById(entity.getId(), versionNumber);
+	}
+
+	public void deleteEntityVersionById(String entityId, Long versionNumber) throws SynapseException {
+		if (entityId == null)
+			throw new IllegalArgumentException("EntityId cannot be null");
+		if (versionNumber == null)
+			throw new IllegalArgumentException("VersionNumber cannot be null");
+		String uri = createEntityUri(ENTITY_URI_PATH, entityId);
+		uri += REPO_SUFFIX_VERSION + "/" + versionNumber;
+		deleteUri(uri);
+	}
+
 	/**
 	 * Get the hierarchical path to this entity
 	 * @param entity
@@ -1218,6 +1238,25 @@ public class Synapse {
 			return results;
 		} catch (JSONObjectAdapterException e) {
 			throw new RuntimeException(e);
+		}
+	}	
+	
+	public BatchResults<EntityHeader> getEntityHeaderBatch(List<Reference> references) throws SynapseException {
+		ReferenceList list = new ReferenceList();
+		list.setReferences(references);
+		String url = ENTITY_URI_PATH + "/header";
+		JSONObject jsonObject;
+		try {
+			jsonObject = EntityFactory.createJSONObjectForEntity(list);
+			// POST
+			jsonObject = createJSONObject(url, jsonObject);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObject);
+			BatchResults<EntityHeader> results = new BatchResults<EntityHeader>(EntityHeader.class);
+			results.initializeFromJSONObject(adapter);
+			return results;
+
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
 		}
 	}	
 	
@@ -2349,5 +2388,30 @@ public class Synapse {
 		String uri = createEntityUri(ACTIVITY_URI_PATH, activityId);
 		deleteUri(uri);
 	}
+	
+	/**
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public PaginatedResults<StorageUsage> getItemizedStorageUsageForNode(String entityId, int offset, int limit) throws SynapseException {
+		if (entityId == null)
+			throw new IllegalArgumentException("EntityId cannot be null");
+		String url = createEntityUri(STORAGE_DETAILS_PATH, entityId +
+				"?" + OFFSET + "=" + offset + "&limit=" + limit);
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<StorageUsage> results = new PaginatedResults<StorageUsage>(StorageUsage.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+
 	
 }

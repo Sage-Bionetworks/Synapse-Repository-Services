@@ -1,5 +1,6 @@
 package org.sagebionetworks.dynamo;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,7 @@ public class DynamoTestUtil {
 	}
 
 	/**
-	 * Creates a map that maps names to 
+	 * Creates a map that maps names to random IDs.
 	 */
 	public static Map<String, String> createRandomIdMap(List<String> nameList) {
 
@@ -79,5 +80,13 @@ public class DynamoTestUtil {
 		Assert.assertTrue(idMap.containsKey("bh"));
 		Assert.assertFalse(idMap.containsKey("bi"));
 		Assert.assertFalse(idMap.containsKey("bm"));
+		List<String> nameList = new ArrayList<String>();
+		nameList.add("name1");
+		nameList.add("name2");
+		nameList.add("name3");
+		idMap = createRandomIdMap(nameList);
+		Assert.assertNotNull(idMap.get("name1"));
+		Assert.assertNotNull(idMap.get("name2"));
+		Assert.assertNotNull(idMap.get("name3"));
 	}
 }

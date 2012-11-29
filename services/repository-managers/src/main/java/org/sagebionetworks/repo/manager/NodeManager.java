@@ -197,12 +197,13 @@ public interface NodeManager {
 	 * Get a full header for an entity.
 	 * @param userInfo
 	 * @param entityId
+	 * @param versionNumber
 	 * @return
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId) throws NotFoundException, DatastoreException, UnauthorizedException;
+	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Delete a specific version of a node.
@@ -270,5 +271,5 @@ public interface NodeManager {
 	 */
 	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
 			throws NotFoundException, UnauthorizedException, DatastoreException;
-	
+
 }

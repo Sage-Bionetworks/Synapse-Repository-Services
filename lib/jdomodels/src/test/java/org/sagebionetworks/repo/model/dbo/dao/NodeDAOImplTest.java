@@ -15,8 +15,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
+import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -43,6 +45,7 @@ import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
@@ -1037,7 +1040,7 @@ public class NodeDAOImplTest {
 		toDelete.add(parentId);
 		assertNotNull(parentId);
 		// Get the header of this node
-		EntityHeader parentHeader = nodeDao.getEntityHeader(parentId);
+		EntityHeader parentHeader = nodeDao.getEntityHeader(parentId, null);
 		assertNotNull(parentHeader);
 		assertEquals(EntityType.project.getEntityType(), parentHeader.getType());
 		assertEquals("parent", parentHeader.getName());
@@ -1050,7 +1053,7 @@ public class NodeDAOImplTest {
 		toDelete.add(childId);
 		assertNotNull(childId);
 		// Get the header of this node
-		EntityHeader childHeader = nodeDao.getEntityHeader(childId);
+		EntityHeader childHeader = nodeDao.getEntityHeader(childId, 1L);
 		assertNotNull(childHeader);
 		assertEquals(EntityType.dataset.getEntityType(), childHeader.getType());
 		assertEquals("child", childHeader.getName());
@@ -1061,7 +1064,7 @@ public class NodeDAOImplTest {
 	public void testGetEntityHeaderDoesNotExist() throws NotFoundException, DatastoreException{
 		// There should be no node with this id.
 		long id = idGenerator.generateNewId();
-		nodeDao.getEntityHeader(KeyFactory.keyToString(id));
+		nodeDao.getEntityHeader(KeyFactory.keyToString(id), null);
 	}
 	
 	@Test
@@ -1088,9 +1091,9 @@ public class NodeDAOImplTest {
 		
 		// Get the individual headers
 		EntityHeader[] array = new EntityHeader[3];;
-		array[0] = nodeDao.getEntityHeader(parentId);
-		array[1] = nodeDao.getEntityHeader(childId);
-		array[2] = nodeDao.getEntityHeader(grandId);
+		array[0] = nodeDao.getEntityHeader(parentId, null);
+		array[1] = nodeDao.getEntityHeader(childId, null);
+		array[2] = nodeDao.getEntityHeader(grandId, null);
 		
 		// Now get the path for each node
 		List<EntityHeader> path = nodeDao.getEntityPath(grandId);
@@ -1947,7 +1950,87 @@ public class NodeDAOImplTest {
 		assertFalse(nodeDao.doesNodeHaveChildren(child1Id));
 	}
 
-	
+	@Test
+	public void testGetParentRelations() throws DatastoreException, InvalidModelException, NotFoundException {
+
+		Random random = new Random();
+		String name = Integer.toString(random.nextInt());
+		Node n1 = NodeTestUtils.createNew(name, creatorUserGroupId);
+		String id1 = this.nodeDao.createNew(n1);
+		this.toDelete.add(id1);
+		name = Integer.toString(random.nextInt());
+		Node n2 = NodeTestUtils.createNew(name, creatorUserGroupId, id1);
+		String id2 = this.nodeDao.createNew(n2);
+		this.toDelete.add(id2);
+		name = Integer.toString(random.nextInt());
+		Node n3 = NodeTestUtils.createNew(name, creatorUserGroupId, id1);
+		String id3 = this.nodeDao.createNew(n3);
+		this.toDelete.add(id3);
+		name = Integer.toString(random.nextInt());
+		Node n4 = NodeTestUtils.createNew(name, creatorUserGroupId, id2);
+		String id4 = this.nodeDao.createNew(n4);
+		this.toDelete.add(id4);
+
+		Map<String, NodeParentRelation> map = new HashMap<String, NodeParentRelation>();
+		QueryResults<NodeParentRelation> results = this.nodeDao.getParentRelations(0, 1);
+		assertNotNull(results);
+		assertTrue(results.getTotalNumberOfResults() > 4);
+		List<NodeParentRelation> rList = results.getResults();
+		assertNotNull(rList);
+		assertEquals(1, rList.size());
+		for (NodeParentRelation npr : rList) {
+			map.put(npr.getId(), npr);
+		}
+
+		results = this.nodeDao.getParentRelations(1, 2);
+		assertNotNull(results);
+		assertTrue(results.getTotalNumberOfResults() > 4);
+		rList = results.getResults();
+		assertNotNull(rList);
+		assertEquals(2, rList.size());
+		for (NodeParentRelation npr : rList) {
+			map.put(npr.getId(), npr);
+		}
+
+		results = this.nodeDao.getParentRelations(3, 1000);
+		assertNotNull(results);
+		assertTrue(results.getTotalNumberOfResults() > 4);
+		rList = results.getResults();
+		assertNotNull(rList);
+		for (NodeParentRelation npr : rList) {
+			map.put(npr.getId(), npr);
+		}
+
+		NodeParentRelation r = map.get(id1);
+		assertEquals(id1, r.getId());
+		assertNotNull(r.getParentId());
+		// NotFoundException: Cannot find a node with id: 0
+		// assertTrue(this.nodeDao.isNodeRoot(r.getParentId()));
+		assertNotNull(r.getETag());
+		assertNotNull(r.getTimestamp());
+
+		r = map.get(id2);
+		assertEquals(id2, r.getId());
+		assertNotNull(r.getParentId());
+		assertEquals(id1, r.getParentId());
+		assertNotNull(r.getETag());
+		assertNotNull(r.getTimestamp());
+
+		r = map.get(id3);
+		assertEquals(id3, r.getId());
+		assertNotNull(r.getParentId());
+		assertEquals(id1, r.getParentId());
+		assertNotNull(r.getETag());
+		assertNotNull(r.getTimestamp());
+
+		r = map.get(id4);
+		assertEquals(id4, r.getId());
+		assertNotNull(r.getParentId());
+		assertEquals(id2, r.getParentId());
+		assertNotNull(r.getETag());
+		assertNotNull(r.getTimestamp());
+	}
+
 	/*
 	 * Private Methods
 	 */

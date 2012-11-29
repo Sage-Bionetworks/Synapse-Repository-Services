@@ -1,5 +1,7 @@
 package org.sagebionetworks.authutil;
 
+import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCEPTS_TERMS_OF_USE_ATTRIBUTE;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -29,6 +31,7 @@ import org.apache.http.HttpResponse;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
@@ -479,4 +482,40 @@ public class CrowdAuthUtil {
 			throw new RuntimeException(e);
 		}
 	}
+	
+	public static boolean getAcceptsTermsOfUse(String userId) throws NotFoundException, IOException {
+		Map<String,Collection<String>> attributes = CrowdAuthUtil.getUserAttributes(userId);
+		Collection<String> values = attributes.get(ACCEPTS_TERMS_OF_USE_ATTRIBUTE);
+		return values!=null && values.size()>0 && Boolean.parseBoolean(values.iterator().next());
+	}
+	
+	public static void setAcceptsTermsOfUse(String userId, boolean accepts) throws IOException {
+		Map<String,Collection<String>> attributes = new HashMap<String,Collection<String>>();
+		attributes.put(ACCEPTS_TERMS_OF_USE_ATTRIBUTE, Arrays.asList(new String[]{""+accepts}));
+		CrowdAuthUtil.setUserAttributes(userId, attributes);
+	}
+	
+	/**
+	 * 
+	 * @param userId -- the ID/email address of the user
+	 * @param acceptsTermsOfUse -- says whether the request explicitly accepts the terms (false=acceptance is omitted in request, may have been given previously)
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws ForbiddenException thrown if user doesn't accept terms in this request or previously
+	 */
+	public static boolean acceptsTermsOfUse(String userId, Boolean acceptsTermsOfUse) throws NotFoundException, IOException {
+		if (CrowdAuthUtil.isAdmin(userId)) return true; // administrator need not sign terms of use
+		if (!getAcceptsTermsOfUse(userId)) {
+			if (acceptsTermsOfUse!=null && acceptsTermsOfUse==true) {
+				setAcceptsTermsOfUse(userId, true);
+				return true;
+			} else {
+				return false;
+			}
+		}	
+		return true;
+	}
+
+	
+
 }

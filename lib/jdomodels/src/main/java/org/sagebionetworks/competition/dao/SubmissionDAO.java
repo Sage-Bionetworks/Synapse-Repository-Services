@@ -8,8 +8,6 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 public interface SubmissionDAO {
 
@@ -98,7 +96,6 @@ public interface SubmissionDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void delete(String id) throws DatastoreException, NotFoundException;
 
 	/**

@@ -10,7 +10,7 @@ import org.sagebionetworks.competition.dbo.DBOConstants;
 import org.sagebionetworks.competition.dbo.ParticipantDBO;
 import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.query.jdo.SQLConstants;
-import org.sagebionetworks.competition.util.Utility;
+import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -18,8 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 public class ParticipantDAOImpl implements ParticipantDAO {
 	
@@ -42,8 +40,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 			" WHERE "+ SQLConstants.COL_PARTICIPANT_COMP_ID + "=:"+ COMP_ID;
 	
 	private static final String COUNT_BY_COMPETITION_SQL = 
-			"SELECT COUNT * FROM " +  SQLConstants.TABLE_PARTICIPANT +
-			" WHERE "+ SQLConstants.COL_PARTICIPANT_COMP_ID + "=:" + COMP_ID;
+			"SELECT COUNT (DISTINCT " + COMP_ID + ") FROM " +  SQLConstants.TABLE_PARTICIPANT;
 	
 	private static final RowMapper<ParticipantDBO> rowMapper = ((new ParticipantDBO()).getTableMapping());
 
@@ -118,7 +115,6 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	}
 
 	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void delete(String userId, String compId) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(USER_ID, userId);
@@ -157,7 +153,9 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	 * @param dbo
 	 */
 	private void verifyParticipantDBO(ParticipantDBO dbo) {
-		Utility.ensureNotNull(dbo.getCompId(), dbo.getUserId(), dbo.getCreatedOn());
+		CompetitionUtils.ensureNotNull(dbo.getCompId(), "Competition ID");
+		CompetitionUtils.ensureNotNull(dbo.getUserId(), "User ID");
+		CompetitionUtils.ensureNotNull(dbo.getCreatedOn(), "Creation date");
 	}
 	
 }
