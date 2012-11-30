@@ -15,6 +15,7 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -25,23 +26,15 @@ import com.amazonaws.services.cloudwatch.model.MetricDatum;
  * Unit test to test functionality of ControllerProfiler.
  * @author ntiedema
  */
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:controllerProfiler-spb.xml" })
 public class ControllerProfilerTest {	
 	
-	@Autowired
 	ControllerProfiler controllerProfiler;
-	
-	@BeforeClass
-	public static void setUpBeforeClass() throws Exception {
-	}
-
-	@AfterClass
-	public static void tearDownAfterClass() throws Exception {
-	}
+	Consumer mockConsumer;
 
 	@Before
 	public void setUp() throws Exception {
+		mockConsumer = Mockito.mock(Consumer.class);
+		controllerProfiler = new ControllerProfiler(mockConsumer);
 	}
 
 	@After
@@ -124,22 +117,6 @@ public class ControllerProfilerTest {
 		assertNotSame(controllerProfiler.getConsumer(), testConsumer);
 		controllerProfiler.setConsumer(testConsumer);
 		assertEquals(testConsumer, controllerProfiler.getConsumer());
-	}
-	
-	/**
-	 * Test functionality in doBasicProfiling.
-	 */
-	@Ignore
-	@Test
-	public void testReturnValueForDoBasicProfiling() throws Exception {
-		//IGNORE BECAUSE DIDN'T WORK
-		// testPJP = new ProceedingJoinPoint();
-		
-		//can't  make a pjp, you can make a moch pjp, but it will not return a 
-		//valid object so this test will fail
-		
-		//ProceedingJoinPoint testPJP = mock(ProceedingJoinPoint.class);
-		//Object returnObject = testControllerProfiler.doBasicProfiling(testPJP);
 	}
 	
 	/**
