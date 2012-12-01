@@ -109,7 +109,7 @@ public class SearchDaoImplAutowireTest {
 		assertTrue(status.getOptions().indexOf(domainStatus.getDocService().getArn()) > 0);
 		assertTrue(status.getOptions().indexOf(domainStatus.getSearchService().getArn()) > 0);
 	}
-
+	
 	@Ignore
 	@Test
 	public void testCRUD() throws ClientProtocolException, IOException, HttpClientHelperException, InterruptedException{
