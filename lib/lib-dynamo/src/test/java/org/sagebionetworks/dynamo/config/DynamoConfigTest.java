@@ -29,5 +29,7 @@ public class DynamoConfigTest {
 		Assert.assertNotNull(table.getThroughput());
 		Assert.assertTrue(table.getThroughput().getReadThroughput().longValue() >= 1L);
 		Assert.assertTrue(table.getThroughput().getWriteThroughput().longValue() >= 1L);
+		Assert.assertTrue(table.getThroughput().getReadThroughput().longValue() < 100L);
+		Assert.assertTrue(table.getThroughput().getWriteThroughput().longValue() < 100L);
 	}
 }
