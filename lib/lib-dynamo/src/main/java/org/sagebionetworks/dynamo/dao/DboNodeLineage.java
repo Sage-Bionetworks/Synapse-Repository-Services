@@ -3,7 +3,6 @@ package org.sagebionetworks.dynamo.dao;
 import java.util.Date;
 import java.util.Locale;
 
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.DynamoTable;
 import org.sagebionetworks.dynamo.KeyValueSplitter;
 
@@ -30,9 +29,7 @@ public class DboNodeLineage implements DynamoTable {
 	 * This is the root pointer to help locate the root node. This virtual node should not be linked
 	 * with any other node except having the root as its direct child.
 	 */
-	static final String ROOT = "ROOT" + "-"
-			+ StackConfiguration.getStack() + "-"
-			+ StackConfiguration.getStackInstance();
+	static final String ROOT = "ROOT";
 	static final String ROOT_HASH_KEY = DboNodeLineage.createHashKey(ROOT, LineageType.DESCENDANT);
 
 	/**
