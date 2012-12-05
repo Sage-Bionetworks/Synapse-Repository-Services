@@ -26,20 +26,18 @@ public class ParticipantDAOImplTest {
     private CompetitionDAO competitionDAO;
         
     private String userId = "0";
-    private String compId = "2";
+    private String compId;
     
     @Before
     public void setUp() {    	
     	// create a competition
         Competition competition = new Competition();
-        competition.setId(compId);
         competition.setEtag("etag");
         competition.setName("name");
-        competition.setOwnerId(userId);
         competition.setCreatedOn(new Date());
         competition.setContentSource("foobar");
         competition.setStatus(CompetitionStatus.PLANNED);
-        competitionDAO.create(competition);
+        compId = competitionDAO.create(competition, userId);
     }
     
     @After

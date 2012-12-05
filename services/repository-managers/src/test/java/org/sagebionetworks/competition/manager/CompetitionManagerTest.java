@@ -50,16 +50,16 @@ public class CompetitionManagerTest {
         
         // Competition Manger
     	competitionManager = new CompetitionManagerImpl(mockCompetitionDAO);
-		when(mockCompetitionDAO.create(eq(comp))).thenReturn(comp.getId());
+		when(mockCompetitionDAO.create(eq(comp), eq(OWNER_ID))).thenReturn(comp.getId());
     	when(mockCompetitionDAO.get(eq(COMPETITION_ID))).thenReturn(comp);
-    	when(mockCompetitionDAO.find(eq(COMPETITION_NAME))).thenReturn(comp);
+    	when(mockCompetitionDAO.lookupByName(eq(COMPETITION_NAME))).thenReturn(COMPETITION_ID);
     }
 	
 	@Test
 	public void testCreateCompetition() throws Exception {		
 		String compId = competitionManager.createCompetition(OWNER_ID, comp);
 		assertEquals("'create' returned unexpected Competition ID", comp.getId(), compId);
-		verify(mockCompetitionDAO).create(eq(comp));
+		verify(mockCompetitionDAO).create(eq(comp), eq(OWNER_ID));
 	}
 	
 	@Test
@@ -90,7 +90,7 @@ public class CompetitionManagerTest {
 	public void testFind() throws DatastoreException, UnauthorizedException, NotFoundException {
 		Competition comp2 = competitionManager.findCompetition(COMPETITION_NAME);
 		assertEquals(comp, comp2);
-		verify(mockCompetitionDAO).find(eq(COMPETITION_NAME));
+		verify(mockCompetitionDAO).lookupByName(eq(COMPETITION_NAME));
 	}
 	
 	@Test

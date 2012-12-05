@@ -26,6 +26,9 @@ public class ChangeMessageUtilsTest {
 			cm.setObjectEtag("etag"+i);
 			cm.setObjectType(ObjectType.ENTITY);
 			cm.setObjectId("syn"+i);
+			if (i != 0) {
+				cm.setParentId("syn"+(i-1));
+			}
 			list.add(cm);
 		}
 		// Make the round trip

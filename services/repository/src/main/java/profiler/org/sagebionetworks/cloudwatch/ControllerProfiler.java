@@ -8,8 +8,6 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.joda.time.DateTime;
-import org.sagebionetworks.StackConfiguration;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -52,21 +50,17 @@ public class ControllerProfiler {
 	}	
 	
 	/**
-	 * Around method collects before and after information for designated
-	 * package area.  Injected via Spring Inversion Of Control.
+	 * We want to profile anything that is within a class marked with @Controller
 	 * @param ProceedingJoinPoint that holds method invocation information
 	 * @return Object that represents method return information
 	 */
-	@Around("execution(* org.sagebionetworks.repo.web.controller.EntityController.*(..))")
+	@Around("@within(org.springframework.stereotype.Controller)")
 	public Object doBasicProfiling(ProceedingJoinPoint pjp) throws Throwable {
 		//do nothing if profiler is not on
 		if (!this.shouldProfile){
 			//if turned off, just proceed with method
 			return pjp.proceed();
 		}
-		//parameter is a ProceedingJoinPoint, Spring object used
-		//to expose the proceed() method to run wrapped methods	
-		//the proceed() method call will return an Object
 		
 		//get signature of current thread that is at the ProceedingJoinPoint
 		//signature will give us the methodName and information
@@ -74,8 +68,6 @@ public class ControllerProfiler {
 		String methodName = signature.getName();
 		//want the package information for the namespace
 		Class declaring = signature.getDeclaringType();
-		Package sigPackage = declaring.getPackage();
-		String namespace = sigPackage.toString();
 		
 		long start = System.nanoTime();	//collect method start time
 		Object results = pjp.proceed(); // runs the method
@@ -85,12 +77,12 @@ public class ControllerProfiler {
 		
 		//use our latency time to make a MetricDatum, and
 		//add to synchronized list
-		ProfileData profileData = makeProfileDataDTO(namespace, methodName, timeMS);
+		ProfileData profileData = makeProfileDataDTO(declaring.getName(), methodName, timeMS);
 		consumer.addProfileData(profileData);
 		
 		//in configuration file log is set to ERROR to turn off and
 		//DEBUG to turn on
-		log.debug("let's see our profileData " + profileData.toString());
+//		log.debug("let's see our profileData " + profileData.toString());
 		
 		//must return whatever method returned
 		return results;
@@ -114,10 +106,7 @@ public class ControllerProfiler {
 		nextPD.setName(name);
 		nextPD.setLatency(latency);
 		nextPD.setUnit("Milliseconds");
-		
-		DateTime timestamp = new DateTime();
-		Date jdkDate= timestamp.toDate();
-		nextPD.setTimestamp(jdkDate);
+		nextPD.setTimestamp(new Date());
 		
 		return nextPD;
 		}
