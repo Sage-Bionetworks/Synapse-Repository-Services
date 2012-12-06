@@ -241,8 +241,8 @@ public class DBOActivityDAOImplAutowiredTest {
 		int limit = 10;
 		int offset = 0;
 		QueryResults<String> results = activityDao.getEntitiesGeneratedBy(act1.getId().toString(), limit, offset);
-		assertEquals(2, results.getResults().size());
-		assertTrue(node1Id.equals(results.getResults().get(0)) || node1Id.equals(results.getResults().get(1)));
+		assertEquals(2, results.getResults().size());		
+		assertTrue(node1Id.equals(results.getResults().get(0)) || node1Id.equals(results.getResults().get(1))); 
 		assertEquals(2, results.getTotalNumberOfResults());
 		
 		// test two pages
