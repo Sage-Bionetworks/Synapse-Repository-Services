@@ -120,6 +120,8 @@ public class UrlHelpers {
 	
 	public static final String VERSION = "/version";
 	
+	public static final String PROMOTE_VERSION = "/promoteVersion";
+
 	public static final String REFERENCED_BY	= "/referencedby";
 	
 	public static final String ATTACHMENT_S3_TOKEN = "/s3AttachmentToken";
@@ -206,11 +208,12 @@ public class UrlHelpers {
 	 * All of the base URLs for Synapse objects's paths.
 	 */
 	public static final String ENTITY_PATH		= ENTITY_ID+PATH;
-	
+
 	
 	/**
 	 * All of the base URLs for Synapse object's versions.
 	 */
+	public static final String ENTITY_PROMOTE_VERSION = ENTITY_ID+PROMOTE_VERSION+VERSION_NUMBER;
 	public static final String ENTITY_VERSION		= ENTITY_ID+VERSION;
 
 	
