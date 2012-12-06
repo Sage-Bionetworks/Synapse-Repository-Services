@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -268,13 +269,32 @@ public class EntityControllerTest {
 	public void testActivityId404() throws Exception{
 		Project p = new Project();
 		p.setName("Create without entity type");
-		p.setEntityType(p.getClass().getName());		
+		p.setEntityType(p.getClass().getName());
 		String activityId = "123456789";
 		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1, activityId);
 		String id = clone.getId();
 		toDelete.add(id);
 	}
 	
-	
-	
+	@Test
+	public void testPromoteEntity() throws Exception {
+		Project p = new Project();
+		p.setName("Create without entity type");
+		p.setEntityType(p.getClass().getName());
+		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
+		String id = clone.getId();
+		toDelete.add(id);
+		Code c = new Code();
+		c.setName("code");
+		c.setParentId(id);
+		c.setEntityType(c.getClass().getName());
+		c.setMd5(String.format("%032x", 1));
+		Code cclone = (Code) entityServletHelper.createEntity(c, TEST_USER1, null);
+		cclone.setMd5(String.format("%032x", 2));
+		toDelete.add(cclone.getId());
+		Code cclone2 = (Code) entityServletHelper.createNewVersion(TEST_USER1, cclone);
+		VersionInfo info = entityServletHelper.promoteVersion(TEST_USER1, cclone2.getId(), 1L);
+		assertNotNull(info);
+		assertEquals(new Long(3), info.getVersionNumber());
+	}
 }

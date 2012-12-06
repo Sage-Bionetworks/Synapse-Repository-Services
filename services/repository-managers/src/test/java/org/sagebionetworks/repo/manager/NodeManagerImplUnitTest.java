@@ -487,4 +487,20 @@ public class NodeManagerImplUnitTest {
 		nodeManager.update(mockUserInfo, node);
 		verify(mockNodeDao).updateNode(node);	
 	}
+
+	@Test
+	public void testPromoteVersionAuthorized() throws Exception {
+		String nodeId = "123";
+		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
+		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, 1L);
+		verify(mockNodeDao).lockNodeAndIncrementEtag(eq(nodeId), anyString());
+		verify(mockNodeDao).promoteNodeVersion(eq(nodeId), eq(1L));
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testPromoteVersionUnauthorized() throws Exception {
+		String nodeId = "123";
+		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.UPDATE))).thenReturn(false);
+		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, 1L);
+	}
 }
