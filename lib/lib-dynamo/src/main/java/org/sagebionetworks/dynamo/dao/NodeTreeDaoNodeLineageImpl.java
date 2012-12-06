@@ -83,6 +83,8 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		}
 
 		// Check if this child already exists
+		// Child-to-parent pointer is the last one created
+		// If it exists, the child already exists in a complete manner
 		NodeLineage parentLineage = this.getParentLineage(child, this.writeMapper);
 		if (parentLineage != null) {
 			String parentId = parentLineage.getAncestorOrDescendantId();
@@ -98,8 +100,11 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 
 		// The parent must already exist on a complete path all the way from the root
 		// If the parent does not already exist, we should get IncompletePathException
-		// Note the list can be empty where parent is the root
+		// Note the list can be empty where the parent is the root
 		List<NodeLineage> rootToParent = this.getCompletePathFromRoot(parent, this.writeMapper);
+
+		// Remove previously unfinished updates
+		this.delete(child, timestamp);
 
 		// Create all the put pairs
 		List<DynamoWriteOperation> putList = new ArrayList<DynamoWriteOperation>();
@@ -125,7 +130,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 	}
 
 	@Override
-	public boolean update(String child, String parent, Date timestamp) {
+	public boolean update(final String child, final String parent, final Date timestamp) {
 
 		if (child == null) {
 			throw new NullPointerException();
