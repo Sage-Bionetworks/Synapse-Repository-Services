@@ -77,11 +77,17 @@ class LineagePairDelete extends LineagePairWriteOperation {
 
 	private boolean deleteNodeLineage(final DboNodeLineage toDelete) {
 		assert toDelete != null;
-		// TODO: What happens when another thread already deletes the record?
 		try {
 			this.dynamoMapper.delete(toDelete);
 			return true;
 		} catch (ConditionalCheckFailedException e) {
+			DboNodeLineage dbo = this.dynamoMapper.load(DboNodeLineage.class,
+					toDelete.getHashKey(), toDelete.getRangeKey());
+			if (dbo == null) {
+				// Note: If the record is already deleted, it also throws
+				// ConditionalCheckFailedException, in which case we should ignore it
+				return true;
+			}
 			logger.error("DELETE failed for NodeLineage " + toDelete
 					+ ". Got error: " + e.getMessage());
 			return false;
