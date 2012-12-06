@@ -104,8 +104,10 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String SQL_COUNT_NODES = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
-	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
 	private static final String SQL_SELECT_VERSION_LABEL = "SELECT "+COL_REVISION_LABEL+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
+	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
+	private static final String OLD_REV_PARAM_NAME = "OLD_REVISION";
+	private static final String NEW_REV_PARAM_NAME = "NEW_REVISION";
 
 	/**
 	 * To determine if a node has children we fetch the first child ID.
@@ -126,18 +128,33 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		" ORDER BY n."+COL_NODE_ID+
 		" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
-	private static String SQL_GET_ALL_VERSION_INFO_PAGINATED = "SELECT "
+	private static final String SQL_GET_ALL_VERSION_INFO_PAGINATED = "SELECT "
 			+ COL_REVISION_NUMBER + ", " + COL_REVISION_LABEL + ", "
 			+ COL_REVISION_COMMENT + ", " + COL_REVISION_MODIFIED_BY + ", "
 			+ COL_REVISION_MODIFIED_ON + " FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME+" ORDER BY " + COL_REVISION_NUMBER
 			+ " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
+
 	private static final String SQL_SELECT_NODE_PARENT_PAGINATED =
 			"SELECT " + COL_NODE_ID + ", " + COL_NODE_PARENT_ID + ", " + COL_NODE_ETAG
 			+ " FROM " + TABLE_NODE
 			+ " LIMIT :" + LIMIT_PARAM_NAME
 			+ " OFFSET :" + OFFSET_PARAM_NAME;
+
+	private static final String SQL_GET_LATEST_VERSION_NUMBER = "SELECT " + COL_REVISION_NUMBER
+			+ " FROM " + TABLE_REVISION + " WHERE " + COL_REVISION_OWNER_NODE +  " = :"
+			+ OWNER_ID_PARAM_NAME + " ORDER BY " + COL_REVISION_NUMBER
+			+ " DESC LIMIT 1";
+
+	private static final String SQL_UPDATE_VERSION_NUMBER = "UPDATE " + TABLE_REVISION
+			+ " SET " + COL_REVISION_NUMBER + "=:" + NEW_REV_PARAM_NAME + " WHERE "
+			+ COL_REVISION_NUMBER + " = :" + OLD_REV_PARAM_NAME + " AND "
+			+ COL_REVISION_OWNER_NODE + " = :" + OWNER_ID_PARAM_NAME;
+
+	private static final String SQL_UPDATE_CURRENT_VERSION = "UPDATE " + TABLE_NODE
+			+ " SET " + COL_CURRENT_REV + "=:" + NEW_REV_PARAM_NAME + " WHERE "
+			+ COL_NODE_ID + " = :" + OWNER_ID_PARAM_NAME;
 
 	// This is better suited for simple JDBC query.
 	@Autowired
@@ -1232,11 +1249,41 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return MigratableObjectType.ENTITY;
 	}
 
-
 	/*
 	 * Private Methods
 	 */
 	private boolean shouldDeleteActivityId(Node dto) {
 		return DELETE_ACTIVITY_VALUE.equals(dto.getActivityId()) ? true : false;
 	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public VersionInfo promoteNodeVersion(String nodeId, Long versionNumber)
+			throws NotFoundException, DatastoreException {
+		// Get current version number, then increment and update the given versionNumber to new
+		int latestVersionNumberPlusOne = getLatestVersionNumberForNode(nodeId) + 1;
+		if (latestVersionNumberPlusOne != versionNumber + 1) {
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue(OLD_REV_PARAM_NAME, versionNumber);
+			params.addValue(NEW_REV_PARAM_NAME, latestVersionNumberPlusOne);
+			params.addValue(OWNER_ID_PARAM_NAME, KeyFactory.stringToKey(nodeId));
+			int numUpdated = simpleJdbcTemplate.update(SQL_UPDATE_VERSION_NUMBER, params);
+			if (numUpdated != 1) {
+				throw new DatastoreException(numUpdated + " rows updated, expected 1 update.");
+			}
+			numUpdated = simpleJdbcTemplate.update(SQL_UPDATE_CURRENT_VERSION, params);
+			if (numUpdated != 1) {
+				throw new DatastoreException(numUpdated + " rows updated, expected 1 update.");
+			}
+		}
+		QueryResults<VersionInfo> versionsOfEntity = getVersionsOfEntity(nodeId, 0, 1);
+		return versionsOfEntity.getResults().get(0);
+	}
+
+	private int getLatestVersionNumberForNode(String nodeId) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(OWNER_ID_PARAM_NAME, KeyFactory.stringToKey(nodeId));
+		return simpleJdbcTemplate.queryForInt(SQL_GET_LATEST_VERSION_NUMBER, params);
+	}
+
 }

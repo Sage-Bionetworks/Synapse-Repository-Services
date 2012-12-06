@@ -2026,6 +2026,36 @@ public class NodeDAOImplTest {
 		assertNotNull(r.getTimestamp());
 	}
 
+	public void testPromoteVersion() throws Exception {
+		String entityId = createNodeWithMultipleVersions(10);
+
+		Node nodeBefore = nodeDao.getNode(entityId);
+		assertEquals(new Long(10), nodeBefore.getVersionNumber());
+
+		VersionInfo promotedVersion = nodeDao.promoteNodeVersion(entityId, new Long(9));
+		assertEquals(new Long(11), promotedVersion.getVersionNumber());
+
+		int i = 11;
+		for (VersionInfo info : nodeDao.getVersionsOfEntity(entityId, 0, 10).getResults()) {
+			if (i == 9) i--;
+			assertEquals(new Long(i), info.getVersionNumber());
+			i--;
+		}
+
+		Node nodeAfter = nodeDao.getNode(entityId);
+		assertEquals(new Long(11), nodeAfter.getVersionNumber());
+	}
+
+	@Test
+	public void testPromoteCurrentVersion() throws Exception {
+		String entityId = createNodeWithMultipleVersions(2);
+
+		Node nodeBefore = nodeDao.getNode(entityId);
+		assertEquals(new Long(2), nodeBefore.getVersionNumber());
+		VersionInfo promotedVersion = nodeDao.promoteNodeVersion(entityId, new Long(2));
+		assertEquals(new Long(2), promotedVersion.getVersionNumber());
+	}
+
 	/*
 	 * Private Methods
 	 */
@@ -2040,4 +2070,5 @@ public class NodeDAOImplTest {
 		activitiesToDelete.add(act.getId());
 		return act;
 	}
+
 }
