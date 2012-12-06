@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.UrlHelpers;
 
@@ -55,7 +57,7 @@ public class SynapseVersionInfoController extends BaseController {
 	public 
 	@ResponseBody
 //	String getVersionInfo(HttpServletRequest req) throws IOException {
-	SynapseVersionInfo getVersionInfo() throws RuntimeException {
+	SynapseVersionInfo getVersionInfo(HttpServletRequest request) throws RuntimeException {
 		SynapseVersionInfo vInfo = new SynapseVersionInfo();
 		vInfo.setVersion(Holder.getVersionInfo());
 		return vInfo;
