@@ -25,6 +25,8 @@ import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -531,5 +533,43 @@ public class EntityServletTestHelper {
 		// Done!
 		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), EntityRegistry.class);
 		
+	}
+
+	public VersionInfo promoteVersion(String username, String entityId, Long versionNumber)  throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ENTITY+"/"+entityId+UrlHelpers.PROMOTE_VERSION+"/"+versionNumber);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
+		dispatcherServlet.service(request, response);
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		JSONObjectAdapterImpl joa = new JSONObjectAdapterImpl(response.getContentAsString());
+		VersionInfo info = new VersionInfo();
+		info.initializeFromJSONObject(joa);
+		return info;
+	}
+
+	public Versionable createNewVersion(String username, Versionable entity) throws Exception {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("PUT");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ENTITY+"/"+entity.getId());
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
+		StringWriter out = new StringWriter();
+		String body = EntityFactory.createJSONStringForEntity(entity);
+		request.setContent(body.getBytes("UTF-8"));
+		dispatcherServlet.service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		JSONObjectAdapterImpl joa = new JSONObjectAdapterImpl(response.getContentAsString());
+
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), entity.getClass());
 	}
 }
