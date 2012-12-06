@@ -107,7 +107,8 @@ public class DynamoTableConfigTest {
 		DynamoTableConfig.DynamoThroughput throughput = new DynamoTableConfig.DynamoThroughput(read, write);
 
 		DynamoTableConfig table = new DynamoTableConfig(tableName, keySchema, throughput);
-		Assert.assertEquals(StackConfiguration.getStack() + "-" + tableName, table.getTableName());
+		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
+		Assert.assertEquals(stackPrefix + tableName, table.getTableName());
 		Assert.assertSame(keySchema, table.getKeySchema());
 		Assert.assertSame(throughput, table.getThroughput());
 

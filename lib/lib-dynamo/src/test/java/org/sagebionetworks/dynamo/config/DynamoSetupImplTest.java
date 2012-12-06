@@ -79,8 +79,9 @@ public class DynamoSetupImplTest {
 				.withReadCapacityUnits(1L)
 				.withWriteCapacityUnits(2L);
 
+		tableName = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-" + tableName;
 		CreateTableRequest request = new CreateTableRequest()
-				.withTableName(StackConfiguration.getStack() + "-" + tableName)
+				.withTableName(tableName)
 				.withKeySchema(kSchema)
 				.withProvisionedThroughput(pThroughput);
 
@@ -107,8 +108,9 @@ public class DynamoSetupImplTest {
 				.withReadCapacityUnits(1L)
 				.withWriteCapacityUnits(2L);
 
+		tableName = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-" + tableName;
 		UpdateTableRequest request = new UpdateTableRequest()
-				.withTableName(StackConfiguration.getStack() + "-" + tableName)
+				.withTableName(tableName)
 				.withProvisionedThroughput(pThroughput);
 
 		verify(this.mockDynamoClient, times(1)).updateTable(request);
@@ -149,8 +151,9 @@ public class DynamoSetupImplTest {
 		ProvisionedThroughput pThroughput = new ProvisionedThroughput()
 				.withReadCapacityUnits(1L)
 				.withWriteCapacityUnits(2L);
+		tableName = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-" + tableName;
 		CreateTableRequest ctRequest = new CreateTableRequest()
-				.withTableName(StackConfiguration.getStack() + "-" + tableName)
+				.withTableName(tableName)
 				.withKeySchema(keySchema)
 				.withProvisionedThroughput(pThroughput);
 		verify(this.mockDynamoClient, times(1)).createTable(ctRequest);
@@ -160,9 +163,10 @@ public class DynamoSetupImplTest {
 	public void testSetupUpdateTable() {
 
 		String tableName = "oneTableToBeUpdated";
+		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
 
 		DescribeTableRequest dtRequest = new DescribeTableRequest().withTableName(
-				StackConfiguration.getStack() + "-" + tableName);
+				stackPrefix + tableName);
 		KeySchemaElement hashKeyElement = new KeySchemaElement()
 				.withAttributeName("hash")
 				.withAttributeType(ScalarAttributeType.N);
@@ -183,7 +187,7 @@ public class DynamoSetupImplTest {
 		when(dtResult.getTable()).thenReturn(tableDesc);
 		when(this.mockDynamoClient.describeTable(dtRequest)).thenReturn(dtResult);
 		List<String> tableNames = new ArrayList<String>();
-		tableNames.add(StackConfiguration.getStack() + "-" + tableName);
+		tableNames.add(stackPrefix + tableName);
 		ListTablesResult ltResult = mock(ListTablesResult.class);
 		when(ltResult.getTableNames()).thenReturn(tableNames);
 		when(this.mockDynamoClient.listTables()).thenReturn(ltResult);
@@ -206,7 +210,7 @@ public class DynamoSetupImplTest {
 				.withReadCapacityUnits(1L)
 				.withWriteCapacityUnits(3L);
 		UpdateTableRequest utRequest = new UpdateTableRequest()
-				.withTableName(StackConfiguration.getStack() + "-" + tableName)
+				.withTableName(stackPrefix + tableName)
 				.withProvisionedThroughput(pThroughput);
 		verify(this.mockDynamoClient, times(1)).updateTable(utRequest);
 	}
@@ -225,9 +229,10 @@ public class DynamoSetupImplTest {
 	public void testSetupDynamoTableExistsException1() {
 
 		String tableName = "tableOfDiffKeySchema";
+		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
 
 		DescribeTableRequest dtRequest = new DescribeTableRequest().withTableName(
-				StackConfiguration.getStack() + "-" + tableName);
+				stackPrefix + tableName);
 		KeySchemaElement hashKeyElement = new KeySchemaElement()
 				.withAttributeName("hash")
 				.withAttributeType(ScalarAttributeType.N);
@@ -243,7 +248,7 @@ public class DynamoSetupImplTest {
 		when(dtResult.getTable()).thenReturn(tableDesc);
 		when(this.mockDynamoClient.describeTable(dtRequest)).thenReturn(dtResult);
 		List<String> tableNames = new ArrayList<String>();
-		tableNames.add(StackConfiguration.getStack() + "-" + tableName);
+		tableNames.add(stackPrefix + tableName);
 		ListTablesResult ltResult = mock(ListTablesResult.class);
 		when(ltResult.getTableNames()).thenReturn(tableNames);
 		when(this.mockDynamoClient.listTables()).thenReturn(ltResult);
@@ -267,9 +272,10 @@ public class DynamoSetupImplTest {
 	public void testSetupDynamoTableExistsException2() {
 
 		String tableName = "tableOfDiffThroughput";
+		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
 
 		DescribeTableRequest dtRequest = new DescribeTableRequest().withTableName(
-				StackConfiguration.getStack() + "-" + tableName);
+				stackPrefix + tableName);
 		KeySchemaElement hashKeyElement = new KeySchemaElement()
 				.withAttributeName("hash")
 				.withAttributeType(ScalarAttributeType.N);
@@ -290,7 +296,7 @@ public class DynamoSetupImplTest {
 		when(dtResult.getTable()).thenReturn(tableDesc);
 		when(this.mockDynamoClient.describeTable(dtRequest)).thenReturn(dtResult);
 		List<String> tableNames = new ArrayList<String>();
-		tableNames.add(StackConfiguration.getStack() + "-" + tableName);
+		tableNames.add(stackPrefix + tableName);
 		ListTablesResult ltResult = mock(ListTablesResult.class);
 		when(ltResult.getTableNames()).thenReturn(tableNames);
 		when(this.mockDynamoClient.listTables()).thenReturn(ltResult);
@@ -314,9 +320,10 @@ public class DynamoSetupImplTest {
 	public void testSetupDynamoTimeoutException() throws Exception {
 
 		String tableName = "testSetupDynamoTimeoutException";
+		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
 
 		DescribeTableRequest dtRequest = new DescribeTableRequest().withTableName(
-				StackConfiguration.getStack() + "-" + tableName);
+				stackPrefix + tableName);
 		TableDescription tableDesc = new TableDescription()
 				.withTableStatus(TableStatus.CREATING); // Simulate infinite delay
 		DescribeTableResult dtResult = mock(DescribeTableResult.class);

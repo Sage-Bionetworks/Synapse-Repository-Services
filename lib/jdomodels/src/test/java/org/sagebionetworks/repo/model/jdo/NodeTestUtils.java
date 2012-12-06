@@ -15,7 +15,7 @@ public class NodeTestUtils {
 	public static Node createNew(String name, Long creatorUserGroupId){
 		return createNew(name, creatorUserGroupId, creatorUserGroupId);
 	}
-	
+
 	public static Node createNew(String name, Long creatorUserGroupId, Long modifierGroupId){
 		Node node = new Node();
 		node.setName(name);
@@ -27,4 +27,15 @@ public class NodeTestUtils {
 		return node;
 	}
 
+	public static Node createNew(String name, Long creatorUserGroupId, String parentId){
+		Node node = new Node();
+		node.setName(name);
+		node.setCreatedByPrincipalId(creatorUserGroupId);
+		node.setModifiedByPrincipalId(creatorUserGroupId);
+		node.setCreatedOn(new Date());
+		node.setModifiedOn(node.getCreatedOn());
+		node.setNodeType(EntityType.folder.name());
+		node.setParentId(parentId);
+		return node;
+	}
 }
