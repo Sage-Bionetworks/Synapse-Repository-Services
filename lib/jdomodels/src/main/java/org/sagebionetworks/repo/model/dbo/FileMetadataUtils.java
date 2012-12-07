@@ -1,7 +1,12 @@
 package org.sagebionetworks.repo.model.dbo;
 
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata.MetadataType;
+import org.sagebionetworks.repo.model.file.ExternalFileMetadata;
 import org.sagebionetworks.repo.model.file.FileMetadata;
+import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileInterface;
+import org.sagebionetworks.repo.model.file.S3FileMetadata;
 
 /**
  * Translates between DBOs and DTOs.
@@ -11,12 +16,72 @@ import org.sagebionetworks.repo.model.file.FileMetadata;
 public class FileMetadataUtils {
 	
 	/**
-	 * For external data.
-	 * @param metadata
+	 * Convert abstract DTO to the DBO.
+	 * @param dto
 	 * @return
 	 */
 	public static DBOFileMetadata createDBOFromDTO(FileMetadata dto){
-		return null;
+		if(dto == null) throw new IllegalArgumentException("DTO cannot be null");
+		if(dto instanceof ExternalFileMetadata){
+			return createDBOFromDTO((ExternalFileMetadata)dto);
+		}else if(dto instanceof S3FileMetadata){
+			return createDBOFromDTO((S3FileMetadata)dto);
+		}else if(dto instanceof PreviewFileMetadata){
+			return createDBOFromDTO((PreviewFileMetadata)dto);
+		}else{
+			throw new IllegalArgumentException("Unknown FileMetadata implementaion: "+dto.getClass().getName());
+		}
+	}
+	
+	/**
+	 * Convert from the DTO to the DBO.
+	 * @param dto
+	 * @return
+	 */
+	private static DBOFileMetadata createDBOFromDTO(ExternalFileMetadata dto){
+		DBOFileMetadata dbo = new DBOFileMetadata();
+		dbo.setMetadataType(MetadataType.EXTERNAL);
+		dbo.setKey(dto.getExternalURL());
+		dbo.setCreatedByPrincipalId(dto.getCreatedByPrincipalId());
+		dbo.setPreviewId(dto.getPreviewId());
+		dbo.setId(dto.getId());
+		return dbo;
+	}
+	
+	/**
+	 * Convert from the DTO to the DBO.
+	 * @param dto
+	 * @return
+	 */
+	private static DBOFileMetadata createDBOFromDTO(S3FileMetadata dto){
+		DBOFileMetadata dbo = new DBOFileMetadata();
+		dbo.setMetadataType(MetadataType.S3);
+		dbo.setPreviewId(dto.getPreviewId());
+		// Fill in the common data.
+		setDBOFromDTO(dbo, dto);
+		return dbo;
+	}
+	
+	private static DBOFileMetadata createDBOFromDTO(PreviewFileMetadata dto){
+		DBOFileMetadata dbo = new DBOFileMetadata();
+		dbo.setMetadataType(MetadataType.PREVIEW);
+		// Fill in the common data.
+		setDBOFromDTO(dbo, dto);
+		return dbo;
+	}
+	/**
+	 * Fill in the data common to all S3FileInterface implementations.
+	 * @param dbo
+	 * @param dto
+	 */
+	private static void setDBOFromDTO(DBOFileMetadata dbo, S3FileInterface dto){
+		dbo.setId(dto.getId());
+		dbo.setBucketName(dto.getBucketName());
+		dbo.setKey(dto.getKey());
+		dbo.setContentMD5(dto.getContentMd5());
+		dbo.setContentSize(dto.getContentSize());
+		dbo.setContentType(dto.getContentType());
+		dbo.setCreatedByPrincipalId(dto.getCreatedByPrincipalId());
 	}
 	
 	/**
@@ -25,7 +90,40 @@ public class FileMetadataUtils {
 	 * @return
 	 */
 	public static FileMetadata createDTOFromDBO(DBOFileMetadata dbo){
-		return null;
+		// First determine the type
+		if(MetadataType.EXTERNAL == dbo.getMetadataTypeEnum()){
+			// External
+			ExternalFileMetadata external = new ExternalFileMetadata();
+			external.setCreatedByPrincipalId(dbo.getCreatedByPrincipalId());
+			external.setPreviewId(dbo.getPreviewId());
+			external.setId(dbo.getId());
+			external.setExternalURL(dbo.getKey());
+			return external;
+		}else if(MetadataType.S3 == dbo.getMetadataTypeEnum() || MetadataType.PREVIEW == dbo.getMetadataTypeEnum()){
+			S3FileInterface metaInterface = null;
+			// Is this a S3 file or a preview.
+			if(MetadataType.S3 == dbo.getMetadataTypeEnum()){
+				S3FileMetadata meta = new S3FileMetadata();
+				metaInterface = meta;
+				meta.setPreviewId(dbo.getPreviewId());
+			}else if(MetadataType.PREVIEW == dbo.getMetadataTypeEnum()){
+				PreviewFileMetadata meta = new PreviewFileMetadata();
+				metaInterface = meta;
+			}else{
+				throw new IllegalArgumentException("Must be S3 or Preview but was: "+dbo.getMetadataTypeEnum());
+			}
+			// Set the common data.
+			metaInterface.setId(dbo.getId());
+			metaInterface.setBucketName(dbo.getBucketName());
+			metaInterface.setKey(dbo.getKey());
+			metaInterface.setContentMd5(dbo.getContentMD5());
+			metaInterface.setContentType(dbo.getContentType());
+			metaInterface.setContentSize(dbo.getContentSize());
+			metaInterface.setCreatedByPrincipalId(dbo.getCreatedByPrincipalId());
+			return metaInterface;
+		}else{
+			throw new IllegalArgumentException("Unknown metadata type: "+dbo.getMetadataTypeEnum());
+		}
 	}
 
 }

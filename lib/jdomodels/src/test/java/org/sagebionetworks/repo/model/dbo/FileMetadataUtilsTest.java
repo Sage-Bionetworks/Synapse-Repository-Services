@@ -1,8 +1,13 @@
 package org.sagebionetworks.repo.model.dbo;
 
+import static org.junit.Assert.*;
+
 import org.junit.Test;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata;
 import org.sagebionetworks.repo.model.file.ExternalFileMetadata;
 import org.sagebionetworks.repo.model.file.FileMetadata;
+import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileMetadata;
 
 public class FileMetadataUtilsTest {
 	
@@ -10,16 +15,57 @@ public class FileMetadataUtilsTest {
 	public void testExternalFileMetadataRoundTrip(){
 		// External
 		ExternalFileMetadata meta = new ExternalFileMetadata();
-		meta.setContentMd5("md5");
-		meta.setContentSize(123l);
-		meta.setContentType("text/plain");
 		meta.setCreatedByPrincipalId(456l);
 		meta.setExternalURL("http://google.com");
-		meta.setId("987");
-		meta.setImplementationType(ExternalFileMetadata.class.getName());
+		meta.setId(987l);
+		meta.setPreviewId(456L);
 		System.out.println(meta);
-		meta.setPreviewId("456");
-		
+		// Convert to dbo
+		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(meta);
+		assertNotNull(dbo);
+		FileMetadata clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		assertEquals(meta, clone);
 	}
+	
+	@Test
+	public void testS3FileMetadataRoundTrip(){
+		// External
+		S3FileMetadata meta = new S3FileMetadata();
+		meta.setCreatedByPrincipalId(456l);
+		meta.setId(987l);
+		meta.setBucketName("bucketName");
+		meta.setKey("key");
+		meta.setContentMd5("md5");
+		meta.setContentSize(123l);
+		meta.setContentType("contentType");
+		meta.setPreviewId(9999l);
+		
+		System.out.println(meta);
+		// Convert to dbo
+		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(meta);
+		assertNotNull(dbo);
+		FileMetadata clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		assertEquals(meta, clone);
+	}
+	
+	@Test
+	public void testPreviewFileMetadataRoundTrip(){
+		// External
+		PreviewFileMetadata meta = new PreviewFileMetadata();
+		meta.setCreatedByPrincipalId(456l);
+		meta.setId(987l);
+		meta.setBucketName("bucketName");
+		meta.setKey("key");
+		meta.setContentMd5("md5");
+		meta.setContentSize(123l);
+		meta.setContentType("contentType");
+		System.out.println(meta);
+		// Convert to dbo
+		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(meta);
+		assertNotNull(dbo);
+		FileMetadata clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		assertEquals(meta, clone);
+	}
+
 
 }

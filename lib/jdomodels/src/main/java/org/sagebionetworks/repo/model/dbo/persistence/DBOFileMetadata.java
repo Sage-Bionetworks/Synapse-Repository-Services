@@ -25,7 +25,8 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 	 */
 	public static enum MetadataType {
 		S3,
-		EXTERNAL
+		EXTERNAL,
+		PREVIEW,
 	}
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
