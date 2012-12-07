@@ -179,7 +179,7 @@ public interface NodeDAO extends MigratableDAO {
 	 * @throws NotFoundException 
 	 */
 	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException;
-	
+
 	/**
 	 * Get the version label for a node
 	 * @param nodeId
@@ -348,5 +348,20 @@ public interface NodeDAO extends MigratableDAO {
 	 * @throws DatastoreException - Thrown if there is a database error.
 	 */
 	public Map<String, Set<Reference>> getNodeReferences(String nodeId) throws NotFoundException, DatastoreException;
+
+	/**
+	 * Gets a page of parent relations.
+	 */
+	QueryResults<NodeParentRelation> getParentRelations(long offset, long limit) throws DatastoreException;
+
+	/**
+	 * Change the version number of the given version to one greater than the "current" version.
+	 * @param nodeId
+	 * @param versionNumber
+	 * @return The VersionInfo corresponding to the "new" version
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public VersionInfo promoteNodeVersion(String nodeId, Long versionNumber) throws NotFoundException, DatastoreException;
 
 }

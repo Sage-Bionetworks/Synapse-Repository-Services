@@ -16,7 +16,7 @@ class NodeLineageMapperConfig {
 	private static final DynamoDBMapperConfig MAPPER_CONFIG;
 	private static final DynamoDBMapperConfig MAPPER_CONFIG_CR;
 	static {
-		String stackPrefix = StackConfiguration.getStack() + "-";
+		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
 		TableNameOverride tableNameOverride = new TableNameOverride(stackPrefix + DboNodeLineage.TABLE_NAME);
 		MAPPER_CONFIG = new DynamoDBMapperConfig(tableNameOverride);
 		MAPPER_CONFIG_CR = new DynamoDBMapperConfig(null, ConsistentReads.CONSISTENT, tableNameOverride);

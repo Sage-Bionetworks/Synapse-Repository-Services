@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKey;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKeySchema;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoThroughput;
@@ -25,7 +26,10 @@ class DynamoConfig {
 		DynamoKey hashKey = new DynamoKey(DboNodeLineage.HASH_KEY_NAME, ScalarAttributeType.S);
 		DynamoKey rangeKey = new DynamoKey(DboNodeLineage.RANGE_KEY_NAME, ScalarAttributeType.S);
 		DynamoKeySchema keySchema = new DynamoKeySchema(hashKey, rangeKey);
-		DynamoThroughput throughput = new DynamoThroughput(25L, 10L);
+		DynamoThroughput throughput = new DynamoThroughput(18L, 10L);
+		if (this.isProdStack()) {
+			throughput = new DynamoThroughput(75L, 50L);
+		}
 		DynamoTableConfig table = new DynamoTableConfig(tableName, keySchema, throughput);
 		tableList.add(table);
 
@@ -34,6 +38,14 @@ class DynamoConfig {
 
 	Iterable<DynamoTableConfig> listTables() {
 		return this.tableList;
+	}
+
+	private boolean isProdStack() {
+		String stack = StackConfiguration.getStack();
+		if ("prod".equalsIgnoreCase(stack)) {
+			return true;
+		}
+		return false;
 	}
 
 	private final List<DynamoTableConfig> tableList;

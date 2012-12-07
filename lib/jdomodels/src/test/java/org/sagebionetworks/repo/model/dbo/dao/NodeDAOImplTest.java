@@ -15,8 +15,10 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
+import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
@@ -43,6 +45,7 @@ import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
+import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
@@ -1947,7 +1950,112 @@ public class NodeDAOImplTest {
 		assertFalse(nodeDao.doesNodeHaveChildren(child1Id));
 	}
 
-	
+	@Test
+	public void testGetParentRelations() throws DatastoreException, InvalidModelException, NotFoundException {
+
+		Node n1 = NodeTestUtils.createNew("testGetParentRelations.name1", creatorUserGroupId);
+		String id1 = this.nodeDao.createNew(n1);
+		this.toDelete.add(id1);
+		Node n2 = NodeTestUtils.createNew("testGetParentRelations.name2", creatorUserGroupId, id1);
+		String id2 = this.nodeDao.createNew(n2);
+		this.toDelete.add(id2);
+		Node n3 = NodeTestUtils.createNew("testGetParentRelations.name3", creatorUserGroupId, id1);
+		String id3 = this.nodeDao.createNew(n3);
+		this.toDelete.add(id3);
+		Node n4 = NodeTestUtils.createNew("testGetParentRelations.name4", creatorUserGroupId, id2);
+		String id4 = this.nodeDao.createNew(n4);
+		this.toDelete.add(id4);
+
+		Map<String, NodeParentRelation> map = new HashMap<String, NodeParentRelation>();
+		QueryResults<NodeParentRelation> results = this.nodeDao.getParentRelations(0, 1);
+		assertNotNull(results);
+		assertTrue(results.getTotalNumberOfResults() > 4);
+		List<NodeParentRelation> rList = results.getResults();
+		assertNotNull(rList);
+		assertEquals(1, rList.size());
+		for (NodeParentRelation npr : rList) {
+			map.put(npr.getId(), npr);
+		}
+
+		results = this.nodeDao.getParentRelations(1, 2);
+		assertNotNull(results);
+		assertTrue(results.getTotalNumberOfResults() > 4);
+		rList = results.getResults();
+		assertNotNull(rList);
+		assertEquals(2, rList.size());
+		for (NodeParentRelation npr : rList) {
+			map.put(npr.getId(), npr);
+		}
+
+		results = this.nodeDao.getParentRelations(3, 1000);
+		assertNotNull(results);
+		assertTrue(results.getTotalNumberOfResults() > 4);
+		rList = results.getResults();
+		assertNotNull(rList);
+		for (NodeParentRelation npr : rList) {
+			map.put(npr.getId(), npr);
+		}
+
+		NodeParentRelation r = map.get(id1);
+		assertEquals(id1, r.getId());
+		assertNotNull(r.getParentId());
+		// NotFoundException: Cannot find a node with id: 0
+		// assertTrue(this.nodeDao.isNodeRoot(r.getParentId()));
+		assertNotNull(r.getETag());
+		assertNotNull(r.getTimestamp());
+
+		r = map.get(id2);
+		assertEquals(id2, r.getId());
+		assertNotNull(r.getParentId());
+		assertEquals(id1, r.getParentId());
+		assertNotNull(r.getETag());
+		assertNotNull(r.getTimestamp());
+
+		r = map.get(id3);
+		assertEquals(id3, r.getId());
+		assertNotNull(r.getParentId());
+		assertEquals(id1, r.getParentId());
+		assertNotNull(r.getETag());
+		assertNotNull(r.getTimestamp());
+
+		r = map.get(id4);
+		assertEquals(id4, r.getId());
+		assertNotNull(r.getParentId());
+		assertEquals(id2, r.getParentId());
+		assertNotNull(r.getETag());
+		assertNotNull(r.getTimestamp());
+	}
+
+	public void testPromoteVersion() throws Exception {
+		String entityId = createNodeWithMultipleVersions(10);
+
+		Node nodeBefore = nodeDao.getNode(entityId);
+		assertEquals(new Long(10), nodeBefore.getVersionNumber());
+
+		VersionInfo promotedVersion = nodeDao.promoteNodeVersion(entityId, new Long(9));
+		assertEquals(new Long(11), promotedVersion.getVersionNumber());
+
+		int i = 11;
+		for (VersionInfo info : nodeDao.getVersionsOfEntity(entityId, 0, 10).getResults()) {
+			if (i == 9) i--;
+			assertEquals(new Long(i), info.getVersionNumber());
+			i--;
+		}
+
+		Node nodeAfter = nodeDao.getNode(entityId);
+		assertEquals(new Long(11), nodeAfter.getVersionNumber());
+	}
+
+	@Test
+	public void testPromoteCurrentVersion() throws Exception {
+		String entityId = createNodeWithMultipleVersions(2);
+
+		Node nodeBefore = nodeDao.getNode(entityId);
+		assertEquals(new Long(2), nodeBefore.getVersionNumber());
+		VersionInfo promotedVersion = nodeDao.promoteNodeVersion(entityId, new Long(2));
+		assertEquals(new Long(2), promotedVersion.getVersionNumber());
+	}
+
 	/*
 	 * Private Methods
 	 */
@@ -1962,4 +2070,5 @@ public class NodeDAOImplTest {
 		activitiesToDelete.add(act.getId());
 		return act;
 	}
+
 }
