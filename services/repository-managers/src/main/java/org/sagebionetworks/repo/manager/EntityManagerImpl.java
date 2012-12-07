@@ -574,4 +574,13 @@ public class EntityManagerImpl implements EntityManager {
 		nodeManager.deleteActivityLinkToNode(userInfo, entityId);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public VersionInfo promoteEntityVersion(UserInfo userInfo, String id,
+			Long versionNumber) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		validateUpdateAccess(userInfo, id);
+		return nodeManager.promoteEntityVersion(userInfo, id, versionNumber);
+	}
+
 }

@@ -353,4 +353,15 @@ public interface NodeDAO extends MigratableDAO {
 	 * Gets a page of parent relations.
 	 */
 	QueryResults<NodeParentRelation> getParentRelations(long offset, long limit) throws DatastoreException;
+
+	/**
+	 * Change the version number of the given version to one greater than the "current" version.
+	 * @param nodeId
+	 * @param versionNumber
+	 * @return The VersionInfo corresponding to the "new" version
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 */
+	public VersionInfo promoteNodeVersion(String nodeId, Long versionNumber) throws NotFoundException, DatastoreException;
+
 }

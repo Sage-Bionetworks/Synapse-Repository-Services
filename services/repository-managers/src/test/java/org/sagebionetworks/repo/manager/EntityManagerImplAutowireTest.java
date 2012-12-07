@@ -19,6 +19,7 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -28,6 +29,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -216,7 +218,26 @@ public class EntityManagerImplAutowireTest {
 		}
 		
 	}
-	
+
+	@Test
+	public void testPromoteVersion() throws Exception {
+		Code code = new Code();
+		code.setName("testPromotion");
+		code.setMd5(String.format("%032x", 1));
+		String id = entityManager.createEntity(userInfo, code, null);
+		assertNotNull(id);
+		toDelete.add(id);
+		Code code2 = entityManager.getEntity(userInfo, id, Code.class);
+		assertNotNull(code2);
+		code2.setVersionNumber(2L);
+		code2.setVersionLabel("2");
+		code2.setMd5(String.format("%032x", 2));
+		entityManager.updateEntity(userInfo, code2, true, null);
+		VersionInfo promotedEntityVersion = entityManager.promoteEntityVersion(userInfo, id, 1L);
+		assertNotNull(promotedEntityVersion);
+		assertEquals(new Long(3), promotedEntityVersion.getVersionNumber());
+	}
+
 	private Data createLayerForTest(int i){
 		Data layer = new Data();
 		layer.setName("layerName"+i);

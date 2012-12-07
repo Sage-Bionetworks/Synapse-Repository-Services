@@ -272,4 +272,16 @@ public interface NodeManager {
 	public void deleteActivityLinkToNode(UserInfo userInfo, String nodeId)
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 
+	/**
+	 * Renumbers the given version number so it has the absolute highest number
+	 * @param id
+	 * @param versionNumber
+	 * @return 
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException
+	 * @throws DatastoreException
+	 */
+	public VersionInfo promoteEntityVersion(UserInfo userInfo, String id, Long versionNumber)
+			throws NotFoundException, UnauthorizedException, DatastoreException;
+
 }
