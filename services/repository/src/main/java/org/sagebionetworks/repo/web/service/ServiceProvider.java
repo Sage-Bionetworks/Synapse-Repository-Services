@@ -32,4 +32,5 @@ public interface ServiceProvider {
 
 	public ActivityService getActivityService();
 
+	public NodeLineageQueryService getNodeLineageQueryService();
 }
