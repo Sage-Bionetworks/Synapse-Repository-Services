@@ -182,6 +182,11 @@ public class SynapseLoggingUtilsTest {
 		assertEquals(ANNOTATION_ARG_STRING, annotationsLog);
 	}
 
+	@Test
+	public void testHttpServletRequestHandling() throws Exception {
+		
+	}
+
 	private String doGetArgs(Method method, String methodName, String[] methodArgNames, Class<?>[] methodArgTypes, Object[] methodArgs)
 			throws NoSuchMethodException, UnsupportedEncodingException {
 

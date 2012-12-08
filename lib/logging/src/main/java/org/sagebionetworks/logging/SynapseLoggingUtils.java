@@ -1,12 +1,16 @@
 package org.sagebionetworks.logging;
 
+import javax.servlet.http.HttpServletRequest;
+
 import java.io.UnsupportedEncodingException;
 import java.lang.reflect.Method;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
@@ -19,6 +23,8 @@ import org.joda.time.format.DateTimeFormat;
 import org.joda.time.format.DateTimeFormatter;
 
 public class SynapseLoggingUtils {
+
+	private static final List<String> HEADERS_TO_LOG = Arrays.asList("user-agent", "sessiontoken");
 
 	private static final Pattern DATE_PATTERN = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})");
 	private static final Pattern LEVEL_PATTERN = Pattern.compile(" \\[\\w+\\] - | \\w+ \\[ *[-\\w]+ *\\] \\[ *[.\\w]+ *\\] - ");
@@ -104,26 +110,32 @@ public class SynapseLoggingUtils {
 
 		// Using LinkedHashMap makes the testing easier because we don't have to account for
 		// the normal unreliable ordering of hashmaps
-		Map<String, String> properties = new LinkedHashMap<String, String>();
+		Map<String, Object> properties = new LinkedHashMap<String, Object>();
 
+		boolean seenRequest = false;
 		for (int i = 0; i < args.length; i++) {
-			properties.put(parameterNames[i],
-					(args[i]!=null?args[i].toString():"null"));
+			if (args[i] != null && args[i] instanceof HttpServletRequest)
+				seenRequest = true;
+
+			properties.put(parameterNames[i], args[i]);
 		}
+		if (!seenRequest) throw new IllegalArgumentException("");
 
 		return makeArgString(properties);
 	}
 
-	public static String makeArgString(Map<String, String> properties) throws UnsupportedEncodingException {
-		String encoding = "UTF-8";
+	public static String makeArgString(Map<String, ? extends Object> properties) throws UnsupportedEncodingException {
 		String argSep = "";
 
 		StringBuilder argString = new StringBuilder();
-		for (Entry<String, String> entry : properties.entrySet()) {
+		for (Entry<String, ? extends Object> entry : properties.entrySet()) {
 			argString.append(argSep);
 			argString.append(entry.getKey());
 			argString.append("=");
-			argString.append(URLEncoder.encode(entry.getValue().toString(), encoding));
+
+			Object value = entry.getValue() != null ? entry.getValue() : "";
+			
+			argString.append(stringifyArgument(value));
 
 			// Set the argSep after the first time through so that we
 			// separate all the pairs with it, but don't have a leading
@@ -132,6 +144,23 @@ public class SynapseLoggingUtils {
 		}
 
 		return argString.toString();
+	}
+
+	private static String stringifyArgument(Object value) throws UnsupportedEncodingException {
+		String encoding = "UTF-8";
+		if (value instanceof HttpServletRequest) {
+			HttpServletRequest request = (HttpServletRequest) value;
+			List<String> headerNames = Collections.list(request.getHeaderNames());
+
+			Map<String, Object> headerProps = new LinkedHashMap<String, Object>();
+			for (String name : headerNames) {
+				if (HEADERS_TO_LOG.contains(name))
+					headerProps.put(name, request.getHeader(name));
+			}
+			return makeArgString(headerProps);
+		} else {
+			return URLEncoder.encode(value.toString(), encoding);
+		}
 	}
 
 	public static String makeLogString(String simpleClassName, String methodName, long latencyMS, String args) {

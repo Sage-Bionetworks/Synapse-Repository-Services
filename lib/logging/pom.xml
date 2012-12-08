@@ -30,9 +30,14 @@
 		</dependency>
 
 		<dependency>
+			<groupId>javax.servlet</groupId>
+			<artifactId>com.springsource.javax.servlet</artifactId>
+		</dependency>
+
+		<dependency>
 			<groupId>junit</groupId>
 			<artifactId>junit</artifactId>
-      <scope>test</scope>
+			<scope>test</scope>
 		</dependency>
 
 		<dependency>
