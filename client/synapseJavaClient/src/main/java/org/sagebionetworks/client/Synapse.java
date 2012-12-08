@@ -2412,6 +2412,25 @@ public class Synapse {
 		}
 	}
 
-
+	/**
+	 * Make the given versionNumber the most recent version of this entity.
+	 * @param entityId
+	 * @param versionNumber
+	 * @throws SynapseException
+	 */
+	public VersionInfo promoteEntityVersion(String entityId, Long versionNumber) throws SynapseException {
+		if (entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
+		if (versionNumber == null) throw new IllegalArgumentException("VersionNumber cannot be null");
+		String uri = createEntityUri(ENTITY_URI_PATH, entityId) + "/promoteVersion/" + versionNumber;
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "POST", null, defaultPOSTPUTHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		VersionInfo info = new VersionInfo();
+		try {
+			info.initializeFromJSONObject(adapter);
+			return info;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
 	
 }

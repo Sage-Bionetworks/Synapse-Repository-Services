@@ -707,4 +707,8 @@ public interface EntityService {
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException;
 
+	public VersionInfo promoteEntityVersion(String userId, String id,
+			Long versionNumber) throws DatastoreException,
+			NotFoundException, UnauthorizedException;
+
 }

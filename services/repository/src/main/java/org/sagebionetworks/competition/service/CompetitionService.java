@@ -8,8 +8,6 @@ import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 public interface CompetitionService {
 
@@ -23,7 +21,6 @@ public interface CompetitionService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Competition createCompetition(String userId, Competition comp)
 			throws DatastoreException, NotFoundException;
 
@@ -49,7 +46,6 @@ public interface CompetitionService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Competition updateCompetition(String userId, Competition comp)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
@@ -62,7 +58,6 @@ public interface CompetitionService {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void deleteCompetition(String userId, String compId)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
@@ -84,7 +79,6 @@ public interface CompetitionService {
 	 * @param compId
 	 * @param adminIds
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void setAdministrators(String userId, String compId,
 			Set<String> adminIds);
 
@@ -95,7 +89,6 @@ public interface CompetitionService {
 	 * @param compId
 	 * @param idToAdd
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void addAdministrator(String userId, String compId, String idToAdd);
 
 	/**
@@ -105,7 +98,6 @@ public interface CompetitionService {
 	 * @param compId
 	 * @param idToRemove
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void removeAdministrator(String userId, String compId,
 			String idToRemove);
 
@@ -120,7 +112,6 @@ public interface CompetitionService {
 	 * @param idToAdd
 	 * @return
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Participant addParticipant(String userId, String compId,
 			String idToAdd);
 
@@ -131,7 +122,6 @@ public interface CompetitionService {
 	 * @param compId
 	 * @param idToRemove
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void removeParticipant(String userId, String compId,
 			String idToRemove);
 
@@ -183,7 +173,6 @@ public interface CompetitionService {
 	 * @param entityId
 	 * @return
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Submission addSubmission(String userId, String compId,
 			String entityId);
 
@@ -194,7 +183,6 @@ public interface CompetitionService {
 	 * @param submission
 	 * @return
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Submission updateSubmission(String userId, Submission submission);
 
 	/**
@@ -204,7 +192,6 @@ public interface CompetitionService {
 	 * @param submission
 	 * @return
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Submission deleteSubmission(String userId, String submissionId);
 
 }

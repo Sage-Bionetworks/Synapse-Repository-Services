@@ -47,12 +47,19 @@ public class ChangeMessageUtils {
 		dbo.setObjectType(dto.getObjectType());
 		dbo.setChangeType(dto.getChangeType());
 		dbo.setObjectEtag(dto.getObjectEtag());
+		String dtoParentId = dto.getParentId();
 		if(ObjectType.ENTITY == dto.getObjectType()){
 			// Entities get an 'syn' prefix
 			dbo.setObjectId(KeyFactory.stringToKey(dto.getObjectId()));
+			if (dtoParentId != null) {
+				dbo.setParentId(KeyFactory.stringToKey(dtoParentId));
+			}
 		}else{
 			// All other types are longs.
 			dbo.setObjectId(Long.parseLong(dto.getObjectId()));
+			if (dtoParentId != null) {
+				dbo.setParentId(Long.parseLong(dtoParentId));
+			}
 		}
 		return dbo;
 	}

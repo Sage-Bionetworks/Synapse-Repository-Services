@@ -5,8 +5,6 @@ import java.util.Set;
 import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.transaction.annotation.Propagation;
-import org.springframework.transaction.annotation.Transactional;
 
 public interface ParticipantManager {
 
@@ -36,7 +34,6 @@ public interface ParticipantManager {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Participant addParticipant(String userId, String compId,
 			String idToAdd) throws NotFoundException;
 
@@ -49,7 +46,6 @@ public interface ParticipantManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void removeParticipant(String userId, String compId,
 			String idToRemove) throws DatastoreException, NotFoundException;
 

@@ -23,6 +23,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 			new FieldColumn(PARAM_SUBMISSION_USER_ID, COL_SUBMISSION_USER_ID),
 			new FieldColumn(PARAM_SUBMISSION_COMP_ID, COL_SUBMISSION_COMP_ID),
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_ID, COL_SUBMISSION_ENTITY_ID),
+			new FieldColumn(PARAM_SUBMISSION_ENTITY_VERSION, COL_SUBMISSION_ENTITY_VERSION),
 			new FieldColumn(PARAM_SUBMISSION_NAME, COL_SUBMISSION_NAME),
 			new FieldColumn(PARAM_SUBMISSION_CREATED_ON, COL_SUBMISSION_CREATED_ON),
 			new FieldColumn(PARAM_SUBMISSION_STATUS, COL_SUBMISSION_STATUS),
@@ -38,6 +39,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				sub.setUserId(rs.getLong(COL_SUBMISSION_USER_ID));
 				sub.setCompId(rs.getLong(COL_SUBMISSION_COMP_ID));
 				sub.setEntityId(rs.getLong(COL_SUBMISSION_ENTITY_ID));
+				sub.setVersionNumber(rs.getLong(COL_SUBMISSION_ENTITY_VERSION));
 				sub.setName(rs.getString(COL_SUBMISSION_NAME));
 				sub.setCreatedOn(rs.getLong(COL_SUBMISSION_CREATED_ON));
 				sub.setStatus(rs.getInt(COL_SUBMISSION_STATUS));
@@ -67,6 +69,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 	private Long userId;
 	private Long compId;
 	private Long entityId;
+	private Long versionNumber;
 	private Long createdOn;
 	private String name;
 	private int status;
@@ -98,6 +101,13 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 	}
 	public void setEntityId(Long entityId) {
 		this.entityId = entityId;
+	}
+	
+	public Long getVersionNumber() {
+		return versionNumber;
+	}
+	public void setVersionNumber(Long versionNumber) {
+		this.versionNumber = versionNumber;
 	}
 	
 	public Long getCreatedOn() {

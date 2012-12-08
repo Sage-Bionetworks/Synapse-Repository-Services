@@ -39,6 +39,13 @@ public class NodeTreeDaoWriteAutowireTest {
 
 	@Before
 	public void before() {
+
+		// Clear dynamo
+		String root = this.nodeTreeDao.getRoot();
+		if (root != null) {
+			this.nodeTreeDao.delete(root, new Date());
+		}
+
 		this.dynamoMapper = new DynamoDBMapper(this.dynamoClient,
 				NodeLineageMapperConfig.getMapperConfigWithConsistentReads());
 		this.idMap = DynamoTestUtil.createRandomIdMap(26);

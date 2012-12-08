@@ -11,12 +11,10 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_PAR
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_GROUP_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_OWNER;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
@@ -37,10 +35,12 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -56,6 +56,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackupDAO;
 import org.sagebionetworks.repo.model.NodeConstants;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.NodeParentRelation;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
@@ -103,9 +104,11 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String SQL_COUNT_NODES = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
-	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
 	private static final String SQL_SELECT_VERSION_LABEL = "SELECT "+COL_REVISION_LABEL+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
-	
+	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
+	private static final String OLD_REV_PARAM_NAME = "OLD_REVISION";
+	private static final String NEW_REV_PARAM_NAME = "NEW_REVISION";
+
 	/**
 	 * To determine if a node has children we fetch the first child ID.
 	 */
@@ -125,13 +128,34 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		" ORDER BY n."+COL_NODE_ID+
 		" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
-	private static String SQL_GET_ALL_VERSION_INFO_PAGINATED = "SELECT "
+	private static final String SQL_GET_ALL_VERSION_INFO_PAGINATED = "SELECT "
 			+ COL_REVISION_NUMBER + ", " + COL_REVISION_LABEL + ", "
 			+ COL_REVISION_COMMENT + ", " + COL_REVISION_MODIFIED_BY + ", "
 			+ COL_REVISION_MODIFIED_ON + " FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME+" ORDER BY " + COL_REVISION_NUMBER
 			+ " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
-	
+
+
+	private static final String SQL_SELECT_NODE_PARENT_PAGINATED =
+			"SELECT " + COL_NODE_ID + ", " + COL_NODE_PARENT_ID + ", " + COL_NODE_ETAG
+			+ " FROM " + TABLE_NODE
+			+ " LIMIT :" + LIMIT_PARAM_NAME
+			+ " OFFSET :" + OFFSET_PARAM_NAME;
+
+	private static final String SQL_GET_LATEST_VERSION_NUMBER = "SELECT " + COL_REVISION_NUMBER
+			+ " FROM " + TABLE_REVISION + " WHERE " + COL_REVISION_OWNER_NODE +  " = :"
+			+ OWNER_ID_PARAM_NAME + " ORDER BY " + COL_REVISION_NUMBER
+			+ " DESC LIMIT 1";
+
+	private static final String SQL_UPDATE_VERSION_NUMBER = "UPDATE " + TABLE_REVISION
+			+ " SET " + COL_REVISION_NUMBER + "=:" + NEW_REV_PARAM_NAME + " WHERE "
+			+ COL_REVISION_NUMBER + " = :" + OLD_REV_PARAM_NAME + " AND "
+			+ COL_REVISION_OWNER_NODE + " = :" + OWNER_ID_PARAM_NAME;
+
+	private static final String SQL_UPDATE_CURRENT_VERSION = "UPDATE " + TABLE_NODE
+			+ " SET " + COL_CURRENT_REV + "=:" + NEW_REV_PARAM_NAME + " WHERE "
+			+ COL_NODE_ID + " = :" + OWNER_ID_PARAM_NAME;
+
 	// This is better suited for simple JDBC query.
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
@@ -670,6 +694,37 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return queryResults;
 	}
 
+	@Override
+	public QueryResults<NodeParentRelation> getParentRelations(long offset, long limit)
+			throws DatastoreException {
+
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);
+
+		List<NodeParentRelation> results = this.simpleJdbcTemplate.query(
+				SQL_SELECT_NODE_PARENT_PAGINATED,
+				new RowMapper<NodeParentRelation>() {
+
+					@Override
+					public NodeParentRelation mapRow(ResultSet rs, int rowNum) throws SQLException {
+						NodeParentRelation p = new NodeParentRelation();
+						p.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+						p.setParentId(KeyFactory.keyToString(rs.getLong(COL_NODE_PARENT_ID)));
+						p.setETag(rs.getString(COL_NODE_ETAG));
+						p.setTimestamp(DateTime.now());
+						return p;
+					}
+
+				}, params);
+
+		QueryResults<NodeParentRelation> queryResults = new QueryResults<NodeParentRelation>();
+		queryResults.setTotalNumberOfResults(this.getCount());
+		queryResults.setResults(results);
+
+		return queryResults;
+	}
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void afterPropertiesSet() throws Exception {
@@ -841,7 +896,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public List<EntityHeader> getEntityPath(String nodeId) throws DatastoreException, NotFoundException {
 		// Call the recursive method
-		List<EntityHeader> results = new ArrayList<EntityHeader>();
+		LinkedList<EntityHeader> results = new LinkedList<EntityHeader>();
 		appendPath(results, KeyFactory.stringToKey(nodeId));
 		return results;
 	}
@@ -853,7 +908,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	private void appendPath(List<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
+	private void appendPath(LinkedList<EntityHeader> results, Long nodeId) throws NotFoundException, DatastoreException{
 		// First Build the entity header for this node
 		ParentTypeName ptn = getParentTypeName(nodeId);
 		EntityHeader header = createHeaderFromParentTypeName(KeyFactory.keyToString(nodeId), ptn, null, null);
@@ -999,6 +1054,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public void updateRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
+		// TODO: Remove this. Not sure if it is called to check exceptions.
 		DBONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		DBORevision dboRev = getNodeRevisionById(KeyFactory.stringToKey(rev.getNodeId()), rev.getRevisionNumber());
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
@@ -1010,6 +1066,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public void createNewRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
+		// TODO: Remove this. Not sure if it is called to check exceptions.
 		DBONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		DBORevision dboRev = new DBORevision();
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
@@ -1111,7 +1168,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
         return parentPtn.parentId == null && "root".equals(parentPtn.name);
 	}
 	
-	public QueryResults<MigratableObjectData> getMigrationObjectDataWithoutDependencies(long offset,
+	private QueryResults<MigratableObjectData> getMigrationObjectDataWithoutDependencies(long offset,
 			long limit) throws DatastoreException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(OFFSET_PARAM_NAME, offset);
@@ -1192,12 +1249,41 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return MigratableObjectType.ENTITY;
 	}
 
-
 	/*
 	 * Private Methods
 	 */
 	private boolean shouldDeleteActivityId(Node dto) {
 		return DELETE_ACTIVITY_VALUE.equals(dto.getActivityId()) ? true : false;
 	}
-	
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public VersionInfo promoteNodeVersion(String nodeId, Long versionNumber)
+			throws NotFoundException, DatastoreException {
+		// Get current version number, then increment and update the given versionNumber to new
+		int latestVersionNumberPlusOne = getLatestVersionNumberForNode(nodeId) + 1;
+		if (latestVersionNumberPlusOne != versionNumber + 1) {
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue(OLD_REV_PARAM_NAME, versionNumber);
+			params.addValue(NEW_REV_PARAM_NAME, latestVersionNumberPlusOne);
+			params.addValue(OWNER_ID_PARAM_NAME, KeyFactory.stringToKey(nodeId));
+			int numUpdated = simpleJdbcTemplate.update(SQL_UPDATE_VERSION_NUMBER, params);
+			if (numUpdated != 1) {
+				throw new DatastoreException(numUpdated + " rows updated, expected 1 update.");
+			}
+			numUpdated = simpleJdbcTemplate.update(SQL_UPDATE_CURRENT_VERSION, params);
+			if (numUpdated != 1) {
+				throw new DatastoreException(numUpdated + " rows updated, expected 1 update.");
+			}
+		}
+		QueryResults<VersionInfo> versionsOfEntity = getVersionsOfEntity(nodeId, 0, 1);
+		return versionsOfEntity.getResults().get(0);
+	}
+
+	private int getLatestVersionNumberForNode(String nodeId) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(OWNER_ID_PARAM_NAME, KeyFactory.stringToKey(nodeId));
+		return simpleJdbcTemplate.queryForInt(SQL_GET_LATEST_VERSION_NUMBER, params);
+	}
+
 }
