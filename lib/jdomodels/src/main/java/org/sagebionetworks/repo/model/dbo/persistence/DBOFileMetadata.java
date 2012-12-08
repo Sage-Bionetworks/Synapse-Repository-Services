@@ -66,7 +66,7 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 				if(rs.wasNull()){
 					results.setPreviewId(null);
 				}
-				results.setCreatedByPrincipalId(rs.getLong(COL_FILES_CREATED_BY));
+				results.setCreatedBy(rs.getLong(COL_FILES_CREATED_BY));
 				results.setCreatedOn(rs.getTimestamp(COL_FILES_CREATED_ON));
 				results.setMetadataType(MetadataType.valueOf(rs.getString(COL_FILES_METADATA_TYPE)));
 				results.setContentType(rs.getString(COL_FILES_CONTENT_TYPE));
@@ -118,12 +118,12 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 		this.previewId = previewId;
 	}
 
-	public Long getCreatedByPrincipalId() {
+	public Long getCreatedBy() {
 		return createdBy;
 	}
 
-	public void setCreatedByPrincipalId(Long createdByPrincipalId) {
-		this.createdBy = createdByPrincipalId;
+	public void setCreatedBy(Long createdBy) {
+		this.createdBy = createdBy;
 	}
 
 	public MetadataType getMetadataTypeEnum() {

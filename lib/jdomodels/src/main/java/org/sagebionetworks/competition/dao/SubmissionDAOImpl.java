@@ -13,6 +13,7 @@ import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.query.jdo.SQLConstants;
 import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -79,7 +80,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			if (doesIdExist(dbo.getId().toString()))
 				throw new IllegalArgumentException("The id: "+dbo.getId()+" already exists, so a Submission cannot be created using that id.");
 			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(dbo.getId());
+			idGenerator.reserveId(dbo.getId(), TYPE.DOMAIN_ID);
 		}
 			
 		// Set creation date

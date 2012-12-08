@@ -42,7 +42,7 @@ public class FileMetadataUtils {
 		DBOFileMetadata dbo = new DBOFileMetadata();
 		dbo.setMetadataType(MetadataType.EXTERNAL);
 		dbo.setKey(dto.getExternalURL());
-		dbo.setCreatedByPrincipalId(dto.getCreatedByPrincipalId());
+		dbo.setCreatedBy(dto.getCreatedByPrincipalId());
 		dbo.setPreviewId(dto.getPreviewId());
 		dbo.setId(dto.getId());
 		return dbo;
@@ -81,7 +81,7 @@ public class FileMetadataUtils {
 		dbo.setContentMD5(dto.getContentMd5());
 		dbo.setContentSize(dto.getContentSize());
 		dbo.setContentType(dto.getContentType());
-		dbo.setCreatedByPrincipalId(dto.getCreatedByPrincipalId());
+		dbo.setCreatedBy(dto.getCreatedByPrincipalId());
 	}
 	
 	/**
@@ -94,7 +94,7 @@ public class FileMetadataUtils {
 		if(MetadataType.EXTERNAL == dbo.getMetadataTypeEnum()){
 			// External
 			ExternalFileMetadata external = new ExternalFileMetadata();
-			external.setCreatedByPrincipalId(dbo.getCreatedByPrincipalId());
+			external.setCreatedByPrincipalId(dbo.getCreatedBy());
 			external.setPreviewId(dbo.getPreviewId());
 			external.setId(dbo.getId());
 			external.setExternalURL(dbo.getKey());
@@ -119,7 +119,7 @@ public class FileMetadataUtils {
 			metaInterface.setContentMd5(dbo.getContentMD5());
 			metaInterface.setContentType(dbo.getContentType());
 			metaInterface.setContentSize(dbo.getContentSize());
-			metaInterface.setCreatedByPrincipalId(dbo.getCreatedByPrincipalId());
+			metaInterface.setCreatedByPrincipalId(dbo.getCreatedBy());
 			return metaInterface;
 		}else{
 			throw new IllegalArgumentException("Unknown metadata type: "+dbo.getMetadataTypeEnum());
