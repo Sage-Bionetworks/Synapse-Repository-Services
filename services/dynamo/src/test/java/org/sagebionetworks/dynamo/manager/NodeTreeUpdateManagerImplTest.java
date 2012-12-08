@@ -10,8 +10,6 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Random;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.dynamo.dao.IncompletePathException;
@@ -49,24 +47,23 @@ public class NodeTreeUpdateManagerImplTest {
 	private Date tObsolete;
 
 	private String root;
-
+	
 	private void initIds() {
+		Date date = new Date(System.currentTimeMillis() - 1000);
 		String prefix = "syn";
-		Random random = new Random();
-		int max = 1981928298;
-		this.cSuccess = prefix + Integer.toString(random.nextInt(max));
-		this.pSuccess = prefix + Integer.toString(random.nextInt(max));
-		this.tSuccess = new Date();
-		this.cFailure = prefix + Integer.toString(random.nextInt(max));
-		this.pFailure = prefix + Integer.toString(random.nextInt(max));
-		this.tFailure = new Date();
-		this.cIncompletePath = prefix + Integer.toString(random.nextInt(max));
-		this.pIncompletePath = prefix + Integer.toString(random.nextInt(max));
-		this.tIncompletePath = new Date();
-		this.cObsolete = prefix + Integer.toString(random.nextInt(max));
-		this.pObsolete = prefix + Integer.toString(random.nextInt(max));
-		this.tObsolete = new Date();
-		this.root = prefix + Integer.toString(random.nextInt(max));
+		this.cSuccess = prefix + "1";
+		this.pSuccess = prefix + "2";
+		this.tSuccess = date;
+		this.cFailure = prefix + "3";
+		this.pFailure = prefix + "4";
+		this.tFailure = date;
+		this.cIncompletePath = prefix + "5";
+		this.pIncompletePath = prefix + "6";
+		this.tIncompletePath = date;
+		this.cObsolete = prefix + "7";
+		this.pObsolete = prefix + "8";
+		this.tObsolete = date;
+		this.root = prefix + "9";
 	}
 
 	private void mockNodeTreeDao() {
@@ -157,10 +154,9 @@ public class NodeTreeUpdateManagerImplTest {
 
 		when(this.nodeDaoMock.getNode(this.cObsolete)).thenThrow(new NotFoundException());
 	}
-
+	
 	@Before
 	public void before() throws Exception {
-
 		this.initIds();
 		this.mockNodeTreeDao();
 		this.mockNodeDao();
