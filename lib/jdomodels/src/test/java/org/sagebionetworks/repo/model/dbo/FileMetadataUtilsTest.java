@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.dbo;
 
 import static org.junit.Assert.*;
 
+import java.util.Date;
+
 import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata;
 import org.sagebionetworks.repo.model.file.ExternalFileMetadata;
@@ -15,7 +17,8 @@ public class FileMetadataUtilsTest {
 	public void testExternalFileMetadataRoundTrip(){
 		// External
 		ExternalFileMetadata meta = new ExternalFileMetadata();
-		meta.setCreatedByPrincipalId(456l);
+		meta.setCreatedBy(456l);
+		meta.setCreatedOn(new Date());
 		meta.setExternalURL("http://google.com");
 		meta.setId(987l);
 		meta.setPreviewId(456L);
@@ -31,7 +34,8 @@ public class FileMetadataUtilsTest {
 	public void testS3FileMetadataRoundTrip(){
 		// External
 		S3FileMetadata meta = new S3FileMetadata();
-		meta.setCreatedByPrincipalId(456l);
+		meta.setCreatedBy(456l);
+		meta.setCreatedOn(new Date());
 		meta.setId(987l);
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
@@ -52,7 +56,8 @@ public class FileMetadataUtilsTest {
 	public void testPreviewFileMetadataRoundTrip(){
 		// External
 		PreviewFileMetadata meta = new PreviewFileMetadata();
-		meta.setCreatedByPrincipalId(456l);
+		meta.setCreatedBy(456l);
+		meta.setCreatedOn(new Date());
 		meta.setId(987l);
 		meta.setBucketName("bucketName");
 		meta.setKey("key");

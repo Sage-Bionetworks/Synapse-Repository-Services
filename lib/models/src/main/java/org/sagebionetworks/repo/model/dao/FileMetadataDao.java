@@ -24,8 +24,10 @@ public interface FileMetadataDao {
 	 * Set the preview ID of a file.
 	 * @param fileId
 	 * @param previewId
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	public void setPreviewId(Long fileId, Long previewId);
+	public void setPreviewId(Long fileId, Long previewId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the file metadata by ID.

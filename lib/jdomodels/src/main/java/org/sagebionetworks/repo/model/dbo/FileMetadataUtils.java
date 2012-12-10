@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
+import java.sql.Timestamp;
+
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata.MetadataType;
 import org.sagebionetworks.repo.model.file.ExternalFileMetadata;
@@ -42,9 +44,12 @@ public class FileMetadataUtils {
 		DBOFileMetadata dbo = new DBOFileMetadata();
 		dbo.setMetadataType(MetadataType.EXTERNAL);
 		dbo.setKey(dto.getExternalURL());
-		dbo.setCreatedBy(dto.getCreatedByPrincipalId());
+		dbo.setCreatedBy(dto.getCreatedBy());
 		dbo.setPreviewId(dto.getPreviewId());
 		dbo.setId(dto.getId());
+		if(dto.getCreatedOn() != null){
+			dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
+		}
 		return dbo;
 	}
 	
@@ -81,7 +86,10 @@ public class FileMetadataUtils {
 		dbo.setContentMD5(dto.getContentMd5());
 		dbo.setContentSize(dto.getContentSize());
 		dbo.setContentType(dto.getContentType());
-		dbo.setCreatedBy(dto.getCreatedByPrincipalId());
+		dbo.setCreatedBy(dto.getCreatedBy());
+		if(dto.getCreatedOn() != null){
+			dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
+		}
 	}
 	
 	/**
@@ -94,7 +102,8 @@ public class FileMetadataUtils {
 		if(MetadataType.EXTERNAL == dbo.getMetadataTypeEnum()){
 			// External
 			ExternalFileMetadata external = new ExternalFileMetadata();
-			external.setCreatedByPrincipalId(dbo.getCreatedBy());
+			external.setCreatedBy(dbo.getCreatedBy());
+			external.setCreatedOn(dbo.getCreatedOn());
 			external.setPreviewId(dbo.getPreviewId());
 			external.setId(dbo.getId());
 			external.setExternalURL(dbo.getKey());
@@ -119,7 +128,8 @@ public class FileMetadataUtils {
 			metaInterface.setContentMd5(dbo.getContentMD5());
 			metaInterface.setContentType(dbo.getContentType());
 			metaInterface.setContentSize(dbo.getContentSize());
-			metaInterface.setCreatedByPrincipalId(dbo.getCreatedBy());
+			metaInterface.setCreatedBy(dbo.getCreatedBy());
+			metaInterface.setCreatedOn(dbo.getCreatedOn());
 			return metaInterface;
 		}else{
 			throw new IllegalArgumentException("Unknown metadata type: "+dbo.getMetadataTypeEnum());

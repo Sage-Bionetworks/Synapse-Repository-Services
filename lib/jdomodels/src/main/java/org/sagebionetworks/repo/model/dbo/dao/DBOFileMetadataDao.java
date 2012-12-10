@@ -11,6 +11,7 @@ import org.sagebionetworks.repo.model.file.FileMetadata;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -61,6 +62,7 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Long create(FileMetadata metadata) {
+		if(metadata == null) throw new IllegalArgumentException("FileMetadata cannot be null");
 		// Convert to a DBO
 		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(metadata);
 		if(metadata.getId() == null){
@@ -79,9 +81,20 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void setPreviewId(Long fileId, Long previewId) {
-		// TODO Auto-generated method stub
-		
+	public void setPreviewId(Long fileId, Long previewId) throws NotFoundException {
+		if(fileId == null) throw new IllegalArgumentException("FileId cannot be null");
+		if(previewId == null) throw new IllegalArgumentException("PreviewId cannot be null");
+		if(!doesExist(fileId)){
+			throw new NotFoundException("The fileId: "+fileId+" does not exist");
+		}
+		if(!doesExist(previewId)){
+			throw new NotFoundException("The previewId: "+previewId+" does not exist");
+		}
+		try{
+			simpleJdbcTemplate.update("UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? WHERE "+COL_FILES_ID+" = ?", previewId, fileId);
+		} catch (DataIntegrityViolationException e){
+			throw new NotFoundException(e.getMessage());
+		}
 	}
 
 	/**
@@ -90,6 +103,7 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 	 * @return
 	 */
 	public boolean doesExist(Long id){
+		if(id == null) throw new IllegalArgumentException("FileId cannot be null");
 		try{
 			// Is this in the database.
 			simpleJdbcTemplate.queryForLong(SQL_DOES_EXIST, id);
