@@ -37,6 +37,9 @@ public class DynamoQueueWorkerIntegrationTest {
 	@Autowired
 	private MessageReceiver dynamoQueueMessageRetriever;
 
+	@Autowired
+	private MessageReceiver dynamoQueueMessageRemover;
+
 	private Project project;
 
 	@Before
@@ -48,9 +51,9 @@ public class DynamoQueueWorkerIntegrationTest {
 		Assert.assertNotNull(this.dynamoQueueMessageRetriever);
 
 		// Empty the dynamo queue
-		int count = this.dynamoQueueMessageRetriever.triggerFired();
+		int count = this.dynamoQueueMessageRemover.triggerFired();
 		while (count > 0) {
-			count = this.dynamoQueueMessageRetriever.triggerFired();
+			count = this.dynamoQueueMessageRemover.triggerFired();
 		}
 
 		// Clear dynamo by removing the root
@@ -71,15 +74,15 @@ public class DynamoQueueWorkerIntegrationTest {
 
 	@After
 	public void after() throws Exception {
-		// Try to empty the queue
-		int count = this.dynamoQueueMessageRetriever.triggerFired();
-		while (count > 0) {
-			count = this.dynamoQueueMessageRetriever.triggerFired();
-		}
 		// Remove the project
 		if (this.project != null) {
 			this.entityManager.deleteEntity(
 					this.userProvider.getTestAdminUserInfo(), this.project.getId());
+		}
+		// Try to empty the queue
+		int count = this.dynamoQueueMessageRemover.triggerFired();
+		while (count > 0) {
+			count = this.dynamoQueueMessageRemover.triggerFired();
 		}
 		// Clear Dynamo
 		String root = this.nodeTreeDao.getRoot();
