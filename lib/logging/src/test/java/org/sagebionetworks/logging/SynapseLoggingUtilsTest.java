@@ -1,6 +1,7 @@
 package org.sagebionetworks.logging;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 
 import java.io.UnsupportedEncodingException;
@@ -214,6 +215,16 @@ public class SynapseLoggingUtilsTest {
 		String annotationsLog = doGetArgs(ANNOTATION_METHOD, ANNOTATION_METHOD_NAME, ANNOTATION_METHOD_PARAM_NAMES,
 				ANNOTATION_METHOD_ARG_TYPES, ANNOTATION_METHOD_ARGS);
 		assertEquals(ANNOTATION_ARG_STRING, annotationsLog);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testNoHttpServletRequest() throws Exception {
+		int length = ANNOTATION_METHOD_ARGS.length;
+		Object[] noHttpRequestArgs = Arrays.copyOfRange(ANNOTATION_METHOD_ARGS, 0, length);
+		noHttpRequestArgs[length-1] = null;
+		String annotationsLog = doGetArgs(ANNOTATION_METHOD, ANNOTATION_METHOD_NAME, ANNOTATION_METHOD_PARAM_NAMES,
+				ANNOTATION_METHOD_ARG_TYPES, noHttpRequestArgs);
+		fail("Should have thrown an exception when no HttpServletRequest was found.");
 	}
 
 	private String doGetArgs(Method method, String methodName, String[] methodArgNames, Class<?>[] methodArgTypes, Object[] methodArgs)

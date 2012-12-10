@@ -119,7 +119,7 @@ public class SynapseLoggingUtils {
 
 			properties.put(parameterNames[i], args[i]);
 		}
-		if (!seenRequest) throw new IllegalArgumentException("");
+		if (!seenRequest) throw new IllegalArgumentException("No HttpServletRequest object was found.");
 
 		return makeArgString(properties);
 	}
