@@ -130,12 +130,10 @@ public class SynapseLoggingUtils {
 		StringBuilder argString = new StringBuilder();
 		for (Entry<String, ? extends Object> entry : properties.entrySet()) {
 			argString.append(argSep);
-			argString.append(entry.getKey());
-			argString.append("=");
-
-			Object value = entry.getValue() != null ? entry.getValue() : "";
+			String key = entry.getKey();
+			Object value = entry.getValue() != null ? entry.getValue() : "null";
 			
-			argString.append(stringifyArgument(value));
+			argString.append(stringifyArgument(key, value));
 
 			// Set the argSep after the first time through so that we
 			// separate all the pairs with it, but don't have a leading
@@ -146,7 +144,7 @@ public class SynapseLoggingUtils {
 		return argString.toString();
 	}
 
-	private static String stringifyArgument(Object value) throws UnsupportedEncodingException {
+	private static String stringifyArgument(String key, Object value) throws UnsupportedEncodingException {
 		String encoding = "UTF-8";
 		if (value instanceof HttpServletRequest) {
 			HttpServletRequest request = (HttpServletRequest) value;
@@ -159,7 +157,11 @@ public class SynapseLoggingUtils {
 			}
 			return makeArgString(headerProps);
 		} else {
-			return URLEncoder.encode(value.toString(), encoding);
+			StringBuilder sb = new StringBuilder();
+			sb.append(key);
+			sb.append("=");
+			sb.append(URLEncoder.encode(value.toString(), encoding));
+			return sb.toString();
 		}
 	}
 
