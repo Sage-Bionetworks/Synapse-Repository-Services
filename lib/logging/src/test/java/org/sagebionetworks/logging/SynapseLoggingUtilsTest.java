@@ -1,6 +1,7 @@
 package org.sagebionetworks.logging;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 
 import java.io.UnsupportedEncodingException;
@@ -8,15 +9,21 @@ import java.lang.reflect.Method;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.util.Arrays;
+import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Vector;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.aspectj.lang.reflect.MethodSignature;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 
 public class SynapseLoggingUtilsTest {
@@ -26,26 +33,29 @@ public class SynapseLoggingUtilsTest {
 	private static final String SIMPLE_METHOD_NAME = "testMethod";
 	private static final String ANNOTATION_METHOD_NAME = "testAnnotationsMethod";
 
-	private static final String[]  SIMPLE_METHOD_PARAM_NAMES = {"arg1", "arg2"};
-	private static final String[]  ANNOTATION_METHOD_PARAM_NAMES = {"id", "userId"};
+	private static final String[]  SIMPLE_METHOD_PARAM_NAMES = {"arg1", "arg2", "arg3"};
+	private static final String[]  ANNOTATION_METHOD_PARAM_NAMES = {"id", "userId", "request"};
 
-	private static final Class<?>[] SIMPLE_METHOD_ARG_TYPES = new Class<?>[] {String.class, Integer.class};
-	private static final Class<?>[] ANNOTATION_METHOD_ARG_TYPES = new Class<?>[] {String.class, String.class};
+	private static final Class<?>[] SIMPLE_METHOD_ARG_TYPES = new Class<?>[] {String.class, Integer.class, HttpServletRequest.class};
+	private static final Class<?>[] ANNOTATION_METHOD_ARG_TYPES = new Class<?>[] {String.class, String.class, HttpServletRequest.class};
 
-	private static final Object[] SIMPLE_METHOD_ARGS = new Object[] {"testarg", new Integer(12)};
-	private static final Object[] ANNOTATION_METHOD_ARGS = new Object[] {"entityIdval", "userIdval"};
+	private static HttpServletRequest request;
+	private static Vector<String> headerNames = new Vector<String>();
 
-	private static final String ARG_FMT_STRING = "%s=%s&%s=%s";
+	static {
+		headerNames.addElement("user-agent");
+		headerNames.addElement("sessiontoken");
+		headerNames.addElement("header");
+	}
 
-	private static final String SIMPLE_ARG_STRING = String.format(
-			ARG_FMT_STRING, SIMPLE_METHOD_PARAM_NAMES[0],
-			SIMPLE_METHOD_ARGS[0], SIMPLE_METHOD_PARAM_NAMES[1],
-			SIMPLE_METHOD_ARGS[1]);
+	private static Object[] SIMPLE_METHOD_ARGS;
+	private static Object[] ANNOTATION_METHOD_ARGS;
 
-	private static final String ANNOTATION_ARG_STRING = String.format(
-			ARG_FMT_STRING, ANNOTATION_METHOD_PARAM_NAMES[0],
-			ANNOTATION_METHOD_ARGS[0], ANNOTATION_METHOD_PARAM_NAMES[1],
-			ANNOTATION_METHOD_ARGS[1]);
+	private static final String ARG_FMT_STRING = "%s=%s&%s=%s&%s=%s&%s=%s";
+
+	private static String SIMPLE_ARG_STRING;
+
+	private static String ANNOTATION_ARG_STRING;
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
@@ -59,6 +69,23 @@ public class SynapseLoggingUtilsTest {
 				ANNOTATION_METHOD = method;
 			}
 		}
+	}
+
+	@Before
+	public void setup() throws Exception {
+		request = Mockito.mock(HttpServletRequest.class);
+		when(request.getHeaderNames()).thenReturn(headerNames.elements());
+		when(request.getHeader(Mockito.anyString())).thenReturn("");
+		SIMPLE_METHOD_ARGS = new Object[] {"testarg", new Integer(12), request};
+		ANNOTATION_METHOD_ARGS = new Object[] {"entityIdval", "userIdval", request};
+		SIMPLE_ARG_STRING = String.format(ARG_FMT_STRING,
+				SIMPLE_METHOD_PARAM_NAMES[0], SIMPLE_METHOD_ARGS[0],
+				SIMPLE_METHOD_PARAM_NAMES[1], SIMPLE_METHOD_ARGS[1],
+				"user-agent", "", "sessiontoken", "");
+		ANNOTATION_ARG_STRING = String.format(ARG_FMT_STRING,
+				ANNOTATION_METHOD_PARAM_NAMES[0], ANNOTATION_METHOD_ARGS[0],
+				ANNOTATION_METHOD_PARAM_NAMES[1], ANNOTATION_METHOD_ARGS[1],
+				"user-agent", "", "sessiontoken", "");
 	}
 
 	private static final String VALID_DATE = "2012-08-06 18:36:22,961";
@@ -157,29 +184,47 @@ public class SynapseLoggingUtilsTest {
 	@Test
 	public void testGetArgsNoArgs() throws Exception {
 		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES,
-				new Object[]{null, null});
+				new Object[]{null, null, request});
 		assertEquals(String.format(ARG_FMT_STRING,
 				SIMPLE_METHOD_PARAM_NAMES[0], "null",
-				SIMPLE_METHOD_PARAM_NAMES[1], "null"), simpleLog);
+				SIMPLE_METHOD_PARAM_NAMES[1], "null",
+				"user-agent", "",
+				"sessiontoken", ""), simpleLog);
 	}
 
 	@Test
 	public void testGetArgsEncoding() throws Exception {
 		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES,
-				new Object[] {"{athing=another, two=2}", "?&= "});
+				new Object[] {"{athing=another, two=2}", "?&= ", request});
 		String[] encoded = {"%7Bathing%3Danother%2C+two%3D2%7D", "%3F%26%3D+"};
 		assertEquals(String.format(ARG_FMT_STRING,
 				SIMPLE_METHOD_PARAM_NAMES[0], encoded[0],
-				SIMPLE_METHOD_PARAM_NAMES[1], encoded[1]), simpleLog);
+				SIMPLE_METHOD_PARAM_NAMES[1], encoded[1],
+				"user-agent", "",
+				"sessiontoken", ""), simpleLog);
 	}
 
 	@Test
-	public void testGetArgs() throws Exception {
+	public void testGetArgsSimple() throws Exception {
 		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES, SIMPLE_METHOD_ARGS);
 		assertEquals(SIMPLE_ARG_STRING, simpleLog);
+	}
+
+	@Test
+	public void testGetArgsAnnotations() throws Exception {
 		String annotationsLog = doGetArgs(ANNOTATION_METHOD, ANNOTATION_METHOD_NAME, ANNOTATION_METHOD_PARAM_NAMES,
 				ANNOTATION_METHOD_ARG_TYPES, ANNOTATION_METHOD_ARGS);
 		assertEquals(ANNOTATION_ARG_STRING, annotationsLog);
+	}
+
+	@Test(expected=IllegalArgumentException.class)
+	public void testNoHttpServletRequest() throws Exception {
+		int length = ANNOTATION_METHOD_ARGS.length;
+		Object[] noHttpRequestArgs = Arrays.copyOfRange(ANNOTATION_METHOD_ARGS, 0, length);
+		noHttpRequestArgs[length-1] = null;
+		String annotationsLog = doGetArgs(ANNOTATION_METHOD, ANNOTATION_METHOD_NAME, ANNOTATION_METHOD_PARAM_NAMES,
+				ANNOTATION_METHOD_ARG_TYPES, noHttpRequestArgs);
+		fail("Should have thrown an exception when no HttpServletRequest was found.");
 	}
 
 	private String doGetArgs(Method method, String methodName, String[] methodArgNames, Class<?>[] methodArgTypes, Object[] methodArgs)

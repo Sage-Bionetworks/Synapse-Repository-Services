@@ -8,6 +8,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Method;
+import java.util.Vector;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -18,6 +21,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.sagebionetworks.logging.SynapseEvent;
 import org.sagebionetworks.logging.SynapseLoggingUtils;
 import org.sagebionetworks.repo.web.controller.ActivityLoggerTestHelper;
@@ -35,26 +39,29 @@ public class ActivityLoggerTest {
 	private static final String SIMPLE_METHOD_NAME = "testMethod";
 	private static final String ANNOTATION_METHOD_NAME = "testAnnotationsMethod";
 
-	private static final String[]  SIMPLE_METHOD_PARAM_NAMES = {"arg1", "arg2"};
-	private static final String[]  ANNOTATION_METHOD_PARAM_NAMES = {"id", "userId"};
+	private static final String[]  SIMPLE_METHOD_PARAM_NAMES = {"arg1", "arg2", "arg3", "arg4"};
+	private static final String[]  ANNOTATION_METHOD_PARAM_NAMES = {"id", "userId", "user-agent", "sessiontoken"};
 
 	private static final Class<?>[] SIMPLE_METHOD_ARG_TYPES = new Class<?>[] {String.class, Integer.class};
 	private static final Class<?>[] ANNOTATION_METHOD_ARG_TYPES = new Class<?>[] {String.class, String.class};
 
-	private static final Object[] SIMPLE_METHOD_ARGS = new Object[] {"testarg", new Integer(12)};
-	private static final Object[] ANNOTATION_METHOD_ARGS = new Object[] {"entityIdval", "userIdval"};
+	private static HttpServletRequest request;
+	private static Vector<String> headerNames = new Vector<String>();
 
-	private static final String ARG_FMT_STRING = "%s=%s&%s=%s";
+	static {
+		headerNames.addElement("user-agent");
+		headerNames.addElement("sessiontoken");
+		headerNames.addElement("header");
+	}
 
-	private static final String SIMPLE_ARG_STRING = String.format(
-			ARG_FMT_STRING, SIMPLE_METHOD_PARAM_NAMES[0],
-			SIMPLE_METHOD_ARGS[0], SIMPLE_METHOD_PARAM_NAMES[1],
-			SIMPLE_METHOD_ARGS[1]);
+	private static Object[] SIMPLE_METHOD_ARGS;
+	private static Object[] ANNOTATION_METHOD_ARGS;
 
-	private static final String ANNOTATION_ARG_STRING = String.format(
-			ARG_FMT_STRING, ANNOTATION_METHOD_PARAM_NAMES[0],
-			ANNOTATION_METHOD_ARGS[0], ANNOTATION_METHOD_PARAM_NAMES[1],
-			ANNOTATION_METHOD_ARGS[1]);
+	private static final String ARG_FMT_STRING = "%s=%s&%s=%s&%s=%s&%s=%s";
+
+	private static String SIMPLE_ARG_STRING;
+
+	private static String ANNOTATION_ARG_STRING;
 
 	@Autowired
 	ActivityLogger activityLogger;
@@ -76,9 +83,22 @@ public class ActivityLoggerTest {
 	}
 
 	@Before
-	public void before() throws Exception {
+	public void setup() throws Exception {
 		mockLog = mock(Log.class);
 		ActivityLogger.setLog(mockLog);
+		request = Mockito.mock(HttpServletRequest.class);
+		when(request.getHeaderNames()).thenReturn(headerNames.elements());
+		when(request.getHeader(Mockito.anyString())).thenReturn("null");
+		SIMPLE_METHOD_ARGS = new Object[] {"testarg", new Integer(12), request};
+		ANNOTATION_METHOD_ARGS = new Object[] {"entityIdval", "userIdval", request};
+		SIMPLE_ARG_STRING = String.format(ARG_FMT_STRING,
+				SIMPLE_METHOD_PARAM_NAMES[0], SIMPLE_METHOD_ARGS[0],
+				SIMPLE_METHOD_PARAM_NAMES[1], SIMPLE_METHOD_ARGS[1],
+				"user-agent", "", "sessiontoken", "");
+		ANNOTATION_ARG_STRING = String.format(ARG_FMT_STRING,
+				ANNOTATION_METHOD_PARAM_NAMES[0], ANNOTATION_METHOD_ARGS[0],
+				ANNOTATION_METHOD_PARAM_NAMES[1], ANNOTATION_METHOD_ARGS[1],
+				"user-agent", "", "sessiontoken", "");
 	}
 
 	@Test

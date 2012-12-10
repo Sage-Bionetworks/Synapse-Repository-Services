@@ -1,5 +1,7 @@
 package org.sagebionetworks.logging;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.junit.Test;
 
 public class LoggingUtilsTestHelper {
@@ -13,10 +15,10 @@ public class LoggingUtilsTestHelper {
 
 	}
 
-	public void testMethod(String arg1, Integer arg2) {
+	public void testMethod(String arg1, Integer arg2, HttpServletRequest request) {
 	}
 
-	public String testAnnotationsMethod(String id, String userId) {
+	public String testAnnotationsMethod(String id, String userId, HttpServletRequest request) {
 		return null;
 	}
 }

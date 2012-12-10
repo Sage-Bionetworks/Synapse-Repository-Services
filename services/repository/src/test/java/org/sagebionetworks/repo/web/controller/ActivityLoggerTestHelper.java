@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.junit.Test;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -47,7 +49,8 @@ public class ActivityLoggerTestHelper {
 	method = RequestMethod.GET)
 	public @ResponseBody String testAnnotationsMethod(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false, defaultValue = "") String userId) {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false, defaultValue = "") String userId,
+			HttpServletRequest request) {
 		return "";
 	}
 }
