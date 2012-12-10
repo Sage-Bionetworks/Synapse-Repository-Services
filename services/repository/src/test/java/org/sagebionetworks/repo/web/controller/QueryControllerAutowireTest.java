@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Vector;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -26,7 +27,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -47,9 +47,20 @@ public class QueryControllerAutowireTest {
 	UserInfo user;
 	List<String> toDelete;
 	HttpServletRequest mockRequest;
+	private static Vector<String> headerNames = new Vector<String>();
+
+	static {
+		headerNames.addElement("user-agent");
+		headerNames.addElement("sessiontoken");
+		headerNames.addElement("header");
+	}
+
 	@Before
 	public void before() throws DatastoreException, NotFoundException{
 		mockRequest = Mockito.mock(HttpServletRequest.class);
+		Mockito.when(mockRequest.getHeaderNames()).thenReturn(headerNames.elements());
+		Mockito.when(mockRequest.getHeader(Mockito.anyString())).thenReturn("");
+
 		toDelete = new LinkedList<String>();
 		user = userManager.getUserInfo(TestUserDAO.ADMIN_USER_NAME);
 	}
