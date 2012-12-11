@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
@@ -37,7 +38,7 @@ public class SynapseLoggingUtilsTest {
 	private static final String VALID_LEVEL = " [TRACE] - ";
 	private static final String VALID_LEVEL_ALT = " TRACE [    http-8080-1] [profiler.org.sagebionetworks.usagemetrics.ActivityLogger] - ";
 	private static final String VALID_CONTROLLER = "AFakeController/andFakeMethod";
-	private static final String VALID_PROPERTIES = "?fakeProp=true&test-_=null&testProp=%.-*_+abcABC123";
+	private static final String VALID_PROPERTIES = "?fakeProp=true&test-_=null&testProp=.-*_+abcABC123";
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testParseEventFailDate() throws UnsupportedEncodingException {
@@ -130,8 +131,8 @@ public class SynapseLoggingUtilsTest {
 
 	@Test
 	public void testGetArgsEncoding() throws Exception {
-		String simpleLog = doGetArgs(SIMPLE_METHOD_PARAM_NAMES, new Object[] {"{athing=another, two=2}", "?&= "});
-		String[] encoded = {"%7Bathing%3Danother%2C+two%3D2%7D", "%3F%26%3D+"};
+		String simpleLog = doGetArgs(SIMPLE_METHOD_PARAM_NAMES, new Object[] {"{athing=another, two=2}", "?&=%"});
+		String[] encoded = {"{athing%3Danother, two%3D2}", "%3F%26%3D%25"};
 		assertEquals(String.format(ARG_FMT_STRING,
 				SIMPLE_METHOD_PARAM_NAMES[0], encoded[0],
 				SIMPLE_METHOD_PARAM_NAMES[1], encoded[1]), simpleLog);
@@ -147,7 +148,14 @@ public class SynapseLoggingUtilsTest {
 
 	private String doGetArgs(String[] methodArgNames, Object[] methodArgs)
 			throws NoSuchMethodException, UnsupportedEncodingException {
-		return SynapseLoggingUtils.makeArgString(Arrays.asList(methodArgNames), Arrays.asList(methodArgs));
+
+		// TODO: this code is essentially a copy of the code that does the same job in ActivityLogger
+		Map<String, String> properties = new LinkedHashMap<String, String>(); 
+		int length = methodArgNames.length > methodArgs.length ? methodArgNames.length : methodArgs.length;
+		for (int i = 0; i < length; ++i) {
+			properties.put(methodArgNames[i], (methodArgs[i] != null ? methodArgs[i].toString() : "null"));
+		}
+		return SynapseLoggingUtils.makeArgString(properties);
 	}
 
 }
