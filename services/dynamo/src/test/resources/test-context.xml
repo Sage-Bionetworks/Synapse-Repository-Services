@@ -19,4 +19,19 @@
 
 	<bean id="testUserProvider" class="org.sagebionetworks.repo.web.util.UserProviderImpl" scope="singleton" />
 
+	<bean id="dynamoQueueRemoverFactory"
+			class="org.sagebionetworks.dynamo.workers.sqs.DynamoQueueRemoverFactory"
+			scope="singleton" />
+
+	<bean id="dynamoQueueMessageRemover"
+			class="org.sagebionetworks.asynchronous.workers.sqs.MessageReceiverImpl"
+			scope="singleton"
+			depends-on="awsSQSClient">
+		<property name="messageQueue" ref="dynamoMessageQueue" />
+		<property name="workerFactory" ref="dynamoQueueRemoverFactory" />
+		<property name="maxNumberOfWorkerThreads" value="1" />
+		<property name="maxMessagePerWorker" value="10" />
+		<property name="visibilityTimeoutSec" value="60" />
+	</bean>
+
 </beans>
