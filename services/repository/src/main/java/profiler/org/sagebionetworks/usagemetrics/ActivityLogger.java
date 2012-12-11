@@ -105,7 +105,7 @@ public class ActivityLogger {
 				String argString = arg != null ? arg.toString()
 						: "null";
 				String argNameString = argName != null ? argName
-						: arg.getClass().toString();
+						: (arg != null ? arg.getClass().toString() : "none");
 
 				properties.put(argNameString, argString);
 			}
