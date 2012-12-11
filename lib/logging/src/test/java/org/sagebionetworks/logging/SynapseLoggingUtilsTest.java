@@ -1,36 +1,22 @@
 package org.sagebionetworks.logging;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Mockito.*;
 
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Method;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import org.aspectj.lang.reflect.MethodSignature;
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 
 public class SynapseLoggingUtilsTest {
-	private static Method SIMPLE_METHOD = null;
-	private static Method ANNOTATION_METHOD = null;
-
-	private static final String SIMPLE_METHOD_NAME = "testMethod";
-	private static final String ANNOTATION_METHOD_NAME = "testAnnotationsMethod";
 
 	private static final String[]  SIMPLE_METHOD_PARAM_NAMES = {"arg1", "arg2"};
 	private static final String[]  ANNOTATION_METHOD_PARAM_NAMES = {"id", "userId"};
-
-	private static final Class<?>[] SIMPLE_METHOD_ARG_TYPES = new Class<?>[] {String.class, Integer.class};
-	private static final Class<?>[] ANNOTATION_METHOD_ARG_TYPES = new Class<?>[] {String.class, String.class};
 
 	private static final Object[] SIMPLE_METHOD_ARGS = new Object[] {"testarg", new Integer(12)};
 	private static final Object[] ANNOTATION_METHOD_ARGS = new Object[] {"entityIdval", "userIdval"};
@@ -47,25 +33,11 @@ public class SynapseLoggingUtilsTest {
 			ANNOTATION_METHOD_ARGS[0], ANNOTATION_METHOD_PARAM_NAMES[1],
 			ANNOTATION_METHOD_ARGS[1]);
 
-	@BeforeClass
-	public static void setUpBeforeClass() throws Exception {
-		Class<LoggingUtilsTestHelper> clazz = LoggingUtilsTestHelper.class;
-		Method[] declaredMethods = clazz.getDeclaredMethods();
-		for (Method method : declaredMethods) {
-			if (method.getName().equalsIgnoreCase(SIMPLE_METHOD_NAME)) {
-				SIMPLE_METHOD = method;
-			}
-			if (method.getName().equalsIgnoreCase(ANNOTATION_METHOD_NAME)) {
-				ANNOTATION_METHOD = method;
-			}
-		}
-	}
-
 	private static final String VALID_DATE = "2012-08-06 18:36:22,961";
 	private static final String VALID_LEVEL = " [TRACE] - ";
 	private static final String VALID_LEVEL_ALT = " TRACE [    http-8080-1] [profiler.org.sagebionetworks.usagemetrics.ActivityLogger] - ";
 	private static final String VALID_CONTROLLER = "AFakeController/andFakeMethod";
-	private static final String VALID_PROPERTIES = "?fakeProp=true&testProp=%.-*_+abcABC123";
+	private static final String VALID_PROPERTIES = "?fakeProp=true&test-_=null&testProp=%.-*_+abcABC123";
 
 	@Test(expected=IllegalArgumentException.class)
 	public void testParseEventFailDate() throws UnsupportedEncodingException {
@@ -89,8 +61,8 @@ public class SynapseLoggingUtilsTest {
 		SynapseLoggingUtils.parseSynapseEvent(line2);
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
-	public void testParseEventFailProperties() throws UnsupportedEncodingException {
+	@Test
+	public void testParseEventPass() throws UnsupportedEncodingException {
 		String line = VALID_DATE+VALID_LEVEL+VALID_CONTROLLER+VALID_PROPERTIES; 
 		SynapseLoggingUtils.parseSynapseEvent(line);
 		String line2 = VALID_DATE+VALID_LEVEL_ALT+VALID_CONTROLLER+VALID_PROPERTIES;
@@ -104,7 +76,7 @@ public class SynapseLoggingUtilsTest {
 			builder.append("&");
 			builder.append(entry.getKey());
 			builder.append("=");
-			builder.append(URLEncoder.encode(entry.getValue(), "UTF-8"));
+			builder.append(LoggingEncoder.encode(entry.getValue()));
 		}
 
 		return builder.toString();
@@ -143,21 +115,14 @@ public class SynapseLoggingUtilsTest {
 		assertEquals(method, event_alt.getMethodName());
 
 		for (String key : propMap.keySet()) {
-			assertEquals(propMap.get(key), URLDecoder.decode(event.getProperties().get(key), "UTF-8"));
-			assertEquals(propMap.get(key), URLDecoder.decode(event_alt.getProperties().get(key), "UTF-8"));
+			assertEquals(propMap.get(key), LoggingEncoder.decode(event.getProperties().get(key)));
+			assertEquals(propMap.get(key), LoggingEncoder.decode(event_alt.getProperties().get(key)));
 		}
 	}
 
 	@Test
-	public void testGetArgsNoMethod() throws Exception {
-		String simpleLog = doGetArgs(null, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES, SIMPLE_METHOD_ARGS);
-		assertEquals(Arrays.toString(SIMPLE_METHOD_ARGS), simpleLog);
-	}
-
-	@Test
 	public void testGetArgsNoArgs() throws Exception {
-		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES,
-				new Object[]{null, null});
+		String simpleLog = doGetArgs(SIMPLE_METHOD_PARAM_NAMES, new Object[]{null, null});
 		assertEquals(String.format(ARG_FMT_STRING,
 				SIMPLE_METHOD_PARAM_NAMES[0], "null",
 				SIMPLE_METHOD_PARAM_NAMES[1], "null"), simpleLog);
@@ -165,8 +130,7 @@ public class SynapseLoggingUtilsTest {
 
 	@Test
 	public void testGetArgsEncoding() throws Exception {
-		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES,
-				new Object[] {"{athing=another, two=2}", "?&= "});
+		String simpleLog = doGetArgs(SIMPLE_METHOD_PARAM_NAMES, new Object[] {"{athing=another, two=2}", "?&= "});
 		String[] encoded = {"%7Bathing%3Danother%2C+two%3D2%7D", "%3F%26%3D+"};
 		assertEquals(String.format(ARG_FMT_STRING,
 				SIMPLE_METHOD_PARAM_NAMES[0], encoded[0],
@@ -175,22 +139,15 @@ public class SynapseLoggingUtilsTest {
 
 	@Test
 	public void testGetArgs() throws Exception {
-		String simpleLog = doGetArgs(SIMPLE_METHOD, SIMPLE_METHOD_NAME, SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARG_TYPES, SIMPLE_METHOD_ARGS);
+		String simpleLog = doGetArgs(SIMPLE_METHOD_PARAM_NAMES, SIMPLE_METHOD_ARGS);
 		assertEquals(SIMPLE_ARG_STRING, simpleLog);
-		String annotationsLog = doGetArgs(ANNOTATION_METHOD, ANNOTATION_METHOD_NAME, ANNOTATION_METHOD_PARAM_NAMES,
-				ANNOTATION_METHOD_ARG_TYPES, ANNOTATION_METHOD_ARGS);
+		String annotationsLog = doGetArgs(ANNOTATION_METHOD_PARAM_NAMES, ANNOTATION_METHOD_ARGS);
 		assertEquals(ANNOTATION_ARG_STRING, annotationsLog);
 	}
 
-	private String doGetArgs(Method method, String methodName, String[] methodArgNames, Class<?>[] methodArgTypes, Object[] methodArgs)
+	private String doGetArgs(String[] methodArgNames, Object[] methodArgs)
 			throws NoSuchMethodException, UnsupportedEncodingException {
-
-		MethodSignature mockSig = mock(MethodSignature.class);
-		when(mockSig.getName()).thenReturn(methodName);
-		when(mockSig.getParameterNames()).thenReturn(methodArgNames);
-		when(mockSig.getMethod()).thenReturn(method);
-
-		return SynapseLoggingUtils.makeArgString(mockSig, methodArgs);
+		return SynapseLoggingUtils.makeArgString(Arrays.asList(methodArgNames), Arrays.asList(methodArgs));
 	}
 
 }

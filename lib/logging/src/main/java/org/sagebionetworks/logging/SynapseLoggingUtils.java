@@ -1,18 +1,13 @@
 package org.sagebionetworks.logging;
 
-import java.io.UnsupportedEncodingException;
-import java.lang.reflect.Method;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.aspectj.lang.reflect.MethodSignature;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 import org.joda.time.format.DateTimeFormat;
@@ -23,11 +18,11 @@ public class SynapseLoggingUtils {
 	private static final Pattern DATE_PATTERN = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})");
 	private static final Pattern LEVEL_PATTERN = Pattern.compile(" \\[\\w+\\] - | \\w+ \\[ *[-\\w]+ *\\] \\[ *[.\\w]+ *\\] - ");
 	private static final Pattern CONTROLLER_METHOD_PATTERN = Pattern.compile("(\\w+)/(\\w+)");
-	private static final Pattern PROPERTIES_PATTERN = Pattern.compile("\\?((?:\\w+=[\\w%.\\-*_+]+&?)+)$");
+	private static final Pattern PROPERTIES_PATTERN = Pattern.compile("\\?((?:[\\w\\-_]+=[\\w%.\\-*_+]+&?)+)$");
 
 	public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss,SSS").withZone(DateTimeZone.UTC);
 
-	public static SynapseEvent parseSynapseEvent(String line) throws UnsupportedEncodingException {
+	public static SynapseEvent parseSynapseEvent(String line) {
 		int lastEnd = 0;
 
 		DateTime timeStamp;
@@ -70,7 +65,7 @@ public class SynapseLoggingUtils {
 
 			for (String property : propertiesArray) {
 				String[] keyAndVal = property.split("=", 2);
-				properties.put(keyAndVal[0], URLDecoder.decode(keyAndVal[1], "UTF-8"));
+				properties.put(keyAndVal[0], LoggingEncoder.decode(keyAndVal[1]));
 			}
 			if (properties.containsKey("latency")) {
 				latency = Integer.parseInt(properties.get("latency"));
@@ -87,35 +82,7 @@ public class SynapseLoggingUtils {
 		return new SynapseEvent(timeStamp, controller, methodName, latency, properties);
 	}
 
-	/**
-	 * Method for returning a coherent arg string from the relevant information.
-	 * @param sig method signature from the join point
-	 * @param args list of actual arguments to be passed to the join point
-	 * @return
-	 * @throws UnsupportedEncodingException
-	 */
-	public static String makeArgString(MethodSignature sig, Object[] args) throws UnsupportedEncodingException {
-		Method method = sig.getMethod();
-
-		if (method == null) {
-			return Arrays.toString(args);
-		}
-		String[] parameterNames = sig.getParameterNames();
-
-		// Using LinkedHashMap makes the testing easier because we don't have to account for
-		// the normal unreliable ordering of hashmaps
-		Map<String, String> properties = new LinkedHashMap<String, String>();
-
-		for (int i = 0; i < args.length; i++) {
-			properties.put(parameterNames[i],
-					(args[i]!=null?args[i].toString():"null"));
-		}
-
-		return makeArgString(properties);
-	}
-
-	public static String makeArgString(Map<String, String> properties) throws UnsupportedEncodingException {
-		String encoding = "UTF-8";
+	public static String makeArgString(Map<String, String> properties) {
 		String argSep = "";
 
 		StringBuilder argString = new StringBuilder();
@@ -123,7 +90,7 @@ public class SynapseLoggingUtils {
 			argString.append(argSep);
 			argString.append(entry.getKey());
 			argString.append("=");
-			argString.append(URLEncoder.encode(entry.getValue().toString(), encoding));
+			argString.append(LoggingEncoder.encode(entry.getValue().toString()));
 
 			// Set the argSep after the first time through so that we
 			// separate all the pairs with it, but don't have a leading
@@ -139,7 +106,7 @@ public class SynapseLoggingUtils {
 				simpleClassName, methodName, latencyMS, args);
 	}
 
-	public static String makeLogString(SynapseEvent event) throws UnsupportedEncodingException {
+	public static String makeLogString(SynapseEvent event) {
 		return makeLogString(event.getController(), event.getMethodName(),
 				event.getLatency(), makeArgString(event.getProperties()));
 	}
