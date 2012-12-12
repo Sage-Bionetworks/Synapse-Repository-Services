@@ -17,7 +17,8 @@ public class DynamoConfigTest {
 		Assert.assertNotNull(tables);
 		Iterator<DynamoTableConfig> it = tables.iterator();
 		DynamoTableConfig table = it.next();
-		Assert.assertEquals(StackConfiguration.getStack() + "-" + DboNodeLineage.TABLE_NAME, table.getTableName());
+		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
+		Assert.assertEquals(stackPrefix + DboNodeLineage.TABLE_NAME, table.getTableName());
 		Assert.assertNotNull(table.getKeySchema());
 		Assert.assertNotNull(table.getKeySchema().getHashKey());
 		Assert.assertEquals(DboNodeLineage.HASH_KEY_NAME, table.getKeySchema().getHashKey().getKeyName());
@@ -28,5 +29,7 @@ public class DynamoConfigTest {
 		Assert.assertNotNull(table.getThroughput());
 		Assert.assertTrue(table.getThroughput().getReadThroughput().longValue() >= 1L);
 		Assert.assertTrue(table.getThroughput().getWriteThroughput().longValue() >= 1L);
+		Assert.assertTrue(table.getThroughput().getReadThroughput().longValue() < 100L);
+		Assert.assertTrue(table.getThroughput().getWriteThroughput().longValue() < 100L);
 	}
 }

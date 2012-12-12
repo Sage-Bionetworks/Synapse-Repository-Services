@@ -96,10 +96,8 @@ final class DynamoTableConfig {
 		if (throughput == null) {
 			throw new NullPointerException();
 		}
-		// Insert stack name ("dev", "prod")
-		// Do NOT include the stack instance name as there is
-		// a limit of the number of tables per account per region
-		this.tableName = StackConfiguration.getStack() + "-" + tableName;
+		String stackPrefix = StackConfiguration.getStack() + "-" + StackConfiguration.getStackInstance() + "-";
+		this.tableName = stackPrefix + tableName;
 		this.keySchema = keySchema;
 		this.throughput = throughput;
 	}

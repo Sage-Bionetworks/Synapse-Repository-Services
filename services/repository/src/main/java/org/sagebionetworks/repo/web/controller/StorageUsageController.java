@@ -54,7 +54,8 @@ public class StorageUsageController extends BaseController {
 	@RequestMapping(value = UrlHelpers.STORAGE_SUMMARY, method = RequestMethod.GET)
 	public @ResponseBody StorageUsageSummaryList getUsageForCurrentUser(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String currUserId,
-			@RequestParam(value = ServiceConstants.AGGREGATION_DIMENSION, required = false) String aggregation)
+			@RequestParam(value = ServiceConstants.AGGREGATION_DIMENSION, required = false) String aggregation,
+			HttpServletRequest request)
 			throws IllegalArgumentException, NotFoundException, DatastoreException {
 
 		List<StorageUsageDimension> dList = getAggregatingDimensionList(aggregation);
@@ -87,7 +88,8 @@ public class StorageUsageController extends BaseController {
 	public @ResponseBody StorageUsageSummaryList getUsageForUser(
 			@PathVariable(value = UrlHelpers.STORAGE_USER_ID) String userId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String currUserId,
-			@RequestParam(value = ServiceConstants.AGGREGATION_DIMENSION, required = false) String aggregation)
+			@RequestParam(value = ServiceConstants.AGGREGATION_DIMENSION, required = false) String aggregation,
+			HttpServletRequest request)
 			throws IllegalArgumentException, UnauthorizedException, NotFoundException, DatastoreException {
 
 		List<StorageUsageDimension> dList = getAggregatingDimensionList(aggregation);
@@ -100,7 +102,8 @@ public class StorageUsageController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ADMIN_STORAGE_SUMMARY, method = RequestMethod.GET)
 	public @ResponseBody StorageUsageSummaryList getUsageForAdmin(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String currUserId,
-			@RequestParam(value = ServiceConstants.AGGREGATION_DIMENSION, required = false) String aggregation)
+			@RequestParam(value = ServiceConstants.AGGREGATION_DIMENSION, required = false) String aggregation,
+			HttpServletRequest request)
 			throws IllegalArgumentException, UnauthorizedException, NotFoundException, DatastoreException {
 
 		List<StorageUsageDimension> dList = getAggregatingDimensionList(aggregation);
@@ -193,7 +196,8 @@ public class StorageUsageController extends BaseController {
 	public @ResponseBody StorageUsageSummaryList getUsageByUserForAdmin(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currUserId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit)
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
+			HttpServletRequest request)
 			throws UnauthorizedException, NotFoundException, DatastoreException {
 		StorageUsageService service = serviceProvider.getStorageUsageService();
 		return service.getUsageByUserInRange(currUserId, offset, limit);
@@ -204,7 +208,8 @@ public class StorageUsageController extends BaseController {
 	public @ResponseBody StorageUsageSummaryList getUsageByNodeForAdmin(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currUserId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
-			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit)
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PRINCIPALS_PAGINATION_LIMIT_PARAM) Integer limit,
+			HttpServletRequest request)
 			throws UnauthorizedException, NotFoundException, DatastoreException {
 		StorageUsageService service = serviceProvider.getStorageUsageService();
 		return service.getUsageByNodeInRange(currUserId, offset, limit);

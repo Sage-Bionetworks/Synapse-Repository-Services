@@ -6,8 +6,8 @@ import java.util.Set;
 
 import org.sagebionetworks.competition.dao.ParticipantDAO;
 import org.sagebionetworks.competition.model.Competition;
-import org.sagebionetworks.competition.model.CompetitionStatus;
 import org.sagebionetworks.competition.model.Participant;
+import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -33,37 +33,31 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		this.competitionManager = competitionManager;
 	}
 	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.competition.manager.ParticipantManager#getParticipant(java.lang.String, java.lang.String)
-	 */
 	@Override
 	public Participant getParticipant(String userId, String compId) throws DatastoreException, NotFoundException {
+		CompetitionUtils.ensureNotNull(userId, compId);
 		Participant part = participantDAO.get(userId, compId);
 		part.setName(userManager.getDisplayName(Long.parseLong(userId)));
 		// TODO: part.setScore()
 		return part;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.competition.manager.ParticipantManager#addParticipant(java.lang.String, java.lang.String, java.lang.String)
-	 */
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Participant addParticipant(String userId, String compId, String idToAdd) throws NotFoundException {
+		CompetitionUtils.ensureNotNull(userId, "Requesting User's ID");
+		CompetitionUtils.ensureNotNull(compId, "Competition ID");
+		CompetitionUtils.ensureNotNull(idToAdd, "Participant user ID");
+		
 		// ensure user exists
 		if (userManager.getDisplayName(Long.parseLong(idToAdd)) == null)
 			throw new NotFoundException("User ID: " + idToAdd + " does not exist");
 		
-		// ensure competition exists and that we can add participants	
+		// verify permissions
 		Competition comp = competitionManager.getCompetition(compId);
-		if (comp == null) {
-			// competition does not exist
-			throw new NotFoundException("Competition ID: " + compId + " does not exist");
-		}
 		if (!competitionManager.isCompAdmin(userId, comp))	{
 			// user is not an admin; only authorized to add self as a Participant
-			if (comp.getStatus() != CompetitionStatus.OPEN)
-				throw new IllegalStateException("Competition ID: " + compId + " is not currently open");
+			CompetitionUtils.ensureCompetitionIsOpen(comp);
 			if (!userId.equals(idToAdd))
 				throw new UnauthorizedException("User ID: " + userId + " is not authorized to add other users to Competition ID: " + compId);
 		}
@@ -76,21 +70,27 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		return getParticipant(idToAdd, compId);
 	}
 	
-
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.competition.manager.ParticipantManager#removeParticipant(java.lang.String, java.lang.String, java.lang.String)
-	 */
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void removeParticipant(String userId, String compId, String idToRemove) throws DatastoreException, NotFoundException {
+		CompetitionUtils.ensureNotNull(userId, "Requesting User's ID");
+		CompetitionUtils.ensureNotNull(compId, "Competition ID");
+		CompetitionUtils.ensureNotNull(idToRemove, "Participant User ID");
+		
+		// verify permissions	
+		Competition comp = competitionManager.getCompetition(compId);
+		if (!competitionManager.isCompAdmin(userId, comp))	{
+			// user is not an admin; only authorized to cancel their own participation
+			CompetitionUtils.ensureCompetitionIsOpen(comp);
+			if (!userId.equals(idToRemove))
+				throw new UnauthorizedException("User ID: " + userId + " is not authorized to remove other users from Competition ID: " + compId);
+		}
 		participantDAO.delete(idToRemove, compId);
 	}
 	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.competition.manager.ParticipantManager#getAllParticipants(java.lang.String, java.lang.String)
-	 */
 	@Override
 	public Set<Participant> getAllParticipants(String userId, String compId) throws NumberFormatException, DatastoreException, NotFoundException {
+		CompetitionUtils.ensureNotNull(userId, compId);
 		Set<Participant> participants = new HashSet<Participant>();
 		List<Participant> fromDAO = participantDAO.getAllByCompetition(compId);
 		for (Participant p : fromDAO) {
@@ -100,11 +100,9 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		return participants;
 	}
 	
-	/* (non-Javadoc)
-	 * @see org.sagebionetworks.competition.manager.ParticipantManager#getNumberofParticipants(java.lang.String)
-	 */
 	@Override
 	public long getNumberofParticipants(String compId) throws DatastoreException, NotFoundException {
+		CompetitionUtils.ensureNotNull(compId, "Competition ID");
 		return participantDAO.getCountByCompetition(compId);
 	}
 }

@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -25,7 +27,7 @@ public class HealthCheckController extends BaseController {
 			value=UrlHelpers.HEALTHCHECK,
 			method=RequestMethod.HEAD
 			)
-	public void checkAmznHealthHead() {
+	public void checkAmznHealthHead(HttpServletRequest request) {
 		// Per discussion with John, just implement basic for now.
 	}
 	

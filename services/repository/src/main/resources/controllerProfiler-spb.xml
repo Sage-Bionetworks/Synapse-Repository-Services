@@ -23,9 +23,6 @@
 	<!-- A consumer that logs performance data for all bean method calls to Amazon CloudWatch. -->  
 	<bean id="consumer" class="profiler.org.sagebionetworks.cloudwatch.Consumer" scope="singleton"/>
 	
-	<!-- watcher bean the consumer uses -->
-	<bean id="watcher" class="profiler.org.sagebionetworks.cloudwatch.WatcherImpl"/>
-
 	<!--  bean saying we want to invoke the sendEm method in Consumer class -->
 	<bean id="methodInvoking" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
   		<property name="targetObject" ref="consumer" />

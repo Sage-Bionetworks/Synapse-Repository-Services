@@ -75,7 +75,8 @@ public class AccessRequirementController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ACCESS_REQUIREMENT_WITH_REQUIREMENT_ID, method = RequestMethod.DELETE)
 	public void deleteAccessRequirements(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String requirementId) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
+			@PathVariable String requirementId,
+			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
 		serviceProvider.getAccessRequirementService().deleteAccessRequirements(userId, requirementId);
 	}
 }

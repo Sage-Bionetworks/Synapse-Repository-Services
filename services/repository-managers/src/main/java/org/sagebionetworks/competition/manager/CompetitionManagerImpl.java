@@ -4,7 +4,7 @@ import java.util.List;
 
 import org.sagebionetworks.competition.dao.CompetitionDAO;
 import org.sagebionetworks.competition.model.Competition;
-import org.sagebionetworks.competition.util.Utility;
+import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -27,14 +27,13 @@ public class CompetitionManagerImpl implements CompetitionManager {
 	
 	@Override
 	public String createCompetition(String userId, Competition comp) throws DatastoreException, InvalidModelException {
-		Utility.ensureNotNull(userId);
-		comp.setOwnerId(userId);
-		return competitionDAO.create(comp);
+		CompetitionUtils.ensureNotNull(userId, "User ID");
+		return competitionDAO.create(comp, userId);
 	}
 	
 	@Override
 	public Competition getCompetition(String id) throws DatastoreException, NotFoundException, UnauthorizedException {
-		Utility.ensureNotNull(id);
+		CompetitionUtils.ensureNotNull(id, "Competition ID");
 		return competitionDAO.get(id);
 	}
 	
@@ -53,15 +52,17 @@ public class CompetitionManagerImpl implements CompetitionManager {
 
 	@Override
 	public Competition findCompetition(String name) throws DatastoreException, NotFoundException, UnauthorizedException {
-		Utility.ensureNotNull(name);
-		Competition comp = competitionDAO.find(name);
+		CompetitionUtils.ensureNotNull(name, "Name");
+		String compId = competitionDAO.lookupByName(name);
+		Competition comp = competitionDAO.get(compId);
 		if (comp == null) throw new NotFoundException("No Competition found with name " + name);
 		return comp;
 	}
 	
 	@Override
 	public Competition updateCompetition(String userId, Competition comp) throws DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException, ConflictingUpdateException {
-		Utility.ensureNotNull(userId, comp);
+		CompetitionUtils.ensureNotNull(userId, "User ID");
+		CompetitionUtils.ensureNotNull(comp, "Competition");
 		Competition old = competitionDAO.get(comp.getId());
 		if (old == null) throw new NotFoundException("No Competition found with id " + comp.getId());
 		validateAdminAccess(userId, old);
@@ -72,7 +73,7 @@ public class CompetitionManagerImpl implements CompetitionManager {
 	
 	@Override
 	public void deleteCompetition(String userId, String id) throws DatastoreException, NotFoundException, UnauthorizedException {
-		Utility.ensureNotNull(userId, id);
+		CompetitionUtils.ensureNotNull(userId, id);
 		Competition comp = competitionDAO.get(id);
 		if (comp == null) throw new NotFoundException("No Competition found with id " + id);
 		validateAdminAccess(userId, comp);
