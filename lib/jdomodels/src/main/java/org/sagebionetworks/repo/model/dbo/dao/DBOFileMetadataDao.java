@@ -41,7 +41,7 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
 	@Override
-	public FileMetadata get(Long id) throws DatastoreException, NotFoundException {
+	public FileMetadata get(String id) throws DatastoreException, NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_FILES_ID.toLowerCase(), id);
@@ -51,7 +51,7 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void delete(Long id) {
+	public void delete(String id) {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_FILES_ID.toLowerCase(), id);
@@ -61,7 +61,7 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Long create(FileMetadata metadata) {
+	public String create(FileMetadata metadata) {
 		if(metadata == null) throw new IllegalArgumentException("FileMetadata cannot be null");
 		// Convert to a DBO
 		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(metadata);
@@ -71,17 +71,17 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 			// If an id was provided then it must not exist
 			if(doesExist(metadata.getId())) throw new IllegalArgumentException("A file object already exists with ID: "+metadata.getId());
 			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(metadata.getId(), TYPE.FILE_ID);
+			idGenerator.reserveId(new Long(metadata.getId()), TYPE.FILE_ID);
 		}
 		// Save it to the DB
 		dbo = basicDao.createNew(dbo);
 		// Return the ID of the new object.
-		return dbo.getId();
+		return dbo.getId().toString();
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void setPreviewId(Long fileId, Long previewId) throws NotFoundException {
+	public void setPreviewId(String fileId, String previewId) throws NotFoundException {
 		if(fileId == null) throw new IllegalArgumentException("FileId cannot be null");
 		if(previewId == null) throw new IllegalArgumentException("PreviewId cannot be null");
 		if(!doesExist(fileId)){
@@ -102,7 +102,7 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 	 * @param id
 	 * @return
 	 */
-	public boolean doesExist(Long id){
+	public boolean doesExist(String id){
 		if(id == null) throw new IllegalArgumentException("FileId cannot be null");
 		try{
 			// Is this in the database.

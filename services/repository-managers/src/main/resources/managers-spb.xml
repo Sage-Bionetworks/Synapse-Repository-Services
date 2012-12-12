@@ -31,6 +31,9 @@
 
 	<!-- Activity manager -->
 	<bean id="activityManager" class="org.sagebionetworks.repo.manager.ActivityManagerImpl" />
+	
+	<!-- File Upload manager -->
+	<bean id="fileUploadManager" class="org.sagebionetworks.file.manager.FileUploadManagerImpl" />
 
 	<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />

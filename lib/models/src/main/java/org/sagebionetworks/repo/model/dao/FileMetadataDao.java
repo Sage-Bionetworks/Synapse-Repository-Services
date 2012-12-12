@@ -18,7 +18,7 @@ public interface FileMetadataDao {
 	 * @param metadata
 	 * @return
 	 */
-	public Long create(FileMetadata metadata);
+	public String create(FileMetadata metadata);
 	
 	/**
 	 * Set the preview ID of a file.
@@ -27,7 +27,7 @@ public interface FileMetadataDao {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public void setPreviewId(Long fileId, Long previewId) throws DatastoreException, NotFoundException;
+	public void setPreviewId(String fileId, String previewId) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the file metadata by ID.
@@ -36,18 +36,18 @@ public interface FileMetadataDao {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public FileMetadata get(Long id) throws DatastoreException, NotFoundException;
+	public FileMetadata get(String id) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Delete the file metadata.
 	 * @param id
 	 */
-	public void delete(Long id);
+	public void delete(String id);
 	
 	/**
 	 * Does the given file object exist?
 	 * @param id
 	 * @return true if it exists.
 	 */
-	public boolean doesExist(Long id);
+	public boolean doesExist(String id);
 }

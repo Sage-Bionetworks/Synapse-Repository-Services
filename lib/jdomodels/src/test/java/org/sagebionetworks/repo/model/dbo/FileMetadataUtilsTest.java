@@ -17,11 +17,11 @@ public class FileMetadataUtilsTest {
 	public void testExternalFileMetadataRoundTrip(){
 		// External
 		ExternalFileMetadata meta = new ExternalFileMetadata();
-		meta.setCreatedBy(456l);
+		meta.setCreatedBy("456");
 		meta.setCreatedOn(new Date());
 		meta.setExternalURL("http://google.com");
-		meta.setId(987l);
-		meta.setPreviewId(456L);
+		meta.setId("987");
+		meta.setPreviewId("456");
 		System.out.println(meta);
 		// Convert to dbo
 		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(meta);
@@ -34,15 +34,15 @@ public class FileMetadataUtilsTest {
 	public void testS3FileMetadataRoundTrip(){
 		// External
 		S3FileMetadata meta = new S3FileMetadata();
-		meta.setCreatedBy(456l);
+		meta.setCreatedBy("456");
 		meta.setCreatedOn(new Date());
-		meta.setId(987l);
+		meta.setId("987");
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
 		meta.setContentMd5("md5");
 		meta.setContentSize(123l);
 		meta.setContentType("contentType");
-		meta.setPreviewId(9999l);
+		meta.setPreviewId("9999");
 		
 		System.out.println(meta);
 		// Convert to dbo
@@ -56,9 +56,9 @@ public class FileMetadataUtilsTest {
 	public void testPreviewFileMetadataRoundTrip(){
 		// External
 		PreviewFileMetadata meta = new PreviewFileMetadata();
-		meta.setCreatedBy(456l);
+		meta.setCreatedBy("456");
 		meta.setCreatedOn(new Date());
-		meta.setId(987l);
+		meta.setId("987");
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
 		meta.setContentMd5("md5");

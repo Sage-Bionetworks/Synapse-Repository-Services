@@ -24,6 +24,6 @@ public interface FileUploadService {
 	 * @throws IOException 
 	 * @throws FileUploadException 
 	 */
-	void uploadFiles(String userName, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException;
+	void uploadFiles(String userName, FileItemIterator itemIterator, long contentLength) throws DatastoreException, NotFoundException, FileUploadException, IOException;
 
 }

@@ -4,15 +4,17 @@
 	"properties": {
 		"id": {
 			"description": "The id of the file.",
-			"type": "integer",
-			"required": true
+			"type": "string"
+		},
+		"etag": {
+			"type": "string"
 		},
 		"createdBy": {
-			"description": "The user that created this file.",
-			"type": "integer"
+			"description": "The ID Of the use that created this file.",
+			"type": "string"
 		},
 		"createdOn": {
-			"description": "The data when this was created",
+			"description": "The date when this file was uploaded.",
 			"type": "string",
 			"format":"date-time",
 		},

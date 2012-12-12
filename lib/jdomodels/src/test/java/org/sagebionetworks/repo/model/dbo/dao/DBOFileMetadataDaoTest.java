@@ -35,20 +35,20 @@ public class DBOFileMetadataDaoTest {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
-	private List<Long> toDelete;
-	Long creatorUserGroupId;
+	private List<String> toDelete;
+	String creatorUserGroupId;
 	
 	@Before
 	public void before(){
-		toDelete = new LinkedList<Long>();
-		creatorUserGroupId = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		toDelete = new LinkedList<String>();
+		creatorUserGroupId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
 		assertNotNull(creatorUserGroupId);
 	}
 	
 	@After
 	public void after(){
 		if(fileMetadataDao != null && toDelete != null){
-			for(Long id: toDelete){
+			for(String id: toDelete){
 				fileMetadataDao.delete(id);
 			}
 		}
@@ -76,12 +76,12 @@ public class DBOFileMetadataDaoTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetPreviewIdNullFirst() throws DatastoreException, NotFoundException{
-		fileMetadataDao.setPreviewId(null, 1l);
+		fileMetadataDao.setPreviewId(null, "1");
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testSetPreviewIdNullSecond() throws DatastoreException, NotFoundException{
-		fileMetadataDao.setPreviewId(1l, null);
+		fileMetadataDao.setPreviewId("1", null);
 	}
 	
 	@Test
@@ -95,7 +95,7 @@ public class DBOFileMetadataDaoTest {
 		meta.setContentMd5("md5");
 		meta.setCreatedBy(creatorUserGroupId);
 		// Save it
-		Long id = fileMetadataDao.create(meta);
+		String id = fileMetadataDao.create(meta);
 		assertNotNull(id);
 		toDelete.add(id);
 		FileMetadata clone = fileMetadataDao.get(id);
@@ -111,7 +111,7 @@ public class DBOFileMetadataDaoTest {
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com");
 		// Save it
-		Long id = fileMetadataDao.create(meta);
+		String id = fileMetadataDao.create(meta);
 		assertNotNull(id);
 		toDelete.add(id);
 		FileMetadata clone = fileMetadataDao.get(id);
@@ -130,7 +130,7 @@ public class DBOFileMetadataDaoTest {
 		meta.setContentMd5("md5");
 		meta.setCreatedBy(creatorUserGroupId);
 		// Save it
-		Long id = fileMetadataDao.create(meta);
+		String id = fileMetadataDao.create(meta);
 		assertNotNull(id);
 		toDelete.add(id);
 		FileMetadata clone = fileMetadataDao.get(id);
@@ -148,7 +148,7 @@ public class DBOFileMetadataDaoTest {
 		Arrays.fill(chars, 'a');
 		meta.setExternalURL(new String(chars));
 		// Save it
-		Long id = fileMetadataDao.create(meta);
+		String id = fileMetadataDao.create(meta);
 		assertNotNull(id);
 		toDelete.add(id);
 		FileMetadata clone = fileMetadataDao.get(id);
@@ -168,7 +168,7 @@ public class DBOFileMetadataDaoTest {
 		meta.setContentMd5("md5");
 		meta.setCreatedBy(creatorUserGroupId);
 		// Save it
-		Long fileId = fileMetadataDao.create(meta);
+		String fileId = fileMetadataDao.create(meta);
 		assertNotNull(fileId);
 		toDelete.add(fileId);
 		// Now create a preview for this file.
@@ -180,7 +180,7 @@ public class DBOFileMetadataDaoTest {
 		preview.setContentMd5("md5");
 		preview.setCreatedBy(creatorUserGroupId);
 		// Save it
-		Long previewId = fileMetadataDao.create(preview);
+		String previewId = fileMetadataDao.create(preview);
 		assertNotNull(previewId);
 		toDelete.add(previewId);
 		// Now set the preview for this file
@@ -200,7 +200,7 @@ public class DBOFileMetadataDaoTest {
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com");
 		// Save it
-		Long fileId = fileMetadataDao.create(meta);
+		String fileId = fileMetadataDao.create(meta);
 		assertNotNull(fileId);
 		toDelete.add(fileId);
 		// Now create a preview for this file.
@@ -212,7 +212,7 @@ public class DBOFileMetadataDaoTest {
 		preview.setContentMd5("md5");
 		preview.setCreatedBy(creatorUserGroupId);
 		// Save it
-		Long previewId = fileMetadataDao.create(preview);
+		String previewId = fileMetadataDao.create(preview);
 		assertNotNull(previewId);
 		toDelete.add(previewId);
 		// Now set the preview for this file
@@ -231,11 +231,11 @@ public class DBOFileMetadataDaoTest {
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com");
 		// Save it
-		Long fileId = fileMetadataDao.create(meta);
+		String fileId = fileMetadataDao.create(meta);
 		assertNotNull(fileId);
 		toDelete.add(fileId);
 		// Set it to a fake preview
-		fileMetadataDao.setPreviewId(fileId, -1l);
+		fileMetadataDao.setPreviewId(fileId, "-1");
 	}
 	
 	@Test (expected=NotFoundException.class)
@@ -248,11 +248,11 @@ public class DBOFileMetadataDaoTest {
 		preview.setContentSize(123l);
 		preview.setContentMd5("md5");
 		preview.setCreatedBy(creatorUserGroupId);
-		Long previewId = fileMetadataDao.create(preview);
+		String previewId = fileMetadataDao.create(preview);
 		assertNotNull(previewId);
 		toDelete.add(previewId);
 		// Set the real preview on a file that does not exist.
-		fileMetadataDao.setPreviewId(-1l, previewId);
+		fileMetadataDao.setPreviewId("-1", previewId);
 	}
 	
 	@Test (expected = IllegalArgumentException.class)
@@ -262,7 +262,7 @@ public class DBOFileMetadataDaoTest {
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com");
 		// Save it
-		Long fileId = fileMetadataDao.create(meta);
+		String fileId = fileMetadataDao.create(meta);
 		assertNotNull(fileId);
 		toDelete.add(fileId);
 		
@@ -286,7 +286,7 @@ public class DBOFileMetadataDaoTest {
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com");
 		// Save it
-		Long fileId = fileMetadataDao.create(meta);
+		String fileId = fileMetadataDao.create(meta);
 		assertNotNull(fileId);
 		toDelete.add(fileId);
 		
@@ -295,18 +295,18 @@ public class DBOFileMetadataDaoTest {
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com/2");
 		// Set the ID beyond what the current ID generator range
-		meta.setId(fileId+10l);
-		Long file2Id = fileMetadataDao.create(meta);
+		meta.setId(new Long(Long.parseLong(fileId)+10l).toString());
+		String file2Id = fileMetadataDao.create(meta);
 		assertNotNull(file2Id);
 		toDelete.add(file2Id);
 		// Now if we create another one its ID should be one larger than the previous
 		meta = new ExternalFileMetadata();
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com/3");
-		Long file3Id = fileMetadataDao.create(meta);
+		String file3Id = fileMetadataDao.create(meta);
 		assertNotNull(file3Id);
 		toDelete.add(file3Id);
-		assertEquals(new Long(file2Id + 1), file3Id);
+		assertEquals(new Long(Long.parseLong(file2Id) + 1).toString(), file3Id);
 		
 	}
 	

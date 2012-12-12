@@ -44,9 +44,15 @@ public class FileMetadataUtils {
 		DBOFileMetadata dbo = new DBOFileMetadata();
 		dbo.setMetadataType(MetadataType.EXTERNAL);
 		dbo.setKey(dto.getExternalURL());
-		dbo.setCreatedBy(dto.getCreatedBy());
-		dbo.setPreviewId(dto.getPreviewId());
-		dbo.setId(dto.getId());
+		if(dto.getCreatedBy() != null){
+			dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
+		}
+		if(dto.getPreviewId() != null){
+			dbo.setPreviewId(Long.parseLong(dto.getPreviewId()));
+		}
+		if(dto.getId() != null){
+			dbo.setId(Long.parseLong(dto.getId()));
+		}
 		if(dto.getCreatedOn() != null){
 			dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
 		}
@@ -61,7 +67,9 @@ public class FileMetadataUtils {
 	private static DBOFileMetadata createDBOFromDTO(S3FileMetadata dto){
 		DBOFileMetadata dbo = new DBOFileMetadata();
 		dbo.setMetadataType(MetadataType.S3);
-		dbo.setPreviewId(dto.getPreviewId());
+		if(dto.getPreviewId() != null){
+			dbo.setPreviewId(new Long(dto.getPreviewId()));
+		}
 		// Fill in the common data.
 		setDBOFromDTO(dbo, dto);
 		return dbo;
@@ -80,13 +88,17 @@ public class FileMetadataUtils {
 	 * @param dto
 	 */
 	private static void setDBOFromDTO(DBOFileMetadata dbo, S3FileInterface dto){
-		dbo.setId(dto.getId());
+		if(dto.getId() != null){
+			dbo.setId(new Long(dto.getId()));
+		}
 		dbo.setBucketName(dto.getBucketName());
 		dbo.setKey(dto.getKey());
 		dbo.setContentMD5(dto.getContentMd5());
 		dbo.setContentSize(dto.getContentSize());
 		dbo.setContentType(dto.getContentType());
-		dbo.setCreatedBy(dto.getCreatedBy());
+		if(dto.getCreatedBy() != null){
+			dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
+		}
 		if(dto.getCreatedOn() != null){
 			dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
 		}
@@ -102,10 +114,16 @@ public class FileMetadataUtils {
 		if(MetadataType.EXTERNAL == dbo.getMetadataTypeEnum()){
 			// External
 			ExternalFileMetadata external = new ExternalFileMetadata();
-			external.setCreatedBy(dbo.getCreatedBy());
+			if(dbo.getCreatedBy() != null){
+				external.setCreatedBy(dbo.getCreatedBy().toString());
+			}
 			external.setCreatedOn(dbo.getCreatedOn());
-			external.setPreviewId(dbo.getPreviewId());
-			external.setId(dbo.getId());
+			if(dbo.getPreviewId() != null){
+				external.setPreviewId(dbo.getPreviewId().toString());
+			}
+			if(dbo.getId() != null){
+				external.setId(dbo.getId().toString());
+			}
 			external.setExternalURL(dbo.getKey());
 			return external;
 		}else if(MetadataType.S3 == dbo.getMetadataTypeEnum() || MetadataType.PREVIEW == dbo.getMetadataTypeEnum()){
@@ -114,7 +132,9 @@ public class FileMetadataUtils {
 			if(MetadataType.S3 == dbo.getMetadataTypeEnum()){
 				S3FileMetadata meta = new S3FileMetadata();
 				metaInterface = meta;
-				meta.setPreviewId(dbo.getPreviewId());
+				if(dbo.getPreviewId() != null){
+					meta.setPreviewId(dbo.getPreviewId().toString());
+				}
 			}else if(MetadataType.PREVIEW == dbo.getMetadataTypeEnum()){
 				PreviewFileMetadata meta = new PreviewFileMetadata();
 				metaInterface = meta;
@@ -122,13 +142,17 @@ public class FileMetadataUtils {
 				throw new IllegalArgumentException("Must be S3 or Preview but was: "+dbo.getMetadataTypeEnum());
 			}
 			// Set the common data.
-			metaInterface.setId(dbo.getId());
+			if(dbo.getId() != null){
+				metaInterface.setId(dbo.getId().toString());
+			}
 			metaInterface.setBucketName(dbo.getBucketName());
 			metaInterface.setKey(dbo.getKey());
 			metaInterface.setContentMd5(dbo.getContentMD5());
 			metaInterface.setContentType(dbo.getContentType());
 			metaInterface.setContentSize(dbo.getContentSize());
-			metaInterface.setCreatedBy(dbo.getCreatedBy());
+			if(dbo.getCreatedBy() != null){
+				metaInterface.setCreatedBy(dbo.getCreatedBy().toString());
+			}
 			metaInterface.setCreatedOn(dbo.getCreatedOn());
 			return metaInterface;
 		}else{

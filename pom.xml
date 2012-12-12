@@ -473,7 +473,13 @@
 				<artifactId>xstream</artifactId>
 				<version>${xstream.version}</version>
 			</dependency>
-
+			
+			<!-- Used to for file upload -->
+			<dependency>
+				<groupId>commons-fileupload</groupId>
+				<artifactId>commons-fileupload</artifactId>
+				<version>1.2</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->

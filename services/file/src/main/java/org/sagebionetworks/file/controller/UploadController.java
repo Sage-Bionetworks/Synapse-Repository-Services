@@ -26,6 +26,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 @Controller
 public class UploadController extends BaseController {
 
+	public static final String HEADER_KEY_CONTENT_LENGTH = "content-length";
+
 	static private Log log = LogFactory.getLog(UploadController.class);	
 	
 	@Autowired
@@ -105,13 +107,18 @@ public class UploadController extends BaseController {
 		// Get the user ID
 		String userId = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		if(userId == null) throw new UnauthorizedException("The user must be authenticated");
+		String contentLengthString  = request.getHeader(HEADER_KEY_CONTENT_LENGTH);
+		if(contentLengthString == null){
+			throw new IllegalArgumentException("The header must include: "+HEADER_KEY_CONTENT_LENGTH);
+		}
+		long contentLength = Long.parseLong(contentLengthString);
 		LogUtils.logRequest(log, request);
 		// Maker sure this is a multipart
 		if(!ServletFileUpload.isMultipartContent(request)){
 			throw new IllegalArgumentException("This service only supports: content-type = multipart/form-data");
 		}
 		// Pass it along.
-		fileService.uploadFiles(userId, new ServletFileUpload().getItemIterator(request));
+		fileService.uploadFiles(userId, new ServletFileUpload().getItemIterator(request), contentLength);
 		response.setStatus(201);
 		response.getWriter().append("ok");
 	}

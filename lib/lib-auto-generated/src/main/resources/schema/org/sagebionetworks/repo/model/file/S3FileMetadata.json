@@ -8,7 +8,7 @@
 	"properties": {
 		"previewId": {
 			"description": "If this file has a preview, then this will be the file ID of the preview.",
-			"type": "integer"
+			"type": "string"
 		}
 	}
 }

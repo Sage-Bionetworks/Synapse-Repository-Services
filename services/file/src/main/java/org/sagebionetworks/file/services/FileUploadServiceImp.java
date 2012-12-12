@@ -27,13 +27,13 @@ public class FileUploadServiceImp implements FileUploadService {
 	FileUploadManager fileUploadManager;
 
 	@Override
-	public void uploadFiles(String username, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException {
+	public void uploadFiles(String username, FileItemIterator itemIterator, long contentLength) throws DatastoreException, NotFoundException, FileUploadException, IOException {
 		if(username == null) throw new IllegalArgumentException("Username cannot be null");
 		if(itemIterator == null) throw new IllegalArgumentException("FileItemIterator cannot be null");
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(username);
 		
-		fileUploadManager.uploadfiles(userInfo, new HashSet<String>(0), itemIterator);
+		fileUploadManager.uploadfiles(userInfo, new HashSet<String>(0), itemIterator, contentLength);
 
 	}
 

@@ -5,6 +5,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.file.FileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileMetadata;
+
 /**
  * The results of a file upload.
  * 
@@ -14,7 +17,7 @@ import java.util.Map;
 public class FileUploadResults {
 	
 	private Map<String, String> parameters = new HashMap<String, String>();
-	private List<FileData> files = new LinkedList<FileData>();
+	private List<S3FileMetadata> files = new LinkedList<S3FileMetadata>();
 	
 	public Map<String, String> getParameters() {
 		return parameters;
@@ -22,10 +25,10 @@ public class FileUploadResults {
 	public void setParameters(Map<String, String> parameters) {
 		this.parameters = parameters;
 	}
-	public List<FileData> getFiles() {
+	public List<S3FileMetadata> getFiles() {
 		return files;
 	}
-	public void setFiles(List<FileData> files) {
+	public void setFiles(List<S3FileMetadata> files) {
 		this.files = files;
 	}
 	@Override

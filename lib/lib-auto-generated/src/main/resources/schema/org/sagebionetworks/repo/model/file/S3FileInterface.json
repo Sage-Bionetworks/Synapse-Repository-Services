@@ -17,18 +17,15 @@
 		},
 		"contentType": {
 			"description": "Must be: http://en.wikipedia.org/wiki/Internet_media_type",
-			"type": "string",
-			"required": false
+			"type": "string"
 		},
 		"contentSize": {
 			"description": "The size in bytes.",
-			"type": "integer",
-			"required": false
+			"type": "integer"
 		},
 		"contentMd5": {
 			"description": "MD5 on the content.",
-			"type": "string",
-			"required": false
+			"type": "string"
 		}
 	}
 }

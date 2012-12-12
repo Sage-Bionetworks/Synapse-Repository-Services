@@ -15,6 +15,4 @@
 		
 	<bean id="fileService" class="org.sagebionetworks.file.services.FileUploadServiceImp" />
 	
-	<bean id="fileUploadManager" class="org.sagebionetworks.file.manager.FileUploadManagerImpl" />
-	
 </beans>
