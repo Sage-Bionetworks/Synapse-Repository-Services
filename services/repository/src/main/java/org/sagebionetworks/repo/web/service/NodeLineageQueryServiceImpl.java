@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -27,20 +29,20 @@ public class NodeLineageQueryServiceImpl implements NodeLineageQueryService {
 	private NodeTreeDao nodeTreeDao;
 
 	@Override
-	public String getRoot(String currUserName) throws UnauthorizedException,
+	public EntityId getRoot(String currUserName) throws UnauthorizedException,
 			DatastoreException {
 
 		if (currUserName == null) {
 			throw new NullPointerException("Current user cannot be null.");
 		}
 
-		String root = this.keyToString(this.nodeTreeDao.getRoot());
-		this.checkAuthorization(currUserName, root); // throws UnauthorizedException
+		EntityId root = this.toEntityId(this.nodeTreeDao.getRoot());
+		this.checkAuthorization(currUserName, root.getId()); // throws UnauthorizedException
 		return root;
 	}
 
 	@Override
-	public List<String> getAncestors(String currUserName, String nodeId)
+	public EntityIdList getAncestors(String currUserName, String nodeId)
 			throws UnauthorizedException, DatastoreException, IncompletePathException {
 
 		if (currUserName == null) {
@@ -51,12 +53,12 @@ public class NodeLineageQueryServiceImpl implements NodeLineageQueryService {
 		}
 
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
-		List<String> ancestorList = this.nodeTreeDao.getAncestors(this.stringToKey(nodeId));
-		return this.keyToString(ancestorList);
+		List<String> keys = this.nodeTreeDao.getAncestors(this.stringToKey(nodeId));
+		return this.toEntityIdList(keys);
 	}
 
 	@Override
-	public String getParent(String currUserName, String nodeId)
+	public EntityId getParent(String currUserName, String nodeId)
 			throws UnauthorizedException, DatastoreException, IncompletePathException {
 
 		if (currUserName == null) {
@@ -68,11 +70,11 @@ public class NodeLineageQueryServiceImpl implements NodeLineageQueryService {
 
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
 		String parent = this.nodeTreeDao.getParent(this.stringToKey(nodeId));
-		return this.keyToString(parent);
+		return this.toEntityId(parent);
 	}
 
 	@Override
-	public List<String> getDescendants(String currUserName, String nodeId,
+	public EntityIdList getDescendants(String currUserName, String nodeId,
 			int pageSize, String lastDescIdExcl) throws UnauthorizedException,
 			DatastoreException {
 
@@ -86,11 +88,11 @@ public class NodeLineageQueryServiceImpl implements NodeLineageQueryService {
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
 		List<String> descList = this.nodeTreeDao.getDescendants(
 				this.stringToKey(nodeId), pageSize, lastDescIdExcl);
-		return this.keyToString(descList);
+		return this.toEntityIdList(descList);
 	}
 
 	@Override
-	public List<String> getDescendants(String currUserName, String nodeId,
+	public EntityIdList getDescendants(String currUserName, String nodeId,
 			int generation, int pageSize, String lastDescIdExcl)
 			throws UnauthorizedException, DatastoreException {
 
@@ -104,11 +106,11 @@ public class NodeLineageQueryServiceImpl implements NodeLineageQueryService {
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
 		List<String> descList = this.nodeTreeDao.getDescendants(
 				this.stringToKey(nodeId), generation, pageSize, lastDescIdExcl);
-		return this.keyToString(descList);
+		return this.toEntityIdList(descList);
 	}
 
 	@Override
-	public List<String> getChildren(String currUserName, String nodeId,
+	public EntityIdList getChildren(String currUserName, String nodeId,
 			int pageSize, String lastDescIdExcl) throws UnauthorizedException,
 			DatastoreException {
 
@@ -122,11 +124,11 @@ public class NodeLineageQueryServiceImpl implements NodeLineageQueryService {
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
 		List<String> children = this.nodeTreeDao.getChildren(
 				this.stringToKey(nodeId), pageSize, lastDescIdExcl);
-		return this.keyToString(children);
+		return this.toEntityIdList(children);
 	}
 
 	@Override
-	public String getLowestCommonAncestor(String currUserName, String nodeX,
+	public EntityId getLowestCommonAncestor(String currUserName, String nodeX,
 			String nodeY) throws UnauthorizedException, DatastoreException {
 
 		if (currUserName == null) {
@@ -143,7 +145,7 @@ public class NodeLineageQueryServiceImpl implements NodeLineageQueryService {
 		this.checkAuthorization(currUserName, nodeY); // throws UnauthorizedException
 		String ancestor = this.nodeTreeDao.getLowestCommonAncestor(
 				this.stringToKey(nodeX), this.stringToKey(nodeY));
-		return this.keyToString(ancestor);
+		return this.toEntityId(ancestor);
 	}
 
 	private String stringToKey(String nodeId) {
@@ -153,19 +155,24 @@ public class NodeLineageQueryServiceImpl implements NodeLineageQueryService {
 		return KeyFactory.stringToKey(nodeId).toString();
 	}
 
-	private String keyToString(String key) {
+	private EntityId toEntityId(String key) {
 		if (key == null) {
 			return null;
 		}
-		return KeyFactory.keyToString(Long.parseLong(key));
+		EntityId id = new EntityId();
+		String strKey = KeyFactory.keyToString(Long.parseLong(key));
+		id.setId(strKey);
+		return id;
 	}
 
-	private List<String> keyToString(List<String> keys) {
-		List<String> strs = new ArrayList<String>(keys.size());
-		for (int i = 0; i < keys.size(); i++) {
-			strs.add(this.keyToString(keys.get(i)));
+	private EntityIdList toEntityIdList(List<String> keys) {
+		List<EntityId> idList = new ArrayList<EntityId>(keys.size());
+		for (String key : keys) {
+			idList.add(this.toEntityId(key));
 		}
-		return strs;
+		EntityIdList list = new EntityIdList();
+		list.setIdList(idList);
+		return list;
 	}
 
 	/**

@@ -13,6 +13,8 @@ import org.sagebionetworks.dynamo.dao.NodeTreeDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
+import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -81,7 +83,7 @@ public class NodeLineageQueryServiceImplTest {
 
 	@Test
 	public void testGetRoot() {
-		Assert.assertEquals("syn4489", this.service.getRoot(this.adminUserId));
+		Assert.assertEquals("syn4489", this.service.getRoot(this.adminUserId).getId());
 	}
 
 	@Test(expected = UnauthorizedException.class)
@@ -91,10 +93,12 @@ public class NodeLineageQueryServiceImplTest {
 
 	@Test
 	public void testGetAncestors() {
-		List<String> results = this.service.getAncestors(this.userId, this.nodeCanAccessX);
-		Assert.assertEquals(2, results.size());
-		Assert.assertEquals("syn1", results.get(0));
-		Assert.assertEquals("syn2", results.get(1));
+		EntityIdList results = this.service.getAncestors(this.userId, this.nodeCanAccessX);
+		Assert.assertNotNull(results);
+		List<EntityId> idList = results.getIdList();
+		Assert.assertEquals(2, idList.size());
+		Assert.assertEquals("syn1", idList.get(0).getId());
+		Assert.assertEquals("syn2", idList.get(1).getId());
 	}
 
 	@Test(expected = UnauthorizedException.class)
@@ -104,8 +108,8 @@ public class NodeLineageQueryServiceImplTest {
 
 	@Test
 	public void testGetParent() {
-		String parent = this.service.getParent(this.userId, this.nodeCanAccessX);
-		Assert.assertEquals("syn1", parent);
+		EntityId parent = this.service.getParent(this.userId, this.nodeCanAccessX);
+		Assert.assertEquals("syn1", parent.getId());
 	}
 
 	@Test(expected = UnauthorizedException.class)
@@ -115,10 +119,12 @@ public class NodeLineageQueryServiceImplTest {
 
 	@Test
 	public void testGetDescendant1s() {
-		List<String> results = this.service.getDescendants(this.userId, this.nodeCanAccessX, 2, null);
-		Assert.assertEquals(2, results.size());
-		Assert.assertEquals("syn1", results.get(0));
-		Assert.assertEquals("syn2", results.get(1));
+		EntityIdList results = this.service.getDescendants(this.userId, this.nodeCanAccessX, 2, null);
+		Assert.assertNotNull(results);
+		List<EntityId> idList = results.getIdList();
+		Assert.assertEquals(2, idList.size());
+		Assert.assertEquals("syn1", idList.get(0).getId());
+		Assert.assertEquals("syn2", idList.get(1).getId());
 	}
 
 	@Test(expected = UnauthorizedException.class)
@@ -128,10 +134,12 @@ public class NodeLineageQueryServiceImplTest {
 
 	@Test
 	public void testGetDescendants2() {
-		List<String> results = this.service.getDescendants(this.userId, this.nodeCanAccessX, 1, 2, null);
-		Assert.assertEquals(2, results.size());
-		Assert.assertEquals("syn1", results.get(0));
-		Assert.assertEquals("syn2", results.get(1));
+		EntityIdList results = this.service.getDescendants(this.userId, this.nodeCanAccessX, 1, 2, null);
+		Assert.assertNotNull(results);
+		List<EntityId> idList = results.getIdList();
+		Assert.assertEquals(2, idList.size());
+		Assert.assertEquals("syn1", idList.get(0).getId());
+		Assert.assertEquals("syn2", idList.get(1).getId());
 	}
 
 	@Test(expected = UnauthorizedException.class)
@@ -141,10 +149,12 @@ public class NodeLineageQueryServiceImplTest {
 
 	@Test
 	public void testGetChildren() {
-		List<String> results = this.service.getChildren(this.userId, this.nodeCanAccessX, 2, null);
-		Assert.assertEquals(2, results.size());
-		Assert.assertEquals("syn1", results.get(0));
-		Assert.assertEquals("syn2", results.get(1));
+		EntityIdList results = this.service.getChildren(this.userId, this.nodeCanAccessX, 2, null);
+		Assert.assertNotNull(results);
+		List<EntityId> idList = results.getIdList();
+		Assert.assertEquals(2, idList.size());
+		Assert.assertEquals("syn1", idList.get(0).getId());
+		Assert.assertEquals("syn2", idList.get(1).getId());
 	}
 
 	@Test(expected = UnauthorizedException.class)
@@ -154,8 +164,8 @@ public class NodeLineageQueryServiceImplTest {
 
 	@Test
 	public void testGetLowestCommonAncestor() {
-		String lca = this.service.getLowestCommonAncestor(this.userId, this.nodeCanAccessX, this.nodeCanAccessY);
-		Assert.assertEquals(this.nodeCanAccessX, lca);
+		EntityId lca = this.service.getLowestCommonAncestor(this.userId, this.nodeCanAccessX, this.nodeCanAccessY);
+		Assert.assertEquals(this.nodeCanAccessX, lca.getId());
 	}
 
 	@Test(expected = UnauthorizedException.class)

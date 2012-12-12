@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.util.List;
-
 import org.sagebionetworks.dynamo.dao.IncompletePathException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 
 public interface NodeLineageQueryService {
@@ -11,20 +11,20 @@ public interface NodeLineageQueryService {
 	/**
 	 * Gets the root entity. Returns null if the root cannot be found.
 	 */
-	String getRoot(String currUserName) throws UnauthorizedException, DatastoreException;
+	EntityId getRoot(String currUserName) throws UnauthorizedException, DatastoreException;
 
 	/**
 	 * Gets all the ancestors for the specified node. The returned ancestors are
 	 * ordered in that the first the ancestor is the root and the last
 	 * ancestor is the parent. The root will get an empty list of ancestors.
 	 */
-	List<String> getAncestors(String currUserName, String nodeId)
+	EntityIdList getAncestors(String currUserName, String nodeId)
 			throws UnauthorizedException, DatastoreException, IncompletePathException;
 
 	/**
 	 * Gets the parent of the specified node. Root will get the dummy ROOT as its parent.
 	 */
-	String getParent(String currUserName, String nodeId)
+	EntityId getParent(String currUserName, String nodeId)
 			throws UnauthorizedException, DatastoreException, IncompletePathException;
 
 	/**
@@ -33,7 +33,7 @@ public interface NodeLineageQueryService {
 	 * @param lastDescIdExcl
 	 *            Paging parameter. The last descendant ID (exclusive).
 	 */
-	List<String> getDescendants(String currUserName, String nodeId, int pageSize, String lastDescIdExcl)
+	EntityIdList getDescendants(String currUserName, String nodeId, int pageSize, String lastDescIdExcl)
 			throws UnauthorizedException, DatastoreException, IncompletePathException;
 
 	/**
@@ -44,7 +44,7 @@ public interface NodeLineageQueryService {
 	 * @param lastDescIdExcl
 	 *            Paging parameter. The last descendant ID (exclusive).
 	 */
-	List<String> getDescendants(String currUserName, String nodeId, int generation, int pageSize, String lastDescIdExcl)
+	EntityIdList getDescendants(String currUserName, String nodeId, int generation, int pageSize, String lastDescIdExcl)
 			throws UnauthorizedException, DatastoreException, IncompletePathException;
 
 	/**
@@ -53,7 +53,7 @@ public interface NodeLineageQueryService {
 	 * @param lastDescIdExcl
 	 *            Paging parameter. The last descendant ID (exclusive).
 	 */
-	List<String> getChildren(String currUserName, String nodeId, int pageSize, String lastDescIdExcl)
+	EntityIdList getChildren(String currUserName, String nodeId, int pageSize, String lastDescIdExcl)
 			throws UnauthorizedException, DatastoreException, IncompletePathException;
 
 	/**
@@ -61,6 +61,6 @@ public interface NodeLineageQueryService {
 	 *
 	 * @return The ID of the lowest common ancestor
 	 */
-	String getLowestCommonAncestor(String currUserName, String nodeX, String nodeY)
+	EntityId getLowestCommonAncestor(String currUserName, String nodeX, String nodeY)
 			throws UnauthorizedException, DatastoreException, IncompletePathException;
 }
