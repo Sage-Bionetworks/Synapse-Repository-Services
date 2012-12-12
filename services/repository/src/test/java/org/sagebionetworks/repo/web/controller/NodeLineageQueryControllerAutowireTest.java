@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
@@ -10,8 +8,6 @@ import javax.servlet.http.HttpServlet;
 
 import junit.framework.Assert;
 
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -21,11 +17,15 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.EntityService;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
@@ -119,9 +119,12 @@ public class NodeLineageQueryControllerAutowireTest {
 		servlet.service(request, response);
 
 		Assert.assertEquals(200, response.getStatus());
-		JsonNode json = this.readAsJson(response);
+		String jsonStr = response.getContentAsString();
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
+		EntityId id = new EntityId();
+		id.initializeFromJSONObject(adapter);
 		String root = this.rootToChild.get(0).getId();
-		Assert.assertEquals(root, json.getValueAsText());
+		Assert.assertEquals(root, id.getId());
 
 		// getAncestors()
 		request = new MockHttpServletRequest();
@@ -133,13 +136,16 @@ public class NodeLineageQueryControllerAutowireTest {
 		servlet.service(request, response);
 
 		Assert.assertEquals(200, response.getStatus());
-		json = this.readAsJson(response);
-		Iterator<JsonNode> nodeIterator = json.getElements();
-		json = nodeIterator.next();
-		Assert.assertEquals(root, json.getValueAsText());
-		json = nodeIterator.next();
-		Assert.assertEquals(parent.getId(), json.getValueAsText());
-		Assert.assertFalse(nodeIterator.hasNext());
+		jsonStr = response.getContentAsString();
+		adapter = new JSONObjectAdapterImpl(jsonStr);
+		EntityIdList idList = new EntityIdList();
+		idList.initializeFromJSONObject(adapter);
+		Iterator<EntityId> idIterator = idList.getIdList().iterator();
+		id = idIterator.next();
+		Assert.assertEquals(root, id.getId());
+		id = idIterator.next();
+		Assert.assertEquals(parent.getId(), id.getId());
+		Assert.assertFalse(idIterator.hasNext());
 
 		// getParent()
 		request = new MockHttpServletRequest();
@@ -151,8 +157,11 @@ public class NodeLineageQueryControllerAutowireTest {
 		servlet.service(request, response);
 
 		Assert.assertEquals(200, response.getStatus());
-		json = this.readAsJson(response);
-		Assert.assertEquals(parent.getId(), json.getValueAsText());
+		jsonStr = response.getContentAsString();
+		adapter = new JSONObjectAdapterImpl(jsonStr);
+		id = new EntityId();
+		id.initializeFromJSONObject(adapter);
+		Assert.assertEquals(parent.getId(), id.getId());
 
 		// getDecendants()
 		request = new MockHttpServletRequest();
@@ -164,13 +173,16 @@ public class NodeLineageQueryControllerAutowireTest {
 		servlet.service(request, response);
 
 		Assert.assertEquals(200, response.getStatus());
-		json = this.readAsJson(response);
-		nodeIterator = json.getElements();
-		json = nodeIterator.next();
-		Assert.assertEquals(parent.getId(), json.getValueAsText());
-		json = nodeIterator.next();
-		Assert.assertEquals(child.getId(), json.getValueAsText());
-		Assert.assertFalse(nodeIterator.hasNext());
+		jsonStr = response.getContentAsString();
+		adapter = new JSONObjectAdapterImpl(jsonStr);
+		idList = new EntityIdList();
+		idList.initializeFromJSONObject(adapter);
+		idIterator = idList.getIdList().iterator();
+		id = idIterator.next();
+		Assert.assertEquals(parent.getId(), id.getId());
+		id = idIterator.next();
+		Assert.assertEquals(child.getId(), id.getId());
+		Assert.assertFalse(idIterator.hasNext());
 
 		// getDecendantsWithGeneration()
 		request = new MockHttpServletRequest();
@@ -182,11 +194,14 @@ public class NodeLineageQueryControllerAutowireTest {
 		servlet.service(request, response);
 
 		Assert.assertEquals(200, response.getStatus());
-		json = this.readAsJson(response);
-		nodeIterator = json.getElements();
-		json = nodeIterator.next();
-		Assert.assertEquals(child.getId(), json.getValueAsText());
-		Assert.assertFalse(nodeIterator.hasNext());
+		jsonStr = response.getContentAsString();
+		adapter = new JSONObjectAdapterImpl(jsonStr);
+		idList = new EntityIdList();
+		idList.initializeFromJSONObject(adapter);
+		idIterator = idList.getIdList().iterator();
+		id = idIterator.next();
+		Assert.assertEquals(child.getId(), id.getId());
+		Assert.assertFalse(idIterator.hasNext());
 
 		// getChildren()
 		request = new MockHttpServletRequest();
@@ -198,16 +213,13 @@ public class NodeLineageQueryControllerAutowireTest {
 		servlet.service(request, response);
 
 		Assert.assertEquals(200, response.getStatus());
-		json = this.readAsJson(response);
-		nodeIterator = json.getElements();
-		json = nodeIterator.next();
-		Assert.assertEquals(parent.getId(), json.getValueAsText());
-		Assert.assertFalse(nodeIterator.hasNext());
-	}
-
-	private JsonNode readAsJson(MockHttpServletResponse response) throws Exception {
-		ObjectMapper mapper = new ObjectMapper();
-		InputStream in = new ByteArrayInputStream(response.getContentAsByteArray());
-		return mapper.readTree(in);
+		jsonStr = response.getContentAsString();
+		adapter = new JSONObjectAdapterImpl(jsonStr);
+		idList = new EntityIdList();
+		idList.initializeFromJSONObject(adapter);
+		idIterator = idList.getIdList().iterator();
+		id = idIterator.next();
+		Assert.assertEquals(parent.getId(), id.getId());
+		Assert.assertFalse(idIterator.hasNext());
 	}
 }

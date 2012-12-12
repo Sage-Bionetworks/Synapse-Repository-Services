@@ -1,0 +1,9 @@
+{
+    "description": "JSON schema for EntityId POJO",
+    "properties": {
+        "id": {
+            "type": "string",
+            "description": "The id of an entity."            
+        }
+    }
+}
