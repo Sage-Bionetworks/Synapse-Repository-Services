@@ -1,9 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityId;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -29,7 +29,7 @@ public class NodeLineageQueryController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ROOT, method = RequestMethod.GET)
-	public @ResponseBody String getRoot(
+	public @ResponseBody EntityId getRoot(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId)
 			throws DatastoreException, UnauthorizedException {
 		return this.serviceProvider.getNodeLineageQueryService().getRoot(userId);
@@ -42,7 +42,7 @@ public class NodeLineageQueryController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_ANCESTORS, method = RequestMethod.GET)
-	public @ResponseBody List<String> getAncestors(
+	public @ResponseBody EntityIdList getAncestors(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId)
 			throws DatastoreException, UnauthorizedException {
@@ -54,7 +54,7 @@ public class NodeLineageQueryController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_PARENT, method = RequestMethod.GET)
-	public @ResponseBody String getParent(
+	public @ResponseBody EntityId getParent(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId)
 			throws DatastoreException, UnauthorizedException {
@@ -71,7 +71,7 @@ public class NodeLineageQueryController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_DESCENDANTS, method = RequestMethod.GET)
-	public @ResponseBody List<String> getDescendants(
+	public @ResponseBody EntityIdList getDescendants(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Integer pageSize,
@@ -96,7 +96,7 @@ public class NodeLineageQueryController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_DESCENDANTS_GENERATION, method = RequestMethod.GET)
-	public @ResponseBody List<String> getDescendants(
+	public @ResponseBody EntityIdList getDescendants(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
 			@PathVariable(value = UrlHelpers.GENERATION) Integer generation, 
@@ -120,7 +120,7 @@ public class NodeLineageQueryController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_CHILDREN, method = RequestMethod.GET)
-	public @ResponseBody List<String> getChildren(
+	public @ResponseBody EntityIdList getChildren(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Integer pageSize,
