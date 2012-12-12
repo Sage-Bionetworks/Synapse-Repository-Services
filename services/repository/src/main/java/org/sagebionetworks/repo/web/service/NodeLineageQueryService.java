@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import org.sagebionetworks.dynamo.dao.IncompletePathException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
@@ -19,13 +18,13 @@ public interface NodeLineageQueryService {
 	 * ancestor is the parent. The root will get an empty list of ancestors.
 	 */
 	EntityIdList getAncestors(String currUserName, String nodeId)
-			throws UnauthorizedException, DatastoreException, IncompletePathException;
+			throws UnauthorizedException, DatastoreException;
 
 	/**
 	 * Gets the parent of the specified node. Root will get the dummy ROOT as its parent.
 	 */
 	EntityId getParent(String currUserName, String nodeId)
-			throws UnauthorizedException, DatastoreException, IncompletePathException;
+			throws UnauthorizedException, DatastoreException;
 
 	/**
 	 * Gets the paginated list of descendants for the specified node.
@@ -34,7 +33,7 @@ public interface NodeLineageQueryService {
 	 *            Paging parameter. The last descendant ID (exclusive).
 	 */
 	EntityIdList getDescendants(String currUserName, String nodeId, int pageSize, String lastDescIdExcl)
-			throws UnauthorizedException, DatastoreException, IncompletePathException;
+			throws UnauthorizedException, DatastoreException;
 
 	/**
 	 * Gets the paginated list of descendants of a particular generation for the specified node.
@@ -45,7 +44,7 @@ public interface NodeLineageQueryService {
 	 *            Paging parameter. The last descendant ID (exclusive).
 	 */
 	EntityIdList getDescendants(String currUserName, String nodeId, int generation, int pageSize, String lastDescIdExcl)
-			throws UnauthorizedException, DatastoreException, IncompletePathException;
+			throws UnauthorizedException, DatastoreException;
 
 	/**
 	 * Gets the children of the specified node.
@@ -54,7 +53,7 @@ public interface NodeLineageQueryService {
 	 *            Paging parameter. The last descendant ID (exclusive).
 	 */
 	EntityIdList getChildren(String currUserName, String nodeId, int pageSize, String lastDescIdExcl)
-			throws UnauthorizedException, DatastoreException, IncompletePathException;
+			throws UnauthorizedException, DatastoreException;
 
 	/**
 	 * Finds the lowest common ancestor of two nodes X and Y.
@@ -62,5 +61,5 @@ public interface NodeLineageQueryService {
 	 * @return The ID of the lowest common ancestor
 	 */
 	EntityId getLowestCommonAncestor(String currUserName, String nodeX, String nodeY)
-			throws UnauthorizedException, DatastoreException, IncompletePathException;
+			throws UnauthorizedException, DatastoreException;
 }

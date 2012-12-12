@@ -9,6 +9,7 @@ import java.util.List;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.dynamo.dao.IncompletePathException;
 import org.sagebionetworks.dynamo.dao.NodeTreeDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -31,6 +32,7 @@ public class NodeLineageQueryServiceImplTest {
 	private final String nodeCanAccessX = "syn11028";
 	private final String nodeCanAccessY = "syn11029";
 	private final String nodeCannotAccess = "syn11030";
+	private final String nodeIpe = "syn192903"; // IncompletePathException
 	private final NodeLineageQueryService service = new NodeLineageQueryServiceImpl();
 
 	@Before
@@ -63,13 +65,20 @@ public class NodeLineageQueryServiceImplTest {
 		list.add("1");
 		list.add("2");
 		String keyNodeCanAccessX = KeyFactory.stringToKey(nodeCanAccessX).toString();
-		String keyNodeCanAccessY = KeyFactory.stringToKey(nodeCanAccessY).toString();
 		when(ntDao.getAncestors(keyNodeCanAccessX)).thenReturn(list);
 		when(ntDao.getParent(keyNodeCanAccessX)).thenReturn("1");
 		when(ntDao.getDescendants(keyNodeCanAccessX, 2, null)).thenReturn(list);
 		when(ntDao.getDescendants(keyNodeCanAccessX, 1, 2, null)).thenReturn(list);
 		when(ntDao.getChildren(keyNodeCanAccessX, 2, null)).thenReturn(list);
+		String keyNodeCanAccessY = KeyFactory.stringToKey(nodeCanAccessY).toString();
 		when(ntDao.getLowestCommonAncestor(keyNodeCanAccessX, keyNodeCanAccessY)).thenReturn(keyNodeCanAccessX);
+		String keyNodeIpe = KeyFactory.stringToKey(nodeIpe).toString();
+		when(ntDao.getAncestors(keyNodeIpe)).thenThrow(new IncompletePathException("ipe"));
+		when(ntDao.getParent(keyNodeIpe)).thenThrow(new IncompletePathException("ipe"));
+		when(ntDao.getDescendants(keyNodeIpe, 1, null)).thenThrow(new IncompletePathException("ipe"));
+		when(ntDao.getDescendants(keyNodeIpe, 1, 1, null)).thenThrow(new IncompletePathException("ipe"));
+		when(ntDao.getChildren(keyNodeIpe, 1, null)).thenThrow(new IncompletePathException("ipe"));
+		when(ntDao.getLowestCommonAncestor(keyNodeIpe, keyNodeCanAccessY)).thenThrow(new IncompletePathException("ipe"));
 
 		NodeLineageQueryService srv = service;
 		if(AopUtils.isAopProxy(srv) && srv instanceof Advised) {
@@ -176,5 +185,31 @@ public class NodeLineageQueryServiceImplTest {
 	@Test(expected = UnauthorizedException.class)
 	public void testGetLowestCommonAncestorUnauthorizedException2() {
 		this.service.getLowestCommonAncestor(this.userId, this.nodeCanAccessX, this.nodeCannotAccess);
+	}
+
+	@Test
+	public void testHandlingIncompletePathException() {
+		EntityIdList idList = this.service.getAncestors(this.adminUserId, this.nodeIpe);
+		Assert.assertNotNull(idList);
+		Assert.assertNotNull(idList.getIdList());
+		Assert.assertEquals(0, idList.getIdList().size());
+		EntityId id = this.service.getParent(this.adminUserId, this.nodeIpe);
+		Assert.assertNotNull(id);
+		Assert.assertNull(id.getId());
+		idList = this.service.getDescendants(this.adminUserId, this.nodeIpe, 1, null);
+		Assert.assertNotNull(idList);
+		Assert.assertNotNull(idList.getIdList());
+		Assert.assertEquals(0, idList.getIdList().size());
+		idList = this.service.getDescendants(this.adminUserId, this.nodeIpe, 1, 1, null);
+		Assert.assertNotNull(idList);
+		Assert.assertNotNull(idList.getIdList());
+		Assert.assertEquals(0, idList.getIdList().size());
+		idList = this.service.getChildren(this.adminUserId, this.nodeIpe, 1, null);
+		Assert.assertNotNull(idList);
+		Assert.assertNotNull(idList.getIdList());
+		Assert.assertEquals(0, idList.getIdList().size());
+		id = this.service.getLowestCommonAncestor(this.adminUserId, this.nodeIpe, this.nodeCanAccessY);
+		Assert.assertNotNull(id);
+		Assert.assertNull(id.getId());
 	}
 }
