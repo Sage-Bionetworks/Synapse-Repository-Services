@@ -1,0 +1,24 @@
+{
+	"description": "JSON schema for ProvenanceWidgetDescriptor",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.widget.WidgetDescriptor"
+		}
+	],
+	"properties": {
+		"entityId": {
+			"type": "string",
+			"description": "The unique immutable ID for the associated entity",
+			"title": "Entity ID"
+		},
+		"depth": {
+			"type": "integer",
+			"description": "Display to a particular depth",
+			"title": "Depth"
+		},
+		"showExpand": {
+			"type": "boolean",
+			"description": "Is the view expanded?"
+		}
+	}
+}
