@@ -6,7 +6,7 @@ public final class LogEvent implements Comparable<LogEvent> {
 
 	private final DateTime timestamp;
 	private final String line;
-	
+
 	public LogEvent(DateTime timestamp) {
 		if (timestamp == null) throw new IllegalArgumentException("Timestamp cannot be null.");
 		this.timestamp = timestamp;
@@ -39,17 +39,18 @@ public final class LogEvent implements Comparable<LogEvent> {
 	public boolean equals(Object o) {
 		if (this == o) return true;
 
-		if (o instanceof LogEvent) {
-			LogEvent le = (LogEvent) o;
-
-			if (this.timestamp.equals(le.timestamp) &&
-					(this.line == null ? le.line == null : this.line.equals(le.line)))
-				return true;
-			else
-				return false;
-		} else {
+		if (!(o instanceof LogEvent)) {
 			return false;
 		}
+
+		LogEvent le = (LogEvent) o;
+
+		if (this.timestamp.equals(le.timestamp)
+				&& (this.line == null ? le.line == null : this.line
+						.equals(le.line)))
+			return true;
+		else
+			return false;
 	}
 
 	@Override
@@ -62,9 +63,6 @@ public final class LogEvent implements Comparable<LogEvent> {
 
 	@Override
 	public int compareTo(LogEvent le) {
-		if (this.equals(le))
-			return 0;
-
 		int compareTo = timestamp.compareTo(le.timestamp);
 
 		if (compareTo == 0 && line != null)
