@@ -22,6 +22,11 @@ public interface LogReader {
 		T create(BufferedReader rdr);
 	}
 
+	/**
+	 * Read the next log event from the reader.  
+	 * @return LogEvent representing the next event logged in the file, or null if EndOfFile reached.
+	 * @throws IOException
+	 */
 	public LogEvent readLogEvent() throws IOException;
 
 }
