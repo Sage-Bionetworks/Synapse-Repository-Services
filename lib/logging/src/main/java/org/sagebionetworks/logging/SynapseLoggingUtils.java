@@ -1,8 +1,6 @@
 package org.sagebionetworks.logging;
 
 import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
@@ -15,9 +13,26 @@ import org.joda.time.format.DateTimeFormatter;
 
 public class SynapseLoggingUtils {
 
+	/**
+	 * This pattern should match the date and time, in UTC format.
+	 */
 	private static final Pattern DATE_PATTERN = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2},\\d{3})");
+
+	/**
+	 * This pattern is simply to match everything up until the start of the CONTROLLER_METHOD pattern.
+	 * Currently, there are two possibilities for this pattern.
+	 */
 	private static final Pattern LEVEL_PATTERN = Pattern.compile(" \\[\\w+\\] - | \\w+ \\[ *[-\\w]+ *\\] \\[ *[.\\w]+ *\\] - ");
+
+	/**
+	 * This pattern matches the controller-name and the method-name "{ControllerName}/{MethodName}"
+	 */
 	private static final Pattern CONTROLLER_METHOD_PATTERN = Pattern.compile("(\\w+)/(\\w+)");
+
+	/**
+	 * This regex should match strings that look like URL query parameters i.e. starting with a "?"
+	 * and then a series of key value pairs of the form "{key}={value}", separated by "&"s.
+	 */
 	private static final Pattern PROPERTIES_PATTERN = Pattern.compile("\\?((?:[^?&=]+=[^?&=]+&?)+)$");
 
 	public static final DateTimeFormatter DATE_FORMATTER = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss,SSS").withZone(DateTimeZone.UTC);
