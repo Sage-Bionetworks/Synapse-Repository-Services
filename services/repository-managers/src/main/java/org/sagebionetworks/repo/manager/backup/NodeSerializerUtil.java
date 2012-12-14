@@ -8,15 +8,16 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.Collection;
 
-import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementBackup;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.CompetitionBackup;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.SubmissionBackup;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -145,16 +146,28 @@ public class NodeSerializerUtil  {
 		return (Activity)xstream.fromXML(reader);
 	}
 	
-	public static void writeCompetitionBackup(Competition comp, OutputStream out) {
+	public static void writeCompetitionBackup(CompetitionBackup cb, OutputStream out) {
 		OutputStreamWriter writer = new OutputStreamWriter(out);
 		XStream xstream = createXStream();
-		xstream.toXML(comp, writer);
+		xstream.toXML(cb, writer);
 	}
 	
-	public static Competition readCompetitionBackup(InputStream in) {
+	public static CompetitionBackup readCompetitionBackup(InputStream in) {
 		InputStreamReader reader = new InputStreamReader(in);
 		XStream xstream = createXStream();
-		return (Competition) xstream.fromXML(reader);
+		return (CompetitionBackup) xstream.fromXML(reader);
+	}
+	
+	public static void writeSubmissionBackup(SubmissionBackup sb, OutputStream out) {
+		OutputStreamWriter writer = new OutputStreamWriter(out);
+		XStream xstream = createXStream();
+		xstream.toXML(sb, writer);
+	}
+	
+	public static SubmissionBackup readSubmissionBackup(InputStream in) {
+		InputStreamReader reader = new InputStreamReader(in);
+		XStream xstream = createXStream();
+		return (SubmissionBackup) xstream.fromXML(reader);
 	}
 
 	private static XStream createXStream(){

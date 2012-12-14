@@ -1,9 +1,11 @@
 package org.sagebionetworks.competition.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACTIVITY_ETAG;
+import static org.sagebionetworks.competition.query.jdo.SQLConstants.*;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Date;
-
+import java.util.List;
 import org.sagebionetworks.competition.dbo.DBOConstants;
 import org.sagebionetworks.competition.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.competition.model.SubmissionStatus;
@@ -12,11 +14,16 @@ import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -35,11 +42,19 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	
 	private static final String ID = DBOConstants.PARAM_SUBMISSION_ID;
 	
-	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT "+COL_ACTIVITY_ETAG+" FROM " +
+	private static final String SQL_ETAG_WITHOUT_LOCK = "SELECT " + COL_SUBSTATUS_ETAG + " FROM " +
 			SQLConstants.TABLE_SUBSTATUS +" WHERE ID = ?";
 
 	private static final String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK + " FOR UPDATE";
 
+	private static final String SELECT_ID_ETAG_ENTITYID_PAGINATED = 
+			"SELECT " + COL_SUBMISSION_ID + ", " + COL_SUBSTATUS_ETAG + ", " + COL_SUBMISSION_ENTITY_ID +
+			" FROM "+ TABLE_SUBMISSION + " n " + "LEFT JOIN " + TABLE_SUBSTATUS + " r" + 
+			" ON " + "n." + COL_SUBMISSION_ID + " = " + "r." + COL_SUBSTATUS_SUBMISSION_ID +
+			" ORDER BY " + COL_SUBMISSION_ID +
+			" LIMIT :"+ LIMIT_PARAM_NAME +
+			" OFFSET :" + OFFSET_PARAM_NAME;
+	
 	private static final String SUBMISSION_NOT_FOUND = "Submission could not be found with id :";
 	
 	@Override
@@ -192,5 +207,51 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	private void lockAndSendTagMessage(SubmissionStatusDBO dbo, ChangeType changeType) {
 		lockForUpdate(dbo.getIdString());
 		tagMessenger.sendMessage(dbo, changeType);		
+	}
+
+	@Override
+	public long getCount() throws DatastoreException {
+		return basicDao.getCount(SubmissionStatusDBO.class);
+	}
+
+	@Override
+	public QueryResults<MigratableObjectData> getMigrationObjectData(
+			long offset, long limit, boolean includeDependencies)
+			throws DatastoreException {
+		// get one 'page' of Submissions (just IDs and eTags)
+		List<MigratableObjectData> ods = null;
+		{
+			MapSqlParameterSource param = new MapSqlParameterSource();
+			param.addValue(OFFSET_PARAM_NAME, offset);
+			param.addValue(LIMIT_PARAM_NAME, limit);
+			ods = simpleJdbcTemplate.query(SELECT_ID_ETAG_ENTITYID_PAGINATED, new RowMapper<MigratableObjectData>() {
+
+				@Override
+				public MigratableObjectData mapRow(ResultSet rs, int rowNum)
+						throws SQLException {
+					String id = rs.getString(COL_SUBMISSION_ID);
+					String etag = rs.getString(COL_SUBSTATUS_ETAG);
+					MigratableObjectData objectData = new MigratableObjectData();
+					MigratableObjectDescriptor od = new MigratableObjectDescriptor();
+					od.setId(id);
+					od.setType(MigratableObjectType.SUBMISSION);
+					objectData.setId(od);
+					objectData.setEtag(etag);
+					return objectData;
+				}
+			
+			}, param);
+		}
+		
+		// return the 'page' of objects, along with the total result count
+		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
+		queryResults.setResults(ods);
+		queryResults.setTotalNumberOfResults((int) getCount());
+		return queryResults;
+	}
+
+	@Override
+	public MigratableObjectType getMigratableObjectType() {
+		return MigratableObjectType.SUBMISSION;
 	}	
 }

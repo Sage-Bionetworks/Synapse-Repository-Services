@@ -4,9 +4,10 @@ import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableDAO;
 import org.sagebionetworks.repo.web.NotFoundException;
 
-public interface SubmissionStatusDAO {
+public interface SubmissionStatusDAO extends MigratableDAO {
 
 	public SubmissionStatus create(SubmissionStatus dto)
 			throws DatastoreException;

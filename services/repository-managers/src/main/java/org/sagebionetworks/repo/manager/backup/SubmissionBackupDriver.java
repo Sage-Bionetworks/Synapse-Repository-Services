@@ -6,7 +6,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -15,37 +14,39 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.competition.dao.CompetitionDAO;
-import org.sagebionetworks.competition.dao.ParticipantDAO;
+import org.sagebionetworks.competition.dao.SubmissionDAO;
+import org.sagebionetworks.competition.dao.SubmissionStatusDAO;
 import org.sagebionetworks.competition.model.Competition;
-import org.sagebionetworks.competition.model.Participant;
-import org.sagebionetworks.repo.model.CompetitionBackup;
+import org.sagebionetworks.competition.model.Submission;
+import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.SubmissionBackup;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class CompetitionBackupDriver implements GenericBackupDriver {
+public class SubmissionBackupDriver implements GenericBackupDriver {
 
 	@Autowired
-	private CompetitionDAO competitionDAO;
-	@Autowired
-	private ParticipantDAO participantDAO;
+	private SubmissionDAO submissionDAO;
+	private SubmissionStatusDAO submissionStatusDAO;
 
-	public CompetitionBackupDriver() { }
+	public SubmissionBackupDriver() { }
 
 	// for testing
-	public CompetitionBackupDriver(CompetitionDAO competitionDAO) {
-		this.competitionDAO = competitionDAO;
+	public SubmissionBackupDriver(SubmissionDAO submissionDAO, SubmissionStatusDAO submissionStatusDAO) {
+		this.submissionDAO = submissionDAO;
+		this.submissionStatusDAO = submissionStatusDAO;
 	}
 
-	static private Log log = LogFactory.getLog(CompetitionBackupDriver.class);
+	static private Log log = LogFactory.getLog(SubmissionBackupDriver.class);
 
 	private static final String ZIP_ENTRY_SUFFIX = ".xml";
 
 	@Override
 	public boolean writeBackup(File destination, Progress progress,
-			Set<String> competitionIdsToBackup) throws IOException,
+			Set<String> submissionIdsToBackup) throws IOException,
 			DatastoreException, NotFoundException, InterruptedException {
 		if (destination == null)
 			throw new IllegalArgumentException(
@@ -58,32 +59,32 @@ public class CompetitionBackupDriver implements GenericBackupDriver {
 		log.info("Starting a backup to file: " + destination.getAbsolutePath());
 		progress.appendLog("Starting a backup to file: "
 				+ destination.getAbsolutePath());
-		progress.setTotalCount(competitionIdsToBackup.size());
+		progress.setTotalCount(submissionIdsToBackup.size());
 
 		// write to the file
 		FileOutputStream fos = new FileOutputStream(destination);
 		ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(fos));
 		try {
-			progress.appendLog("Processing Competitions:");
-			for (String idToBackup : competitionIdsToBackup) {
+			progress.appendLog("Processing Submissions:");
+			for (String idToBackup : submissionIdsToBackup) {
 				Thread.yield();
 				progress.appendLog(idToBackup);
 				progress.setMessage(idToBackup);
-				
-				CompetitionBackup compBackup = new CompetitionBackup();
-				compBackup.setCompetition(competitionDAO.get(idToBackup));
-				compBackup.setParticipants(participantDAO.getAllByCompetition(idToBackup));
+
+				SubmissionBackup subBackup = new SubmissionBackup();
+				subBackup.setSubmission(submissionDAO.get(idToBackup));
+				subBackup.setSubmissionStatus(submissionStatusDAO.get(idToBackup));
 				ZipEntry entry = new ZipEntry(idToBackup + ZIP_ENTRY_SUFFIX);
 				zos.putNextEntry(entry);
-				NodeSerializerUtil.writeCompetitionBackup(compBackup, zos);
+				NodeSerializerUtil.writeSubmissionBackup(subBackup, zos);
 				progress.incrementProgress();
 				if (progress.shouldTerminate()) {
 					throw new InterruptedException(
-							"Competitions Backup terminated by the user.");
+							"Submissions backup terminated by the user.");
 				}
 			}
 			zos.close();
-			progress.appendLog("Finished processing Competitions.");
+			progress.appendLog("Finished processing Submissions.");
 		} finally {
 			if (fos != null) {
 				fos.flush();
@@ -117,21 +118,21 @@ public class CompetitionBackupDriver implements GenericBackupDriver {
 			progress.setTotalCount(source.length());
 
 			ZipEntry entry;
-			progress.appendLog("Processing Competitions:");
+			progress.appendLog("Processing Submissions:");
 			while ((entry = zin.getNextEntry()) != null) {
 				progress.setMessage(entry.getName());
 				// Check for termination.
 				if (progress.shouldTerminate()) {
 					throw new InterruptedException(
-							"Competitions restoration terminated by the user.");
+							"Submissions restoration terminated by the user.");
 				}
 
 				// This is a backup file.
-				CompetitionBackup backup = NodeSerializerUtil.readCompetitionBackup(zin);
+				SubmissionBackup backup = NodeSerializerUtil.readSubmissionBackup(zin);
 				createOrUpdate(backup);
 
 				// Append this id to the log.
-				progress.appendLog(backup.getCompetition().getId().toString());
+				progress.appendLog(backup.getSubmission().getId().toString());
 
 				progress.incrementProgressBy(entry.getCompressedSize());
 				if (log.isTraceEnabled()) {
@@ -152,40 +153,30 @@ public class CompetitionBackupDriver implements GenericBackupDriver {
 
 	@Override
 	public void delete(String id) throws DatastoreException, NotFoundException {
-		competitionDAO.delete(id);
+		submissionDAO.delete(id);
 	}
 
-	// returns true if a create/update was performed; false if NOOP
-	private void createOrUpdate(CompetitionBackup backup)
+	private void createOrUpdate(SubmissionBackup backup)
 			throws DatastoreException, NotFoundException,
 			InvalidModelException, ConflictingUpdateException {
+		Submission submission = backup.getSubmission();
+		SubmissionStatus submissionStatus = backup.getSubmissionStatus();
 		
-		Competition competition = backup.getCompetition();
-		List<Participant> participants = backup.getParticipants();
-		
-		// create the Competition
-		Competition existingComp = null;
+		// create the Submission
+		SubmissionStatus existing = null;
 		try {
-			existingComp = competitionDAO.get(competition.getId().toString());
+			existing = submissionStatusDAO.get(submissionStatus.getId().toString());
 		} catch (NotFoundException e) {}
-		if (null == existingComp) {
+		if (null == existing) {
 			// create
-			competitionDAO.create(competition, competition.getOwnerId());
+			submissionDAO.create(submission);
+			submissionStatusDAO.create(submissionStatus);
 		} else {
-			// update only when backup is different from the current system
-			if (existingComp.getEtag().equals(competition.getEtag())) {
-				return;
-			}
-			competitionDAO.updateFromBackup(competition);
-		}
-		
-		// create the Participants
-		for (Participant p : participants) {
-			try {
-				participantDAO.create(p);
-			} catch (DatastoreException e) {
-				
+			// Update only when backup is different from the current system
+			if (!submissionStatus.getEtag().equals(existing.getEtag())) {
+				submissionStatusDAO.updateFromBackup(submissionStatus);
 			}
 		}
 	}
+
 }

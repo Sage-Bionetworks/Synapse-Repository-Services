@@ -167,6 +167,6 @@ public class SubmissionStatusDBO implements DatabaseObject<SubmissionStatusDBO>,
 	}
 	@Override
 	public ObjectType getObjectType() {
-		return ObjectType.SUBMISSION_STATUS;
+		return ObjectType.SUBMISSION;
 	}
 }

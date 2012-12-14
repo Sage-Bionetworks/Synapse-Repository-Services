@@ -7,10 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
 import org.sagebionetworks.competition.dbo.CompetitionDBO;
 import org.sagebionetworks.competition.dbo.DBOConstants;
 import org.sagebionetworks.competition.model.Competition;
@@ -26,7 +23,6 @@ import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.jdo.ObjectDescriptorUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -71,8 +67,8 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 			" LIMIT :"+ LIMIT_PARAM_NAME +
 			" OFFSET :" + OFFSET_PARAM_NAME;
 	
-	private static final String SELECT_ID_ETAG_OWNER_SQL_PAGINATED = 
-			"SELECT " + COL_COMPETITION_ID + ", " + COL_COMPETITION_ETAG + ", " + COL_COMPETITION_OWNER_ID +
+	private static final String SELECT_ID_ETAG_SQL_PAGINATED = 
+			"SELECT " + COL_COMPETITION_ID + ", " + COL_COMPETITION_ETAG +
 			" FROM "+ TABLE_COMPETITION +
 			" ORDER BY " + COL_COMPETITION_ID +
 			" LIMIT :"+ LIMIT_PARAM_NAME +
@@ -205,7 +201,8 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 			lockAndSendTagMessage(dbo, ChangeType.UPDATE); 
 		} else {
 			// update eTag
-			lockAndGenerateEtag(dbo.getIdString(), dbo.geteTag(), ChangeType.UPDATE);			
+			String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.geteTag(), ChangeType.UPDATE);	
+			dbo.seteTag(newEtag);
 		}
 		
 		boolean success = basicDao.update(dbo);
@@ -296,7 +293,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 		String currentTag = lockForUpdate(id);
 		// Check the eTags
 		if(!currentTag.equals(eTag)){
-			throw new ConflictingUpdateException("Node: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
+			throw new ConflictingUpdateException("Competition: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
 		// Get a new e-tag
 		CompetitionDBO dbo = getDBO(id);
@@ -336,7 +333,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 			MapSqlParameterSource param = new MapSqlParameterSource();
 			param.addValue(OFFSET_PARAM_NAME, offset);
 			param.addValue(LIMIT_PARAM_NAME, limit);
-			ods = simpleJdbcTemplate.query(SELECT_ID_ETAG_OWNER_SQL_PAGINATED, new RowMapper<MigratableObjectData>() {
+			ods = simpleJdbcTemplate.query(SELECT_ID_ETAG_SQL_PAGINATED, new RowMapper<MigratableObjectData>() {
 
 				@Override
 				public MigratableObjectData mapRow(ResultSet rs, int rowNum)
@@ -350,11 +347,9 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 					objectData.setId(od);
 					objectData.setEtag(etag);
 					
-					// add ownerId as a dependency
-					Long ownerId = rs.getLong(COL_COMPETITION_OWNER_ID);
-					Set<MigratableObjectDescriptor> dependencies = new HashSet<MigratableObjectDescriptor>(1);
-					dependencies.add(ObjectDescriptorUtils.createEntityObjectDescriptor(ownerId));
-					objectData.setDependencies(dependencies);
+					// note that the principal specified by ownerId is a required dependency
+					// this dependency does not need to be specified per PLFM-1537
+					
 					return objectData;
 				}
 			

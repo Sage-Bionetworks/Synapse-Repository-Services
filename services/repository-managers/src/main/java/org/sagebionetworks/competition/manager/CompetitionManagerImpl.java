@@ -72,10 +72,7 @@ public class CompetitionManagerImpl implements CompetitionManager {
 		Competition old = competitionDAO.get(comp.getId());
 		if (old == null) throw new NotFoundException("No Competition found with id " + comp.getId());
 		validateAdminAccess(userId, old);
-		validateCompetition(old, comp);
-		
-		// TODO: lock node; verify and increment eTag
-		
+		validateCompetition(old, comp);		
 		competitionDAO.update(comp);
 		return getCompetition(comp.getId());
 	}
@@ -87,9 +84,9 @@ public class CompetitionManagerImpl implements CompetitionManager {
 		Competition comp = competitionDAO.get(id);
 		if (comp == null) throw new NotFoundException("No Competition found with id " + id);
 		validateAdminAccess(userId, comp);
-		competitionDAO.delete(id);			
+		competitionDAO.delete(id);
 	}
-	
+		
 	@Override
 	public boolean isCompAdmin(String userId, String compId) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return isCompAdmin(userId, getCompetition(compId));

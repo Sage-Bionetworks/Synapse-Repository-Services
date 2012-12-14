@@ -33,7 +33,7 @@
 				"PRINCIPAL",
 				"ACTIVITY",
 				"COMPETITION",
-				"SUBMISSION_STATUS"
+				"SUBMISSION"
 			]
 		},
 		"changeType": {
