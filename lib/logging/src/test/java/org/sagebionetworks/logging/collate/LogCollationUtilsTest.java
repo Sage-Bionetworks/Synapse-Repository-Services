@@ -57,7 +57,7 @@ public class LogCollationUtilsTest {
 
 	/**
 	 * This test MIGHT fail if your git settings are wrong. Specifically, you're
-	 * core.autocrlf should be set to true on unix/linux and input on windows.
+	 * core.autocrlf should be set to input on unix/linux and true on windows.
 	 *
 	 * @throws Exception
 	 */
