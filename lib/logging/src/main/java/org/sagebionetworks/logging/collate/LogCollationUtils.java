@@ -36,7 +36,7 @@ public class LogCollationUtils {
 	 * @return
 	 * @throws FileNotFoundException
 	 */
-	public static <T extends LogReader> ArrayList<T> initializeReaders(LogReader.LogReaderFactory<T> factory, List<File> files) throws FileNotFoundException {
+	public static <T extends LogReader> ArrayList<T> getLogReadersForFiles(LogReader.LogReaderFactory<T> factory, List<File> files) throws FileNotFoundException {
 		ArrayList<T> readers = new ArrayList<T>();
 
 		for (File file : files) {
