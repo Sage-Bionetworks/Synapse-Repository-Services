@@ -1,4 +1,4 @@
-package org.sagebionetworks.file.manager;
+package org.sagebionetworks.repo.manager.file;
 
 /**
  * Data about a file that was uploaded.

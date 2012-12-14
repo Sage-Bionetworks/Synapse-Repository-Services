@@ -1,4 +1,4 @@
-package org.sagebionetworks.file.manager;
+package org.sagebionetworks.repo.manager.file;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
