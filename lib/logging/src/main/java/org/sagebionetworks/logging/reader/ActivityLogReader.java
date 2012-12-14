@@ -26,7 +26,7 @@ public class ActivityLogReader implements LogReader {
 
 	private BufferedReader reader;
 
-	public ActivityLogReader(BufferedReader rdr) {
+	private ActivityLogReader(BufferedReader rdr) {
 		this.reader = rdr;
 	}
 
