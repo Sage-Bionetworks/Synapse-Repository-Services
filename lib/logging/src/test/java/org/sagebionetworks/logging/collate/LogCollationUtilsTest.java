@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,22 +27,27 @@ import org.sagebionetworks.logging.reader.LogReader.LogReaderFactory;
 public class LogCollationUtilsTest {
 
 	private List<File> files;
+	private List<File> toDelete;
+	private File testDir;
 
 	@Before
 	public void setUp() throws IOException {
-		List<String> fileNames = Arrays.asList("test1", "test2", "test3");
+		toDelete = new ArrayList<File>();
+		testDir = new File("src/test/resources");
+		if (!testDir.exists() || !testDir.isDirectory())
+			fail("Missing necessary test resource directory.");
 
-		files = new ArrayList<File>();
-		for (String fileName : fileNames) {
-			File e = new File(fileName);
-			e.createNewFile();
-			files.add(e);
-		}
+		files= Arrays.asList(testDir.listFiles(new FilenameFilter() {
+			@Override
+			public boolean accept(File dir, String name) {
+				return name.endsWith(".in");
+			}
+		}));
 	}
 
 	@After
 	public void tearDown() {
-		for (File file : files) {
+		for (File file : toDelete) {
 			file.delete();
 		}
 	}
@@ -60,28 +66,30 @@ public class LogCollationUtilsTest {
 		assertEquals(readers.size(), logReaders.size());
 	}
 
+	/**
+	 * This test MIGHT fail if your git settings are wrong. Specifically, you're
+	 * core.autocrlf should be set to true on unix/linux and input on windows.
+	 *
+	 * @throws Exception
+	 */
 	@Test
 	public void testCollate() throws Exception {
-		File dir = new File("src/test/resources");
-		if (!dir.exists() || !dir.isDirectory())
-			fail("Missing necessary test resource directory.");
 
-		List<File> asList = Arrays.asList(dir.listFiles(new FilenameFilter() {
-			@Override
-			public boolean accept(File dir, String name) {
-				String shouldMatch = "repo-activity.2012-09-16-10-30.log";
-				return name.equals(shouldMatch);
-			}
-		}));
+		assertEquals(3, files.size());
 
-		File tempFile = File.createTempFile("logOut", ".collated", dir);
-		tempFile.deleteOnExit();
+		File tempFile = File.createTempFile("log-", ".out", null);
+		toDelete.add(tempFile);
+
 		collateLogs(primeCollationMap(initializeReaders(new ActivityLogReader.ActivityLogReaderFactory(),
-														asList)),
+														files)),
 					new BufferedWriter(new FileWriter(tempFile)));
+		File validationFile = new File(testDir, "test.out");
+
+		assertTrue(validationFile.exists());
+		assertTrue("File contents should be equivalent", FileUtils.contentEquals(validationFile, tempFile));
 	}
 
-	@Test(expected=FileNotFoundException.class)
+	@Test(expected=UnsupportedOperationException.class)
 	public void testInitializeReaderFakeFiles() throws Exception {
 		files.add(new File(""));
 		LogReaderFactory<LogReader> mockFactory = mock(LogReaderFactory.class, RETURNS_DEEP_STUBS);
