@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import org.apache.commons.io.FileUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -62,23 +63,29 @@ public class LogCollationUtilsTest {
 
 	@Test
 	public void testCollate() throws Exception {
-		File dir = new File("src/test/resources");
-		if (!dir.exists() || !dir.isDirectory())
+		File testDir = new File("src/test/resources");
+		if (!testDir.exists() || !testDir.isDirectory())
 			fail("Missing necessary test resource directory.");
 
-		List<File> asList = Arrays.asList(dir.listFiles(new FilenameFilter() {
+		List<File> fileList = Arrays.asList(testDir.listFiles(new FilenameFilter() {
 			@Override
 			public boolean accept(File dir, String name) {
-				String shouldMatch = "repo-activity.2012-09-16-10-30.log";
-				return name.equals(shouldMatch);
+				return name.endsWith(".in");
 			}
 		}));
 
-		File tempFile = File.createTempFile("logOut", ".collated", dir);
+		assertEquals(3, fileList.size());
+
+		File tempFile = File.createTempFile("log-", ".out", testDir);
 		tempFile.deleteOnExit();
+
 		collateLogs(primeCollationMap(initializeReaders(new ActivityLogReader.ActivityLogReaderFactory(),
-														asList)),
+														fileList)),
 					new BufferedWriter(new FileWriter(tempFile)));
+		File validationFile = new File(testDir, "test.out");
+
+		assertTrue(validationFile.exists());
+		assertTrue("File contents should be equivalent", FileUtils.contentEquals(validationFile, tempFile));
 	}
 
 	@Test(expected=FileNotFoundException.class)
