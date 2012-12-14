@@ -13,6 +13,19 @@ import java.util.TreeMap;
 
 import org.sagebionetworks.logging.reader.LogReader;
 
+/**
+ * Set of utility functions for collating a set of log files into one.
+ * 
+ * There are a couple of preconditions for use:
+ * 
+ *  - the files should all be the same format.  This is meant to be used on a set of
+ *    log files generated on different instances of a single Elastic Beanstalk.
+ *  - The log files should be from the same period of time.  It will work to use collate on a 
+ *    set of log files that have totally non-overlapping timestamp ranges, but it's inefficent.
+ *    Those files can simply be concatenated.
+ * @author geoff
+ *
+ */
 public class LogCollationUtils {
 
 	public static <T extends LogReader> ArrayList<T> initializeReaders(LogReader.LogReaderFactory<T> factory, List<File> files) throws FileNotFoundException {
