@@ -26,7 +26,7 @@ public class ActivityLogReader implements LogReader {
 
 	private BufferedReader reader;
 
-	public ActivityLogReader(BufferedReader rdr) {
+	private ActivityLogReader(BufferedReader rdr) {
 		this.reader = rdr;
 	}
 
@@ -45,6 +45,11 @@ public class ActivityLogReader implements LogReader {
 			return SynapseLoggingUtils.DATE_FORMATTER.parseDateTime(matcher.group(1));
 		else
 			throw new IllegalArgumentException("Malformed log line: " + line);
+	}
+
+	@Override
+	public void close() throws IOException {
+		reader.close();
 	}
 
 }
