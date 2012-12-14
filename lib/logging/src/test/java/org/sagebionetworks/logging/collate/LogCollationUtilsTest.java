@@ -46,7 +46,7 @@ public class LogCollationUtilsTest {
 		@SuppressWarnings("unchecked")
 		LogReaderFactory<LogReader> mockFactory = mock(LogReaderFactory.class, RETURNS_DEEP_STUBS);
 
-		List<LogReader> logReaders = LogCollationUtils.initializeReaders(mockFactory, files);
+		List<LogReader> logReaders = LogCollationUtils.getLogReadersForFiles(mockFactory, files);
 		ArgumentCaptor<BufferedReader> captor = ArgumentCaptor.forClass(BufferedReader.class);
 		verify(mockFactory, times(files.size())).create(captor.capture());
 		List<BufferedReader> readers = captor.getAllValues();
@@ -57,7 +57,7 @@ public class LogCollationUtilsTest {
 
 	/**
 	 * This test MIGHT fail if your git settings are wrong. Specifically, you're
-	 * core.autocrlf should be set to true on unix/linux and input on windows.
+	 * core.autocrlf should be set to input on unix/linux and true on windows.
 	 *
 	 * @throws Exception
 	 */
@@ -73,9 +73,8 @@ public class LogCollationUtilsTest {
 		try {
 			tempFile = File.createTempFile("log-", ".out", null);
 			output = new BufferedWriter(new FileWriter(tempFile));
-			readers = initializeReaders(
-					new ActivityLogReader.ActivityLogReaderFactory(), files);
-			collateLogs(primeCollationMap(readers), output);
+			readers = getLogReadersForFiles(new ActivityLogReader.ActivityLogReaderFactory(), files);
+			collateLogs(readers, output);
 			File validationFile = new File(testDir, "test.out");
 
 			assertTrue(validationFile.exists());
@@ -97,6 +96,6 @@ public class LogCollationUtilsTest {
 		files.add(new File(""));
 		LogReaderFactory<LogReader> mockFactory = mock(LogReaderFactory.class, RETURNS_DEEP_STUBS);
 
-		LogCollationUtils.initializeReaders(mockFactory, files);
+		LogCollationUtils.getLogReadersForFiles(mockFactory, files);
 	}
 }
