@@ -46,27 +46,17 @@ public class LogCollationUtils {
 	}
 
 	/**
-	 * Setup the SortedMap used by the collation process.
-	 * @param readers A list of readers from the {@link initializeReaders} method.
-	 * @return The SortedMap that is used by {@link collateLogs}
+	 * Used to collate a set of log files from the same time period into a single "canonical" version of that log file.
+	 * @param readers Should come from {@link initializeReaders}.
+	 * @param output File to write the collated version of the logs too.
 	 * @throws IOException
 	 */
-	public static <T extends LogReader> SortedMap<LogEvent, T> primeCollationMap(List<T> readers) throws IOException {
+	public static <T extends LogReader> void collateLogs(List<T> readers, BufferedWriter output) throws IOException {
 		SortedMap<LogEvent, T> fileEventMap = new TreeMap<LogEvent, T>();
 		for (T stream : readers) {
 			LogEvent event = stream.readLogEvent();
 			fileEventMap.put(event, stream);
 		}
-		return fileEventMap;
-	}
-
-	/**
-	 * Used to collate a set of log files from the same time period into a single "canonical" version of that log file.
-	 * @param fileEventMap Should come from {@link primeCollationMap}.
-	 * @param output File to write the collated version of the logs too.
-	 * @throws IOException
-	 */
-	public static <T extends LogReader> void collateLogs(SortedMap<LogEvent, T> fileEventMap, BufferedWriter output) throws IOException {
 
 		while (!fileEventMap.isEmpty()) {
 			LogEvent firstEvent = fileEventMap.firstKey();

@@ -73,9 +73,8 @@ public class LogCollationUtilsTest {
 		try {
 			tempFile = File.createTempFile("log-", ".out", null);
 			output = new BufferedWriter(new FileWriter(tempFile));
-			readers = initializeReaders(
-					new ActivityLogReader.ActivityLogReaderFactory(), files);
-			collateLogs(primeCollationMap(readers), output);
+			readers = initializeReaders(new ActivityLogReader.ActivityLogReaderFactory(), files);
+			collateLogs(readers, output);
 			File validationFile = new File(testDir, "test.out");
 
 			assertTrue(validationFile.exists());
