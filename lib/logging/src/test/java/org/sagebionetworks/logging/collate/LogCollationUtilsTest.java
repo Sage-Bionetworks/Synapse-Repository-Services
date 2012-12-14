@@ -7,7 +7,6 @@ import static org.sagebionetworks.logging.collate.LogCollationUtils.*;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.FilenameFilter;
 import java.io.IOException;
@@ -16,7 +15,6 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.apache.commons.io.FileUtils;
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
@@ -27,12 +25,10 @@ import org.sagebionetworks.logging.reader.LogReader.LogReaderFactory;
 public class LogCollationUtilsTest {
 
 	private List<File> files;
-	private List<File> toDelete;
 	private File testDir;
 
 	@Before
 	public void setUp() throws IOException {
-		toDelete = new ArrayList<File>();
 		testDir = new File("src/test/resources");
 		if (!testDir.exists() || !testDir.isDirectory())
 			fail("Missing necessary test resource directory.");
@@ -43,13 +39,6 @@ public class LogCollationUtilsTest {
 				return name.endsWith(".in");
 			}
 		}));
-	}
-
-	@After
-	public void tearDown() {
-		for (File file : toDelete) {
-			file.delete();
-		}
 	}
 
 	@Test
@@ -77,16 +66,30 @@ public class LogCollationUtilsTest {
 
 		assertEquals(3, files.size());
 
-		File tempFile = File.createTempFile("log-", ".out", null);
-		toDelete.add(tempFile);
+		File tempFile = null;
+		ArrayList<ActivityLogReader> readers = null;
+		BufferedWriter output = null;
 
-		collateLogs(primeCollationMap(initializeReaders(new ActivityLogReader.ActivityLogReaderFactory(),
-														files)),
-					new BufferedWriter(new FileWriter(tempFile)));
-		File validationFile = new File(testDir, "test.out");
+		try {
+			tempFile = File.createTempFile("log-", ".out", null);
+			output = new BufferedWriter(new FileWriter(tempFile));
+			readers = initializeReaders(
+					new ActivityLogReader.ActivityLogReaderFactory(), files);
+			collateLogs(primeCollationMap(readers), output);
+			File validationFile = new File(testDir, "test.out");
 
-		assertTrue(validationFile.exists());
-		assertTrue("File contents should be equivalent", FileUtils.contentEquals(validationFile, tempFile));
+			assertTrue(validationFile.exists());
+			assertTrue("File contents should be equivalent",
+					FileUtils.contentEquals(validationFile, tempFile));
+		} finally {
+			if (output != null) output.close();
+			if (tempFile != null) assertTrue(tempFile.delete());
+			if (readers != null) {
+				for (ActivityLogReader reader : readers) {
+					reader.close();
+				}
+			}
+		}
 	}
 
 	@Test(expected=UnsupportedOperationException.class)

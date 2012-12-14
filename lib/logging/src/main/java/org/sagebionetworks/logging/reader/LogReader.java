@@ -29,4 +29,9 @@ public interface LogReader {
 	 */
 	public LogEvent readLogEvent() throws IOException;
 
+	/**
+	 * Close the file associated with this reader.
+	 */
+	public void close() throws IOException;
+
 }

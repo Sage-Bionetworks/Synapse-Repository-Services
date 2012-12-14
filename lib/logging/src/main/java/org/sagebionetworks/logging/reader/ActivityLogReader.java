@@ -47,4 +47,9 @@ public class ActivityLogReader implements LogReader {
 			throw new IllegalArgumentException("Malformed log line: " + line);
 	}
 
+	@Override
+	public void close() throws IOException {
+		reader.close();
+	}
+
 }
