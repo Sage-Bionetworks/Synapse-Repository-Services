@@ -28,6 +28,14 @@ import org.sagebionetworks.logging.reader.LogReader;
  */
 public class LogCollationUtils {
 
+	/**
+	 * Creates a list of LogReaders on the given files using the factory.  This is a separate method so that
+	 * code can hang onto the list of LogReaders opened so they don't leak files.
+	 * @param factory The factory class that can create instances of the LogReader for this file type.
+	 * @param files A list of files that need to be collated together.  They should all be of the format that is read by T.
+	 * @return
+	 * @throws FileNotFoundException
+	 */
 	public static <T extends LogReader> ArrayList<T> initializeReaders(LogReader.LogReaderFactory<T> factory, List<File> files) throws FileNotFoundException {
 		ArrayList<T> readers = new ArrayList<T>();
 
@@ -37,6 +45,12 @@ public class LogCollationUtils {
 		return readers;
 	}
 
+	/**
+	 * Setup the SortedMap used by the collation process.
+	 * @param readers A list of readers from the {@link initializeReaders} method.
+	 * @return The SortedMap that is used by {@link collateLogs}
+	 * @throws IOException
+	 */
 	public static <T extends LogReader> SortedMap<LogEvent, T> primeCollationMap(List<T> readers) throws IOException {
 		SortedMap<LogEvent, T> fileEventMap = new TreeMap<LogEvent, T>();
 		for (T stream : readers) {
@@ -46,6 +60,12 @@ public class LogCollationUtils {
 		return fileEventMap;
 	}
 
+	/**
+	 * Used to collate a set of log files from the same time period into a single "canonical" version of that log file.
+	 * @param fileEventMap Should come from {@link primeCollationMap}.
+	 * @param output File to write the collated version of the logs too.
+	 * @throws IOException
+	 */
 	public static <T extends LogReader> void collateLogs(SortedMap<LogEvent, T> fileEventMap, BufferedWriter output) throws IOException {
 
 		while (!fileEventMap.isEmpty()) {
