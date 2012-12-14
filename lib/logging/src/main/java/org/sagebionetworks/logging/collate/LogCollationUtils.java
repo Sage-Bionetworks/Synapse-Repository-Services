@@ -40,6 +40,7 @@ public class LogCollationUtils {
 			T rdr = fileEventMap.get(firstEvent);
 
 			output.write(firstEvent.getLine());
+			output.newLine();
 
 			fileEventMap.remove(firstEvent);
 
@@ -47,6 +48,7 @@ public class LogCollationUtils {
 			if (next != null)
 				fileEventMap.put(next, rdr);
 		}
+		output.flush();
 	}
 
 }

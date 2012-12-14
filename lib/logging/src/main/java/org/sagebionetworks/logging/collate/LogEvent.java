@@ -44,10 +44,7 @@ public final class LogEvent implements Comparable<LogEvent> {
 		}
 
 		LogEvent le = (LogEvent) o;
-
-		if (this.timestamp.equals(le.timestamp)
-				&& (this.line == null ? le.line == null : this.line
-						.equals(le.line)))
+		if (this.compareTo(le) == 0)
 			return true;
 		else
 			return false;
@@ -73,5 +70,9 @@ public final class LogEvent implements Comparable<LogEvent> {
 		return compareTo;
 	}
 
+	@Override
+	public String toString() {
+		return line;
+	}
 
 }
