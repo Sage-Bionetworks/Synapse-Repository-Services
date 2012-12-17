@@ -134,6 +134,10 @@
 	<bean id="competitionBackupDriver"
 		class="org.sagebionetworks.repo.manager.backup.CompetitionBackupDriver"
 		scope="singleton" />
+		
+	<bean id="submissionBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.SubmissionBackupDriver"
+		scope="singleton" />
 
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />
@@ -212,6 +216,9 @@
 				<entry key="COMPETITION">
 					<ref bean="competitionBackupDriver" />
 				</entry>
+				<entry key="SUBMISSION">
+					<ref bean="submissionBackupDriver" />
+				</entry>
 			</map>
 		</property>
 	</bean>
@@ -225,6 +232,7 @@
 				<ref bean="nodeDao"/>
 				<ref bean="accessRequirementDAO"/>
 				<ref bean="competitionDAO"/>
+				<ref bean="submissionStatusDAO"/>
 			</list>
 		</property>
 	</bean>

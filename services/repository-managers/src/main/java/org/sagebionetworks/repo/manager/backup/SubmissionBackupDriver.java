@@ -13,10 +13,8 @@ import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.competition.dao.CompetitionDAO;
 import org.sagebionetworks.competition.dao.SubmissionDAO;
 import org.sagebionetworks.competition.dao.SubmissionStatusDAO;
-import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;

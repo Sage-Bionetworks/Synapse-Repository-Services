@@ -205,8 +205,8 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 			dbo.seteTag(newEtag);
 		}
 		
-		boolean success = basicDao.update(dbo);
-		if (!success) throw new DatastoreException("Competition update failed.");
+		// TODO: detect and log NO-OP update
+		basicDao.update(dbo);
 	}
 
 	@Override

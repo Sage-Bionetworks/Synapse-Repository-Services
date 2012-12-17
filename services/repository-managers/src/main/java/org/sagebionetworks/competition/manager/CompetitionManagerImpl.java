@@ -80,7 +80,8 @@ public class CompetitionManagerImpl implements CompetitionManager {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void deleteCompetition(String userId, String id) throws DatastoreException, NotFoundException, UnauthorizedException {
-		CompetitionUtils.ensureNotNull(userId, id);
+		CompetitionUtils.ensureNotNull(userId, "User ID");
+		CompetitionUtils.ensureNotNull(id, "Competition ID");
 		Competition comp = competitionDAO.get(id);
 		if (comp == null) throw new NotFoundException("No Competition found with id " + id);
 		validateAdminAccess(userId, comp);
@@ -89,11 +90,13 @@ public class CompetitionManagerImpl implements CompetitionManager {
 		
 	@Override
 	public boolean isCompAdmin(String userId, String compId) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return isCompAdmin(userId, getCompetition(compId));
+		CompetitionUtils.ensureNotNull(userId, "User ID");
+		CompetitionUtils.ensureNotNull(compId, "Competition ID");
+		Competition comp = getCompetition(compId);
+		return isCompAdmin(userId, comp);
 	}
 	
-	@Override
-	public boolean isCompAdmin(String userId, Competition comp) {
+	private boolean isCompAdmin(String userId, Competition comp) {
 		if (userId.equals(comp.getOwnerId())) return true;
 		
 		// TODO: check list of admins

@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 import java.util.Date;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.junit.Before;
@@ -93,19 +94,27 @@ public class CompetitionManagerTest {
 		verify(mockCompetitionDAO).lookupByName(eq(COMPETITION_NAME));
 	}
 	
-	@Test
+	@Test(expected=NotFoundException.class)
 	public void testFindDoesNotExist() throws DatastoreException, UnauthorizedException, NotFoundException {
-		try {
-			Competition comp2 = competitionManager.findCompetition(COMPETITION_NAME +  "2");
-			fail("Found a competition that should not exist: " + comp2.toString());
-		} catch (NotFoundException e) {
-			// expected
-		}
+		competitionManager.findCompetition(COMPETITION_NAME +  "2");
 	}
 	
 	@Test
-	public void testInvalidName() {
-		// TODO
+	public void testInvalidName() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException {
+		// note that the Competition Manager relies on EntityNameValidation.java
+		comp.setName("$ This is an invalid name");
+		try {
+			competitionManager.createCompetition(OWNER_ID, comp);			
+		} catch (IllegalArgumentException e) {
+			// expected
+			assertTrue(e.getMessage().toLowerCase().contains("name"));			
+		}
+		verify(mockCompetitionDAO, times(0)).update(eq(comp));
+	}
+	
+	@Test
+	public void testIsAdmin() {
+		
 	}
 
 }

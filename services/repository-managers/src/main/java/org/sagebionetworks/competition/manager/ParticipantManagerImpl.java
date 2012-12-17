@@ -54,7 +54,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		
 		// verify permissions
 		Competition comp = competitionManager.getCompetition(compId);
-		if (!competitionManager.isCompAdmin(userId, comp))	{
+		if (!competitionManager.isCompAdmin(userId, compId))	{
 			// user is not an admin; only authorized to add self as a Participant
 			CompetitionUtils.ensureCompetitionIsOpen(comp);
 			if (!userId.equals(idToAdd))
@@ -81,17 +81,17 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		CompetitionUtils.ensureNotNull(compId, "Competition ID");
 		CompetitionUtils.ensureNotNull(idToRemove, "Participant User ID");
 		
-		// verify permissions	
-		Competition comp = competitionManager.getCompetition(compId);
-		if (!competitionManager.isCompAdmin(userId, comp))	{
+		// verify permissions
+		if (!competitionManager.isCompAdmin(userId, compId))	{
 			// user is not an admin; only authorized to cancel their own participation
-			CompetitionUtils.ensureCompetitionIsOpen(comp);
+			CompetitionUtils.ensureCompetitionIsOpen(competitionManager.getCompetition(compId));
 			if (!userId.equals(idToRemove))
 				throw new UnauthorizedException("User ID: " + userId + " is not authorized to remove other users from Competition ID: " + compId);
 		}
 		
 		// trigger etag update of the parent Competition
 		// this is required for migration consistency
+		Competition comp = competitionManager.getCompetition(compId);
 		competitionManager.updateCompetition(userId, comp);
 		
 		participantDAO.delete(idToRemove, compId);

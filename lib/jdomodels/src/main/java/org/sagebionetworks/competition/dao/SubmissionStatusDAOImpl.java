@@ -47,11 +47,10 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 
 	private static final String SQL_ETAG_FOR_UPDATE = SQL_ETAG_WITHOUT_LOCK + " FOR UPDATE";
 
-	private static final String SELECT_ID_ETAG_ENTITYID_PAGINATED = 
-			"SELECT " + COL_SUBMISSION_ID + ", " + COL_SUBSTATUS_ETAG + ", " + COL_SUBMISSION_ENTITY_ID +
-			" FROM "+ TABLE_SUBMISSION + " n " + "LEFT JOIN " + TABLE_SUBSTATUS + " r" + 
-			" ON " + "n." + COL_SUBMISSION_ID + " = " + "r." + COL_SUBSTATUS_SUBMISSION_ID +
-			" ORDER BY " + COL_SUBMISSION_ID +
+	private static final String SELECT_ID_ETAG_PAGINATED = 
+			"SELECT " + COL_SUBMISSION_ID + ", " + COL_SUBSTATUS_ETAG +
+			" FROM "+ TABLE_SUBSTATUS +
+			" ORDER BY " + COL_SUBSTATUS_SUBMISSION_ID +
 			" LIMIT :"+ LIMIT_PARAM_NAME +
 			" OFFSET :" + OFFSET_PARAM_NAME;
 	
@@ -224,12 +223,12 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			MapSqlParameterSource param = new MapSqlParameterSource();
 			param.addValue(OFFSET_PARAM_NAME, offset);
 			param.addValue(LIMIT_PARAM_NAME, limit);
-			ods = simpleJdbcTemplate.query(SELECT_ID_ETAG_ENTITYID_PAGINATED, new RowMapper<MigratableObjectData>() {
+			ods = simpleJdbcTemplate.query(SELECT_ID_ETAG_PAGINATED, new RowMapper<MigratableObjectData>() {
 
 				@Override
 				public MigratableObjectData mapRow(ResultSet rs, int rowNum)
 						throws SQLException {
-					String id = rs.getString(COL_SUBMISSION_ID);
+					String id = rs.getString(COL_SUBSTATUS_SUBMISSION_ID);
 					String etag = rs.getString(COL_SUBSTATUS_ETAG);
 					MigratableObjectData objectData = new MigratableObjectData();
 					MigratableObjectDescriptor od = new MigratableObjectDescriptor();

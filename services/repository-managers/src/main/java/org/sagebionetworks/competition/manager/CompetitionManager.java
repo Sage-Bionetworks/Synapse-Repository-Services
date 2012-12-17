@@ -57,11 +57,9 @@ public interface CompetitionManager {
 	 * Check whether a given user is an adminsitrator of a given Competition.
 	 * 
 	 * @param userId
-	 * @param comp
+	 * @param compId
 	 * @return
 	 */
-	public boolean isCompAdmin(String userId, Competition comp);
-
 	public boolean isCompAdmin(String userId, String compId) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 }
