@@ -60,7 +60,8 @@ public class AccessApprovalController extends BaseController {
 	@RequestMapping(value = UrlHelpers.ACCESS_APPROVAL_WITH_APPROVAL_ID, method = RequestMethod.DELETE)
 	public void deleteAccessApprovals(
 				@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String approvalId) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
+			@PathVariable String approvalId,
+			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException, ForbiddenException {
 		serviceProvider.getAccessApprovalService().deleteAccessApprovals(userId, approvalId);
 	}
 	

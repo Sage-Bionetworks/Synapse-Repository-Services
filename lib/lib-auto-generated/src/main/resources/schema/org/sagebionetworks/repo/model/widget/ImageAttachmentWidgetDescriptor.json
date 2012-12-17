@@ -1,0 +1,14 @@
+{
+	"description": "JSON schema for ImageAttachmentWidgetDescriptor",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.widget.WidgetDescriptor"
+		}
+	],
+	"properties": {
+		"image": {
+			"description": "Metadata about the destination field",
+			"$ref": "org.sagebionetworks.repo.model.attachment.AttachmentData"
+		}
+	}
+}

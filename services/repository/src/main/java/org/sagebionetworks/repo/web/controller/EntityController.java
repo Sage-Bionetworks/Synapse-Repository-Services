@@ -680,7 +680,8 @@ public class EntityController extends BaseController{
 			}, method = RequestMethod.DELETE)
 	public void deleteEntityACL(
 			@PathVariable String id,
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws NotFoundException,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request) throws NotFoundException,
 			DatastoreException, UnauthorizedException, ConflictingUpdateException {
 		// Determine the object type from the url.
 		serviceProvider.getEntityService().deleteEntityACL(userId, id);
@@ -818,7 +819,8 @@ public class EntityController extends BaseController{
 			UrlHelpers.REST_RESOURCES+UrlHelpers.EFFECTIVE_SCHEMA
 			}, method = RequestMethod.GET)
 	public @ResponseBody
-	ObjectSchema getEffectiveSchema(@RequestParam(value = UrlHelpers.RESOURCE_ID, required = true) String resourceId) throws NotFoundException, DatastoreException {
+	ObjectSchema getEffectiveSchema(@RequestParam(value = UrlHelpers.RESOURCE_ID, required = true) String resourceId,
+			HttpServletRequest request) throws NotFoundException, DatastoreException {
 		if(resourceId == null) throw new IllegalArgumentException("The query parameter: '"+UrlHelpers.RESOURCE_ID+"' is required");
 		return schemaManager.getEffectiveSchema(resourceId);
 	}
@@ -836,7 +838,8 @@ public class EntityController extends BaseController{
 			UrlHelpers.REST_RESOURCES+UrlHelpers.SCHEMA
 			}, method = RequestMethod.GET)
 	public @ResponseBody
-	ObjectSchema getFullSchema(@RequestParam(value = UrlHelpers.RESOURCE_ID, required = true) String resourceId) throws NotFoundException, DatastoreException {
+	ObjectSchema getFullSchema(@RequestParam(value = UrlHelpers.RESOURCE_ID, required = true) String resourceId,
+			HttpServletRequest request) throws NotFoundException, DatastoreException {
 		if(resourceId == null) throw new IllegalArgumentException("The query parameter: '"+UrlHelpers.RESOURCE_ID+"' is required");
 		// get the schema from the manager.
 		return schemaManager.getFullSchema(resourceId);

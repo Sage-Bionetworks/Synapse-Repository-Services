@@ -121,7 +121,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		
 		// check whether the user is allowed to create this type of node
 		if (!authorizationManager.canCreate(userInfo, newNode)) {
-			throw new UnauthorizedException(userInfo.getUser().getUserId()+" is not allowed to create items of type "+newNode.getNodeType());
+			throw new UnauthorizedException(userInfo.getUser().getUserId()+" is not allowed to create items within container "+newNode.getParentId());
 		}
 
 		// check whether the user is allowed to connect to the specified activity
