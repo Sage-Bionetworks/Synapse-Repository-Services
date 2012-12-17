@@ -18,6 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public class ParticipantDAOImpl implements ParticipantDAO {
 	
@@ -40,11 +42,13 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 			" WHERE "+ SQLConstants.COL_PARTICIPANT_COMP_ID + "=:"+ COMP_ID;
 	
 	private static final String COUNT_BY_COMPETITION_SQL = 
-			"SELECT COUNT (DISTINCT " + COMP_ID + ") FROM " +  SQLConstants.TABLE_PARTICIPANT;
+			"SELECT COUNT FROM " +  SQLConstants.TABLE_PARTICIPANT +
+			" WHERE " + SQLConstants.COL_PARTICIPANT_COMP_ID + "=:" + COMP_ID;
 	
 	private static final RowMapper<ParticipantDBO> rowMapper = ((new ParticipantDBO()).getTableMapping());
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void create(Participant dto) throws DatastoreException {		
 		// Convert to DBO
 		ParticipantDBO dbo = new ParticipantDBO();
@@ -76,12 +80,9 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	}
 
 	@Override
-	public List<Participant> getInRange(long startIncl, long endExcl) throws DatastoreException, NotFoundException {
+	public List<Participant> getInRange(long limit, long offset) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(SQLConstants.OFFSET_PARAM_NAME, startIncl);
-		long limit = endExcl - startIncl;
-		if (limit <= 0)
-			throw new IllegalArgumentException("'to' param must be greater than 'from' param.");
+		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
 		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);	
 		List<ParticipantDBO> dbos = simpleJdbcTemplate.query(SELECT_ALL_SQL_PAGINATED, rowMapper, param);
 		List<Participant> dtos = new ArrayList<Participant>();
@@ -115,6 +116,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	}
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void delete(String userId, String compId) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(USER_ID, userId);

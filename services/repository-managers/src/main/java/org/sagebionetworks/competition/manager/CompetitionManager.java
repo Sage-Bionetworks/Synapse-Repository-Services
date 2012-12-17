@@ -25,7 +25,7 @@ public interface CompetitionManager {
 	/**
 	 * Get a collection of Competitions, within a given range
 	 */
-	public QueryResults<Competition> getInRange(long startIncl, long endExcl) 
+	public QueryResults<Competition> getInRange(long limit, long offset) 
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -57,11 +57,9 @@ public interface CompetitionManager {
 	 * Check whether a given user is an adminsitrator of a given Competition.
 	 * 
 	 * @param userId
-	 * @param comp
+	 * @param compId
 	 * @return
 	 */
-	public boolean isCompAdmin(String userId, Competition comp);
-
 	public boolean isCompAdmin(String userId, String compId) throws DatastoreException, UnauthorizedException, NotFoundException;
 	
 }
