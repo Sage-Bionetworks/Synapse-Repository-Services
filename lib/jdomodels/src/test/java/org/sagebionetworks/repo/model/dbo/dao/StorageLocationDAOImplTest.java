@@ -509,13 +509,7 @@ public class StorageLocationDAOImplTest {
 		this.nodeId = nodeId;
 
 		// Clear any location data associated with the node
-		StorageLocations sl = new StorageLocations(
-				KeyFactory.stringToKey(nodeId),
-				Long.parseLong(userId),
-				new ArrayList<AttachmentData>(0),
-				new ArrayList<LocationData>(0),
-				new HashMap<String, List<String>>(0));
-		dao.replaceLocationData(sl);
+		dao.deleteLocationDataByOwnerId(KeyFactory.stringToKey(nodeId));
 
 		// Create the location data
 		locations = new StorageLocations(KeyFactory.stringToKey(nodeId), userIdLong,
@@ -551,13 +545,7 @@ public class StorageLocationDAOImplTest {
 		boolean success = nodeDao.delete(nodeId.toString());
 		Assert.assertTrue(success);
 		// Clear any location data associated with the node
-		StorageLocations sl = new StorageLocations(
-				KeyFactory.stringToKey(nodeId),
-				Long.parseLong(userId),
-				new ArrayList<AttachmentData>(0),
-				new ArrayList<LocationData>(0),
-				new HashMap<String, List<String>>(0));
-		dao.replaceLocationData(sl);
+		dao.deleteLocationDataByOwnerId(KeyFactory.stringToKey(nodeId));
 	}
 
 	private StorageLocationDAO unwrap() throws Exception {

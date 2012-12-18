@@ -112,11 +112,10 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		if(annotations == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(annotations.getId() == null) throw new IllegalArgumentException("Annotations owner id cannot be null");
 		Long ownerId = KeyFactory.stringToKey(annotations.getId());
+
 		// First we must delete all annotations for this node.
-		for(String tableName: ANNOTATION_TABLES){
-			deleteWithoutGapLockFromTable(tableName, ownerId);
-		}
-		
+		deleteAnnotationsByOwnerId(ownerId);
+
 		// Create the string.
 		Map<String, List<String>> stringAnnos = annotations.getStringAnnotations();
 		if(stringAnnos != null && stringAnnos.size() > 0){
@@ -143,7 +142,16 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 			dboBasicDao.createBatch(batch);
 		}
 	}
-	
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteAnnotationsByOwnerId(Long ownerId) {
+		if (ownerId == null) throw new IllegalArgumentException("Owner id cannot be null");
+		for(String tableName: ANNOTATION_TABLES){
+			deleteWithoutGapLockFromTable(tableName, ownerId);
+		}
+	}
+
 	/**
 	 * In order to avoid MySQL gap locks which cause deadlock, we need to delete by a unique key.
 	 * This means we need to first for row IDs that match the owner.  We then use the ids to
