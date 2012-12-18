@@ -86,4 +86,14 @@ public class AsynchronousDAOImplTest {
 		verify(mockStorageLocationDao, times(1)).replaceLocationData(sl);
 		verify(mockAnnotationsDao, times(1)).replaceAnnotations(forDb);
 	}
+
+	@Test
+	public void testDelete() throws NotFoundException{
+		// Make the call
+		testDao.deleteEntity(nodeIdString);
+		// verify
+		verify(mockReferenceDao, times(1)).deleteReferencesByOwnderId(nodeId);
+		verify(mockStorageLocationDao, times(1)).deleteLocationDataByOwnerId(nodeId);
+		verify(mockAnnotationsDao, times(1)).deleteAnnotationsByOwnerId(nodeId);
+	}
 }

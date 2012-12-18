@@ -12,7 +12,13 @@ public interface ReferenceDao {
 	 * @throws DatastoreException 
 	 */
 	public Map<String, Set<Reference>> replaceReferences(Long ownerId, Map<String, Set<Reference>> references) throws DatastoreException;
-	
+
+	/**
+	 * Removes all the references associated with the specified owner.
+	 * @param ownerId
+	 */
+	public void deleteReferencesByOwnderId(Long ownerId);
+
 	/**
 	 * Get all references for a given owner.
 	 * @param ownerId
