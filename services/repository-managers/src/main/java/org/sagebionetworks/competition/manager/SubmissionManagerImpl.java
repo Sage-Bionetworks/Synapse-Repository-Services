@@ -1,9 +1,11 @@
 package org.sagebionetworks.competition.manager;
 
 import org.sagebionetworks.competition.dao.SubmissionDAO;
+import org.sagebionetworks.competition.dao.SubmissionStatusDAO;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.CompetitionStatus;
 import org.sagebionetworks.competition.model.Submission;
+import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -16,6 +18,8 @@ public class SubmissionManagerImpl {
 	
 	@Autowired
 	SubmissionDAO submissionDAO;
+	@Autowired
+	SubmissionStatusDAO submissionStatusDAO;
 	@Autowired
 	CompetitionManager competitionManager;
 	@Autowired
@@ -32,6 +36,11 @@ public class SubmissionManagerImpl {
 	public Submission getSubmission(String submissionId) throws DatastoreException, NotFoundException {
 		CompetitionUtils.ensureNotNull(submissionId, "Submission ID");
 		return submissionDAO.get(submissionId);
+	}
+	
+	public SubmissionStatus getSubmissionStatus(String submissionId) throws DatastoreException, NotFoundException {
+		CompetitionUtils.ensureNotNull(submissionId, "Submission ID");
+		return submissionStatusDAO.get(submissionId);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -55,7 +64,7 @@ public class SubmissionManagerImpl {
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission updateSubmission(String userId, Submission submission) throws NotFoundException {
+	public Submission updateSubmissionStatus(String userId, Submission submission) throws NotFoundException {
 		CompetitionUtils.ensureNotNull(userId, "User ID");
 		CompetitionUtils.ensureNotNull(submission, "Submission ID");
 		String compId = submission.getCompetitionId();
@@ -82,10 +91,10 @@ public class SubmissionManagerImpl {
 		CompetitionUtils.ensureNotNull(userId, submissionId);
 		
 		Submission sub = submissionDAO.get(submissionId);		
-		Competition comp = competitionManager.getCompetition(sub.getCompetitionId());
+		String compId = sub.getCompetitionId();
 		
 		// verify access permission
-		if ((!sub.getUserId().equals(userId)) && (!competitionManager.isCompAdmin(userId, comp))) {
+		if ((!sub.getUserId().equals(userId)) && (!competitionManager.isCompAdmin(userId, compId))) {
 			throw new UnauthorizedException("User ID: " + userId +
 					" is not authorized to modify Submission ID: " + submissionId);
 		}

@@ -7,6 +7,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.competition.model.CompetitionStatus;
+import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -21,7 +22,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class SubmissionDBOTest {
+public class SubmissionStatusDBOTest {
  
     @Autowired
     DBOBasicDao dboBasicDao;
@@ -33,6 +34,7 @@ public class SubmissionDBOTest {
     private long userId = 0;
     private long compId;
     private String name = "test submission";
+    private String eTag = "foo";
     
     @Before
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {    	
@@ -59,12 +61,23 @@ public class SubmissionDBOTest {
         participant.setCompId(compId);
         participant.setCreatedOn(System.currentTimeMillis());
         dboBasicDao.createNew(participant);
+        
+        // Initialize a new Submission
+        SubmissionDBO submission = new SubmissionDBO();
+        submission.setId(submissionId);
+        submission.setName(name);
+        submission.setEntityId(Long.parseLong(nodeId));
+        submission.setVersionNumber(1L);
+        submission.setUserId(userId);
+        submission.setCompId(compId);
+        submission.setCreatedOn(System.currentTimeMillis());
+        dboBasicDao.createNew(submission);
     }
     
     @After
     public void after() throws DatastoreException {
-        if(dboBasicDao != null) {
-        	// delete submission
+        if(dboBasicDao != null) {            
+            // delete submission
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("id", submissionId);
             dboBasicDao.deleteObjectById(SubmissionDBO.class, params);
@@ -86,30 +99,34 @@ public class SubmissionDBOTest {
     }
     @Test
     public void testCRD() throws Exception{
-        // Initialize a new Submission
-        SubmissionDBO submission = new SubmissionDBO();
-        submission.setId(submissionId);
-        submission.setName(name);
-        submission.setEntityId(Long.parseLong(nodeId));
-        submission.setVersionNumber(1L);
-        submission.setUserId(userId);
-        submission.setCompId(compId);
-        submission.setCreatedOn(System.currentTimeMillis());
- 
+        // Initialize a new SubmissionStatus object for submissionId
+        SubmissionStatusDBO status = new SubmissionStatusDBO();
+        status.setId(submissionId);
+        status.seteTag(eTag);
+        status.setModifiedOn(System.currentTimeMillis());
+        status.setStatusEnum(SubmissionStatusEnum.OPEN);
+        status.setScore(0L);
+        
         // Create it
-        SubmissionDBO clone = dboBasicDao.createNew(submission);
+        SubmissionStatusDBO clone = dboBasicDao.createNew(status);
         assertNotNull(clone);
-        assertEquals(submission, clone);
+        assertEquals(status, clone);
         
         // Fetch it
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("id",submissionId);
-        SubmissionDBO clone2 = dboBasicDao.getObjectById(SubmissionDBO.class, params);
-        assertNotNull(clone2);
-        assertEquals(submission, clone2); 
+        SubmissionStatusDBO clone2 = dboBasicDao.getObjectById(SubmissionStatusDBO.class, params);
+        assertEquals(status, clone2);
         
-        // Delete it
-        boolean result = dboBasicDao.deleteObjectById(SubmissionDBO.class,  params);
+        // Update it
+        clone2.setStatusEnum(SubmissionStatusEnum.SCORED);
+        clone2.setScore(100L);
+        dboBasicDao.update(clone2);
+        SubmissionStatusDBO clone3 = dboBasicDao.getObjectById(SubmissionStatusDBO.class, params);
+        assertEquals(clone2, clone3);
+
+    	// Delete it
+        boolean result = dboBasicDao.deleteObjectById(SubmissionStatusDBO.class,  params);
         assertTrue("Failed to delete the entry created", result); 
     }
  
