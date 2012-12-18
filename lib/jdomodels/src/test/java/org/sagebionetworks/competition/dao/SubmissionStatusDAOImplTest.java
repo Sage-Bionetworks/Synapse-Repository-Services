@@ -8,6 +8,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.competition.dbo.SubmissionStatusDBO;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.CompetitionStatus;
 import org.sagebionetworks.competition.model.Participant;
@@ -78,7 +79,7 @@ public class SubmissionStatusDAOImplTest {
         submission.setUserId(userId);
         submission.setCompetitionId(compId);
         submission.setCreatedOn(new Date());
-        submissionId = submissionDAO.create(submission).getId();
+        submissionId = submissionDAO.create(submission);
     }
     
     @After
@@ -98,39 +99,43 @@ public class SubmissionStatusDAOImplTest {
     }
     
     @Test
-    public void testCRD() throws Exception{
+    public void testCRUD() throws Exception{
         // Initialize a new SubmissionStatus object for submissionId
         SubmissionStatus status = new SubmissionStatus();
         status.setId(submissionId);
         status.setEtag(null);
         status.setStatus(SubmissionStatusEnum.OPEN);
         status.setScore(0L);
+        long initialCount = submissionStatusDAO.getCount();
         
         // Create it
-        SubmissionStatus clone = submissionStatusDAO.create(status);
+        submissionStatusDAO.create(status);
+        assertEquals(initialCount + 1, submissionStatusDAO.getCount());
+        
+        // Fetch it
+        SubmissionStatus clone = submissionStatusDAO.get(submissionId);
         assertNotNull(clone);
-        assertNotNull(clone.getModifiedOn());
-        status.setModifiedOn(clone.getModifiedOn());
+        assertNotNull(clone.getModifiedOn());        
         assertNotNull(clone.getEtag());
+        status.setModifiedOn(clone.getModifiedOn());
         status.setEtag(clone.getEtag());
         assertEquals(status, clone);
         
-        // Fetch it
-        SubmissionStatus clone2 = submissionStatusDAO.get(submissionId);
-        assertEquals(status, clone2);
-        
         // Update it
-        clone2.setStatus(SubmissionStatusEnum.SCORED);
-        clone2.setScore(100L);
+        clone.setStatus(SubmissionStatusEnum.SCORED);
+        clone.setScore(100L);
         Thread.sleep(1L);
-        submissionStatusDAO.update(clone2);
-        SubmissionStatus clone3 = submissionStatusDAO.get(submissionId);        
-        assertFalse("Modified date was not updated", clone2.getModifiedOn().equals(clone3.getModifiedOn()));
-        clone2.setModifiedOn(clone3.getModifiedOn());
-        assertEquals(clone2, clone3);
+        submissionStatusDAO.update(clone);
+        SubmissionStatus clone2 = submissionStatusDAO.get(submissionId);
+        assertFalse("eTag was not updated.", clone.getEtag().equals(clone2.getEtag()));
+        assertFalse("Modified date was not updated", clone.getModifiedOn().equals(clone2.getModifiedOn()));
+        clone.setModifiedOn(clone2.getModifiedOn());
+        clone.setEtag(clone2.getEtag());
+        assertEquals(clone, clone2);
 
     	// Delete it
         submissionStatusDAO.delete(submissionId);
+        assertEquals(initialCount, submissionStatusDAO.getCount());
         
         // Fetch it (should not exist)
         try {
@@ -138,5 +143,26 @@ public class SubmissionStatusDAOImplTest {
         } catch (NotFoundException e) {
         	// expected
         }
+    }
+    
+    @Test
+    public void testDtoToDbo() {
+    	SubmissionStatus subStatusDTO = new SubmissionStatus();
+    	SubmissionStatus subStatusDTOclone = new SubmissionStatus();
+    	SubmissionStatusDBO subStatusDBO = new SubmissionStatusDBO();
+    	SubmissionStatusDBO subStatusDBOclone = new SubmissionStatusDBO();
+    	
+    	subStatusDTO.setEtag("eTag");
+    	subStatusDTO.setId("123");
+    	subStatusDTO.setModifiedOn(new Date());
+    	subStatusDTO.setScore(42L);
+    	subStatusDTO.setStatus(SubmissionStatusEnum.CLOSED);
+    	    	
+    	SubmissionStatusDAOImpl.copyDtoToDbo(subStatusDTO, subStatusDBO);
+    	SubmissionStatusDAOImpl.copyDboToDto(subStatusDBO, subStatusDTOclone);
+    	SubmissionStatusDAOImpl.copyDtoToDbo(subStatusDTOclone, subStatusDBOclone);
+    	
+    	assertEquals(subStatusDTO, subStatusDTOclone);
+    	assertEquals(subStatusDBO, subStatusDBOclone);
     }
 }

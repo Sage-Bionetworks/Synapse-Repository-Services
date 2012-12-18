@@ -46,8 +46,8 @@ public class CompetitionManagerImpl implements CompetitionManager {
 	public QueryResults<Competition> getInRange(long limit, long offset) throws DatastoreException, NotFoundException {
 		List<Competition> competitions = competitionDAO.getInRange(limit, offset);
 		long totalNumberOfResults = competitionDAO.getCount();
-		QueryResults<Competition> result = new QueryResults<Competition>(competitions, (int) totalNumberOfResults);
-		return result;
+		QueryResults<Competition> res = new QueryResults<Competition>(competitions, totalNumberOfResults);
+		return res;
 	}
 	
 	@Override
@@ -70,11 +70,21 @@ public class CompetitionManagerImpl implements CompetitionManager {
 		CompetitionUtils.ensureNotNull(userId, "User ID");
 		CompetitionUtils.ensureNotNull(comp, "Competition");
 		Competition old = competitionDAO.get(comp.getId());
-		if (old == null) throw new NotFoundException("No Competition found with id " + comp.getId());
+		if (old == null) 
+			throw new NotFoundException("No Competition found with id " + comp.getId());
+		if (!old.getEtag().equals(comp.getEtag()))
+			throw new IllegalArgumentException("Your copy of Competition " + comp.getId() + " is out of date. Please fetch it again before updating.");
 		validateAdminAccess(userId, old);
 		validateCompetition(old, comp);		
 		competitionDAO.update(comp);
 		return getCompetition(comp.getId());
+	}
+	
+	@Override
+	public void updateCompetitionEtag(String compId) throws NotFoundException {
+		Competition comp = competitionDAO.get(compId);
+		if (comp == null) throw new NotFoundException("No Competition found with id " + compId);
+		competitionDAO.update(comp);
 	}
 	
 	@Override

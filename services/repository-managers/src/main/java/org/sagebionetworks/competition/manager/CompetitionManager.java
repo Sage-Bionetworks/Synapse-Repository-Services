@@ -61,5 +61,16 @@ public interface CompetitionManager {
 	 * @return
 	 */
 	public boolean isCompAdmin(String userId, String compId) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * Update the eTag of a competition. For use when modifying objects
+	 * associated with a Competition for migration purposes.
+	 * 
+	 * Note that, besides the eTag change, this method performs a NOOP update.
+	 * 
+	 * @param compId
+	 * @throws NotFoundException
+	 */
+	void updateCompetitionEtag(String compId) throws NotFoundException;
 	
 }

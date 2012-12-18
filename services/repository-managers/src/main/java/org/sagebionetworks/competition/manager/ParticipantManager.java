@@ -50,17 +50,15 @@ public interface ParticipantManager {
 			String idToRemove) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Get all Participants for a given Competition. This method requires
-	 * admin rights on the requested Competition.
+	 * Get all Participants for a given Competition.
 	 * 
-	 * @param userId
 	 * @param compId
 	 * @return
 	 * @throws NumberFormatException
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Set<Participant> getAllParticipants(String userId, String compId)
+	public Set<Participant> getAllParticipants(String compId)
 			throws NumberFormatException, DatastoreException, NotFoundException;
 
 	/**

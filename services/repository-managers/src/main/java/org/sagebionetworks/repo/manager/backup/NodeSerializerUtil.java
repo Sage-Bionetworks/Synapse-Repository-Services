@@ -37,6 +37,8 @@ public class NodeSerializerUtil  {
 	private static final String ALIAS_ANNOTATIONS = "annotations";
 	private static final String ALIAS_NAME_SPACE = "name-space";
 	private static final String ALIAS_ACTIVITY = "activity";
+	private static final String ALIAS_COMPETITION = "competition";
+	private static final String ALIAS_SUBMISSION = "submission";
 
 
 	/**
@@ -179,6 +181,8 @@ public class NodeSerializerUtil  {
 		xstream.alias(ALIAS_ANNOTATIONS, Annotations.class);
 		xstream.alias(ALIAS_NAME_SPACE, NamedAnnotations.class);
 		xstream.alias(ALIAS_ACTIVITY, Activity.class);
+		xstream.alias(ALIAS_COMPETITION, CompetitionBackup.class);
+		xstream.alias(ALIAS_SUBMISSION, SubmissionBackup.class);
 		return xstream;
 	}
 

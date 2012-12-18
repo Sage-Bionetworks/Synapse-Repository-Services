@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Random;
 
@@ -15,6 +16,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.competition.dbo.CompetitionDBO;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.CompetitionStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -99,6 +101,7 @@ public class CompetitionDAOImplTest {
 		} catch (NotFoundException e) {
 			// Expected
 		}
+		assertEquals(initialCount, competitionDAO.getCount());
 		assertNull(competitionDAO.lookupByName(updated.getName()));
 	}
 
@@ -156,23 +159,70 @@ public class CompetitionDAOImplTest {
     }
     
     @Test
-    public void testGetInRange() {
-    	//TODO
+    public void testGetInRange() throws DatastoreException, NotFoundException {
+    	// Initialize Competition
+		Competition comp = new Competition();
+		comp.setName(COMPETITION_NAME);
+        comp.setContentSource(COMPETITION_CONTENT_SOURCE);
+        comp.setStatus(CompetitionStatus.PLANNED);
+        
+        // Create it
+		String compId = competitionDAO.create(comp, COMPETITION_OWNER_ID);
+		assertNotNull(compId);
+		toDelete.add(compId);
+		
+		// Get it
+		comp = competitionDAO.get(compId);
+		List<Competition> compList = competitionDAO.getInRange(10, 0);
+		assertEquals(1, compList.size());
+		assertEquals(comp, compList.get(0));		
     }
     
     @Test
-    public void testGetInRangeByStatus() {
-    	//TODO
+    public void testGetInRangeByStatus() throws DatastoreException, NotFoundException {
+    	// Initialize Competition
+		Competition comp = new Competition();
+		comp.setName(COMPETITION_NAME);
+        comp.setContentSource(COMPETITION_CONTENT_SOURCE);
+        comp.setStatus(CompetitionStatus.PLANNED);
+        
+        // Create it
+		String compId = competitionDAO.create(comp, COMPETITION_OWNER_ID);
+		assertNotNull(compId);
+		toDelete.add(compId);
+		
+		// Get it
+		comp = competitionDAO.get(compId);
+		List<Competition> compList = competitionDAO.getInRange(10, 0, CompetitionStatus.PLANNED);
+		assertEquals(1, compList.size());
+		assertEquals(comp, compList.get(0));
+		
+		// Verify filtering by status
+		compList = competitionDAO.getInRange(10, 0, CompetitionStatus.OPEN);
+		assertEquals(0, compList.size());
     }
     
     @Test
     public void testDtoToDbo() {
-    	//TODO
+    	Competition compDTO = new Competition();
+    	Competition compDTOclone = new Competition();
+    	CompetitionDBO compDBO = new CompetitionDBO();
+    	CompetitionDBO compDBOclone = new CompetitionDBO();
+    	
+    	compDTO.setContentSource("contentSource");
+    	compDTO.setCreatedOn(new Date());
+    	compDTO.setDescription("description");
+    	compDTO.setEtag("eTag");
+    	compDTO.setId("123");
+    	compDTO.setName("name");
+    	compDTO.setOwnerId("456");
+    	compDTO.setStatus(CompetitionStatus.OPEN);
+    	    	
+    	CompetitionDAOImpl.copyDtoToDbo(compDTO, compDBO);
+    	CompetitionDAOImpl.copyDboToDto(compDBO, compDTOclone);
+    	CompetitionDAOImpl.copyDtoToDbo(compDTOclone, compDBOclone);
+    	
+    	assertEquals(compDTO, compDTOclone);
+    	assertEquals(compDBO, compDBOclone);
     }
-    
-    @Test
-    public void testDboToDto() {
-    	//TODO
-    }
-
 }

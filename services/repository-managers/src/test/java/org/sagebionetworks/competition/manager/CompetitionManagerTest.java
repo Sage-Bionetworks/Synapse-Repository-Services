@@ -5,6 +5,7 @@ import static org.mockito.Mockito.*;
 import java.util.Date;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -49,7 +50,7 @@ public class CompetitionManagerTest {
         comp.setCreatedOn(new Date());
         comp.setEtag(COMPETITION_ETAG);
         
-        // Competition Manger
+        // Competition Manager
     	competitionManager = new CompetitionManagerImpl(mockCompetitionDAO);
 		when(mockCompetitionDAO.create(eq(comp), eq(OWNER_ID))).thenReturn(comp.getId());
     	when(mockCompetitionDAO.get(eq(COMPETITION_ID))).thenReturn(comp);
@@ -113,8 +114,11 @@ public class CompetitionManagerTest {
 	}
 	
 	@Test
-	public void testIsAdmin() {
-		
+	public void testIsAdmin() throws DatastoreException, UnauthorizedException, NotFoundException {
+		assertTrue("Owner should be an admin of their own Competition", 
+				competitionManager.isCompAdmin(OWNER_ID, COMPETITION_ID));
+		assertFalse("Non-owner user should NOT be an admin of this Competition", 
+				competitionManager.isCompAdmin(USER_ID, COMPETITION_ID));
 	}
 
 }
