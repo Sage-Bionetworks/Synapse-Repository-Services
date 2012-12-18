@@ -32,8 +32,20 @@
 	<!-- Activity manager -->
 	<bean id="activityManager" class="org.sagebionetworks.repo.manager.ActivityManagerImpl" />
 	
+	<!-- Fixed Memory Pool - Used to provied a fix amount of memory used for transfering files
+	      from http input streams to S3 -->
+	<bean id="fileTransferFixedMemoryPool" class="org.sagebionetworks.repo.util.FixedMemoryPool">
+	    <!-- This first argument controls the maximum memory used by the pool -->
+		<constructor-arg index="0" ref="stackConfiguration.maxFileTransferMemoryPoolBytes"></constructor-arg>
+		<!-- The second argument set the  -->
+		<constructor-arg index="1" ref="stackConfiguration.fileTransferBufferSizeBytes"></constructor-arg>
+	</bean>
+	
+	<!-- Memory File Transfer Strategy -->
+	<bean id="memoryTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.MemoryTransferStrategy" />
+	
 	<!-- File Upload manager -->
-	<bean id="fileUploadManager" class="org.sagebionetworks.file.manager.FileUploadManagerImpl" />
+	<bean id="fileUploadManager" class="org.sagebionetworks.repo.manager.file.FileUploadManagerImpl" />
 
 	<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />

@@ -68,7 +68,7 @@ public class FileUploadManagerImplAutowireTest {
 		String expectedMD5 = BinaryUtils.toHex((MessageDigest.getInstance("MD5").digest(bytes)));
 		ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
 		// Create the metadata
-		S3FileMetadata metadata = FileUploadManagerImpl.createMetadata(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testUploadToS3BufferEqualsFileSize");
+		S3FileMetadata metadata = FileUploadManagerImpl.createRequest(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testUploadToS3BufferEqualsFileSize");
 		// Now do the upload
 		long start = System.currentTimeMillis();
 		fileUploadManager.uploadFileAsMultipart(metadata, bais, bufferSize);
@@ -112,7 +112,7 @@ public class FileUploadManagerImplAutowireTest {
 		String expectedMD5 = BinaryUtils.toHex((MessageDigest.getInstance("MD5").digest(bytes)));
 		ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
 		// Create the metadata
-		S3FileMetadata metadata = FileUploadManagerImpl.createMetadata(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testUploadToS3BufferLessThanFileSize");
+		S3FileMetadata metadata = FileUploadManagerImpl.createRequest(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testUploadToS3BufferLessThanFileSize");
 		// Now do the upload
 		long start = System.currentTimeMillis();
 		fileUploadManager.uploadFileAsMultipart(metadata, bais, bufferSize);

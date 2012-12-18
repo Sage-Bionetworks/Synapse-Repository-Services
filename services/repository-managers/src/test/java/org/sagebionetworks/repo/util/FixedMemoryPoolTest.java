@@ -1,14 +1,13 @@
 package org.sagebionetworks.repo.util;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
-import java.io.StringReader;
 import java.util.Arrays;
 
-import javax.management.RuntimeErrorException;
-
 import org.junit.Test;
-import org.sagebionetworks.repo.util.FixedMemoryPool;
 import org.sagebionetworks.repo.util.FixedMemoryPool.BlockConsumer;
 
 import com.amazonaws.util.StringInputStream;
@@ -36,6 +35,14 @@ public class FixedMemoryPoolTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
+	public void testConstructorSwappedArgs(){
+		int maxMemoryBytes = 20;
+		int blockSize = 10;
+		FixedMemoryPool pool = new FixedMemoryPool(blockSize, maxMemoryBytes);
+		pool.checkinBlock(null);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
 	public void testNullCheckin(){
 		int maxMemoryBytes = 20;
 		int blockSize = 10;
@@ -50,6 +57,7 @@ public class FixedMemoryPoolTest {
 		// Incorrect block size.
 		pool.checkinBlock(new byte[1]);
 	}
+	
 	
 	@Test
 	public void testCheckoutCheckin(){

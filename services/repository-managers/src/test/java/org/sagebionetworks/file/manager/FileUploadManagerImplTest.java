@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
 import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Mimetypes;
@@ -41,14 +42,12 @@ public class FileUploadManagerImplTest {
 	FileItemStream mockFileStream;
 	FileItemStream mockParamParentIdStream;
 	UserInfo mockUser;
-	AmazonS3Client mockS3Client;
 	FileMetadataDao mockfileMetadataDao;
 	
 	
 	@Before
 	public void before() throws UnsupportedEncodingException, IOException{
 		mockIterator = Mockito.mock(FileItemIterator.class);
-		mockS3Client = Mockito.mock(AmazonS3Client.class);
 		mockfileMetadataDao = Mockito.mock(FileMetadataDao.class);
 		
 		// The user is not really a mock
@@ -76,16 +75,17 @@ public class FileUploadManagerImplTest {
 		when(mockParamParentIdStream.getFieldName()).thenReturn("parentId");
 		
 		// the manager to test.
-		manager = new FileUploadManagerImpl(mockS3Client, mockfileMetadataDao);
+		manager = new FileUploadManagerImpl(mockfileMetadataDao);
 	}
 	
 	/**
 	 * Test that finding a file stream without the required parameters triggers an exception.
 	 * @throws FileUploadException
 	 * @throws IOException
+	 * @throws ServiceUnavailableException 
 	 */
 	@Test (expected=IllegalArgumentException.class)
-	public void testUploadfilesMissingExpectedParams() throws FileUploadException, IOException{
+	public void testUploadfilesMissingExpectedParams() throws FileUploadException, IOException, ServiceUnavailableException{
 		// These are the parameters we expect to find before reading a file
 		HashSet<String> expectedParams = new HashSet<String>();
 		expectedParams.add("parentId");
@@ -128,7 +128,7 @@ public class FileUploadManagerImplTest {
 	@Test
 	public void testCreateMetadata(){
 		// Create the metadata
-		S3FileMetadata metadata = FileUploadManagerImpl.createMetadata(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testCreateMetadata");
+		S3FileMetadata metadata = FileUploadManagerImpl.createRequest(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testCreateMetadata");
 		assertNotNull(metadata);
 		assertEquals(StackConfiguration.getS3Bucket(), metadata.getBucketName());
 		assertEquals(Mimetypes.MIMETYPE_OCTET_STREAM, metadata.getContentType());

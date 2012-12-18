@@ -14,6 +14,10 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
  */
 public interface FileTransferStrategy {
 
+	/**
+	 * The prefix for the 'Content-Disposition' header property.
+	 */
+	public static final String CONTENT_DISPOSITION_PREFIX = "attachment; filename=";
 
 	/**
 	 * Transfer a file from the given InputStream to S3.

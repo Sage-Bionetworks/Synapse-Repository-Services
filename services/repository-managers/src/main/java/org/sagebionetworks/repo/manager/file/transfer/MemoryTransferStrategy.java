@@ -20,6 +20,7 @@ import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.CompleteMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PartETag;
 import com.amazonaws.services.s3.model.UploadPartRequest;
 import com.amazonaws.services.s3.model.UploadPartResult;
@@ -27,7 +28,8 @@ import com.amazonaws.util.BinaryUtils;
 
 /**
  * <p>
- * This FileTransferStrategy implementation is optimized for speed.  It will use a constant 5 MB of memory to transfer a single file regardless of the size of the file.
+ * This FileTransferStrategy implementation is optimized for speed.  It will use a constant 5 MB of
+ * memory buffer to transfer a single file regardless of the size of the file.
  * </p><p>
  * Since we are currently running on a fleet of Amazon EC2 Small instances, and
  * these instance types only have a moderate I/O performance 
@@ -49,12 +51,12 @@ import com.amazonaws.util.BinaryUtils;
  * @author John
  *
  */
-public class MemoryTransferStrategy implements FileTransferStrategy{
+public class MemoryTransferStrategy implements FileTransferStrategy {
 	
 	/**
 	 * Note: 5 MB is currently the minimum size of a single part of S3 Multi-part upload.
 	 */
-	public static final int FIVE_MB = ((int) Math.pow(2, 20))*5;
+	public static final int MINIMUM_BLOCK_SIZE_BYTES = ((int) Math.pow(2, 20))*5;
 	
 	@Autowired
 	AmazonS3Client s3Client;
@@ -63,14 +65,32 @@ public class MemoryTransferStrategy implements FileTransferStrategy{
 	 * This pool ensure we never use more memory than planned.
 	 */
 	@Autowired
-	FixedMemoryPool fixedMemoryPool;
+	FixedMemoryPool fileTransferFixedMemoryPool;
+
+	/**
+	 * Used by spring.
+	 */
+	public MemoryTransferStrategy(){
 		
+	}
+
+	/**
+	 * IoC constructor.
+	 * 
+	 * @param s3Client
+	 * @param fixedMemoryPool
+	 */
+	public MemoryTransferStrategy(AmazonS3Client s3Client,	FixedMemoryPool fixedMemoryPool) {
+		super();
+		this.s3Client = s3Client;
+		this.fileTransferFixedMemoryPool = fixedMemoryPool;
+	}
 
 	@Override
 	public S3FileMetadata transferToS3(final TransferRequest request) throws ServiceUnavailableException {
 		try {
 			// Attempt to allocate a block of memory from the pool.  
-			return fixedMemoryPool.checkoutAndUseBlock(new BlockConsumer<S3FileMetadata>(){
+			return fileTransferFixedMemoryPool.checkoutAndUseBlock(new BlockConsumer<S3FileMetadata>(){
 
 				@Override
 				public S3FileMetadata useBlock(byte[] block) throws Exception{
@@ -95,20 +115,25 @@ public class MemoryTransferStrategy implements FileTransferStrategy{
 	 * @throws AmazonClientException
 	 * @throws IOException
 	 */
-	private S3FileMetadata transferToS3(TransferRequest request, byte[] buffer) throws AmazonServiceException, AmazonClientException, IOException{
+	S3FileMetadata transferToS3(TransferRequest request, byte[] buffer) throws IOException{
 		if(request == null) throw new IllegalArgumentException("TransferRequest cannot be null");
 		if(request.getS3bucketName() == null) throw new IllegalArgumentException("TransferRequest.getS3BucketName() cannot be null");
 		if(request.getS3key() == null) throw new IllegalArgumentException("TransferRequest.getS3key() cannot be null");
 		if(request.getInputStream() == null) throw new IllegalArgumentException("TransferRequest.getInputStream() cannot be null");
+		if(request.getFileName() == null) throw new IllegalArgumentException("TransferRequest.getFileName() cannot be null");
 		if(buffer == null) throw new IllegalArgumentException("The buffer cannot be null");
-		if(buffer.length < FIVE_MB) throw new IllegalArgumentException("The buffer cannot be less than 5 MB as that is the miniumn size of a single part in S3 multi-part upload.");
+		if(buffer.length < MINIMUM_BLOCK_SIZE_BYTES) throw new IllegalArgumentException("The buffer cannot be less than 5 MB as that is the miniumn size of a single part in a S3 multi-part upload.");
 		// Create the metadata.
 		S3FileMetadata metadata = new S3FileMetadata();
 		metadata.setBucketName(request.getS3bucketName());
 		metadata.setKey(request.getS3key());
+		metadata.setContentType(request.getContentType());
 		
 		// Start a multi-part upload
-		InitiateMultipartUploadResult initiate = s3Client.initiateMultipartUpload(new InitiateMultipartUploadRequest(metadata.getBucketName(), metadata.getKey()));
+		ObjectMetadata objMeta = new ObjectMetadata();
+		objMeta.setContentType(request.getContentType());
+		objMeta.setContentDisposition(CONTENT_DISPOSITION_PREFIX+request.getFileName());
+		InitiateMultipartUploadResult initiate = s3Client.initiateMultipartUpload(new InitiateMultipartUploadRequest(metadata.getBucketName(), metadata.getKey(), objMeta));
 		// Now read the stream
 		// each part upload.
 		// Use the digest to calculate the MD5
@@ -157,6 +182,7 @@ public class MemoryTransferStrategy implements FileTransferStrategy{
 		metadata.setContentMd5(contentMd5);
 		// Set the file size
 		metadata.setContentSize(contentSize);
+		metadata.setFileName(request.getFileName());
 		return metadata;
 	}
 

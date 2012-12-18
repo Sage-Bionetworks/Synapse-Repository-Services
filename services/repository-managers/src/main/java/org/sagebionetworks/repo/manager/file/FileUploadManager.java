@@ -1,15 +1,12 @@
 package org.sagebionetworks.repo.manager.file;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Set;
 
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
-
-import com.amazonaws.services.s3.internal.S3ErrorResponseHandler;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 /**
  * Manages uploading files.
@@ -28,16 +25,9 @@ public interface FileUploadManager {
 	 * @return FileUploadResults
 	 * @throws IOException 
 	 * @throws FileUploadException 
+	 * @throws ServiceUnavailableException 
 	 */
-	FileUploadResults uploadfiles(UserInfo userInfo, Set<String> expectedParams, FileItemIterator itemIterator, long contentLength) throws FileUploadException, IOException;
+	FileUploadResults uploadfiles(UserInfo userInfo, Set<String> expectedParams, FileItemIterator itemIterator, long contentLength) throws FileUploadException, IOException, ServiceUnavailableException;
 	
-	/**
-	 * Upload the given file input stream as a multi-part S3 upload.
-	 * @param metadata
-	 * @param in
-	 * @param bufferSize
-	 * @throws IOException
-	 */
-	public void uploadFileAsMultipart(S3FileMetadata metadata, InputStream in, int bufferSize) throws IOException;
 
 }

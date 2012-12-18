@@ -40,6 +40,13 @@ public class TransferRequest {
 	InputStream inputStream;
 	
 	/**
+	 * The name of the file. This is the short name of the file that will be visible 
+	 * to the user when downloads the file.  For example: 'foo.txt'.
+	 * This will be added to header as 'Content-Disposition'.
+	 */
+	String fileName;
+	
+	/**
 	 * The destination S3 bucket. Cannot be null.
 	 * @return
 	 */
@@ -127,6 +134,27 @@ public class TransferRequest {
 	public void setInputStream(InputStream inputStream) {
 		this.inputStream = inputStream;
 	}
+	
+	/**
+	 * The name of the file. This is the short name of the file that will be visible 
+	 * to the user when downloads the file.  For example: 'foo.txt'.
+	 * This will be added to header as 'Content-Disposition'.
+	 * @return
+	 */
+	public String getFileName() {
+		return fileName;
+	}
+
+	/**
+	 * The name of the file. This is the short name of the file that will be visible 
+	 * to the user when downloads the file.  For example: 'foo.txt'.
+	 * This will be added to header as 'Content-Disposition'.
+	 * @param fileName
+	 */
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;

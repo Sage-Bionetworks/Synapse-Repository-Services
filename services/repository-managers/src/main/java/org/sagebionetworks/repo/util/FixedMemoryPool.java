@@ -39,6 +39,7 @@ public class FixedMemoryPool {
 	 * @param blockSizeByes - The size of each block in bytes.  The block size is fixed.
 	 */
 	public FixedMemoryPool(int maxMemoryBytes, int blockSizeByes){
+		if(blockSizeByes > maxMemoryBytes) throw new IllegalArgumentException("The blockSizeByes cannot be larger than maxMemoryBytes");
 		this.maxMemoryBytes = maxMemoryBytes;
 		this.blockSizeBytes = blockSizeByes;
 		// The pool size is a function of the max memory and the block size.

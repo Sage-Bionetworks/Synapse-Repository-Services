@@ -664,4 +664,23 @@ public class StackConfiguration {
 	public String getRdsUpdateQueueName(){
 		return String.format(StackConstants.RDS_QUEUE_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
 	}
+	
+	/**
+	 * This is the maximum memory used by file transfer memory pool.  Currently defaults to 500 MB.
+	 * @return
+	 */
+	public String getMaxFileTransferMemoryPoolBytes(){
+		return configuration.getProperty("org.sagebionetworks.repo.manager.file.transfer.memory.pool.max.bytes");
+	}
+	
+	/**
+	 * This is the size of a single file transfer memory block used as a buffer.
+	 * Note: Due to S3 limitations on the minimum size of a single part of a multi-part upload
+	 * this value cannot be less 5 MB.  Currently defaults to 5 MB.
+	 * 
+	 * @return
+	 */
+	public String getFileTransferBufferSizeBytes(){
+		return configuration.getProperty("org.sagebionetworks.repo.manager.file.transfer.memory.buffer.bytes");
+	}
 }
