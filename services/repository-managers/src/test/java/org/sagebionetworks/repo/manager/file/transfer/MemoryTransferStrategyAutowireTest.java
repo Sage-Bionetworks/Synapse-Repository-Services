@@ -97,7 +97,7 @@ public class MemoryTransferStrategyAutowireTest {
 		assertEquals(expectedContentLength.longValue(), objectMeta.getContentLength());
 		assertEquals(contentType, objectMeta.getContentType());
 		// The file name should be in the content disposition.
-		assertEquals(FileTransferStrategy.CONTENT_DISPOSITION_PREFIX+request.getFileName(), objectMeta.getContentDisposition());
+		assertEquals(TransferUtils.CONTENT_DISPOSITION_PREFIX+request.getFileName(), objectMeta.getContentDisposition());
 	}
 
 }

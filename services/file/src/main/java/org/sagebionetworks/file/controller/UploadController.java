@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
@@ -101,24 +102,20 @@ public class UploadController extends BaseController {
 	 * @throws IOException
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
+	 * @throws ServiceUnavailableException 
 	 */
 	@RequestMapping("/single")
-	void single(HttpServletRequest request, HttpServletResponse response, @RequestHeader HttpHeaders headers)	throws FileUploadException, IOException, DatastoreException, NotFoundException {
+	void single(HttpServletRequest request, HttpServletResponse response, @RequestHeader HttpHeaders headers)	throws FileUploadException, IOException, DatastoreException, NotFoundException, ServiceUnavailableException {
 		// Get the user ID
 		String userId = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		if(userId == null) throw new UnauthorizedException("The user must be authenticated");
-		String contentLengthString  = request.getHeader(HEADER_KEY_CONTENT_LENGTH);
-		if(contentLengthString == null){
-			throw new IllegalArgumentException("The header must include: "+HEADER_KEY_CONTENT_LENGTH);
-		}
-		long contentLength = Long.parseLong(contentLengthString);
 		LogUtils.logRequest(log, request);
 		// Maker sure this is a multipart
 		if(!ServletFileUpload.isMultipartContent(request)){
 			throw new IllegalArgumentException("This service only supports: content-type = multipart/form-data");
 		}
 		// Pass it along.
-		fileService.uploadFiles(userId, new ServletFileUpload().getItemIterator(request), contentLength);
+		fileService.uploadFiles(userId, new ServletFileUpload().getItemIterator(request));
 		response.setStatus(201);
 		response.getWriter().append("ok");
 	}

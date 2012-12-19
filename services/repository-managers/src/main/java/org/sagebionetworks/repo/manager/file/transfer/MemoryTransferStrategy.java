@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.manager.file.transfer;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -116,35 +115,19 @@ public class MemoryTransferStrategy implements FileTransferStrategy {
 	 * @throws IOException
 	 */
 	S3FileMetadata transferToS3(TransferRequest request, byte[] buffer) throws IOException{
-		if(request == null) throw new IllegalArgumentException("TransferRequest cannot be null");
-		if(request.getS3bucketName() == null) throw new IllegalArgumentException("TransferRequest.getS3BucketName() cannot be null");
-		if(request.getS3key() == null) throw new IllegalArgumentException("TransferRequest.getS3key() cannot be null");
-		if(request.getInputStream() == null) throw new IllegalArgumentException("TransferRequest.getInputStream() cannot be null");
-		if(request.getFileName() == null) throw new IllegalArgumentException("TransferRequest.getFileName() cannot be null");
 		if(buffer == null) throw new IllegalArgumentException("The buffer cannot be null");
 		if(buffer.length < MINIMUM_BLOCK_SIZE_BYTES) throw new IllegalArgumentException("The buffer cannot be less than 5 MB as that is the miniumn size of a single part in a S3 multi-part upload.");
-		// Create the metadata.
-		S3FileMetadata metadata = new S3FileMetadata();
-		metadata.setBucketName(request.getS3bucketName());
-		metadata.setKey(request.getS3key());
-		metadata.setContentType(request.getContentType());
-		
+		// Create the result metadata from the input.
+		S3FileMetadata metadata = TransferUtils.prepareS3FileMetadata(request);
 		// Start a multi-part upload
-		ObjectMetadata objMeta = new ObjectMetadata();
-		objMeta.setContentType(request.getContentType());
-		objMeta.setContentDisposition(CONTENT_DISPOSITION_PREFIX+request.getFileName());
+		ObjectMetadata objMeta = TransferUtils.prepareObjectMetadata(request);
+		// Start the upload.
 		InitiateMultipartUploadResult initiate = s3Client.initiateMultipartUpload(new InitiateMultipartUploadRequest(metadata.getBucketName(), metadata.getKey(), objMeta));
 		// Now read the stream
 		// each part upload.
 		// Use the digest to calculate the MD5
-		MessageDigest fullDigest = null;
-		MessageDigest partDigest = null;
-		try {
-			fullDigest =  MessageDigest.getInstance("MD5");
-			partDigest =  MessageDigest.getInstance("MD5");
-		} catch (NoSuchAlgorithmException e) {
-			throw new IllegalStateException(e);
-		}
+		MessageDigest fullDigest = TransferUtils.createMD5Digest();
+		MessageDigest partDigest = TransferUtils.createMD5Digest();
 		List<PartETag> partETags = new ArrayList<PartETag>();
 		int read = -1;
 		int partNumber = 1;
@@ -173,11 +156,21 @@ public class MemoryTransferStrategy implements FileTransferStrategy {
 			contentSize += read;
 		}
 		// Get the MD5
-		String contentMd5 = BinaryUtils.toHex(fullDigest.digest());
+		String contentMd5 = BinaryUtils.toHex(fullDigest.digest());	
 		// Complete the Upload
 		s3Client.completeMultipartUpload(new CompleteMultipartUploadRequest(
 						initiate.getBucketName(), initiate.getKey(), initiate
 								.getUploadId(), partETags));
+		
+		// Validate the MD5.
+		try{
+			TransferUtils.validateRequestedMD5(request, contentMd5);
+		}catch(IllegalArgumentException e){
+			// MD5 Validation failed so delete the file we created in S3
+			s3Client.deleteObject(initiate.getBucketName(), initiate.getKey());
+			throw e;
+		}
+
 		// Set the MD5 Of the file.
 		metadata.setContentMd5(contentMd5);
 		// Set the file size
@@ -185,5 +178,7 @@ public class MemoryTransferStrategy implements FileTransferStrategy {
 		metadata.setFileName(request.getFileName());
 		return metadata;
 	}
+
+
 
 }

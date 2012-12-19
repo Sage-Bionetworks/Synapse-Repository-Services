@@ -59,9 +59,10 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 		basicDao.deleteObjectById(DBOFileMetadata.class, param);
 	}
 
+	@SuppressWarnings("unchecked")
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String create(FileMetadata metadata) {
+	public <T extends FileMetadata> T createFile(T metadata){
 		if(metadata == null) throw new IllegalArgumentException("FileMetadata cannot be null");
 		// Convert to a DBO
 		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(metadata);
@@ -75,8 +76,12 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 		}
 		// Save it to the DB
 		dbo = basicDao.createNew(dbo);
-		// Return the ID of the new object.
-		return dbo.getId().toString();
+		try {
+			return (T) get(dbo.getId().toString());
+		} catch (NotFoundException e) {
+			// This should not occur.
+			throw new RuntimeException(e);
+		}
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

@@ -40,6 +40,7 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 		new FieldColumn("contentMD5", COL_FILES_CONTENT_MD5),
 		new FieldColumn("bucketName", COL_FILES_BUCKET_NAME),
 		new FieldColumn("key", COL_FILES_KEY),
+		new FieldColumn("name", COL_FILES_NAME),
 	};
 	
 	private Long id;
@@ -52,6 +53,7 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 	private String contentMD5;
 	private String bucketName;
 	private String key;
+	private String name;
 
 	@Override
 	public TableMapping<DBOFileMetadata> getTableMapping() {
@@ -77,6 +79,7 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 				results.setContentMD5(rs.getString(COL_FILES_CONTENT_MD5));
 				results.setBucketName(rs.getString(COL_FILES_BUCKET_NAME));
 				results.setKey(rs.getString(COL_FILES_KEY));
+				results.setName(rs.getString(COL_FILES_NAME));
 				return results;
 			}
 			
@@ -186,6 +189,14 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 		this.createdOn = createdOn;
 	}
 
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -198,16 +209,15 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 				+ ((contentSize == null) ? 0 : contentSize.hashCode());
 		result = prime * result
 				+ ((contentType == null) ? 0 : contentType.hashCode());
-		result = prime
-				* result
-				+ ((createdBy == null) ? 0 : createdBy
-						.hashCode());
+		result = prime * result
+				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
 		result = prime * result
 				+ ((metadataType == null) ? 0 : metadataType.hashCode());
+		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result
 				+ ((previewId == null) ? 0 : previewId.hashCode());
 		return result;
@@ -264,6 +274,11 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 			return false;
 		if (metadataType != other.metadataType)
 			return false;
+		if (name == null) {
+			if (other.name != null)
+				return false;
+		} else if (!name.equals(other.name))
+			return false;
 		if (previewId == null) {
 			if (other.previewId != null)
 				return false;
@@ -275,11 +290,11 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 	@Override
 	public String toString() {
 		return "DBOFileMetadata [id=" + id + ", previewId=" + previewId
-				+ ", createdByPrincipalId=" + createdBy
-				+ ", createdOn=" + createdOn + ", metadataType=" + metadataType
-				+ ", contentType=" + contentType + ", contentSize="
-				+ contentSize + ", contentMD5=" + contentMD5 + ", bucketName="
-				+ bucketName + ", key=" + key + "]";
+				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
+				+ ", metadataType=" + metadataType + ", contentType="
+				+ contentType + ", contentSize=" + contentSize
+				+ ", contentMD5=" + contentMD5 + ", bucketName=" + bucketName
+				+ ", key=" + key + ", name=" + name + "]";
 	}
 
 

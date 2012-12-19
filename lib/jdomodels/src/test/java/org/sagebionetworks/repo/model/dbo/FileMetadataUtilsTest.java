@@ -43,6 +43,7 @@ public class FileMetadataUtilsTest {
 		meta.setContentSize(123l);
 		meta.setContentType("contentType");
 		meta.setPreviewId("9999");
+		meta.setFileName("foo.txt");
 		
 		System.out.println(meta);
 		// Convert to dbo
@@ -64,6 +65,7 @@ public class FileMetadataUtilsTest {
 		meta.setContentMd5("md5");
 		meta.setContentSize(123l);
 		meta.setContentType("contentType");
+		meta.setFileName("preview.txt");
 		System.out.println(meta);
 		// Convert to dbo
 		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(meta);

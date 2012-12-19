@@ -122,6 +122,7 @@ public class SqlConstants {
 	public static final String COL_FILES_CONTENT_MD5				= "CONTENT_MD5";
 	public static final String COL_FILES_BUCKET_NAME				= "BUCKET_NAME";
 	public static final String COL_FILES_KEY						= "KEY";
+	public static final String COL_FILES_NAME						= "NAME";
 	public static final String DDL_FILES							= "schema/Files-ddl.sql";
 
 	// 

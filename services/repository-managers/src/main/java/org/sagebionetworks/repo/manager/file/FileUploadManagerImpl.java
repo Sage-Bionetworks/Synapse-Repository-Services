@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.file;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -30,6 +31,9 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class FileUploadManagerImpl implements FileUploadManager {
 	
+	static private Log log = LogFactory.getLog(FileUploadManagerImpl.class);
+	
+	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s/%3$s"; // userid/UUID/filename
 	
 	@Autowired
 	FileMetadataDao fileMetadataDao;
@@ -54,22 +58,37 @@ public class FileUploadManagerImpl implements FileUploadManager {
 	 * @param s3Client
 	 * @param fileMetadataDao
 	 */
-	public FileUploadManagerImpl(FileMetadataDao fileMetadataDao) {
+	public FileUploadManagerImpl(FileMetadataDao fileMetadataDao, FileTransferStrategy primaryStrategy, FileTransferStrategy fallbackStrategy) {
 		super();
 		this.fileMetadataDao = fileMetadataDao;
+		this.primaryStrategy = primaryStrategy;
+		this.fallbackStrategy = fallbackStrategy;
 	}
-
-	static private Log log = LogFactory.getLog(FileUploadManagerImpl.class);
 	
-	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s/%3$s"; // userid/UUID/filename
 
+	/**
+	 * Inject the primary strategy.
+	 * @param primaryStrategy
+	 */
+	public void setPrimaryStrategy(FileTransferStrategy primaryStrategy) {
+		this.primaryStrategy = primaryStrategy;
+	}
+	/**
+	 * Inject the fall-back strategy.
+	 * @param fallbackStrategy
+	 */
+	public void setFallbackStrategy(FileTransferStrategy fallbackStrategy) {
+		this.fallbackStrategy = fallbackStrategy;
+	}
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public FileUploadResults uploadfiles(UserInfo userInfo,	Set<String> expectedParams, FileItemIterator itemIterator, long contentLength) throws FileUploadException, IOException, ServiceUnavailableException {
+	public FileUploadResults uploadfiles(UserInfo userInfo,	Set<String> expectedParams, FileItemIterator itemIterator) throws FileUploadException, IOException, ServiceUnavailableException {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(expectedParams == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(itemIterator == null) throw new IllegalArgumentException("FileItemIterator cannot be null");
 		FileUploadResults results = new FileUploadResults();
+		String userId =  userInfo.getIndividualGroup().getId();
 		// Upload all of the files
 		// Before we try to read any files make sure we have all of the expected parameters.
 		Set<String> expectedCopy = new HashSet<String>(expectedParams);
@@ -88,17 +107,20 @@ public class FileUploadManagerImpl implements FileUploadManager {
 					throw new IllegalArgumentException("Missing one or more of the expected form fields: "+expectedCopy);
 				}
 				// Create a token for this file
-				TransferRequest request = createRequest(fis.getContentType(), userInfo.getIndividualGroup().getId(), fis.getName());
-				
+				TransferRequest request = createRequest(fis.getContentType(),userId, fis.getName(), fis.openStream());
 				S3FileMetadata s3Meta = null;
 				try{
 					// Try the primary
 					s3Meta = primaryStrategy.transferToS3(request);
 				}catch(ServiceUnavailableException e){
-					log.info("The primary file transfer strategy failed, attempting to use the fall-back strategy");
+					log.info("The primary file transfer strategy failed, attempting to use the fall-back strategy.");
 					// The primary strategy failed so try the fall-back.
 					s3Meta = fallbackStrategy.transferToS3(request);
 				}
+				// set this user as the creator of the file
+				s3Meta.setCreatedBy(userId);
+				// Save the file metadata to the DB.
+				s3Meta= fileMetadataDao.createFile(s3Meta);
 				// If here then we succeeded
 				results.getFiles().add(s3Meta);
 			}
@@ -116,13 +138,14 @@ public class FileUploadManagerImpl implements FileUploadManager {
 	 * @param fileName
 	 * @return
 	 */
-	public static TransferRequest createRequest(String contentType, String userId, String fileName){
+	public static TransferRequest createRequest(String contentType, String userId, String fileName, InputStream inputStream){
 		// Create a token for this file
 		TransferRequest request = new TransferRequest();
 		request.setContentType(contentType);
 		request.setS3bucketName(StackConfiguration.getS3Bucket());
 		request.setS3key(String.format(FILE_TOKEN_TEMPLATE, userId, UUID.randomUUID().toString(), fileName));
 		request.setFileName(fileName);
+		request.setInputStream(inputStream);
 		return request;
 	}
 

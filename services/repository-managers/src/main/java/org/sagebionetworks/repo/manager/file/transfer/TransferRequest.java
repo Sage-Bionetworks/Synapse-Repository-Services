@@ -206,5 +206,13 @@ public class TransferRequest {
 			return false;
 		return true;
 	}
+
+	@Override
+	public String toString() {
+		return "TransferRequest [s3bucketName=" + s3bucketName + ", s3key="
+				+ s3key + ", contentType=" + contentType + ", contentMD5="
+				+ contentMD5 + ", inputStream=" + inputStream + ", fileName="
+				+ fileName + "]";
+	}
 	
 }

@@ -159,5 +159,28 @@ public class MemoryTransferStrategyTest {
 		when(memoryPool.checkoutAndUseBlock(any(BlockConsumer.class))).thenThrow(new NoBlocksAvailableException());
 		strategy.transferToS3(transferRequest);
 	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testInvalidPassedMD5() throws IOException{
+		// Pass an md5 that is wrong
+		transferRequest.setContentMD5("wrongMD5");
+		S3FileMetadata meta = strategy.transferToS3(transferRequest, block);
+	}
+	
+	@Test
+	public void testInvalidPassedMD5DeleteFile() throws IOException{
+		// Validate that we delete the file sent to S3 when the  MD5 does not match
+		transferRequest.setContentMD5("wrongMD5");
+		try{
+			strategy.transferToS3(transferRequest, block);
+			fail("This should have failed as the MD5 did not match");
+		}catch(IllegalArgumentException e){
+			// 
+			assertTrue("The messages should contain the wrong MD5",e.getMessage().indexOf("wrongMD5") > -1);
+			assertTrue("The messages should contain the calcualted MD5",e.getMessage().indexOf(expectedMD5) > -1);
+		}
+		// Verify that the file was deleted
+		verify(mockS3Client, times(1)).deleteObject(transferRequest.getS3bucketName(), transferRequest.getS3key());
+	}
 
 }

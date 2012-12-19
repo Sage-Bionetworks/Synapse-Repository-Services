@@ -6,6 +6,7 @@ import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 /**
  * Abstraction for the handling multi-part upload.
@@ -23,7 +24,8 @@ public interface FileUploadService {
 	 * @throws NotFoundException
 	 * @throws IOException 
 	 * @throws FileUploadException 
+	 * @throws ServiceUnavailableException 
 	 */
-	void uploadFiles(String userName, FileItemIterator itemIterator, long contentLength) throws DatastoreException, NotFoundException, FileUploadException, IOException;
+	void uploadFiles(String userName, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException;
 
 }

@@ -27,7 +27,7 @@ public interface FileUploadManager {
 	 * @throws FileUploadException 
 	 * @throws ServiceUnavailableException 
 	 */
-	FileUploadResults uploadfiles(UserInfo userInfo, Set<String> expectedParams, FileItemIterator itemIterator, long contentLength) throws FileUploadException, IOException, ServiceUnavailableException;
+	FileUploadResults uploadfiles(UserInfo userInfo, Set<String> expectedParams, FileItemIterator itemIterator) throws FileUploadException, IOException, ServiceUnavailableException;
 	
 
 }

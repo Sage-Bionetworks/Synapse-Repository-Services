@@ -102,6 +102,7 @@ public class FileMetadataUtils {
 		if(dto.getCreatedOn() != null){
 			dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
 		}
+		dbo.setName(dto.getFileName());
 	}
 	
 	/**
@@ -150,6 +151,7 @@ public class FileMetadataUtils {
 			metaInterface.setContentMd5(dbo.getContentMD5());
 			metaInterface.setContentType(dbo.getContentType());
 			metaInterface.setContentSize(dbo.getContentSize());
+			metaInterface.setFileName(dbo.getName());
 			if(dbo.getCreatedBy() != null){
 				metaInterface.setCreatedBy(dbo.getCreatedBy().toString());
 			}

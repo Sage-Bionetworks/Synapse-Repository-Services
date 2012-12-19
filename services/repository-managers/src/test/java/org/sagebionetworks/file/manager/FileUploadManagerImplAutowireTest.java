@@ -1,32 +1,42 @@
 package org.sagebionetworks.file.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Arrays;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.apache.commons.fileupload.FileItemIterator;
+import org.apache.commons.fileupload.FileItemStream;
+import org.apache.commons.fileupload.FileUploadException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.file.FileUploadManager;
-import org.sagebionetworks.repo.manager.file.FileUploadManagerImpl;
+import org.sagebionetworks.repo.manager.file.FileUploadResults;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileMetadataDao;
 import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
-import com.amazonaws.services.s3.internal.Mimetypes;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectInputStream;
 import com.amazonaws.util.BinaryUtils;
+import com.amazonaws.util.StringInputStream;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -40,9 +50,49 @@ public class FileUploadManagerImplAutowireTest {
 	@Autowired
 	AmazonS3Client s3Client;
 	
+	@Autowired
+	FileMetadataDao fileMetadataDao;
+	
+	@Autowired
+	public UserProvider testUserProvider;
+	
+	private UserInfo userInfo;
+	
+	/**
+	 * This is the metadata about the files we uploaded.
+	 */
+	private List<S3FileMetadata> expectedMetadata;
+	private String[] fileContents;
+	private List<FileItemStream> fileStreams;
+	
 	@Before
-	public void before(){
+	public void before() throws Exception{
+		assertNotNull(testUserProvider);
+		userInfo = testUserProvider.getTestUserInfo();
 		toDelete = new LinkedList<S3FileMetadata>();
+		// Setup the mock file to upload.
+		int numberFiles = 2;
+		expectedMetadata = new LinkedList<S3FileMetadata>();
+		fileStreams = new LinkedList<FileItemStream>();
+		fileContents = new String[numberFiles];
+		for(int i=0; i<numberFiles; i++){
+			fileContents[i] = "This is the contents for file: "+i;
+			byte[] fileBytes = fileContents[i].getBytes();
+			String fileName = "foo-"+i+".txt";
+			String contentType = "text/plain";
+			FileItemStream fis = Mockito.mock(FileItemStream.class);
+			when(fis.getContentType()).thenReturn(contentType);
+			when(fis.getName()).thenReturn(fileName);
+			when(fis.openStream()).thenReturn(new StringInputStream(fileContents[i]));
+			fileStreams.add(fis);
+			// Set the expected metadata for this file.
+			S3FileMetadata metadata = new S3FileMetadata();
+			metadata.setContentType(contentType);
+			metadata.setContentMd5( BinaryUtils.toHex((MessageDigest.getInstance("MD5").digest(fileBytes))));
+			metadata.setContentSize(new Long(fileBytes.length));
+			metadata.setFileName(fileName);
+			expectedMetadata.add(metadata);
+		}
 	}
 	
 	@After
@@ -50,93 +100,53 @@ public class FileUploadManagerImplAutowireTest {
 		if(toDelete != null && s3Client != null){
 			// Delete any files created
 			for(S3FileMetadata meta: toDelete){
+				// delete the file from S3.
 				s3Client.deleteObject(meta.getBucketName(), meta.getKey());
+				// We also need to delete the data from the database
+				fileMetadataDao.delete(meta.getId());
 			}
 		}
 	}
 	
-	@Test
-	public void testUploadToS3BufferEqualsFileSize() throws IOException, NoSuchAlgorithmException{
-		// Test the case where the buffer size and the file size are the same.
-		int bufferSize = 1048576*5;
-		int fileSize = bufferSize+100;
-		byte[] bytes = new byte[fileSize];
-		byte b = 123;
-		// Fill it with data
-		Arrays.fill(bytes, b);
-		// calculate the expected MD5;
-		String expectedMD5 = BinaryUtils.toHex((MessageDigest.getInstance("MD5").digest(bytes)));
-		ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-		// Create the metadata
-		S3FileMetadata metadata = FileUploadManagerImpl.createRequest(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testUploadToS3BufferEqualsFileSize");
-		// Now do the upload
-		long start = System.currentTimeMillis();
-		fileUploadManager.uploadFileAsMultipart(metadata, bais, bufferSize);
-		long elapse = System.currentTimeMillis() - start;
-		System.out.println("Uploaded "+fileSize+" bytes in "+elapse+" MS");
-		toDelete.add(metadata);
-		// Was the MD5 Filled in correctly?
-		assertEquals(expectedMD5, metadata.getContentMd5());
-		assertEquals(new Long(fileSize), metadata.getContentSize());
-		// Make sure the file is in S3
-		S3Object result = s3Client.getObject(metadata.getBucketName(), metadata.getKey());
-		assertNotNull(result);
-		assertEquals(result.getObjectMetadata().getContentLength(), fileSize);
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		// Read it back
-		S3ObjectInputStream s3In = result.getObjectContent();
-		try{
-			byte[] buffer = new byte[1024];
-			int read = -1;
-			while((read = s3In.read(buffer)) > 0){
-				baos.write(buffer, 0, read);
-			}
-			// Do a deep equals
-			assertTrue(Arrays.equals(bytes, baos.toByteArray()));
-		}finally{
-			s3In.close();
-		}
-	}
-	
-	@Test
-	public void testUploadToS3BufferLessThanFileSize() throws IOException, NoSuchAlgorithmException{
-		// Test the case where the buffer size and the file size are the same.
-		int oneMegabyte = (int) Math.pow(2, 20);
-		int fileSize = oneMegabyte*3+123;
-		int bufferSize = oneMegabyte;
-		byte[] bytes = new byte[fileSize];
-		byte b = 102;
-		// Fill it with data
-		Arrays.fill(bytes, b);
-		// calculate the expected MD5;
-		String expectedMD5 = BinaryUtils.toHex((MessageDigest.getInstance("MD5").digest(bytes)));
-		ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-		// Create the metadata
-		S3FileMetadata metadata = FileUploadManagerImpl.createRequest(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testUploadToS3BufferLessThanFileSize");
-		// Now do the upload
-		long start = System.currentTimeMillis();
-		fileUploadManager.uploadFileAsMultipart(metadata, bais, bufferSize);
-		long elapse = System.currentTimeMillis() - start;
-		System.out.println("Uploaded "+fileSize+" bytes in "+elapse+" MS");
-		toDelete.add(metadata);
-		// Was the MD5 Filled in correctly?
-		assertEquals(expectedMD5, metadata.getContentMd5());
-		assertEquals(new Long(fileSize), metadata.getContentSize());
-		// Make sure the file is in S3
-		S3Object result = s3Client.getObject(metadata.getBucketName(), metadata.getKey());
-		assertNotNull(result);
-		assertEquals(result.getObjectMetadata().getContentLength(), fileSize);
-		byte[] returnBuffer = new byte[fileSize];
-		// Read it back
-		S3ObjectInputStream s3In = result.getObjectContent();
-		try{
-			int read = result.getObjectContent().read(returnBuffer);
-			assertEquals(fileSize, read);
-			// Do a deep equals
-			assertTrue(Arrays.equals(bytes, returnBuffer));
-		}finally{
-			s3In.close();
-		}
-	}
 
+	@Test
+	public void testUploadfiles() throws FileUploadException, IOException, ServiceUnavailableException, NoSuchAlgorithmException, DatastoreException, NotFoundException{
+		FileItemIterator mockIterator = Mockito.mock(FileItemIterator.class);
+		// The first file.
+		// Mock two streams
+		when(mockIterator.hasNext()).thenReturn(true, true, false);
+		// Use the first two files.
+		when(mockIterator.next()).thenReturn(fileStreams.get(0), fileStreams.get(1));
+		// Upload the files.
+		FileUploadResults results = fileUploadManager.uploadfiles(userInfo, new HashSet<String>(), mockIterator);
+		assertNotNull(results);
+		assertNotNull(results.getFiles());
+		toDelete.addAll(results.getFiles());
+		assertEquals(2, results.getFiles().size());
+		// Now verify the results
+		for(int i=0; i<2; i++){
+			S3FileMetadata metaResult = results.getFiles().get(i);
+			assertNotNull(metaResult);
+			S3FileMetadata expected = expectedMetadata.get(i);
+			assertNotNull(expected);
+			// Validate the expected values
+			assertEquals(expected.getFileName(), metaResult.getFileName());
+			assertEquals(expected.getContentMd5(), metaResult.getContentMd5());
+			assertEquals(expected.getContentSize(), metaResult.getContentSize());
+			assertEquals(expected.getContentType(), metaResult.getContentType());
+			assertNotNull("An id should have been assigned to this file", metaResult.getId());
+			assertNotNull("CreatedOn should have been filled in.", metaResult.getCreatedOn());
+			assertEquals("CreatedBy should match the user that created the file.", userInfo.getIndividualGroup().getId(), metaResult.getCreatedBy());
+			assertEquals(StackConfiguration.getS3Bucket(), metaResult.getBucketName());
+			assertNotNull(metaResult.getKey());
+			assertTrue("The key should start with the userID", metaResult.getKey().startsWith(userInfo.getIndividualGroup().getId()));
+			assertTrue("The key should end with the filename", metaResult.getKey().endsWith(expected.getFileName()));
+			
+			// Validate this is in the database
+			S3FileMetadata fromDB = (S3FileMetadata) fileMetadataDao.get(metaResult.getId());
+			assertEquals(metaResult, fromDB);
+		}
+		
+	}
+	
 }

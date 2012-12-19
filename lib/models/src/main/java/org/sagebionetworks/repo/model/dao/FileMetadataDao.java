@@ -18,7 +18,7 @@ public interface FileMetadataDao {
 	 * @param metadata
 	 * @return
 	 */
-	public String create(FileMetadata metadata);
+	public <T extends FileMetadata> T createFile(T metadata);
 	
 	/**
 	 * Set the preview ID of a file.

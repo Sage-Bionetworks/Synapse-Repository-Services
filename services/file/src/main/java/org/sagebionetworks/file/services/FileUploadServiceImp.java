@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.file.FileUploadManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 /**
@@ -27,13 +28,12 @@ public class FileUploadServiceImp implements FileUploadService {
 	FileUploadManager fileUploadManager;
 
 	@Override
-	public void uploadFiles(String username, FileItemIterator itemIterator, long contentLength) throws DatastoreException, NotFoundException, FileUploadException, IOException {
+	public void uploadFiles(String username, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException {
 		if(username == null) throw new IllegalArgumentException("Username cannot be null");
 		if(itemIterator == null) throw new IllegalArgumentException("FileItemIterator cannot be null");
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(username);
-		
-		fileUploadManager.uploadfiles(userInfo, new HashSet<String>(0), itemIterator, contentLength);
+		fileUploadManager.uploadfiles(userInfo, new HashSet<String>(0), itemIterator);
 
 	}
 
