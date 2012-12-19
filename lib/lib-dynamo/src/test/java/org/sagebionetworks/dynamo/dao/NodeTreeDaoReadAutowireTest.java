@@ -97,221 +97,225 @@ public class NodeTreeDaoReadAutowireTest {
 	}
 
 	@Test
-	public void testGetRoot() {
-		String root = this.nodeTreeDao.getRoot();
-		Assert.assertEquals(this.idMap.get("a"), root);
-	}
+	public void test() {
 
-	@Test
-	public void testGetAncestors() {
-		// Root has 0 ancestors
-		List<String> ancestorList = this.nodeTreeDao.getAncestors(this.idMap.get("a"));
-		Assert.assertTrue(ancestorList.isEmpty());
-		ancestorList = this.nodeTreeDao.getAncestors(this.idMap.get("b"));
-		Assert.assertEquals(1, ancestorList.size());
-		Assert.assertEquals(this.idMap.get("a"), ancestorList.get(0));
-		ancestorList = this.nodeTreeDao.getAncestors(this.idMap.get("u"));
-		Assert.assertEquals(2, ancestorList.size());
-		Assert.assertEquals(this.idMap.get("a"), ancestorList.get(0));
-		Assert.assertEquals(this.idMap.get("b"), ancestorList.get(1));
-		ancestorList = this.nodeTreeDao.getAncestors(this.idMap.get("m"));
-		Assert.assertEquals(4, ancestorList.size());
-		Assert.assertEquals(this.idMap.get("a"), ancestorList.get(0));
-		Assert.assertEquals(this.idMap.get("b"), ancestorList.get(1));
-		Assert.assertEquals(this.idMap.get("u"), ancestorList.get(2));
-		Assert.assertEquals(this.idMap.get("j"), ancestorList.get(3));
-		// A node that does not exist has 0 ancestors
-		ancestorList = this.nodeTreeDao.getAncestors("fakeNode");
-		Assert.assertTrue(ancestorList.isEmpty());
-	}
+		// testGetRoot()
+		{
+			String root = this.nodeTreeDao.getRoot();
+			Assert.assertEquals(this.idMap.get("a"), root);
+		}
 
-	@Test
-	public void testGetParent() {
-		// Root's parent is the dummy ROOT
-		String parent = this.nodeTreeDao.getParent(this.idMap.get("a"));
-		Assert.assertNotNull(parent);
-		Assert.assertEquals(DboNodeLineage.ROOT, parent);
-		// A non-existent node's parent is null
-		parent = this.nodeTreeDao.getParent("fakeNode");
-		Assert.assertNull(parent);
-		parent = this.nodeTreeDao.getParent(this.idMap.get("b"));
-		Assert.assertNotNull(parent);
-		Assert.assertEquals(this.idMap.get("a"), parent);
-		parent = this.nodeTreeDao.getParent(this.idMap.get("e"));
-		Assert.assertNotNull(parent);
-		Assert.assertEquals(this.idMap.get("b"), parent);
-		parent = this.nodeTreeDao.getParent(this.idMap.get("u"));
-		Assert.assertNotNull(parent);
-		Assert.assertEquals(this.idMap.get("b"), parent);
-		parent = this.nodeTreeDao.getParent(this.idMap.get("m"));
-		Assert.assertNotNull(parent);
-		Assert.assertEquals(this.idMap.get("j"), parent);
-		parent = this.nodeTreeDao.getParent(this.idMap.get("g"));
-		Assert.assertNotNull(parent);
-		Assert.assertEquals(this.idMap.get("d"), parent);
-	}
+		// testGetAncestors()
+		{
+			// Root has 0 ancestors
+			List<String> ancestorList = this.nodeTreeDao.getAncestors(this.idMap.get("a"));
+			Assert.assertTrue(ancestorList.isEmpty());
+			ancestorList = this.nodeTreeDao.getAncestors(this.idMap.get("b"));
+			Assert.assertEquals(1, ancestorList.size());
+			Assert.assertEquals(this.idMap.get("a"), ancestorList.get(0));
+			ancestorList = this.nodeTreeDao.getAncestors(this.idMap.get("u"));
+			Assert.assertEquals(2, ancestorList.size());
+			Assert.assertEquals(this.idMap.get("a"), ancestorList.get(0));
+			Assert.assertEquals(this.idMap.get("b"), ancestorList.get(1));
+			ancestorList = this.nodeTreeDao.getAncestors(this.idMap.get("m"));
+			Assert.assertEquals(4, ancestorList.size());
+			Assert.assertEquals(this.idMap.get("a"), ancestorList.get(0));
+			Assert.assertEquals(this.idMap.get("b"), ancestorList.get(1));
+			Assert.assertEquals(this.idMap.get("u"), ancestorList.get(2));
+			Assert.assertEquals(this.idMap.get("j"), ancestorList.get(3));
+			// A node that does not exist has 0 ancestors
+			ancestorList = this.nodeTreeDao.getAncestors("fakeNode");
+			Assert.assertTrue(ancestorList.isEmpty());
+		}
 
-	@Test
-	public void testGetDescendants() {
+		// testGetParent()
+		{
+			// Root's parent is the dummy ROOT
+			String parent = this.nodeTreeDao.getParent(this.idMap.get("a"));
+			Assert.assertNotNull(parent);
+			Assert.assertEquals(DboNodeLineage.ROOT, parent);
+			// A non-existent node's parent is null
+			parent = this.nodeTreeDao.getParent("fakeNode");
+			Assert.assertNull(parent);
+			parent = this.nodeTreeDao.getParent(this.idMap.get("b"));
+			Assert.assertNotNull(parent);
+			Assert.assertEquals(this.idMap.get("a"), parent);
+			parent = this.nodeTreeDao.getParent(this.idMap.get("e"));
+			Assert.assertNotNull(parent);
+			Assert.assertEquals(this.idMap.get("b"), parent);
+			parent = this.nodeTreeDao.getParent(this.idMap.get("u"));
+			Assert.assertNotNull(parent);
+			Assert.assertEquals(this.idMap.get("b"), parent);
+			parent = this.nodeTreeDao.getParent(this.idMap.get("m"));
+			Assert.assertNotNull(parent);
+			Assert.assertEquals(this.idMap.get("j"), parent);
+			parent = this.nodeTreeDao.getParent(this.idMap.get("g"));
+			Assert.assertNotNull(parent);
+			Assert.assertEquals(this.idMap.get("d"), parent);
+		}
 
-		List<String> descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 100, null);
-		Set<String> descSet = new HashSet<String>(descList.size());
-		descSet.addAll(descList);
-		Assert.assertEquals(14, descSet.size());
-		Assert.assertTrue(descSet.contains(this.idMap.get("b")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("c")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("d")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("e")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("f")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("g")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("h")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("i")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("j")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("k")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("l")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("m")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("n")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("u")));
+		// testGetDescendants()
+		{
 
-		descList = this.nodeTreeDao.getDescendants(this.idMap.get("u"), 100, null);
-		descSet = new HashSet<String>(descList.size());
-		descSet.addAll(descList);
-		Assert.assertEquals(7, descSet.size());
-		Assert.assertTrue(descSet.contains(this.idMap.get("h")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("i")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("j")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("k")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("l")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("m")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("n")));
+			List<String> descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 100, null);
+			Set<String> descSet = new HashSet<String>(descList.size());
+			descSet.addAll(descList);
+			Assert.assertEquals(14, descSet.size());
+			Assert.assertTrue(descSet.contains(this.idMap.get("b")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("c")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("d")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("e")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("f")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("g")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("h")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("i")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("j")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("k")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("l")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("m")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("n")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("u")));
 
-		descList = this.nodeTreeDao.getDescendants(this.idMap.get("d"), 100, null);
-		descSet = new HashSet<String>(descList.size());
-		descSet.addAll(descList);
-		Assert.assertEquals(1, descSet.size());
-		Assert.assertTrue(descSet.contains(this.idMap.get("g")));
+			descList = this.nodeTreeDao.getDescendants(this.idMap.get("u"), 100, null);
+			descSet = new HashSet<String>(descList.size());
+			descSet.addAll(descList);
+			Assert.assertEquals(7, descSet.size());
+			Assert.assertTrue(descSet.contains(this.idMap.get("h")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("i")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("j")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("k")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("l")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("m")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("n")));
 
-		descList = this.nodeTreeDao.getDescendants(this.idMap.get("f"), 100, null);
-		descSet = new HashSet<String>(descList.size());
-		descSet.addAll(descList);
-		Assert.assertEquals(0, descSet.size());
-	}
+			descList = this.nodeTreeDao.getDescendants(this.idMap.get("d"), 100, null);
+			descSet = new HashSet<String>(descList.size());
+			descSet.addAll(descList);
+			Assert.assertEquals(1, descSet.size());
+			Assert.assertTrue(descSet.contains(this.idMap.get("g")));
 
-	@Test
-	public void testGetDescendantsPaging() {
-		List<String> descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 2, null);
-		Assert.assertEquals(2, descList.size());
-		Set<String> descSet = new HashSet<String>();
-		descSet.addAll(descList);
-		descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 7, descList.get(1));
-		Assert.assertEquals(7, descList.size());
-		descSet.addAll(descList);
-		descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 7, descList.get(6));
-		Assert.assertEquals((14 - 2 - 7), descList.size());
-		descSet.addAll(descList);
-		Assert.assertEquals(14, descSet.size());
-		Assert.assertTrue(descSet.contains(this.idMap.get("b")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("c")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("d")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("e")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("f")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("g")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("h")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("i")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("j")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("k")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("l")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("m")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("n")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("u")));
-	}
+			descList = this.nodeTreeDao.getDescendants(this.idMap.get("f"), 100, null);
+			descSet = new HashSet<String>(descList.size());
+			descSet.addAll(descList);
+			Assert.assertEquals(0, descSet.size());
+		}
 
-	@Test
-	public void testGetDescendantsGeneration() {
-		List<String> descList = this.nodeTreeDao.getDescendants(this.idMap.get("u"), 1, 100, null);
-		Set<String> descSet = new HashSet<String>(descList.size());
-		descSet.addAll(descList);
-		Assert.assertEquals(4, descSet.size());
-		Assert.assertTrue(descSet.contains(this.idMap.get("h")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("i")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("j")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("k")));
-		descList = this.nodeTreeDao.getDescendants(this.idMap.get("u"), 2, 100, null);
-		descSet = new HashSet<String>(descList.size());
-		descSet.addAll(descList);
-		Assert.assertEquals(3, descSet.size());
-		Assert.assertTrue(descSet.contains(this.idMap.get("l")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("m")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("n")));
-	}
+		// testGetDescendantsPaging()
+		{
+			List<String> descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 2, null);
+			Assert.assertEquals(2, descList.size());
+			Set<String> descSet = new HashSet<String>();
+			descSet.addAll(descList);
+			descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 7, descList.get(1));
+			Assert.assertEquals(7, descList.size());
+			descSet.addAll(descList);
+			descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 7, descList.get(6));
+			Assert.assertEquals((14 - 2 - 7), descList.size());
+			descSet.addAll(descList);
+			Assert.assertEquals(14, descSet.size());
+			Assert.assertTrue(descSet.contains(this.idMap.get("b")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("c")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("d")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("e")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("f")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("g")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("h")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("i")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("j")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("k")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("l")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("m")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("n")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("u")));
+		}
 
-	@Test
-	public void testGetDescendantsGenerationPaging() {
-		List<String> descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 2, 1, null);
-		Assert.assertEquals(1, descList.size());
-		Set<String> descSet = new HashSet<String>();
-		descSet.addAll(descList);
-		descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 2, 1, descList.get(0));
-		Assert.assertEquals(1, descList.size());
-		descSet.addAll(descList);
-		descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 2, 2, descList.get(0));
-		Assert.assertEquals(2, descList.size());
-		descSet.addAll(descList);
-		descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 2, 2, descList.get(1));
-		Assert.assertEquals(0, descList.size());
-		descSet.addAll(descList);
-		Assert.assertEquals(4, descSet.size());
-		Assert.assertTrue(descSet.contains(this.idMap.get("e")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("f")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("u")));
-		Assert.assertTrue(descSet.contains(this.idMap.get("g")));
-	}
+		// testGetDescendantsGeneration()
+		{
+			List<String> descList = this.nodeTreeDao.getDescendants(this.idMap.get("u"), 1, 100, null);
+			Set<String> descSet = new HashSet<String>(descList.size());
+			descSet.addAll(descList);
+			Assert.assertEquals(4, descSet.size());
+			Assert.assertTrue(descSet.contains(this.idMap.get("h")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("i")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("j")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("k")));
+			descList = this.nodeTreeDao.getDescendants(this.idMap.get("u"), 2, 100, null);
+			descSet = new HashSet<String>(descList.size());
+			descSet.addAll(descList);
+			Assert.assertEquals(3, descSet.size());
+			Assert.assertTrue(descSet.contains(this.idMap.get("l")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("m")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("n")));
+		}
 
-	@Test
-	public void testGetChildren() {
-		List<String> childList = this.nodeTreeDao.getChildren(this.idMap.get("a"), 2, null);
-		Assert.assertEquals(2, childList.size());
-		Set<String> childSet = new HashSet<String>();
-		childSet.addAll(childList);
-		childList = this.nodeTreeDao.getChildren(this.idMap.get("a"), 2, childList.get(1));
-		Assert.assertEquals(1, childList.size());
-		childSet.addAll(childList);
-		Assert.assertEquals(3, childSet.size());
-		Assert.assertTrue(childSet.contains(this.idMap.get("b")));
-		Assert.assertTrue(childSet.contains(this.idMap.get("c")));
-		Assert.assertTrue(childSet.contains(this.idMap.get("d")));
-	}
+		// testGetDescendantsGenerationPaging()
+		{
+			List<String> descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 2, 1, null);
+			Assert.assertEquals(1, descList.size());
+			Set<String> descSet = new HashSet<String>();
+			descSet.addAll(descList);
+			descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 2, 1, descList.get(0));
+			Assert.assertEquals(1, descList.size());
+			descSet.addAll(descList);
+			descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 2, 2, descList.get(0));
+			Assert.assertEquals(2, descList.size());
+			descSet.addAll(descList);
+			descList = this.nodeTreeDao.getDescendants(this.idMap.get("a"), 2, 2, descList.get(1));
+			Assert.assertEquals(0, descList.size());
+			descSet.addAll(descList);
+			Assert.assertEquals(4, descSet.size());
+			Assert.assertTrue(descSet.contains(this.idMap.get("e")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("f")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("u")));
+			Assert.assertTrue(descSet.contains(this.idMap.get("g")));
+		}
 
-	@Test
-	public void testGetPath() {
-		List<String> path = this.nodeTreeDao.getPath(this.idMap.get("a"), this.idMap.get("b"));
-		Assert.assertEquals(2, path.size());
-		Assert.assertEquals(this.idMap.get("a"), path.get(0));
-		Assert.assertEquals(this.idMap.get("b"), path.get(1));
-		path = this.nodeTreeDao.getPath(this.idMap.get("b"), this.idMap.get("a"));
-		Assert.assertEquals(2, path.size());
-		Assert.assertEquals(this.idMap.get("a"), path.get(0));
-		Assert.assertEquals(this.idMap.get("b"), path.get(1));
-		path = this.nodeTreeDao.getPath(this.idMap.get("m"), this.idMap.get("b"));
-		Assert.assertEquals(4, path.size());
-		Assert.assertEquals(this.idMap.get("b"), path.get(0));
-		Assert.assertEquals(this.idMap.get("u"), path.get(1));
-		Assert.assertEquals(this.idMap.get("j"), path.get(2));
-		Assert.assertEquals(this.idMap.get("m"), path.get(3));
-		path = this.nodeTreeDao.getPath(this.idMap.get("d"), this.idMap.get("d"));
-		Assert.assertEquals(1, path.size());
-		Assert.assertEquals(this.idMap.get("d"), path.get(0));
-		path = this.nodeTreeDao.getPath(this.idMap.get("m"), this.idMap.get("k"));
-		Assert.assertNull(path);
-	}
+		// testGetChildren()
+		{
+			List<String> childList = this.nodeTreeDao.getChildren(this.idMap.get("a"), 2, null);
+			Assert.assertEquals(2, childList.size());
+			Set<String> childSet = new HashSet<String>();
+			childSet.addAll(childList);
+			childList = this.nodeTreeDao.getChildren(this.idMap.get("a"), 2, childList.get(1));
+			Assert.assertEquals(1, childList.size());
+			childSet.addAll(childList);
+			Assert.assertEquals(3, childSet.size());
+			Assert.assertTrue(childSet.contains(this.idMap.get("b")));
+			Assert.assertTrue(childSet.contains(this.idMap.get("c")));
+			Assert.assertTrue(childSet.contains(this.idMap.get("d")));
+		}
 
-	@Test
-	public void testGetLowestCommonAncestor() {
-		String anc = this.nodeTreeDao.getLowestCommonAncestor(this.idMap.get("b"), this.idMap.get("d"));
-		Assert.assertEquals(this.idMap.get("a"), anc);
-		anc = this.nodeTreeDao.getLowestCommonAncestor(this.idMap.get("j"), this.idMap.get("b"));
-		Assert.assertEquals(this.idMap.get("b"), anc);
-		anc = this.nodeTreeDao.getLowestCommonAncestor(this.idMap.get("e"), this.idMap.get("n"));
-		Assert.assertEquals(this.idMap.get("b"), anc);
+		// testGetPath()
+		{
+			List<String> path = this.nodeTreeDao.getPath(this.idMap.get("a"), this.idMap.get("b"));
+			Assert.assertEquals(2, path.size());
+			Assert.assertEquals(this.idMap.get("a"), path.get(0));
+			Assert.assertEquals(this.idMap.get("b"), path.get(1));
+			path = this.nodeTreeDao.getPath(this.idMap.get("b"), this.idMap.get("a"));
+			Assert.assertEquals(2, path.size());
+			Assert.assertEquals(this.idMap.get("a"), path.get(0));
+			Assert.assertEquals(this.idMap.get("b"), path.get(1));
+			path = this.nodeTreeDao.getPath(this.idMap.get("m"), this.idMap.get("b"));
+			Assert.assertEquals(4, path.size());
+			Assert.assertEquals(this.idMap.get("b"), path.get(0));
+			Assert.assertEquals(this.idMap.get("u"), path.get(1));
+			Assert.assertEquals(this.idMap.get("j"), path.get(2));
+			Assert.assertEquals(this.idMap.get("m"), path.get(3));
+			path = this.nodeTreeDao.getPath(this.idMap.get("d"), this.idMap.get("d"));
+			Assert.assertEquals(1, path.size());
+			Assert.assertEquals(this.idMap.get("d"), path.get(0));
+			path = this.nodeTreeDao.getPath(this.idMap.get("m"), this.idMap.get("k"));
+			Assert.assertNull(path);
+		}
+
+		// testGetLowestCommonAncestor()
+		{
+			String anc = this.nodeTreeDao.getLowestCommonAncestor(this.idMap.get("b"), this.idMap.get("d"));
+			Assert.assertEquals(this.idMap.get("a"), anc);
+			anc = this.nodeTreeDao.getLowestCommonAncestor(this.idMap.get("j"), this.idMap.get("b"));
+			Assert.assertEquals(this.idMap.get("b"), anc);
+			anc = this.nodeTreeDao.getLowestCommonAncestor(this.idMap.get("e"), this.idMap.get("n"));
+			Assert.assertEquals(this.idMap.get("b"), anc);
+		}
 	}
 }

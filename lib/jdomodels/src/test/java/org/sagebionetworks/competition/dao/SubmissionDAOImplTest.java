@@ -12,7 +12,6 @@ import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.CompetitionStatus;
 import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
-import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -41,7 +40,6 @@ public class SubmissionDAOImplTest {
     private String userId = "0";
     private String compId;
     private String name = "test submission";
-    private Long score = 0L;
     private Long versionNumber = 1L;
     
     @Before
@@ -86,7 +84,7 @@ public class SubmissionDAOImplTest {
     }
     
     @Test
-    public void testCRUD() throws Exception{
+    public void testCRD() throws Exception{
         // Initialize a new Submission
         Submission submission = new Submission();
         submission.setId(submissionId);
@@ -94,9 +92,7 @@ public class SubmissionDAOImplTest {
         submission.setCompetitionId(compId);
         submission.setEntityId(nodeId);
         submission.setVersionNumber(versionNumber);
-        submission.setStatus(SubmissionStatus.OPEN);
         submission.setUserId(userId);
-        submission.setScore(score);
  
         // Create it
         Submission clone = submissionDAO.create(submission);
@@ -113,18 +109,6 @@ public class SubmissionDAOImplTest {
         Submission clone2 = submissionDAO.get(submissionId);
         assertNotNull(clone2);
         assertEquals(submission, clone2);
-        
-		// Update it
-        Long newScore = score + 100;
-		clone.setScore(newScore);
-		Long newVersion = versionNumber + 1;
-		clone.setVersionNumber(newVersion);
-		submissionDAO.update(clone);
-		
-		// Verify it
-		Submission clone3 = submissionDAO.get(submissionId);
-		assertEquals(clone, clone3);
-		assertFalse(clone3.getScore().equals(clone2.getScore()));
         
         // Delete it
         submissionDAO.delete(submissionId);

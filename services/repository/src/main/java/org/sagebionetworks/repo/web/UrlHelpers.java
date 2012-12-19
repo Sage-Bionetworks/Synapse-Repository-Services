@@ -238,7 +238,42 @@ public class UrlHelpers {
 	 * Get the generating activity for a specific version of an entity
 	 */
 	public static final String ENTITY_VERSION_GENERATED_BY = ENTITY_VERSION_NUMBER+GENERATED_BY;
-	
+
+	/**
+	 * Gets the root node.
+	 */
+	public static final String ENTITY_ROOT = ENTITY + "/root";
+
+	/**
+	 * Gets the ancestors for the specified node.
+	 */
+	public static final String ENTITY_ANCESTORS = ENTITY_ID + "/ancestors";
+
+	/**
+	 * Gets the descendants for the specified node.
+	 */
+	public static final String ENTITY_DESCENDANTS = ENTITY_ID + "/descendants";
+
+	/**
+	 * Gets the descendants of a particular generation for the specified node.
+	 */
+	public static final String GENERATION = "generation";
+
+	/**
+	 * Gets the descendants of a particular generation for the specified node.
+	 */
+	public static final String ENTITY_DESCENDANTS_GENERATION = ENTITY_ID + "/descendants/{" + GENERATION + "}";
+
+	/**
+	 * Gets the parent for the specified node.
+	 */
+	public static final String ENTITY_PARENT = ENTITY_ID + "/parent";
+
+	/**
+	 * Gets the children for the specified node.
+	 */
+	public static final String ENTITY_CHILDREN = ENTITY_ID + "/children";;
+
 	/**
 	 * URL path for query controller
 	 * 

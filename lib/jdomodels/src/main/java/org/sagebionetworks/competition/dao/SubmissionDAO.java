@@ -3,7 +3,7 @@ package org.sagebionetworks.competition.dao;
 import java.util.List;
 
 import org.sagebionetworks.competition.model.Submission;
-import org.sagebionetworks.competition.model.SubmissionStatus;
+import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -63,7 +63,7 @@ public interface SubmissionDAO {
 	 * @throws NotFoundException
 	 */
 	public List<Submission> getAllByCompetitionAndStatus(String compId,
-			SubmissionStatus status) throws DatastoreException,
+			SubmissionStatusEnum status) throws DatastoreException,
 			NotFoundException;
 	
 	/**
@@ -97,13 +97,5 @@ public interface SubmissionDAO {
 	 * @throws NotFoundException
 	 */
 	public void delete(String id) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Check whether a Submission exists with the given ID
-	 * 
-	 * @param id
-	 * @return
-	 */
-	public boolean doesIdExist(String id);
 
 }

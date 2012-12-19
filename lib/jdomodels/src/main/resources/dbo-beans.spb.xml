@@ -48,6 +48,7 @@
 				<bean class="org.sagebionetworks.competition.dbo.CompetitionDBO" />
 				<bean class="org.sagebionetworks.competition.dbo.ParticipantDBO" />
 				<bean class="org.sagebionetworks.competition.dbo.SubmissionDBO" />
+				<bean class="org.sagebionetworks.competition.dbo.SubmissionStatusDBO" />
 			</list>
 		</property>
 	</bean>

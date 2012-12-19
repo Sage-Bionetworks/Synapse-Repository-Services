@@ -77,7 +77,18 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 		replaceAll(id);
 		return true;
 	}
-	
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public boolean deleteEntity(String id) {
+		if(id == null) throw new IllegalArgumentException("Id cannot be null");
+		Long nodeId = KeyFactory.stringToKey(id);
+		dboReferenceDao.deleteReferencesByOwnderId(nodeId);
+		dboAnnotationsDao.deleteAnnotationsByOwnerId(nodeId);
+		storageLocationDao.deleteLocationDataByOwnerId(nodeId);
+		return true;
+	}
+
 	/**
 	 * Replace all of the data in the database tables.
 	 * 
@@ -106,11 +117,4 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 			throw new DatastoreException(e);
 		}
 	}
-
-	@Override
-	public boolean deleteEntity(String id) {
-		// Currently we are using cascade deletes at the database level.
-		return true;
-	}
-
 }

@@ -4,6 +4,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
@@ -16,6 +17,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.CompetitionStatus;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -70,20 +72,22 @@ public class CompetitionDAOImplTest {
 		toDelete.add(compId);
 		
 		// Get it
-		Competition clone = competitionDAO.get(compId);
-		assertEquals(compId, clone.getId());
-		assertEquals(COMPETITION_NAME, clone.getName());
-		assertEquals(COMPETITION_OWNER_ID, clone.getOwnerId());
-		assertEquals(COMPETITION_CONTENT_SOURCE, clone.getContentSource());
-		assertEquals(CompetitionStatus.PLANNED, clone.getStatus());
+		Competition created = competitionDAO.get(compId);
+		assertEquals(compId, created.getId());
+		assertEquals(COMPETITION_NAME, created.getName());
+		assertEquals(COMPETITION_OWNER_ID, created.getOwnerId());
+		assertEquals(COMPETITION_CONTENT_SOURCE, created.getContentSource());
+		assertEquals(CompetitionStatus.PLANNED, created.getStatus());
+		assertNotNull(created.getEtag());
 		assertEquals(1 + initialCount, competitionDAO.getCount());
 		
 		// Update it
-		clone.setName(COMPETITION_NAME_2);
-		competitionDAO.update(clone);
+		created.setName(COMPETITION_NAME_2);
+		competitionDAO.update(created);
 		Competition updated = competitionDAO.get(compId);
 		assertEquals(compId, updated.getId());
 		assertFalse("Competition name update failed.", comp.getName().equals(updated.getName()));
+		assertFalse("eTag was not updated.", created.getEtag().equals(updated.getEtag()));
 		
 		// Delete it
 		assertNotNull(competitionDAO.get(compId));
@@ -140,13 +144,25 @@ public class CompetitionDAOImplTest {
 		assertEquals(1 + initialCount, competitionDAO.getCount());
 		
 		// Create clone with same name
-		clone.setId(compId + 1);		
+		clone.setId(compId + 1);
         try {
         	competitionDAO.create(clone, COMPETITION_OWNER_ID);
         	fail("Should not be able to create two Competitions with the same name");
-        } catch (IllegalArgumentException e) {
+        } catch (DatastoreException e) {
         	// Expected name conflict
+        	assertTrue("Name conflict message should contain the requested name", 
+        			e.getMessage().contains(COMPETITION_NAME));
         }
+    }
+    
+    @Test
+    public void testGetInRange() {
+    	//TODO
+    }
+    
+    @Test
+    public void testGetInRangeByStatus() {
+    	//TODO
     }
     
     @Test
