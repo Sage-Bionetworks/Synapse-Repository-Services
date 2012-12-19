@@ -23,6 +23,7 @@
     	<property name="startDelay" value="0" />
 	    <!-- repeat every 5 minutes -->
 	    <property name="repeatInterval" value="300000" />
+	    <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_FIRE_NOW" />
 	</bean>
 	
 	
