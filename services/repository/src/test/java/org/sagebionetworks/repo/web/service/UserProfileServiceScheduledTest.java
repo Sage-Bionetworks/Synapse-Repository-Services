@@ -4,7 +4,6 @@ import static org.junit.Assert.assertNotNull;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.quartz.SimpleTrigger;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,7 +29,6 @@ public class UserProfileServiceScheduledTest {
 		// wait a bit for cache to be populated
 		Thread.sleep(500L);
 		assertNotNull("Cache has not been populated.", userProfileService.millisSinceLastCacheUpdate());
-		int x = SimpleTrigger.MISFIRE_INSTRUCTION_FIRE_NOW;
 	}	
 
 }
