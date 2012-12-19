@@ -19,4 +19,8 @@ public interface DBOAnnotationsDao {
 	 */
 	public void replaceAnnotations(Annotations annotations) throws DatastoreException;
 
+	/**
+	 * Deletes all the annotations associated with the specified owner.
+	 */
+	public void deleteAnnotationsByOwnerId(Long ownerId);
 }

@@ -85,7 +85,14 @@ public class DBOReferenceDaoImpl implements DBOReferenceDao {
 		}
 		return references;
 	}
-	
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteReferencesByOwnderId(Long ownerId) {
+		if (ownerId == null) throw new IllegalArgumentException("Owner id cannot be null");
+		deleteWithoutGapLockFromTable(ownerId);
+	}
+
 	@Override
 	public Map<String, Set<Reference>> getReferences(Long ownerId) {
 		if(ownerId == null) throw new IllegalArgumentException("OwnerId cannot be null");

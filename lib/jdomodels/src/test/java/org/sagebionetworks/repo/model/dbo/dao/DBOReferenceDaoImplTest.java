@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.UnsupportedEncodingException;
@@ -92,6 +93,7 @@ public class DBOReferenceDaoImplTest {
 				MapSqlParameterSource params = new MapSqlParameterSource();
 				params.addValue("id", node.getId());
 				dboBasicDao.deleteObjectById(DBONode.class, params);
+				dboReferenceDao.deleteReferencesByOwnderId(node.getId());
 			}
 		}
 		if(groupsToDelete != null && userGroupDAO != null){
@@ -178,6 +180,13 @@ public class DBOReferenceDaoImplTest {
 		// Make sure our returned ids have the syn prefix
 		assertEquals(KeyFactory.keyToString(456L), clone2.get("groupTwo").iterator().next().getTargetId());
 		assertEquals(KeyFactory.keyToString(789L), clone2.get("groupThree").iterator().next().getTargetId());
+
+		// Clear
+		dboReferenceDao.deleteReferencesByOwnderId(node.getId());
+		Map<String, Set<Reference>> clone3 = dboReferenceDao.getReferences(node.getId());
+		assertNull(clone3.get("groupOne"));
+		assertNull(clone3.get("groupTwo"));
+		assertNull(clone3.get("groupThree"));
 	}
 	
 	@Test

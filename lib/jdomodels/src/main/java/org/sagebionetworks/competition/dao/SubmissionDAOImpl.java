@@ -9,11 +9,10 @@ import java.util.Map;
 import org.sagebionetworks.competition.dbo.DBOConstants;
 import org.sagebionetworks.competition.dbo.SubmissionDBO;
 import org.sagebionetworks.competition.model.Submission;
-import org.sagebionetworks.competition.model.SubmissionStatus;
+import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.competition.query.jdo.SQLConstants;
 import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -40,7 +39,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static final String ID = DBOConstants.PARAM_SUBMISSION_ID;
 	private static final String USER_ID = DBOConstants.PARAM_SUBMISSION_USER_ID;
 	private static final String COMP_ID = DBOConstants.PARAM_SUBMISSION_COMP_ID;
-	private static final String STATUS = DBOConstants.PARAM_SUBMISSION_STATUS;
+	private static final String STATUS = DBOConstants.PARAM_SUBSTATUS_STATUS;
 	
 	private static final String SELECT_BY_USER_SQL = 
 			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION +
@@ -53,35 +52,23 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static final String SELECT_BY_COMPETITION_AND_STATUS_SQL = 
 			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION +
 			" WHERE "+ SQLConstants.COL_SUBMISSION_COMP_ID + "=:"+ COMP_ID +
-			" AND " + SQLConstants.COL_SUBMISSION_STATUS + "=:" + STATUS;
+			" AND " + SQLConstants.COL_SUBSTATUS_STATUS + "=:" + STATUS;
 	
 	private static final String COUNT_BY_COMPETITION_SQL = 
 			"SELECT COUNT * FROM " +  SQLConstants.TABLE_SUBMISSION +
 			" WHERE "+ SQLConstants.COL_PARTICIPANT_COMP_ID + "=:" + COMP_ID;
 	
-	private static final String COUNT_BY_ID_SQL = 
-			"SELECT COUNT(" + ID + ") FROM " + 
-			SQLConstants.TABLE_SUBMISSION + " WHERE "+ 
-			ID + "=:" + ID;
-	
 	private static final RowMapper<SubmissionDBO> rowMapper = ((new SubmissionDBO()).getTableMapping());
 
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Submission create(Submission dto) throws DatastoreException {		
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
 		copyDtoToDbo(dto, dbo);
 		
-		// Validate or create ID
-		if (dbo.getId() == null) {
-			dbo.setId(idGenerator.generateNewId());
-		} else {
-			// If an id was provided then it must not already exist
-			if (doesIdExist(dbo.getId().toString()))
-				throw new IllegalArgumentException("The id: "+dbo.getId()+" already exists, so a Submission cannot be created using that id.");
-			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(dbo.getId(), TYPE.DOMAIN_ID);
-		}
+		// Generate ID
+		dbo.setId(idGenerator.generateNewId());
 			
 		// Set creation date
 		dbo.setCreatedOn(System.currentTimeMillis());
@@ -140,7 +127,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	}
 	
 	@Override
-	public List<Submission> getAllByCompetitionAndStatus(String compId, SubmissionStatus status) throws DatastoreException, NotFoundException {
+	public List<Submission> getAllByCompetitionAndStatus(String compId, SubmissionStatusEnum status) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COMP_ID, compId);
 		param.addValue(STATUS, status.ordinal());
@@ -182,19 +169,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		param.addValue(ID, id);
 		basicDao.deleteObjectById(SubmissionDBO.class, param);		
 	}
-	
-	@Override
-	public boolean doesIdExist(String id) {
-		Map<String, Object> parameters = new HashMap<String, Object>();
-		parameters.put(ID, id);
-		try {
-			long count = simpleJdbcTemplate.queryForLong(COUNT_BY_ID_SQL, parameters);
-			return count > 0;
-		} catch(Exception e) {
-			// Can occur when the schema does not exist.
-			return false;
-		}
-	}
 
 	/**
 	 * Copy a SubmissionDBO database object to a Participant data transfer object
@@ -209,8 +183,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dbo.setEntityId(dto.getEntityId() == null ? null : Long.parseLong(dto.getEntityId()));
 		dbo.setVersionNumber(dto.getVersionNumber());
 		dbo.setName(dto.getName());
-		dbo.setScore(dto.getScore());
-		dbo.setStatusEnum(dto.getStatus());
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
 	}
 	
@@ -228,8 +200,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dto.setEntityId(dbo.getEntityId() == null ? null : dbo.getEntityId().toString());
 		dto.setVersionNumber(dbo.getVersionNumber());
 		dto.setName(dbo.getName());
-		dto.setScore(dbo.getScore());
-		dto.setStatus(dbo.getStatusEnum());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 	}
 

@@ -12,6 +12,8 @@ import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.CompetitionStatus;
 import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
+import org.sagebionetworks.competition.model.SubmissionStatus;
+import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -24,8 +26,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class SubmissionDAOImplTest {
+public class SubmissionStatusDAOImplTest {
  
+	@Autowired
+	SubmissionStatusDAO submissionStatusDAO;
     @Autowired
     SubmissionDAO submissionDAO;
     @Autowired
@@ -65,6 +69,16 @@ public class SubmissionDAOImplTest {
         participant.setUserId(userId);
         participant.setCompetitionId(compId);
         participantDAO.create(participant);
+        
+        // create a submission
+        Submission submission = new Submission();
+        submission.setName(name);
+        submission.setEntityId(nodeId);
+        submission.setVersionNumber(versionNumber);
+        submission.setUserId(userId);
+        submission.setCompetitionId(compId);
+        submission.setCreatedOn(new Date());
+        submissionId = submissionDAO.create(submission).getId();
     }
     
     @After
@@ -85,40 +99,44 @@ public class SubmissionDAOImplTest {
     
     @Test
     public void testCRD() throws Exception{
-        // Initialize a new Submission
-        Submission submission = new Submission();
-        submission.setId(submissionId);
-        submission.setName(name);
-        submission.setCompetitionId(compId);
-        submission.setEntityId(nodeId);
-        submission.setVersionNumber(versionNumber);
-        submission.setUserId(userId);
- 
+        // Initialize a new SubmissionStatus object for submissionId
+        SubmissionStatus status = new SubmissionStatus();
+        status.setId(submissionId);
+        status.setEtag(null);
+        status.setStatus(SubmissionStatusEnum.OPEN);
+        status.setScore(0L);
+        
         // Create it
-        Submission clone = submissionDAO.create(submission);
-        assertNotNull(clone);        
-        // copy the generated id
-        submissionId = clone.getId();
-        assertNotNull(submissionId);  
-        submission.setId(submissionId);
-        // copy the generated timestamp
-        submission.setCreatedOn(clone.getCreatedOn());
-        assertEquals(submission, clone);
+        SubmissionStatus clone = submissionStatusDAO.create(status);
+        assertNotNull(clone);
+        assertNotNull(clone.getModifiedOn());
+        status.setModifiedOn(clone.getModifiedOn());
+        assertNotNull(clone.getEtag());
+        status.setEtag(clone.getEtag());
+        assertEquals(status, clone);
         
         // Fetch it
-        Submission clone2 = submissionDAO.get(submissionId);
-        assertNotNull(clone2);
-        assertEquals(submission, clone2);
+        SubmissionStatus clone2 = submissionStatusDAO.get(submissionId);
+        assertEquals(status, clone2);
         
-        // Delete it
-        submissionDAO.delete(submissionId);
+        // Update it
+        clone2.setStatus(SubmissionStatusEnum.SCORED);
+        clone2.setScore(100L);
+        Thread.sleep(1L);
+        submissionStatusDAO.update(clone2);
+        SubmissionStatus clone3 = submissionStatusDAO.get(submissionId);        
+        assertFalse("Modified date was not updated", clone2.getModifiedOn().equals(clone3.getModifiedOn()));
+        clone2.setModifiedOn(clone3.getModifiedOn());
+        assertEquals(clone2, clone3);
+
+    	// Delete it
+        submissionStatusDAO.delete(submissionId);
+        
+        // Fetch it (should not exist)
         try {
-        	clone = submissionDAO.get(submissionId);
+        	status = submissionStatusDAO.get(submissionId);
         } catch (NotFoundException e) {
         	// expected
-        	return;
         }
-        fail("Failed to delete Participant");
     }
- 
 }

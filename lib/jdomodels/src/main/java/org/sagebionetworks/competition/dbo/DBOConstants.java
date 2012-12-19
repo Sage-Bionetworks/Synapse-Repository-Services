@@ -25,7 +25,12 @@ public class DBOConstants {
 	public static final String PARAM_SUBMISSION_ENTITY_VERSION = "versionNumber";
 	public static final String PARAM_SUBMISSION_NAME = "name";
 	public static final String PARAM_SUBMISSION_CREATED_ON = "createdOn";
-	public static final String PARAM_SUBMISSION_STATUS = "status";
-	public static final String PARAM_SUBMISSION_SCORE = "score";
-
+	
+	// SubmissionStatus
+	public static final String PARAM_SUBSTATUS_ID = "id";
+	public static final String PARAM_SUBSTATUS_ETAG = "eTag";
+	public static final String PARAM_SUBSTATUS_STATUS = "status";
+	public static final String PARAM_SUBSTATUS_SCORE = "score";
+	public static final String PARAM_SUBSTATUS_MODIFIED_ON = "modifiedOn";
+	
 }

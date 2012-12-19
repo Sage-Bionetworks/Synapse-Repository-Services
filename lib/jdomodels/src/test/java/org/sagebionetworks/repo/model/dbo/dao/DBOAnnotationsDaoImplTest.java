@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Date;
@@ -56,6 +57,7 @@ public class DBOAnnotationsDaoImplTest {
 				MapSqlParameterSource params = new MapSqlParameterSource();
 				params.addValue("id", id);
 				dboBasicDao.deleteObjectById(DBONode.class, params);
+				dboAnnotationsDao.deleteAnnotationsByOwnerId(id);
 			}
 		}
 	}
@@ -109,6 +111,14 @@ public class DBOAnnotationsDaoImplTest {
 		assertEquals(null, clone.getSingleValue("keyOne"));
 		assertEquals("valueTwo", clone.getSingleValue("keyTwo"));
 		assertEquals("valueThree", clone.getSingleValue("keyThree"));
+
+		// Remove the annotations associated with the node
+		dboAnnotationsDao.deleteAnnotationsByOwnerId(node.getId());
+		clone = dboAnnotationsDao.getAnnotations(node.getId());
+		assertNotNull(clone);
+		assertNull(clone.getSingleValue("keyOne"));
+		assertNull(clone.getSingleValue("keyTwo"));
+		assertNull(clone.getSingleValue("keyThree"));
 	}
 	
 	@Test
@@ -140,6 +150,14 @@ public class DBOAnnotationsDaoImplTest {
 		assertEquals(null, clone.getSingleValue("keyOne"));
 		assertEquals(new Long(345), clone.getSingleValue("keyTwo"));
 		assertEquals(new Long(789), clone.getSingleValue("keyThree"));
+
+		// Remove the annotations associated with the node
+		dboAnnotationsDao.deleteAnnotationsByOwnerId(node.getId());
+		clone = dboAnnotationsDao.getAnnotations(node.getId());
+		assertNotNull(clone);
+		assertNull(clone.getSingleValue("keyOne"));
+		assertNull(clone.getSingleValue("keyTwo"));
+		assertNull(clone.getSingleValue("keyThree"));
 	}
 	
 	@Test
@@ -171,6 +189,14 @@ public class DBOAnnotationsDaoImplTest {
 		assertEquals(null, clone.getSingleValue("keyOne"));
 		assertEquals(new Double(345.2), clone.getSingleValue("keyTwo"));
 		assertEquals(new Double(789.3), clone.getSingleValue("keyThree"));
+
+		// Remove the annotations associated with the node
+		dboAnnotationsDao.deleteAnnotationsByOwnerId(node.getId());
+		clone = dboAnnotationsDao.getAnnotations(node.getId());
+		assertNotNull(clone);
+		assertNull(clone.getSingleValue("keyOne"));
+		assertNull(clone.getSingleValue("keyTwo"));
+		assertNull(clone.getSingleValue("keyThree"));
 	}
 	
 	@Test
@@ -202,6 +228,14 @@ public class DBOAnnotationsDaoImplTest {
 		assertEquals(null, clone.getSingleValue("keyOne"));
 		assertEquals(new Date(2000), clone.getSingleValue("keyTwo"));
 		assertEquals(new Date(3000), clone.getSingleValue("keyThree"));
+
+		// Remove the annotations associated with the node
+		dboAnnotationsDao.deleteAnnotationsByOwnerId(node.getId());
+		clone = dboAnnotationsDao.getAnnotations(node.getId());
+		assertNotNull(clone);
+		assertNull(clone.getSingleValue("keyOne"));
+		assertNull(clone.getSingleValue("keyTwo"));
+		assertNull(clone.getSingleValue("keyThree"));
 	}
 	
 	@Test
@@ -222,6 +256,14 @@ public class DBOAnnotationsDaoImplTest {
 		assertEquals(new Long(123), clone.getSingleValue("longKey"));
 		assertEquals(new Double(1.11), clone.getSingleValue("doubleKey"));
 		assertEquals(new Date(2000), clone.getSingleValue("dateKey"));
+		// Remove the annotations associated with the node
+		dboAnnotationsDao.deleteAnnotationsByOwnerId(node.getId());
+		clone = dboAnnotationsDao.getAnnotations(node.getId());
+		assertNotNull(clone);
+		assertNull(clone.getSingleValue("stringKey"));
+		assertNull(clone.getSingleValue("longKey"));
+		assertNull(clone.getSingleValue("doubleKey"));
+		assertNull(clone.getSingleValue("dateKey"));
 	}
 	
 }
