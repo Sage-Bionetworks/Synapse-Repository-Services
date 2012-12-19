@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.manager.file.transfer;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -170,17 +174,48 @@ public class MemoryTransferStrategyTest {
 	@Test
 	public void testInvalidPassedMD5DeleteFile() throws IOException{
 		// Validate that we delete the file sent to S3 when the  MD5 does not match
-		transferRequest.setContentMD5("wrongMD5");
+		transferRequest.setContentMD5("1234");
 		try{
 			strategy.transferToS3(transferRequest, block);
 			fail("This should have failed as the MD5 did not match");
 		}catch(IllegalArgumentException e){
 			// 
-			assertTrue("The messages should contain the wrong MD5",e.getMessage().indexOf("wrongMD5") > -1);
+			assertTrue("The messages should contain the wrong MD5",e.getMessage().indexOf("1234") > -1);
 			assertTrue("The messages should contain the calcualted MD5",e.getMessage().indexOf(expectedMD5) > -1);
 		}
 		// Verify that the file was deleted
 		verify(mockS3Client, times(1)).deleteObject(transferRequest.getS3bucketName(), transferRequest.getS3key());
+	}
+	
+	@Test
+	public void testFillBufferFromStream() throws IOException{
+		// This will be the buffer
+		byte[] buffer = new byte[1024];
+		// this will back the input stream.
+		byte[] inputData = new byte[3000];
+		byte fillByte = 123;
+		Arrays.fill(inputData, fillByte);
+		InputStream in = new ByteArrayInputStream(inputData);
+		// this is where we will write all of the bytes one block a a time.
+		ByteArrayOutputStream out = new ByteArrayOutputStream(inputData.length);
+		// Now fill the block
+		int read = MemoryTransferStrategy.fillBufferFromStream(buffer, in);
+		assertEquals("The buffer should have been filled up", buffer.length, read);
+		// Now write out the results
+		out.write(buffer, 0, read);
+		// The second read should fill up the buffer as well
+		read = MemoryTransferStrategy.fillBufferFromStream(buffer, in);
+		assertEquals("The buffer should have been filled up", buffer.length, read);
+		// Now write out the results
+		out.write(buffer, 0, read);
+		// The third read should only partial fill up the stream.
+		read = MemoryTransferStrategy.fillBufferFromStream(buffer, in);
+		assertEquals("The buffer should not be full", 3000%1024, read);
+		// Now write out the results
+		out.write(buffer, 0, read);
+		byte[] results = out.toByteArray();
+		// The results should be the same
+		Arrays.equals(inputData, results);
 	}
 
 }

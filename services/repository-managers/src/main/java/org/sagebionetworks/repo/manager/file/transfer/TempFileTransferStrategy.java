@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.amazonaws.util.BinaryUtils;
 
 /**
@@ -25,7 +26,10 @@ public class TempFileTransferStrategy implements FileTransferStrategy {
 	@Autowired
 	AmazonS3Client s3Client;
 	
-
+	/**
+	 * Used by Spring
+	 */
+	public TempFileTransferStrategy(){}
 	/**
 	 * The IoC constructor.
 	 * @param s3Client
@@ -61,14 +65,25 @@ public class TempFileTransferStrategy implements FileTransferStrategy {
 			String contentMd5 = BinaryUtils.toHex(fullDigest.digest());
 			// If they passed an MD5 does it match?
 			TransferUtils.validateRequestedMD5(request, contentMd5);
+			// Set the MD5 Of the file.
+			metadata.setContentMd5(contentMd5);
+			// Set the file size
+			metadata.setContentSize(tempFile.length());
+			// Transfer the file to s3.
+			s3Client.putObject(new PutObjectRequest(request.getS3bucketName(), request.getS3key(), tempFile).withMetadata(objMeta));
 		}finally{
-			fos.close();
-			tempFile.delete();
+			try{
+				fos.close();
+			}finally{
+				// we still need to delete the file even if close failed.
+				tempFile.delete();
+			}
 		}
 		// We must delete this file or we will have a hard drive leak.
 		if(tempFile.exists()) {
 			throw new IllegalStateException("Failed to delete the tempoary file created by this file transer!  This will fill up the hardrive over time!");
 		}
+
 		return metadata;
 	}
 

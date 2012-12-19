@@ -1,4 +1,4 @@
-package org.sagebionetworks.file.manager;
+package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -106,6 +106,18 @@ public class FileUploadManagerImplTest {
 		
 		// the manager to test.
 		manager = new FileUploadManagerImpl(mockfileMetadataDao, mockPrimaryStrategy, mockFallbackStrategy);
+	}
+	
+	@Test (expected=IllegalStateException.class)
+	public void testPrimaryStrategyNull() throws Exception{
+		manager.setPrimaryStrategy(null);
+		FileUploadResults results = manager.uploadfiles(mockUser, new HashSet<String>(), mockIterator);
+	}
+	
+	@Test (expected=IllegalStateException.class)
+	public void testFallbacStrategyNull() throws Exception{
+		manager.setFallbackStrategy(null);
+		FileUploadResults results = manager.uploadfiles(mockUser, new HashSet<String>(), mockIterator);
 	}
 	
 	/**
@@ -216,7 +228,6 @@ public class FileUploadManagerImplTest {
 		assertEquals(StackConfiguration.getS3Bucket(), metadata.getS3bucketName());
 		assertEquals(Mimetypes.MIMETYPE_OCTET_STREAM, metadata.getContentType());
 		assertNotNull(metadata.getS3key());
-		assertTrue(metadata.getS3key().endsWith("testCreateMetadata"));
 		assertTrue(metadata.getS3key().startsWith("123/"));
 		assertEquals(stream, metadata.getInputStream());
 	}

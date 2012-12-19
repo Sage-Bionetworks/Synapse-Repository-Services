@@ -33,7 +33,7 @@ public class FileUploadManagerImpl implements FileUploadManager {
 	
 	static private Log log = LogFactory.getLog(FileUploadManagerImpl.class);
 	
-	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s/%3$s"; // userid/UUID/filename
+	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s"; // userid/UUID
 	
 	@Autowired
 	FileMetadataDao fileMetadataDao;
@@ -87,6 +87,8 @@ public class FileUploadManagerImpl implements FileUploadManager {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(expectedParams == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(itemIterator == null) throw new IllegalArgumentException("FileItemIterator cannot be null");
+		if(primaryStrategy == null) throw new IllegalStateException("The primaryStrategy has not been set.");
+		if(fallbackStrategy == null) throw new IllegalStateException("The fallbackStrategy has not been set.");
 		FileUploadResults results = new FileUploadResults();
 		String userId =  userInfo.getIndividualGroup().getId();
 		// Upload all of the files
@@ -143,7 +145,7 @@ public class FileUploadManagerImpl implements FileUploadManager {
 		TransferRequest request = new TransferRequest();
 		request.setContentType(contentType);
 		request.setS3bucketName(StackConfiguration.getS3Bucket());
-		request.setS3key(String.format(FILE_TOKEN_TEMPLATE, userId, UUID.randomUUID().toString(), fileName));
+		request.setS3key(String.format(FILE_TOKEN_TEMPLATE, userId, UUID.randomUUID().toString()));
 		request.setFileName(fileName);
 		request.setInputStream(inputStream);
 		return request;

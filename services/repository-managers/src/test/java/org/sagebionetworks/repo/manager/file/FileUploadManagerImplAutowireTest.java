@@ -1,4 +1,4 @@
-package org.sagebionetworks.file.manager;
+package org.sagebionetworks.repo.manager.file;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -139,9 +139,7 @@ public class FileUploadManagerImplAutowireTest {
 			assertEquals("CreatedBy should match the user that created the file.", userInfo.getIndividualGroup().getId(), metaResult.getCreatedBy());
 			assertEquals(StackConfiguration.getS3Bucket(), metaResult.getBucketName());
 			assertNotNull(metaResult.getKey());
-			assertTrue("The key should start with the userID", metaResult.getKey().startsWith(userInfo.getIndividualGroup().getId()));
-			assertTrue("The key should end with the filename", metaResult.getKey().endsWith(expected.getFileName()));
-			
+			assertTrue("The key should start with the userID", metaResult.getKey().startsWith(userInfo.getIndividualGroup().getId()));			
 			// Validate this is in the database
 			S3FileMetadata fromDB = (S3FileMetadata) fileMetadataDao.get(metaResult.getId());
 			assertEquals(metaResult, fromDB);

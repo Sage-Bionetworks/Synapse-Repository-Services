@@ -6,6 +6,7 @@ import java.security.NoSuchAlgorithmException;
 import org.sagebionetworks.repo.model.file.S3FileMetadata;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
+import com.amazonaws.util.BinaryUtils;
 
 public class TransferUtils {
 	
@@ -22,6 +23,10 @@ public class TransferUtils {
 		ObjectMetadata objMeta = new ObjectMetadata();
 		objMeta.setContentType(request.getContentType());
 		objMeta.setContentDisposition(CONTENT_DISPOSITION_PREFIX+request.getFileName());
+		if(request.getContentMD5() != null){
+			// convert it from hex to base64.
+			objMeta.setContentMD5(BinaryUtils.toBase64(BinaryUtils.fromHex(request.getContentMD5())));
+		}
 		return objMeta;
 	}
 
@@ -41,6 +46,7 @@ public class TransferUtils {
 		metadata.setBucketName(request.getS3bucketName());
 		metadata.setKey(request.getS3key());
 		metadata.setContentType(request.getContentType());
+		metadata.setFileName(request.getFileName());
 		return metadata;
 	}
 

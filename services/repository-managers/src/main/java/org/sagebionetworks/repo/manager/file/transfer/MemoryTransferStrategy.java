@@ -2,10 +2,13 @@ package org.sagebionetworks.repo.manager.file.transfer;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.file.S3FileMetadata;
 import org.sagebionetworks.repo.util.FixedMemoryPool;
 import org.sagebionetworks.repo.util.FixedMemoryPool.BlockConsumer;
@@ -51,6 +54,8 @@ import com.amazonaws.util.BinaryUtils;
  *
  */
 public class MemoryTransferStrategy implements FileTransferStrategy {
+	
+	static private Log log = LogFactory.getLog(MemoryTransferStrategy.class);
 	
 	/**
 	 * Note: 5 MB is currently the minimum size of a single part of S3 Multi-part upload.
@@ -121,6 +126,9 @@ public class MemoryTransferStrategy implements FileTransferStrategy {
 		S3FileMetadata metadata = TransferUtils.prepareS3FileMetadata(request);
 		// Start a multi-part upload
 		ObjectMetadata objMeta = TransferUtils.prepareObjectMetadata(request);
+		if(log.isDebugEnabled()){
+			log.debug("Starting multi-part upload: "+metadata.toString());
+		}
 		// Start the upload.
 		InitiateMultipartUploadResult initiate = s3Client.initiateMultipartUpload(new InitiateMultipartUploadRequest(metadata.getBucketName(), metadata.getKey(), objMeta));
 		// Now read the stream
@@ -132,7 +140,8 @@ public class MemoryTransferStrategy implements FileTransferStrategy {
 		int read = -1;
 		int partNumber = 1;
 		long contentSize = 0;
-		while ((read = request.getInputStream().read(buffer)) > 0) {
+		// First we need to fill up the memory buffer.
+		while ((read = fillBufferFromStream(buffer, request.getInputStream())) > 0) {
 			// Update the MD5 calculation of the entire file
 			fullDigest.update(buffer, 0, read);
 			// Calculate the MD5 of the part
@@ -141,6 +150,7 @@ public class MemoryTransferStrategy implements FileTransferStrategy {
 			String partMD5 = BinaryUtils.toBase64(partDigest.digest());
 			// Upload this part
 			ByteArrayInputStream bais = new ByteArrayInputStream(buffer);
+			long start = System.currentTimeMillis();
 			UploadPartResult partResult = s3Client
 					.uploadPart(new UploadPartRequest()
 							.withUploadId(initiate.getUploadId())
@@ -154,9 +164,16 @@ public class MemoryTransferStrategy implements FileTransferStrategy {
 			// Increment the part number
 			partNumber++;
 			contentSize += read;
+			long elapseMS = System.currentTimeMillis()-start;
+			if(log.isDebugEnabled()){
+				log.debug("Sent a part of size: "+read+" bytes in "+elapseMS+" MS with a MD5: "+partMD5+" total bytes transfered: "+contentSize);
+			}
 		}
 		// Get the MD5
 		String contentMd5 = BinaryUtils.toHex(fullDigest.digest());	
+		if(log.isDebugEnabled()){
+			log.debug("Completing multi-part upload with final MD5: "+contentMd5);
+		}
 		// Complete the Upload
 		s3Client.completeMultipartUpload(new CompleteMultipartUploadRequest(
 						initiate.getBucketName(), initiate.getKey(), initiate
@@ -175,10 +192,23 @@ public class MemoryTransferStrategy implements FileTransferStrategy {
 		metadata.setContentMd5(contentMd5);
 		// Set the file size
 		metadata.setContentSize(contentSize);
-		metadata.setFileName(request.getFileName());
 		return metadata;
 	}
 
-
+	/**
+	 * Fill the passed buffer from the passed input stream.
+	 * @param buffer
+	 * @param in
+	 * @return the number of bytes written to the buffer.
+	 * @throws IOException 
+	 */
+	public static int fillBufferFromStream(byte[] buffer, InputStream in) throws IOException{
+		int totalRead = 0;
+		int read;
+		while((read = in.read(buffer, totalRead, buffer.length-totalRead)) > 0){
+			totalRead += read;
+		}
+		return totalRead;
+	}
 
 }

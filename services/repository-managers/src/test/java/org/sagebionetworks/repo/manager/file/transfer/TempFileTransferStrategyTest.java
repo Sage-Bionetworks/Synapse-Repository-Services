@@ -70,27 +70,13 @@ public class TempFileTransferStrategyTest {
 		transferRequest.setContentType("contentType");
 		transferRequest.setContentMD5(expectedMD5);
 		transferRequest.setFileName("foo.txt");
-		
-		// Setup the S3 calls
-//		InitiateMultipartUploadResult result = new InitiateMultipartUploadResult();
-//		result.setBucketName(transferRequest.getS3bucketName());
-//		result.setKey(transferRequest.getS3key());
-//		when(mockS3Client.initiateMultipartUpload(any(InitiateMultipartUploadRequest.class))).thenReturn(result);
-//		UploadPartResult uploadPart = new UploadPartResult();
-//		uploadPart.setETag("etag");
-//		when(mockS3Client.uploadPart(any(UploadPartRequest.class))).thenReturn(uploadPart);
-		
+
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testTransferToS3RequestNull() throws Exception{
 		// Pass a null request
 		strategy.transferToS3(null);
-	}
-	
-	@Test (expected=IllegalArgumentException.class)
-	public void testTransferToS3BufferNull() throws Exception{
-		strategy.transferToS3(transferRequest);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -134,15 +120,17 @@ public class TempFileTransferStrategyTest {
 	@Test
 	public void testInvalidPassedMD5DeleteFile() throws IOException, ServiceUnavailableException{
 		// Validate that we delete the file sent to S3 when the  MD5 does not match
-		transferRequest.setContentMD5("wrongMD5");
+		transferRequest.setContentMD5("1234");
 		try{
 			strategy.transferToS3(transferRequest);
 			fail("This should have failed as the MD5 did not match");
 		}catch(IllegalArgumentException e){
 			// check the message.
-			assertTrue("The messages should contain the wrong MD5",e.getMessage().indexOf("wrongMD5") > -1);
+			System.out.println(e.getMessage());
+			assertTrue("The messages should contain the wrong MD5",e.getMessage().indexOf("1234") > -1);
 			assertTrue("The messages should contain the calcualted MD5",e.getMessage().indexOf(expectedMD5) > -1);
 		}
 	}
+	
 
 }

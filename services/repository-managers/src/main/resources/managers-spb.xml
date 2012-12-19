@@ -44,10 +44,15 @@
 	<!-- Memory File Transfer Strategy -->
 	<bean id="memoryTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.MemoryTransferStrategy" />
 	
+	<!-- Temp File Transfer Strategy -->
+	<bean id="tempFileTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.TempFileTransferStrategy" />
+	
 	<!-- File Upload manager -->
 	<bean id="fileUploadManager" class="org.sagebionetworks.repo.manager.file.FileUploadManagerImpl" >
 	    <!-- The memory strategy is the primary -->
 	    <property name="primaryStrategy" ref="memoryTransferStrategy"/>
+	   	<!-- The temp strategy is the fall-back -->
+	    <property name="fallbackStrategy" ref="tempFileTransferStrategy"/>
 	</bean>
 
 	<!-- The Location helper -->
