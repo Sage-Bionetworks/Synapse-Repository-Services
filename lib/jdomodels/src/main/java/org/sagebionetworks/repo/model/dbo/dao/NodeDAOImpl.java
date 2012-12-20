@@ -566,9 +566,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException {
-		// A regular update will get a new Etag so we do not want to force the use of the passed eTag
-		boolean forceUseEtag = false;
-		updateNodePrivate(updatedNode, forceUseEtag);
+		updateNodePrivate(updatedNode);
 	}
 
 	/**
@@ -578,7 +576,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	private void updateNodePrivate(Node updatedNode, boolean forceUseEtag) throws NotFoundException,
+	private void updateNodePrivate(Node updatedNode) throws NotFoundException,
 			DatastoreException, InvalidModelException {
 		if(updatedNode == null) throw new IllegalArgumentException("Node to update cannot be null");
 		if(updatedNode.getId() == null) throw new IllegalArgumentException("Node to update cannot have a null ID");
@@ -588,11 +586,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		// Update is as simple as copying the values from the passed node.		
 		NodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate, shouldDeleteActivityId(updatedNode));	
 
-		// Should we force the update of the etag?
-		if(forceUseEtag){
-			if(updatedNode.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
-			jdoToUpdate.seteTag(KeyFactory.urlDecode(updatedNode.getETag()));
-		}
 		// Update the node.
 		try{
 			dboBasicDao.update(jdoToUpdate);
