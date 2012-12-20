@@ -1054,8 +1054,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public void updateRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
-		// TODO: Remove this. Not sure if it is called to check exceptions.
-		DBONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		DBORevision dboRev = getNodeRevisionById(KeyFactory.stringToKey(rev.getNodeId()), rev.getRevisionNumber());
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
 		// Save the new revision
@@ -1066,8 +1064,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public void createNewRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
-		// TODO: Remove this. Not sure if it is called to check exceptions.
-		DBONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		DBORevision dboRev = new DBORevision();
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
 		dboBasicDao.createNew(dboRev);
@@ -1235,7 +1231,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	public boolean doesNodeHaveChildren(String nodeId) {
 		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
 		try{
-			long id = this.simpleJdbcTemplate.queryForLong(SQL_GET_FIRST_CHILD, KeyFactory.stringToKey(nodeId));
+			this.simpleJdbcTemplate.queryForLong(SQL_GET_FIRST_CHILD, KeyFactory.stringToKey(nodeId));
 			// At least one node has this parent id.
 			return true;
 		}catch(EmptyResultDataAccessException e){
