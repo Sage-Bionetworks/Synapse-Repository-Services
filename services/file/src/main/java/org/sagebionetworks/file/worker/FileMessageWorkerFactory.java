@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
-import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.sqs.model.Message;
@@ -18,12 +18,12 @@ import com.amazonaws.services.sqs.model.Message;
 public class FileMessageWorkerFactory implements MessageWorkerFactory {
 
 	@Autowired
-	FileMetadataDao fileMetadataDao;
+	PreviewManager previewManager;
 	
 	@Override
 	public Callable<List<Message>> createWorker(List<Message> messages) {
 		// Create a new worker.
-		return new PreviewWorker(fileMetadataDao, messages);
+		return new PreviewWorker(previewManager, messages);
 	}
 
 }

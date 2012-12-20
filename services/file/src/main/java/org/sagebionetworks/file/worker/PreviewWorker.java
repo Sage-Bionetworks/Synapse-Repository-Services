@@ -7,8 +7,14 @@ import java.util.concurrent.Callable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
-import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
+import org.sagebionetworks.repo.model.file.ExternalFileMetadata;
+import org.sagebionetworks.repo.model.file.FileMetadata;
+import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileMetadata;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -23,7 +29,7 @@ public class PreviewWorker implements Callable<List<Message>> {
 	
 	static private Log log = LogFactory.getLog(PreviewWorker.class);
 	
-	private FileMetadataDao fileMetadataDao;
+	private PreviewManager previewManager;
 	private List<Message> messages;
 	
 	/**
@@ -32,9 +38,9 @@ public class PreviewWorker implements Callable<List<Message>> {
 	 * @param fileMetadataDao
 	 * @param messages
 	 */
-	public PreviewWorker(FileMetadataDao fileMetadataDao, List<Message> messages) {
+	public PreviewWorker(PreviewManager previewManager, List<Message> messages) {
 		super();
-		this.fileMetadataDao = fileMetadataDao;
+		this.previewManager = previewManager;
 		this.messages = messages;
 	}
 
@@ -46,8 +52,29 @@ public class PreviewWorker implements Callable<List<Message>> {
 		for(Message message: messages){
 			try{
 				ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
-				
-				
+				// Ignore all non-file messages.
+				if(ObjectType.FILE == changeMessage.getObjectType()){
+					// This is a file message so look up the file
+					try{
+						FileMetadata metadata = previewManager.getFileMetadata(changeMessage.getObjectId());
+						if(metadata instanceof PreviewFileMetadata){
+							// We do not make previews of previews
+							continue;
+						}else if(metadata instanceof S3FileMetadata){
+							S3FileMetadata s3fileMeta = (S3FileMetadata) metadata;
+							// Generate a preview.
+							previewManager.generatePreview(s3fileMeta);
+						}else if(metadata instanceof ExternalFileMetadata){
+							// we need to add support for this
+							throw new UnsupportedOperationException("We need to add support for generating files");
+						}else{
+							throw new IllegalArgumentException("Unknown file type: "+metadata.getClass().getName());
+						}
+					}catch(NotFoundException e){
+						// we can ignore messages for files that no longer exist.
+						continue;
+					}
+				}
 				// This message was processed
 				processedMessage.add(message);
 			}catch (Throwable e){
