@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -9,6 +10,7 @@ import java.util.Arrays;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.util.FixedMemoryPool.BlockConsumer;
+import org.sagebionetworks.repo.util.FixedMemoryPool.NoBlocksAvailableException;
 
 import com.amazonaws.util.StringInputStream;
 
@@ -147,6 +149,78 @@ public class FixedMemoryPoolTest {
 				return new String(block);
 			}});
 		assertEquals(sampleData, result2);
+	}
+	
+	/**
+	 * This is an important test at it validates that FixedMemoryPool.checkoutAndUseBlock() does not block.
+	 * @throws Exception 
+	 * 
+	 */
+	@Test
+	public void testBlocking() throws Exception{
+		// Setup a pool with two blocks of memory
+		final FixedMemoryPool pool = new FixedMemoryPool(20, 10);
+		// Set the consumers
+		final BlockingConsumer consumerA = new BlockingConsumer();
+		final BlockingConsumer consumerB = new BlockingConsumer();
+		final BlockingConsumer consumerC = new BlockingConsumer();
+		// Setup the threads
+		Thread threadA = new Thread(new Runnable(){
+			@Override
+			public void run() {
+				// This thread runs consumer a
+				try {
+					System.out.println("Starting thread A");
+					long blockTime = pool.checkoutAndUseBlock(consumerA);
+					System.out.println("Thread A blocked for "+blockTime+" ms");
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new RuntimeException(e);
+				}
+		}});
+		Thread threadB = new Thread(new Runnable(){
+			@Override
+			public void run() {
+				// This thread runs consumer b
+				try {
+					System.out.println("Starting thread B");
+					long blockTime = pool.checkoutAndUseBlock(consumerB);
+					System.out.println("Thread A blocked for "+blockTime+" ms");
+				} catch (Exception e) {
+					e.printStackTrace();
+					throw new RuntimeException(e);
+				}		
+		}});
+		// The setup is done we are not ready to start the test.
+		// First start thread A
+		threadA.start();
+		// Give the thread a chances to start.
+		Thread.sleep(100);
+		// At this point one block should be allocated
+		assertEquals("With one thread running one block of memory should be allocated.", 1, pool.getAlocatedBlocks());
+		// Star the next thead
+		threadB.start();
+		// Give the thread a chances to start.
+		Thread.sleep(100);
+		assertFalse("FixedMemoryPool.checkoutAndUseBlock() is blocking if only one block is in use at this point!  FixedMemoryPool.checkoutAndUseBlock() must not be synchronized!!!!!!", pool.getAlocatedBlocks() == 1);
+		assertEquals("With two thread running two block of memory should be allocated.", 2, pool.getAlocatedBlocks());
+		// Now try to allocate another block that is beyond the max
+		try{
+			pool.checkoutAndUseBlock(consumerC);
+			fail("All blocks are checked-out so this should have failed");
+		}catch(NoBlocksAvailableException e){
+			// This is expected.
+		}
+		// Now release the first consumer
+		consumerA.setBlocking(false);
+		// give it time to stop blocking
+		Thread.sleep(BlockingConsumer.SLEEP_MS*2);
+		assertEquals("With one thread running one block of memory should be allocated.", 1, pool.getAlocatedBlocks());
+		// release the second consumer
+		consumerB.setBlocking(false);
+		// give it time to stop blocking
+		Thread.sleep(BlockingConsumer.SLEEP_MS*2);
+		assertEquals("With zero thread running no blocks of memory should be allocated.", 0, pool.getAlocatedBlocks());
 	}
 
 }

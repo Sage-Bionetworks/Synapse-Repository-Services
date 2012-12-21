@@ -12,7 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
 
-public class PreviewManagerImpl implements  PreviewManager{
+public class PreviewManagerImpl implements  PreviewManager {
 	
 	static private Log log = LogFactory.getLog(PreviewManagerImpl.class);
 	
@@ -106,6 +106,13 @@ public class PreviewManagerImpl implements  PreviewManager{
 			maxFileSizeForPreview = (long) (maxMemoryPerThread/maxMemoryNeededAsMultipleOfFileSize);
 		}
 		return maxFileSizeForPreview;
+	}
+	
+	/**
+	 * Called after all dependencies are allocated.
+	 */
+	public void initialize(){
+		
 	}
 
 }

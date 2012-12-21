@@ -24,6 +24,7 @@ public class FixedMemoryPool {
 	private volatile int maxMemoryBytes;
 	private volatile int blockSizeBytes;
 	private volatile int currentBlockCount;
+	private volatile int allocatedBlocks;
 	/**
 	 * Note: This pool does not need to thread safe as it is only access within a synchronized methods
 	 * of this class.
@@ -48,6 +49,7 @@ public class FixedMemoryPool {
 		pool = new LinkedList<SoftReference<byte[]>>();
 		// We start with an empty pool
 		this.currentBlockCount = 0;
+		this.allocatedBlocks = 0;
 	}
 	
 	/**
@@ -78,6 +80,9 @@ public class FixedMemoryPool {
 			}
 		}
 		// return the block if we were able to allocate one.
+		if(block != null){
+			allocatedBlocks++;
+		}
 		return block;
 	}
 	
@@ -91,6 +96,7 @@ public class FixedMemoryPool {
 		if(block.length != blockSizeBytes) throw new IllegalArgumentException("Block size did not match expected sizes");
 		// Put this back into the pool
 		pool.add(new SoftReference<byte[]>(block));
+		allocatedBlocks--;
 	}
 	
 	/**
@@ -98,11 +104,15 @@ public class FixedMemoryPool {
 	 * An attempt will be made to check-out a block from the pool.  When check-out is successful,
 	 * the block will be passed to the consumer via consumer.useBlock().  After the consumer terminates
 	 * either normally or with Exception, the checked-out block will be returned to the pool.
-	 * When check-out fails, a NoBlocksAvailableException will be immediately thrown.  In other words,
-	 * a call either succeeds or fails instantly without blocking.
+	 * When check-out fails, a NoBlocksAvailableException will be immediately thrown.
+	 * 
+	 * Note: This method "thread-safe" and designed to be called by concurrent threads. This method does not block,
+	 * if resources cannot be allocated.  Instead it is designed to fail-fast.
 	 * 
 	 * @param consumer
 	 * @throws NoBlocksAvailableException - This exception is thrown when it fails to checkout a block from the pool
+	 * 
+	 * Important: DO NOT MAKE THIS METHODS SYNCHRONIZED! Doing so would change it to blocking rather than fail-fast.
 	 */
 	public <T> T checkoutAndUseBlock(BlockConsumer<T> consumer) throws Exception {
 		if(consumer == null) throw new IllegalArgumentException("Consumer cannot be null");
@@ -200,6 +210,16 @@ public class FixedMemoryPool {
 	 */
 	public int getCurrentBlockCount() {
 		return currentBlockCount;
+	}
+	
+	/**
+	 * The number of blocks currently allocated.  This is provided for informational use only.
+	 * To avoid race conditions, do not use this method for business decisions.
+	 * 
+	 * @return
+	 */
+	public int getAlocatedBlocks(){
+		return this.allocatedBlocks;
 	}
 	
 
