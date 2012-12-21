@@ -27,6 +27,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Autowired
 	ParticipantManager participantManager;
 	
+	public SubmissionManagerImpl() {};
+	
 	// for testing purposes
 	protected SubmissionManagerImpl(SubmissionDAO submissionDAO, SubmissionStatusDAO submissionStatusDAO,
 			CompetitionManager competitionManager, ParticipantManager participantManager) {		

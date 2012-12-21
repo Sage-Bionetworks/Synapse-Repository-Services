@@ -30,10 +30,12 @@ public class CompetitionManagerImpl implements CompetitionManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String createCompetition(String userId, Competition comp) throws DatastoreException, InvalidModelException {
+	public Competition createCompetition(String userId, Competition comp) 
+			throws DatastoreException, InvalidModelException, NotFoundException {
 		CompetitionUtils.ensureNotNull(userId, "User ID");
 		comp.setName(EntityNameValidation.valdiateName(comp.getName()));
-		return competitionDAO.create(comp, userId);
+		String id = competitionDAO.create(comp, userId);
+		return competitionDAO.get(id);
 	}
 	
 	@Override

@@ -25,6 +25,8 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	@Autowired
 	CompetitionManager competitionManager;
 	
+	public ParticipantManagerImpl() {};
+	
 	// for testing purposes
 	protected ParticipantManagerImpl(ParticipantDAO participantDAO, 
 			UserManager userManager, CompetitionManager competitionManager) {		

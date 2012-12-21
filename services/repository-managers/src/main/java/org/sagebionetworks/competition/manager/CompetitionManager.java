@@ -13,8 +13,8 @@ public interface CompetitionManager {
 	/**
 	 * Create a new Synapse Competition
 	 */
-	public String createCompetition(String userId, Competition comp)
-			throws DatastoreException, InvalidModelException;
+	public Competition createCompetition(String userId, Competition comp)
+			throws DatastoreException, InvalidModelException, NotFoundException;
 
 	/**
 	 * Get a Synapse Competition by its id

@@ -59,8 +59,8 @@ public class CompetitionManagerTest {
 	
 	@Test
 	public void testCreateCompetition() throws Exception {		
-		String compId = competitionManager.createCompetition(OWNER_ID, comp);
-		assertEquals("'create' returned unexpected Competition ID", comp.getId(), compId);
+		Competition clone = competitionManager.createCompetition(OWNER_ID, comp);
+		assertEquals("'create' returned unexpected Competition ID", comp, clone);
 		verify(mockCompetitionDAO).create(eq(comp), eq(OWNER_ID));
 	}
 	
