@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.util.List;
-import java.util.Set;
+import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.competition.manager.CompetitionManager;
 import org.sagebionetworks.competition.manager.ParticipantManager;
@@ -15,9 +15,11 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,9 +43,24 @@ public class CompetitionServiceImpl implements CompetitionService {
 	}
 	
 	@Override
-	public QueryResults<Competition> getCompetitionsInRange(long limit, long offset) 
+	public Competition getCompetition(String id) throws DatastoreException,
+			NotFoundException, UnauthorizedException {
+		return competitionManager.getCompetition(id);
+	}
+
+	@Override
+	public PaginatedResults<Competition> getCompetitionsInRange(long limit, long offset, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException {
-		return competitionManager.getInRange(limit, offset);
+		QueryResults<Competition> res = competitionManager.getInRange(limit, offset);
+		return new PaginatedResults<Competition>(
+				request.getServletPath() + UrlHelpers.COMPETITION,
+				res.getResults(),
+				(int) res.getTotalNumberOfResults(),
+				1,
+				(int) res.getTotalNumberOfResults(),
+				"",
+				false				
+			);
 	}
 
 	@Override
@@ -93,7 +110,7 @@ public class CompetitionServiceImpl implements CompetitionService {
 	}
 
 	@Override
-	public Set<Participant> getAllParticipants(String compId)
+	public List<Participant> getAllParticipants(String compId)
 			throws NumberFormatException, DatastoreException, NotFoundException {
 		return participantManager.getAllParticipants(compId);
 	}

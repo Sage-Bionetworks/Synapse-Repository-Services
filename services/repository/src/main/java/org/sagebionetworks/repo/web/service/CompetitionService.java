@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.util.List;
-import java.util.Set;
+import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.Participant;
@@ -11,7 +11,7 @@ import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -26,6 +26,12 @@ public interface CompetitionService {
 	 */
 	public Competition createCompetition(String userId, Competition comp)
 			throws DatastoreException, InvalidModelException, NotFoundException;
+	
+	/**
+	 * Get a Synapse Competition by its id
+	 */
+	public Competition getCompetition(String id)
+			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
 	 * Get a collection of Competitions, within a given range
@@ -36,8 +42,8 @@ public interface CompetitionService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public QueryResults<Competition> getCompetitionsInRange(long limit,
-			long offset) throws DatastoreException, NotFoundException;
+	public PaginatedResults<Competition> getCompetitionsInRange(long limit, long offset,
+			HttpServletRequest request) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the total number of Competitions in the system
@@ -139,7 +145,7 @@ public interface CompetitionService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Set<Participant> getAllParticipants(String compId)
+	public List<Participant> getAllParticipants(String compId)
 			throws NumberFormatException, DatastoreException, NotFoundException;
 
 	/**
@@ -234,7 +240,8 @@ public interface CompetitionService {
 			UnauthorizedException, NotFoundException;
 
 	/**
-	 * Get all Submissions by a given Synapse user.
+	 * Get all Submissions by a given Synapse user. These may span multiple
+	 * Comptitions.
 	 * 
 	 * @param userId
 	 * @return

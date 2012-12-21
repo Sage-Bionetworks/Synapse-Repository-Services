@@ -1,9 +1,6 @@
 package org.sagebionetworks.competition.manager;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
 import org.sagebionetworks.competition.dao.ParticipantDAO;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.Participant;
@@ -96,12 +93,9 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	}
 	
 	@Override
-	public Set<Participant> getAllParticipants(String compId) throws NumberFormatException, DatastoreException, NotFoundException {
+	public List<Participant> getAllParticipants(String compId) throws NumberFormatException, DatastoreException, NotFoundException {
 		CompetitionUtils.ensureNotNull(compId, "Competition ID");
-		Set<Participant> participants = new HashSet<Participant>();
-		List<Participant> fromDAO = participantDAO.getAllByCompetition(compId);
-		participants.addAll(fromDAO);
-		return participants;
+		return participantDAO.getAllByCompetition(compId);
 	}
 	
 	@Override

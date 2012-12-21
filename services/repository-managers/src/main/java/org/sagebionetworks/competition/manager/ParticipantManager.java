@@ -1,7 +1,6 @@
 package org.sagebionetworks.competition.manager;
 
-import java.util.Set;
-
+import java.util.List;
 import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -58,7 +57,7 @@ public interface ParticipantManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Set<Participant> getAllParticipants(String compId)
+	public List<Participant> getAllParticipants(String compId)
 			throws NumberFormatException, DatastoreException, NotFoundException;
 
 	/**
