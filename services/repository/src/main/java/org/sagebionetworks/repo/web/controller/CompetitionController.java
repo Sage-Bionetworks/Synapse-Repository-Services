@@ -15,9 +15,12 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.util.ControllerUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -43,9 +46,10 @@ public class CompetitionController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
-			) throws DatastoreException, InvalidModelException, NotFoundException
+			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException
 	{
-		Competition comp = (Competition) ControllerEntityClassHelper.deserialize(request, header);
+		String requestBody = ControllerUtil.getRequestBodyAsString(request);
+		Competition comp = new Competition(new JSONObjectAdapterImpl(requestBody));
 		return serviceProvider.getCompetitionService().createCompetition(userId, comp);
 	}
 	
@@ -64,7 +68,7 @@ public class CompetitionController extends BaseController {
 	@RequestMapping(value = UrlHelpers.COMPETITION, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Competition> getCompetitionsPaginated(
-			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			HttpServletRequest request
 			) throws DatastoreException, NotFoundException
@@ -98,10 +102,11 @@ public class CompetitionController extends BaseController {
 			@PathVariable String compId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
-			HttpServletRequest request) throws DatastoreException, UnauthorizedException, InvalidModelException, ConflictingUpdateException, NotFoundException
+			HttpServletRequest request) throws DatastoreException, UnauthorizedException, InvalidModelException, ConflictingUpdateException, NotFoundException, JSONObjectAdapterException
 	{
-		Competition comp = (Competition) ControllerEntityClassHelper.deserialize(request, header);
-		if (compId.equals(comp.getId()))
+		String requestBody = ControllerUtil.getRequestBodyAsString(request);
+		Competition comp = new Competition(new JSONObjectAdapterImpl(requestBody));
+		if (!compId.equals(comp.getId()))
 			throw new IllegalArgumentException("Competition ID does not match requested ID: " + compId);
 		return serviceProvider.getCompetitionService().updateCompetition(userId, comp);
 	}
@@ -208,9 +213,10 @@ public class CompetitionController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
-			) throws DatastoreException, InvalidModelException, NotFoundException
+			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException
 	{
-		Submission sub = (Submission) ControllerEntityClassHelper.deserialize(request, header);
+		String requestBody = ControllerUtil.getRequestBodyAsString(request);
+		Submission sub = new Submission(new JSONObjectAdapterImpl(requestBody));
 		return serviceProvider.getCompetitionService().createSubmission(userId, sub);
 	}
 	
@@ -243,10 +249,13 @@ public class CompetitionController extends BaseController {
 			@PathVariable String subId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestHeader HttpHeaders header,
-			HttpServletRequest request) throws DatastoreException, UnauthorizedException, InvalidModelException, ConflictingUpdateException, NotFoundException
+			HttpServletRequest request) 
+			throws DatastoreException, UnauthorizedException, InvalidModelException, 
+			ConflictingUpdateException, NotFoundException, JSONObjectAdapterException
 	{
-		SubmissionStatus status = (SubmissionStatus) ControllerEntityClassHelper.deserialize(request, header);
-		if (subId.equals(status.getId()))
+		String requestBody = ControllerUtil.getRequestBodyAsString(request);
+		SubmissionStatus status = new SubmissionStatus(new JSONObjectAdapterImpl(requestBody));
+		if (!subId.equals(status.getId()))
 			throw new IllegalArgumentException("Submission ID does not match requested ID: " + subId);
 		return serviceProvider.getCompetitionService().updateSubmissionStatus(userId, status);
 	}
@@ -271,7 +280,7 @@ public class CompetitionController extends BaseController {
 	PaginatedResults<Submission> getAllSubmissions(
 			@PathVariable String compId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@RequestParam(value = UrlHelpers.RECURSIVE, defaultValue = "") String statusString,
+			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{

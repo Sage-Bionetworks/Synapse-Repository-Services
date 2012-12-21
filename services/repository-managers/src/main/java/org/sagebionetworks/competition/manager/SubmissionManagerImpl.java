@@ -56,7 +56,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		CompetitionUtils.ensureNotNull(userId, "User ID");
 		CompetitionUtils.ensureNotNull(submission, "Submission ID");
 		String compId = submission.getCompetitionId();
-		submission.setId(userId);
+		submission.setUserId(userId);
 		
 		// ensure participant exists
 		if (participantManager.getParticipant(userId, compId) == null)
@@ -123,7 +123,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public List<Submission> getAllSubmissions(String userId, String compId, SubmissionStatusEnum status) throws DatastoreException, UnauthorizedException, NotFoundException {
 		CompetitionUtils.ensureNotNull(userId, "User ID");
 		CompetitionUtils.ensureNotNull(compId, "Competition ID");
-		if (competitionManager.isCompAdmin(userId, compId))
+		if (!competitionManager.isCompAdmin(userId, compId))
 			throw new UnauthorizedException("User " + userId + " is not authorized to adminster Competition " + compId);
 		if (status == null)		
 			return submissionDAO.getAllByCompetition(compId);

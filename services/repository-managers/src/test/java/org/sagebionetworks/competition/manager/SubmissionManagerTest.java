@@ -133,8 +133,8 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetAllSubmissions() throws DatastoreException, UnauthorizedException, NotFoundException {
 		SubmissionStatusEnum statusEnum = SubmissionStatusEnum.CLOSED;
-		submissionManager.getAllSubmissions(USER_ID, COMP_ID, null);
-		submissionManager.getAllSubmissions(USER_ID, COMP_ID, statusEnum);
+		submissionManager.getAllSubmissions(OWNER_ID, COMP_ID, null);
+		submissionManager.getAllSubmissions(OWNER_ID, COMP_ID, statusEnum);
 		verify(mockSubmissionDAO).getAllByCompetition(eq(COMP_ID));
 		verify(mockSubmissionDAO).getAllByCompetitionAndStatus(eq(COMP_ID), eq(statusEnum));
 	}

@@ -436,6 +436,7 @@ public class UrlHelpers {
 	public static final String PARTICIPANT_WITH_ID = PARTICIPANT + "/{partId}";
 	public static final String PARTICIPANT_COUNT = PARTICIPANT + "/count";
 	
+	public static final String STATUS = "status";
 	public static final String SUBMISSION = COMPETITION + "/submission";
 	public static final String SUBMISSION_WITH_ID = SUBMISSION + "/{subId}";
 	public static final String SUBMISSION_STATUS = SUBMISSION_WITH_ID + "/status";
