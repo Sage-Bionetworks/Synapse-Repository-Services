@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
@@ -17,6 +14,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Code;
@@ -236,6 +234,22 @@ public class EntityManagerImplAutowireTest {
 		VersionInfo promotedEntityVersion = entityManager.promoteEntityVersion(userInfo, id, 1L);
 		assertNotNull(promotedEntityVersion);
 		assertEquals(new Long(3), promotedEntityVersion.getVersionNumber());
+	}
+
+	@Test
+	public void testGetEntityForVersionNoEtag() throws Exception {
+		Data data = new Data();
+		data.setName("testGetEntityForVersion");
+		String id = entityManager.createEntity(userInfo, data, null);
+		assertNotNull(id);
+		toDelete.add(id);
+		data = entityManager.getEntity(userInfo, id, Data.class);
+		assertNotNull(data);
+		assertNotNull(data.getEtag());
+		assertFalse(data.getEtag().equals(UuidETagGenerator.ZERO_E_TAG));
+		data = entityManager.getEntityForVersion(userInfo, id, data.getVersionNumber(), Data.class);
+		assertNotNull(data.getEtag());
+		assertTrue(data.getEtag().equals(UuidETagGenerator.ZERO_E_TAG)); // PLFM-1420
 	}
 
 	private Data createLayerForTest(int i){

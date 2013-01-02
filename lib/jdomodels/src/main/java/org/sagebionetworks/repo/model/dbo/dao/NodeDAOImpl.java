@@ -42,6 +42,8 @@ import java.util.Set;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.UuidETagGenerator;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -339,6 +341,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
 		Long nodeID = KeyFactory.stringToKey(id);
 		DBONode jdo =  getNodeById(nodeID);
+		// Remove the eTags (See PLFM-1420)
+		jdo.seteTag(UuidETagGenerator.ZERO_E_TAG);
 		DBORevision rev = getNodeRevisionById(nodeID, versionNumber);
 		return NodeUtils.copyFromJDO(jdo, rev);
 	}
@@ -438,7 +442,22 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(versionNumber == null) throw new IllegalArgumentException("VersionNumber cannot be null");
 		// Select just the references, not the entire node.
 		try{
-			return simpleJdbcTemplate.queryForObject(SELECT_ANNOTATIONS_ONLY_PREFIX + " = ?",	new AnnotationRowMapper(), KeyFactory.stringToKey(id), versionNumber);
+			NamedAnnotations namedAnnos = simpleJdbcTemplate.queryForObject(
+					SELECT_ANNOTATIONS_ONLY_PREFIX + " = ?",
+					new AnnotationRowMapper(), KeyFactory.stringToKey(id), versionNumber);
+			// Remove the eTags (See PLFM-1420)
+			if (namedAnnos != null) {
+				namedAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+			}
+			Annotations primaryAnnos = namedAnnos.getPrimaryAnnotations();
+			if (primaryAnnos != null) {
+				primaryAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+			}
+			Annotations additionalAnnos = namedAnnos.getAdditionalAnnotations();
+			if (additionalAnnos != null) {
+				additionalAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+			}
+			return namedAnnos;
 		}catch (EmptyResultDataAccessException e){
 			// Occurs if there are no results
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);

@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -859,13 +860,19 @@ public class NodeDAOImplTest {
 		NamedAnnotations namedCopyV1 = nodeDao.getAnnotationsForVersion(id, 1L);
 		Annotations v1Annos = namedCopyV1.getAdditionalAnnotations();
 		assertNotNull(v1Annos);
+		assertEquals(UuidETagGenerator.ZERO_E_TAG, v1Annos.getEtag());
 		NamedAnnotations namedCopyV2 = nodeDao.getAnnotationsForVersion(id, 2L);
 		Annotations v2Annos = namedCopyV2.getAdditionalAnnotations();
 		assertNotNull(v2Annos);
+		assertEquals(UuidETagGenerator.ZERO_E_TAG, v2Annos.getEtag());
 		assertEquals(v1Annos, v2Annos);
 		NamedAnnotations namedCopy = nodeDao.getAnnotations(id);
 		Annotations currentAnnos = namedCopy.getAdditionalAnnotations();
 		assertNotNull(currentAnnos);
+		assertNotNull(currentAnnos.getEtag());
+		// They should be equal except for the e-tag
+		assertFalse(currentAnnos.getEtag().equals(v2Annos.getEtag()));
+		v2Annos.setEtag(currentAnnos.getEtag());
 		assertEquals(currentAnnos, v2Annos);
 		
 		// Now update the current annotations
@@ -881,6 +888,7 @@ public class NodeDAOImplTest {
 		namedCopyV2 = nodeDao.getAnnotationsForVersion(id, 2L);
 		v2Annos = namedCopyV2.getAdditionalAnnotations();
 		assertNotNull(v2Annos);
+		assertEquals(UuidETagGenerator.ZERO_E_TAG, v2Annos.getEtag());
 		assertEquals(8989898.2, v2Annos.getSingleValue("double"));
 		// The two version should now be out of synch with each other.
 		assertFalse(v1Annos.equals(v2Annos));
@@ -888,6 +896,10 @@ public class NodeDAOImplTest {
 		namedCopy = nodeDao.getAnnotations(id);
 		currentAnnos = namedCopy.getAdditionalAnnotations();
 		assertNotNull(currentAnnos);
+		assertNotNull(currentAnnos.getEtag());
+		// They should be equal except for the e-tag
+		assertFalse(currentAnnos.getEtag().equals(v2Annos.getEtag()));
+		v2Annos.setEtag(currentAnnos.getEtag());
 		assertEquals(currentAnnos, v2Annos);
 		assertEquals(8989898.2, currentAnnos.getSingleValue("double"));
 		
