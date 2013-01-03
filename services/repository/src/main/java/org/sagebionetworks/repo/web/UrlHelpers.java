@@ -425,6 +425,23 @@ public class UrlHelpers {
 	 * when listing objects to back up.
 	 */
 	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
+	
+	// Competition URLs
+	public static final String COMPETITION = "/competition";
+	public static final String COMPETITION_WITH_ID = COMPETITION + "/{compId}";
+	public static final String COMPETITION_WITH_NAME = COMPETITION + "/name/{name}";
+	public static final String COMPETITION_COUNT = COMPETITION + "/count";
+	
+	public static final String PARTICIPANT = COMPETITION_WITH_ID + "/participant";
+	public static final String PARTICIPANT_WITH_ID = PARTICIPANT + "/{partId}";
+	public static final String PARTICIPANT_COUNT = PARTICIPANT + "/count";
+	
+	public static final String STATUS = "status";
+	public static final String SUBMISSION = COMPETITION + "/submission";
+	public static final String SUBMISSION_WITH_ID = SUBMISSION + "/{subId}";
+	public static final String SUBMISSION_STATUS = SUBMISSION_WITH_ID + "/status";
+	public static final String SUBMISSION_WITH_COMP_ID = COMPETITION_WITH_ID + "/submission";
+	public static final String SUBMISSION_COUNT = SUBMISSION_WITH_COMP_ID + "/count";
 
 	/**
 	 * This is a memoized cache for our URL regular expressions

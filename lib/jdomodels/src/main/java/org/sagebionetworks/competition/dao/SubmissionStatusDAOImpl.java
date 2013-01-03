@@ -58,7 +58,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public SubmissionStatus create(SubmissionStatus dto) throws DatastoreException {		
+	public String create(SubmissionStatus dto) throws DatastoreException {		
 		// Convert to DBO
 		SubmissionStatusDBO dbo = new SubmissionStatusDBO();
 		copyDtoToDbo(dto, dbo);
@@ -75,9 +75,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 		// Create DBO
 		try {
 			dbo = basicDao.createNew(dbo);
-			dto = new SubmissionStatus();
-			copyDboToDto(dbo, dto);
-			return dto;
+			return dbo.getId().toString();
 		} catch (Exception e) {
 			throw new DatastoreException("id=" + dbo.getId(), e);
 		}
@@ -118,7 +116,8 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			lockAndSendTagMessage(dbo, ChangeType.UPDATE); 
 		} else {
 			// update eTag and send message of update
-			lockAndGenerateEtag(dbo.getIdString(), dbo.geteTag(), ChangeType.UPDATE);			
+			String newEtag = lockAndGenerateEtag(dbo.getIdString(), dbo.geteTag(), ChangeType.UPDATE);
+			dbo.seteTag(newEtag);
 		}
 		
 		basicDao.update(dbo);
@@ -138,7 +137,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	 * @param dto
 	 * @param dbo
 	 */
-	private static void copyDtoToDbo(SubmissionStatus dto, SubmissionStatusDBO dbo) {	
+	protected static void copyDtoToDbo(SubmissionStatus dto, SubmissionStatusDBO dbo) {	
 		dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
 		dbo.seteTag(dto.getEtag());
 		dbo.setModifiedOn(dto.getModifiedOn() == null ? null : dto.getModifiedOn().getTime());
@@ -153,7 +152,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	 * @param dto
 	 * @throws DatastoreException
 	 */
-	private static void copyDboToDto(SubmissionStatusDBO dbo, SubmissionStatus dto) throws DatastoreException {
+	protected static void copyDboToDto(SubmissionStatusDBO dbo, SubmissionStatus dto) throws DatastoreException {
 		dto.setId(dbo.getId() == null ? null : dbo.getId().toString());
 		dto.setEtag(dbo.geteTag());
 		dto.setModifiedOn(dbo.getModifiedOn() == null ? null : new Date(dbo.getModifiedOn()));

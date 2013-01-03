@@ -98,7 +98,7 @@ public class SubmissionStatusDBOTest {
     	} catch (NotFoundException e) {};
     }
     @Test
-    public void testCRD() throws Exception{
+    public void testCRUD() throws Exception{
         // Initialize a new SubmissionStatus object for submissionId
         SubmissionStatusDBO status = new SubmissionStatusDBO();
         status.setId(submissionId);

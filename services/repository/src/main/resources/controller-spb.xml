@@ -74,6 +74,10 @@
 	<!-- The NodeLineageQuery Service -->
 	<bean id="nodeLineageQueryService"
 		class="org.sagebionetworks.repo.web.service.NodeLineageQueryServiceImpl" />
+		
+	<!-- The Competition Service -->
+	<bean id="competitionService"
+		class="org.sagebionetworks.repo.web.service.CompetitionServiceImpl" />
 
 	<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
