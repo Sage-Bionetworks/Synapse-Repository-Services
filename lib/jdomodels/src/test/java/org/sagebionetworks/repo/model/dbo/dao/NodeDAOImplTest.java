@@ -858,6 +858,8 @@ public class NodeDAOImplTest {
 		// At this point the new and old version should have the
 		// same annotations.
 		NamedAnnotations namedCopyV1 = nodeDao.getAnnotationsForVersion(id, 1L);
+		assertNotNull(namedCopyV1.getEtag());
+		assertEquals(UuidETagGenerator.ZERO_E_TAG, namedCopyV1.getEtag());
 		Annotations v1Annos = namedCopyV1.getAdditionalAnnotations();
 		assertNotNull(v1Annos);
 		assertEquals(UuidETagGenerator.ZERO_E_TAG, v1Annos.getEtag());
@@ -882,6 +884,8 @@ public class NodeDAOImplTest {
 		
 		// Now the old and new should no longer match.
 		namedCopyV1 = nodeDao.getAnnotationsForVersion(id, 1L);
+		assertNotNull(namedCopyV1.getEtag());
+		assertEquals(UuidETagGenerator.ZERO_E_TAG, namedCopyV1.getEtag());
 		v1Annos = namedCopyV1.getAdditionalAnnotations();
 		assertNotNull(v1Annos);
 		assertEquals(2.3, v1Annos.getSingleValue("double"));
@@ -927,6 +931,8 @@ public class NodeDAOImplTest {
 		// Make sure we can fetch each version
 		for(Long versionNumber: versionNumbers){
 			Node nodeVersion = nodeDao.getNodeForVersion(id, versionNumber);
+			assertNotNull(nodeVersion.getETag());
+			assertEquals(UuidETagGenerator.ZERO_E_TAG, nodeVersion.getETag());
 			assertNotNull(nodeVersion);
 			assertEquals(versionNumber, nodeVersion.getVersionNumber());
 		}
@@ -945,6 +951,8 @@ public class NodeDAOImplTest {
 		assertEquals(new Long(1), versionsOfEntity.getResults().get(versionsOfEntity.getResults().size()-1).getVersionNumber());
 		for (VersionInfo vi : versionsOfEntity.getResults()) {
 			Node node = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
+			assertNotNull(node.getETag());
+			assertEquals(UuidETagGenerator.ZERO_E_TAG, node.getETag());
 			Date modDate = node.getModifiedOn();
 			assertEquals(modDate, vi.getModifiedOn());
 		}
