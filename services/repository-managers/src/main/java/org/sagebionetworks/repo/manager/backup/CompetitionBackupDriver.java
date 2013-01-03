@@ -35,8 +35,9 @@ public class CompetitionBackupDriver implements GenericBackupDriver {
 	public CompetitionBackupDriver() { }
 
 	// for testing
-	public CompetitionBackupDriver(CompetitionDAO competitionDAO) {
+	public CompetitionBackupDriver(CompetitionDAO competitionDAO, ParticipantDAO participantDAO) {
 		this.competitionDAO = competitionDAO;
+		this.participantDAO = participantDAO;
 	}
 
 	static private Log log = LogFactory.getLog(CompetitionBackupDriver.class);
