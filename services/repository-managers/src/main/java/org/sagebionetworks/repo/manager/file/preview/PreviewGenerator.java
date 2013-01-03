@@ -33,17 +33,17 @@ public interface PreviewGenerator {
 	/**
 	 * The amount of memory needed (as a multiple of the original file size) to generate a Preview.
 	 * 
+	 * @param contentType The content type of the file to load.
 	 * @return If the memory needs are not a function of the file size then return zero.  Otherwise 
-	 * return the multiple of the file size.  For example, to generate a preview of image, the entire
-	 * image might need be loaded into memory, and the resulting preview might also reside in memory.
-	 * In such a case it will take 2.0 times the file size of memory to complete the preview so 2.0 should
-	 * be returned.
+	 * return the multiple of the file size.  For example, to generate a preview of a PNG image, the entire
+	 * image might need be loaded into memory.  Since the PNG image format is compressed on disk,
+	 * a 1 MB image on disk could take upwards to 50 MB to load in memory.
 	 * 
 	 * Note: Error on setting this too high rather than too low.  If it is too low, the application 
 	 * could run out of memory and crash.  If it is too high previews will not be generated for very large
 	 * files. 
 	 */
-	public float memoryNeededAsMultipleOfFileSize();
+	public float getMemoryMultiplierForContentType(String contentType);
 
 
 }

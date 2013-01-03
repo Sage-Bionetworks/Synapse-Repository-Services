@@ -9,7 +9,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Map;
 import java.util.Set;
 
 import javax.imageio.ImageIO;
@@ -33,15 +35,22 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 	public static final String IMAGE_GIF	= "image/gif";
 	public static final String IMAGE_PNG	= "image/png";
 	/**
-	 * The supported content types for this generator.
+	 * The supported content types for this generator, and the memory multipler that should be used.
 	 */
-	private static Set<String> SUPPORTED_CONTENT_TYPES = new HashSet<String>(Arrays.asList(new String[]{
-			IMAGE_GIF,
-			IMAGE_JPEG,
-			IMAGE_PJPEG,
-			IMAGE_PNG,
-			IMAGE_BMP,
-	}));
+	private static Map<String, Float> SUPPORTED_CONTENT_TYPES;
+	static{
+		SUPPORTED_CONTENT_TYPES = new HashMap<String, Float>();
+		// Map the types to the memory requirements.
+		// Since it is better to error on the high side, we multiple the calculated
+		// memory use for each type by a fudge factor.
+		float fudgeFactor = 1.2f;
+		SUPPORTED_CONTENT_TYPES.put(IMAGE_BMP, 4.05f*fudgeFactor);
+		SUPPORTED_CONTENT_TYPES.put(IMAGE_PJPEG, 23.38f*fudgeFactor);
+		SUPPORTED_CONTENT_TYPES.put(IMAGE_JPEG, 23.38f*fudgeFactor);
+		SUPPORTED_CONTENT_TYPES.put(IMAGE_GIF, 19.98f*fudgeFactor);
+		SUPPORTED_CONTENT_TYPES.put(IMAGE_PNG, 46.28f*fudgeFactor);
+	}
+
 
 	@Override
 	public String generatePreview(InputStream from, OutputStream to) throws IOException {
@@ -59,18 +68,11 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 
 	@Override
 	public boolean supportsContentType(String contentType) {
-		return SUPPORTED_CONTENT_TYPES.contains(contentType.toLowerCase());
-	}
-
-	@Override
-	public float memoryNeededAsMultipleOfFileSize() {
-		// This process loads the entire file into memory and then
-		// creates the entire preview in memory. So for a worst case
-		// we need 2 times the files size of memory.
-		return 2.0f;
+		return SUPPORTED_CONTENT_TYPES.keySet().contains(contentType.toLowerCase());
 	}
 	
 	/**
+	 * Calculate the memory requirements of the passed list of files.
 	 * 
 	 * @param args
 	 * @throws IOException 
@@ -79,7 +81,7 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 	public static void main(String[] args) throws IOException, InterruptedException{
 		for(String filePath: args){
 			File toRead = new File(filePath);
-			generatePreview(toRead);
+			calculateMemoryRequirments(toRead);
 		}
 	}
 
@@ -89,7 +91,7 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 	 * @throws FileNotFoundException
 	 * @throws InterruptedException
 	 */
-	public static void generatePreview(File toRead) throws IOException,
+	public static void calculateMemoryRequirments(File toRead) throws IOException,
 			FileNotFoundException, InterruptedException {
 		double startFreeMB = freeMagaBytes();
 		File tempOut = File.createTempFile("ImagePreviewGenerator", "tmp");
@@ -120,6 +122,11 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 	 */
 	public static float freeMagaBytes() {
 		return ((float)Runtime.getRuntime().freeMemory())/ONE_MEGA_BYTE;
+	}
+
+	@Override
+	public float getMemoryMultiplierForContentType(String contentType) {
+		return SUPPORTED_CONTENT_TYPES.get(contentType);
 	}
 
 }

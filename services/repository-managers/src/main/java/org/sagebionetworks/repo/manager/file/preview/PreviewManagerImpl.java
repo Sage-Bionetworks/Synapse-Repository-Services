@@ -27,25 +27,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	/**
 	 * Injected.
 	 */
-	private Integer numberOfPreviewWorkerThreads;
-	/**
-	 * Injected.
-	 */
 	private Long maxPreviewMemory;
-	
-	/**
-	 * This is calculated and cached.
-	 */
-	private Long maxFileSizeForPreview;
-	
-	
-	/**
-	 * Injected.
-	 * @param numberOfPreviewWorkerThreads
-	 */
-	public void setNumberOfPreviewWorkerThreads(Integer numberOfPreviewWorkerThreads) {
-		this.numberOfPreviewWorkerThreads = numberOfPreviewWorkerThreads;
-	}
 
 	/**
 	 * Injected
@@ -62,6 +44,9 @@ public class PreviewManagerImpl implements  PreviewManager {
 
 	@Override
 	public void generatePreview(S3FileMetadata metadata) {
+		if(metadata == null) throw new IllegalArgumentException("metadata cannot be null");
+		if(metadata.getContentType() == null) throw new IllegalArgumentException("metadata.getContentType() cannot be null");
+		if(metadata.getContentSize() == null) throw new IllegalArgumentException("metadata.getContentSize() cannot be null");
 		// Try to find a generator for this type
 		PreviewGenerator generator = findPreviewGenerator(metadata.getContentType());
 		// there is nothing to do if we do not have a generator for this type
@@ -69,7 +54,16 @@ public class PreviewManagerImpl implements  PreviewManager {
 			log.info("No preview generator found for contentType:"+metadata.getContentType());
 			return;
 		}
-		// Download the preview file
+		// First determine how much memory will be need to generate this preview
+		double multiper = generator.getMemoryMultiplierForContentType(metadata.getContentType());
+		long memoryNeededBytes = (long) (((double)metadata.getContentSize())*multiper);
+		if(memoryNeededBytes > maxPreviewMemory){
+			log.info(String.format("Preveiw cannot be generated.  Memory needed: '%1$s' (bytes) exceed preview memory pool size: '%2$s' (bytes). Metadata: %3$s", memoryNeededBytes, maxPreviewMemory, metadata.toString())); ;
+			return;
+		}
+		// If here then the preview memory pool size is large enough for this file.
+		// Attempt to generate a preview
+		
 		
 		
 	}
@@ -87,26 +81,6 @@ public class PreviewManagerImpl implements  PreviewManager {
 		return null;
 	}
 	
-	/**
-	 * Since some preview generation techniques need to load the entire file
-	 * into memory, we need to limit the size of the files that we attempt to load.
-	 * @return
-	 */
-	public long getMaxFileSizeForPreviewBytes(){
-		// Lazy calcuate this.
-		if(maxFileSizeForPreview == null){
-			// first determine the worst case memory use.
-			float maxMemoryNeededAsMultipleOfFileSize = 0.0f;
-			for(PreviewGenerator gen: generatorList){
-				// Look for the worst case.
-				maxMemoryNeededAsMultipleOfFileSize = Math.max(gen.memoryNeededAsMultipleOfFileSize(), maxMemoryNeededAsMultipleOfFileSize);
-			}
-			// Now if we assume all previews meet the worst case then we can calculate the maximum file size we can support.
-			long maxMemoryPerThread = maxPreviewMemory/numberOfPreviewWorkerThreads;
-			maxFileSizeForPreview = (long) (maxMemoryPerThread/maxMemoryNeededAsMultipleOfFileSize);
-		}
-		return maxFileSizeForPreview;
-	}
 	
 	/**
 	 * Called after all dependencies are allocated.
