@@ -123,7 +123,7 @@ public class EntityManagerImpl implements EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> EntityWithAnnotations<T> getEntityVersionWithAnnotations(
+	private <T extends Entity> EntityWithAnnotations<T> getEntityVersionWithAnnotations(
 			UserInfo userInfo, String entityId, Long versionNumber,
 			Class<? extends T> entityClass) throws NotFoundException,
 			DatastoreException, UnauthorizedException {

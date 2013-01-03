@@ -26,6 +26,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
@@ -857,15 +858,23 @@ public class NodeDAOImplTest {
 		// At this point the new and old version should have the
 		// same annotations.
 		NamedAnnotations namedCopyV1 = nodeDao.getAnnotationsForVersion(id, 1L);
+		assertNotNull(namedCopyV1.getEtag());
+		assertEquals(UuidETagGenerator.ZERO_E_TAG, namedCopyV1.getEtag());
 		Annotations v1Annos = namedCopyV1.getAdditionalAnnotations();
 		assertNotNull(v1Annos);
+		assertEquals(UuidETagGenerator.ZERO_E_TAG, v1Annos.getEtag());
 		NamedAnnotations namedCopyV2 = nodeDao.getAnnotationsForVersion(id, 2L);
 		Annotations v2Annos = namedCopyV2.getAdditionalAnnotations();
 		assertNotNull(v2Annos);
+		assertEquals(UuidETagGenerator.ZERO_E_TAG, v2Annos.getEtag());
 		assertEquals(v1Annos, v2Annos);
 		NamedAnnotations namedCopy = nodeDao.getAnnotations(id);
 		Annotations currentAnnos = namedCopy.getAdditionalAnnotations();
 		assertNotNull(currentAnnos);
+		assertNotNull(currentAnnos.getEtag());
+		// They should be equal except for the e-tag
+		assertFalse(currentAnnos.getEtag().equals(v2Annos.getEtag()));
+		v2Annos.setEtag(currentAnnos.getEtag());
 		assertEquals(currentAnnos, v2Annos);
 		
 		// Now update the current annotations
@@ -875,12 +884,15 @@ public class NodeDAOImplTest {
 		
 		// Now the old and new should no longer match.
 		namedCopyV1 = nodeDao.getAnnotationsForVersion(id, 1L);
+		assertNotNull(namedCopyV1.getEtag());
+		assertEquals(UuidETagGenerator.ZERO_E_TAG, namedCopyV1.getEtag());
 		v1Annos = namedCopyV1.getAdditionalAnnotations();
 		assertNotNull(v1Annos);
 		assertEquals(2.3, v1Annos.getSingleValue("double"));
 		namedCopyV2 = nodeDao.getAnnotationsForVersion(id, 2L);
 		v2Annos = namedCopyV2.getAdditionalAnnotations();
 		assertNotNull(v2Annos);
+		assertEquals(UuidETagGenerator.ZERO_E_TAG, v2Annos.getEtag());
 		assertEquals(8989898.2, v2Annos.getSingleValue("double"));
 		// The two version should now be out of synch with each other.
 		assertFalse(v1Annos.equals(v2Annos));
@@ -888,6 +900,10 @@ public class NodeDAOImplTest {
 		namedCopy = nodeDao.getAnnotations(id);
 		currentAnnos = namedCopy.getAdditionalAnnotations();
 		assertNotNull(currentAnnos);
+		assertNotNull(currentAnnos.getEtag());
+		// They should be equal except for the e-tag
+		assertFalse(currentAnnos.getEtag().equals(v2Annos.getEtag()));
+		v2Annos.setEtag(currentAnnos.getEtag());
 		assertEquals(currentAnnos, v2Annos);
 		assertEquals(8989898.2, currentAnnos.getSingleValue("double"));
 		
@@ -915,6 +931,8 @@ public class NodeDAOImplTest {
 		// Make sure we can fetch each version
 		for(Long versionNumber: versionNumbers){
 			Node nodeVersion = nodeDao.getNodeForVersion(id, versionNumber);
+			assertNotNull(nodeVersion.getETag());
+			assertEquals(UuidETagGenerator.ZERO_E_TAG, nodeVersion.getETag());
 			assertNotNull(nodeVersion);
 			assertEquals(versionNumber, nodeVersion.getVersionNumber());
 		}
@@ -933,6 +951,8 @@ public class NodeDAOImplTest {
 		assertEquals(new Long(1), versionsOfEntity.getResults().get(versionsOfEntity.getResults().size()-1).getVersionNumber());
 		for (VersionInfo vi : versionsOfEntity.getResults()) {
 			Node node = nodeDao.getNodeForVersion(id, vi.getVersionNumber());
+			assertNotNull(node.getETag());
+			assertEquals(UuidETagGenerator.ZERO_E_TAG, node.getETag());
 			Date modDate = node.getModifiedOn();
 			assertEquals(modDate, vi.getModifiedOn());
 		}
