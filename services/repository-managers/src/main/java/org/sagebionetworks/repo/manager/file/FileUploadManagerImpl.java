@@ -108,21 +108,7 @@ public class FileUploadManagerImpl implements FileUploadManager {
 					// We are missing some required parameters
 					throw new IllegalArgumentException("Missing one or more of the expected form fields: "+expectedCopy);
 				}
-				// Create a token for this file
-				TransferRequest request = createRequest(fis.getContentType(),userId, fis.getName(), fis.openStream());
-				S3FileMetadata s3Meta = null;
-				try{
-					// Try the primary
-					s3Meta = primaryStrategy.transferToS3(request);
-				}catch(ServiceUnavailableException e){
-					log.info("The primary file transfer strategy failed, attempting to use the fall-back strategy.");
-					// The primary strategy failed so try the fall-back.
-					s3Meta = fallbackStrategy.transferToS3(request);
-				}
-				// set this user as the creator of the file
-				s3Meta.setCreatedBy(userId);
-				// Save the file metadata to the DB.
-				s3Meta= fileMetadataDao.createFile(s3Meta);
+				S3FileMetadata s3Meta = uploadFile(userId, fis);
 				// If here then we succeeded
 				results.getFiles().add(s3Meta);
 			}
@@ -131,6 +117,31 @@ public class FileUploadManagerImpl implements FileUploadManager {
 			log.debug(results);
 		}
 		return results;
+	}
+	/**
+	 * @param userId
+	 * @param fis
+	 * @return
+	 * @throws IOException
+	 * @throws ServiceUnavailableException
+	 */
+	public S3FileMetadata uploadFile(String userId, FileItemStream fis)	throws IOException, ServiceUnavailableException {
+		// Create a token for this file
+		TransferRequest request = createRequest(fis.getContentType(),userId, fis.getName(), fis.openStream());
+		S3FileMetadata s3Meta = null;
+		try{
+			// Try the primary
+			s3Meta = primaryStrategy.transferToS3(request);
+		}catch(ServiceUnavailableException e){
+			log.info("The primary file transfer strategy failed, attempting to use the fall-back strategy.");
+			// The primary strategy failed so try the fall-back.
+			s3Meta = fallbackStrategy.transferToS3(request);
+		}
+		// set this user as the creator of the file
+		s3Meta.setCreatedBy(userId);
+		// Save the file metadata to the DB.
+		s3Meta= fileMetadataDao.createFile(s3Meta);
+		return s3Meta;
 	}
 	
 	/**

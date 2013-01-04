@@ -44,6 +44,9 @@
 	<!-- Memory File Transfer Strategy -->
 	<bean id="memoryTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.MemoryTransferStrategy" />
 	
+	<!-- Temp file provider -->
+	<bean id="tempFileProvider" class="org.sagebionetworks.repo.util.TempFileProviderImpl" />
+	
 	<!-- Temp File Transfer Strategy -->
 	<bean id="tempFileTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.TempFileTransferStrategy" />
 	
@@ -54,7 +57,19 @@
 	   	<!-- The temp strategy is the fall-back -->
 	    <property name="fallbackStrategy" ref="tempFileTransferStrategy"/>
 	</bean>
-
+	
+	<!-- The preview manager -->
+	<bean id="previewManager" class="org.sagebionetworks.repo.manager.file.preview.PreviewManagerImpl" init-method="initialize">
+	    <!-- The list of preview generators-->
+	    <property name="generatorList">
+	        <list>
+	            <bean id="imagePreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator" />
+	        </list>
+	    </property>
+	    <!-- The maximum amount of memory to uses -->
+	   	<property name="maxPreviewMemory" ref="stackConfiguration.maxFilePreviewMemoryPoolBytes"/>
+	</bean>
+	
 	<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
 

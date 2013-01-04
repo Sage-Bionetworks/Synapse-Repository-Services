@@ -14,7 +14,10 @@ import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
 import org.sagebionetworks.repo.model.file.S3FileMetadata;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
+import org.sagebionetworks.repo.util.ResourceTracker.ResourceTempoarryUnavailable;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -76,6 +79,13 @@ public class PreviewWorker implements Callable<List<Message>> {
 					}
 				}
 				// This message was processed
+				processedMessage.add(message);
+			}catch (ResourceTempoarryUnavailable e){
+				// When this occurs we want the message to go back on the queue, so we can try again later.
+				log.info("Failed to process message: "+message.toString(), e);
+			}catch (ExceedsMaximumResources e){
+				// We will not be able to process this message so it must be removed from the queue.
+				log.info("Cannot process message, as it would exceed the maximum memory.  This message will be removed from the queue"+message.toString());
 				processedMessage.add(message);
 			}catch (Throwable e){
 				// Failing to process a message should not terminate the rest of the message processing.

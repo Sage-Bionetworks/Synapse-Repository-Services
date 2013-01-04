@@ -1,12 +1,14 @@
 package org.sagebionetworks.repo.util;
 
+import java.util.concurrent.Callable;
+
 /**
  * This is a simple test runner that will block until told to stop.
  * 
  * @author John
  *
  */
-public class BlockingRunner implements Runnable {
+public class BlockingRunner implements Callable<Boolean> {
 	
 	/**
 	 * How long this runner will sleep while blocking.
@@ -25,18 +27,19 @@ public class BlockingRunner implements Runnable {
 	public void setBlocking(boolean blocking){
 		this.blocking = blocking;
 	}
-	
+
 	@Override
-	public void run() {
+	public Boolean call() throws Exception {
 		// Block until told to stop.
 		while(blocking){
 			try {
 				Thread.sleep(SLEEP_MS);
 			} catch (InterruptedException e) {
 				// stop on Interrupt
-				return;
+				return blocking;
 			}
 		}
+		return blocking;
 	}
 	
 }

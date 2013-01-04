@@ -4,8 +4,10 @@ import java.io.IOException;
 import java.util.Set;
 
 import org.apache.commons.fileupload.FileItemIterator;
+import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.S3FileMetadata;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 /**
@@ -29,5 +31,14 @@ public interface FileUploadManager {
 	 */
 	FileUploadResults uploadfiles(UserInfo userInfo, Set<String> expectedParams, FileItemIterator itemIterator) throws FileUploadException, IOException, ServiceUnavailableException;
 	
+	/**
+	 * Upload a file.
+	 * @param userId
+	 * @param fis
+	 * @return
+	 * @throws IOException
+	 * @throws ServiceUnavailableException
+	 */
+	public S3FileMetadata uploadFile(String userId, FileItemStream fis)	throws IOException, ServiceUnavailableException;
 
 }

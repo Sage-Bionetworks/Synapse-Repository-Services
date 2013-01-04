@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.util;
 
+import java.util.concurrent.Callable;
+
 
 /**
  * This is a fast-fail resource tracker.  When the requested resources cannot be allocated,
@@ -60,21 +62,16 @@ public class ResourceTracker {
 	 * 
 	 * Note: This method "thread-safe" and designed to be called by concurrent threads. This method does not block,
 	 * if resources cannot be allocated.  Instead it is designed to fail-fast.
-	 * 
-	 * @throws ResourceTempoarryUnavailable - Thrown when there currently are not enough resources to available.  For this case try again later.
-	 * @throws ExceedsMaximumResources - Thrown when the requested allocation exceeds the maximum. Even if 100% of the resources were available
-	 * there would not be enough to allocate the requested amount. 
-	 * 
-	 *  Important: DO NOT MAKE THIS METHODS SYNCHRONIZED! Doing so would change it to blocking rather than fail-fast.
+	 * @throws Exception 
 	 */
-	public void allocateAndUseResources(Runnable consumer, long amountToCheckout) throws ResourceTempoarryUnavailable, ExceedsMaximumResources {
+	public <T> T allocateAndUseResources(Callable<T> consumer, long amountToCheckout) throws Exception {
 		if(consumer == null) throw new IllegalArgumentException("Consumer cannot be null");
 		Long checkedOut = null;
 		try{
 			// Checkout the resources
 			checkedOut = attemptCheckout(amountToCheckout);
 			// Let the consumer run.
-			consumer.run();
+			return consumer.call();
 		} finally{
 			// If the resources were checked-out then they must be checked back in.
 			if(checkedOut != null){

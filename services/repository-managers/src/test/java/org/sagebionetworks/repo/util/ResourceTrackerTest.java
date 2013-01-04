@@ -65,11 +65,10 @@ public class ResourceTrackerTest {
 	 * Note: This is an important test!
 	 * 
 	 *  It validates that ResourceTracker.allocateAndUseResources() is not blocking.
-	 *  
-	 * @throws InterruptedException 
+	 * @throws Exception 
 	 */
 	@Test
-	public void testForBlocking() throws InterruptedException{
+	public void testForBlocking() throws Exception{
 		// Start with a tracker with 100 resources.
 		final ResourceTracker tracker = new ResourceTracker(100);
 		// These runners will block until told to stop.
@@ -82,14 +81,22 @@ public class ResourceTrackerTest {
 			@Override
 			public void run() {
 				// For this thread start runner a
-				tracker.allocateAndUseResources(runnerA, 20);
+				try {
+					tracker.allocateAndUseResources(runnerA, 20);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
 		}});
 		// 
 		Thread threadB = new Thread(new Runnable(){
 			@Override
 			public void run() {
 				// For this thread start runner b
-				tracker.allocateAndUseResources(runnerB, 20);
+				try {
+					tracker.allocateAndUseResources(runnerB, 20);
+				} catch (Exception e) {
+					throw new RuntimeException(e);
+				}
 		}});
 		// Before we start, no resources should be allocated
 		assertEquals(0, tracker.getAllocated());

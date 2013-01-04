@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.security.MessageDigest;
 
 import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.util.TempFileProvider;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -26,6 +27,9 @@ public class TempFileTransferStrategy implements FileTransferStrategy {
 	@Autowired
 	AmazonS3Client s3Client;
 	
+	@Autowired
+	TempFileProvider tempFileProvider;
+	
 	/**
 	 * Used by Spring
 	 */
@@ -34,9 +38,10 @@ public class TempFileTransferStrategy implements FileTransferStrategy {
 	 * The IoC constructor.
 	 * @param s3Client
 	 */
-	public TempFileTransferStrategy(AmazonS3Client s3Client) {
+	public TempFileTransferStrategy(AmazonS3Client s3Client, TempFileProvider tempFileProvider) {
 		super();
 		this.s3Client = s3Client;
+		this.tempFileProvider = tempFileProvider;
 	}
 
 
@@ -50,8 +55,8 @@ public class TempFileTransferStrategy implements FileTransferStrategy {
 		// The digest will be used to calculate the MD5
 		MessageDigest fullDigest = TransferUtils.createMD5Digest();
 		// Create the temp file
-		File tempFile = File.createTempFile("TempFileTransferStrategy", ".tmp");
-		FileOutputStream fos = new FileOutputStream(tempFile);
+		File tempFile = tempFileProvider.createTempFile("TempFileTransferStrategy", ".tmp");
+		FileOutputStream fos = tempFileProvider.createFileOutputStream(tempFile);
 		try{
 			// First write the entire stream to a temp file.
 			byte[] buffer = new byte[4096]; // 4 K buffer
@@ -79,11 +84,6 @@ public class TempFileTransferStrategy implements FileTransferStrategy {
 				tempFile.delete();
 			}
 		}
-		// We must delete this file or we will have a hard drive leak.
-		if(tempFile.exists()) {
-			throw new IllegalStateException("Failed to delete the tempoary file created by this file transer!  This will fill up the hardrive over time!");
-		}
-
 		return metadata;
 	}
 

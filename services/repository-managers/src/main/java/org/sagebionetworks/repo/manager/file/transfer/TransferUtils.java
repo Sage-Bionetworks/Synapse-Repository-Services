@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.file.transfer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import org.sagebionetworks.repo.model.file.S3FileInterface;
 import org.sagebionetworks.repo.model.file.S3FileMetadata;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
@@ -30,6 +31,21 @@ public class TransferUtils {
 		return objMeta;
 	}
 
+	/**
+	 * Create a put request.
+	 * @param request
+	 * @return
+	 */
+	public static ObjectMetadata prepareObjectMetadata(S3FileInterface request) {
+		ObjectMetadata objMeta = new ObjectMetadata();
+		objMeta.setContentType(request.getContentType());
+		objMeta.setContentDisposition(CONTENT_DISPOSITION_PREFIX+request.getFileName());
+		if(request.getContentMd5() != null){
+			// convert it from hex to base64.
+			objMeta.setContentMD5(BinaryUtils.toBase64(BinaryUtils.fromHex(request.getContentMd5())));
+		}
+		return objMeta;
+	}
 	/**
 	 * @param request
 	 * @param buffer

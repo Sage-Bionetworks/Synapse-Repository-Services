@@ -8,11 +8,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 
 import javax.imageio.ImageIO;
 
@@ -109,7 +106,7 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 			double fileSizeMB = ((float)toRead.length())/ONE_MEGA_BYTE;
 			double memoryMultiple = peakUseMB/fileSizeMB;
 			System.out.println(toRead.getName()+" data:");
-			System.out.println(String.format("\tFile size: %1$.2f MB, Peak memrory useage: %2$.2f MB, Start free: %3$.2f MB, Peak free: %4$.2f MB, End free: %5$.2f MB, Memory used: %6$.2f x fileSize", fileSizeMB, peakUseMB,startFreeMB, peakFreeMB, endFreeMB, memoryMultiple));
+			System.out.println(String.format("\tFile size: %1$.2f MB, Peak memory usage: %2$.2f MB, Start free: %3$.2f MB, Peak free: %4$.2f MB, End free: %5$.2f MB, Memory used: %6$.2f x fileSize", fileSizeMB, peakUseMB,startFreeMB, peakFreeMB, endFreeMB, memoryMultiple));
 		}finally{
 			fis.close();
 			fos.close();
