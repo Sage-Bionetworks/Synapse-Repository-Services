@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.util;
 
 import java.util.concurrent.Callable;
 
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
+
 
 /**
  * This is a fast-fail resource tracker.  When the requested resources cannot be allocated,
@@ -31,7 +33,7 @@ public class ResourceTracker {
 	 * @param bytesToCheckout
 	 * @throws ServiceUnavailableException
 	 */
-	protected synchronized Long attemptCheckout(long amountToCheckout) throws ResourceTempoarryUnavailable, ExceedsMaximumResources {
+	protected synchronized Long attemptCheckout(long amountToCheckout) throws TemporarilyUnavailableException, ExceedsMaximumResources {
 		// does the request exceed the maximum?
 		if(amountToCheckout > maxResource){
 			// We will never be able to allocate this amount.
@@ -40,7 +42,7 @@ public class ResourceTracker {
 		long remaining = maxResource - allocated;
 		if(remaining < amountToCheckout){
 			// Cannot allocate the given amount at this time.
-			throw new ResourceTempoarryUnavailable();
+			throw new TemporarilyUnavailableException();
 		}
 		// Allocate the amount
 		allocated += amountToCheckout;
@@ -64,7 +66,7 @@ public class ResourceTracker {
 	 * if resources cannot be allocated.  Instead it is designed to fail-fast.
 	 * @throws Exception 
 	 */
-	public <T> T allocateAndUseResources(Callable<T> consumer, long amountToCheckout) throws Exception {
+	public <T> T allocateAndUseResources(Callable<T> consumer, Long amountToCheckout) throws Exception {
 		if(consumer == null) throw new IllegalArgumentException("Consumer cannot be null");
 		Long checkedOut = null;
 		try{
@@ -101,33 +103,6 @@ public class ResourceTracker {
 
 
 
-	/**
-	 * Thrown when the resources are temporarily unavailable.  
-	 * @author John
-	 *
-	 */
-	public static class ResourceTempoarryUnavailable extends RuntimeException {
-
-		private static final long serialVersionUID = 3161191200224977763L;
-
-		public ResourceTempoarryUnavailable() {
-			super();
-		}
-
-		public ResourceTempoarryUnavailable(String message, Throwable cause) {
-			super(message, cause);
-		}
-
-		public ResourceTempoarryUnavailable(String message) {
-			super(message);
-		}
-
-		public ResourceTempoarryUnavailable(Throwable cause) {
-			super(cause);
-		}
-		
-	}
-	
 	/**
 	 * Thrown when the resources are temporarily unavailable.  
 	 * @author John

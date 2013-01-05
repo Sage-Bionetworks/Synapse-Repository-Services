@@ -17,9 +17,9 @@ import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
 import org.sagebionetworks.repo.model.file.S3FileMetadata;
 import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
-import org.sagebionetworks.repo.util.ResourceTracker.ResourceTempoarryUnavailable;
 import org.sagebionetworks.repo.util.TempFileProvider;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -28,7 +28,7 @@ import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 /**
  * The preview manager tracks memory allocation and bridges preview generators with
- * actaul file data.
+ * Actual file data.
  * 
  * @author John
  *
@@ -54,6 +54,35 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * Injected.
 	 */
 	private Long maxPreviewMemory;
+
+	/**
+	 * Default used by Spring.
+	 */
+	public PreviewManagerImpl(){}
+	
+
+	/**
+	 * The Ioc Constructor.
+	 * 
+	 * @param fileMetadataDao
+	 * @param s3Client
+	 * @param tempFileProvider
+	 * @param resourceTracker
+	 * @param generatorList
+	 * @param maxPreviewMemory
+	 */
+	public PreviewManagerImpl(FileMetadataDao fileMetadataDao,
+			AmazonS3Client s3Client, TempFileProvider tempFileProvider,
+			List<PreviewGenerator> generatorList, Long maxPreviewMemory) {
+		super();
+		this.fileMetadataDao = fileMetadataDao;
+		this.s3Client = s3Client;
+		this.tempFileProvider = tempFileProvider;
+		this.generatorList = generatorList;
+		this.maxPreviewMemory = maxPreviewMemory;
+		initialize();
+	}
+
 
 	/**
 	 * Injected
@@ -89,7 +118,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 		}
 		// First determine how much memory will be need to generate this preview
 		double multiper = generator.getMemoryMultiplierForContentType(metadata.getContentType());
-		long memoryNeededBytes = (long) (((double)metadata.getContentSize())*multiper);
+		long memoryNeededBytes = (long) Math.ceil((((double)metadata.getContentSize())*multiper));
 		if(memoryNeededBytes > maxPreviewMemory){
 			log.info(String.format("Preview cannot be generated.  Memory needed: '%1$s' (bytes) exceed preview memory pool size: '%2$s' (bytes). Metadata: %3$s", memoryNeededBytes, maxPreviewMemory, metadata.toString())); ;
 			return null;
@@ -106,12 +135,12 @@ public class PreviewManagerImpl implements  PreviewManager {
 					return generatePreview(generator, metadata);
 				}}, memoryNeededBytes);
 			// 
-		}catch(ResourceTempoarryUnavailable temp){
-			log.info("There currently is not enough memory to create a preview for this file. It will be placed back on the queue and retried at a later time.  S3FileMetadata: "+metadata);
+		}catch(TemporarilyUnavailableException temp){
+			log.info("There is not enough memory to at this time to create a preview for this file. It will be placed back on the queue and retried at a later time.  S3FileMetadata: "+metadata);
 			throw temp;
 		}catch(ExceedsMaximumResources e){
 			log.info(String.format("Preview cannot be generated.  Memory needed: '%1$s' (bytes) exceed preview memory pool size: '%2$s' (bytes). Metadata: %3$s", memoryNeededBytes, maxPreviewMemory, metadata.toString())); ;
-			throw e;
+			return null;
 		}
 	}
 	
@@ -202,6 +231,12 @@ public class PreviewManagerImpl implements  PreviewManager {
 		if(maxPreviewMemory == null) throw new IllegalStateException("maxPreviewMemory must be set");
 		// create the resource tracker.
 		resourceTracker = new ResourceTracker(maxPreviewMemory);
+	}
+
+
+	@Override
+	public long getMaxPreivewMemoryBytes() {
+		return maxPreviewMemory;
 	}
 
 }

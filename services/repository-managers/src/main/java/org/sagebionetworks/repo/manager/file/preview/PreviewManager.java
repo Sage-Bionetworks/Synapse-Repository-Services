@@ -4,9 +4,9 @@ import org.sagebionetworks.repo.model.file.FileMetadata;
 import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
 import org.sagebionetworks.repo.model.file.S3FileMetadata;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
-import org.sagebionetworks.repo.util.ResourceTracker.ResourceTempoarryUnavailable;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
 /**
  * An abstraction for preview generation.
@@ -29,6 +29,13 @@ public interface PreviewManager {
 	 * @throws Exception 
 	 * @throws ServiceUnavailableException 
 	 */
-	public PreviewFileMetadata generatePreview(S3FileMetadata metadta) throws ResourceTempoarryUnavailable, ExceedsMaximumResources, Exception;
+	public PreviewFileMetadata generatePreview(S3FileMetadata metadta) throws TemporarilyUnavailableException, ExceedsMaximumResources, Exception;
+	
+	/**
+	 * Get the maximum memory (bytes) that can be used for generating previews.
+	 * 
+	 * @return
+	 */
+	public long getMaxPreivewMemoryBytes();
 
 }

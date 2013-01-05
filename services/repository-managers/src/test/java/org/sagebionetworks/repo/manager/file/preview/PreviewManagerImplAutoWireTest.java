@@ -15,20 +15,22 @@ import org.junit.runner.RunWith;
 import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.file.FileUploadManager;
+import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
 import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
 import org.sagebionetworks.repo.model.file.S3FileInterface;
 import org.sagebionetworks.repo.model.file.S3FileMetadata;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
-import org.sagebionetworks.repo.util.ResourceTracker.ResourceTempoarryUnavailable;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.ObjectMetadata;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
@@ -72,6 +74,7 @@ public class PreviewManagerImplAutoWireTest {
 		// Now upload the file.
 		originalfileMetadata = fileUploadManager.uploadFile(userInfo.getIndividualGroup().getId(), mockFiz);
 		toDelete.add(originalfileMetadata);
+		System.out.println("Max preview bytes:"+previewManager.getMaxPreivewMemoryBytes());
 	}
 	
 	@After
@@ -88,7 +91,7 @@ public class PreviewManagerImplAutoWireTest {
 	}
 	
 	@Test
-	public void testGeneratePreview() throws ResourceTempoarryUnavailable, ExceedsMaximumResources, Exception{
+	public void testGeneratePreview() throws TemporarilyUnavailableException, ExceedsMaximumResources, Exception{
 		// Test that we can generate a preview for this image
 		PreviewFileMetadata pfm = previewManager.generatePreview(originalfileMetadata);
 		assertNotNull(pfm);
@@ -99,7 +102,12 @@ public class PreviewManagerImplAutoWireTest {
 		System.out.println(pfm);
 		// Now make sure this id was assigned to the file
 		S3FileMetadata fromDB = (S3FileMetadata) fileMetadataDao.get(originalfileMetadata.getId());
-		assertEquals(pfm.getId(), fromDB.getPreviewId());
+		assertEquals("The preview was not assigned to the file",pfm.getId(), fromDB.getPreviewId());
+		// Get the preview metadata from S3
+		ObjectMetadata s3Meta =s3Client.getObjectMetadata(pfm.getBucketName(), pfm.getKey());
+		assertNotNull(s3Meta);
+		assertEquals(ImagePreviewGenerator.IMAGE_PNG, s3Meta.getContentType());
+		assertEquals(TransferUtils.getContentDispositionValue(pfm.getFileName()), s3Meta.getContentDisposition());
 	}
 
 }

@@ -4,12 +4,12 @@ import static org.junit.Assert.*;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
-import org.sagebionetworks.repo.util.ResourceTracker.ResourceTempoarryUnavailable;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
 public class ResourceTrackerTest {
 	
 	@Test
-	public void testAttemptCheckoutExceedsMax() throws ResourceTempoarryUnavailable{
+	public void testAttemptCheckoutExceedsMax() throws TemporarilyUnavailableException{
 		ResourceTracker tracker = new ResourceTracker(100);
 		try {
 			// attempt to checkout more than the max.
@@ -24,7 +24,7 @@ public class ResourceTrackerTest {
 	}
 	
 	@Test
-	public void testAttemptCheckoutResourceTempoarryUnavailable() throws ResourceTempoarryUnavailable, ExceedsMaximumResources{
+	public void testAttemptCheckoutResourceTempoarryUnavailable() throws TemporarilyUnavailableException, ExceedsMaximumResources{
 		ResourceTracker tracker = new ResourceTracker(100);
 		// The first we should be able to allocate 
 		Long result = tracker.attemptCheckout(80);
@@ -36,7 +36,7 @@ public class ResourceTrackerTest {
 		try{
 			tracker.attemptCheckout(1);
 			fail("This should have failed as there are not more resources.");
-		}catch(ResourceTempoarryUnavailable e){
+		}catch(TemporarilyUnavailableException e){
 			// This is expected.
 		}
 		// Check back in some of the resources
@@ -45,7 +45,7 @@ public class ResourceTrackerTest {
 		try{
 			tracker.attemptCheckout(21);
 			fail("This should have failed as there are not more resources.");
-		}catch(ResourceTempoarryUnavailable e){
+		}catch(TemporarilyUnavailableException e){
 			// This is expected.
 		}
 		// However we should be able to checkout 20
@@ -54,7 +54,7 @@ public class ResourceTrackerTest {
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
-	public void testBadCheckin() throws ResourceTempoarryUnavailable, ExceedsMaximumResources{
+	public void testBadCheckin() throws TemporarilyUnavailableException, ExceedsMaximumResources{
 		ResourceTracker tracker = new ResourceTracker(100);
 		tracker.attemptCheckout(50);
 		// Try to check-in more than we checked out.
@@ -82,7 +82,7 @@ public class ResourceTrackerTest {
 			public void run() {
 				// For this thread start runner a
 				try {
-					tracker.allocateAndUseResources(runnerA, 20);
+					tracker.allocateAndUseResources(runnerA, 20l);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -93,7 +93,7 @@ public class ResourceTrackerTest {
 			public void run() {
 				// For this thread start runner b
 				try {
-					tracker.allocateAndUseResources(runnerB, 20);
+					tracker.allocateAndUseResources(runnerB, 20l);
 				} catch (Exception e) {
 					throw new RuntimeException(e);
 				}
@@ -113,9 +113,9 @@ public class ResourceTrackerTest {
 		assertEquals("Forty resources should be allocated with two threads running", 40, tracker.getAllocated());
 		// Now try to allocate more than is available.
 		try{
-			tracker.allocateAndUseResources(runnerC, 61);
+			tracker.allocateAndUseResources(runnerC, 61l);
 			fail("This should have failed as 61 resources are not available");
-		}catch(ResourceTempoarryUnavailable e){
+		}catch(TemporarilyUnavailableException e){
 			// This is expected.
 		}
 		// Now stop the fist runner

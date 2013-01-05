@@ -14,10 +14,8 @@ import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
 import org.sagebionetworks.repo.model.file.S3FileMetadata;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ObjectType;
-import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
-import org.sagebionetworks.repo.util.ResourceTracker.ResourceTempoarryUnavailable;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
 
 import com.amazonaws.services.sqs.model.Message;
 
@@ -56,39 +54,44 @@ public class PreviewWorker implements Callable<List<Message>> {
 			try{
 				ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 				// Ignore all non-file messages.
-				if(ObjectType.FILE == changeMessage.getObjectType()){
+				if (ObjectType.FILE == changeMessage.getObjectType()) {
 					// This is a file message so look up the file
-					try{
-						FileMetadata metadata = previewManager.getFileMetadata(changeMessage.getObjectId());
-						if(metadata instanceof PreviewFileMetadata){
-							// We do not make previews of previews
-							continue;
-						}else if(metadata instanceof S3FileMetadata){
-							S3FileMetadata s3fileMeta = (S3FileMetadata) metadata;
-							// Generate a preview.
-							previewManager.generatePreview(s3fileMeta);
-						}else if(metadata instanceof ExternalFileMetadata){
-							// we need to add support for this
-							throw new UnsupportedOperationException("We need to add support for generating files");
-						}else{
-							throw new IllegalArgumentException("Unknown file type: "+metadata.getClass().getName());
-						}
-					}catch(NotFoundException e){
-						// we can ignore messages for files that no longer exist.
-						continue;
+					FileMetadata metadata = previewManager.getFileMetadata(changeMessage.getObjectId());
+					if (metadata instanceof PreviewFileMetadata) {
+						// We do not make previews of previews
+					} else if (metadata instanceof S3FileMetadata) {
+						S3FileMetadata s3fileMeta = (S3FileMetadata) metadata;
+						// Generate a preview.
+						previewManager.generatePreview(s3fileMeta);
+					} else if (metadata instanceof ExternalFileMetadata) {
+						// we need to add support for this
+						throw new UnsupportedOperationException("We need to add support for external file URLss");
+					} else {
+						// We will never be able to process such a message.
+						throw new IllegalArgumentException("Unknown file type: "+ metadata.getClass().getName());
 					}
 				}
 				// This message was processed
 				processedMessage.add(message);
-			}catch (ResourceTempoarryUnavailable e){
+			}catch (NotFoundException e){
+				// we can ignore messages for files that no longer exist.
+				processedMessage.add(message);
+			}catch (IllegalArgumentException e){
+				// We cannot recover from this exception so log the error
+				// and treat the message as processed.
+				processedMessage.add(message);
+				log.error("Failed to process message: "+message.toString(), e);
+			}catch (UnsupportedOperationException e){
+				// We cannot recover from this exception so log the error
+				// and treat the message as processed.
+				processedMessage.add(message);
+				log.error("Failed to process message: "+message.toString(), e);
+			}catch (TemporarilyUnavailableException e){
 				// When this occurs we want the message to go back on the queue, so we can try again later.
 				log.info("Failed to process message: "+message.toString(), e);
-			}catch (ExceedsMaximumResources e){
-				// We will not be able to process this message so it must be removed from the queue.
-				log.info("Cannot process message, as it would exceed the maximum memory.  This message will be removed from the queue"+message.toString());
-				processedMessage.add(message);
 			}catch (Throwable e){
 				// Failing to process a message should not terminate the rest of the message processing.
+				// For unknown errors we leave the messages on the queue.
 				log.error("Failed to process message: "+message.toString(), e);
 			}
 		}

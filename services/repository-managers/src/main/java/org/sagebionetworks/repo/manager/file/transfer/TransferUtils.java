@@ -23,7 +23,7 @@ public class TransferUtils {
 	public static ObjectMetadata prepareObjectMetadata(TransferRequest request) {
 		ObjectMetadata objMeta = new ObjectMetadata();
 		objMeta.setContentType(request.getContentType());
-		objMeta.setContentDisposition(CONTENT_DISPOSITION_PREFIX+request.getFileName());
+		objMeta.setContentDisposition(getContentDispositionValue(request.getFileName()));
 		if(request.getContentMD5() != null){
 			// convert it from hex to base64.
 			objMeta.setContentMD5(BinaryUtils.toBase64(BinaryUtils.fromHex(request.getContentMD5())));
@@ -39,7 +39,7 @@ public class TransferUtils {
 	public static ObjectMetadata prepareObjectMetadata(S3FileInterface request) {
 		ObjectMetadata objMeta = new ObjectMetadata();
 		objMeta.setContentType(request.getContentType());
-		objMeta.setContentDisposition(CONTENT_DISPOSITION_PREFIX+request.getFileName());
+		objMeta.setContentDisposition(getContentDispositionValue(request.getFileName()));		objMeta.setContentDisposition(getContentDispositionValue(request.getFileName()));
 		if(request.getContentMd5() != null){
 			// convert it from hex to base64.
 			objMeta.setContentMD5(BinaryUtils.toBase64(BinaryUtils.fromHex(request.getContentMd5())));
@@ -92,5 +92,15 @@ public class TransferUtils {
 				throw new IllegalArgumentException("The passed MD5: "+request.getContentMD5()+" did not match the calculated MD5: "+calculatedMD5);
 			}
 		}
+	}
+	
+	/**
+	 * The Content Disposition Value contains the file name.  For example if the file name is: 'foo.bar'
+	 * then the content disposition value will be: 'attachment; filename=foo.bar' 
+	 * @param fileName
+	 * @return
+	 */
+	public static String getContentDispositionValue(String fileName){
+		return CONTENT_DISPOSITION_PREFIX+fileName;
 	}
 }
