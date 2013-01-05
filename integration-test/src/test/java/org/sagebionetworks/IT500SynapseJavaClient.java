@@ -40,6 +40,7 @@ import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -62,7 +63,6 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -73,7 +73,6 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -313,7 +312,11 @@ public class IT500SynapseJavaClient {
 		assertNotNull(updatedAnnos.getEtag());
 		// The Etag should have changed
 		assertFalse(updatedAnnos.getEtag().equals(annos.getEtag()));
-		
+
+		// Get the "zero" e-tag for specific versions. See PLFM-1420.
+		Entity datasetEntity = synapse.getEntityByIdForVersion(aNewDataset.getId(), aNewDataset.getVersionNumber());
+		assertTrue(UuidETagGenerator.ZERO_E_TAG.equals(datasetEntity.getEtag()));
+
 		// Get the Users permission for this entity
 		UserEntityPermissions uep = synapse.getUsersEntityPermissions(aNewDataset.getId());
 		assertNotNull(uep);

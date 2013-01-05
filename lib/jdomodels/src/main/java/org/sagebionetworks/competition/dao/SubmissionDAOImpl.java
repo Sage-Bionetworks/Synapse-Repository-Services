@@ -13,9 +13,7 @@ import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.competition.query.jdo.SQLConstants;
 import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,19 +48,21 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			" WHERE "+ SQLConstants.COL_SUBMISSION_COMP_ID + "=:"+ COMP_ID;
 	
 	private static final String SELECT_BY_COMPETITION_AND_STATUS_SQL = 
-			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION +
-			" WHERE "+ SQLConstants.COL_SUBMISSION_COMP_ID + "=:"+ COMP_ID +
-			" AND " + SQLConstants.COL_SUBSTATUS_STATUS + "=:" + STATUS;
+			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION + " n " +
+			"LEFT JOIN " + SQLConstants.TABLE_SUBSTATUS + " r " +
+			"ON n." + SQLConstants.COL_SUBMISSION_ID + " = r." + SQLConstants.COL_SUBSTATUS_SUBMISSION_ID +
+			" WHERE n."+ SQLConstants.COL_SUBMISSION_COMP_ID + "=:"+ COMP_ID +
+			" AND r." + SQLConstants.COL_SUBSTATUS_STATUS + "=:" + STATUS;
 	
 	private static final String COUNT_BY_COMPETITION_SQL = 
-			"SELECT COUNT * FROM " +  SQLConstants.TABLE_SUBMISSION +
+			"SELECT COUNT(*) FROM " +  SQLConstants.TABLE_SUBMISSION +
 			" WHERE "+ SQLConstants.COL_PARTICIPANT_COMP_ID + "=:" + COMP_ID;
 	
 	private static final RowMapper<SubmissionDBO> rowMapper = ((new SubmissionDBO()).getTableMapping());
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission create(Submission dto) throws DatastoreException {		
+	public String create(Submission dto) throws DatastoreException {		
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
 		copyDtoToDbo(dto, dbo);
@@ -79,9 +79,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		// Create DBO
 		try {
 			dbo = basicDao.createNew(dbo);
-			dto = new Submission();
-			copyDboToDto(dbo, dto);
-			return dto;
+			return dbo.getId().toString();
 		} catch (Exception e) {
 			throw new DatastoreException("id=" + dbo.getId() + " userId=" + 
 						dto.getUserId() + " entityId=" + dto.getEntityId(), e);
@@ -152,15 +150,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	public long getCount() throws DatastoreException, NotFoundException {
 		return basicDao.getCount(SubmissionDBO.class);
 	}
-	
-	@Override
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void update(Submission dto) throws DatastoreException, InvalidModelException, NotFoundException, ConflictingUpdateException {		
-		SubmissionDBO dbo = new SubmissionDBO();
-		copyDtoToDbo(dto, dbo);
-		verifySubmissionDBO(dbo);
-		basicDao.update(dbo);
-	}
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -176,7 +165,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	 * @param dto
 	 * @param dbo
 	 */
-	private static void copyDtoToDbo(Submission dto, SubmissionDBO dbo) {	
+	protected static void copyDtoToDbo(Submission dto, SubmissionDBO dbo) {	
 		dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
 		dbo.setUserId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getUserId()));
 		dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
@@ -193,7 +182,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	 * @param dto
 	 * @throws DatastoreException
 	 */
-	private static void copyDboToDto(SubmissionDBO dbo, Submission dto) throws DatastoreException {
+	protected static void copyDboToDto(SubmissionDBO dbo, Submission dto) throws DatastoreException {
 		dto.setId(dbo.getId() == null ? null : dbo.getId().toString());
 		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
 		dto.setCompetitionId(dbo.getCompId() == null ? null : dbo.getCompId().toString());

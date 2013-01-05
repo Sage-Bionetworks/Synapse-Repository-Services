@@ -159,7 +159,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(OFFSET_PARAM_NAME, offset);
 		param.addValue(LIMIT_PARAM_NAME, limit);	
-		param.addValue(COL_COMPETITION_STATUS, status.ordinal());
+		param.addValue(STATUS, status.ordinal());
 		List<CompetitionDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_STATUS_SQL_PAGINATED, rowMapper, param);
 		List<Competition> dtos = new ArrayList<Competition>();
 		for (CompetitionDBO dbo : dbos) {
@@ -236,7 +236,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	 * @param dto
 	 * @param dbo
 	 */
-	private static void copyDtoToDbo(Competition dto, CompetitionDBO dbo) {		
+	protected static void copyDtoToDbo(Competition dto, CompetitionDBO dbo) {		
 		dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
 		dbo.seteTag(dto.getEtag());
 		dbo.setName(dto.getName());
@@ -254,7 +254,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	 * @param dto
 	 * @throws DatastoreException
 	 */
-	private static void copyDboToDto(CompetitionDBO dbo, Competition dto) throws DatastoreException {		
+	protected static void copyDboToDto(CompetitionDBO dbo, Competition dto) throws DatastoreException {		
 		dto.setId(dbo.getId() == null ? null : dbo.getId().toString());
 		dto.setEtag(dbo.geteTag());
 		dto.setName(dbo.getName());

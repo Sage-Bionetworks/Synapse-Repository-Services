@@ -206,6 +206,12 @@
 		
 	<bean id="competitionManager" class="org.sagebionetworks.competition.manager.CompetitionManagerImpl" 
 		scope="singleton" />
+		
+	<bean id="participantManager" class="org.sagebionetworks.competition.manager.ParticipantManagerImpl" 
+		scope="singleton" />
+		
+	<bean id="submissionManager" class="org.sagebionetworks.competition.manager.SubmissionManagerImpl" 
+		scope="singleton" />
 
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool"
