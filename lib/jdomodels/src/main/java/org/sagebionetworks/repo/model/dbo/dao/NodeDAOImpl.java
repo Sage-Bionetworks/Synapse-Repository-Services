@@ -42,6 +42,8 @@ import java.util.Set;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.UuidETagGenerator;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -339,6 +341,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
 		Long nodeID = KeyFactory.stringToKey(id);
 		DBONode jdo =  getNodeById(nodeID);
+		// Remove the eTags (See PLFM-1420)
+		jdo.seteTag(UuidETagGenerator.ZERO_E_TAG);
 		DBORevision rev = getNodeRevisionById(nodeID, versionNumber);
 		return NodeUtils.copyFromJDO(jdo, rev);
 	}
@@ -438,7 +442,22 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(versionNumber == null) throw new IllegalArgumentException("VersionNumber cannot be null");
 		// Select just the references, not the entire node.
 		try{
-			return simpleJdbcTemplate.queryForObject(SELECT_ANNOTATIONS_ONLY_PREFIX + " = ?",	new AnnotationRowMapper(), KeyFactory.stringToKey(id), versionNumber);
+			NamedAnnotations namedAnnos = simpleJdbcTemplate.queryForObject(
+					SELECT_ANNOTATIONS_ONLY_PREFIX + " = ?",
+					new AnnotationRowMapper(), KeyFactory.stringToKey(id), versionNumber);
+			// Remove the eTags (See PLFM-1420)
+			if (namedAnnos != null) {
+				namedAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+			}
+			Annotations primaryAnnos = namedAnnos.getPrimaryAnnotations();
+			if (primaryAnnos != null) {
+				primaryAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+			}
+			Annotations additionalAnnos = namedAnnos.getAdditionalAnnotations();
+			if (additionalAnnos != null) {
+				additionalAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+			}
+			return namedAnnos;
 		}catch (EmptyResultDataAccessException e){
 			// Occurs if there are no results
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
@@ -566,9 +585,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException {
-		// A regular update will get a new Etag so we do not want to force the use of the passed eTag
-		boolean forceUseEtag = false;
-		updateNodePrivate(updatedNode, forceUseEtag);
+		updateNodePrivate(updatedNode);
 	}
 
 	/**
@@ -578,7 +595,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	private void updateNodePrivate(Node updatedNode, boolean forceUseEtag) throws NotFoundException,
+	private void updateNodePrivate(Node updatedNode) throws NotFoundException,
 			DatastoreException, InvalidModelException {
 		if(updatedNode == null) throw new IllegalArgumentException("Node to update cannot be null");
 		if(updatedNode.getId() == null) throw new IllegalArgumentException("Node to update cannot have a null ID");
@@ -588,11 +605,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		// Update is as simple as copying the values from the passed node.		
 		NodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate, shouldDeleteActivityId(updatedNode));	
 
-		// Should we force the update of the etag?
-		if(forceUseEtag){
-			if(updatedNode.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
-			jdoToUpdate.seteTag(KeyFactory.urlDecode(updatedNode.getETag()));
-		}
 		// Update the node.
 		try{
 			dboBasicDao.update(jdoToUpdate);
@@ -1054,8 +1066,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public void updateRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
-		// TODO: Remove this. Not sure if it is called to check exceptions.
-		DBONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		DBORevision dboRev = getNodeRevisionById(KeyFactory.stringToKey(rev.getNodeId()), rev.getRevisionNumber());
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
 		// Save the new revision
@@ -1066,8 +1076,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public void createNewRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
-		// TODO: Remove this. Not sure if it is called to check exceptions.
-		DBONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		DBORevision dboRev = new DBORevision();
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
 		dboBasicDao.createNew(dboRev);
@@ -1235,7 +1243,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	public boolean doesNodeHaveChildren(String nodeId) {
 		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
 		try{
-			long id = this.simpleJdbcTemplate.queryForLong(SQL_GET_FIRST_CHILD, KeyFactory.stringToKey(nodeId));
+			this.simpleJdbcTemplate.queryForLong(SQL_GET_FIRST_CHILD, KeyFactory.stringToKey(nodeId));
 			// At least one node has this parent id.
 			return true;
 		}catch(EmptyResultDataAccessException e){

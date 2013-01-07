@@ -24,7 +24,7 @@ public class EntityNameValidation {
 	 * Validate the name
 	 * 
 	 * @param key
-	 * @throws InvalidModelException
+	 * @throws IllegalArgumentException
 	 */
 	public static String valdiateName(String key) {
 		if (key == null)

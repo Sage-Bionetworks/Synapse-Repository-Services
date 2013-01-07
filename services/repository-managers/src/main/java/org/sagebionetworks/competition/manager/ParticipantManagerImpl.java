@@ -1,9 +1,6 @@
 package org.sagebionetworks.competition.manager;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
-
 import org.sagebionetworks.competition.dao.ParticipantDAO;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.Participant;
@@ -25,6 +22,8 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	@Autowired
 	CompetitionManager competitionManager;
 	
+	public ParticipantManagerImpl() {};
+	
 	// for testing purposes
 	protected ParticipantManagerImpl(ParticipantDAO participantDAO, 
 			UserManager userManager, CompetitionManager competitionManager) {		
@@ -36,10 +35,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	@Override
 	public Participant getParticipant(String userId, String compId) throws DatastoreException, NotFoundException {
 		CompetitionUtils.ensureNotNull(userId, compId);
-		Participant part = participantDAO.get(userId, compId);
-		part.setName(userManager.getDisplayName(Long.parseLong(userId)));
-		// TODO: part.setScore()
-		return part;
+		return participantDAO.get(userId, compId);
 	}
 
 	@Override
@@ -50,23 +46,27 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		CompetitionUtils.ensureNotNull(idToAdd, "Participant user ID");
 		
 		// ensure user exists
-		if (userManager.getDisplayName(Long.parseLong(idToAdd)) == null)
-			throw new NotFoundException("User ID: " + idToAdd + " does not exist");
+		userManager.getDisplayName(Long.parseLong(idToAdd));
 		
 		// verify permissions
 		Competition comp = competitionManager.getCompetition(compId);
-		if (!competitionManager.isCompAdmin(userId, comp))	{
+		if (!competitionManager.isCompAdmin(userId, compId))	{
 			// user is not an admin; only authorized to add self as a Participant
 			CompetitionUtils.ensureCompetitionIsOpen(comp);
 			if (!userId.equals(idToAdd))
 				throw new UnauthorizedException("User ID: " + userId + " is not authorized to add other users to Competition ID: " + compId);
 		}
 			
-		// create and return the new Participant
+		// create the new Participant
 		Participant part = new Participant();
 		part.setCompetitionId(compId);
-		part.setUserId(idToAdd);		
+		part.setUserId(idToAdd);
 		participantDAO.create(part);
+		
+		// trigger etag update of the parent Competition
+		// this is required for migration consistency
+		competitionManager.updateCompetitionEtag(compId);
+		
 		return getParticipant(idToAdd, compId);
 	}
 	
@@ -77,27 +77,25 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		CompetitionUtils.ensureNotNull(compId, "Competition ID");
 		CompetitionUtils.ensureNotNull(idToRemove, "Participant User ID");
 		
-		// verify permissions	
-		Competition comp = competitionManager.getCompetition(compId);
-		if (!competitionManager.isCompAdmin(userId, comp))	{
+		// verify permissions
+		if (!competitionManager.isCompAdmin(userId, compId)) {
 			// user is not an admin; only authorized to cancel their own participation
-			CompetitionUtils.ensureCompetitionIsOpen(comp);
+			CompetitionUtils.ensureCompetitionIsOpen(competitionManager.getCompetition(compId));
 			if (!userId.equals(idToRemove))
 				throw new UnauthorizedException("User ID: " + userId + " is not authorized to remove other users from Competition ID: " + compId);
 		}
+		
+		// trigger etag update of the parent Competition
+		// this is required for migration consistency
+		competitionManager.updateCompetitionEtag(compId);
+		
 		participantDAO.delete(idToRemove, compId);
 	}
 	
 	@Override
-	public Set<Participant> getAllParticipants(String userId, String compId) throws NumberFormatException, DatastoreException, NotFoundException {
-		CompetitionUtils.ensureNotNull(userId, compId);
-		Set<Participant> participants = new HashSet<Participant>();
-		List<Participant> fromDAO = participantDAO.getAllByCompetition(compId);
-		for (Participant p : fromDAO) {
-			p.setName(userManager.getDisplayName(Long.parseLong(p.getUserId())));
-			participants.add(p);
-		}
-		return participants;
+	public List<Participant> getAllParticipants(String compId) throws NumberFormatException, DatastoreException, NotFoundException {
+		CompetitionUtils.ensureNotNull(compId, "Competition ID");
+		return participantDAO.getAllByCompetition(compId);
 	}
 	
 	@Override

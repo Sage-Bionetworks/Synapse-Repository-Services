@@ -147,21 +147,23 @@ public class StorageLocationDAOImplTest {
 
 	@Test
 	public void testGetTotalSize() throws Exception {
+		long base = dao.getTotalSize();
 		addTestNode();
 		dao.replaceLocationData(locations);
 		Long total = dao.getTotalSize();
 		// Except for the ones we are mocking here, no other
 		// storage item has size in the test database
-		Assert.assertEquals(sizeTotal, total.longValue());
+		Assert.assertEquals(base + sizeTotal, total.longValue());
 		removeTestNode();
 	}
 
 	@Test
 	public void testGetTotalSizeForUser() throws Exception {
+		long base = dao.getTotalSizeForUser(userId);
 		addTestNode();
 		dao.replaceLocationData(locations);
 		Long total = dao.getTotalSizeForUser(userId);
-		Assert.assertEquals(sizeTotal, total.longValue());
+		Assert.assertEquals(base + sizeTotal, total.longValue());
 		total = dao.getTotalSizeForUser("syn9293829999990"); // fake user
 		Assert.assertEquals(0L, total.longValue());
 		removeTestNode();
@@ -169,10 +171,11 @@ public class StorageLocationDAOImplTest {
 
 	@Test
 	public void testGetTotalCount() throws Exception {
+		long base = dao.getTotalCount();
 		addTestNode();
 		dao.replaceLocationData(locations);
 		// There are other storage items besides the ones mocked here
-		Assert.assertTrue(dao.getTotalCount() >= countTotal);
+		Assert.assertEquals(base + countTotal, dao.getTotalCount().longValue());
 		removeTestNode();
 	}
 
@@ -505,6 +508,9 @@ public class StorageLocationDAOImplTest {
 		Assert.assertNotNull(nodeId);
 		this.nodeId = nodeId;
 
+		// Clear any location data associated with the node
+		dao.deleteLocationDataByOwnerId(KeyFactory.stringToKey(nodeId));
+
 		// Create the location data
 		locations = new StorageLocations(KeyFactory.stringToKey(nodeId), userIdLong,
 				attachmentList, locationList, strAnnotations);
@@ -535,8 +541,11 @@ public class StorageLocationDAOImplTest {
 
 	// Removes the test node. This should also remove any storage location associated with it
 	private void removeTestNode() throws Exception {
+		// Delete the node
 		boolean success = nodeDao.delete(nodeId.toString());
 		Assert.assertTrue(success);
+		// Clear any location data associated with the node
+		dao.deleteLocationDataByOwnerId(KeyFactory.stringToKey(nodeId));
 	}
 
 	private StorageLocationDAO unwrap() throws Exception {

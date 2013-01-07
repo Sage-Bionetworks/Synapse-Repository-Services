@@ -35,19 +35,6 @@
 			"type": "string",
 			"format": "date-time",
 			"description": "The date on which Submission was created.",
-			"title": "Created On",
-			"transient": true
-		},
-		"status": {
-			"type": "object",
-			"description": "The current status of this Submission.",
-			"name": "Status",
-			"$ref": "org.sagebionetworks.competition.model.SubmissionStatus"
-		},
-		"score": {
-			"type": "integer",
-			"description": "The score for this Submission.",
-			"title": "Score",
 			"transient": true
 		}
 	}

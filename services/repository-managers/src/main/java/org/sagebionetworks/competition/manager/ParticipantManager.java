@@ -1,7 +1,6 @@
 package org.sagebionetworks.competition.manager;
 
-import java.util.Set;
-
+import java.util.List;
 import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -50,17 +49,15 @@ public interface ParticipantManager {
 			String idToRemove) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Get all Participants for a given Competition. This method requires
-	 * admin rights on the requested Competition.
+	 * Get all Participants for a given Competition.
 	 * 
-	 * @param userId
 	 * @param compId
 	 * @return
 	 * @throws NumberFormatException
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Set<Participant> getAllParticipants(String userId, String compId)
+	public List<Participant> getAllParticipants(String compId)
 			throws NumberFormatException, DatastoreException, NotFoundException;
 
 	/**

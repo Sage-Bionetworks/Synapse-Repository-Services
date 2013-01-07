@@ -6,17 +6,19 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
 import org.sagebionetworks.competition.model.CompetitionStatus;
+import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.message.ObjectType;
 
 /**
  * The database object for a Synapse Competition
  * 
  * @author bkng
  */
-public class CompetitionDBO implements DatabaseObject<CompetitionDBO>, TaggableEntity {
+public class CompetitionDBO implements DatabaseObject<CompetitionDBO>, TaggableEntity, ObservableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn(PARAM_COMPETITION_ID, COL_COMPETITION_ID, true),
@@ -207,6 +209,18 @@ public class CompetitionDBO implements DatabaseObject<CompetitionDBO>, TaggableE
 				+ ", description=" + description + ", ownerId=" + ownerId 
 				+ ", createdOn=" + createdOn + ", contentSource=" 
 				+ contentSource + ", status=" + CompetitionStatus.values()[status].toString() + "]";
+	}
+	@Override
+	public String getIdString() {
+		return id.toString();
+	}
+	@Override
+	public String getParentIdString() {
+		return null;
+	}
+	@Override
+	public ObjectType getObjectType() {
+		return ObjectType.COMPETITION;
 	}
 
 }

@@ -38,6 +38,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private ActivityService activityService;
 	@Autowired
 	private NodeLineageQueryService nodeLineageQueryService;
+	@Autowired
+	private CompetitionService competitionService;
 
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -83,5 +85,9 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public NodeLineageQueryService getNodeLineageQueryService() {
 		return nodeLineageQueryService;
+	}
+	@Override
+	public CompetitionService getCompetitionService() {
+		return competitionService;
 	}
 }
