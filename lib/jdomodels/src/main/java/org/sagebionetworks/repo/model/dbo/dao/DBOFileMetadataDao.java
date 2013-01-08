@@ -1,13 +1,19 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import java.util.UUID;
+
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata;
 import org.sagebionetworks.repo.model.file.FileMetadata;
+import org.sagebionetworks.repo.model.message.ChangeType;
+import org.sagebionetworks.repo.model.message.ObjectType;
+
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOFileMetadataDao implements FileMetadataDao {
 	
+	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
+
 	/**
 	 * Used to detect if a file object already exists.
 	 */
@@ -33,6 +41,8 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 
 	@Autowired
 	private IdGenerator idGenerator;
+	@Autowired
+	private TagMessenger tagMessenger;
 		
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -55,6 +65,8 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_FILES_ID.toLowerCase(), id);
+		// Send the delete message
+		tagMessenger.sendDeleteMessage(id, ObjectType.FILE);
 		// Delete this object
 		basicDao.deleteObjectById(DBOFileMetadata.class, param);
 	}
@@ -74,8 +86,14 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 			// Make sure the ID generator has reserved this ID.
 			idGenerator.reserveId(new Long(metadata.getId()), TYPE.FILE_ID);
 		}
+		// When we migrate we keep the original etag.  When it is null we set it.
+		if(dbo.getEtag() == null){
+			dbo.setEtag(UUID.randomUUID().toString());
+		}
 		// Save it to the DB
 		dbo = basicDao.createNew(dbo);
+		// Send the create message
+		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.FILE, ChangeType.CREATE);
 		try {
 			return (T) get(dbo.getId().toString());
 		} catch (NotFoundException e) {
@@ -96,7 +114,11 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 			throw new NotFoundException("The previewId: "+previewId+" does not exist");
 		}
 		try{
-			simpleJdbcTemplate.update("UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? WHERE "+COL_FILES_ID+" = ?", previewId, fileId);
+			// Change the etag
+			String newEtag = UUID.randomUUID().toString();
+			simpleJdbcTemplate.update(UPDATE_PREVIEW_AND_ETAG, previewId, newEtag, fileId);
+			// Send the update message
+			tagMessenger.sendMessage(fileId, newEtag, ObjectType.FILE, ChangeType.UPDATE);
 		} catch (DataIntegrityViolationException e){
 			throw new NotFoundException(e.getMessage());
 		}

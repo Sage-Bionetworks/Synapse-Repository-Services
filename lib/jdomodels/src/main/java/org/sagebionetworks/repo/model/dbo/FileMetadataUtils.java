@@ -44,6 +44,7 @@ public class FileMetadataUtils {
 		DBOFileMetadata dbo = new DBOFileMetadata();
 		dbo.setMetadataType(MetadataType.EXTERNAL);
 		dbo.setKey(dto.getExternalURL());
+		dbo.setEtag(dto.getEtag());
 		if(dto.getCreatedBy() != null){
 			dbo.setCreatedBy(Long.parseLong(dto.getCreatedBy()));
 		}
@@ -91,6 +92,7 @@ public class FileMetadataUtils {
 		if(dto.getId() != null){
 			dbo.setId(new Long(dto.getId()));
 		}
+		dbo.setEtag(dto.getEtag());
 		dbo.setBucketName(dto.getBucketName());
 		dbo.setKey(dto.getKey());
 		dbo.setContentMD5(dto.getContentMd5());
@@ -125,6 +127,7 @@ public class FileMetadataUtils {
 			if(dbo.getId() != null){
 				external.setId(dbo.getId().toString());
 			}
+			external.setEtag(dbo.getEtag());
 			external.setExternalURL(dbo.getKey());
 			return external;
 		}else if(MetadataType.S3 == dbo.getMetadataTypeEnum() || MetadataType.PREVIEW == dbo.getMetadataTypeEnum()){
@@ -152,6 +155,7 @@ public class FileMetadataUtils {
 			metaInterface.setContentType(dbo.getContentType());
 			metaInterface.setContentSize(dbo.getContentSize());
 			metaInterface.setFileName(dbo.getName());
+			metaInterface.setEtag(dbo.getEtag());
 			if(dbo.getCreatedBy() != null){
 				metaInterface.setCreatedBy(dbo.getCreatedBy().toString());
 			}

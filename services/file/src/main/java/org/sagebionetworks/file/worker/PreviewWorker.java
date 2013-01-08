@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.file.FileMetadata;
 import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
 import org.sagebionetworks.repo.model.file.S3FileMetadata;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
@@ -54,7 +55,7 @@ public class PreviewWorker implements Callable<List<Message>> {
 			try{
 				ChangeMessage changeMessage = MessageUtils.extractMessageBody(message);
 				// Ignore all non-file messages.
-				if (ObjectType.FILE == changeMessage.getObjectType()) {
+				if (ObjectType.FILE == changeMessage.getObjectType() && ChangeType.CREATE == changeMessage.getChangeType()) {
 					// This is a file message so look up the file
 					FileMetadata metadata = previewManager.getFileMetadata(changeMessage.getObjectId());
 					if (metadata instanceof PreviewFileMetadata) {

@@ -113,6 +113,7 @@ public class SqlConstants {
 	// The file metada table
 	public static final String TABLE_FILES							= "FILES";
 	public static final String COL_FILES_ID							= "ID";
+	public static final String COL_FILES_ETAG						= "ETAG";
 	public static final String COL_FILES_PREVIEW_ID					= "PREVIEW_ID";
 	public static final String COL_FILES_CREATED_BY					= "CREATED_BY";
 	public static final String COL_FILES_CREATED_ON					= "CREATED_ON";

@@ -1,6 +1,18 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILES;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -31,6 +43,7 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_FILES_ID, true),
+		new FieldColumn("etag", COL_FILES_ETAG),
 		new FieldColumn("previewId", COL_FILES_PREVIEW_ID),
 		new FieldColumn("createdBy", COL_FILES_CREATED_BY),
 		new FieldColumn("createdOn", COL_FILES_CREATED_ON),
@@ -44,6 +57,7 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 	};
 	
 	private Long id;
+	private String etag;
 	private Long previewId;
 	private Long createdBy;
 	private Timestamp createdOn;
@@ -63,6 +77,7 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 			public DBOFileMetadata mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOFileMetadata results = new DBOFileMetadata();
 				results.setId(rs.getLong(COL_FILES_ID));
+				results.setEtag(rs.getString(COL_FILES_ETAG));
 				// This can be null
 				results.setPreviewId(rs.getLong(COL_FILES_PREVIEW_ID));
 				if(rs.wasNull()){
@@ -197,6 +212,14 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 		this.name = name;
 	}
 
+	public String getEtag() {
+		return etag;
+	}
+
+	public void setEtag(String etag) {
+		this.etag = etag;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -213,6 +236,7 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result + ((etag == null) ? 0 : etag.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((key == null) ? 0 : key.hashCode());
 		result = prime * result
@@ -262,6 +286,11 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 				return false;
 		} else if (!createdOn.equals(other.createdOn))
 			return false;
+		if (etag == null) {
+			if (other.etag != null)
+				return false;
+		} else if (!etag.equals(other.etag))
+			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
@@ -289,13 +318,12 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 
 	@Override
 	public String toString() {
-		return "DBOFileMetadata [id=" + id + ", previewId=" + previewId
-				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
-				+ ", metadataType=" + metadataType + ", contentType="
-				+ contentType + ", contentSize=" + contentSize
-				+ ", contentMD5=" + contentMD5 + ", bucketName=" + bucketName
-				+ ", key=" + key + ", name=" + name + "]";
+		return "DBOFileMetadata [id=" + id + ", etag=" + etag + ", previewId="
+				+ previewId + ", createdBy=" + createdBy + ", createdOn="
+				+ createdOn + ", metadataType=" + metadataType
+				+ ", contentType=" + contentType + ", contentSize="
+				+ contentSize + ", contentMD5=" + contentMD5 + ", bucketName="
+				+ bucketName + ", key=" + key + ", name=" + name + "]";
 	}
-
 
 }

@@ -22,6 +22,7 @@ public class FileMetadataUtilsTest {
 		meta.setExternalURL("http://google.com");
 		meta.setId("987");
 		meta.setPreviewId("456");
+		meta.setEtag("etag");
 		System.out.println(meta);
 		// Convert to dbo
 		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(meta);
@@ -43,6 +44,7 @@ public class FileMetadataUtilsTest {
 		meta.setContentSize(123l);
 		meta.setContentType("contentType");
 		meta.setPreviewId("9999");
+		meta.setEtag("etag");
 		meta.setFileName("foo.txt");
 		
 		System.out.println(meta);
@@ -66,6 +68,7 @@ public class FileMetadataUtilsTest {
 		meta.setContentSize(123l);
 		meta.setContentType("contentType");
 		meta.setFileName("preview.txt");
+		meta.setEtag("etag");
 		System.out.println(meta);
 		// Convert to dbo
 		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(meta);
