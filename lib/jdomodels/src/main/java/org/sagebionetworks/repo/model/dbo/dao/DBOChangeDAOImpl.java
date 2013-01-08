@@ -1,21 +1,13 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_CHANGE_NUM;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHANGES;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -23,7 +15,6 @@ import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,7 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 public class DBOChangeDAOImpl implements DBOChangeDAO {
-
+	
 	private static final String SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER_FILTER_BY_OBJECT_TYPE = "SELECT * FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" >= ? AND "+COL_CHANGES_OBJECT_TYPE+" = ? ORDER BY "+COL_CHANGES_CHANGE_NUM+" ASC LIMIT ?";
 
 	private static final String SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER = "SELECT * FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" >= ? ORDER BY "+COL_CHANGES_CHANGE_NUM+" ASC LIMIT ?";
@@ -50,8 +41,6 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
-	private final ScheduledExecutorService retryExecutor = Executors.newScheduledThreadPool(10);
-
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public ChangeMessage replaceChange(ChangeMessage change) {
@@ -61,7 +50,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		if(change.getObjectType() == null) throw new IllegalArgumentException("change.getObjectTypeEnum() cannot be null");
 		if(ChangeType.CREATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
 		if(ChangeType.UPDATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
-		final DBOChange dbo = ChangeMessageUtils.createDBO(change);
+		DBOChange dbo = ChangeMessageUtils.createDBO(change);
 		// First delete the change.
 		deleteChange(dbo.getObjectId());
 		// Clear the time stamp so that we get a new one automatically.
@@ -71,16 +60,10 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		dbo.setTimeStamp(new Timestamp(nowMs));
 		dbo.setChangeNumber(null);
 		// Now insert the row with the current value
-		// Implement with retries to work around deadlocks
-		Callable<DBOChange> task = new Callable<DBOChange>() {
-			@Override
-			public DBOChange call() throws Exception {
-				return basicDao.createNew(dbo);
-			}
-		};
-		DBOChange newDbo = this.retryForDeadlock(task, 3);
-		return ChangeMessageUtils.createDTO(newDbo);
+		dbo = basicDao.createNew(dbo);
+		return ChangeMessageUtils.createDTO(dbo);
 	}
+
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -98,18 +81,10 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void deleteChange(final Long objectId) {
+	public void deleteChange(Long objectId) {
 		if(objectId == null) throw new IllegalArgumentException("ObjectId cannot be null");
 		// First remove the row for this object.
-		// Implement with retries to work around deadlocks
-		Callable<Boolean> task = new Callable<Boolean>() {
-			@Override
-			public Boolean call() throws Exception {
-				simpleJdbcTemplate.update(SQL_DELETE_BY_OBJECT_ID, objectId);
-				return Boolean.TRUE;
-			}
-		};
-		this.retryForDeadlock(task, 3);
+		simpleJdbcTemplate.update(SQL_DELETE_BY_OBJECT_ID, objectId);
 	}
 
 	@Override
@@ -137,32 +112,4 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		return ChangeMessageUtils.createDTOList(dboList);
 	}
 
-	// Retry with exponentially increasing delays
-	private <T> T retryForDeadlock(final Callable<T> task, int numOfRetries) {
-		// Implement with retries to work around deadlocks
-		long delay = 0L;
-		while (numOfRetries > 0) {
-			try {
-				Future<T> future = retryExecutor.schedule(task, delay, TimeUnit.SECONDS);
-				return future.get();
-			} catch (DeadlockLoserDataAccessException e) {
-				if (delay == 0L) {
-					delay = 1L;
-				} else {
-					delay = delay << 1L;
-				}
-				numOfRetries--;
-			} catch (InterruptedException e) {
-				if (delay == 0L) {
-					delay = 1L;
-				} else {
-					delay = delay << 1L;
-				}
-				numOfRetries--;
-			} catch (ExecutionException e) {
-				throw new DatastoreException(e.getCause());
-			}
-		}
-		throw new DatastoreException("Retry for deadlock failed after retrying for " + numOfRetries + " times.");
-	}
 }

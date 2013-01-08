@@ -260,6 +260,7 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertEquals(expectedFiltered, list);
 	}
 
+	// TODO: PLFM-1631 for a load test framework outside this package
 	@Test
 	public void testForDeadlocks() throws Exception {
 		final int numOfTasks = 1000;
