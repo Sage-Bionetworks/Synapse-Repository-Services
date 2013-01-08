@@ -12,22 +12,11 @@
 			"description": "The ID of the Competition in which this Participant is partaking.",
 			"transient": true
 		},
-		"name": {
-			"type": "string",
-			"description": "The display name of this Participant.",
-			"title": "Name"
-		},
 		"createdOn": {
 			"type": "string",
 			"format": "date-time",
 			"description": "The date on which this Participant was created.",
 			"title": "Created On",
-			"transient": true
-		},
-		"score": {
-			"type": "integer",
-			"description": "This Participant's top score for this Competition.",
-			"title": "Score",
 			"transient": true
 		}
 	}
