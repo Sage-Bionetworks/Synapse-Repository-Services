@@ -1,11 +1,34 @@
 {
-    "description":"JSON schema for the possible states of a Synapse Submission.",
-    "name": "SubmissionStatus",
-    "type":"string",
-    "enum":[
-        "OPEN",
-        "CLOSED",
-        "SCORED",
-        "INVALID"
-    ]
+	"description": "Schema defining the status of a Submission. Should only be modified by competition admins.",
+	"name": "SubmissionStatus",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The unique, immutable Synapse ID of this Submission.",
+			"transient": true
+		},
+		"etag": {
+			"type": "string",
+			"description": "Synapse employs an Optimistic Concurrency Control (OCC) scheme to handle concurrent updates. Since the E-Tag changes every time an entity is updated it is used to detect when a client's current representation of an entity is out-of-date."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date on which Submission was created.",
+			"title": "Created On",
+			"transient": true
+		},
+		"status": {
+			"type": "object",
+			"description": "The current status of this Submission.",
+			"name": "Status",
+			"$ref": "org.sagebionetworks.competition.model.SubmissionStatusEnum"
+		},
+		"score": {
+			"type": "integer",
+			"description": "The score for this Submission.",
+			"title": "Score",
+			"transient": true
+		}
+	}
 }

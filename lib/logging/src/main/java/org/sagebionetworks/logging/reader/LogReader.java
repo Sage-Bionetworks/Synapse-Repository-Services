@@ -25,8 +25,14 @@ public interface LogReader {
 	/**
 	 * Read the next log event from the reader.  
 	 * @return LogEvent representing the next event logged in the file, or null if EndOfFile reached.
-	 * @throws IOException
+	 * @throws IOException If an I/O error occurs.
 	 */
 	public LogEvent readLogEvent() throws IOException;
+
+	/**
+	 * Close the file associated with this reader.
+	 * @throws IOException If an I/O error occurs.
+	 */
+	public void close() throws IOException;
 
 }

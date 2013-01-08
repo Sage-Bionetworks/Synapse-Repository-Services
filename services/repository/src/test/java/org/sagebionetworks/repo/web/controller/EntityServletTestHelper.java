@@ -13,16 +13,21 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.sagebionetworks.competition.model.Competition;
+import org.sagebionetworks.competition.model.Participant;
+import org.sagebionetworks.competition.model.Submission;
+import org.sagebionetworks.competition.model.SubmissionStatus;
+import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.NameConflictException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.VersionInfo;
@@ -571,5 +576,400 @@ public class EntityServletTestHelper {
 		JSONObjectAdapterImpl joa = new JSONObjectAdapterImpl(response.getContentAsString());
 
 		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), entity.getClass());
+	}
+	
+	//////////////////////////
+	// Competition Services //
+	//////////////////////////
+	
+	public Competition createCompetition(Competition comp, String userId)
+			throws JSONObjectAdapterException, IOException, DatastoreException,
+			NotFoundException, ServletException 
+	{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		comp.writeToJSONObject(joa);
+		String body = joa.toJSONString();
+		request.setContent(body.getBytes("UTF-8"));
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		joa = new JSONObjectAdapterImpl(json);
+		return new Competition(joa);
+	}
+	
+	public Competition getCompetition(String compId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION+"/"+compId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		return new Competition(joa);
+	}
+	
+	public Competition findCompetition(String name) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION+"/name/"+name);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		return new Competition(joa);
+	}
+	
+	public Competition updateCompetition(Competition comp, String userId) 
+			throws JSONObjectAdapterException, IOException, NotFoundException,
+			DatastoreException, ServletException
+	{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("PUT");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION+"/"+comp.getId());
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		comp.writeToJSONObject(joa);
+		String body = joa.toJSONString();
+		request.setContent(body.getBytes("UTF-8"));
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		joa = new JSONObjectAdapterImpl(json);
+		return new Competition(joa);
+	}
+	
+	public void deleteCompetition(String compId, String userId) throws ServletException,
+			IOException, NotFoundException, DatastoreException
+	{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("DELETE");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+	}
+	
+	public PaginatedResults<Competition> getCompetitionsPaginated(long limit, long offset) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION);
+		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, "" + offset);
+		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, "" + limit);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		PaginatedResults<Competition> res = new PaginatedResults<Competition>(Competition.class);
+		res.initializeFromJSONObject(joa);
+		return res;
+	}
+	
+	public long getCompetitionCount() throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION_COUNT);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		return Long.parseLong(response.getContentAsString());
+	}
+	
+	public Participant createParticipant(String userId, String compId)
+			throws JSONObjectAdapterException, IOException, DatastoreException,
+			NotFoundException, ServletException 
+	{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION+"/"+compId+"/participant");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		String body = joa.toJSONString();
+		request.setContent(body.getBytes("UTF-8"));
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		joa = new JSONObjectAdapterImpl(json);
+		return new Participant(joa);
+	}
+	
+	public Participant getParticipant(String partId, String compId) throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION+"/"+compId+"/participant/" + partId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, partId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		return new Participant(joa);
+	}
+	
+	public void deleteParticipant(String partId, String compId) throws ServletException, IOException, DatastoreException, NotFoundException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("DELETE");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId + "/participant/" + partId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, partId);
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+	}
+	
+	public PaginatedResults<Participant> getAllParticipants(String compId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId + "/participant");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		PaginatedResults<Participant> res = new PaginatedResults<Participant>(Participant.class);
+		res.initializeFromJSONObject(joa);
+		return res;
+	}
+	
+	public long getParticipantCount(String compId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId + "/participant/count");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		return Long.parseLong(response.getContentAsString());
+	}
+	
+	public Submission createSubmission(Submission sub, String userId)
+			throws JSONObjectAdapterException, IOException, DatastoreException,
+			NotFoundException, ServletException 
+	{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.SUBMISSION);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		sub.writeToJSONObject(joa);
+		String body = joa.toJSONString();
+		request.setContent(body.getBytes("UTF-8"));
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		joa = new JSONObjectAdapterImpl(json);
+		return new Submission(joa);
+	}
+	
+	public Submission getSubmission(String subId) throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.SUBMISSION+"/"+subId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		return new Submission(joa);
+	}
+	
+	public SubmissionStatus getSubmissionStatus(String subId) throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.SUBMISSION+"/"+subId+"/status");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		return new SubmissionStatus(joa);
+	}
+	
+	public SubmissionStatus updateSubmissionStatus(SubmissionStatus subStatus, String userId) 
+			throws JSONObjectAdapterException, IOException, NotFoundException,
+			DatastoreException, ServletException
+	{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("PUT");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.SUBMISSION+"/"+subStatus.getId()+"/status");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		subStatus.writeToJSONObject(joa);
+		String body = joa.toJSONString();
+		request.setContent(body.getBytes("UTF-8"));
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		joa = new JSONObjectAdapterImpl(json);
+		return new SubmissionStatus(joa);
+	}
+	
+	public void deleteSubmission(String subId, String userId) throws ServletException, IOException, DatastoreException, NotFoundException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("DELETE");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.SUBMISSION+"/"+subId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+	}
+	
+	public PaginatedResults<Submission> getAllSubmissions(String userId, String compId, SubmissionStatusEnum status) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId + "/submission");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		if (status != null) {
+			request.setParameter(UrlHelpers.STATUS, status.toString());
+		}
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		StringReader reader = new StringReader(response.getContentAsString());
+		String json = JSONEntityHttpMessageConverter.readToString(reader);
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
+		PaginatedResults<Submission> res = new PaginatedResults<Submission>(Submission.class);
+		res.initializeFromJSONObject(joa);
+		return res;
+	}
+	
+	public long getSubmissionCount(String compId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId + "/submission/count");
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatcherServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			handleException(response.getStatus(), response.getContentAsString());
+		}
+		// Read in the value.
+		return Long.parseLong(response.getContentAsString());
 	}
 }

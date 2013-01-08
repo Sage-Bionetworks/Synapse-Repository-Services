@@ -2,6 +2,12 @@ package org.sagebionetworks.logging.collate;
 
 import org.joda.time.DateTime;
 
+/**
+ * A value-class for assisting in log collation.  It should only really be returned by implementations
+ * of the {@link org.sagebionetworks.logging.reader.LogReader LogReader} interface.
+ * @author geoff
+ *
+ */
 public final class LogEvent implements Comparable<LogEvent> {
 
 	private final DateTime timestamp;
@@ -15,11 +21,10 @@ public final class LogEvent implements Comparable<LogEvent> {
 
 	/**
 	 * Construct an immutable LogEvent
-	 * @param timestamp
-	 *            - required parameter
-	 * @param line
-	 *            - Not required. If present, then line should contain the
-	 *            entire log event (including the leading timestamp)
+	 * @param timestamp The timestamp of when the log event was generated.
+	 * @param line If present, then line should contain the
+	 *            	entire log event (including the leading timestamp).
+	 * @throws IllegalArgumentException if timestamp is null.
 	 */
 	public LogEvent(DateTime timestamp, String line) {
 		if (timestamp == null) throw new IllegalArgumentException("Timestamp cannot be null.");
@@ -44,10 +49,7 @@ public final class LogEvent implements Comparable<LogEvent> {
 		}
 
 		LogEvent le = (LogEvent) o;
-
-		if (this.timestamp.equals(le.timestamp)
-				&& (this.line == null ? le.line == null : this.line
-						.equals(le.line)))
+		if (this.compareTo(le) == 0)
 			return true;
 		else
 			return false;
@@ -73,5 +75,9 @@ public final class LogEvent implements Comparable<LogEvent> {
 		return compareTo;
 	}
 
+	@Override
+	public String toString() {
+		return line;
+	}
 
 }

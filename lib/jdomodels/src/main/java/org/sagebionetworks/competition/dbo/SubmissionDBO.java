@@ -5,14 +5,13 @@ import static org.sagebionetworks.competition.dbo.DBOConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.TaggableEntity;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 
 /**
- * The database object for a Participant in a Synapse Competition
+ * The database object for a Submission to a Synapse Competition
  * 
  * @author bkng
  */
@@ -25,9 +24,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_ID, COL_SUBMISSION_ENTITY_ID),
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_VERSION, COL_SUBMISSION_ENTITY_VERSION),
 			new FieldColumn(PARAM_SUBMISSION_NAME, COL_SUBMISSION_NAME),
-			new FieldColumn(PARAM_SUBMISSION_CREATED_ON, COL_SUBMISSION_CREATED_ON),
-			new FieldColumn(PARAM_SUBMISSION_STATUS, COL_SUBMISSION_STATUS),
-			new FieldColumn(PARAM_SUBMISSION_SCORE, COL_SUBMISSION_SCORE)
+			new FieldColumn(PARAM_SUBMISSION_CREATED_ON, COL_SUBMISSION_CREATED_ON)
 			};
 
 	public TableMapping<SubmissionDBO> getTableMapping() {
@@ -42,8 +39,6 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				sub.setVersionNumber(rs.getLong(COL_SUBMISSION_ENTITY_VERSION));
 				sub.setName(rs.getString(COL_SUBMISSION_NAME));
 				sub.setCreatedOn(rs.getLong(COL_SUBMISSION_CREATED_ON));
-				sub.setStatus(rs.getInt(COL_SUBMISSION_STATUS));
-				sub.setScore(rs.getLong(COL_SUBMISSION_SCORE));
 				return sub;
 			}
 
@@ -72,9 +67,6 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 	private Long versionNumber;
 	private Long createdOn;
 	private String name;
-	private int status;
-	private Long score;
-
 	public Long getId() {
 		return id;
 	}
@@ -124,33 +116,10 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 		this.name = name;
 	}
 
-	public int getStatus() {
-		return status;
-	}
-	private void setStatus(int status) {
-		this.status = status;
-	}
-	
-	public SubmissionStatus getStatusEnum() {
-		return SubmissionStatus.values()[status];
-	}
-	public void setStatusEnum(SubmissionStatus ss) {
-		if (ss == null)	throw new IllegalArgumentException("Competition status cannot be null");
-		setStatus(ss.ordinal());
-	}
-
-	public Long getScore() {
-		return score;
-	}
-	public void setScore(Long score) {
-		this.score = score;
-	}
-	
 	@Override
 	public String toString() {
 		return "DBOSubmission [id = " + id + ", userId = " + userId + ", compId=" + compId 
-				+ ", entityId = " + entityId + ", name = " + name + ", createdOn=" + createdOn 
-				+ ", status = " + SubmissionStatus.values()[status].toString()+  ", score = " + score + "]";
+				+ ", entityId = " + entityId + ", name = " + name + ", createdOn=" + createdOn;
 	}
 	
 	@Override
@@ -164,8 +133,6 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				+ ((entityId == null) ? 0 : entityId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
-		result = prime * result + ((score == null) ? 0 : score.hashCode());
-		result = prime * result + status;
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
 		return result;
 	}
@@ -203,10 +170,6 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 			if (other.name != null)
 				return false;
 		} else if (!name.equals(other.name))
-			return false;
-		if (score != other.score)
-			return false;
-		if (status != other.status)
 			return false;
 		if (userId == null) {
 			if (other.userId != null)

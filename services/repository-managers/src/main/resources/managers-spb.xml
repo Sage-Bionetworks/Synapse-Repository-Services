@@ -131,6 +131,14 @@
 		class="org.sagebionetworks.repo.manager.backup.ActivityBackupDriver"
 		scope="singleton" />
 
+	<bean id="competitionBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.CompetitionBackupDriver"
+		scope="singleton" />
+		
+	<bean id="submissionBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.SubmissionBackupDriver"
+		scope="singleton" />
+
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />
 
@@ -159,6 +167,12 @@
 		scope="singleton" />
 		
 	<bean id="competitionManager" class="org.sagebionetworks.competition.manager.CompetitionManagerImpl" 
+		scope="singleton" />
+		
+	<bean id="participantManager" class="org.sagebionetworks.competition.manager.ParticipantManagerImpl" 
+		scope="singleton" />
+		
+	<bean id="submissionManager" class="org.sagebionetworks.competition.manager.SubmissionManagerImpl" 
 		scope="singleton" />
 
 	<!-- The thread pool used by the backup/restore daemons -->
@@ -205,6 +219,12 @@
 				<entry key="ACTIVITY">
 					<ref bean="activityBackupDriver" />
 				</entry>
+				<entry key="COMPETITION">
+					<ref bean="competitionBackupDriver" />
+				</entry>
+				<entry key="SUBMISSION">
+					<ref bean="submissionBackupDriver" />
+				</entry>
 			</map>
 		</property>
 	</bean>
@@ -217,6 +237,8 @@
 				<ref bean="activityDao"/>
 				<ref bean="nodeDao"/>
 				<ref bean="accessRequirementDAO"/>
+				<ref bean="competitionDAO"/>
+				<ref bean="submissionStatusDAO"/>
 			</list>
 		</property>
 	</bean>

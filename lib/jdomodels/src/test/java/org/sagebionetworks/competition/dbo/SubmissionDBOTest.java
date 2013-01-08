@@ -7,7 +7,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.competition.model.CompetitionStatus;
-import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -34,7 +33,6 @@ public class SubmissionDBOTest {
     private long userId = 0;
     private long compId;
     private String name = "test submission";
-    private Long score = 0L;
     
     @Before
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {    	
@@ -87,17 +85,15 @@ public class SubmissionDBOTest {
     	} catch (NotFoundException e) {};
     }
     @Test
-    public void testCRUD() throws Exception{
+    public void testCRD() throws Exception{
         // Initialize a new Submission
         SubmissionDBO submission = new SubmissionDBO();
         submission.setId(submissionId);
         submission.setName(name);
         submission.setEntityId(Long.parseLong(nodeId));
         submission.setVersionNumber(1L);
-        submission.setStatusEnum(SubmissionStatus.OPEN);
         submission.setUserId(userId);
         submission.setCompId(compId);
-        submission.setScore(score);
         submission.setCreatedOn(System.currentTimeMillis());
  
         // Create it
@@ -110,22 +106,10 @@ public class SubmissionDBOTest {
         params.addValue("id",submissionId);
         SubmissionDBO clone2 = dboBasicDao.getObjectById(SubmissionDBO.class, params);
         assertNotNull(clone2);
-        assertEquals(submission, clone2);
-        
-		// Update it
-        Long newScore = score + 100;
-		clone.setScore(newScore);
-		boolean result = dboBasicDao.update(clone);
-		assertTrue(result);
-		
-		// Verify it
-		params = new MapSqlParameterSource();
-		params.addValue("id", submissionId);
-		SubmissionDBO clone3 = dboBasicDao.getObjectById(SubmissionDBO.class, params);
-		assertEquals(clone, clone3);      
+        assertEquals(submission, clone2); 
         
         // Delete it
-        result = dboBasicDao.deleteObjectById(SubmissionDBO.class,  params);
+        boolean result = dboBasicDao.deleteObjectById(SubmissionDBO.class,  params);
         assertTrue("Failed to delete the entry created", result); 
     }
  

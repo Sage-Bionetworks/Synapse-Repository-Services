@@ -13,10 +13,7 @@ import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 
-// TODO: At this point, we have ~1000 messages to work through
-// We need a better way to go through the queue.
-@Ignore
-public class IT520SynapseJavaClientDynamo {
+public class IT050SynapseJavaClientDynamo {
 
 	public static final long MAX_WAIT_TIME_MS = 15 * 60 * 1000; // 15 min
 
@@ -38,10 +35,10 @@ public class IT520SynapseJavaClientDynamo {
 
 		// Setup all of the objects for this test.
 		parent = new Project();
-		parent.setName(IT520SynapseJavaClientDynamo.class.getName() + "parent");
+		parent.setName(IT050SynapseJavaClientDynamo.class.getName() + "parent");
 		parent = synapse.createEntity(parent);
 		child = new Study();
-		child.setName(IT520SynapseJavaClientDynamo.class.getName() + "child");
+		child.setName(IT050SynapseJavaClientDynamo.class.getName() + "child");
 		child.setParentId(parent.getId());
 		child = synapse.createEntity(child);
 	}
@@ -67,7 +64,7 @@ public class IT520SynapseJavaClientDynamo {
 				|| descList.getIdList().size() == 0)
 				&& (System.currentTimeMillis() - start < MAX_WAIT_TIME_MS)) {
 			descList = synapse.getDescendants(parent.getId(), 10, null);
-			Thread.sleep(10000);
+			Thread.sleep(2000);
 		}
 		System.out.println(System.currentTimeMillis() - start);
 		Assert.assertNotNull(descList);

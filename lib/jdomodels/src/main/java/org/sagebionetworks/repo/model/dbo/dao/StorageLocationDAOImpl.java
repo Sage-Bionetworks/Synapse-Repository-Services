@@ -124,16 +124,8 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		}
 
 		// First DELETE
-		// Note: To avoid extensive locking, we select then delete by id.
 		Long nodeId = locations.getNodeId();
-		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue(COL_STORAGE_LOCATION_NODE_ID, nodeId);
-		List<Long> idList = simpleJdbcTemplate.query(SELECT_ID_FOR_NODE, idRowMapper, paramMap);
-		for (Long id : idList) {
-			MapSqlParameterSource params = new MapSqlParameterSource();
-			params.addValue(COL_STORAGE_LOCATION_ID.toLowerCase(), id);
-			basicDao.deleteObjectById(DBOStorageLocation.class, params);
-		}
+		deleteLocationDataByOwnerId(nodeId);
 
 		// Then CREATE
 		try {
@@ -144,6 +136,20 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 			}
 		} catch (AmazonClientException e) {
 			throw new DatastoreException(e);
+		}
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteLocationDataByOwnerId(Long ownerId) {
+		if (ownerId == null) throw new IllegalArgumentException("Owner id cannot be null");
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue(COL_STORAGE_LOCATION_NODE_ID, ownerId);
+		List<Long> idList = simpleJdbcTemplate.query(SELECT_ID_FOR_NODE, idRowMapper, paramMap);
+		for (Long id : idList) {
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue(COL_STORAGE_LOCATION_ID.toLowerCase(), id);
+			basicDao.deleteObjectById(DBOStorageLocation.class, params);
 		}
 	}
 
