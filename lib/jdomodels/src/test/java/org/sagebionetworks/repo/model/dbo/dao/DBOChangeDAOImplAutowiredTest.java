@@ -7,10 +7,17 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -18,12 +25,13 @@ import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class DBOChangeDAOImplTest {
+public class DBOChangeDAOImplAutowiredTest {
 	
 	@Autowired
 	DBOChangeDAO changeDAO;
@@ -252,6 +260,36 @@ public class DBOChangeDAOImplTest {
 		assertEquals(expectedFiltered, list);
 	}
 
+	@Test
+	public void testForDeadlocks() throws Exception {
+		final int numOfTasks = 1000;
+		final int numOfThreads = 10;
+		// Create the list of tasks
+		List<ReplaceChange> taskList = new ArrayList<ReplaceChange>(numOfTasks);
+		for (int i = 0; i < 100; i++) {
+			ChangeMessage change = new ChangeMessage();
+			change.setObjectId("829165202913" + (i % 3)); // Simulate gap lock on the OBJECT_ID column
+			change.setObjectType(ObjectType.ENTITY);
+			change.setObjectEtag(Long.toString(System.currentTimeMillis()));
+			change.setChangeType(ChangeType.UPDATE);
+			change.setTimestamp(new Date());
+			taskList.add(new ReplaceChange(change));
+		}
+		// Send the list of changes to a pool of threads
+		ExecutorService exe = Executors.newFixedThreadPool(numOfThreads);
+		try {
+			List<Future<Boolean>> results = exe.invokeAll(taskList, 60, TimeUnit.SECONDS);
+			for (Future<Boolean> future : results) {
+				if (!future.get()) {
+					Assert.fail("Deadlock detected.");
+				}
+			}
+		} finally {
+			exe.shutdown();
+			exe.awaitTermination(60, TimeUnit.SECONDS);
+		}
+	}
+
 	/**
 	 * Helper to build up a list of changes.
 	 * @param numChangesInBatch
@@ -274,4 +312,19 @@ public class DBOChangeDAOImplTest {
 		return batch;
 	}
 
+	private class ReplaceChange implements Callable<Boolean> {
+		private final ChangeMessage change;
+		private ReplaceChange(ChangeMessage change) {
+			this.change = change;
+		}
+		@Override
+		public Boolean call() throws Exception {
+			try {
+				changeDAO.replaceChange(change);
+				return Boolean.TRUE;
+			} catch (DeadlockLoserDataAccessException e) {
+				return Boolean.FALSE;
+			}
+		}
+	}
 }
