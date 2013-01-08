@@ -262,7 +262,7 @@ public class DBOChangeDAOImplAutowiredTest {
 	}
 
 	// TODO: PLFM-1631 for a load test framework outside this package
-	// TODO: The test is failing occasionally for deadlocks on the primary index
+	// TODO: PLFM-1659 the test is failing occasionally for deadlocks on the primary index
 	@Ignore
 	public void testForDeadlocks() throws Exception {
 		final int numOfTasks = 1000;
