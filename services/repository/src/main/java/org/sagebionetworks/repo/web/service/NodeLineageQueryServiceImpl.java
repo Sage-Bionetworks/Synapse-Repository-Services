@@ -105,7 +105,7 @@ public class NodeLineageQueryServiceImpl implements NodeLineageQueryService {
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
 		try {
 			List<String> descList = this.nodeTreeDao.getDescendants(
-					this.stringToKey(nodeId), pageSize, lastDescIdExcl);
+					this.stringToKey(nodeId), pageSize, this.stringToKey(lastDescIdExcl));
 			return this.toEntityIdList(descList);
 		} catch (IncompletePathException e) {
 			this.logger.warn("getDescendants() for node " + nodeId, e);
@@ -131,7 +131,7 @@ public class NodeLineageQueryServiceImpl implements NodeLineageQueryService {
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
 		try {
 			List<String> descList = this.nodeTreeDao.getDescendants(
-					this.stringToKey(nodeId), generation, pageSize, lastDescIdExcl);
+					this.stringToKey(nodeId), generation, pageSize, this.stringToKey(lastDescIdExcl));
 			return this.toEntityIdList(descList);
 		} catch (IncompletePathException e) {
 			this.logger.warn("getDescendants() for node " + nodeId, e);
@@ -157,7 +157,7 @@ public class NodeLineageQueryServiceImpl implements NodeLineageQueryService {
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
 		try {
 			List<String> children = this.nodeTreeDao.getChildren(
-					this.stringToKey(nodeId), pageSize, lastDescIdExcl);
+					this.stringToKey(nodeId), pageSize, this.stringToKey(lastDescIdExcl));
 			return this.toEntityIdList(children);
 		} catch (IncompletePathException e) {
 			this.logger.warn("getChildren() for node " + nodeId, e);
