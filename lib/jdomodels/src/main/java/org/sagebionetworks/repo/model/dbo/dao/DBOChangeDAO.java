@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ObjectType;
 
@@ -39,7 +38,7 @@ public interface DBOChangeDAO {
 	 * Completely remove a change from the DB.
 	 * @param objectId
 	 */
-	void deleteChange(Long objectId);
+	void deleteChange(Long objectId, ObjectType type);
 	
 	/**
 	 * Clear the entire change list.
