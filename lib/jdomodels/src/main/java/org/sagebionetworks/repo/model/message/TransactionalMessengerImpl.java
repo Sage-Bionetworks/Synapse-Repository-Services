@@ -72,27 +72,11 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundMessages();
 		// If we already have a message going out for this object then we needs replace it with the latest.
 		// If an object's etag changes multiple times, only the final etag should be in the message.
-		String key = getObjectKey(message);
 		currentMessages.put(new ChangeMessageKey(message), message);
 		// Register a handler if needed
 		registerHandlerIfNeeded();
 	}
 	
-	/**
-	 * The key we use for the map is the <type>-<id> for the case where two different types of objects have the same id.
-	 * @param message
-	 * @return
-	 */
-	public String getObjectKey(ChangeMessage message){
-		if(message == null) throw new IllegalArgumentException("Message cannot be null");
-		if(message.getObjectId() == null) throw new IllegalArgumentException("message.getObjectId() cannot be null");
-		if(message.getObjectType() == null) throw new IllegalArgumentException("message.getObjectType() cannot be null");
-		StringBuilder builder = new StringBuilder();
-		builder.append(message.getObjectType().name());
-		builder.append("-");
-		builder.append(message.getObjectId());
-		return builder.toString();
-	}
 	
 	/**
 	 * Get the messages that are currently bound to this transaction.
