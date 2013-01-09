@@ -1,7 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_CHANGE_NUM;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHANGES;
 
 import java.sql.ResultSet;
@@ -10,6 +11,8 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -29,6 +32,8 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 public class DBOChangeDAOImpl implements DBOChangeDAO {
+	
+	static private Log log = LogFactory.getLog(DBOChangeDAOImpl.class);
 	
 	private static final String SELECT_CHANGE_NUMBER_FOR_OBJECT_ID_AND_TYPE = "SELECT "+COL_CHANGES_CHANGE_NUM+" FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_OBJECT_ID+" = ? AND "+COL_CHANGES_OBJECT_TYPE+" = ?";
 
@@ -95,12 +100,15 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
 				return rs.getLong(COL_CHANGES_CHANGE_NUM);
 			}},objectId, type.name());
-		if(list.size() > 1) throw new IllegalStateException("Found multiple rows with ObjectId: "+objectId+" and ObjectType type "+type);
-		if(list.size() == 1){
-			Long primaryKey = list.get(0);
+		// Log the error case where multiple are found.
+		if(list.size() > 1){
+			log.error("Found multiple rows with ObjectId: "+objectId+" and ObjectType type "+type);
+		}
+		// Even if there are multiple, delete them all
+		for(Long primaryKey: list){
+			// Unless there is an error there will only be one here.
 			simpleJdbcTemplate.update(SQL_DELETE_BY_CHANGE_NUM, primaryKey);
 		}
-
 	}
 
 	@Override
