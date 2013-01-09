@@ -1,0 +1,9 @@
+{
+    "title":"Page",
+    "description":"JSON schema for Page POJO",
+    "implements":[
+        {
+            "$ref":"org.sagebionetworks.repo.model.Entity"
+        }
+    ]
+}

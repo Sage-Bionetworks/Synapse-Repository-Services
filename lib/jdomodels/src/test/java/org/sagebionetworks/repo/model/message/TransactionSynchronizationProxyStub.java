@@ -14,7 +14,7 @@ import org.springframework.transaction.support.TransactionSynchronization;
  */
 public class TransactionSynchronizationProxyStub implements TransactionSynchronizationProxy {
 	
-	 Map<String, Map<String, ChangeMessage>> map = new HashMap<String, Map<String,ChangeMessage>>();
+	 Map<String, Map<ChangeMessageKey, ChangeMessage>> map = new HashMap<String, Map<ChangeMessageKey,ChangeMessage>>();
 	 List<TransactionSynchronization> list = new ArrayList<TransactionSynchronization>();
 
 	@Override
@@ -23,12 +23,12 @@ public class TransactionSynchronizationProxyStub implements TransactionSynchroni
 	}
 
 	@Override
-	public void bindResource(String key, Map<String, ChangeMessage> value) {
+	public void bindResource(String key, Map<ChangeMessageKey, ChangeMessage> value) {
 		map.put(key, value);
 	}
 
 	@Override
-	public Map<String, ChangeMessage> getResource(String key) {
+	public Map<ChangeMessageKey, ChangeMessage> getResource(String key) {
 		return map.get(key);
 	}
 
