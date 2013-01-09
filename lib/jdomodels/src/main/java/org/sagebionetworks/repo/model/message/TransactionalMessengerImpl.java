@@ -69,11 +69,11 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		if(!transactionSynchronizationManager.isSynchronizationActive()) throw new IllegalStateException("Cannot send a transactional message becasue there is no transaction");
 		// Bind this message to the transaction
 		// Get the bound list of messages if it already exists.
-		Map<String, ChangeMessage> currentMessages = getCurrentBoundMessages();
+		Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundMessages();
 		// If we already have a message going out for this object then we needs replace it with the latest.
 		// If an object's etag changes multiple times, only the final etag should be in the message.
 		String key = getObjectKey(message);
-		currentMessages.put(key, message);
+		currentMessages.put(new ChangeMessageKey(message), message);
 		// Register a handler if needed
 		registerHandlerIfNeeded();
 	}
@@ -98,11 +98,11 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 	 * Get the messages that are currently bound to this transaction.
 	 * @return
 	 */
-	private Map<String, ChangeMessage> getCurrentBoundMessages(){
-		Map<String, ChangeMessage> currentMessages = (Map<String, ChangeMessage>) transactionSynchronizationManager.getResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
+	private Map<ChangeMessageKey, ChangeMessage> getCurrentBoundMessages(){
+		Map<ChangeMessageKey, ChangeMessage> currentMessages = (Map<ChangeMessageKey, ChangeMessage>) transactionSynchronizationManager.getResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES);
 		if(currentMessages == null){
 			// This is the first time it is called for this thread.
-			currentMessages = new HashMap<String, ChangeMessage>();
+			currentMessages = new HashMap<ChangeMessageKey, ChangeMessage>();
 			// Bind this list to the transaction.
 			transactionSynchronizationManager.bindResource(TRANSACTIONAL_MESSANGER_IMPL_MESSAGES, currentMessages);
 		}
@@ -152,7 +152,7 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		@Override
 		public void afterCommit() {
 			// Log the messages
-			Map<String, ChangeMessage> currentMessages = getCurrentBoundMessages();
+			Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundMessages();
 			// For each observer fire the message.
 			for(TransactionalMessengerObserver observer: observers){
 				// Fire each message.
@@ -171,14 +171,14 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		@Override
 		public void beforeCommit(boolean readOnly) {
 			// write the changes to the database
-			Map<String, ChangeMessage> currentMessages = getCurrentBoundMessages();
+			Map<ChangeMessageKey, ChangeMessage> currentMessages = getCurrentBoundMessages();
 			Collection<ChangeMessage> collection = currentMessages.values();
 			List<ChangeMessage> list = new LinkedList<ChangeMessage>(collection);
 			// Create the list of DBOS
 			List<ChangeMessage> updatedList = changeDAO.replaceChange(list);
 			// Now replace each entry on the map with the update message
 			for(ChangeMessage message: updatedList){
-				currentMessages.put(message.getObjectId(), message);
+				currentMessages.put(new ChangeMessageKey(message), message);
 			}
 		}
 		
@@ -209,5 +209,6 @@ public class TransactionalMessengerImpl implements TransactionalMessenger {
 		// Return a copy of the list.
 		return new LinkedList<TransactionalMessengerObserver>(observers);
 	}
+	
 
 }

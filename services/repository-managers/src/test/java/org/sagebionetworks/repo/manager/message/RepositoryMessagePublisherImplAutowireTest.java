@@ -53,6 +53,7 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		messagePublisher.setAwsSNSClient(mockSNSClient);
 	}
 	
+	
 	@Test
 	public void testGetArn(){
 		String arn = messagePublisher.getTopicArn();

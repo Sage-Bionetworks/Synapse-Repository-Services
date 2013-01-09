@@ -39,7 +39,7 @@ public interface DBOChangeDAO {
 	 * Completely remove a change from the DB.
 	 * @param objectId
 	 */
-	void deleteChange(Long objectId);
+	void deleteChange(Long objectId, ObjectType type);
 	
 	/**
 	 * Clear the entire change list.

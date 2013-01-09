@@ -69,6 +69,39 @@ public class DBOChangeDAOImplAutowiredTest {
 		assertTrue(secondChangeNumber > firstChangeNumber);
 	}
 	
+	/**
+	 * ObjectIds can be duplicated, so make sure replace uses a composite key.
+	 */
+	@Test
+	public void testReplaceDuplicateObjectId(){
+		ChangeMessage changeOne = new ChangeMessage();
+		changeOne.setObjectId("123");
+		changeOne.setObjectEtag("myEtag");
+		changeOne.setChangeType(ChangeType.CREATE);
+		changeOne.setObjectType(ObjectType.ACTIVITY);
+		ChangeMessage clone = changeDAO.replaceChange(changeOne);
+		// Now create a second change with the same id but different type.
+		ChangeMessage changeTwo = new ChangeMessage();
+		changeTwo.setObjectId(changeOne.getObjectId());
+		changeTwo.setObjectEtag("myEtag");
+		changeTwo.setChangeType(ChangeType.CREATE);
+		changeTwo.setObjectType(ObjectType.PRINCIPAL);
+		ChangeMessage clonetwo = changeDAO.replaceChange(changeTwo);
+		// Now we should see both changes listed
+		List<ChangeMessage> list = changeDAO.listChanges(0, ObjectType.ACTIVITY, 100);
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		ChangeMessage message =  list.get(0);
+		assertEquals(ObjectType.ACTIVITY, message.getObjectType());
+		// Check the principal list
+		list = changeDAO.listChanges(0, ObjectType.PRINCIPAL, 100);
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		message =  list.get(0);
+		assertEquals(ObjectType.PRINCIPAL, message.getObjectType());
+		
+	}
+	
 	@Test (expected=IllegalArgumentException.class)
 	public void tesNullId(){
 		ChangeMessage change = new ChangeMessage();
@@ -157,6 +190,25 @@ public class DBOChangeDAOImplAutowiredTest {
 			assertTrue(id > previous);
 			previous = id;
 		}
+	}
+	
+	@Test
+	public void testSortByIdSameIdDifferentType(){
+		List<ChangeMessage> batch = new LinkedList<ChangeMessage>();
+		ChangeMessage message = new ChangeMessage();
+		message.setObjectId("123");
+		message.setObjectType(ObjectType.PRINCIPAL);
+		batch.add(message);
+		message = new ChangeMessage();
+		message.setObjectId("123");
+		message.setObjectType(ObjectType.ACTIVITY);
+		batch.add(message);
+		// Now sort
+		batch = ChangeMessageUtils.sortByObjectId(batch);
+		assertNotNull(batch);
+		// the activity should be first now
+		assertEquals("Activity should have been placed before principal",ObjectType.ACTIVITY, batch.get(0).getObjectType());
+		assertEquals("Activity should have been placed before principal",ObjectType.PRINCIPAL, batch.get(1).getObjectType());
 	}
 	
 	@Test

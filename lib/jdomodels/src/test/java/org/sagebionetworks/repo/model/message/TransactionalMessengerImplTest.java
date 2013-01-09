@@ -86,7 +86,10 @@ public class TransactionalMessengerImplTest {
 		verify(mockChangeDAO, times(1)).replaceChange(list);
 		// Simulate the after commit
 		stubProxy.getSynchronizations().get(0).afterCommit();
+		// Verify that the one message was fired.
 		verify(mockObserver, times(1)).fireChangeMessage(message);
+		// It should only be called once total!
+		verify(mockObserver, times(1)).fireChangeMessage(any(ChangeMessage.class));
 	}
 	
 	@Test
@@ -165,4 +168,41 @@ public class TransactionalMessengerImplTest {
 		verify(mockObserver, times(1)).fireChangeMessage(first);
 	}
 
+	/**
+	 * PLFM-1662 was a bug the resulted in duplicate messages being broadcast. One of the messages did not have
+	 * a change number or time stamp, while the other messages was correct.
+	 */
+	@Test
+	public void testPLFM_1662(){
+		mockTxManager = Mockito.mock(DataSourceTransactionManager.class);
+		// We need stub dao to detect this bug.
+		DBOChangeDAO stubChangeDao = new StubDBOChangeDAO();
+		mockChangeDAO = Mockito.mock(DBOChangeDAO.class);
+		stubProxy = new TransactionSynchronizationProxyStub();
+		mockObserver = Mockito.mock(TransactionalMessengerObserver.class);
+		messenger = new TransactionalMessengerImpl(mockTxManager, stubChangeDao, stubProxy);
+		messenger.registerObserver(mockObserver);
+		
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeNumber(new Long(123));
+		message.setTimestamp(new Date(System.currentTimeMillis()/1000*1000));
+		message.setObjectEtag("etag");
+		message.setObjectId("syn456");
+		message.setParentId("syn789");
+		message.setObjectType(ObjectType.ENTITY);
+		message.setChangeType(ChangeType.DELETE);
+		// Send the message
+		messenger.sendMessageAfterCommit(message);
+		assertNotNull(stubProxy.getSynchronizations());
+		assertEquals(1, stubProxy.getSynchronizations().size());
+		// Simulate the before commit
+		stubProxy.getSynchronizations().get(0).beforeCommit(true);
+		List<ChangeMessage> list = new ArrayList<ChangeMessage>();
+		list.add(message);
+		// Simulate the after commit
+		stubProxy.getSynchronizations().get(0).afterCommit();
+		// It should only be called once total!
+		verify(mockObserver, times(1)).fireChangeMessage(any(ChangeMessage.class));
+		
+	}
 }

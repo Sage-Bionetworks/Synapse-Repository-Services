@@ -4,6 +4,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CHANGES_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHANGES;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +17,7 @@ import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,13 +30,15 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOChangeDAOImpl implements DBOChangeDAO {
 	
+	private static final String SELECT_CHANGE_NUMBER_FOR_OBJECT_ID_AND_TYPE = "SELECT "+COL_CHANGES_CHANGE_NUM+" FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_OBJECT_ID+" = ? AND "+COL_CHANGES_OBJECT_TYPE+" = ?";
+
 	private static final String SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER_FILTER_BY_OBJECT_TYPE = "SELECT * FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" >= ? AND "+COL_CHANGES_OBJECT_TYPE+" = ? ORDER BY "+COL_CHANGES_CHANGE_NUM+" ASC LIMIT ?";
 
 	private static final String SQL_SELECT_ALL_GREATER_THAN_OR_EQUAL_TO_CHANGE_NUMBER = "SELECT * FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" >= ? ORDER BY "+COL_CHANGES_CHANGE_NUM+" ASC LIMIT ?";
 
 	private static final String SQL_SELECT_MAX_CHANGE_NUMBER = "SELECT MAX("+COL_CHANGES_CHANGE_NUM+") FROM "+TABLE_CHANGES;
 
-	private static final String SQL_DELETE_BY_OBJECT_ID = "DELETE FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_OBJECT_ID+" = ?";
+	private static final String SQL_DELETE_BY_CHANGE_NUM = "DELETE FROM "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" = ?";
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -52,7 +57,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		if(ChangeType.UPDATE == change.getChangeType() && change.getObjectEtag() == null) throw new IllegalArgumentException("Etag cannot be null for ChangeType: "+change.getChangeType());
 		DBOChange dbo = ChangeMessageUtils.createDBO(change);
 		// First delete the change.
-		deleteChange(dbo.getObjectId());
+		deleteChange(dbo.getObjectId(), dbo.getObjectTypeEnum());
 		// Clear the time stamp so that we get a new one automatically.
 		// Note: Mysql TIMESTAMP only keeps seconds (not MS) so for consistency we only write second accuracy.
 		// We are using (System.currentTimeMillis()/1000)*1000; to convert all MS to zeros.
@@ -81,10 +86,21 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void deleteChange(Long objectId) {
+	public void deleteChange(Long objectId, ObjectType type) {
 		if(objectId == null) throw new IllegalArgumentException("ObjectId cannot be null");
-		// First remove the row for this object.
-		simpleJdbcTemplate.update(SQL_DELETE_BY_OBJECT_ID, objectId);
+		if(type == null) throw new IllegalArgumentException("ObjectType cannot be null");
+		// To avoid gap locking we do not delete by the ID.  Rather we get the primary key, then delete by the primary key.
+		List<Long> list = simpleJdbcTemplate.query(SELECT_CHANGE_NUMBER_FOR_OBJECT_ID_AND_TYPE, new RowMapper<Long>(){
+			@Override
+			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getLong(COL_CHANGES_CHANGE_NUM);
+			}},objectId, type.name());
+		if(list.size() > 1) throw new IllegalStateException("Found multiple rows with ObjectId: "+objectId+" and ObjectType type "+type);
+		if(list.size() == 1){
+			Long primaryKey = list.get(0);
+			simpleJdbcTemplate.update(SQL_DELETE_BY_CHANGE_NUM, primaryKey);
+		}
+
 	}
 
 	@Override
