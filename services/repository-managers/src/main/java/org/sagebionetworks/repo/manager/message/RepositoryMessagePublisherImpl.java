@@ -34,6 +34,28 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 
 	@Autowired
 	AmazonSNSClient awsSNSClient;
+	
+	/**
+	 * Default.
+	 */
+	public RepositoryMessagePublisherImpl(){
+		super();
+	}
+
+	/**
+	 * IoC constructor.
+	 * @param transactionalMessanger
+	 * @param awsSNSClient
+	 * @param topicArn
+	 * @param topicName
+	 * @param messageQueue
+	 */
+	public RepositoryMessagePublisherImpl(TransactionalMessenger transactionalMessanger,
+			AmazonSNSClient awsSNSClient) {
+		super();
+		this.transactionalMessanger = transactionalMessanger;
+		this.awsSNSClient = awsSNSClient;
+	}
 
 	/**
 	 * Used by tests to inject a mock client.
@@ -83,6 +105,11 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	 */
 	@Override
 	public void fireChangeMessage(ChangeMessage message) {
+		if(message == null) throw new IllegalArgumentException("ChangeMessage cannot be null");
+		if(message.getChangeNumber()  == null) throw new IllegalArgumentException("ChangeMessage.getChangeNumber() cannot be null");
+		if(message.getObjectId()  == null) throw new IllegalArgumentException("ChangeMessage.getObjectId() cannot be null");
+		if(message.getObjectType()  == null) throw new IllegalArgumentException("ChangeMessage.getObjectType() cannot be null");
+		if(message.getTimestamp()  == null) throw new IllegalArgumentException("ChangeMessage.getTimestamp() cannot be null");
 		// Add the message to a queue
 		messageQueue.get().add(message);
 	}

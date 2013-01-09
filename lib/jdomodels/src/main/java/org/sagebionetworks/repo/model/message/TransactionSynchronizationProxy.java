@@ -25,14 +25,14 @@ public interface TransactionSynchronizationProxy {
 	 * @param key
 	 * @param value
 	 */
-	void bindResource(String key, Map<String, ChangeMessage> value);
+	void bindResource(String key, Map<ChangeMessageKey, ChangeMessage> value);
 
 	/**
 	 * @See http://static.springsource.org/spring/docs/3.0.x/javadoc-api/org/springframework/transaction/support/TransactionSynchronizationManager.html#getResource(java.lang.Object)
 	 * @param key
 	 * @return
 	 */
-	Map<String, ChangeMessage> getResource(String key);
+	Map<ChangeMessageKey, ChangeMessage> getResource(String key);
 
 	/**
 	 * @see http://static.springsource.org/spring/docs/3.0.x/javadoc-api/org/springframework/transaction/support/TransactionSynchronizationManager.html#getSynchronizations()
