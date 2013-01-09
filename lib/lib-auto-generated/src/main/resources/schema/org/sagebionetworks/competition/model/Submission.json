@@ -9,7 +9,7 @@
 		},
 		"userId": {
 			"type": "string",
-			"description": "The Synapse ID of the owner of this Submission.",
+			"description": "The Synapse ID of the creator of this Submission.",
 			"transient": true
 		},
 		"competitionId": {
@@ -24,11 +24,11 @@
 		},
 		"versionNumber":{
             "type":"integer",
-            "description":"The version number of the Entity"            
+            "description":"The version number of the Entity."            
         },
         "name": {
 			"type": "string",
-			"description": "The Synapse ID of the Competition this Submission is for.",
+			"description": "The title of this Submission.",
 			"transient": true
 		},
 		"createdOn": {

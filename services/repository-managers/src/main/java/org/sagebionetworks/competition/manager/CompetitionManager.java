@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface CompetitionManager {
@@ -13,7 +14,7 @@ public interface CompetitionManager {
 	/**
 	 * Create a new Synapse Competition
 	 */
-	public Competition createCompetition(String userId, Competition comp)
+	public Competition createCompetition(UserInfo userInfo, Competition comp)
 			throws DatastoreException, InvalidModelException, NotFoundException;
 
 	/**
@@ -42,7 +43,7 @@ public interface CompetitionManager {
 	/**
 	 * Update a Synapse Competition.
 	 */
-	public Competition updateCompetition(String userId, Competition comp)
+	public Competition updateCompetition(UserInfo userInfo, Competition comp)
 			throws DatastoreException, NotFoundException,
 			UnauthorizedException, InvalidModelException,
 			ConflictingUpdateException;
@@ -50,7 +51,7 @@ public interface CompetitionManager {
 	/**
 	 * Delete a Synapse Competition.
 	 */
-	public void deleteCompetition(String userId, String id)
+	public void deleteCompetition(UserInfo userInfo, String id)
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
