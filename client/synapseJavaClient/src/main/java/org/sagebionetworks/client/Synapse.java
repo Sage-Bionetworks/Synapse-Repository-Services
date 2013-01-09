@@ -44,10 +44,12 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
@@ -56,6 +58,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
@@ -2396,8 +2399,9 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	public PaginatedResults<StorageUsage> getItemizedStorageUsageForNode(String entityId, int offset, int limit) throws SynapseException {
-		if (entityId == null)
+		if (entityId == null) {
 			throw new IllegalArgumentException("EntityId cannot be null");
+		}
 		String url = createEntityUri(STORAGE_DETAILS_PATH, entityId +
 				"?" + OFFSET + "=" + offset + "&limit=" + limit);
 		JSONObject jsonObj = getEntity(url);
@@ -2412,6 +2416,94 @@ public class Synapse {
 		}
 	}
 
-
+	/**
+	 * Make the given versionNumber the most recent version of this entity.
+	 * @param entityId
+	 * @param versionNumber
+	 * @throws SynapseException
+	 */
+	public VersionInfo promoteEntityVersion(String entityId, Long versionNumber) throws SynapseException {
+		if (entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
+		if (versionNumber == null) throw new IllegalArgumentException("VersionNumber cannot be null");
+		String uri = createEntityUri(ENTITY_URI_PATH, entityId) + "/promoteVersion/" + versionNumber;
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "POST", null, defaultPOSTPUTHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		VersionInfo info = new VersionInfo();
+		try {
+			info.initializeFromJSONObject(adapter);
+			return info;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
 	
+	/**
+	 * Gets the paginated list of descendants for the specified node.
+	 *
+	 * @param lastDescIdExcl
+	 *            Paging delimiter. The last descendant ID (exclusive).
+	 * @throws SynapseException 
+	 */
+	public EntityIdList getDescendants(String nodeId, int pageSize, String lastDescIdExcl)
+			throws UnauthorizedException, DatastoreException, SynapseException {
+		StringBuilder url = new StringBuilder()
+				.append(ENTITY_URI_PATH)
+				.append("/")
+				.append(nodeId)
+				.append("/descendants")
+				.append("?")
+				.append(LIMIT)
+				.append("=")
+				.append(pageSize);
+		if (lastDescIdExcl != null) {
+			url.append("&").append("lastEntityId")
+				.append("=").append(lastDescIdExcl);
+		}
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, url.toString(), "GET", null, defaultPOSTPUTHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		EntityIdList idList = new EntityIdList();
+		try {
+			idList.initializeFromJSONObject(adapter);
+			return idList;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	/**
+	 * Gets the paginated list of descendants of a particular generation for the specified node.
+	 *
+	 * @param generation
+	 *            How many generations away from the node. Children are exactly 1 generation away.
+	 * @param lastDescIdExcl
+	 *            Paging delimiter. The last descendant ID (exclusive).
+	 * @throws SynapseException 
+	 */
+	public EntityIdList getDescendants(String nodeId, int generation, int pageSize, String lastDescIdExcl)
+			throws UnauthorizedException, DatastoreException, SynapseException {
+		StringBuilder url = new StringBuilder()
+				.append(ENTITY_URI_PATH)
+				.append("/")
+				.append(nodeId)
+				.append("/descendants")
+				.append("/")
+				.append(generation)
+				.append("?")
+				.append(LIMIT)
+				.append("=")
+				.append(pageSize);
+		if (lastDescIdExcl != null) {
+			url.append("&").append("lastEntityId")
+				.append("=").append(lastDescIdExcl);
+		}
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, url.toString(), "GET", null, defaultPOSTPUTHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		EntityIdList idList = new EntityIdList();
+		try {
+			idList.initializeFromJSONObject(adapter);
+			return idList;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
 }

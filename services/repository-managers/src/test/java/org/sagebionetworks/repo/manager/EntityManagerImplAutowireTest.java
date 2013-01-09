@@ -1,9 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
@@ -17,8 +14,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
+import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -28,6 +27,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -216,7 +216,42 @@ public class EntityManagerImplAutowireTest {
 		}
 		
 	}
-	
+
+	@Test
+	public void testPromoteVersion() throws Exception {
+		Code code = new Code();
+		code.setName("testPromotion");
+		code.setMd5(String.format("%032x", 1));
+		String id = entityManager.createEntity(userInfo, code, null);
+		assertNotNull(id);
+		toDelete.add(id);
+		Code code2 = entityManager.getEntity(userInfo, id, Code.class);
+		assertNotNull(code2);
+		code2.setVersionNumber(2L);
+		code2.setVersionLabel("2");
+		code2.setMd5(String.format("%032x", 2));
+		entityManager.updateEntity(userInfo, code2, true, null);
+		VersionInfo promotedEntityVersion = entityManager.promoteEntityVersion(userInfo, id, 1L);
+		assertNotNull(promotedEntityVersion);
+		assertEquals(new Long(3), promotedEntityVersion.getVersionNumber());
+	}
+
+	@Test
+	public void testGetEntityForVersionNoEtag() throws Exception {
+		Data data = new Data();
+		data.setName("testGetEntityForVersion");
+		String id = entityManager.createEntity(userInfo, data, null);
+		assertNotNull(id);
+		toDelete.add(id);
+		data = entityManager.getEntity(userInfo, id, Data.class);
+		assertNotNull(data);
+		assertNotNull(data.getEtag());
+		assertFalse(data.getEtag().equals(UuidETagGenerator.ZERO_E_TAG));
+		data = entityManager.getEntityForVersion(userInfo, id, data.getVersionNumber(), Data.class);
+		assertNotNull(data.getEtag());
+		assertTrue(data.getEtag().equals(UuidETagGenerator.ZERO_E_TAG)); // PLFM-1420
+	}
+
 	private Data createLayerForTest(int i){
 		Data layer = new Data();
 		layer.setName("layerName"+i);

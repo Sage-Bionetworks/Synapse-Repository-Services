@@ -5,6 +5,8 @@ import static org.mockito.Mockito.*;
 import java.util.Date;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.junit.Before;
@@ -48,7 +50,7 @@ public class CompetitionManagerTest {
         comp.setCreatedOn(new Date());
         comp.setEtag(COMPETITION_ETAG);
         
-        // Competition Manger
+        // Competition Manager
     	competitionManager = new CompetitionManagerImpl(mockCompetitionDAO);
 		when(mockCompetitionDAO.create(eq(comp), eq(OWNER_ID))).thenReturn(comp.getId());
     	when(mockCompetitionDAO.get(eq(COMPETITION_ID))).thenReturn(comp);
@@ -57,8 +59,8 @@ public class CompetitionManagerTest {
 	
 	@Test
 	public void testCreateCompetition() throws Exception {		
-		String compId = competitionManager.createCompetition(OWNER_ID, comp);
-		assertEquals("'create' returned unexpected Competition ID", comp.getId(), compId);
+		Competition clone = competitionManager.createCompetition(OWNER_ID, comp);
+		assertEquals("'create' returned unexpected Competition ID", comp, clone);
 		verify(mockCompetitionDAO).create(eq(comp), eq(OWNER_ID));
 	}
 	
@@ -93,14 +95,30 @@ public class CompetitionManagerTest {
 		verify(mockCompetitionDAO).lookupByName(eq(COMPETITION_NAME));
 	}
 	
-	@Test
+	@Test(expected=NotFoundException.class)
 	public void testFindDoesNotExist() throws DatastoreException, UnauthorizedException, NotFoundException {
+		competitionManager.findCompetition(COMPETITION_NAME +  "2");
+	}
+	
+	@Test
+	public void testInvalidName() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException {
+		// note that the Competition Manager relies on EntityNameValidation.java
+		comp.setName("$ This is an invalid name");
 		try {
-			Competition comp2 = competitionManager.findCompetition(COMPETITION_NAME +  "2");
-			fail("Found a competition that should not exist: " + comp2.toString());
-		} catch (NotFoundException e) {
+			competitionManager.createCompetition(OWNER_ID, comp);			
+		} catch (IllegalArgumentException e) {
 			// expected
+			assertTrue(e.getMessage().toLowerCase().contains("name"));			
 		}
+		verify(mockCompetitionDAO, times(0)).update(eq(comp));
+	}
+	
+	@Test
+	public void testIsAdmin() throws DatastoreException, UnauthorizedException, NotFoundException {
+		assertTrue("Owner should be an admin of their own Competition", 
+				competitionManager.isCompAdmin(OWNER_ID, COMPETITION_ID));
+		assertFalse("Non-owner user should NOT be an admin of this Competition", 
+				competitionManager.isCompAdmin(USER_ID, COMPETITION_ID));
 	}
 
 }

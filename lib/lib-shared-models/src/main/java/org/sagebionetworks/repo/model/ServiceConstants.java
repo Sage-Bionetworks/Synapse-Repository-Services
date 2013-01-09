@@ -50,6 +50,10 @@ public class ServiceConstants {
 	 */
 	public static final String PAGINATION_LIMIT_PARAM = "limit";
 
+	public static final String PAGINATION_LAST_ENTITY_ID = "lastEntityId";
+
+	public static final String DESCENDANT_GENERATION = "generation";
+
 	/**
 	 * Default value for limit parameter used RequestParam annotations which
 	 * require a static string

@@ -123,7 +123,7 @@ public class EntityManagerImpl implements EntityManager {
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 */
-	public <T extends Entity> EntityWithAnnotations<T> getEntityVersionWithAnnotations(
+	private <T extends Entity> EntityWithAnnotations<T> getEntityVersionWithAnnotations(
 			UserInfo userInfo, String entityId, Long versionNumber,
 			Class<? extends T> entityClass) throws NotFoundException,
 			DatastoreException, UnauthorizedException {
@@ -572,6 +572,15 @@ public class EntityManagerImpl implements EntityManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		validateUpdateAccess(userInfo, entityId);
 		nodeManager.deleteActivityLinkToNode(userInfo, entityId);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public VersionInfo promoteEntityVersion(UserInfo userInfo, String id,
+			Long versionNumber) throws DatastoreException,
+			UnauthorizedException, NotFoundException {
+		validateUpdateAccess(userInfo, id);
+		return nodeManager.promoteEntityVersion(userInfo, id, versionNumber);
 	}
 
 }

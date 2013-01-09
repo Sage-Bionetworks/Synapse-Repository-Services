@@ -10,8 +10,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 
 public class CompetitionManagerImpl implements CompetitionManager {
 	
@@ -26,9 +29,13 @@ public class CompetitionManagerImpl implements CompetitionManager {
 	}
 	
 	@Override
-	public String createCompetition(String userId, Competition comp) throws DatastoreException, InvalidModelException {
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public Competition createCompetition(String userId, Competition comp) 
+			throws DatastoreException, InvalidModelException, NotFoundException {
 		CompetitionUtils.ensureNotNull(userId, "User ID");
-		return competitionDAO.create(comp, userId);
+		comp.setName(EntityNameValidation.valdiateName(comp.getName()));
+		String id = competitionDAO.create(comp, userId);
+		return competitionDAO.get(id);
 	}
 	
 	@Override
@@ -38,11 +45,11 @@ public class CompetitionManagerImpl implements CompetitionManager {
 	}
 	
 	@Override
-	public QueryResults<Competition> getInRange(long startIncl, long endExcl) throws DatastoreException, NotFoundException {
-		List<Competition> competitions = competitionDAO.getInRange(startIncl, endExcl);
+	public QueryResults<Competition> getInRange(long limit, long offset) throws DatastoreException, NotFoundException {
+		List<Competition> competitions = competitionDAO.getInRange(limit, offset);
 		long totalNumberOfResults = competitionDAO.getCount();
-		QueryResults<Competition> result = new QueryResults<Competition>(competitions, (int) totalNumberOfResults);
-		return result;
+		QueryResults<Competition> res = new QueryResults<Competition>(competitions, totalNumberOfResults);
+		return res;
 	}
 	
 	@Override
@@ -60,33 +67,48 @@ public class CompetitionManagerImpl implements CompetitionManager {
 	}
 	
 	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Competition updateCompetition(String userId, Competition comp) throws DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException, ConflictingUpdateException {
 		CompetitionUtils.ensureNotNull(userId, "User ID");
 		CompetitionUtils.ensureNotNull(comp, "Competition");
 		Competition old = competitionDAO.get(comp.getId());
-		if (old == null) throw new NotFoundException("No Competition found with id " + comp.getId());
+		if (old == null) 
+			throw new NotFoundException("No Competition found with id " + comp.getId());
+		if (!old.getEtag().equals(comp.getEtag()))
+			throw new IllegalArgumentException("Your copy of Competition " + comp.getId() + " is out of date. Please fetch it again before updating.");
 		validateAdminAccess(userId, old);
-		validateCompetition(old, comp);
+		validateCompetition(old, comp);		
 		competitionDAO.update(comp);
 		return getCompetition(comp.getId());
 	}
 	
 	@Override
+	public void updateCompetitionEtag(String compId) throws NotFoundException {
+		Competition comp = competitionDAO.get(compId);
+		if (comp == null) throw new NotFoundException("No Competition found with id " + compId);
+		competitionDAO.update(comp);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void deleteCompetition(String userId, String id) throws DatastoreException, NotFoundException, UnauthorizedException {
-		CompetitionUtils.ensureNotNull(userId, id);
+		CompetitionUtils.ensureNotNull(userId, "User ID");
+		CompetitionUtils.ensureNotNull(id, "Competition ID");
 		Competition comp = competitionDAO.get(id);
 		if (comp == null) throw new NotFoundException("No Competition found with id " + id);
 		validateAdminAccess(userId, comp);
-		competitionDAO.delete(id);			
+		competitionDAO.delete(id);
 	}
-	
+		
 	@Override
 	public boolean isCompAdmin(String userId, String compId) throws DatastoreException, UnauthorizedException, NotFoundException {
-		return isCompAdmin(userId, getCompetition(compId));
+		CompetitionUtils.ensureNotNull(userId, "User ID");
+		CompetitionUtils.ensureNotNull(compId, "Competition ID");
+		Competition comp = getCompetition(compId);
+		return isCompAdmin(userId, comp);
 	}
 	
-	@Override
-	public boolean isCompAdmin(String userId, Competition comp) {
+	private boolean isCompAdmin(String userId, Competition comp) {
 		if (userId.equals(comp.getOwnerId())) return true;
 		
 		// TODO: check list of admins

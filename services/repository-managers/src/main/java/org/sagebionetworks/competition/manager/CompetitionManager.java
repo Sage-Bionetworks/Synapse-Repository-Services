@@ -13,8 +13,8 @@ public interface CompetitionManager {
 	/**
 	 * Create a new Synapse Competition
 	 */
-	public String createCompetition(String userId, Competition comp)
-			throws DatastoreException, InvalidModelException;
+	public Competition createCompetition(String userId, Competition comp)
+			throws DatastoreException, InvalidModelException, NotFoundException;
 
 	/**
 	 * Get a Synapse Competition by its id
@@ -25,7 +25,7 @@ public interface CompetitionManager {
 	/**
 	 * Get a collection of Competitions, within a given range
 	 */
-	public QueryResults<Competition> getInRange(long startIncl, long endExcl) 
+	public QueryResults<Competition> getInRange(long limit, long offset) 
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -57,11 +57,20 @@ public interface CompetitionManager {
 	 * Check whether a given user is an adminsitrator of a given Competition.
 	 * 
 	 * @param userId
-	 * @param comp
+	 * @param compId
 	 * @return
 	 */
-	public boolean isCompAdmin(String userId, Competition comp);
-
 	public boolean isCompAdmin(String userId, String compId) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * Update the eTag of a competition. For use when modifying objects
+	 * associated with a Competition for migration purposes.
+	 * 
+	 * Note that, besides the eTag change, this method performs a NOOP update.
+	 * 
+	 * @param compId
+	 * @throws NotFoundException
+	 */
+	void updateCompetitionEtag(String compId) throws NotFoundException;
 	
 }

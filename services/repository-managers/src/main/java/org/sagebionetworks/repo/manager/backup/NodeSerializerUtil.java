@@ -11,11 +11,13 @@ import java.util.Collection;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementBackup;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.CompetitionBackup;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.SubmissionBackup;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -35,6 +37,8 @@ public class NodeSerializerUtil  {
 	private static final String ALIAS_ANNOTATIONS = "annotations";
 	private static final String ALIAS_NAME_SPACE = "name-space";
 	private static final String ALIAS_ACTIVITY = "activity";
+	private static final String ALIAS_COMPETITION = "competition";
+	private static final String ALIAS_SUBMISSION = "submission";
 
 
 	/**
@@ -143,6 +147,30 @@ public class NodeSerializerUtil  {
 		XStream xstream = createXStream();
 		return (Activity)xstream.fromXML(reader);
 	}
+	
+	public static void writeCompetitionBackup(CompetitionBackup cb, OutputStream out) {
+		OutputStreamWriter writer = new OutputStreamWriter(out);
+		XStream xstream = createXStream();
+		xstream.toXML(cb, writer);
+	}
+	
+	public static CompetitionBackup readCompetitionBackup(InputStream in) {
+		InputStreamReader reader = new InputStreamReader(in);
+		XStream xstream = createXStream();
+		return (CompetitionBackup) xstream.fromXML(reader);
+	}
+	
+	public static void writeSubmissionBackup(SubmissionBackup sb, OutputStream out) {
+		OutputStreamWriter writer = new OutputStreamWriter(out);
+		XStream xstream = createXStream();
+		xstream.toXML(sb, writer);
+	}
+	
+	public static SubmissionBackup readSubmissionBackup(InputStream in) {
+		InputStreamReader reader = new InputStreamReader(in);
+		XStream xstream = createXStream();
+		return (SubmissionBackup) xstream.fromXML(reader);
+	}
 
 	private static XStream createXStream(){
 		XStream xstream = new XStream();
@@ -153,6 +181,8 @@ public class NodeSerializerUtil  {
 		xstream.alias(ALIAS_ANNOTATIONS, Annotations.class);
 		xstream.alias(ALIAS_NAME_SPACE, NamedAnnotations.class);
 		xstream.alias(ALIAS_ACTIVITY, Activity.class);
+		xstream.alias(ALIAS_COMPETITION, CompetitionBackup.class);
+		xstream.alias(ALIAS_SUBMISSION, SubmissionBackup.class);
 		return xstream;
 	}
 

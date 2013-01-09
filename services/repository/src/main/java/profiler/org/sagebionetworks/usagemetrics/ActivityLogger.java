@@ -2,6 +2,13 @@ package profiler.org.sagebionetworks.usagemetrics;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
+import java.util.Enumeration;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -18,6 +25,8 @@ public class ActivityLogger {
 	 * constant for nanosecond conversion to milliseconds
 	 */
 	private static final long NANOSECOND_PER_MILLISECOND = 1000000L;
+
+	private static final List<String> HEADERS_TO_LOG = Arrays.asList("user-agent", "sessiontoken");
 
 	private static Log log = LogFactory.getLog(ActivityLogger.class);
 
@@ -77,21 +86,49 @@ public class ActivityLogger {
 		String methodName = signature.getName();
 
 		Class<?> declaringClass = signature.getDeclaringType();
-		String args;
 
-		try {
-			args = SynapseLoggingUtils.makeArgString(signature, pjp.getArgs());
-		} catch (UnsupportedEncodingException e) {
-			log.error("Could not properly encode arguments", e);
-			args = Arrays.toString(pjp.getArgs());
+		List<Object> args = Arrays.asList(pjp.getArgs());
+		List<String> argNames = Arrays.asList(signature.getParameterNames());
+
+		Map<String, String> properties = new LinkedHashMap<String, String>();
+
+		Iterator<Object> argItr = args.iterator();
+		Iterator<String> argNameItr = argNames.iterator();
+		Object arg = null;
+		String argName = null;
+
+		for (; argItr.hasNext() && argNameItr.hasNext(); arg = argItr.next(), argName = argNameItr.next()) {
+			if (arg instanceof HttpServletRequest) {
+				args.remove(argItr);
+				addHeaders(properties, (HttpServletRequest) arg);
+			} else {
+				String argString = arg != null ? arg.toString()
+						: "null";
+				String argNameString = argName != null ? argName
+						: (arg != null ? arg.getClass().toString() : "none");
+
+				properties.put(argNameString, argString);
+			}
 		}
+
+		String argString = SynapseLoggingUtils.makeArgString(properties);
 
 		//converting from nanoseconds to milliseconds
 		long latencyMS = (end - start) / NANOSECOND_PER_MILLISECOND;
 
-		log.trace(SynapseLoggingUtils.makeLogString(declaringClass.getSimpleName(), methodName, latencyMS, args));
+		log.trace(SynapseLoggingUtils.makeLogString(declaringClass.getSimpleName(), methodName, latencyMS, argString));
 
 		return result;
+	}
+
+	private void addHeaders(Map<String, String> properties, HttpServletRequest request) {
+		Enumeration<String> headerNames = request.getHeaderNames();
+		while (headerNames.hasMoreElements()) {
+			String header = headerNames.nextElement();
+			if (HEADERS_TO_LOG.contains(header)) {
+				properties.put(header, request.getHeader(header));
+			}
+		}
 	}
 
 }

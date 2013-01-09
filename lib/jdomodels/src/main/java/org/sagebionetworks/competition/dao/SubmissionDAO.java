@@ -3,10 +3,8 @@ package org.sagebionetworks.competition.dao;
 import java.util.List;
 
 import org.sagebionetworks.competition.model.Submission;
-import org.sagebionetworks.competition.model.SubmissionStatus;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface SubmissionDAO {
@@ -16,8 +14,9 @@ public interface SubmissionDAO {
 	 * 
 	 * @param dto
 	 * @throws DatastoreException
+	 * @return the ID of the newly-created object
 	 */
-	public Submission create(Submission dto) throws DatastoreException;
+	public String create(Submission dto) throws DatastoreException;
 
 	/**
 	 * Get a Submission by ID
@@ -51,20 +50,6 @@ public interface SubmissionDAO {
 	 */
 	public List<Submission> getAllByCompetition(String compId)
 			throws DatastoreException, NotFoundException;
-
-	/**
-	 * Get all of the Submissions for a given Competition with a given Status
-	 * (e.g., to get all UNSCORED Submissions)
-	 * 
-	 * @param compId
-	 * @param status
-	 * @return
-	 * @throws DatastoreException
-	 * @throws NotFoundException
-	 */
-	public List<Submission> getAllByCompetitionAndStatus(String compId,
-			SubmissionStatus status) throws DatastoreException,
-			NotFoundException;
 	
 	/**
 	 * Get the total number of Submissions for a given Competition
@@ -85,10 +70,6 @@ public interface SubmissionDAO {
 	 */
 	public long getCount() throws DatastoreException, NotFoundException;
 
-	void update(Submission dto) throws DatastoreException,
-	InvalidModelException, NotFoundException,
-	ConflictingUpdateException;
-
 	/**
 	 * Delete a Submission
 	 * 
@@ -99,11 +80,17 @@ public interface SubmissionDAO {
 	public void delete(String id) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Check whether a Submission exists with the given ID
+	 * Get all Submissions from a given Competition with a certain status. (e.g.
+	 * get all UNSCORED submissions from Competition x).
 	 * 
-	 * @param id
+	 * @param compId
+	 * @param status
 	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
 	 */
-	public boolean doesIdExist(String id);
+	public List<Submission> getAllByCompetitionAndStatus(String compId,
+			SubmissionStatusEnum status) throws DatastoreException,
+			NotFoundException;
 
 }

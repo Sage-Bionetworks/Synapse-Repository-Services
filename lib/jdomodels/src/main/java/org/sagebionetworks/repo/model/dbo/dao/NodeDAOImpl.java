@@ -42,6 +42,8 @@ import java.util.Set;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.UuidETagGenerator;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -104,8 +106,10 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String SQL_COUNT_NODES = "SELECT COUNT("+COL_NODE_ID+") FROM "+TABLE_NODE;
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
-	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
 	private static final String SQL_SELECT_VERSION_LABEL = "SELECT "+COL_REVISION_LABEL+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
+	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
+	private static final String OLD_REV_PARAM_NAME = "OLD_REVISION";
+	private static final String NEW_REV_PARAM_NAME = "NEW_REVISION";
 
 	/**
 	 * To determine if a node has children we fetch the first child ID.
@@ -126,18 +130,33 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		" ORDER BY n."+COL_NODE_ID+
 		" LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
-	private static String SQL_GET_ALL_VERSION_INFO_PAGINATED = "SELECT "
+	private static final String SQL_GET_ALL_VERSION_INFO_PAGINATED = "SELECT "
 			+ COL_REVISION_NUMBER + ", " + COL_REVISION_LABEL + ", "
 			+ COL_REVISION_COMMENT + ", " + COL_REVISION_MODIFIED_BY + ", "
 			+ COL_REVISION_MODIFIED_ON + " FROM " + TABLE_REVISION + " WHERE "
 			+ COL_REVISION_OWNER_NODE + " = :"+OWNER_ID_PARAM_NAME+" ORDER BY " + COL_REVISION_NUMBER
 			+ " DESC LIMIT :"+LIMIT_PARAM_NAME+" OFFSET :"+OFFSET_PARAM_NAME;
 
+
 	private static final String SQL_SELECT_NODE_PARENT_PAGINATED =
 			"SELECT " + COL_NODE_ID + ", " + COL_NODE_PARENT_ID + ", " + COL_NODE_ETAG
 			+ " FROM " + TABLE_NODE
 			+ " LIMIT :" + LIMIT_PARAM_NAME
 			+ " OFFSET :" + OFFSET_PARAM_NAME;
+
+	private static final String SQL_GET_LATEST_VERSION_NUMBER = "SELECT " + COL_REVISION_NUMBER
+			+ " FROM " + TABLE_REVISION + " WHERE " + COL_REVISION_OWNER_NODE +  " = :"
+			+ OWNER_ID_PARAM_NAME + " ORDER BY " + COL_REVISION_NUMBER
+			+ " DESC LIMIT 1";
+
+	private static final String SQL_UPDATE_VERSION_NUMBER = "UPDATE " + TABLE_REVISION
+			+ " SET " + COL_REVISION_NUMBER + "=:" + NEW_REV_PARAM_NAME + " WHERE "
+			+ COL_REVISION_NUMBER + " = :" + OLD_REV_PARAM_NAME + " AND "
+			+ COL_REVISION_OWNER_NODE + " = :" + OWNER_ID_PARAM_NAME;
+
+	private static final String SQL_UPDATE_CURRENT_VERSION = "UPDATE " + TABLE_NODE
+			+ " SET " + COL_CURRENT_REV + "=:" + NEW_REV_PARAM_NAME + " WHERE "
+			+ COL_NODE_ID + " = :" + OWNER_ID_PARAM_NAME;
 
 	// This is better suited for simple JDBC query.
 	@Autowired
@@ -322,6 +341,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(versionNumber == null) throw new IllegalArgumentException("Version number cannot be null");
 		Long nodeID = KeyFactory.stringToKey(id);
 		DBONode jdo =  getNodeById(nodeID);
+		// Remove the eTags (See PLFM-1420)
+		jdo.seteTag(UuidETagGenerator.ZERO_E_TAG);
 		DBORevision rev = getNodeRevisionById(nodeID, versionNumber);
 		return NodeUtils.copyFromJDO(jdo, rev);
 	}
@@ -421,7 +442,22 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(versionNumber == null) throw new IllegalArgumentException("VersionNumber cannot be null");
 		// Select just the references, not the entire node.
 		try{
-			return simpleJdbcTemplate.queryForObject(SELECT_ANNOTATIONS_ONLY_PREFIX + " = ?",	new AnnotationRowMapper(), KeyFactory.stringToKey(id), versionNumber);
+			NamedAnnotations namedAnnos = simpleJdbcTemplate.queryForObject(
+					SELECT_ANNOTATIONS_ONLY_PREFIX + " = ?",
+					new AnnotationRowMapper(), KeyFactory.stringToKey(id), versionNumber);
+			// Remove the eTags (See PLFM-1420)
+			if (namedAnnos != null) {
+				namedAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+			}
+			Annotations primaryAnnos = namedAnnos.getPrimaryAnnotations();
+			if (primaryAnnos != null) {
+				primaryAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+			}
+			Annotations additionalAnnos = namedAnnos.getAdditionalAnnotations();
+			if (additionalAnnos != null) {
+				additionalAnnos.setEtag(UuidETagGenerator.ZERO_E_TAG);
+			}
+			return namedAnnos;
 		}catch (EmptyResultDataAccessException e){
 			// Occurs if there are no results
 			throw new NotFoundException(CANNOT_FIND_A_NODE_WITH_ID+id);
@@ -549,9 +585,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void updateNode(Node updatedNode) throws NotFoundException, DatastoreException, InvalidModelException {
-		// A regular update will get a new Etag so we do not want to force the use of the passed eTag
-		boolean forceUseEtag = false;
-		updateNodePrivate(updatedNode, forceUseEtag);
+		updateNodePrivate(updatedNode);
 	}
 
 	/**
@@ -561,7 +595,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	 * @throws NotFoundException
 	 * @throws DatastoreException
 	 */
-	private void updateNodePrivate(Node updatedNode, boolean forceUseEtag) throws NotFoundException,
+	private void updateNodePrivate(Node updatedNode) throws NotFoundException,
 			DatastoreException, InvalidModelException {
 		if(updatedNode == null) throw new IllegalArgumentException("Node to update cannot be null");
 		if(updatedNode.getId() == null) throw new IllegalArgumentException("Node to update cannot have a null ID");
@@ -571,11 +605,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		// Update is as simple as copying the values from the passed node.		
 		NodeUtils.updateFromDto(updatedNode, jdoToUpdate, revToUpdate, shouldDeleteActivityId(updatedNode));	
 
-		// Should we force the update of the etag?
-		if(forceUseEtag){
-			if(updatedNode.getETag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
-			jdoToUpdate.seteTag(KeyFactory.urlDecode(updatedNode.getETag()));
-		}
 		// Update the node.
 		try{
 			dboBasicDao.update(jdoToUpdate);
@@ -1037,8 +1066,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public void updateRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
-		// TODO: Remove this. Not sure if it is called to check exceptions.
-		DBONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		DBORevision dboRev = getNodeRevisionById(KeyFactory.stringToKey(rev.getNodeId()), rev.getRevisionNumber());
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
 		// Save the new revision
@@ -1049,8 +1076,6 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public void createNewRevisionFromBackup(NodeRevisionBackup rev) throws NotFoundException, DatastoreException {
 		validateNodeRevision(rev);
-		// TODO: Remove this. Not sure if it is called to check exceptions.
-		DBONode owner = getNodeById(KeyFactory.stringToKey(rev.getNodeId()));
 		DBORevision dboRev = new DBORevision();
 		JDORevisionUtils.updateJdoFromDto(rev, dboRev);
 		dboBasicDao.createNew(dboRev);
@@ -1218,7 +1243,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	public boolean doesNodeHaveChildren(String nodeId) {
 		if(nodeId == null) throw new IllegalArgumentException("Node Id cannot be null");
 		try{
-			long id = this.simpleJdbcTemplate.queryForLong(SQL_GET_FIRST_CHILD, KeyFactory.stringToKey(nodeId));
+			this.simpleJdbcTemplate.queryForLong(SQL_GET_FIRST_CHILD, KeyFactory.stringToKey(nodeId));
 			// At least one node has this parent id.
 			return true;
 		}catch(EmptyResultDataAccessException e){
@@ -1232,11 +1257,41 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return MigratableObjectType.ENTITY;
 	}
 
-
 	/*
 	 * Private Methods
 	 */
 	private boolean shouldDeleteActivityId(Node dto) {
 		return DELETE_ACTIVITY_VALUE.equals(dto.getActivityId()) ? true : false;
 	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public VersionInfo promoteNodeVersion(String nodeId, Long versionNumber)
+			throws NotFoundException, DatastoreException {
+		// Get current version number, then increment and update the given versionNumber to new
+		int latestVersionNumberPlusOne = getLatestVersionNumberForNode(nodeId) + 1;
+		if (latestVersionNumberPlusOne != versionNumber + 1) {
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue(OLD_REV_PARAM_NAME, versionNumber);
+			params.addValue(NEW_REV_PARAM_NAME, latestVersionNumberPlusOne);
+			params.addValue(OWNER_ID_PARAM_NAME, KeyFactory.stringToKey(nodeId));
+			int numUpdated = simpleJdbcTemplate.update(SQL_UPDATE_VERSION_NUMBER, params);
+			if (numUpdated != 1) {
+				throw new DatastoreException(numUpdated + " rows updated, expected 1 update.");
+			}
+			numUpdated = simpleJdbcTemplate.update(SQL_UPDATE_CURRENT_VERSION, params);
+			if (numUpdated != 1) {
+				throw new DatastoreException(numUpdated + " rows updated, expected 1 update.");
+			}
+		}
+		QueryResults<VersionInfo> versionsOfEntity = getVersionsOfEntity(nodeId, 0, 1);
+		return versionsOfEntity.getResults().get(0);
+	}
+
+	private int getLatestVersionNumberForNode(String nodeId) {
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(OWNER_ID_PARAM_NAME, KeyFactory.stringToKey(nodeId));
+		return simpleJdbcTemplate.queryForInt(SQL_GET_LATEST_VERSION_NUMBER, params);
+	}
+
 }

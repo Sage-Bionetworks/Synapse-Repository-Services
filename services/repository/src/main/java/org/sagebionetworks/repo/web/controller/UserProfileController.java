@@ -53,8 +53,8 @@ public class UserProfileController extends BaseController {
 	@RequestMapping(value = UrlHelpers.USER_PROFILE, method = RequestMethod.GET)
 	public @ResponseBody
 	UserProfile getMyOwnUserProfile(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId
-			) throws DatastoreException, UnauthorizedException, NotFoundException {
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getUserProfileService().getMyOwnUserProfile(userId);
 	}
 
@@ -70,7 +70,8 @@ public class UserProfileController extends BaseController {
 	public @ResponseBody
 	UserProfile getUserProfileByOwnerId(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable String profileId) throws DatastoreException, UnauthorizedException, NotFoundException {
+			@PathVariable String profileId,
+			HttpServletRequest request) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getUserProfileService().getUserProfileByOwnerId(userId, profileId);
 	}
 
