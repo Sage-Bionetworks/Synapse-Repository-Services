@@ -173,16 +173,12 @@ public class TransactionalMessengerImplTest {
 		assertEquals(1, stubProxy.getSynchronizations().size());
 		// Simulate the before commit
 		stubProxy.getSynchronizations().get(0).beforeCommit(true);
-		List<ChangeMessage> list = new ArrayList<ChangeMessage>();
-		// The second should get sent and so should the first.
-		list.add(first);
-		list.add(second);
-		verify(mockChangeDAO, times(1)).replaceChange(list);
 		// Simulate the after commit
 		stubProxy.getSynchronizations().get(0).afterCommit();
 		// The second message should get sent and so should the first
 		verify(mockObserver, times(1)).fireChangeMessage(second);
 		verify(mockObserver, times(1)).fireChangeMessage(first);
+		verify(mockObserver, times(2)).fireChangeMessage(any(ChangeMessage.class));
 	}
 
 	/**

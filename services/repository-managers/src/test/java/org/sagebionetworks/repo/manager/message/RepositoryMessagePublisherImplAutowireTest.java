@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -85,6 +86,8 @@ public class RepositoryMessagePublisherImplAutowireTest {
 		message.setObjectType(ObjectType.ENTITY);
 		message.setObjectId("123");
 		message.setObjectEtag("ABCDEFG");
+		message.setChangeNumber(1l);
+		message.setTimestamp(new Date());
 		messagePublisher.fireChangeMessage(message);
 		// The message will be published on a timer, so we wait for that to occur.
 		Thread.sleep(200);
@@ -104,6 +107,8 @@ public class RepositoryMessagePublisherImplAutowireTest {
 			message.setObjectType(ObjectType.ENTITY);
 			message.setObjectId(""+i);
 			message.setObjectEtag("ABCDEFG"+i);
+			message.setChangeNumber(1l);
+			message.setTimestamp(new Date());
 			messagePublisher.fireChangeMessage(message);
 			
 			// Keep this body for the check
