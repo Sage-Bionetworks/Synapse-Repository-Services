@@ -12,12 +12,12 @@
 			"title": "Entity ID"
 		},
 		"depth": {
-			"type": "integer",
+			"type": "string",
 			"description": "Display to a particular depth",
 			"title": "Depth"
 		},
 		"showExpand": {
-			"type": "boolean",
+			"type": "string",
 			"description": "Is the view expanded?"
 		}
 	}
