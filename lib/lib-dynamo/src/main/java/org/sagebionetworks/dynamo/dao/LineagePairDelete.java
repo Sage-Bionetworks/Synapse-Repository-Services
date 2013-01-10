@@ -52,12 +52,20 @@ class LineagePairDelete extends LineagePairWriteOperation {
 
 	@Override
 	public boolean write(final int step) {
-		// Enforce an order such that a2d is execute first before d2a
+		// Both the integrity check of the tree (complete path to the root) and the pairing
+		// of the node pointers rely on the upward ancestor pointers. Hence we are enforcing
+		// a write order here such that the downward pointer a2d is always deleted before
+		// the upward pointer d2a. This ensures the higher priority of the upward ancestor
+		// pointers. In case of failures, either the upward ancestor pointer is there or both
+		// the upward and the downward pointer do not exist at all.
 		DboNodeLineage a2d = this.toDelete.getAncestor2Descendant();
-		boolean a2dSuccess = this.deleteNodeLineage(a2d);
+		boolean success = this.deleteNodeLineage(a2d);
+		if (!success) {
+			return false;
+		}
 		DboNodeLineage d2a = this.toDelete.getDescendant2Ancestor();
-		boolean d2aSuccess = this.deleteNodeLineage(d2a);
-		return a2dSuccess && d2aSuccess;
+		success = this.deleteNodeLineage(d2a);
+		return success;
 	}
 
 	@Override
