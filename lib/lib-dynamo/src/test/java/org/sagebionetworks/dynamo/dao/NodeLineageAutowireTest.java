@@ -86,5 +86,11 @@ public class NodeLineageAutowireTest {
 		Assert.assertEquals(v2uLineage.getAncestorOrDescendantId(), v2uSaved.getAncestorOrDescendantId());
 		Assert.assertEquals(1L, v2uSaved.getVersion().longValue());
 		Assert.assertEquals(v2uLineage.getTimestamp(), v2uSaved.getTimestamp());
+		// Deleting a non-existing node should run just fine without errors
+		String p = DynamoTestUtil.nextRandomId();
+		String q = DynamoTestUtil.nextRandomId();
+		NodeLineage lineage = new NodeLineage(p, LineageType.DESCENDANT, 1, q, new Date());
+		DboNodeLineage dbo = lineage.createDbo();
+		this.mapper.delete(dbo);
 	}
 }
