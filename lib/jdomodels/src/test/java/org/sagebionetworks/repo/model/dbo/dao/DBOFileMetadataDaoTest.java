@@ -16,10 +16,10 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
-import org.sagebionetworks.repo.model.file.ExternalFileMetadata;
-import org.sagebionetworks.repo.model.file.FileMetadata;
-import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -87,7 +87,7 @@ public class DBOFileMetadataDaoTest {
 	@Test
 	public void testS3FileCURD() throws DatastoreException, NotFoundException{
 		// Create the metadata
-		S3FileMetadata meta = new S3FileMetadata();
+		S3FileHandle meta = new S3FileHandle();
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
 		meta.setContentType("content type");
@@ -102,7 +102,7 @@ public class DBOFileMetadataDaoTest {
 		String id = meta.getId();
 		assertNotNull(id);
 		toDelete.add(id);
-		FileMetadata clone = fileMetadataDao.get(id);
+		FileHandle clone = fileMetadataDao.get(id);
 		assertEquals(meta, clone);
 	}
 
@@ -110,7 +110,7 @@ public class DBOFileMetadataDaoTest {
 	
 	@Test
 	public void testExternalFileCRUD() throws DatastoreException, NotFoundException{
-		ExternalFileMetadata meta = new ExternalFileMetadata();
+		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com");
 		// Save it
@@ -118,7 +118,7 @@ public class DBOFileMetadataDaoTest {
 		assertNotNull(meta);
 		String id = meta.getId();
 		toDelete.add(id);
-		FileMetadata clone = fileMetadataDao.get(id);
+		FileHandle clone = fileMetadataDao.get(id);
 		assertNotNull(clone);
 		// Does the clone match the expected.
 		assertEquals(meta, clone);
@@ -126,7 +126,7 @@ public class DBOFileMetadataDaoTest {
 	
 	@Test
 	public void testPreviewFileCRUD() throws DatastoreException, NotFoundException{
-		PreviewFileMetadata meta = new PreviewFileMetadata();
+		PreviewFileHandle meta = new PreviewFileHandle();
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
 		meta.setContentType("content type");
@@ -139,7 +139,7 @@ public class DBOFileMetadataDaoTest {
 		assertNotNull(meta);
 		String id = meta.getId();
 		toDelete.add(id);
-		FileMetadata clone = fileMetadataDao.get(id);
+		FileHandle clone = fileMetadataDao.get(id);
 		assertNotNull(clone);
 		// Does the clone match the expected.
 		assertEquals(meta, clone);
@@ -147,7 +147,7 @@ public class DBOFileMetadataDaoTest {
 	
 	@Test
 	public void testLongURL() throws DatastoreException, NotFoundException{
-		ExternalFileMetadata meta = new ExternalFileMetadata();
+		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy(creatorUserGroupId);
 		// Create a URL that is is 2K chars long
 		char[] chars = new char[2000];
@@ -158,7 +158,7 @@ public class DBOFileMetadataDaoTest {
 		assertNotNull(meta);
 		String id = meta.getId();
 		toDelete.add(id);
-		FileMetadata clone = fileMetadataDao.get(id);
+		FileHandle clone = fileMetadataDao.get(id);
 		assertNotNull(clone);
 		// Does the clone match the expected.
 		assertEquals(meta, clone);
@@ -167,7 +167,7 @@ public class DBOFileMetadataDaoTest {
 	@Test
 	public void testS3FileWithPreview() throws DatastoreException, NotFoundException{
 		// Create the metadata
-		S3FileMetadata meta = new S3FileMetadata();
+		S3FileHandle meta = new S3FileHandle();
 		meta.setBucketName("bucketName");
 		meta.setKey("key");
 		meta.setContentType("content type");
@@ -181,7 +181,7 @@ public class DBOFileMetadataDaoTest {
 		assertNotNull(fileId);
 		toDelete.add(fileId);
 		// Now create a preview for this file.
-		PreviewFileMetadata preview = new PreviewFileMetadata();
+		PreviewFileHandle preview = new PreviewFileHandle();
 		preview.setBucketName("bucketName");
 		preview.setKey("key");
 		preview.setContentType("content type");
@@ -196,10 +196,10 @@ public class DBOFileMetadataDaoTest {
 		toDelete.add(previewId);
 		// Now set the preview for this file
 		fileMetadataDao.setPreviewId(fileId, previewId);
-		FileMetadata clone = fileMetadataDao.get(fileId);
+		FileHandle clone = fileMetadataDao.get(fileId);
 		assertNotNull(clone);
-		assertTrue(clone instanceof S3FileMetadata);
-		S3FileMetadata s3Clone = (S3FileMetadata) clone;
+		assertTrue(clone instanceof S3FileHandle);
+		S3FileHandle s3Clone = (S3FileHandle) clone;
 		// The preview ID should be set
 		assertEquals(previewId, s3Clone.getPreviewId());
 	}
@@ -207,7 +207,7 @@ public class DBOFileMetadataDaoTest {
 	@Test
 	public void testExteranlFileWithPreview() throws DatastoreException, NotFoundException{
 		// Create the metadata
-		ExternalFileMetadata meta = new ExternalFileMetadata();
+		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com");
 		// Save it
@@ -217,7 +217,7 @@ public class DBOFileMetadataDaoTest {
 		assertNotNull(fileId);
 		toDelete.add(fileId);
 		// Now create a preview for this file.
-		PreviewFileMetadata preview = new PreviewFileMetadata();
+		PreviewFileHandle preview = new PreviewFileHandle();
 		preview.setBucketName("bucketName");
 		preview.setKey("key");
 		preview.setContentType("content type");
@@ -232,17 +232,17 @@ public class DBOFileMetadataDaoTest {
 		toDelete.add(previewId);
 		// Now set the preview for this file
 		fileMetadataDao.setPreviewId(fileId, previewId);
-		FileMetadata clone = fileMetadataDao.get(fileId);
+		FileHandle clone = fileMetadataDao.get(fileId);
 		assertNotNull(clone);
-		assertTrue(clone instanceof ExternalFileMetadata);
-		ExternalFileMetadata s3Clone = (ExternalFileMetadata) clone;
+		assertTrue(clone instanceof ExternalFileHandle);
+		ExternalFileHandle s3Clone = (ExternalFileHandle) clone;
 		// The preview ID should be set
 		assertEquals(previewId, s3Clone.getPreviewId());
 	}
 	
 	@Test (expected=NotFoundException.class)
 	public void testSetPrevieWherePreviewDoesNotExist() throws DatastoreException, NotFoundException{
-		ExternalFileMetadata meta = new ExternalFileMetadata();
+		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com");
 		// Save it
@@ -258,7 +258,7 @@ public class DBOFileMetadataDaoTest {
 	@Test (expected=NotFoundException.class)
 	public void testSetPreviewWhereFileDoesNotExist() throws DatastoreException, NotFoundException{
 		// Create a real preview.
-		PreviewFileMetadata preview = new PreviewFileMetadata();
+		PreviewFileHandle preview = new PreviewFileHandle();
 		preview.setBucketName("bucketName");
 		preview.setKey("key");
 		preview.setContentType("content type");
@@ -277,7 +277,7 @@ public class DBOFileMetadataDaoTest {
 	@Test (expected = IllegalArgumentException.class)
 	public void testSetIdAlreadyExists(){
 		// create one.
-		ExternalFileMetadata meta = new ExternalFileMetadata();
+		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com");
 		// Save it
@@ -288,7 +288,7 @@ public class DBOFileMetadataDaoTest {
 		toDelete.add(fileId);
 		
 		// Now create another with the same ID
-		meta = new ExternalFileMetadata();
+		meta = new ExternalFileHandle();
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com");
 		meta.setId(fileId);
@@ -303,7 +303,7 @@ public class DBOFileMetadataDaoTest {
 	@Test
 	public void testSetIdBeyondRange(){
 		// create one.
-		ExternalFileMetadata meta = new ExternalFileMetadata();
+		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com");
 		// Save it
@@ -313,7 +313,7 @@ public class DBOFileMetadataDaoTest {
 		toDelete.add(fileId);
 		
 		// Now create another with the same ID
-		meta = new ExternalFileMetadata();
+		meta = new ExternalFileHandle();
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com/2");
 		// Set the ID beyond what the current ID generator range
@@ -323,7 +323,7 @@ public class DBOFileMetadataDaoTest {
 		assertNotNull(file2Id);
 		toDelete.add(file2Id);
 		// Now if we create another one its ID should be one larger than the previous
-		meta = new ExternalFileMetadata();
+		meta = new ExternalFileHandle();
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setExternalURL("http://google.com/3");
 		meta = fileMetadataDao.createFile(meta);

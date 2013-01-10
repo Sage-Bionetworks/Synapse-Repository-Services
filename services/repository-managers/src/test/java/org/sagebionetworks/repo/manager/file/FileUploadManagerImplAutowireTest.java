@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.manager.file.FileUploadResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.util.UserProvider;
@@ -42,7 +42,7 @@ import com.amazonaws.util.StringInputStream;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class FileUploadManagerImplAutowireTest {
 	
-	List<S3FileMetadata> toDelete;
+	List<S3FileHandle> toDelete;
 	
 	@Autowired
 	FileUploadManager fileUploadManager;
@@ -61,7 +61,7 @@ public class FileUploadManagerImplAutowireTest {
 	/**
 	 * This is the metadata about the files we uploaded.
 	 */
-	private List<S3FileMetadata> expectedMetadata;
+	private List<S3FileHandle> expectedMetadata;
 	private String[] fileContents;
 	private List<FileItemStream> fileStreams;
 	
@@ -69,10 +69,10 @@ public class FileUploadManagerImplAutowireTest {
 	public void before() throws Exception{
 		assertNotNull(testUserProvider);
 		userInfo = testUserProvider.getTestUserInfo();
-		toDelete = new LinkedList<S3FileMetadata>();
+		toDelete = new LinkedList<S3FileHandle>();
 		// Setup the mock file to upload.
 		int numberFiles = 2;
-		expectedMetadata = new LinkedList<S3FileMetadata>();
+		expectedMetadata = new LinkedList<S3FileHandle>();
 		fileStreams = new LinkedList<FileItemStream>();
 		fileContents = new String[numberFiles];
 		for(int i=0; i<numberFiles; i++){
@@ -86,7 +86,7 @@ public class FileUploadManagerImplAutowireTest {
 			when(fis.openStream()).thenReturn(new StringInputStream(fileContents[i]));
 			fileStreams.add(fis);
 			// Set the expected metadata for this file.
-			S3FileMetadata metadata = new S3FileMetadata();
+			S3FileHandle metadata = new S3FileHandle();
 			metadata.setContentType(contentType);
 			metadata.setContentMd5( BinaryUtils.toHex((MessageDigest.getInstance("MD5").digest(fileBytes))));
 			metadata.setContentSize(new Long(fileBytes.length));
@@ -99,7 +99,7 @@ public class FileUploadManagerImplAutowireTest {
 	public void after(){
 		if(toDelete != null && s3Client != null){
 			// Delete any files created
-			for(S3FileMetadata meta: toDelete){
+			for(S3FileHandle meta: toDelete){
 				// delete the file from S3.
 				s3Client.deleteObject(meta.getBucketName(), meta.getKey());
 				// We also need to delete the data from the database
@@ -125,9 +125,9 @@ public class FileUploadManagerImplAutowireTest {
 		assertEquals(2, results.getFiles().size());
 		// Now verify the results
 		for(int i=0; i<2; i++){
-			S3FileMetadata metaResult = results.getFiles().get(i);
+			S3FileHandle metaResult = results.getFiles().get(i);
 			assertNotNull(metaResult);
-			S3FileMetadata expected = expectedMetadata.get(i);
+			S3FileHandle expected = expectedMetadata.get(i);
 			assertNotNull(expected);
 			// Validate the expected values
 			assertEquals(expected.getFileName(), metaResult.getFileName());
@@ -141,7 +141,7 @@ public class FileUploadManagerImplAutowireTest {
 			assertNotNull(metaResult.getKey());
 			assertTrue("The key should start with the userID", metaResult.getKey().startsWith(userInfo.getIndividualGroup().getId()));			
 			// Validate this is in the database
-			S3FileMetadata fromDB = (S3FileMetadata) fileMetadataDao.get(metaResult.getId());
+			S3FileHandle fromDB = (S3FileHandle) fileMetadataDao.get(metaResult.getId());
 			assertEquals(metaResult, fromDB);
 		}
 		

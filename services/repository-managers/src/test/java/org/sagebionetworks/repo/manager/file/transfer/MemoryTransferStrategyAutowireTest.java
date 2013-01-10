@@ -16,7 +16,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.util.FixedMemoryPool;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,13 +44,13 @@ public class MemoryTransferStrategyAutowireTest {
 	Long expectedContentLength;
 	String expectedMD5;
 	
-	List<S3FileMetadata> toDelete;
+	List<S3FileHandle> toDelete;
 	
 	@Before
 	public void before() throws UnsupportedEncodingException, NoSuchAlgorithmException{
 		// The pool should not be null
 		assertNotNull(fileTransferFixedMemoryPool);
-		toDelete = new ArrayList<S3FileMetadata>();
+		toDelete = new ArrayList<S3FileHandle>();
 		inputStreamContent = "This will be our simple stream";
 		inputStream = new StringInputStream(inputStreamContent);
 		// Calculate the expected MD5 of the content.
@@ -64,7 +64,7 @@ public class MemoryTransferStrategyAutowireTest {
 	@After
 	public void after(){
 		if(s3Client != null && toDelete != null){
-			for(S3FileMetadata meta: toDelete){
+			for(S3FileHandle meta: toDelete){
 				s3Client.deleteObject(meta.getBucketName(), meta.getKey());
 			}
 		}
@@ -83,7 +83,7 @@ public class MemoryTransferStrategyAutowireTest {
 		request.setS3key(key);
 		request.setInputStream(inputStream);
 		// Upload the file
-		S3FileMetadata meta = memoryTransferStrategy.transferToS3(request);
+		S3FileHandle meta = memoryTransferStrategy.transferToS3(request);
 		assertNotNull(meta);
 		toDelete.add(meta);
 		assertEquals(request.getS3bucketName(), meta.getBucketName());

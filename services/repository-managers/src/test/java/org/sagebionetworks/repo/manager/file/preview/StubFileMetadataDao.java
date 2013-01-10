@@ -6,8 +6,8 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
-import org.sagebionetworks.repo.model.file.FileMetadata;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -18,10 +18,10 @@ import org.sagebionetworks.repo.web.NotFoundException;
  */
 public class StubFileMetadataDao implements FileMetadataDao {
 
-	Map<String, FileMetadata> map = new HashMap<String, FileMetadata>();
+	Map<String, FileHandle> map = new HashMap<String, FileHandle>();
 
 	@Override
-	public <T extends FileMetadata> T createFile(T metadata) {
+	public <T extends FileHandle> T createFile(T metadata) {
 		// Create the metadata
 		String id = ""+map.size()+1;
 		metadata.setId(id);
@@ -34,15 +34,15 @@ public class StubFileMetadataDao implements FileMetadataDao {
 	public void setPreviewId(String fileId, String previewId)
 			throws DatastoreException, NotFoundException {
 		// Get the file form the mad
-		S3FileMetadata metadata = (S3FileMetadata) map.get(fileId);
+		S3FileHandle metadata = (S3FileHandle) map.get(fileId);
 		if(metadata == null) throw new NotFoundException();
 		metadata.setPreviewId(previewId);
 	}
 
 	@Override
-	public FileMetadata get(String id) throws DatastoreException,
+	public FileHandle get(String id) throws DatastoreException,
 			NotFoundException {
-		FileMetadata metadata = map.get(id);
+		FileHandle metadata = map.get(id);
 		if(metadata == null) throw new NotFoundException();
 		return metadata;
 	}

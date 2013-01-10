@@ -17,7 +17,7 @@ import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -108,7 +108,7 @@ public class FileUploadManagerImpl implements FileUploadManager {
 					// We are missing some required parameters
 					throw new IllegalArgumentException("Missing one or more of the expected form fields: "+expectedCopy);
 				}
-				S3FileMetadata s3Meta = uploadFile(userId, fis);
+				S3FileHandle s3Meta = uploadFile(userId, fis);
 				// If here then we succeeded
 				results.getFiles().add(s3Meta);
 			}
@@ -125,10 +125,10 @@ public class FileUploadManagerImpl implements FileUploadManager {
 	 * @throws IOException
 	 * @throws ServiceUnavailableException
 	 */
-	public S3FileMetadata uploadFile(String userId, FileItemStream fis)	throws IOException, ServiceUnavailableException {
+	public S3FileHandle uploadFile(String userId, FileItemStream fis)	throws IOException, ServiceUnavailableException {
 		// Create a token for this file
 		TransferRequest request = createRequest(fis.getContentType(),userId, fis.getName(), fis.openStream());
-		S3FileMetadata s3Meta = null;
+		S3FileHandle s3Meta = null;
 		try{
 			// Try the primary
 			s3Meta = primaryStrategy.transferToS3(request);

@@ -6,17 +6,17 @@ import java.util.Date;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata;
-import org.sagebionetworks.repo.model.file.ExternalFileMetadata;
-import org.sagebionetworks.repo.model.file.FileMetadata;
-import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 public class FileMetadataUtilsTest {
 	
 	@Test
 	public void testExternalFileMetadataRoundTrip(){
 		// External
-		ExternalFileMetadata meta = new ExternalFileMetadata();
+		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy("456");
 		meta.setCreatedOn(new Date());
 		meta.setExternalURL("http://google.com");
@@ -27,14 +27,14 @@ public class FileMetadataUtilsTest {
 		// Convert to dbo
 		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(meta);
 		assertNotNull(dbo);
-		FileMetadata clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
 		assertEquals(meta, clone);
 	}
 	
 	@Test
 	public void testS3FileMetadataRoundTrip(){
 		// External
-		S3FileMetadata meta = new S3FileMetadata();
+		S3FileHandle meta = new S3FileHandle();
 		meta.setCreatedBy("456");
 		meta.setCreatedOn(new Date());
 		meta.setId("987");
@@ -51,14 +51,14 @@ public class FileMetadataUtilsTest {
 		// Convert to dbo
 		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(meta);
 		assertNotNull(dbo);
-		FileMetadata clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
 		assertEquals(meta, clone);
 	}
 	
 	@Test
 	public void testPreviewFileMetadataRoundTrip(){
 		// External
-		PreviewFileMetadata meta = new PreviewFileMetadata();
+		PreviewFileHandle meta = new PreviewFileHandle();
 		meta.setCreatedBy("456");
 		meta.setCreatedOn(new Date());
 		meta.setId("987");
@@ -73,7 +73,7 @@ public class FileMetadataUtilsTest {
 		// Convert to dbo
 		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(meta);
 		assertNotNull(dbo);
-		FileMetadata clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
 		assertEquals(meta, clone);
 	}
 

@@ -7,7 +7,7 @@ import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 /**
@@ -39,6 +39,6 @@ public interface FileUploadManager {
 	 * @throws IOException
 	 * @throws ServiceUnavailableException
 	 */
-	public S3FileMetadata uploadFile(String userId, FileItemStream fis)	throws IOException, ServiceUnavailableException;
+	public S3FileHandle uploadFile(String userId, FileItemStream fis)	throws IOException, ServiceUnavailableException;
 
 }

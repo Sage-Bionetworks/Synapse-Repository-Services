@@ -5,7 +5,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.MessageDigest;
 
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.util.TempFileProvider;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,9 +47,9 @@ public class TempFileTransferStrategy implements FileTransferStrategy {
 
 
 	@Override
-	public S3FileMetadata transferToS3(TransferRequest request)	throws ServiceUnavailableException, IOException {
+	public S3FileHandle transferToS3(TransferRequest request)	throws ServiceUnavailableException, IOException {
 		// Create the result metadata from the input.
-		S3FileMetadata metadata = TransferUtils.prepareS3FileMetadata(request);
+		S3FileHandle metadata = TransferUtils.prepareS3FileMetadata(request);
 		// Start a multi-part upload
 		ObjectMetadata objMeta = TransferUtils.prepareObjectMetadata(request);
 		// The digest will be used to calculate the MD5

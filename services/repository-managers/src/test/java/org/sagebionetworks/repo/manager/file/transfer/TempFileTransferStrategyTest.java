@@ -19,7 +19,7 @@ import java.security.NoSuchAlgorithmException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.util.TempFileProvider;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
@@ -110,7 +110,7 @@ public class TempFileTransferStrategyTest {
 	@Test
 	public void testTransferToS3() throws Exception {
 		// This call should work and fill in all of the data based on what is passed.
-		S3FileMetadata meta = strategy.transferToS3(transferRequest);
+		S3FileHandle meta = strategy.transferToS3(transferRequest);
 		assertNotNull(meta);
 		assertEquals(transferRequest.getS3bucketName(), meta.getBucketName());
 		assertEquals(transferRequest.getS3key(), meta.getKey());

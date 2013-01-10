@@ -19,9 +19,9 @@ import org.sagebionetworks.repo.manager.file.FileUploadManager;
 import org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
-import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
-import org.sagebionetworks.repo.model.file.S3FileInterface;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -54,9 +54,9 @@ public class PreviewIntegrationTest {
 	@Autowired
 	FileMetadataDao fileMetadataDao;
 	
-	List<S3FileInterface> toDelete;
+	List<S3FileHandleInterface> toDelete;
 	UserInfo userInfo;
-	S3FileMetadata originalfileMetadata;
+	S3FileHandle originalfileMetadata;
 	
 	@Before
 	public void before() throws Exception {
@@ -64,7 +64,7 @@ public class PreviewIntegrationTest {
 		emptyQueue();
 		// Create a file
 		userInfo = userProvider.getTestUserInfo();
-		toDelete = new LinkedList<S3FileInterface>();
+		toDelete = new LinkedList<S3FileHandleInterface>();
 		// First upload a file that we want to generate a preview for.
 		FileItemStream mockFiz = Mockito.mock(FileItemStream.class);
 		InputStream in = PreviewIntegrationTest.class.getClassLoader().getResourceAsStream(LITTLE_IMAGE_NAME);
@@ -81,7 +81,7 @@ public class PreviewIntegrationTest {
 	public void after(){
 		if(toDelete != null && s3Client != null){
 			// Delete any files created
-			for(S3FileInterface meta: toDelete){
+			for(S3FileHandleInterface meta: toDelete){
 				// delete the file from S3.
 				s3Client.deleteObject(meta.getBucketName(), meta.getKey());
 				// We also need to delete the data from the database
@@ -119,10 +119,10 @@ public class PreviewIntegrationTest {
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;
 			assertTrue("Timed out waiting for a preview file to be generated", elapse < MAX_WAIT);
-			originalfileMetadata = (S3FileMetadata) fileMetadataDao.get(originalfileMetadata.getId());
+			originalfileMetadata = (S3FileHandle) fileMetadataDao.get(originalfileMetadata.getId());
 		}
 		// Get the preview
-		PreviewFileMetadata pfm = (PreviewFileMetadata) fileMetadataDao.get(originalfileMetadata.getPreviewId());
+		PreviewFileHandle pfm = (PreviewFileHandle) fileMetadataDao.get(originalfileMetadata.getPreviewId());
 		assertNotNull(pfm);
 		// Make sure the preview is deleted as well
 		toDelete.add(pfm);

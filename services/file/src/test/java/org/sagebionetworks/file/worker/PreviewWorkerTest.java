@@ -11,9 +11,9 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
-import org.sagebionetworks.repo.model.file.ExternalFileMetadata;
-import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -55,7 +55,7 @@ public class PreviewWorkerTest {
 	@Test
 	public void testPreviewMessage() throws Exception{
 		// We do not create previews for previews.
-		PreviewFileMetadata pfm = new PreviewFileMetadata();
+		PreviewFileHandle pfm = new PreviewFileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(pfm);
 		// create the worker.
 		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList);
@@ -87,7 +87,7 @@ public class PreviewWorkerTest {
 	@Test
 	public void testExternalFileMessage() throws Exception{
 		// We do not create previews for previews.
-		ExternalFileMetadata meta = new ExternalFileMetadata();
+		ExternalFileHandle meta = new ExternalFileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		// create the worker.
 		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList);
@@ -101,7 +101,7 @@ public class PreviewWorkerTest {
 	@Test
 	public void testS3FileMetadataMessage() throws Exception{
 		// We do not create previews for previews.
-		S3FileMetadata meta = new S3FileMetadata();
+		S3FileHandle meta = new S3FileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		// create the worker.
 		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList);
@@ -117,7 +117,7 @@ public class PreviewWorkerTest {
 		// When the preview manager throws a TemporarilyUnavailableException
 		// that means it could not process this message right now.  Therefore,
 		// the message should not be returned, so it will stay on the queue.
-		S3FileMetadata meta = new S3FileMetadata();
+		S3FileHandle meta = new S3FileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(new TemporarilyUnavailableException());
 		// create the worker.
@@ -134,7 +134,7 @@ public class PreviewWorkerTest {
 		// If we do not know what type of error occurred, then we assume
 		// that we will be able to recover from it and therefore, the message
 		// should not be returned as processed.
-		S3FileMetadata meta = new S3FileMetadata();
+		S3FileHandle meta = new S3FileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(new Exception());
 		// create the worker.
@@ -149,7 +149,7 @@ public class PreviewWorkerTest {
 	@Test
 	public void testIllegalArgumentException() throws Exception{
 		// We cannot recover from this type of exception so the message should be returned.
-		S3FileMetadata meta = new S3FileMetadata();
+		S3FileHandle meta = new S3FileHandle();
 		when(mockPreveiwManager.getFileMetadata(change.getObjectId())).thenReturn(meta);
 		when(mockPreveiwManager.generatePreview(meta)).thenThrow(new IllegalArgumentException());
 		// create the worker.
@@ -178,15 +178,15 @@ public class PreviewWorkerTest {
 		Message messageToPass = MessageUtils.createMessage(toPass, "outerId0000", "handler");
 		inputList.add(messageToPass);
 		// The first should exist.
-		S3FileMetadata failMeta = new S3FileMetadata();
+		S3FileHandle failMeta = new S3FileHandle();
 		failMeta.setId("123");
-		S3FileMetadata passMeta = new S3FileMetadata();
+		S3FileHandle passMeta = new S3FileHandle();
 		passMeta.setId("345");
 		when(mockPreveiwManager.getFileMetadata(toFail.getObjectId())).thenReturn(failMeta);
 		when(mockPreveiwManager.getFileMetadata(toPass.getObjectId())).thenReturn(passMeta);
 		// Set one fail and one pass
 		when(mockPreveiwManager.generatePreview(failMeta)).thenThrow(new Exception());
-		when(mockPreveiwManager.generatePreview(passMeta)).thenReturn(new PreviewFileMetadata());
+		when(mockPreveiwManager.generatePreview(passMeta)).thenReturn(new PreviewFileHandle());
 		// create the worker.
 		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList);
 		// fire!

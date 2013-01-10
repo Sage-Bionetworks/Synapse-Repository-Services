@@ -16,7 +16,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.util.FixedMemoryPool;
 import org.sagebionetworks.repo.util.FixedMemoryPool.BlockConsumer;
 import org.sagebionetworks.repo.util.FixedMemoryPool.NoBlocksAvailableException;
@@ -143,7 +143,7 @@ public class MemoryTransferStrategyTest {
 	@Test
 	public void testTransferToS3() throws IOException{
 		// This call should work and fill in all of the data based on what is passed.
-		S3FileMetadata meta = strategy.transferToS3(transferRequest, block);
+		S3FileHandle meta = strategy.transferToS3(transferRequest, block);
 		assertNotNull(meta);
 		assertEquals(transferRequest.getS3bucketName(), meta.getBucketName());
 		assertEquals(transferRequest.getS3key(), meta.getKey());
@@ -168,7 +168,7 @@ public class MemoryTransferStrategyTest {
 	public void testInvalidPassedMD5() throws IOException{
 		// Pass an md5 that is wrong
 		transferRequest.setContentMD5("wrongMD5");
-		S3FileMetadata meta = strategy.transferToS3(transferRequest, block);
+		S3FileHandle meta = strategy.transferToS3(transferRequest, block);
 	}
 	
 	@Test

@@ -8,10 +8,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.repo.manager.file.preview.PreviewManager;
-import org.sagebionetworks.repo.model.file.ExternalFileMetadata;
-import org.sagebionetworks.repo.model.file.FileMetadata;
-import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -57,14 +57,14 @@ public class PreviewWorker implements Callable<List<Message>> {
 				// Ignore all non-file messages.
 				if (ObjectType.FILE == changeMessage.getObjectType() && ChangeType.CREATE == changeMessage.getChangeType()) {
 					// This is a file message so look up the file
-					FileMetadata metadata = previewManager.getFileMetadata(changeMessage.getObjectId());
-					if (metadata instanceof PreviewFileMetadata) {
+					FileHandle metadata = previewManager.getFileMetadata(changeMessage.getObjectId());
+					if (metadata instanceof PreviewFileHandle) {
 						// We do not make previews of previews
-					} else if (metadata instanceof S3FileMetadata) {
-						S3FileMetadata s3fileMeta = (S3FileMetadata) metadata;
+					} else if (metadata instanceof S3FileHandle) {
+						S3FileHandle s3fileMeta = (S3FileHandle) metadata;
 						// Generate a preview.
 						previewManager.generatePreview(s3fileMeta);
-					} else if (metadata instanceof ExternalFileMetadata) {
+					} else if (metadata instanceof ExternalFileHandle) {
 						// we need to add support for this
 						throw new UnsupportedOperationException("We need to add support for external file URLss");
 					} else {

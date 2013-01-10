@@ -17,8 +17,8 @@ import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
-import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.util.TempFileProvider;
@@ -42,7 +42,7 @@ public class PreviewManagerImplTest {
 	float multiplerForContentType = 1.5f;
 	String testContentType = "text/plain";
 	String previewContentType = "application/zip";
-	S3FileMetadata testMetadata;
+	S3FileHandle testMetadata;
 	Long resultPreviewSize = 15l;
 	
 	@Before
@@ -67,7 +67,7 @@ public class PreviewManagerImplTest {
 		previewManager = new PreviewManagerImpl(stubFileMetadataDao, mockS3Client, mockFileProvider, genList, maxPreviewSize);
 		
 		// This is a test file metadata
-		testMetadata = new S3FileMetadata();
+		testMetadata = new S3FileHandle();
 		testMetadata.setBucketName("bucketName");
 		testMetadata.setContentType(testContentType);
 		testMetadata.setContentMd5("contentMD5");
@@ -82,26 +82,26 @@ public class PreviewManagerImplTest {
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testMetadataNull() throws Exception{
-		PreviewFileMetadata pfm = previewManager.generatePreview(null);
+		PreviewFileHandle pfm = previewManager.generatePreview(null);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testContentTypeNullNull() throws Exception{
 		testMetadata.setContentType(null);
-		PreviewFileMetadata pfm = previewManager.generatePreview(testMetadata);
+		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
 	public void testContentSizelNull() throws Exception{
 		testMetadata.setContentSize(null);
-		PreviewFileMetadata pfm = previewManager.generatePreview(testMetadata);
+		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
 	}
 	
 	@Test
 	public void testUnsupportedType() throws Exception{
 		// Set to an unsupported content type;
 		testMetadata.setContentType("fake/type");
-		PreviewFileMetadata pfm = previewManager.generatePreview(testMetadata);
+		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
 		assertTrue(pfm == null);
 	}
 	
@@ -110,7 +110,7 @@ public class PreviewManagerImplTest {
 		// set the file size to be one byte too large.
 		long size = ((long) ((maxPreviewSize+1)/multiplerForContentType));
 		testMetadata.setContentSize(size);
-		PreviewFileMetadata pfm = previewManager.generatePreview(testMetadata);
+		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
 		assertTrue(pfm == null);
 	}
 	
@@ -119,7 +119,7 @@ public class PreviewManagerImplTest {
 		// Simulate a TemporarilyUnavailable exception.
 		previewManager.resourceTracker = Mockito.mock(ResourceTracker.class);
 		when(previewManager.resourceTracker.allocateAndUseResources(any(Callable.class), any(Long.class))).thenThrow(new TemporarilyUnavailableException());
-		PreviewFileMetadata pfm = previewManager.generatePreview(testMetadata);
+		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
 		assertTrue(pfm == null);
 	}
 
@@ -128,7 +128,7 @@ public class PreviewManagerImplTest {
 		// Simulate a ExceedsMaximumResources exception.
 		previewManager.resourceTracker = Mockito.mock(ResourceTracker.class);
 		when(previewManager.resourceTracker.allocateAndUseResources(any(Callable.class), any(Long.class))).thenThrow(new ExceedsMaximumResources());
-		PreviewFileMetadata pfm = previewManager.generatePreview(testMetadata);
+		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
 		assertTrue(pfm == null);
 	}
 	
@@ -137,7 +137,7 @@ public class PreviewManagerImplTest {
 		// Simulate an S3 exception.  The streams must be closed even when there is an error
 		when(mockS3Client.putObject(any(PutObjectRequest.class))).thenThrow(new RuntimeException("Something went wrong!"));
 		try{
-			PreviewFileMetadata pfm = previewManager.generatePreview(testMetadata);
+			PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
 			fail("RuntimeException should have been thrown");
 		}catch(RuntimeException e){
 			// expected
@@ -152,7 +152,7 @@ public class PreviewManagerImplTest {
 		// Simulate an S3 exception.  The temp files must be deleted.
 		when(mockS3Client.putObject(any(PutObjectRequest.class))).thenThrow(new RuntimeException("Something went wrong!"));
 		try{
-			PreviewFileMetadata pfm = previewManager.generatePreview(testMetadata);
+			PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
 			fail("RuntimeException should have been thrown");
 		}catch(RuntimeException e){
 			// expected
@@ -164,7 +164,7 @@ public class PreviewManagerImplTest {
 	
 	@Test
 	public void testExpectedPreview() throws Exception{
-		PreviewFileMetadata pfm = previewManager.generatePreview(testMetadata);
+		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
 		assertNotNull(pfm);
 		assertNotNull(pfm.getId());
 		assertEquals(previewContentType, pfm.getContentType());
@@ -173,7 +173,7 @@ public class PreviewManagerImplTest {
 		assertEquals(testMetadata.getFileName(), pfm.getFileName());
 		assertEquals(resultPreviewSize, pfm.getContentSize());
 		// Make sure the preview is in the dao
-		PreviewFileMetadata fromDao = (PreviewFileMetadata) stubFileMetadataDao.get(pfm.getId());
+		PreviewFileHandle fromDao = (PreviewFileHandle) stubFileMetadataDao.get(pfm.getId());
 		assertEquals(pfm, fromDao);
 	}
 }

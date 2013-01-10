@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager.file.transfer;
 
 import java.io.IOException;
 
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 
@@ -22,5 +22,5 @@ public interface FileTransferStrategy {
 	 * @throws ServiceUnavailableException - This should be thrown if the strategy cannot be executed.
 	 * @throws IOException 
 	 */
-	public S3FileMetadata transferToS3(TransferRequest request) throws ServiceUnavailableException, IOException ;
+	public S3FileHandle transferToS3(TransferRequest request) throws ServiceUnavailableException, IOException ;
 }

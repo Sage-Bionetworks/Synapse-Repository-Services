@@ -12,9 +12,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
-import org.sagebionetworks.repo.model.file.FileMetadata;
-import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.util.ResourceTracker;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.util.TempFileProvider;
@@ -100,12 +100,12 @@ public class PreviewManagerImpl implements  PreviewManager {
 	}
 
 	@Override
-	public FileMetadata getFileMetadata(String id) throws NotFoundException {
+	public FileHandle getFileMetadata(String id) throws NotFoundException {
 		return fileMetadataDao.get(id);
 	}
 
 	@Override
-	public PreviewFileMetadata generatePreview(final S3FileMetadata metadata) throws Exception {
+	public PreviewFileHandle generatePreview(final S3FileHandle metadata) throws Exception {
 		if(metadata == null) throw new IllegalArgumentException("metadata cannot be null");
 		if(metadata.getContentType() == null) throw new IllegalArgumentException("metadata.getContentType() cannot be null");
 		if(metadata.getContentSize() == null) throw new IllegalArgumentException("metadata.getContentSize() cannot be null");
@@ -128,9 +128,9 @@ public class PreviewManagerImpl implements  PreviewManager {
 		try{
 			// Attempt to allocate the memory needed for this process.  This will fail-fast
 			// it there is not enough memory available.
-			return resourceTracker.allocateAndUseResources(new Callable<PreviewFileMetadata>(){
+			return resourceTracker.allocateAndUseResources(new Callable<PreviewFileHandle>(){
 				@Override
-				public PreviewFileMetadata call() {
+				public PreviewFileHandle call() {
 					// This is where we do all of the work.
 					return generatePreview(generator, metadata);
 				}}, memoryNeededBytes);
@@ -151,7 +151,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * @param metadata
 	 * @throws IOException 
 	 */
-	private PreviewFileMetadata generatePreview(PreviewGenerator generator, S3FileMetadata metadata){
+	private PreviewFileHandle generatePreview(PreviewGenerator generator, S3FileHandle metadata){
 		// First download the file from S3
 		File tempDownload = null;
 		File tempUpload = null;
@@ -169,7 +169,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 			String contentType = generator.generatePreview(in, out);
 			// Close the file
 			out.close();
-			PreviewFileMetadata pfm = new PreviewFileMetadata();
+			PreviewFileHandle pfm = new PreviewFileHandle();
 			pfm.setBucketName(metadata.getBucketName());
 			pfm.setContentType(contentType);
 			pfm.setCreatedBy(metadata.getCreatedBy());

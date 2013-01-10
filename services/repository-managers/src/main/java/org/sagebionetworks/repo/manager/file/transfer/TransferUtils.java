@@ -3,8 +3,8 @@ package org.sagebionetworks.repo.manager.file.transfer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import org.sagebionetworks.repo.model.file.S3FileInterface;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.util.BinaryUtils;
@@ -36,7 +36,7 @@ public class TransferUtils {
 	 * @param request
 	 * @return
 	 */
-	public static ObjectMetadata prepareObjectMetadata(S3FileInterface request) {
+	public static ObjectMetadata prepareObjectMetadata(S3FileHandleInterface request) {
 		ObjectMetadata objMeta = new ObjectMetadata();
 		objMeta.setContentType(request.getContentType());
 		objMeta.setContentDisposition(getContentDispositionValue(request.getFileName()));		objMeta.setContentDisposition(getContentDispositionValue(request.getFileName()));
@@ -51,14 +51,14 @@ public class TransferUtils {
 	 * @param buffer
 	 * @return
 	 */
-	public static S3FileMetadata prepareS3FileMetadata(TransferRequest request) {
+	public static S3FileHandle prepareS3FileMetadata(TransferRequest request) {
 		if(request == null) throw new IllegalArgumentException("TransferRequest cannot be null");
 		if(request.getS3bucketName() == null) throw new IllegalArgumentException("TransferRequest.getS3BucketName() cannot be null");
 		if(request.getS3key() == null) throw new IllegalArgumentException("TransferRequest.getS3key() cannot be null");
 		if(request.getInputStream() == null) throw new IllegalArgumentException("TransferRequest.getInputStream() cannot be null");
 		if(request.getFileName() == null) throw new IllegalArgumentException("TransferRequest.getFileName() cannot be null");
 		// Create the metadata.
-		S3FileMetadata metadata = new S3FileMetadata();
+		S3FileHandle metadata = new S3FileHandle();
 		metadata.setBucketName(request.getS3bucketName());
 		metadata.setKey(request.getS3key());
 		metadata.setContentType(request.getContentType());

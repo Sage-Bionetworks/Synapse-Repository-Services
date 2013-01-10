@@ -29,7 +29,7 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 import com.amazonaws.services.s3.internal.Mimetypes;
@@ -52,7 +52,7 @@ public class FileUploadManagerImplTest {
 	FileMetadataDao mockfileMetadataDao;
 	FileTransferStrategy mockPrimaryStrategy;
 	FileTransferStrategy mockFallbackStrategy;
-	S3FileMetadata validResults;
+	S3FileHandle validResults;
 	
 	
 	@Before
@@ -93,7 +93,7 @@ public class FileUploadManagerImplTest {
 		mockPrimaryStrategy = Mockito.mock(FileTransferStrategy.class);
 		mockFallbackStrategy = Mockito.mock(FileTransferStrategy.class);
 		// setup the primary to succeed
-		validResults = new S3FileMetadata();
+		validResults = new S3FileHandle();
 		validResults.setId("123");
 		validResults.setCreatedBy(mockUser.getIndividualGroup().getId());
 		validResults.setCreatedOn(new Date());
@@ -165,7 +165,7 @@ public class FileUploadManagerImplTest {
 		assertEquals("syn123", results.getParameters().get("parentId"));
 		// Do we have one file
 		assertEquals(1, results.getFiles().size());
-		S3FileMetadata fileData = results.getFiles().get(0);
+		S3FileHandle fileData = results.getFiles().get(0);
 		assertEquals("text/plain", fileData.getContentType());
 		assertNotNull(fileData.getKey());
 		assertNotNull(fileData.getBucketName());
@@ -194,7 +194,7 @@ public class FileUploadManagerImplTest {
 		assertNotNull(results.getFiles());
 		// Do we have one file
 		assertEquals(1, results.getFiles().size());
-		S3FileMetadata fileData = results.getFiles().get(0);
+		S3FileHandle fileData = results.getFiles().get(0);
 		assertEquals("text/plain", fileData.getContentType());
 		assertNotNull(fileData.getKey());
 		assertNotNull(fileData.getBucketName());

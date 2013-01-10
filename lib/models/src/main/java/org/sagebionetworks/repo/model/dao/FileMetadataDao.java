@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dao;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.file.FileMetadata;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -18,7 +18,7 @@ public interface FileMetadataDao {
 	 * @param metadata
 	 * @return
 	 */
-	public <T extends FileMetadata> T createFile(T metadata);
+	public <T extends FileHandle> T createFile(T metadata);
 	
 	/**
 	 * Set the preview ID of a file.
@@ -36,7 +36,7 @@ public interface FileMetadataDao {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public FileMetadata get(String id) throws DatastoreException, NotFoundException;
+	public FileHandle get(String id) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Delete the file metadata.

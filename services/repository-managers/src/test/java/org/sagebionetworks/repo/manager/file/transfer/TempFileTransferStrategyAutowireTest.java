@@ -17,7 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -43,12 +43,12 @@ public class TempFileTransferStrategyAutowireTest {
 	Long expectedContentLength;
 	String expectedMD5;
 	
-	List<S3FileMetadata> toDelete;
+	List<S3FileHandle> toDelete;
 	
 	@Before
 	public void before() throws UnsupportedEncodingException, NoSuchAlgorithmException{
 		assertNotNull(tempFileTransferStrategy);
-		toDelete = new ArrayList<S3FileMetadata>();
+		toDelete = new ArrayList<S3FileHandle>();
 		inputStreamContent = "This will be our simple stream for TempFileTransferStrategyAutowireTest";
 		inputStream = new StringInputStream(inputStreamContent);
 		// Calculate the expected MD5 of the content.
@@ -62,7 +62,7 @@ public class TempFileTransferStrategyAutowireTest {
 	@After
 	public void after(){
 		if(s3Client != null && toDelete != null){
-			for(S3FileMetadata meta: toDelete){
+			for(S3FileHandle meta: toDelete){
 				s3Client.deleteObject(meta.getBucketName(), meta.getKey());
 			}
 		}
@@ -81,7 +81,7 @@ public class TempFileTransferStrategyAutowireTest {
 		request.setS3key(key);
 		request.setInputStream(inputStream);
 		// Upload the file
-		S3FileMetadata meta = tempFileTransferStrategy.transferToS3(request);
+		S3FileHandle meta = tempFileTransferStrategy.transferToS3(request);
 		assertNotNull(meta);
 		toDelete.add(meta);
 		assertEquals(request.getS3bucketName(), meta.getBucketName());

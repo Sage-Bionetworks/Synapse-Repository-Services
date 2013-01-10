@@ -1,9 +1,9 @@
 {
-	"description": "JSON schema for S3 File metadata",
+	"description": "JSON schema for S3FileHandleInterface",
 	"type": "interface",
 	"implements": [
 		{
-			"$ref": "org.sagebionetworks.repo.model.file.FileMetadata"
+			"$ref": "org.sagebionetworks.repo.model.file.FileHandle"
 		}
 	],
 	"properties": {

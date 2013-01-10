@@ -18,9 +18,9 @@ import org.sagebionetworks.repo.manager.file.FileUploadManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
-import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
-import org.sagebionetworks.repo.model.file.S3FileInterface;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.util.ResourceTracker.ExceedsMaximumResources;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
@@ -54,16 +54,16 @@ public class PreviewManagerImplAutoWireTest {
 	FileMetadataDao fileMetadataDao;
 	
 	private UserInfo userInfo;
-	List<S3FileInterface> toDelete = new LinkedList<S3FileInterface>();
+	List<S3FileHandleInterface> toDelete = new LinkedList<S3FileHandleInterface>();
 	
-	private S3FileMetadata originalfileMetadata;
+	private S3FileHandle originalfileMetadata;
 	
 	
 	@Before
 	public void before() throws IOException, ServiceUnavailableException{
 		assertNotNull(testUserProvider);
 		userInfo = testUserProvider.getTestUserInfo();
-		toDelete = new LinkedList<S3FileInterface>();
+		toDelete = new LinkedList<S3FileHandleInterface>();
 		// First upload a file that we want to generate a preview for.
 		FileItemStream mockFiz = Mockito.mock(FileItemStream.class);
 		InputStream in = PreviewManagerImplAutoWireTest.class.getClassLoader().getResourceAsStream(LITTLE_IMAGE_NAME);
@@ -81,7 +81,7 @@ public class PreviewManagerImplAutoWireTest {
 	public void after(){
 		if(toDelete != null && s3Client != null){
 			// Delete any files created
-			for(S3FileInterface meta: toDelete){
+			for(S3FileHandleInterface meta: toDelete){
 				// delete the file from S3.
 				s3Client.deleteObject(meta.getBucketName(), meta.getKey());
 				// We also need to delete the data from the database
@@ -93,7 +93,7 @@ public class PreviewManagerImplAutoWireTest {
 	@Test
 	public void testGeneratePreview() throws TemporarilyUnavailableException, ExceedsMaximumResources, Exception{
 		// Test that we can generate a preview for this image
-		PreviewFileMetadata pfm = previewManager.generatePreview(originalfileMetadata);
+		PreviewFileHandle pfm = previewManager.generatePreview(originalfileMetadata);
 		assertNotNull(pfm);
 		assertNotNull(pfm.getId());
 		assertNotNull(pfm.getContentType());
@@ -101,7 +101,7 @@ public class PreviewManagerImplAutoWireTest {
 		toDelete.add(pfm);
 		System.out.println(pfm);
 		// Now make sure this id was assigned to the file
-		S3FileMetadata fromDB = (S3FileMetadata) fileMetadataDao.get(originalfileMetadata.getId());
+		S3FileHandle fromDB = (S3FileHandle) fileMetadataDao.get(originalfileMetadata.getId());
 		assertEquals("The preview was not assigned to the file",pfm.getId(), fromDB.getPreviewId());
 		// Get the preview metadata from S3
 		ObjectMetadata s3Meta =s3Client.getObjectMetadata(pfm.getBucketName(), pfm.getKey());

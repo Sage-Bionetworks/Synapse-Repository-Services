@@ -9,7 +9,7 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.util.FixedMemoryPool;
 import org.sagebionetworks.repo.util.FixedMemoryPool.BlockConsumer;
 import org.sagebionetworks.repo.util.FixedMemoryPool.NoBlocksAvailableException;
@@ -91,13 +91,13 @@ public class MemoryTransferStrategy implements FileTransferStrategy {
 	}
 
 	@Override
-	public S3FileMetadata transferToS3(final TransferRequest request) throws ServiceUnavailableException {
+	public S3FileHandle transferToS3(final TransferRequest request) throws ServiceUnavailableException {
 		try {
 			// Attempt to allocate a block of memory from the pool.  
-			return fileTransferFixedMemoryPool.checkoutAndUseBlock(new BlockConsumer<S3FileMetadata>(){
+			return fileTransferFixedMemoryPool.checkoutAndUseBlock(new BlockConsumer<S3FileHandle>(){
 
 				@Override
-				public S3FileMetadata useBlock(byte[] block) throws Exception{
+				public S3FileHandle useBlock(byte[] block) throws Exception{
 					// A block was successfully checked-out from the pool so we can proceed with the transfer.
 					return transferToS3(request, block);
 				}});
@@ -119,11 +119,11 @@ public class MemoryTransferStrategy implements FileTransferStrategy {
 	 * @throws AmazonClientException
 	 * @throws IOException
 	 */
-	S3FileMetadata transferToS3(TransferRequest request, byte[] buffer) throws IOException{
+	S3FileHandle transferToS3(TransferRequest request, byte[] buffer) throws IOException{
 		if(buffer == null) throw new IllegalArgumentException("The buffer cannot be null");
 		if(buffer.length < MINIMUM_BLOCK_SIZE_BYTES) throw new IllegalArgumentException("The buffer cannot be less than 5 MB as that is the miniumn size of a single part in a S3 multi-part upload.");
 		// Create the result metadata from the input.
-		S3FileMetadata metadata = TransferUtils.prepareS3FileMetadata(request);
+		S3FileHandle metadata = TransferUtils.prepareS3FileMetadata(request);
 		// Start a multi-part upload
 		ObjectMetadata objMeta = TransferUtils.prepareObjectMetadata(request);
 		if(log.isDebugEnabled()){

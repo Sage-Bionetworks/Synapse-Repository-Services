@@ -4,11 +4,11 @@ import java.sql.Timestamp;
 
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata.MetadataType;
-import org.sagebionetworks.repo.model.file.ExternalFileMetadata;
-import org.sagebionetworks.repo.model.file.FileMetadata;
-import org.sagebionetworks.repo.model.file.PreviewFileMetadata;
-import org.sagebionetworks.repo.model.file.S3FileInterface;
-import org.sagebionetworks.repo.model.file.S3FileMetadata;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 
 /**
  * Translates between DBOs and DTOs.
@@ -22,14 +22,14 @@ public class FileMetadataUtils {
 	 * @param dto
 	 * @return
 	 */
-	public static DBOFileMetadata createDBOFromDTO(FileMetadata dto){
+	public static DBOFileMetadata createDBOFromDTO(FileHandle dto){
 		if(dto == null) throw new IllegalArgumentException("DTO cannot be null");
-		if(dto instanceof ExternalFileMetadata){
-			return createDBOFromDTO((ExternalFileMetadata)dto);
-		}else if(dto instanceof S3FileMetadata){
-			return createDBOFromDTO((S3FileMetadata)dto);
-		}else if(dto instanceof PreviewFileMetadata){
-			return createDBOFromDTO((PreviewFileMetadata)dto);
+		if(dto instanceof ExternalFileHandle){
+			return createDBOFromDTO((ExternalFileHandle)dto);
+		}else if(dto instanceof S3FileHandle){
+			return createDBOFromDTO((S3FileHandle)dto);
+		}else if(dto instanceof PreviewFileHandle){
+			return createDBOFromDTO((PreviewFileHandle)dto);
 		}else{
 			throw new IllegalArgumentException("Unknown FileMetadata implementaion: "+dto.getClass().getName());
 		}
@@ -40,7 +40,7 @@ public class FileMetadataUtils {
 	 * @param dto
 	 * @return
 	 */
-	private static DBOFileMetadata createDBOFromDTO(ExternalFileMetadata dto){
+	private static DBOFileMetadata createDBOFromDTO(ExternalFileHandle dto){
 		DBOFileMetadata dbo = new DBOFileMetadata();
 		dbo.setMetadataType(MetadataType.EXTERNAL);
 		dbo.setKey(dto.getExternalURL());
@@ -65,7 +65,7 @@ public class FileMetadataUtils {
 	 * @param dto
 	 * @return
 	 */
-	private static DBOFileMetadata createDBOFromDTO(S3FileMetadata dto){
+	private static DBOFileMetadata createDBOFromDTO(S3FileHandle dto){
 		DBOFileMetadata dbo = new DBOFileMetadata();
 		dbo.setMetadataType(MetadataType.S3);
 		if(dto.getPreviewId() != null){
@@ -76,7 +76,7 @@ public class FileMetadataUtils {
 		return dbo;
 	}
 	
-	private static DBOFileMetadata createDBOFromDTO(PreviewFileMetadata dto){
+	private static DBOFileMetadata createDBOFromDTO(PreviewFileHandle dto){
 		DBOFileMetadata dbo = new DBOFileMetadata();
 		dbo.setMetadataType(MetadataType.PREVIEW);
 		// Fill in the common data.
@@ -88,7 +88,7 @@ public class FileMetadataUtils {
 	 * @param dbo
 	 * @param dto
 	 */
-	private static void setDBOFromDTO(DBOFileMetadata dbo, S3FileInterface dto){
+	private static void setDBOFromDTO(DBOFileMetadata dbo, S3FileHandleInterface dto){
 		if(dto.getId() != null){
 			dbo.setId(new Long(dto.getId()));
 		}
@@ -112,11 +112,11 @@ public class FileMetadataUtils {
 	 * @param dbo
 	 * @return
 	 */
-	public static FileMetadata createDTOFromDBO(DBOFileMetadata dbo){
+	public static FileHandle createDTOFromDBO(DBOFileMetadata dbo){
 		// First determine the type
 		if(MetadataType.EXTERNAL == dbo.getMetadataTypeEnum()){
 			// External
-			ExternalFileMetadata external = new ExternalFileMetadata();
+			ExternalFileHandle external = new ExternalFileHandle();
 			if(dbo.getCreatedBy() != null){
 				external.setCreatedBy(dbo.getCreatedBy().toString());
 			}
@@ -131,16 +131,16 @@ public class FileMetadataUtils {
 			external.setExternalURL(dbo.getKey());
 			return external;
 		}else if(MetadataType.S3 == dbo.getMetadataTypeEnum() || MetadataType.PREVIEW == dbo.getMetadataTypeEnum()){
-			S3FileInterface metaInterface = null;
+			S3FileHandleInterface metaInterface = null;
 			// Is this a S3 file or a preview.
 			if(MetadataType.S3 == dbo.getMetadataTypeEnum()){
-				S3FileMetadata meta = new S3FileMetadata();
+				S3FileHandle meta = new S3FileHandle();
 				metaInterface = meta;
 				if(dbo.getPreviewId() != null){
 					meta.setPreviewId(dbo.getPreviewId().toString());
 				}
 			}else if(MetadataType.PREVIEW == dbo.getMetadataTypeEnum()){
-				PreviewFileMetadata meta = new PreviewFileMetadata();
+				PreviewFileHandle meta = new PreviewFileHandle();
 				metaInterface = meta;
 			}else{
 				throw new IllegalArgumentException("Must be S3 or Preview but was: "+dbo.getMetadataTypeEnum());

@@ -10,7 +10,7 @@ import org.sagebionetworks.repo.model.dao.FileMetadataDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata;
-import org.sagebionetworks.repo.model.file.FileMetadata;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 
@@ -51,7 +51,7 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 	private SimpleJdbcTemplate simpleJdbcTemplate;
 
 	@Override
-	public FileMetadata get(String id) throws DatastoreException, NotFoundException {
+	public FileHandle get(String id) throws DatastoreException, NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_FILES_ID.toLowerCase(), id);
@@ -74,7 +74,7 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 	@SuppressWarnings("unchecked")
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends FileMetadata> T createFile(T metadata){
+	public <T extends FileHandle> T createFile(T metadata){
 		if(metadata == null) throw new IllegalArgumentException("FileMetadata cannot be null");
 		// Convert to a DBO
 		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(metadata);
