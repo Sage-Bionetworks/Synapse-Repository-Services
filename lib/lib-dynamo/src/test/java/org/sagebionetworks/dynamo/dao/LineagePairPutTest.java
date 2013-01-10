@@ -14,7 +14,7 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 public class LineagePairPutTest {
 
 	@Test
-	public void testWriteOrder() {
+	public void testPutOrder() {
 
 		DboNodeLineage d2a = mock(DboNodeLineage.class);
 		DboNodeLineage a2d = mock(DboNodeLineage.class);
