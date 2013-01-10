@@ -52,12 +52,20 @@ class LineagePairPut extends LineagePairWriteOperation {
 
 	@Override
 	public boolean write(final int step) {
-		// Enforce an order such that a2d is execute first before d2a
-		DboNodeLineage a2d = this.toPut.getAncestor2Descendant();
-		boolean a2dSuccess = this.putNodeLineage(a2d);
+		// Both the integrity check of the tree (complete path to the root) and the pairing
+		// of the node pointers rely on the upward ancestor pointers. Hence we are enforcing
+		// a write order here such that the upward pointer d2a is always written before
+		// the downward pointer a2d. This ensures the higher priority of the upward ancestor
+		// pointers. In case of failures, either the upward ancestor pointer is there or both
+		// the upward and the downward pointer do not exist at all.
 		DboNodeLineage d2a = this.toPut.getDescendant2Ancestor();
-		boolean d2aSuccess = this.putNodeLineage(d2a);
-		return a2dSuccess && d2aSuccess;
+		boolean success = this.putNodeLineage(d2a);
+		if (!success) {
+			return false;
+		}
+		DboNodeLineage a2d = this.toPut.getAncestor2Descendant();
+		success = this.putNodeLineage(a2d);
+		return success;
 	}
 
 	@Override
