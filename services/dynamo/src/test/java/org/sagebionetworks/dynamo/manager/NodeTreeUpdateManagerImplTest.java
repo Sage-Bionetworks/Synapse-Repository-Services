@@ -152,6 +152,9 @@ public class NodeTreeUpdateManagerImplTest {
 		path.add(eh);
 		when(this.nodeDaoMock.getEntityPath(this.cObsolete)).thenReturn(path);
 
+		when(this.nodeDaoMock.doesNodeExist(
+				KeyFactory.stringToKey(this.cSuccess))).thenReturn(true);
+
 		when(this.nodeDaoMock.getNode(this.cObsolete)).thenThrow(new NotFoundException());
 	}
 	
