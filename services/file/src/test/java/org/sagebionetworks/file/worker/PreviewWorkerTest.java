@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.TemporarilyUnavailableException;
@@ -35,6 +36,7 @@ public class PreviewWorkerTest {
 		change = new ChangeMessage();
 		change.setObjectType(ObjectType.FILE);
 		change.setObjectId("123");
+		change.setChangeType(ChangeType.CREATE);
 		message = MessageUtils.createMessage(change, "outerId0000", "handler");
 		inputList.add(message);
 	}
@@ -169,12 +171,14 @@ public class PreviewWorkerTest {
 		ChangeMessage toFail = new ChangeMessage();
 		toFail.setObjectType(ObjectType.FILE);
 		toFail.setObjectId("123");
+		toFail.setChangeType(ChangeType.CREATE);
 		Message messageToFail = MessageUtils.createMessage(toFail, "outerId111", "handler");
 		inputList.add(messageToFail);
 		// This massage will be processed successfully.
 		ChangeMessage toPass = new ChangeMessage();
 		toPass.setObjectType(ObjectType.FILE);
 		toPass.setObjectId("345");
+		toPass.setChangeType(ChangeType.CREATE);
 		Message messageToPass = MessageUtils.createMessage(toPass, "outerId0000", "handler");
 		inputList.add(messageToPass);
 		// The first should exist.
@@ -193,7 +197,45 @@ public class PreviewWorkerTest {
 		List<Message> processedList = worker.call();
 		assertNotNull(processedList);
 		assertFalse("The first messages failed with an unknown error so the message should not be returned so it can stay on the queue", isMessageOnList(processedList, messageToFail));
-		assertTrue("The second message should have been processed sucuesfully and should have been returend so it can be removed from the queue.", isMessageOnList(processedList, messageToPass));
+		assertTrue("The second message should have been processed successfully and should have been returned so it can be removed from the queue.", isMessageOnList(processedList, messageToPass));
+	}
+	
+	@Test
+	public void testIgnoreUpdateMessage() throws Exception{
+		// Update messages should be ignored.
+		inputList = new LinkedList<Message>();
+		change.setChangeType(ChangeType.UPDATE);
+		message = MessageUtils.createMessage(change, "outerId0000", "handler");
+		inputList.add(message);
+		S3FileHandle meta = new S3FileHandle();
+		// create the worker.
+		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList);
+		// fire!
+		List<Message> processedList = worker.call();
+		assertNotNull(processedList);
+		// This message should have been processed and returned.
+		assertTrue("The message should be returned as processed so it can be deleted from the queue",isMessageOnList(processedList, message));
+		// We should not generate a 
+		verify(mockPreveiwManager, never()).generatePreview(any(S3FileHandle.class));
+	}
+	
+	@Test
+	public void testIgnoreDeleteessage() throws Exception{
+		// delete messages should be ignored.
+		inputList = new LinkedList<Message>();
+		change.setChangeType(ChangeType.DELETE);
+		message = MessageUtils.createMessage(change, "outerId0000", "handler");
+		inputList.add(message);
+		S3FileHandle meta = new S3FileHandle();
+		// create the worker.
+		PreviewWorker worker = new PreviewWorker(mockPreveiwManager, inputList);
+		// fire!
+		List<Message> processedList = worker.call();
+		assertNotNull(processedList);
+		// This message should have been processed and returned.
+		assertTrue("The message should be returned as processed so it can be deleted from the queue",isMessageOnList(processedList, message));
+		// We should not generate a 
+		verify(mockPreveiwManager, never()).generatePreview(any(S3FileHandle.class));
 	}
 	
 	/**

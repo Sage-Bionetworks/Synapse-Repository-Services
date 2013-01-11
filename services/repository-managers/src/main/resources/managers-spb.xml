@@ -34,11 +34,10 @@
 	
 	<!-- Fixed Memory Pool - Used to provied a fix amount of memory used for transfering files
 	      from http input streams to S3 -->
-	<bean id="fileTransferFixedMemoryPool" class="org.sagebionetworks.repo.util.FixedMemoryPool">
+	<bean id="fileTransferFixedMemoryPool" class="org.sagebionetworks.repo.util.FixedMemoryPool" init-method="initialize">
 	    <!-- This first argument controls the maximum memory used by the pool -->
-		<constructor-arg index="0" ref="stackConfiguration.maxFileTransferMemoryPoolBytes"></constructor-arg>
-		<!-- The second argument set the  -->
-		<constructor-arg index="1" ref="stackConfiguration.fileTransferBufferSizeBytes"></constructor-arg>
+	    <property name="maxMemoryBytes" ref="stackConfiguration.maxFileTransferMemoryPoolBytes"/>
+	    <property name="blockSizeBytes" ref="stackConfiguration.fileTransferBufferSizeBytes"/>
 	</bean>
 	
 	<!-- Memory File Transfer Strategy -->

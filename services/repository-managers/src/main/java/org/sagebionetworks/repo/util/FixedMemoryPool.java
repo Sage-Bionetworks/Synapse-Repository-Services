@@ -21,8 +21,8 @@ import java.util.Queue;
 public class FixedMemoryPool {
 	
 	private volatile int maxNumberOfBlocks;
-	private volatile int maxMemoryBytes;
-	private volatile int blockSizeBytes;
+	private volatile int maxMemoryBytes = -1;
+	private volatile int blockSizeBytes = -1;
 	private volatile int currentBlockCount;
 	private volatile int allocatedBlocks;
 	/**
@@ -32,6 +32,20 @@ public class FixedMemoryPool {
 	 * @See <a href="http://docs.oracle.com/javase/6/docs/api/java/lang/ref/SoftReference.html">SoftReference</a>
 	 */
 	private Queue<SoftReference<byte[]>> pool;
+	
+	/**
+	 * If this constructor is used then you must set blockSizeBytes and maxMemoryBytes and then call the initialize() method.
+	 */
+	public FixedMemoryPool(){
+	}
+
+	public void setMaxMemoryBytes(int maxMemoryBytes) {
+		this.maxMemoryBytes = maxMemoryBytes;
+	}
+
+	public void setBlockSizeBytes(int blockSizeBytes) {
+		this.blockSizeBytes = blockSizeBytes;
+	}
 
 	/**
 	 * Create a new thread-safe FixedMemoryPool.
@@ -43,6 +57,15 @@ public class FixedMemoryPool {
 		if(blockSizeByes > maxMemoryBytes) throw new IllegalArgumentException("The blockSizeByes cannot be larger than maxMemoryBytes");
 		this.maxMemoryBytes = maxMemoryBytes;
 		this.blockSizeBytes = blockSizeByes;
+		initialize();
+	}
+
+	/**
+	 * This must be called if the default non-argument constructor is used.
+	 */
+	public void initialize() {
+		if(maxMemoryBytes < 0) throw new IllegalStateException("maxMemoryBytes must be set");
+		if(blockSizeBytes < 0) throw new IllegalStateException("blockSizeBytes must be set");
 		// The pool size is a function of the max memory and the block size.
 		this.maxNumberOfBlocks = this.maxMemoryBytes/this.blockSizeBytes;
 		// Note: This pool does not need to thread safe as it is only access within a synchronized methods.
