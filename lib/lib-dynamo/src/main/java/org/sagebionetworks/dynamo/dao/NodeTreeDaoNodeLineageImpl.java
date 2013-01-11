@@ -541,7 +541,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 			return null;
 		}
 		if (dboList.size() > 1) {
-			throw new RuntimeException(child + " fetches back more than 1 parent.");
+			throw new MultipleInheritanceException(child + " fetches back more than 1 parent.");
 		}
 
 		NodeLineage parent = new NodeLineage(dboList.get(0));
@@ -610,9 +610,15 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 			DboNodeLineage dbo = dboList.get(i);
 			NodeLineage lineage = new NodeLineage(dbo);
 			int dist = lineage.getDistance();
-			if (dist != (i + 1)) {
-				throw new IncompletePathException("Missing ancestor at depth " + (dboListSize - i - 1)
+			// The list is sorted by distance. The first ancestor at index 0 is the parent
+			// whose distance is 1. If we have a complete path, the distance of any ancestor
+			// in the list should be exactly i+1
+			if (dist > (i + 1)) {
+				throw new IncompletePathException("Missing ancestor at distance " + (i + 1)
 						+ " in the ancestor path for node " + node);
+			} else if (dist < (i + 1)) {
+				throw new MultipleInheritanceException("Node " + node
+						+ " has more than 1 ancestor at distance " + dist);
 			}
 			path.add(lineage);
 		}
