@@ -62,7 +62,7 @@
 			</bean>
 		</property>
 		<property name="startDelay" value="0" />
-		<property name="repeatInterval" value="1000" />
+		<property name="repeatInterval" value="3000" />
 	</bean>
 
 	<!-- Contains all triggers -->
