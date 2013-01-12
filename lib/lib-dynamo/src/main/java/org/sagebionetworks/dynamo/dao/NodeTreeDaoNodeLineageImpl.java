@@ -618,7 +618,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 						+ " in the ancestor path for node " + node);
 			} else if (dist < (i + 1)) {
 				throw new MultipleInheritanceException("Node " + node
-						+ " has more than 1 ancestor at distance " + dist);
+						+ " has more than 1 ancestor of a particular generation.");
 			}
 			path.add(lineage);
 		}
