@@ -13,6 +13,8 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public class ParticipantManagerTest {
@@ -29,13 +31,22 @@ public class ParticipantManagerTest {
 	private static final String OWNER_ID = "456";
 	private static final String USER_ID = "789";
 	
+	private static UserInfo ownerInfo;
+	private static UserInfo userInfo;
+	
 	private static final String COMPETITION_NAME = "test-competition";
     private static final String COMPETITION_CONTENT_SOURCE = "Baz";
     private static final String COMPETITION_ETAG = "etag";
     
     @Before
     public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
-		// Competition
+		// User Info
+    	ownerInfo = UserInfoUtils.createValidUserInfo();
+    	ownerInfo.getIndividualGroup().setId(OWNER_ID);
+    	userInfo = UserInfoUtils.createValidUserInfo();
+    	userInfo.getIndividualGroup().setId(USER_ID);
+    	
+    	// Competition
 		comp = new Competition();
 		comp.setName(COMPETITION_NAME);
 		comp.setId(COMP_ID);
@@ -65,9 +76,9 @@ public class ParticipantManagerTest {
 	
     @Test
     public void testCRDAsAdmin() throws NotFoundException {
-    	participantManager.addParticipant(OWNER_ID, COMP_ID, USER_ID);
+    	participantManager.addParticipantAsAdmin(ownerInfo, COMP_ID, USER_ID);
     	participantManager.getParticipant(USER_ID, COMP_ID);
-    	participantManager.removeParticipant(OWNER_ID, COMP_ID, USER_ID);
+    	participantManager.removeParticipant(ownerInfo, COMP_ID, USER_ID);
     	verify(mockParticipantDAO).create(eq(part));
     	verify(mockParticipantDAO, times(2)).get(eq(USER_ID), eq(COMP_ID));
     	verify(mockParticipantDAO).delete(eq(USER_ID), eq(COMP_ID));
@@ -75,9 +86,9 @@ public class ParticipantManagerTest {
     
     @Test
     public void testCRDAsUser() throws DatastoreException, NotFoundException {
-    	participantManager.addParticipant(USER_ID, COMP_ID, USER_ID);
+    	participantManager.addParticipant(userInfo, COMP_ID);
     	participantManager.getParticipant(USER_ID, COMP_ID);
-    	participantManager.removeParticipant(USER_ID, COMP_ID, USER_ID);
+    	participantManager.removeParticipant(userInfo, COMP_ID, USER_ID);
     	verify(mockParticipantDAO).create(eq(part));
     	verify(mockParticipantDAO, times(2)).get(eq(USER_ID), eq(COMP_ID));
     	verify(mockParticipantDAO).delete(eq(USER_ID), eq(COMP_ID));

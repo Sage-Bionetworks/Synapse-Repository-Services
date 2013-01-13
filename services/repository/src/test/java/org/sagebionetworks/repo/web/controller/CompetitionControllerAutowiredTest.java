@@ -23,6 +23,7 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -31,7 +32,6 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -57,8 +57,8 @@ public class CompetitionControllerAutowiredTest {
 	@Autowired
 	NodeDAO nodeDAO;
 	
-	private static UserGroup ownerGroup;
-	private static UserGroup userGroup;
+	private static String ownerName;
+	private static String userName;
 	private static String ownerId;
 	private static String userId;
 	
@@ -75,17 +75,17 @@ public class CompetitionControllerAutowiredTest {
 	private static List<String> nodesToDelete;
 	
 	@Before
-	public void before() {
+	public void before() throws DatastoreException, NotFoundException {
 		competitionsToDelete = new ArrayList<String>();
 		participantsToDelete = new ArrayList<Participant>();
 		submissionsToDelete = new ArrayList<String>();
 		nodesToDelete = new ArrayList<String>();
 		
 		// get user IDs
-		ownerGroup = userManager.getDefaultUserGroup(DEFAULT_GROUPS.BOOTSTRAP_USER_GROUP);
-		userGroup = userManager.getDefaultUserGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS);
-		ownerId = ownerGroup.getId();
-		userId = userGroup.getId();
+		ownerName = TestUserDAO.ADMIN_USER_NAME;
+		userName = TestUserDAO.TEST_USER_NAME;
+		ownerId = userManager.getUserInfo(ownerName).getIndividualGroup().getId();
+		userId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 		
 		// initialize Competitions
 		comp1 = new Competition();
@@ -101,9 +101,9 @@ public class CompetitionControllerAutowiredTest {
         
         // initialize Participants
         part1 = new Participant();
-        part1.setUserId(ownerId);
+        part1.setUserId(ownerName);
         part2 = new Participant();
-        part2.setUserId(userId);		
+        part2.setUserId(userName);		
         
         // initialize Submissions
         sub1 = new Submission();
@@ -153,7 +153,7 @@ public class CompetitionControllerAutowiredTest {
 		long initialCount = entityServletHelper.getCompetitionCount();
 		
 		// Create
-		comp1 = entityServletHelper.createCompetition(comp1, ownerId);		
+		comp1 = entityServletHelper.createCompetition(comp1, ownerName);		
 		assertNotNull(comp1.getEtag());
 		assertNotNull(comp1.getId());
 		competitionsToDelete.add(comp1.getId());
@@ -166,14 +166,14 @@ public class CompetitionControllerAutowiredTest {
 		
 		// Update
 		fetched.setDescription(comp1.getDescription() + " (modified)");
-		Competition updated = entityServletHelper.updateCompetition(fetched, ownerId);
+		Competition updated = entityServletHelper.updateCompetition(fetched, ownerName);
 		assertFalse("eTag was not updated", updated.getEtag().equals(fetched.getEtag()));
 		fetched.setEtag(updated.getEtag());
 		assertEquals(fetched, updated);		
 		assertEquals(initialCount + 1, entityServletHelper.getCompetitionCount());
 		
 		// Delete
-		entityServletHelper.deleteCompetition(comp1.getId(), ownerId);
+		entityServletHelper.deleteCompetition(comp1.getId(), ownerName);
 		try {
 			entityServletHelper.getCompetition(comp1.getId());
 			fail("Delete failed");
@@ -186,13 +186,13 @@ public class CompetitionControllerAutowiredTest {
 	@Test
 	public void testParticipantRoundTrip() throws DatastoreException, JSONObjectAdapterException, IOException, NotFoundException, ServletException {
 		comp1.setStatus(CompetitionStatus.OPEN);
-		comp1 = entityServletHelper.createCompetition(comp1, ownerId);
+		comp1 = entityServletHelper.createCompetition(comp1, ownerName);
 		competitionsToDelete.add(comp1.getId());
 		
 		long initialCount = entityServletHelper.getParticipantCount(comp1.getId());
 		
 		// create
-		part1 = entityServletHelper.createParticipant(userId, comp1.getId());
+		part1 = entityServletHelper.createParticipant(userName, comp1.getId());
 		assertNotNull(part1.getCreatedOn());
 		participantsToDelete.add(part1);
 		assertEquals(initialCount + 1, entityServletHelper.getParticipantCount(comp1.getId()));
@@ -202,7 +202,7 @@ public class CompetitionControllerAutowiredTest {
 		assertEquals(part1, clone);
 		
 		// delete
-		entityServletHelper.deleteParticipant(userId, comp1.getId());
+		entityServletHelper.deleteParticipant(ownerName, userId, comp1.getId());
 		try {
 			entityServletHelper.getParticipant(userId, comp1.getId());
 			fail("Failed to delete Participant " + part1.toString());
@@ -215,9 +215,9 @@ public class CompetitionControllerAutowiredTest {
 	@Test
 	public void testSubmissionRoundTrip() throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, IOException, ServletException, InterruptedException {
 		comp1.setStatus(CompetitionStatus.OPEN);
-		comp1 = entityServletHelper.createCompetition(comp1, ownerId);
+		comp1 = entityServletHelper.createCompetition(comp1, ownerName);
 		competitionsToDelete.add(comp1.getId());
-		part1 = entityServletHelper.createParticipant(userId, comp1.getId());
+		part1 = entityServletHelper.createParticipant(userName, comp1.getId());
 		participantsToDelete.add(part1);
 		String nodeId = createNode("An entity");
 		assertNotNull(nodeId);
@@ -228,7 +228,7 @@ public class CompetitionControllerAutowiredTest {
 		// create
 		sub1.setCompetitionId(comp1.getId());
 		sub1.setEntityId(nodeId);
-		sub1 = entityServletHelper.createSubmission(sub1, userId);
+		sub1 = entityServletHelper.createSubmission(sub1, userName);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(comp1.getId()));
@@ -245,7 +245,7 @@ public class CompetitionControllerAutowiredTest {
 		Thread.sleep(1L);
 		status.setScore(50L);
 		status.setStatus(SubmissionStatusEnum.SCORED);
-		SubmissionStatus statusClone = entityServletHelper.updateSubmissionStatus(status, ownerId);
+		SubmissionStatus statusClone = entityServletHelper.updateSubmissionStatus(status, ownerName);
 		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));
 		status.setModifiedOn(statusClone.getModifiedOn());
 		assertFalse("Etag was not updated", status.getEtag().equals(statusClone.getEtag()));
@@ -254,9 +254,9 @@ public class CompetitionControllerAutowiredTest {
 		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(comp1.getId()));
 		
 		// delete
-		entityServletHelper.deleteSubmission(sub1.getId(), ownerId);
+		entityServletHelper.deleteSubmission(sub1.getId(), ownerName);
 		try {
-			entityServletHelper.deleteSubmission(sub1.getId(), ownerId);
+			entityServletHelper.deleteSubmission(sub1.getId(), ownerName);
 			fail("Failed to delete Submission " + sub1.toString());
 		} catch (NotFoundException e) {
 			// expected
@@ -268,17 +268,17 @@ public class CompetitionControllerAutowiredTest {
 	public void testPaginated() throws DatastoreException, JSONObjectAdapterException, IOException, NotFoundException, ServletException {
 		// create objects
 		comp1.setStatus(CompetitionStatus.OPEN);
-		comp1 = entityServletHelper.createCompetition(comp1, ownerId);
+		comp1 = entityServletHelper.createCompetition(comp1, ownerName);
 		assertNotNull(comp1.getId());
 		competitionsToDelete.add(comp1.getId());
-		comp2 = entityServletHelper.createCompetition(comp2, ownerId);
+		comp2 = entityServletHelper.createCompetition(comp2, ownerName);
 		assertNotNull(comp2.getId());
 		competitionsToDelete.add(comp2.getId());
 		
-		part1 = entityServletHelper.createParticipant(ownerId, comp1.getId());
+		part1 = entityServletHelper.createParticipant(ownerName, comp1.getId());
 		assertNotNull(part1);
 		participantsToDelete.add(part1);
-		part2 = entityServletHelper.createParticipant(userId, comp1.getId());
+		part2 = entityServletHelper.createParticipant(userName, comp1.getId());
 		assertNotNull(part2);
 		participantsToDelete.add(part2);
 		
@@ -297,15 +297,15 @@ public class CompetitionControllerAutowiredTest {
 		sub1.setCompetitionId(comp1.getId());
 		sub1.setEntityId(node1);
 		sub1.setVersionNumber(1L);
-		sub1.setUserId(userId);
-		sub1 = entityServletHelper.createSubmission(sub1, userId);
+		sub1.setUserId(userName);
+		sub1 = entityServletHelper.createSubmission(sub1, userName);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());		
 		sub2.setCompetitionId(comp1.getId());
 		sub2.setEntityId(node2);
 		sub2.setVersionNumber(1L);
-		sub2.setUserId(userId);
-		sub2 = entityServletHelper.createSubmission(sub2, userId);
+		sub2.setUserId(userName);
+		sub2 = entityServletHelper.createSubmission(sub2, userName);
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
 		
@@ -325,15 +325,15 @@ public class CompetitionControllerAutowiredTest {
 		assertEquals(0, parts.getTotalNumberOfResults());
 		
 		// paginated submissions
-		PaginatedResults<Submission> subs = entityServletHelper.getAllSubmissions(ownerId, comp1.getId(), null);
+		PaginatedResults<Submission> subs = entityServletHelper.getAllSubmissions(ownerName, comp1.getId(), null);
 		assertEquals(2, subs.getTotalNumberOfResults());
 		for (Submission s : subs.getResults())
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
 		
-		subs = entityServletHelper.getAllSubmissions(ownerId, comp1.getId(), SubmissionStatusEnum.CLOSED);
+		subs = entityServletHelper.getAllSubmissions(ownerName, comp1.getId(), SubmissionStatusEnum.CLOSED);
 		assertEquals(0, subs.getTotalNumberOfResults());
 		
-		subs = entityServletHelper.getAllSubmissions(ownerId, comp2.getId(), null);
+		subs = entityServletHelper.getAllSubmissions(ownerName, comp2.getId(), null);
 		assertEquals(0, subs.getTotalNumberOfResults());
 	}
 	

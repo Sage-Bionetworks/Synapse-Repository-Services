@@ -27,8 +27,9 @@ public class ParticipantDAOImplTest {
     private ParticipantDAO participantDAO;
     @Autowired
     private CompetitionDAO competitionDAO;
-        
-    private String userId = "0";
+       
+    private Long principalId = 0L;
+    private String principalId_str = principalId.toString();
     private String compId1;
     private String compId2;
     private Participant part1;
@@ -43,27 +44,27 @@ public class ParticipantDAOImplTest {
         competition.setCreatedOn(new Date());
         competition.setContentSource("foobar");
         competition.setStatus(CompetitionStatus.PLANNED);
-        compId1 = competitionDAO.create(competition, userId);
+        compId1 = competitionDAO.create(competition, principalId);
         competition.setName("name2");
         competition.setStatus(CompetitionStatus.CLOSED);
-        compId2 = competitionDAO.create(competition, userId);        
+        compId2 = competitionDAO.create(competition, principalId);        
         
         // initialize Participants
         part1 = new Participant();
-        part1.setUserId(userId);
+        part1.setUserId(principalId_str);
         part1.setCompetitionId(compId1);        
         part2 = new Participant();
-        part2.setUserId(userId);
+        part2.setUserId(principalId_str);
         part2.setCompetitionId(compId2);
     }
     
     @After
     public void after() throws DatastoreException {
 		try {
-			participantDAO.delete(userId, compId1);
+			participantDAO.delete(principalId_str, compId1);
 		} catch (NotFoundException e)  {};
 		try {
-			participantDAO.delete(userId, compId2);
+			participantDAO.delete(principalId_str, compId2);
 		} catch (NotFoundException e)  {};
 		try {
 			competitionDAO.delete(compId1);
@@ -77,15 +78,15 @@ public class ParticipantDAOImplTest {
     public void testCRD() throws Exception{ 
         // Create and fetch Participant
         participantDAO.create(part1);
-        Participant clone = participantDAO.get(userId, compId1);
+        Participant clone = participantDAO.get(principalId_str, compId1);
         part1.setCreatedOn(clone.getCreatedOn());
         assertNotNull(clone);
         assertEquals(part1, clone);
         
         // Delete it
-        participantDAO.delete(userId, compId1);
+        participantDAO.delete(principalId_str, compId1);
         try {
-        	clone = participantDAO.get(userId, compId1);
+        	clone = participantDAO.get(principalId_str, compId1);
         } catch (NotFoundException e) {
         	// expected
         	return;
@@ -124,12 +125,12 @@ public class ParticipantDAOImplTest {
     	assertEquals(1, participantDAO.getCountByCompetition(compId2));
         
         // delete Participant for comp1
-    	participantDAO.delete(userId, compId1);
+    	participantDAO.delete(principalId_str, compId1);
     	assertEquals(0, participantDAO.getCountByCompetition(compId1));
     	assertEquals(1, participantDAO.getCountByCompetition(compId2));
     	
     	// delete Participant for comp2
-    	participantDAO.delete(userId, compId2);
+    	participantDAO.delete(principalId_str, compId2);
     	assertEquals(0, participantDAO.getCountByCompetition(compId1));
     	assertEquals(0, participantDAO.getCountByCompetition(compId2));
     }

@@ -3,6 +3,7 @@ package org.sagebionetworks.competition.manager;
 import java.util.List;
 import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface ParticipantManager {
@@ -20,32 +21,39 @@ public interface ParticipantManager {
 			throws DatastoreException, NotFoundException;
 
 	/**
-	 * Add a Participant to an existing Competition. 'userId' is of the
-	 * requesting user, 'compId' is of the target competition, and
-	 * 'idToAdd' is of the user to be added as a Participant.
+	 * Add self as a Participant to a Competition.
 	 * 
-	 * Note that Competition admins can any user at any time to a Competition,
-	 * while non-admins can only manage their own Participation.
+	 * @param userInfo
+	 * @param compId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	Participant addParticipant(UserInfo userInfo, String compId) throws NotFoundException;
+
+	/**
+	 * Add a different user as a Participant to a Competition.
+	 * 'userInfo' is the requesting user, 'compId' is of the target competition,
+	 * and 'idToAdd' is of the user to be added as a Participant.
 	 * 
-	 * @param userId
+	 * @param userInfo
 	 * @param compId
 	 * @param idToAdd
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public Participant addParticipant(String userId, String compId,
+	public Participant addParticipantAsAdmin(UserInfo userInfo, String compId,
 			String idToAdd) throws NotFoundException;
 
 	/**
 	 * Remove a Participant from a Competition.
 	 * 
-	 * @param userId
+	 * @param userInfo
 	 * @param compId
 	 * @param idToRemove
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public void removeParticipant(String userId, String compId,
+	public void removeParticipant(UserInfo userInfo, String compId,
 			String idToRemove) throws DatastoreException, NotFoundException;
 
 	/**
