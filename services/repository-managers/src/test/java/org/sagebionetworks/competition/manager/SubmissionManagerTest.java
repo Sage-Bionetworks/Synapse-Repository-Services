@@ -4,14 +4,10 @@ import static org.mockito.Mockito.*;
 
 import java.util.Date;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.competition.dao.CompetitionDAO;
 import org.sagebionetworks.competition.dao.SubmissionDAO;
 import org.sagebionetworks.competition.dao.SubmissionStatusDAO;
 import org.sagebionetworks.competition.model.Competition;
@@ -20,10 +16,11 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public class SubmissionManagerTest {
@@ -44,9 +41,18 @@ public class SubmissionManagerTest {
 	private static final String USER_ID = "56";
 	private static final String SUB_ID = "78";
 	private static final String ENTITY_ID = "90";
+	
+	private static UserInfo ownerInfo;
+	private static UserInfo userInfo;
     
     @Before
     public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {    	
+		// User Info
+    	ownerInfo = UserInfoUtils.createValidUserInfo();
+    	ownerInfo.getIndividualGroup().setId(OWNER_ID);
+    	userInfo = UserInfoUtils.createValidUserInfo();
+    	userInfo.getIndividualGroup().setId(USER_ID);
+    	
     	// Objects
 		comp = new Competition();
 		comp.setName("compName");
@@ -96,10 +102,10 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testCRUDAsAdmin() throws Exception {
-		submissionManager.createSubmission(USER_ID, sub);
+		submissionManager.createSubmission(userInfo, sub);
 		submissionManager.getSubmission(SUB_ID);
-		submissionManager.updateSubmissionStatus(OWNER_ID, subStatus);
-		submissionManager.deleteSubmission(OWNER_ID, SUB_ID);
+		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
+		submissionManager.deleteSubmission(ownerInfo, SUB_ID);
 		verify(mockSubmissionDAO).create(eq(sub));
 		verify(mockSubmissionDAO, times(3)).get(eq(SUB_ID));
 		verify(mockSubmissionDAO).delete(eq(SUB_ID));
@@ -109,16 +115,16 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testCRUDAsUser() throws NotFoundException {
-		submissionManager.createSubmission(USER_ID, sub);
+		submissionManager.createSubmission(userInfo, sub);
 		submissionManager.getSubmission(SUB_ID);
 		try {
-			submissionManager.updateSubmissionStatus(USER_ID, subStatus);
+			submissionManager.updateSubmissionStatus(userInfo, subStatus);
 			fail();
 		} catch (UnauthorizedException e) {
 			//expected
 		}
 		try {
-			submissionManager.deleteSubmission(USER_ID, SUB_ID);
+			submissionManager.deleteSubmission(userInfo, SUB_ID);
 			fail();
 		} catch (UnauthorizedException e) {
 			//expected
@@ -133,8 +139,8 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetAllSubmissions() throws DatastoreException, UnauthorizedException, NotFoundException {
 		SubmissionStatusEnum statusEnum = SubmissionStatusEnum.CLOSED;
-		submissionManager.getAllSubmissions(OWNER_ID, COMP_ID, null);
-		submissionManager.getAllSubmissions(OWNER_ID, COMP_ID, statusEnum);
+		submissionManager.getAllSubmissions(ownerInfo, COMP_ID, null);
+		submissionManager.getAllSubmissions(ownerInfo, COMP_ID, statusEnum);
 		verify(mockSubmissionDAO).getAllByCompetition(eq(COMP_ID));
 		verify(mockSubmissionDAO).getAllByCompetitionAndStatus(eq(COMP_ID), eq(statusEnum));
 	}

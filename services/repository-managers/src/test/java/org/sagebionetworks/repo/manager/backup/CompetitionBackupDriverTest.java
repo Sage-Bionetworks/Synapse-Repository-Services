@@ -55,7 +55,7 @@ public class CompetitionBackupDriverTest {
 							Competition comp = comps.get((String)args[0]);
 							if (comp==null) throw new NotFoundException();
 							return comp;
-						} else if (method.equals(CompetitionDAO.class.getMethod("create", Competition.class, String.class))) {
+						} else if (method.equals(CompetitionDAO.class.getMethod("create", Competition.class, Long.class))) {
 							Competition comp = (Competition)args[0];
 							if (comp.getId()==null) {
 								if (comps.containsKey(""+nextKey)) throw new IllegalStateException();
@@ -130,7 +130,7 @@ public class CompetitionBackupDriverTest {
 		dstComps = new HashMap<String, Competition>();
 		CompetitionDAO srcCompetitionDAO = createCompetitionDAO(srcComps);
 		Competition comp = createCompetition();
-		String id = srcCompetitionDAO.create(comp, comp.getOwnerId());
+		String id = srcCompetitionDAO.create(comp, Long.parseLong(comp.getOwnerId()));
 		assertNotNull(id);
 		ParticipantDAO srcParticipantDAO = createParticipantDAO(srcParts);
 		int numParts = 3;
