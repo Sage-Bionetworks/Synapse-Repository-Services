@@ -96,12 +96,19 @@ public interface CompetitionService {
 			throws DatastoreException, NotFoundException, UnauthorizedException;
 
 	/**
-	 * Add a Participant to an existing Competition. 'userId' is of the
-	 * requesting user, 'compId' is of the target competition, and
-	 * 'idToAdd' is of the user to be added as a Participant.
+	 * Add self as a Participant to a Competition.
 	 * 
-	 * Note that Competition admins can any user at any time to a Competition,
-	 * while non-admins can only manage their own Participation.
+	 * @param userName
+	 * @param compId
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public Participant addParticipant(String userName, String compId)
+			throws NotFoundException;
+
+	/**
+	 * Add a different user as a Participant to a Competition. Requires admin
+	 * rights on the Competition.
 	 * 
 	 * @param userId
 	 * @param compId
@@ -109,19 +116,19 @@ public interface CompetitionService {
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public Participant addParticipant(String userId, String compId,
+	public Participant addParticipantAsAdmin(String userId, String compId,
 			String idToAdd) throws NotFoundException;
 
 	/**
 	 * Get a Participant
 	 * 
-	 * @param userId
+	 * @param principalId
 	 * @param compId
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Participant getParticipant(String userId, String compId)
+	public Participant getParticipant(String principalId, String compId)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -243,12 +250,12 @@ public interface CompetitionService {
 	 * Get all Submissions by a given Synapse user. These may span multiple
 	 * Comptitions.
 	 * 
-	 * @param userId
+	 * @param principalId
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<Submission> getAllSubmissionsByUser(String userId)
+	public List<Submission> getAllSubmissionsByUser(String principalId)
 			throws DatastoreException, NotFoundException;
 
 	/**

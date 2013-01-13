@@ -85,7 +85,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String create(Competition dto, String ownerId) throws DatastoreException {
+	public String create(Competition dto, Long ownerId) throws DatastoreException {
 		CompetitionUtils.ensureNotNull(dto, "Competition object");
 		CompetitionUtils.ensureNotNull(ownerId, "Owner ID");
 		
@@ -97,7 +97,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 		dbo.setId(idGenerator.generateNewId());
 		
 		// set Owner ID
-		dbo.setOwnerId(Long.parseLong(ownerId));
+		dbo.setOwnerId(ownerId);
 		
 		// set creation date
 		dbo.setCreatedOn(System.currentTimeMillis());

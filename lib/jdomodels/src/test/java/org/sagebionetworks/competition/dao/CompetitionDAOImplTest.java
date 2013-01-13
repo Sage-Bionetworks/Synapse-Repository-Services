@@ -38,7 +38,7 @@ public class CompetitionDAOImplTest {
 	
 	private static final String COMPETITION_NAME = "test-competition";
 	private static final String COMPETITION_NAME_2 = "test-competition-2";
-    private static final String COMPETITION_OWNER_ID = "0";
+    private static final Long COMPETITION_OWNER_ID = 0L;
     private static final String COMPETITION_CONTENT_SOURCE = "Baz";
 
 	@Before
@@ -77,7 +77,7 @@ public class CompetitionDAOImplTest {
 		Competition created = competitionDAO.get(compId);
 		assertEquals(compId, created.getId());
 		assertEquals(COMPETITION_NAME, created.getName());
-		assertEquals(COMPETITION_OWNER_ID, created.getOwnerId());
+		assertEquals(COMPETITION_OWNER_ID.toString(), created.getOwnerId());
 		assertEquals(COMPETITION_CONTENT_SOURCE, created.getContentSource());
 		assertEquals(CompetitionStatus.PLANNED, created.getStatus());
 		assertNotNull(created.getEtag());
@@ -141,7 +141,7 @@ public class CompetitionDAOImplTest {
 		Competition clone = competitionDAO.get(compId);
 		assertEquals(compId, clone.getId());
 		assertEquals(COMPETITION_NAME, clone.getName());
-		assertEquals(COMPETITION_OWNER_ID, clone.getOwnerId());
+		assertEquals(COMPETITION_OWNER_ID.toString(), clone.getOwnerId());
 		assertEquals(COMPETITION_CONTENT_SOURCE, clone.getContentSource());
 		assertEquals(CompetitionStatus.PLANNED, clone.getStatus());
 		assertEquals(1 + initialCount, competitionDAO.getCount());

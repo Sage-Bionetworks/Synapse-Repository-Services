@@ -63,7 +63,7 @@ public class SubmissionStatusDAOImplTest {
         competition.setCreatedOn(new Date());
         competition.setContentSource("foobar");
         competition.setStatus(CompetitionStatus.PLANNED);
-        compId = competitionDAO.create(competition, userId);
+        compId = competitionDAO.create(competition, Long.parseLong(userId));
         
         // create a participant
         Participant participant = new Participant();
