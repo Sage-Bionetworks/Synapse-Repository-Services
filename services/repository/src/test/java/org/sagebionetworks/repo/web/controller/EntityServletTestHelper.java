@@ -775,13 +775,13 @@ public class EntityServletTestHelper {
 		return new Participant(joa);
 	}
 	
-	public void deleteParticipant(String partId, String compId) throws ServletException, IOException, DatastoreException, NotFoundException {
+	public void deleteParticipant(String userId, String partId, String compId) throws ServletException, IOException, DatastoreException, NotFoundException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId + "/participant/" + partId);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, partId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {

@@ -8,6 +8,7 @@ import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -40,49 +41,68 @@ public class ParticipantManagerImpl implements ParticipantManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Participant addParticipant(String userId, String compId, String idToAdd) throws NotFoundException {
-		CompetitionUtils.ensureNotNull(userId, "Requesting User's ID");
+	public Participant addParticipant(UserInfo userInfo, String compId) throws NotFoundException {
 		CompetitionUtils.ensureNotNull(compId, "Competition ID");
-		CompetitionUtils.ensureNotNull(idToAdd, "Participant user ID");
+		UserInfo.validateUserInfo(userInfo);
+		String principalIdToAdd = userInfo.getIndividualGroup().getId();
 		
-		// ensure user exists
-		userManager.getDisplayName(Long.parseLong(idToAdd));
-		
-		// verify permissions
-		Competition comp = competitionManager.getCompetition(compId);
-		if (!competitionManager.isCompAdmin(userId, compId))	{
-			// user is not an admin; only authorized to add self as a Participant
-			CompetitionUtils.ensureCompetitionIsOpen(comp);
-			if (!userId.equals(idToAdd))
-				throw new UnauthorizedException("User ID: " + userId + " is not authorized to add other users to Competition ID: " + compId);
-		}
-			
 		// create the new Participant
 		Participant part = new Participant();
 		part.setCompetitionId(compId);
-		part.setUserId(idToAdd);
+		part.setUserId(principalIdToAdd);
 		participantDAO.create(part);
 		
 		// trigger etag update of the parent Competition
 		// this is required for migration consistency
 		competitionManager.updateCompetitionEtag(compId);
 		
-		return getParticipant(idToAdd, compId);
+		return getParticipant(principalIdToAdd, compId);
 	}
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void removeParticipant(String userId, String compId, String idToRemove) throws DatastoreException, NotFoundException {
-		CompetitionUtils.ensureNotNull(userId, "Requesting User's ID");
+	public Participant addParticipantAsAdmin(UserInfo userInfo, String compId, String principalIdToAdd) throws NotFoundException {
 		CompetitionUtils.ensureNotNull(compId, "Competition ID");
-		CompetitionUtils.ensureNotNull(idToRemove, "Participant User ID");
+		CompetitionUtils.ensureNotNull(principalIdToAdd, "Principal ID");
+		UserInfo.validateUserInfo(userInfo);
+		String principalId = userInfo.getIndividualGroup().getId();
 		
 		// verify permissions
-		if (!competitionManager.isCompAdmin(userId, compId)) {
+		Competition comp = competitionManager.getCompetition(compId);
+
+		// add other user (requires admin rights)
+		if (!competitionManager.isCompAdmin(principalId, compId)) {
+			CompetitionUtils.ensureCompetitionIsOpen(comp);
+			throw new UnauthorizedException("User Principal ID: " + principalId + " is not authorized to add other users to Competition ID: " + compId);
+		}
+			
+		// create the new Participant
+		Participant part = new Participant();
+		part.setCompetitionId(compId);
+		part.setUserId(principalIdToAdd);
+		participantDAO.create(part);
+		
+		// trigger etag update of the parent Competition
+		// this is required for migration consistency
+		competitionManager.updateCompetitionEtag(compId);
+		
+		return getParticipant(principalIdToAdd, compId);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public void removeParticipant(UserInfo userInfo, String compId, String idToRemove) throws DatastoreException, NotFoundException {
+		CompetitionUtils.ensureNotNull(compId, "Competition ID");
+		CompetitionUtils.ensureNotNull(idToRemove, "Participant User ID");
+		UserInfo.validateUserInfo(userInfo);
+		String principalId = userInfo.getIndividualGroup().getId();
+		
+		// verify permissions
+		if (!competitionManager.isCompAdmin(principalId, compId)) {
 			// user is not an admin; only authorized to cancel their own participation
 			CompetitionUtils.ensureCompetitionIsOpen(competitionManager.getCompetition(compId));
-			if (!userId.equals(idToRemove))
-				throw new UnauthorizedException("User ID: " + userId + " is not authorized to remove other users from Competition ID: " + compId);
+			if (!principalId.equals(idToRemove))
+				throw new UnauthorizedException("User Principal ID: " + principalId + " is not authorized to remove other users from Competition ID: " + compId);
 		}
 		
 		// trigger etag update of the parent Competition
