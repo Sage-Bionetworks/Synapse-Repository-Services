@@ -1,0 +1,25 @@
+{
+	"description": "JSON schema for FileHandle.",
+	"type": "interface",
+	"properties": {
+		"id": {
+			"description": "The id of the file.",
+			"type": "string"
+		},
+		"etag": {
+			"type": "string"
+		},
+		"createdBy": {
+			"description": "The ID Of the use that created this file.",
+			"type": "string"
+		},
+		"createdOn": {
+			"description": "The date when this file was uploaded.",
+			"type": "string",
+			"format":"date-time"
+		},
+        "concreteType":{
+            "type":"string"
+        }
+	}
+}

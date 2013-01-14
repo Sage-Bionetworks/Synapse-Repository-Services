@@ -34,6 +34,8 @@
 	<alias name="nodeDao" alias="nodeBackupDao"/>
 
 	<bean id="activityDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOActivityDAOImpl" depends-on="idGenerator"/>
+	
+	<bean id="fileMetadataDao" class="org.sagebionetworks.repo.model.dbo.dao.DBOFileMetadataDao"/>
 
 	<!-- Controls how nodes inherit their permissions -->
 	<bean id="nodeInheritanceDao"

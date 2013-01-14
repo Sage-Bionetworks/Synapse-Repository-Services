@@ -27,6 +27,10 @@ public interface TagMessenger {
 	public void sendMessage(ObservableEntity observable, ChangeType changeType);
 	
 	/**
+	 */
+	public void sendMessage(String id, String etag, ObjectType objectType, ChangeType changeType);
+	
+	/**
 	 * Send a delete message without an etag.
 	 * @param objectId - The ID of the object that has been deleted.
 	 * @param objectType - The type of object that was deleted.

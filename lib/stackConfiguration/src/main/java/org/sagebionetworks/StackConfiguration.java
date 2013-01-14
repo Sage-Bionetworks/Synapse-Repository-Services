@@ -658,10 +658,81 @@ public class StackConfiguration {
 	}
 	
 	/**
-	 * The name of the AWS SQS where search updates are pushed.
+	 * The name of the AWS SQS where rds updates are pushed.
 	 * @return
 	 */
 	public String getRdsUpdateQueueName(){
 		return String.format(StackConstants.RDS_QUEUE_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
+	}
+	
+	
+	/**
+	 * The name of the AWS SQS where file updates are pushed.
+	 * @return
+	 */
+	public String getFileUpdateQueueName(){
+		return String.format(StackConstants.FILE_QUEUE_NAME_TEMPLATE, StackConfiguration.getStack(), StackConfiguration.getStackInstance());
+	}
+
+	/**
+	 * This is the size of a single file transfer memory block used as a buffer.
+	 * Note: Due to S3 limitations on the minimum size of a single part of a multi-part upload
+	 * this value cannot be less 5 MB.  Currently defaults to 5 MB.
+	 * 
+	 * @return
+	 */
+	public long getFileTransferBufferSizeBytes(){
+		return Long.parseLong(configuration.getProperty("org.sagebionetworks.repo.manager.file.transfer.memory.buffer.bytes"));
+	}
+	
+	/**
+	 * The percentage of the maximum memory that can be used for file transfer.
+	 * Note: transfer% + preview% cannot exceed 90%
+	 * @return
+	 */
+	public float getFileTransferMemoryPercentOfMax(){
+		return Float.parseFloat(configuration.getProperty("org.sagebionetworks.repo.manager.file.transfer.memory.percent.of.max"));
+	}
+	
+	/**
+	 * The percentage of the maximum memory that can be used for file transfer.
+	 * Note: transfer% + preview% cannot exceed 90%
+	 * @return
+	 */
+	public float getFilePreivewMemoryPercentOfMax(){
+		return Float.parseFloat(configuration.getProperty("org.sagebionetworks.repo.manager.file.preview.memory.percent.of.max"));
+	}
+	
+	/**
+	 * Validate that fileTransferMemoryPercentOfMax + filePreivewMemoryPercentOfMax does not exceed 90%
+	 */
+	public void validateFileMemoryPercentages() {
+		float transferPercent = getFileTransferMemoryPercentOfMax();
+		float previewPercent = getFilePreivewMemoryPercentOfMax();
+		if(transferPercent + previewPercent > 0.9) throw new IllegalArgumentException("file.transfer.memory.percent.of.max + file.preview.memory.percent.of.max excceds 0.9 (90%)");
+	}
+	
+	/**
+	 * This is the maximum memory used by file transfer memory pool.  Currently defaults to 70% of max memory.
+	 * @return
+	 */
+	public long getMaxFileTransferMemoryPoolBytes(){
+		// This is a function of the 
+		validateFileMemoryPercentages();
+		float transferPercent = getFileTransferMemoryPercentOfMax();
+		// Get the max
+		return (long) (Runtime.getRuntime().maxMemory() * transferPercent);
+	}
+	
+	/**
+	 * The maximum memory that can be used for preview generation.
+	 * @return
+	 */
+	public long getMaxFilePreviewMemoryPoolBytes(){
+		// This is a function of the 
+		validateFileMemoryPercentages();
+		float previewPercent = getFilePreivewMemoryPercentOfMax();
+		// Get the max
+		return (long) (Runtime.getRuntime().maxMemory() * previewPercent);
 	}
 }
