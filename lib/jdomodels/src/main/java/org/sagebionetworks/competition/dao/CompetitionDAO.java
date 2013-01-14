@@ -29,7 +29,7 @@ public interface CompetitionDAO extends MigratableDAO {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public String create(Competition dto, String ownerId) throws DatastoreException,
+	public String create(Competition dto, Long ownerId) throws DatastoreException,
 			InvalidModelException;
 
 	/**

@@ -133,7 +133,7 @@ public class CompetitionController extends BaseController {
 			HttpServletRequest request
 			) throws DatastoreException, InvalidModelException, NotFoundException
 	{
-		return serviceProvider.getCompetitionService().addParticipant(userId, compId, userId);
+		return serviceProvider.getCompetitionService().addParticipant(userId, compId);
 	}
 	
 	@ResponseStatus(HttpStatus.CREATED)
@@ -147,7 +147,7 @@ public class CompetitionController extends BaseController {
 			HttpServletRequest request
 			) throws DatastoreException, InvalidModelException, NotFoundException
 	{
-		return serviceProvider.getCompetitionService().addParticipant(userId, compId, partId);
+		return serviceProvider.getCompetitionService().addParticipantAsAdmin(userId, compId, partId);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)

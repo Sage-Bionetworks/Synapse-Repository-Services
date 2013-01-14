@@ -49,7 +49,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	
 	private static final String SELECT_BY_COMPETITION_AND_STATUS_SQL = 
 			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION + " n " +
-			"LEFT JOIN " + SQLConstants.TABLE_SUBSTATUS + " r " +
+			"INNER JOIN " + SQLConstants.TABLE_SUBSTATUS + " r " +
 			"ON n." + SQLConstants.COL_SUBMISSION_ID + " = r." + SQLConstants.COL_SUBSTATUS_SUBMISSION_ID +
 			" WHERE n."+ SQLConstants.COL_SUBMISSION_COMP_ID + "=:"+ COMP_ID +
 			" AND r." + SQLConstants.COL_SUBSTATUS_STATUS + "=:" + STATUS;
