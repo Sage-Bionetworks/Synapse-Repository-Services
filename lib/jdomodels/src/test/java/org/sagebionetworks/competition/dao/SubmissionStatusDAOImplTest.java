@@ -105,7 +105,7 @@ public class SubmissionStatusDAOImplTest {
         status.setId(submissionId);
         status.setEtag(null);
         status.setStatus(SubmissionStatusEnum.OPEN);
-        status.setScore(0L);
+        status.setScore(0.1);
         long initialCount = submissionStatusDAO.getCount();
         
         // Create it
@@ -123,7 +123,7 @@ public class SubmissionStatusDAOImplTest {
         
         // Update it
         clone.setStatus(SubmissionStatusEnum.SCORED);
-        clone.setScore(100L);
+        clone.setScore(0.9);
         Thread.sleep(1L);
         submissionStatusDAO.update(clone);
         SubmissionStatus clone2 = submissionStatusDAO.get(submissionId);
@@ -155,7 +155,7 @@ public class SubmissionStatusDAOImplTest {
     	subStatusDTO.setEtag("eTag");
     	subStatusDTO.setId("123");
     	subStatusDTO.setModifiedOn(new Date());
-    	subStatusDTO.setScore(42L);
+    	subStatusDTO.setScore(0.42);
     	subStatusDTO.setStatus(SubmissionStatusEnum.CLOSED);
     	    	
     	SubmissionStatusDAOImpl.copyDtoToDbo(subStatusDTO, subStatusDBO);

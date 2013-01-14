@@ -37,7 +37,7 @@ public class SubmissionStatusDBO implements DatabaseObject<SubmissionStatusDBO>,
 				sub.seteTag(rs.getString(COL_SUBSTATUS_ETAG));
 				sub.setModifiedOn(rs.getLong(COL_SUBSTATUS_MODIFIED_ON));
 				sub.setStatus(rs.getInt(COL_SUBSTATUS_STATUS));
-				sub.setScore(rs.getLong(COL_SUBSTATUS_SCORE));
+				sub.setScore(rs.getDouble(COL_SUBSTATUS_SCORE));
 				return sub;
 			}
 
@@ -63,7 +63,7 @@ public class SubmissionStatusDBO implements DatabaseObject<SubmissionStatusDBO>,
 	private String eTag;
 	private Long modifiedOn;
 	private int status;
-	private Long score;
+	private Double score;
 
 	public Long getId() {
 		return id;
@@ -100,10 +100,10 @@ public class SubmissionStatusDBO implements DatabaseObject<SubmissionStatusDBO>,
 		setStatus(ss.ordinal());
 	}
 
-	public Long getScore() {
+	public Double getScore() {
 		return score;
 	}
-	public void setScore(Long score) {
+	public void setScore(Double score) {
 		this.score = score;
 	}
 	

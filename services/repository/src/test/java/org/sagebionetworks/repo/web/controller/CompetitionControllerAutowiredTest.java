@@ -243,7 +243,7 @@ public class CompetitionControllerAutowiredTest {
 		
 		// update
 		Thread.sleep(1L);
-		status.setScore(50L);
+		status.setScore(0.5);
 		status.setStatus(SubmissionStatusEnum.SCORED);
 		SubmissionStatus statusClone = entityServletHelper.updateSubmissionStatus(status, ownerName);
 		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));

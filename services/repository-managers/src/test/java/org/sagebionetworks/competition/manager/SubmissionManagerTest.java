@@ -81,7 +81,7 @@ public class SubmissionManagerTest {
         subStatus.setEtag("subEtag");
         subStatus.setId(SUB_ID);
         subStatus.setModifiedOn(new Date());
-        subStatus.setScore(0L);
+        subStatus.setScore(0.0);
         subStatus.setStatus(SubmissionStatusEnum.OPEN);       
 		
     	// Mocks
@@ -134,6 +134,14 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionDAO, never()).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
 		verify(mockSubmissionStatusDAO, never()).update(any(SubmissionStatus.class));
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testInvalidScore() throws Exception {
+		submissionManager.createSubmission(userInfo, sub);
+		submissionManager.getSubmission(SUB_ID);
+		subStatus.setScore(1.1);
+		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 	}
 	
 	@Test

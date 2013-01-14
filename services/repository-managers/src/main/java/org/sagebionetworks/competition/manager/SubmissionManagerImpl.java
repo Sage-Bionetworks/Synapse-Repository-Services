@@ -100,6 +100,13 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			throw new IllegalArgumentException("Your copy of SubmissionStatus " + 
 					submissionStatus.getId() + " is out of date. Please fetch it again before updating.");
 		
+		// validate score, if any
+		Double score = submissionStatus.getScore();
+		if (score != null) {
+			if (score > 1.0 || score < 0.0)
+				throw new IllegalArgumentException("Scores must be between 0 and 1. Received score = " + score);
+		}
+		
 		// update and return the new Submission
 		submissionStatusDAO.update(submissionStatus);
 		return submissionStatusDAO.get(submissionStatus.getId());

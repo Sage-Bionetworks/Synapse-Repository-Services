@@ -105,7 +105,7 @@ public class SubmissionStatusDBOTest {
         status.seteTag(eTag);
         status.setModifiedOn(System.currentTimeMillis());
         status.setStatusEnum(SubmissionStatusEnum.OPEN);
-        status.setScore(0L);
+        status.setScore(0.0);
         
         // Create it
         SubmissionStatusDBO clone = dboBasicDao.createNew(status);
@@ -120,7 +120,7 @@ public class SubmissionStatusDBOTest {
         
         // Update it
         clone2.setStatusEnum(SubmissionStatusEnum.SCORED);
-        clone2.setScore(100L);
+        clone2.setScore(0.9);
         dboBasicDao.update(clone2);
         SubmissionStatusDBO clone3 = dboBasicDao.getObjectById(SubmissionStatusDBO.class, params);
         assertEquals(clone2, clone3);
