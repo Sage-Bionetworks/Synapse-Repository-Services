@@ -307,7 +307,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 			// If an id was provided then it must not exist
 			if(doesIdExist(dbo.getId())) throw new IllegalArgumentException("The id: "+dbo.getId()+" already exists, so a UserGroup cannot be created using that id.");
 			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(dbo.getId(), TYPE.DOMAIN_ID);
+			idGenerator.reserveId(dbo.getId(), TYPE.DOMAIN_IDS);
 		}
 		try {
 			dbo = basicDao.createNew(dbo);

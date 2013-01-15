@@ -79,12 +79,12 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 		// Convert to a DBO
 		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(metadata);
 		if(metadata.getId() == null){
-			dbo.setId(idGenerator.generateNewId(TYPE.FILE_ID));
+			dbo.setId(idGenerator.generateNewId(TYPE.FILE_IDS));
 		}else{
 			// If an id was provided then it must not exist
 			if(doesExist(metadata.getId())) throw new IllegalArgumentException("A file object already exists with ID: "+metadata.getId());
 			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(new Long(metadata.getId()), TYPE.FILE_ID);
+			idGenerator.reserveId(new Long(metadata.getId()), TYPE.FILE_IDS);
 		}
 		// When we migrate we keep the original etag.  When it is null we set it.
 		if(dbo.getEtag() == null){

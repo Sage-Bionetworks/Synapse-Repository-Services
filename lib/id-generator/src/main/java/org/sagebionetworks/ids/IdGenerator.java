@@ -8,8 +8,8 @@ package org.sagebionetworks.ids;
 public interface IdGenerator {
 	
 	public enum TYPE {
-		DOMAIN_ID,
-		FILE_ID,
+		DOMAIN_IDS,
+		FILE_IDS,
 	}
 	
 
