@@ -165,4 +165,27 @@
 		</property>
 	</bean>
 
+	<bean id="refreshUserGroupCache" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+		<property name="targetObject" ref="userProfileService" />
+		<property name="targetMethod" value="refreshCache" />		
+	    <property name="concurrent" value="false" />
+	</bean>
+
+	<bean id="refreshUserGroupCacheTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerBean">
+	    <property name="jobDetail" ref="refreshUserGroupCache" />
+	    <!-- build cache immediately -->
+    	<property name="startDelay" value="0" />
+	    <!-- repeat every 5 minutes -->
+	    <property name="repeatInterval" value="300000" />
+	    <property name="misfireInstructionName" value="MISFIRE_INSTRUCTION_FIRE_NOW" />
+	</bean>
+
+	<bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+	    <property name="triggers">
+	        <list>
+	            <ref bean="refreshUserGroupCacheTrigger" />
+	        </list>
+	    </property>
+    </bean>
+
 </beans>
