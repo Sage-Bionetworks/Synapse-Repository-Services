@@ -11,6 +11,7 @@ import java.util.Map;
 import java.util.SortedMap;
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.log4j.Logger;
 import org.ardverk.collection.PatriciaTrie;
 import org.ardverk.collection.StringKeyAnalyzer;
 import org.ardverk.collection.Trie;
@@ -40,7 +41,9 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class UserProfileServiceImpl implements UserProfileService {
-	
+
+	private final Logger logger =  Logger.getLogger(UserProfileServiceImpl.class);
+
 	@Autowired
 	UserProfileManager userProfileManager;	
 	@Autowired
@@ -175,13 +178,17 @@ public class UserProfileServiceImpl implements UserProfileService {
 	
 	@Override
 	public void refreshCache() throws DatastoreException, NotFoundException {
+
+		this.logger.info("refreshCache() started at time " + System.currentTimeMillis());
+
 		// Create and populate local caches. Upon completion, swap them for the
 		// singleton member variable caches.
 		Trie<String, Collection<UserGroupHeader>> tempPrefixCache = new PatriciaTrie<String, Collection<UserGroupHeader>>(StringKeyAnalyzer.CHAR);
 		Map<String, UserGroupHeader> tempIdCache = new HashMap<String, UserGroupHeader>();
-		
-		UserGroupHeader header;
+
 		List<UserProfile> userProfiles = userProfileManager.getInRange(null, 0, Long.MAX_VALUE, true).getResults();
+		this.logger.info("Loaded " + userProfiles.size() + " user profiles.");
+		UserGroupHeader header;
 		for (UserProfile profile : userProfiles) {
 			if (profile.getDisplayName() != null) {
 				header = convertUserProfileToHeader(profile);
@@ -190,6 +197,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			}
 		}
 		Collection<UserGroup> userGroups = permissionsManager.getGroups();
+		this.logger.info("Loaded " + userGroups.size() + " user groups.");
 		for (UserGroup group : userGroups) {
 			if (group.getName() != null) {
 				header = convertUserGroupToHeader(group);			
@@ -199,7 +207,9 @@ public class UserProfileServiceImpl implements UserProfileService {
 		}
 		userGroupHeadersNamePrefixCache = Tries.unmodifiableTrie(tempPrefixCache);
 		userGroupHeadersIdCache = Collections.unmodifiableMap(tempIdCache);
-		cachesLastUpdated = System.currentTimeMillis();		
+		cachesLastUpdated = System.currentTimeMillis();
+
+		this.logger.info("refreshCache() completed at time " + System.currentTimeMillis());
 	}
 	
 	@Override
