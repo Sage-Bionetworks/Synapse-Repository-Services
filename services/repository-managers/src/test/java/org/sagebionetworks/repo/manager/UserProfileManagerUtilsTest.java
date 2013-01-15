@@ -38,6 +38,8 @@ public class UserProfileManagerUtilsTest {
 		UserInfo adminInfo = new UserInfo(true/*is admin*/);
 		adminInfo.setIndividualGroup(individualGroup);
 		assertTrue(UserProfileManagerUtils.isOwnerOrAdmin(adminInfo, otherId));
+
+		assertFalse(UserProfileManagerUtils.isOwnerOrAdmin(null, otherId));
 	}
 	
 	@Test
