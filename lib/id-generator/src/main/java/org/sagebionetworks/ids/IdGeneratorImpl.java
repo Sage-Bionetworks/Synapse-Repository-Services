@@ -42,7 +42,7 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	// Fetch the newly created id.
 	public static final String GET_ID_SQL = "SELECT LAST_INSERT_ID()";
 	// Determine if the table exists
-	public static final String TABLE_EXISTS_SQL_PERFIX = "SELECT TABLE_NAME FROM Information_schema.tables WHERE table_name = '%1$S' AND table_schema = '%2$S'";
+	public static final String TABLE_EXISTS_SQL_PERFIX = "SELECT TABLE_NAME FROM Information_schema.tables WHERE table_name = '%1$S' AND table_schema = '%2$s'";
 	
 	@Autowired
 	JdbcTemplate idGeneratorJdbcTemplate;
@@ -58,7 +58,7 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	@Override
 	public Long generateNewId() {
 		// Use the default domain
-		return generateNewId(TYPE.DOMAIN_ID);
+		return generateNewId(TYPE.DOMAIN_IDS);
 	}
 
 	/**
