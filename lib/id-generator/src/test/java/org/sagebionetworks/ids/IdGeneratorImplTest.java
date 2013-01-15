@@ -50,7 +50,7 @@ public class IdGeneratorImplTest {
 		Long id = idGenerator.generateNewId();
 		// Reserve this ID + 10
 		Long reserved = id+10;
-		idGenerator.reserveId(reserved, TYPE.DOMAIN_ID);
+		idGenerator.reserveId(reserved, TYPE.DOMAIN_IDS);
 		// Now get make sure the next ID is greater than the reserve
 		Long next = idGenerator.generateNewId();
 		assertEquals(next.longValue(), reserved.longValue()+1);
@@ -63,7 +63,7 @@ public class IdGeneratorImplTest {
 		// Reserve this ID
 		Long reserved = id;
 		// This time the ID is already reserved so this method should be a wash.
-		idGenerator.reserveId(reserved, TYPE.DOMAIN_ID);
+		idGenerator.reserveId(reserved, TYPE.DOMAIN_IDS);
 		// The next ID should just be the ID + 1
 		Long next = idGenerator.generateNewId();
 		assertEquals(next.longValue(), id.longValue()+1);
