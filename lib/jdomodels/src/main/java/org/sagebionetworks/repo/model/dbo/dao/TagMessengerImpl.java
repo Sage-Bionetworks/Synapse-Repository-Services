@@ -60,4 +60,15 @@ public class TagMessengerImpl implements TagMessenger{
 		transactionalMessanger.sendMessageAfterCommit(message);
 	}
 
+	@Override
+	public void sendMessage(String id, String etag, ObjectType objectType,	ChangeType changeType) {
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(changeType);
+		message.setObjectType(objectType);
+		message.setObjectId(id);
+		message.setObjectEtag(etag);
+		transactionalMessanger.sendMessageAfterCommit(message);
+		
+	}
+
 }

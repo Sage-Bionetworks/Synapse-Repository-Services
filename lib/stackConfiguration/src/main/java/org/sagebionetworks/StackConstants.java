@@ -50,5 +50,10 @@ public class StackConstants {
 	 * Template used for the name of the AWS SQS where search updates are pushed.
 	 */
 	public static final String RDS_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-rds-update-queue";
+	
+	/**
+	 * Template used for the name of the AWS SQS where file updates are pushed.
+	 */
+	public static final String FILE_QUEUE_NAME_TEMPLATE = "%1$s-%2$s-file-update-queue";
 
 }

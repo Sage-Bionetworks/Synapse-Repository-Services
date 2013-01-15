@@ -31,7 +31,44 @@
 
 	<!-- Activity manager -->
 	<bean id="activityManager" class="org.sagebionetworks.repo.manager.ActivityManagerImpl" />
-
+	
+	<!-- Fixed Memory Pool - Used to provied a fix amount of memory used for transfering files
+	      from http input streams to S3 -->
+	<bean id="fileTransferFixedMemoryPool" class="org.sagebionetworks.repo.util.FixedMemoryPool" init-method="initialize">
+	    <!-- This first argument controls the maximum memory used by the pool -->
+	    <property name="maxMemoryBytes" ref="stackConfiguration.maxFileTransferMemoryPoolBytes"/>
+	    <property name="blockSizeBytes" ref="stackConfiguration.fileTransferBufferSizeBytes"/>
+	</bean>
+	
+	<!-- Memory File Transfer Strategy -->
+	<bean id="memoryTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.MemoryTransferStrategy" />
+	
+	<!-- Temp file provider -->
+	<bean id="tempFileProvider" class="org.sagebionetworks.repo.util.TempFileProviderImpl" />
+	
+	<!-- Temp File Transfer Strategy -->
+	<bean id="tempFileTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.TempFileTransferStrategy" />
+	
+	<!-- File Upload manager -->
+	<bean id="fileUploadManager" class="org.sagebionetworks.repo.manager.file.FileUploadManagerImpl" >
+	    <!-- The memory strategy is the primary -->
+	    <property name="primaryStrategy" ref="memoryTransferStrategy"/>
+	   	<!-- The temp strategy is the fall-back -->
+	    <property name="fallbackStrategy" ref="tempFileTransferStrategy"/>
+	</bean>
+	
+	<!-- The preview manager -->
+	<bean id="previewManager" class="org.sagebionetworks.repo.manager.file.preview.PreviewManagerImpl" init-method="initialize">
+	    <!-- The list of preview generators-->
+	    <property name="generatorList">
+	        <list>
+	            <bean id="imagePreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator" />
+	        </list>
+	    </property>
+	    <!-- The maximum amount of memory to uses -->
+	   	<property name="maxPreviewMemory" ref="stackConfiguration.maxFilePreviewMemoryPoolBytes"/>
+	</bean>
+	
 	<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
 
