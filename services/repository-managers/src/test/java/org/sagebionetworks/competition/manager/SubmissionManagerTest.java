@@ -16,8 +16,10 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
@@ -35,6 +37,8 @@ public class SubmissionManagerTest {
 	private static SubmissionStatusDAO mockSubmissionStatusDAO;
 	private static CompetitionManager mockCompetitionManager;
 	private static ParticipantManager mockParticipantManager;
+	private static NodeManager mockNodeManager;
+	private static Node mockNode;
 	
 	private static final String COMP_ID = "12";
 	private static final String OWNER_ID = "34";
@@ -89,15 +93,20 @@ public class SubmissionManagerTest {
     	mockSubmissionStatusDAO = mock(SubmissionStatusDAO.class);
     	mockCompetitionManager = mock(CompetitionManager.class);
     	mockParticipantManager = mock(ParticipantManager.class);
+    	mockNodeManager = mock(NodeManager.class);
+    	mockNode = mock(Node.class);
+    	
     	when(mockParticipantManager.getParticipant(eq(USER_ID), eq(COMP_ID))).thenReturn(part);
     	when(mockCompetitionManager.getCompetition(eq(COMP_ID))).thenReturn(comp);
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(sub);
     	when(mockCompetitionManager.isCompAdmin(eq(OWNER_ID), eq(COMP_ID))).thenReturn(true);
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
+    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);
     	
     	// Submission Manager
     	submissionManager = new SubmissionManagerImpl(mockSubmissionDAO, 
-    			mockSubmissionStatusDAO, mockCompetitionManager, mockParticipantManager);
+    			mockSubmissionStatusDAO, mockCompetitionManager, mockParticipantManager,
+    			mockNodeManager);
     }
 	
 	@Test
@@ -163,6 +172,21 @@ public class SubmissionManagerTest {
 	public void testGetSubmissionCount() throws DatastoreException, NotFoundException {
 		submissionManager.getSubmissionCount(COMP_ID);
 		verify(mockSubmissionDAO).getCountByCompetition(eq(COMP_ID));
+	}
+	
+	@Test
+	public void testEntityIdWithPrefix() throws NotFoundException {
+		Submission sub2 = sub;
+		sub2.setEntityId("syn" + ENTITY_ID);
+		submissionManager.createSubmission(ownerInfo, sub2);
+		verify(mockSubmissionDAO).create(eq(sub));
+	}
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testInvalidEntityId() throws NotFoundException {
+		Submission sub2 = sub;
+		sub2.setEntityId("bad" + ENTITY_ID);
+		submissionManager.createSubmission(ownerInfo, sub2);
 	}
 
 }

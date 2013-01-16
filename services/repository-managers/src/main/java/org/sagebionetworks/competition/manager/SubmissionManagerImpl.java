@@ -9,6 +9,7 @@ import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.competition.util.CompetitionUtils;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -27,16 +28,20 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	CompetitionManager competitionManager;
 	@Autowired
 	ParticipantManager participantManager;
+	@Autowired
+	NodeManager nodeManager;
 	
 	public SubmissionManagerImpl() {};
 	
 	// for testing purposes
-	protected SubmissionManagerImpl(SubmissionDAO submissionDAO, SubmissionStatusDAO submissionStatusDAO,
-			CompetitionManager competitionManager, ParticipantManager participantManager) {		
+	protected SubmissionManagerImpl(SubmissionDAO submissionDAO, 
+			SubmissionStatusDAO submissionStatusDAO, CompetitionManager competitionManager,
+			ParticipantManager participantManager, NodeManager nodeManager) {		
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
 		this.competitionManager = competitionManager;
 		this.participantManager = participantManager;
+		this.nodeManager = nodeManager;
 	}
 
 	@Override
@@ -62,9 +67,25 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setUserId(principalId);
 		
 		// ensure participant exists
-		if (participantManager.getParticipant(principalId, compId) == null)
+		try {
+			participantManager.getParticipant(principalId, compId);
+		} catch (NotFoundException e) {
 			throw new NotFoundException("User Princpal ID: " + principalId + 
 					" has not joined Competition ID: " + compId);
+		}
+		
+		// ensure entity exists and user has read permissions
+		String entityId = submission.getEntityId();
+		if (entityId.toLowerCase().startsWith("syn")) {
+			entityId = entityId.substring(3);
+			submission.setEntityId(entityId);
+		}
+		try {
+			Long.parseLong(entityId);
+		} catch (NumberFormatException e) {
+			throw new IllegalArgumentException("Invalid Entity ID: " + entityId);
+		}
+		nodeManager.get(userInfo, entityId);
 		
 		// ensure competition is open
 		Competition comp = competitionManager.getCompetition(compId);
