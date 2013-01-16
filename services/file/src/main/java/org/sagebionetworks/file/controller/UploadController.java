@@ -16,8 +16,11 @@ import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.stereotype.Controller;
@@ -94,6 +97,7 @@ public class UploadController extends BaseController {
 	}
 	
 	/**
+	 * Upload files as a multi-part upload, and create file handles for each.
 	 * 
 	 * @param request
 	 * @param response
@@ -103,9 +107,10 @@ public class UploadController extends BaseController {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 * @throws ServiceUnavailableException 
+	 * @throws JSONObjectAdapterException 
 	 */
-	@RequestMapping("/single")
-	void single(HttpServletRequest request, HttpServletResponse response, @RequestHeader HttpHeaders headers)	throws FileUploadException, IOException, DatastoreException, NotFoundException, ServiceUnavailableException {
+	@RequestMapping("/fileHandles")
+	void uploadFiles(HttpServletRequest request, HttpServletResponse response, @RequestHeader HttpHeaders headers)	throws FileUploadException, IOException, DatastoreException, NotFoundException, ServiceUnavailableException, JSONObjectAdapterException {
 		// Get the user ID
 		String userId = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		if(userId == null) throw new UnauthorizedException("The user must be authenticated");
@@ -115,9 +120,10 @@ public class UploadController extends BaseController {
 			throw new IllegalArgumentException("This service only supports: content-type = multipart/form-data");
 		}
 		// Pass it along.
-		fileService.uploadFiles(userId, new ServletFileUpload().getItemIterator(request));
+		FileHandleResults results = fileService.uploadFiles(userId, new ServletFileUpload().getItemIterator(request));
 		response.setStatus(201);
-		response.getWriter().append("ok");
+		response.setContentType("application/json");
+		response.getWriter().append(EntityFactory.createJSONStringForEntity(results));
 	}
 	
 }

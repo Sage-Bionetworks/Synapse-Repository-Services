@@ -98,6 +98,7 @@ public class Synapse {
 	protected static final int JSON_INDENT = 2;
 	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.sagebase.org/repo/v1";
 	protected static final String DEFAULT_AUTH_ENDPOINT = "https://auth-prod.sagebase.org/auth/v1";
+	protected static final String DEFAULT_FILE_ENDPOINT = "https://file-prod.sagebase.org/file/v1";
 	protected static final String SESSION_TOKEN_HEADER = "sessionToken";
 	protected static final String REQUEST_PROFILE_DATA = "profile_request";
 	protected static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";

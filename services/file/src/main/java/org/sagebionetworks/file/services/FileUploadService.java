@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
@@ -26,6 +27,6 @@ public interface FileUploadService {
 	 * @throws FileUploadException 
 	 * @throws ServiceUnavailableException 
 	 */
-	void uploadFiles(String userName, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException;
+	FileHandleResults uploadFiles(String userName, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException;
 
 }

@@ -12,8 +12,8 @@
 				value=<your_session_token>
 				path=/
 			  -->
-			<form name="form" method="post" id="upload" action="/services-file/upload/v1/single" enctype="multipart/form-data">
-				<label for="fileField">Upload</label>
+			<form name="form" method="post" id="upload" action="/services-file/file/v1/single" enctype="multipart/form-data">
+				<label for="fileField">Select multiple files to upload. A FileHandle will be created for each file.</label>
 				<input	type="file" name="fileField" required="required" multiple>
 				<br/><br/>
 				<input type="submit" name="submit" value="Submit">
