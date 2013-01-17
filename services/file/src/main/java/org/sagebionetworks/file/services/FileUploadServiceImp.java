@@ -11,7 +11,9 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.file.FileUploadManager;
 import org.sagebionetworks.repo.manager.file.FileUploadResults;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -34,7 +36,7 @@ public class FileUploadServiceImp implements FileUploadService {
 
 	@Override
 	public FileHandleResults uploadFiles(String username, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException {
-		if(username == null) throw new IllegalArgumentException("Username cannot be null");
+		if(username == null) throw new UnauthorizedException("The user must be authenticated");
 		if(itemIterator == null) throw new IllegalArgumentException("FileItemIterator cannot be null");
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(username);
@@ -46,6 +48,24 @@ public class FileUploadServiceImp implements FileUploadService {
 			list.add(handle);
 		}
 		return results;
+	}
+
+	@Override
+	public FileHandle getFileHandle(String handleId, String userId) throws DatastoreException, NotFoundException {
+		if(userId == null) throw new UnauthorizedException("The user must be authenticated");
+		if(handleId == null) throw new IllegalArgumentException("FileHandleId cannot be null");
+		// resolve the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.getRawFileHandle(userInfo, handleId);
+	}
+
+	@Override
+	public void deleteFileHandle(String handleId, String userId) throws DatastoreException, NotFoundException {
+		if(userId == null) throw new UnauthorizedException("The user must be authenticated");
+		if(handleId == null) throw new IllegalArgumentException("FileHandleId cannot be null");
+		// resolve the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		fileUploadManager.deleteFileHandle(userInfo, handleId);
 	}
 
 }

@@ -13,15 +13,24 @@ import org.apache.commons.fileupload.util.Streams;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.amazonaws.services.s3.AmazonS3Client;
 
 /**
  * Basic implementation of the file upload manager.
@@ -38,6 +47,12 @@ public class FileUploadManagerImpl implements FileUploadManager {
 	@Autowired
 	FileMetadataDao fileMetadataDao;
 	
+	@Autowired
+	AuthorizationManager authorizationManager;
+	
+	@Autowired
+	AmazonS3Client s3Client;
+	
 	/**
 	 * This is the first strategy we try to use.
 	 */
@@ -53,19 +68,26 @@ public class FileUploadManagerImpl implements FileUploadManager {
 	public FileUploadManagerImpl(){
 		super();
 	}
+
 	/**
-	 * Used for unit tests.
-	 * @param s3Client
+	 * The IoC constructor.
 	 * @param fileMetadataDao
+	 * @param primaryStrategy
+	 * @param fallbackStrategy
+	 * @param authorizationManager
+	 * @param s3Client
 	 */
-	public FileUploadManagerImpl(FileMetadataDao fileMetadataDao, FileTransferStrategy primaryStrategy, FileTransferStrategy fallbackStrategy) {
+	public FileUploadManagerImpl(FileMetadataDao fileMetadataDao,
+			FileTransferStrategy primaryStrategy,
+			FileTransferStrategy fallbackStrategy,
+			AuthorizationManager authorizationManager, AmazonS3Client s3Client) {
 		super();
 		this.fileMetadataDao = fileMetadataDao;
 		this.primaryStrategy = primaryStrategy;
 		this.fallbackStrategy = fallbackStrategy;
+		this.authorizationManager = authorizationManager;
+		this.s3Client = s3Client;
 	}
-	
-
 	/**
 	 * Inject the primary strategy.
 	 * @param primaryStrategy
@@ -118,6 +140,7 @@ public class FileUploadManagerImpl implements FileUploadManager {
 		}
 		return results;
 	}
+	
 	/**
 	 * @param userId
 	 * @param fis
@@ -125,6 +148,7 @@ public class FileUploadManagerImpl implements FileUploadManager {
 	 * @throws IOException
 	 * @throws ServiceUnavailableException
 	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public S3FileHandle uploadFile(String userId, FileItemStream fis)	throws IOException, ServiceUnavailableException {
 		// Create a token for this file
 		TransferRequest request = createRequest(fis.getContentType(),userId, fis.getName(), fis.openStream());
@@ -161,6 +185,53 @@ public class FileUploadManagerImpl implements FileUploadManager {
 		request.setInputStream(inputStream);
 		return request;
 	}
-
+	
+	@Override
+	public FileHandle getRawFileHandle(UserInfo userInfo, String handleId) throws DatastoreException, NotFoundException {
+		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(handleId == null) throw new IllegalArgumentException("FileHandleId cannot be null");
+		// Get the file handle
+		FileHandle handle = fileMetadataDao.get(handleId);
+		// Only the user that created this handle is authorized to get it.
+		if(!authorizationManager.canAccessRawFileHandle(userInfo, handle.getCreatedBy())){
+			throw new UnauthorizedException("Only the creator of a FileHandle can access the raw FileHandle");
+		}
+		return handle;
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void deleteFileHandle(UserInfo userInfo, String handleId) throws DatastoreException {
+		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(handleId == null) throw new IllegalArgumentException("FileHandleId cannot be null");
+		// Get the file handle
+		try {
+			FileHandle handle = fileMetadataDao.get(handleId);
+			// Is the user authorized?
+			if(!authorizationManager.canAccessRawFileHandle(userInfo, handle.getCreatedBy())){
+				throw new UnauthorizedException("Only the creator of a FileHandle can delete the raw FileHandle");
+			}
+			// If this file has a preview then we want to delete the preview as well.
+			if(handle instanceof HasPreviewId){
+				HasPreviewId hasPreview = (HasPreviewId) handle;
+				if(hasPreview.getPreviewId() != null){
+					// Delete the preview.
+					deleteFileHandle(userInfo, hasPreview.getPreviewId());
+				}
+			}
+			// Is this an S3 file?
+			if(handle instanceof S3FileHandleInterface){
+				S3FileHandleInterface s3Handle = (S3FileHandleInterface) handle;
+				// Delete the file from S3
+				s3Client.deleteObject(s3Handle.getBucketName(), s3Handle.getKey());
+			}
+			// Delete the handle from the DB
+			fileMetadataDao.delete(handleId);
+		} catch (NotFoundException e) {
+			// there is nothing to do if the handle does not exist.
+			return;
+		}
+		
+	}
 
 }

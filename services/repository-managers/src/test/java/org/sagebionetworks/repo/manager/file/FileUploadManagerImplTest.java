@@ -21,17 +21,24 @@ import org.junit.Test;
 import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.file.FileUploadManagerImpl;
 import org.sagebionetworks.repo.manager.file.FileUploadResults;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Mimetypes;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.StringInputStream;
@@ -53,12 +60,16 @@ public class FileUploadManagerImplTest {
 	FileTransferStrategy mockPrimaryStrategy;
 	FileTransferStrategy mockFallbackStrategy;
 	S3FileHandle validResults;
+	AmazonS3Client mockS3Client;
+	AuthorizationManager mockAuthorizationManager;
 	
 	
 	@Before
 	public void before() throws UnsupportedEncodingException, IOException, NoSuchAlgorithmException{
 		mockIterator = Mockito.mock(FileItemIterator.class);
 		mockfileMetadataDao = Mockito.mock(FileMetadataDao.class);
+		mockS3Client = Mockito.mock(AmazonS3Client.class);
+		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		
 		// The user is not really a mock
 		mockUser = new UserInfo(false);
@@ -103,9 +114,8 @@ public class FileUploadManagerImplTest {
 		validResults.setFileName(fileName);
 		validResults.setBucketName("bucket");
 		validResults.setKey("key");
-		
 		// the manager to test.
-		manager = new FileUploadManagerImpl(mockfileMetadataDao, mockPrimaryStrategy, mockFallbackStrategy);
+		manager = new FileUploadManagerImpl(mockfileMetadataDao, mockPrimaryStrategy, mockFallbackStrategy, mockAuthorizationManager, mockS3Client);
 	}
 	
 	@Test (expected=IllegalStateException.class)
@@ -230,6 +240,85 @@ public class FileUploadManagerImplTest {
 		assertNotNull(metadata.getS3key());
 		assertTrue(metadata.getS3key().startsWith("123/"));
 		assertEquals(stream, metadata.getInputStream());
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetFileHandleUnAuthrozied() throws DatastoreException, NotFoundException{
+		// You must be authorized to see a file handle
+		String handleId = "123";
+		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		// denied!
+		when(mockAuthorizationManager.canAccessRawFileHandle(mockUser, validResults.getCreatedBy())).thenReturn(false);
+		manager.getRawFileHandle(mockUser, handleId);
+	}
+	
+	@Test
+	public void testGetFileHandleAuthrozied() throws DatastoreException, NotFoundException{
+		// You must be authorized to see a file handle
+		String handleId = "123";
+		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		// allow
+		when(mockAuthorizationManager.canAccessRawFileHandle(mockUser, validResults.getCreatedBy())).thenReturn(true);
+		FileHandle handle = manager.getRawFileHandle(mockUser, handleId);
+		assertEquals("failed to get the handle", handle, validResults);
+	}
+	
+	@Test
+	public void testDeleteNotFound() throws DatastoreException, NotFoundException{
+		// Deleting a handle that no longer exists should not throw an exception.
+		String handleId = "123";
+		when(mockfileMetadataDao.get(handleId)).thenThrow(new NotFoundException());
+		manager.deleteFileHandle(mockUser, handleId);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testDeleteUnAuthorzied() throws DatastoreException, NotFoundException{
+		// Deleting a handle that no longer exists should not throw an exception.
+		String handleId = "123";
+		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		// denied!
+		when(mockAuthorizationManager.canAccessRawFileHandle(mockUser, validResults.getCreatedBy())).thenReturn(false);
+		manager.deleteFileHandle(mockUser, handleId);
+	}
+	
+	@Test
+	public void testDeleteAuthorzied() throws DatastoreException, NotFoundException{
+		// Deleting a handle that no longer exists should not throw an exception.
+		String handleId = "123";
+		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
+		// allow!
+		when(mockAuthorizationManager.canAccessRawFileHandle(mockUser, validResults.getCreatedBy())).thenReturn(true);
+		manager.deleteFileHandle(mockUser, handleId);
+		// The S3 file should get deleted.
+		verify(mockS3Client, times(1)).deleteObject(validResults.getBucketName(), validResults.getKey());
+		// The database handle should be deleted.
+		verify(mockfileMetadataDao, times(1)).delete(handleId);
+	}
+	
+	@Test
+	public void testDeleteWithPreview() throws DatastoreException, NotFoundException{
+		// Test deleting a file with a preview
+		PreviewFileHandle preview = new PreviewFileHandle();
+		preview.setId("456");
+		preview.setCreatedBy(validResults.getCreatedBy());
+		preview.setBucketName("previewBucket");
+		preview.setKey("previewKey");
+		// Assign the preview to the file
+		validResults.setPreviewId(preview.getId());
+		when(mockfileMetadataDao.get(validResults.getId())).thenReturn(validResults);
+		when(mockfileMetadataDao.get(preview.getId())).thenReturn(preview);
+		// Allow all calls
+		when(mockAuthorizationManager.canAccessRawFileHandle(any(UserInfo.class), any(String.class))).thenReturn(true);
+		// Now deleting the original handle should trigger the delete of the previews.
+		manager.deleteFileHandle(mockUser, validResults.getId());
+		// The S3 file should get deleted.
+		verify(mockS3Client, times(1)).deleteObject(validResults.getBucketName(), validResults.getKey());
+		// The database handle should be deleted.
+		verify(mockfileMetadataDao, times(1)).delete(validResults.getId());
+		// The S3 file for the preview should get deleted.
+		verify(mockS3Client, times(1)).deleteObject(preview.getBucketName(), preview.getKey());
+		// The database handle of the preview should be deleted.
+		verify(mockfileMetadataDao, times(1)).delete(preview.getId());
 	}
 
 }

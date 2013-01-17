@@ -16,7 +16,10 @@
 	<import resource="classpath:file-services-spb.xml" />
 	
 	<!-- Used to Serialize object types -->
-	<bean id="jsonEntityConverter" class="org.sagebionetworks.repo.web.controller.JSONEntityHttpMessageConverter" />
+	<bean id="jsonEntityConverter" class="org.sagebionetworks.repo.web.controller.JSONEntityHttpMessageConverter" >
+		<!-- Force all responses to JSON -->
+		<property name="convertAnyRequestToJson" value="true"/>
+	</bean>
 
 	<!-- Setup our own JSON processing. -->
 	<bean class="org.springframework.web.servlet.mvc.annotation.AnnotationMethodHandlerAdapter">

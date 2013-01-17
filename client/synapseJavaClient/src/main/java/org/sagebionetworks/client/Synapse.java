@@ -1,6 +1,9 @@
 package org.sagebionetworks.client;
 
+import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -8,6 +11,7 @@ import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.net.URLConnection;
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -75,6 +79,7 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -96,6 +101,10 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  * Low-level Java Client API for Synapse REST APIs
  */
 public class Synapse {
+
+
+
+	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
 	protected static final Logger log = Logger.getLogger(Synapse.class.getName());
 
@@ -143,6 +152,8 @@ public class Synapse {
 	protected static final String ACCESS_APPROVAL = "/accessApproval";
 	
 	protected static final String VERSION_INFO = "/version";
+	
+	protected static final String FILE_HANDLE = "/fileHandle";
 	
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
@@ -1345,36 +1356,88 @@ public class Synapse {
 	 */
 	public FileHandleResults createFileHandles(List<File> files) throws SynapseException{
 		if(files == null) throw new IllegalArgumentException("File list cannot be null");
-		String url = getFileEndpoint()+"/fileHandles";
+		String url = getFileEndpoint()+FILE_HANDLE;
 		// This call requires a multi-part request.
-		HttpPost httppost = new HttpPost(url);
-		MultipartEntity reqEntity = new MultipartEntity();
-		for(File file: files){
-			FileBody bin = new FileBody(file);
-			reqEntity.addPart("file", bin);
-		}
-		// Add the headers
-		for(String key: this.defaultPOSTPUTHeaders.keySet()){
-			String value = this.defaultPOSTPUTHeaders.get(key);
-			httppost.setHeader(key, value);
-		}
-		// Override the content type
-//		httppost.setHeader("content-type", "multipart/form-data;boundary="+reqEntity.getContentEncoding());
-		// Add the header that sets the content type and the boundary
-		httppost.setHeader(reqEntity.getContentType());
-		httppost.setHeader(reqEntity.getContentEncoding());
-		httppost.setEntity(reqEntity);
 		try {
+			HttpPost httppost = new HttpPost(url);
+			MultipartEntity reqEntity = new MultipartEntity();
+			for(File file: files){
+				// We need to determine the content type of the file
+				String contentType = guessContentTypeFromStream(file);
+				FileBody bin = new FileBody(file, contentType);
+				reqEntity.addPart("file", bin);
+			}
+			// Add the headers
+			for(String key: this.defaultPOSTPUTHeaders.keySet()){
+				String value = this.defaultPOSTPUTHeaders.get(key);
+				httppost.setHeader(key, value);
+			}
+			// Add the header that sets the content type and the boundary
+			httppost.setHeader(reqEntity.getContentType());
+			httppost.setHeader(reqEntity.getContentEncoding());
+			httppost.setEntity(reqEntity);
 			HttpResponse response = clientProvider.execute(httppost);
-			System.out.println(response);
+			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
+			return EntityFactory.createEntityFromJSONString(responseBody, FileHandleResults.class);
 			// Get the response.
 		} catch (ClientProtocolException e) {
 			throw new SynapseException(e);
 		} catch (IOException e) {
 			throw new SynapseException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}		
+	}
+	
+	/**
+	 * Get the raw file handle.
+	 * Note: Only the creator of a the file handle can get the raw file handle.
+	 * 
+	 * @param fileHandleId
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public FileHandle getRawFileHandle(String fileHandleId) throws SynapseException{
+		JSONObject object = signAndDispatchSynapseRequest(getFileEndpoint(), FILE_HANDLE+"/"+fileHandleId, "GET", null, defaultGETDELETEHeaders);
+		try {
+			return EntityFactory.createEntityFromJSONObject(object, FileHandle.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
 		}
-		return null;
-		
+	}
+	
+	/**
+	 * Delete a raw file handle.
+	 * Note: Only the creator of a the file handle can delete the file handle.
+	 * @param fileHandleId
+	 * @throws SynapseException 
+	 */
+	public void deleteFileHandle(String fileHandleId) throws SynapseException{
+		signAndDispatchSynapseRequest(getFileEndpoint(), FILE_HANDLE+"/"+fileHandleId, "DELETE", null, defaultGETDELETEHeaders);
+	}
+
+	/**
+	 * Guess the content type of a file by reading the start of the file stream using
+	 * URLConnection.guessContentTypeFromStream(is);
+	 * If URLConnection fails to return a content type then "application/octet-stream" will be returned.
+	 * @param file
+	 * @return
+	 * @throws FileNotFoundException
+	 * @throws IOException
+	 */
+	public static String guessContentTypeFromStream(File file)	throws FileNotFoundException, IOException {
+		InputStream is = new BufferedInputStream(new FileInputStream(file));
+		try{
+			// Let java guess from the stream.
+			String contentType = URLConnection.guessContentTypeFromStream(is);
+			// If Java fails then set the content type to be octet-stream
+			if(contentType == null){
+				contentType = APPLICATION_OCTET_STREAM;
+			}
+			return contentType;
+		}finally{
+			is.close();
+		}
 	}
 
 	/**
