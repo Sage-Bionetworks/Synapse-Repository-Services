@@ -1,9 +1,9 @@
 package org.sagebionetworks;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.io.File;
 import java.io.IOException;
@@ -26,8 +26,6 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
-
-import com.amazonaws.services.sns.model.NotFoundException;
 
 public class IT049FileHandleTest {
 	
@@ -67,7 +65,7 @@ public class IT049FileHandleTest {
 	public void before() throws SynapseException {
 		toDelete = new ArrayList<S3FileHandle>();
 		// Get the image file from the classpath.
-		URL url = IT100BackupRestoration.class.getClassLoader().getResource("images/"+FILE_NAME);
+		URL url = IT049FileHandleTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
 		
 	}
