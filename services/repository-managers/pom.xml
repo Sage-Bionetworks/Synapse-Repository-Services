@@ -119,6 +119,11 @@
 			<version>0.6</version>
 		</dependency>
 
+		<!--  file upload -->
+		<dependency>
+			<groupId>commons-fileupload</groupId>
+			<artifactId>commons-fileupload</artifactId>
+		</dependency>
 
 	</dependencies>
 

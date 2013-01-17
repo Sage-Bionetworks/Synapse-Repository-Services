@@ -7,6 +7,11 @@ package org.sagebionetworks.ids;
  */
 public interface IdGenerator {
 	
+	public enum TYPE {
+		DOMAIN_IDS,
+		FILE_IDS,
+	}
+	
 
 	/**
 	 * Generate a new Id.
@@ -15,9 +20,15 @@ public interface IdGenerator {
 	public Long generateNewId();
 	
 	/**
+	 * Generate a new Id.
+	 * @return
+	 */
+	public Long generateNewId(TYPE type);
+	
+	/**
 	 * Ensure that the given ID is reserved.  If the ID is not already reserved then, 
 	 * this method will reserve it and all values below it.
 	 * @param idToLock
 	 */
-	public void reserveId(Long idToLock);
+	public void reserveId(Long idToLock, TYPE type);
 }

@@ -18,6 +18,8 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public class CompetitionManagerTest {
@@ -27,8 +29,10 @@ public class CompetitionManagerTest {
 	
 	private static CompetitionDAO mockCompetitionDAO;
 	
-	private static final String OWNER_ID = "123";
-	private static final String USER_ID = "456";
+	private static final Long OWNER_ID = 123L;
+	private static final Long USER_ID = 456L;
+	private static UserInfo ownerInfo;
+	private static UserInfo userInfo;
 	
 	private static final String COMPETITION_NAME = "test-competition";
     private static final String COMPETITION_ID = "foo";
@@ -39,12 +43,18 @@ public class CompetitionManagerTest {
     public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {    	
     	// Competition DAO
     	mockCompetitionDAO = mock(CompetitionDAO.class);
-    	    	
+    	
+    	// UserInfo
+    	ownerInfo = UserInfoUtils.createValidUserInfo();
+    	ownerInfo.getIndividualGroup().setId(OWNER_ID.toString());
+    	userInfo = UserInfoUtils.createValidUserInfo();
+    	userInfo.getIndividualGroup().setId(USER_ID.toString());
+    	
 		// Competition
 		comp = new Competition();
 		comp.setName(COMPETITION_NAME);
 		comp.setId(COMPETITION_ID);
-		comp.setOwnerId(OWNER_ID);
+		comp.setOwnerId(ownerInfo.getIndividualGroup().getId());
         comp.setContentSource(COMPETITION_CONTENT_SOURCE);
         comp.setStatus(CompetitionStatus.PLANNED);
         comp.setCreatedOn(new Date());
@@ -59,7 +69,7 @@ public class CompetitionManagerTest {
 	
 	@Test
 	public void testCreateCompetition() throws Exception {		
-		Competition clone = competitionManager.createCompetition(OWNER_ID, comp);
+		Competition clone = competitionManager.createCompetition(ownerInfo, comp);
 		assertEquals("'create' returned unexpected Competition ID", comp, clone);
 		verify(mockCompetitionDAO).create(eq(comp), eq(OWNER_ID));
 	}
@@ -73,14 +83,14 @@ public class CompetitionManagerTest {
 	
 	@Test
 	public void testUpdateCompetitionAsOwner() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
-		competitionManager.updateCompetition(OWNER_ID, comp);
+		competitionManager.updateCompetition(ownerInfo, comp);
 		verify(mockCompetitionDAO).update(eq(comp));
 	}
 	
 	@Test
 	public void testUpdateCompetitionAsUser() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException {
 		try {
-			competitionManager.updateCompetition(USER_ID, comp);
+			competitionManager.updateCompetition(userInfo, comp);
 			fail("User should not have permission to update competition");
 		} catch (UnauthorizedException e) {
 			// expected
@@ -105,7 +115,7 @@ public class CompetitionManagerTest {
 		// note that the Competition Manager relies on EntityNameValidation.java
 		comp.setName("$ This is an invalid name");
 		try {
-			competitionManager.createCompetition(OWNER_ID, comp);			
+			competitionManager.createCompetition(ownerInfo, comp);			
 		} catch (IllegalArgumentException e) {
 			// expected
 			assertTrue(e.getMessage().toLowerCase().contains("name"));			
@@ -116,9 +126,9 @@ public class CompetitionManagerTest {
 	@Test
 	public void testIsAdmin() throws DatastoreException, UnauthorizedException, NotFoundException {
 		assertTrue("Owner should be an admin of their own Competition", 
-				competitionManager.isCompAdmin(OWNER_ID, COMPETITION_ID));
+				competitionManager.isCompAdmin(OWNER_ID.toString(), COMPETITION_ID));
 		assertFalse("Non-owner user should NOT be an admin of this Competition", 
-				competitionManager.isCompAdmin(USER_ID, COMPETITION_ID));
+				competitionManager.isCompAdmin(USER_ID.toString(), COMPETITION_ID));
 	}
 
 }

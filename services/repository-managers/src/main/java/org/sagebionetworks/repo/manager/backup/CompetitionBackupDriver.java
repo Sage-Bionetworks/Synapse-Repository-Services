@@ -171,7 +171,7 @@ public class CompetitionBackupDriver implements GenericBackupDriver {
 		} catch (NotFoundException e) {}
 		if (null == existingComp) {
 			// create
-			competitionDAO.create(competition, competition.getOwnerId());
+			competitionDAO.create(competition, Long.parseLong(competition.getOwnerId()));
 		} else {
 			// update only when backup is different from the current system
 			if (existingComp.getEtag().equals(competition.getEtag())) {

@@ -109,6 +109,22 @@ public class SqlConstants {
 	public static final String COL_CHANGES_OBJECT_ETAG				= "OBJECT_ETAG";
 	public static final String COL_CHANGES_CHANGE_TYPE				= "CHANGE_TYPE";
 	public static final String DDL_CHANGES							= "schema/Changes-ddl.sql";
+	
+	// The file metada table
+	public static final String TABLE_FILES							= "FILES";
+	public static final String COL_FILES_ID							= "ID";
+	public static final String COL_FILES_ETAG						= "ETAG";
+	public static final String COL_FILES_PREVIEW_ID					= "PREVIEW_ID";
+	public static final String COL_FILES_CREATED_BY					= "CREATED_BY";
+	public static final String COL_FILES_CREATED_ON					= "CREATED_ON";
+	public static final String COL_FILES_METADATA_TYPE				= "METADATA_TYPE";
+	public static final String COL_FILES_CONTENT_TYPE				= "CONTENT_TYPE";
+	public static final String COL_FILES_CONTENT_SIZE				= "CONTENT_SIZE";
+	public static final String COL_FILES_CONTENT_MD5				= "CONTENT_MD5";
+	public static final String COL_FILES_BUCKET_NAME				= "BUCKET_NAME";
+	public static final String COL_FILES_KEY						= "KEY";
+	public static final String COL_FILES_NAME						= "NAME";
+	public static final String DDL_FILES							= "schema/Files-ddl.sql";
 
 	// 
 	public static final String COL_STACK_STATUS_STATUS				= "STATUS";

@@ -7,6 +7,7 @@ import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface SubmissionManager {
@@ -37,12 +38,12 @@ public interface SubmissionManager {
 	/**
 	 * Create a Submission.
 	 * 
-	 * @param userId
+	 * @param userInfo
 	 * @param submission
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public Submission createSubmission(String userId, Submission submission)
+	public Submission createSubmission(UserInfo userInfo, Submission submission)
 			throws NotFoundException;
 
 	/**
@@ -50,12 +51,12 @@ public interface SubmissionManager {
 	 * requesting user must be an admin of the Competition for which this
 	 * Submission was created.
 	 * 
-	 * @param userId
+	 * @param userInfo
 	 * @param submissionStatus
 	 * @return
 	 * @throws NotFoundException
 	 */
-	public SubmissionStatus updateSubmissionStatus(String userId,
+	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo,
 			SubmissionStatus submissionStatus) throws NotFoundException;
 
 	/**
@@ -64,13 +65,13 @@ public interface SubmissionManager {
 	 * 
 	 * Use of this method is discouraged, since Submissions should be immutable.
 	 * 
-	 * @param userId
+	 * @param userInfo
 	 * @param submissionId
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
 	@Deprecated
-	public void deleteSubmission(String userId, String submissionId)
+	public void deleteSubmission(UserInfo userInfo, String submissionId)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -80,7 +81,7 @@ public interface SubmissionManager {
 	 * If a SubmissionStatusEnum is provided, results will be filtered
 	 * accordingly.
 	 * 
-	 * @param userId
+	 * @param userInfo
 	 * @param compId
 	 * @param status
 	 * @return
@@ -88,7 +89,7 @@ public interface SubmissionManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public List<Submission> getAllSubmissions(String userId, String compId,
+	public List<Submission> getAllSubmissions(UserInfo userInfo, String compId,
 			SubmissionStatusEnum status) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 

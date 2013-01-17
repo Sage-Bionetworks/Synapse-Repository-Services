@@ -33,7 +33,8 @@
 				"PRINCIPAL",
 				"ACTIVITY",
 				"COMPETITION",
-				"SUBMISSION"
+				"SUBMISSION",
+				"FILE"
 			]
 		},
 		"changeType": {

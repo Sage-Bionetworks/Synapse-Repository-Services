@@ -1,8 +1,5 @@
 package org.sagebionetworks.ids;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.StringWriter;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -29,22 +26,23 @@ import org.springframework.transaction.annotation.Transactional;
 @Transactional(readOnly = false)
 public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	
-	// The table name
-	public static String TABLE_DOMAIN_ID = "DOMAIN_IDS";
+	// Create table template
+	private static final String CREATE_TABLE_TEMPLATE = "CREATE TABLE %1$S (ID bigint(20) NOT NULL AUTO_INCREMENT, CREATED_ON bigint(20) NOT NULL, PRIMARY KEY (ID)) ENGINE=InnoDB AUTO_INCREMENT=0";
+
 	// The file that defines the table
 	public static String SCHEMA_FILE = "domain-id-schema.sql";
 	// Insert a single row into the database
-	public static final String INSERT_SQL = "INSERT INTO "+TABLE_DOMAIN_ID+" (CREATED_ON) VALUES (?)";
+	public static final String INSERT_SQL = "INSERT INTO %1$S (CREATED_ON) VALUES (?)";
 	
 	// This version sets the value to insert.  This is used to reserve the ID and all values less than the ID.
-	public static final String INSERT_SQL_INCREMENT = "INSERT INTO "+TABLE_DOMAIN_ID+" (ID, CREATED_ON) VALUES (?, ?)";
+	public static final String INSERT_SQL_INCREMENT = "INSERT INTO %1$S (ID, CREATED_ON) VALUES (?, ?)";
 	// Get the current max.
-	public static final String MAX_ID = "SELECT MAX(ID) FROM "+TABLE_DOMAIN_ID;
+	public static final String MAX_ID = "SELECT MAX(ID) FROM %1$S";
 
 	// Fetch the newly created id.
 	public static final String GET_ID_SQL = "SELECT LAST_INSERT_ID()";
 	// Determine if the table exists
-	public static final String TABLE_EXISTS_SQL_PERFIX = "SELECT TABLE_NAME FROM Information_schema.tables WHERE table_name = '"+TABLE_DOMAIN_ID+"' AND table_schema = '";
+	public static final String TABLE_EXISTS_SQL_PERFIX = "SELECT TABLE_NAME FROM Information_schema.tables WHERE table_name = '%1$S' AND table_schema = '%2$s'";
 	
 	@Autowired
 	JdbcTemplate idGeneratorJdbcTemplate;
@@ -52,34 +50,44 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 	StackConfiguration stackConfiguration;
 	@Autowired
 	DataSourceTransactionManager idGeneratorTransactionManager;
-
+	
 	/**
 	 * This call occurs in its own transaction.
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public Long generateNewId() {
+		// Use the default domain
+		return generateNewId(TYPE.DOMAIN_IDS);
+	}
+
+	/**
+	 * This call occurs in its own transaction.
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Override
+	public Long generateNewId(TYPE type) {
 		// Create a new time
 		final long now = System.currentTimeMillis();
-		idGeneratorJdbcTemplate.update(INSERT_SQL, new PreparedStatementSetter(){
+		idGeneratorJdbcTemplate.update(String.format(INSERT_SQL, type.name()), new PreparedStatementSetter(){
 			@Override
 			public void setValues(PreparedStatement ps) throws SQLException {
 				ps.setLong(1, now);
 				
 			}});
 		// Get the ID we just created.
-		return idGeneratorJdbcTemplate.queryForLong(GET_ID_SQL);
+		return idGeneratorJdbcTemplate.queryForLong(String.format(GET_ID_SQL, type.name()));
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
-	public void reserveId(final Long idToLock) {
+	public void reserveId(final Long idToLock, TYPE type) {
 		if(idToLock == null) throw new IllegalArgumentException("ID to reserve cannot be null");
 		// First check if this value is greater than the last value
-		Long max = idGeneratorJdbcTemplate.queryForLong(MAX_ID);
+		Long max = idGeneratorJdbcTemplate.queryForLong(String.format(MAX_ID, type.name()));
 		if(idToLock > max){
 			final long now = System.currentTimeMillis();
-			idGeneratorJdbcTemplate.update(INSERT_SQL_INCREMENT, new PreparedStatementSetter(){
+			idGeneratorJdbcTemplate.update(String.format(INSERT_SQL_INCREMENT, type.name()), new PreparedStatementSetter(){
 				@Override
 				public void setValues(PreparedStatement ps) throws SQLException {
 					ps.setLong(1, idToLock);
@@ -99,20 +107,24 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		// First make sure the table exists
 		String connectionString = stackConfiguration.getIdGeneratorDatabaseConnectionUrl();
 		String schema = getSchemaFromConnectionString(connectionString);
-		String sql = TABLE_EXISTS_SQL_PERFIX+schema+"'";
-		List<Map<String, Object>> list = idGeneratorJdbcTemplate.queryForList(sql);
-		// If the table does not exist then create it.
-		if(list.size() > 1) throw new RuntimeException("Found more than one table named: "+TABLE_DOMAIN_ID);
-		if(list.size() == 0){
-			// Create the table 
-			String tableDDL = loadSchemaSql();
-			idGeneratorJdbcTemplate.execute(tableDDL);
-			// Make sure it exists
-			List<Map<String, Object>> second = idGeneratorJdbcTemplate.queryForList(sql);
-			if(second.size() != 1){
-				throw new RuntimeException("Failed to create the domain table: "+TABLE_DOMAIN_ID+" using connection: "+connectionString);
+		// Make sure we have a table for each type
+		for(TYPE type: TYPE.values()){
+			// Does this table exist?
+			String sql = String.format(TABLE_EXISTS_SQL_PERFIX, type.name(), schema);
+			List<Map<String, Object>> list = idGeneratorJdbcTemplate.queryForList(sql);
+			// If the table does not exist then create it.
+			if(list.size() > 1) throw new RuntimeException("Found more than one table named: "+type.name());
+			if(list.size() == 0){
+				// Create the table 
+				idGeneratorJdbcTemplate.execute(String.format(CREATE_TABLE_TEMPLATE, type.name()));
+				// Make sure it exists
+				List<Map<String, Object>> second = idGeneratorJdbcTemplate.queryForList(sql);
+				if(second.size() != 1){
+					throw new RuntimeException("Failed to create the domain table: "+type.name()+" using connection: "+connectionString);
+				}
 			}
 		}
+
 	}
 	
 	/**
@@ -125,29 +137,6 @@ public class IdGeneratorImpl implements IdGenerator, InitializingBean{
 		int index = connectionString.lastIndexOf("/");
 		if(index < 0) throw new RuntimeException("Failed to extract the schema from the ID database connection string");
 		return connectionString.substring(index+1, connectionString.length());
-	}
-	
-	/**
-	 * Load the schema file from the classpath.
-	 * @return
-	 * @throws IOException 
-	 */
-	public static String loadSchemaSql() throws IOException{
-		InputStream in = IdGeneratorImpl.class.getClassLoader().getResourceAsStream(SCHEMA_FILE);
-		if(in == null){
-			throw new RuntimeException("Failed to load the schema file from the classpath: "+SCHEMA_FILE);
-		}
-		try{
-			StringWriter writer = new StringWriter();
-			byte[] buffer = new byte[1024];
-			int count = -1;
-			while((count = in.read(buffer, 0, buffer.length)) >0){
-				writer.write(new String(buffer, 0, count, "UTF-8"));
-			}
-			return writer.toString();
-		}finally{
-			in.close();
-		}
 	}
 
 }
