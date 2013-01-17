@@ -23,7 +23,10 @@ import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.util.EntityUtils;
+import org.apache.http.entity.mime.MultipartEntity;
+import org.apache.http.entity.mime.content.FileBody;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.json.JSONException;
@@ -72,6 +75,7 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
@@ -150,6 +154,7 @@ public class Synapse {
 	
 	protected String repoEndpoint;
 	protected String authEndpoint;
+	protected String fileEndpoint;
 
 	protected Map<String, String> defaultGETDELETEHeaders;
 	protected Map<String, String> defaultPOSTPUTHeaders;
@@ -184,6 +189,7 @@ public class Synapse {
 
 		setRepositoryEndpoint(DEFAULT_REPO_ENDPOINT);
 		setAuthEndpoint(DEFAULT_AUTH_ENDPOINT);
+		setFileEndpoint(DEFAULT_FILE_ENDPOINT);
 
 		defaultGETDELETEHeaders = new HashMap<String, String>();
 		defaultGETDELETEHeaders.put("Accept", "application/json");
@@ -250,6 +256,22 @@ public class Synapse {
 		return authEndpoint;
 	}
 	
+	/**
+	 * @param fileEndpoint
+	 *            the authEndpoint to set
+	 */
+	public void setFileEndpoint(String fileEndpoint) {
+		this.fileEndpoint = fileEndpoint;
+	}
+	
+	/**
+	 * The endpoint used for file multi-part upload.
+	 * 
+	 * @return
+	 */
+	public String getFileEndpoint(){
+		return this.fileEndpoint;
+	}
 	/**
 	 * @param request
 	 */
@@ -1311,6 +1333,48 @@ public class Synapse {
 	 */
 	public JSONObject query(String query) throws SynapseException {
 		return querySynapse(repoEndpoint, query);
+	}
+	
+	/**
+	 * Upload each file to Synapse creating a file handle for each.
+	 * 
+	 * @param files
+	 * @return
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 */
+	public FileHandleResults createFileHandles(List<File> files) throws SynapseException{
+		if(files == null) throw new IllegalArgumentException("File list cannot be null");
+		String url = getFileEndpoint()+"/fileHandles";
+		// This call requires a multi-part request.
+		HttpPost httppost = new HttpPost(url);
+		MultipartEntity reqEntity = new MultipartEntity();
+		for(File file: files){
+			FileBody bin = new FileBody(file);
+			reqEntity.addPart("file", bin);
+		}
+		// Add the headers
+		for(String key: this.defaultPOSTPUTHeaders.keySet()){
+			String value = this.defaultPOSTPUTHeaders.get(key);
+			httppost.setHeader(key, value);
+		}
+		// Override the content type
+//		httppost.setHeader("content-type", "multipart/form-data;boundary="+reqEntity.getContentEncoding());
+		// Add the header that sets the content type and the boundary
+		httppost.setHeader(reqEntity.getContentType());
+		httppost.setHeader(reqEntity.getContentEncoding());
+		httppost.setEntity(reqEntity);
+		try {
+			HttpResponse response = clientProvider.execute(httppost);
+			System.out.println(response);
+			// Get the response.
+		} catch (ClientProtocolException e) {
+			throw new SynapseException(e);
+		} catch (IOException e) {
+			throw new SynapseException(e);
+		}
+		return null;
+		
 	}
 
 	/**

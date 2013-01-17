@@ -23,9 +23,12 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Controller
 public class UploadController extends BaseController {
@@ -109,8 +112,9 @@ public class UploadController extends BaseController {
 	 * @throws ServiceUnavailableException 
 	 * @throws JSONObjectAdapterException 
 	 */
+	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping("/fileHandles")
-	void uploadFiles(HttpServletRequest request, HttpServletResponse response, @RequestHeader HttpHeaders headers)	throws FileUploadException, IOException, DatastoreException, NotFoundException, ServiceUnavailableException, JSONObjectAdapterException {
+	public @ResponseBody FileHandleResults uploadFiles(HttpServletRequest request, HttpServletResponse response, @RequestHeader HttpHeaders headers)	throws FileUploadException, IOException, DatastoreException, NotFoundException, ServiceUnavailableException, JSONObjectAdapterException {
 		// Get the user ID
 		String userId = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		if(userId == null) throw new UnauthorizedException("The user must be authenticated");
@@ -120,10 +124,8 @@ public class UploadController extends BaseController {
 			throw new IllegalArgumentException("This service only supports: content-type = multipart/form-data");
 		}
 		// Pass it along.
-		FileHandleResults results = fileService.uploadFiles(userId, new ServletFileUpload().getItemIterator(request));
-		response.setStatus(201);
 		response.setContentType("application/json");
-		response.getWriter().append(EntityFactory.createJSONStringForEntity(results));
+		return fileService.uploadFiles(userId, new ServletFileUpload().getItemIterator(request));
 	}
 	
 }

@@ -19,7 +19,7 @@
 
 	<filter-mapping>
 		<filter-name>cookieFilter</filter-name>
-		<url-pattern>/upload/*</url-pattern>
+		<url-pattern>/file/*</url-pattern>
 	</filter-mapping>
 	
 	<filter>
@@ -33,7 +33,7 @@
 
 	<filter-mapping>
 		<filter-name>CrowdAuth</filter-name>
-		<url-pattern>/upload/*</url-pattern>
+		<url-pattern>/file/*</url-pattern>
 	</filter-mapping>
 
 	<!-- The context params that read by ContextLoaderListener -->

@@ -118,6 +118,12 @@ public interface TemplatedConfiguration {
 	public String getRepositoryServiceEndpoint();
 	
 	/**
+	 * Get the file service Endpoint.
+	 * @return
+	 */
+	public String getFileServiceEndpoint();
+	
+	/**
 	 * 
 	 * @return search service endpoint
 	 */

@@ -19,6 +19,7 @@
 		<org.sagebionetworks.authenticationservice.privateendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.privateendpoint>
 		<org.sagebionetworks.authenticationservice.publicendpoint>http://localhost:8080/services-authentication-${project.version}/auth/v1</org.sagebionetworks.authenticationservice.publicendpoint>
 		<org.sagebionetworks.repositoryservice.endpoint>http://localhost:8080/services-repository-${project.version}/repo/v1</org.sagebionetworks.repositoryservice.endpoint>
+		<org.sagebionetworks.fileservice.endpoint>http://localhost:8080/services-file-${project.version}/file/v1</org.sagebionetworks.fileservice.endpoint>
 		<org.sagebionetworks.searchservice.endpoint>http://localhost:8080/repository-search-${project.version}/search/v1</org.sagebionetworks.searchservice.endpoint>
 		<org.sagebionetworks.portal.endpoint>http://localhost:8080/portal-${project.version}/Portal</org.sagebionetworks.portal.endpoint>
 		<!-- This is where the repository war will be deployed -->
@@ -179,6 +180,11 @@
 							<artifactId>services-rds</artifactId>
 							<type>war</type>
 						</deployable>
+						<deployable>
+							<groupId>org.sagebionetworks</groupId>
+							<artifactId>services-file</artifactId>
+							<type>war</type>
+						</deployable>
 					</deployables>
 				</configuration>
 
@@ -226,6 +232,12 @@
 			<groupId>javax.servlet</groupId>
 			<artifactId>com.springsource.javax.servlet</artifactId>
 			<scope>provided</scope>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>services-file</artifactId>
+			<type>war</type>
 		</dependency>
 
 		<dependency>
