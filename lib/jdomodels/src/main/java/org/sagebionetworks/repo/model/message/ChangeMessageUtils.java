@@ -120,7 +120,14 @@ public class ChangeMessageUtils {
 				if(one.getObjectId() == null) throw new IllegalArgumentException("one.getObjectId() cannot be null");
 				if(two == null) throw new IllegalArgumentException("DBOChange cannot be null");
 				if(two.getObjectId() == null) throw new IllegalArgumentException("two.getObjectId() cannot be null");
-				return one.getObjectId().compareTo(two.getObjectId());
+				// First sort by ID
+				int idOrder = one.getObjectId().compareTo(two.getObjectId());
+				if(idOrder == 0){
+					// When equal sort by type.
+					return one.getObjectType().name().compareTo(two.getObjectType().name());
+				}else{
+					return idOrder;
+				}
 			}
 		});
 		return list;

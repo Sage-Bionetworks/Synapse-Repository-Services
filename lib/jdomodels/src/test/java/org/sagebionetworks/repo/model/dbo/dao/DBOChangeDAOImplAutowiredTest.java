@@ -7,10 +7,18 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
+import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -18,12 +26,13 @@ import org.sagebionetworks.repo.model.message.ChangeMessageUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DeadlockLoserDataAccessException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class DBOChangeDAOImplTest {
+public class DBOChangeDAOImplAutowiredTest {
 	
 	@Autowired
 	DBOChangeDAO changeDAO;
@@ -58,6 +67,39 @@ public class DBOChangeDAOImplTest {
 		long secondChangeNumber = clone.getChangeNumber();
 		System.out.println(clone);
 		assertTrue(secondChangeNumber > firstChangeNumber);
+	}
+	
+	/**
+	 * ObjectIds can be duplicated, so make sure replace uses a composite key.
+	 */
+	@Test
+	public void testReplaceDuplicateObjectId(){
+		ChangeMessage changeOne = new ChangeMessage();
+		changeOne.setObjectId("123");
+		changeOne.setObjectEtag("myEtag");
+		changeOne.setChangeType(ChangeType.CREATE);
+		changeOne.setObjectType(ObjectType.ACTIVITY);
+		ChangeMessage clone = changeDAO.replaceChange(changeOne);
+		// Now create a second change with the same id but different type.
+		ChangeMessage changeTwo = new ChangeMessage();
+		changeTwo.setObjectId(changeOne.getObjectId());
+		changeTwo.setObjectEtag("myEtag");
+		changeTwo.setChangeType(ChangeType.CREATE);
+		changeTwo.setObjectType(ObjectType.PRINCIPAL);
+		ChangeMessage clonetwo = changeDAO.replaceChange(changeTwo);
+		// Now we should see both changes listed
+		List<ChangeMessage> list = changeDAO.listChanges(0, ObjectType.ACTIVITY, 100);
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		ChangeMessage message =  list.get(0);
+		assertEquals(ObjectType.ACTIVITY, message.getObjectType());
+		// Check the principal list
+		list = changeDAO.listChanges(0, ObjectType.PRINCIPAL, 100);
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		message =  list.get(0);
+		assertEquals(ObjectType.PRINCIPAL, message.getObjectType());
+		
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -148,6 +190,25 @@ public class DBOChangeDAOImplTest {
 			assertTrue(id > previous);
 			previous = id;
 		}
+	}
+	
+	@Test
+	public void testSortByIdSameIdDifferentType(){
+		List<ChangeMessage> batch = new LinkedList<ChangeMessage>();
+		ChangeMessage message = new ChangeMessage();
+		message.setObjectId("123");
+		message.setObjectType(ObjectType.PRINCIPAL);
+		batch.add(message);
+		message = new ChangeMessage();
+		message.setObjectId("123");
+		message.setObjectType(ObjectType.ACTIVITY);
+		batch.add(message);
+		// Now sort
+		batch = ChangeMessageUtils.sortByObjectId(batch);
+		assertNotNull(batch);
+		// the activity should be first now
+		assertEquals("Activity should have been placed before principal",ObjectType.ACTIVITY, batch.get(0).getObjectType());
+		assertEquals("Activity should have been placed before principal",ObjectType.PRINCIPAL, batch.get(1).getObjectType());
 	}
 	
 	@Test
@@ -252,6 +313,38 @@ public class DBOChangeDAOImplTest {
 		assertEquals(expectedFiltered, list);
 	}
 
+	// TODO: PLFM-1631 for a load test framework outside this package
+	// TODO: PLFM-1659 the test is failing occasionally for deadlocks on the primary index
+	@Ignore
+	public void testForDeadlocks() throws Exception {
+		final int numOfTasks = 1000;
+		final int numOfThreads = 10;
+		// Create the list of tasks
+		List<ReplaceChange> taskList = new ArrayList<ReplaceChange>(numOfTasks);
+		for (int i = 0; i < 100; i++) {
+			ChangeMessage change = new ChangeMessage();
+			change.setObjectId("829165202913" + (i % 3)); // Simulate gap lock on the OBJECT_ID column
+			change.setObjectType(ObjectType.ENTITY);
+			change.setObjectEtag(Long.toString(System.currentTimeMillis()));
+			change.setChangeType(ChangeType.UPDATE);
+			change.setTimestamp(new Date());
+			taskList.add(new ReplaceChange(change));
+		}
+		// Send the list of changes to a pool of threads
+		ExecutorService exe = Executors.newFixedThreadPool(numOfThreads);
+		try {
+			List<Future<Boolean>> results = exe.invokeAll(taskList, 60, TimeUnit.SECONDS);
+			for (Future<Boolean> future : results) {
+				if (!future.get()) {
+					Assert.fail("Deadlock detected.");
+				}
+			}
+		} finally {
+			exe.shutdown();
+			exe.awaitTermination(60, TimeUnit.SECONDS);
+		}
+	}
+
 	/**
 	 * Helper to build up a list of changes.
 	 * @param numChangesInBatch
@@ -274,4 +367,19 @@ public class DBOChangeDAOImplTest {
 		return batch;
 	}
 
+	private class ReplaceChange implements Callable<Boolean> {
+		private final ChangeMessage change;
+		private ReplaceChange(ChangeMessage change) {
+			this.change = change;
+		}
+		@Override
+		public Boolean call() throws Exception {
+			try {
+				changeDAO.replaceChange(change);
+				return Boolean.TRUE;
+			} catch (DeadlockLoserDataAccessException e) {
+				return Boolean.FALSE;
+			}
+		}
+	}
 }

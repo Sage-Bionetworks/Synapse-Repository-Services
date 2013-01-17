@@ -176,12 +176,16 @@
 		},
 		{
 			"validParentTypes":[
-				"org.sagebionetworks.repo.model.Folder",
-				"org.sagebionetworks.repo.model.Project"
+                "org.sagebionetworks.repo.model.Folder",
+				"org.sagebionetworks.repo.model.Page"
 			],
-			"name": "file",
-			"entityType": "org.sagebionetworks.repo.model.File",
-			"defaultParentPath": "/root"
+			"aliases":[
+				"page"
+			],
+			"name":"page",
+			"entityType":"org.sagebionetworks.repo.model.Page",
+			"defaultParentPath":"/root"
 		}
+		
     ]
 }

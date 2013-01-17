@@ -20,14 +20,14 @@ public class TransactionSynchronizationProxyImpl implements TransactionSynchroni
 	}
 
 	@Override
-	public void bindResource(String key, Map<String, ChangeMessage> value) {
+	public void bindResource(String key, Map<ChangeMessageKey, ChangeMessage> value) {
 		TransactionSynchronizationManager.bindResource(key, value);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public Map<String, ChangeMessage> getResource(String key) {
-		return (Map<String, ChangeMessage>) TransactionSynchronizationManager.getResource(key);
+	public Map<ChangeMessageKey, ChangeMessage> getResource(String key) {
+		return (Map<ChangeMessageKey, ChangeMessage>) TransactionSynchronizationManager.getResource(key);
 	}
 
 	@Override
