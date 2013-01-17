@@ -8,6 +8,7 @@ import java.util.Map;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -83,6 +84,14 @@ public class AcceptAllCertificateHttpClientProvider implements HttpClientProvide
 		HttpClient client = getSingleton();
 		FileInputStream in = new FileInputStream(toPut);
 		HttpClientHelper.putStream(client, requestUrl, in, toPut.length(), requestHeaders);
+	}
+
+
+	@Override
+	public HttpResponse execute(HttpUriRequest request)
+			throws ClientProtocolException, IOException {
+		HttpClient client = DefaultHttpClientSingleton.getInstance();
+		return client.execute(request);
 	}
 
 }

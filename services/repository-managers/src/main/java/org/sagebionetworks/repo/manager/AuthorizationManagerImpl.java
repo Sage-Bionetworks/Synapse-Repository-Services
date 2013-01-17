@@ -190,4 +190,12 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		// no access found to generated entities, no access
 		return false;
 	}
+
+	@Override
+	public boolean canAccessRawFileHandle(UserInfo userInfo, String creator) {
+		// Admins can see anything.
+		if (userInfo.isAdmin()) return true;
+		// Only the creator can see the raw file handle
+		return userInfo.getIndividualGroup().getId().equals(creator);
+	}
 }

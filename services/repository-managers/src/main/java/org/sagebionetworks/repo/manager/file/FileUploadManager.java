@@ -6,8 +6,11 @@ import java.util.Set;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
 /**
@@ -40,5 +43,24 @@ public interface FileUploadManager {
 	 * @throws ServiceUnavailableException
 	 */
 	public S3FileHandle uploadFile(String userId, FileItemStream fis)	throws IOException, ServiceUnavailableException;
+
+	/**
+	 * Get a file handle for a user.
+	 * Note: Only the creator of the FileHandle can access it.
+	 * @param userInfo
+	 * @param handleId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	FileHandle getRawFileHandle(UserInfo userInfo, String handleId) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Delete a file handle
+	 * @param userInfo
+	 * @param handleId
+	 * @throws DatastoreException
+	 */
+	void deleteFileHandle(UserInfo userInfo, String handleId) throws DatastoreException;
 
 }

@@ -98,6 +98,10 @@ public class StackConfiguration {
 		return configuration.getRepositoryServiceEndpoint();
 	}
 	
+	public static String getFileServiceEndpoint() {
+		return configuration.getFileServiceEndpoint();
+	}
+	
 	public static String getSearchServiceEndpoint() {
 		return configuration.getSearchServiceEndpoint();
 	}
