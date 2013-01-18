@@ -72,8 +72,8 @@
 		class="org.sagebionetworks.repo.web.service.ActivityServiceImpl" />
 
 	<!-- The NodeLineageQuery Service -->
-	<bean id="nodeLineageQueryService"
-		class="org.sagebionetworks.repo.web.service.NodeLineageQueryServiceImpl" />
+	<bean id="nodeTreeQueryService"
+		class="org.sagebionetworks.repo.web.service.NodeTreeQueryServiceImpl" />
 		
 	<!-- The Competition Service -->
 	<bean id="competitionService"
