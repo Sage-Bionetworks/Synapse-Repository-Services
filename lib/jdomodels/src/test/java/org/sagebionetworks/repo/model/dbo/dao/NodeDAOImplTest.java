@@ -2007,7 +2007,7 @@ public class NodeDAOImplTest {
 			map.put(npr.getId(), npr);
 		}
 
-		results = this.nodeDao.getParentRelations(0, 1000);
+		results = this.nodeDao.getParentRelations(3, 1000);
 		assertNotNull(results);
 		assertTrue(results.getTotalNumberOfResults() > 4);
 		rList = results.getResults();
