@@ -278,6 +278,11 @@
 				<artifactId>httpclient</artifactId>
 				<version>4.1.1</version>
 			</dependency>
+			<dependency>
+				<groupId>org.apache.httpcomponents</groupId>
+				<artifactId>httpmime</artifactId>
+				<version>4.1.1</version>
+			</dependency>
 
 			<!-- Synapse internal dependencies -->
 			<dependency>
@@ -331,6 +336,12 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>services-rds</artifactId>
+				<version>${project.version}</version>
+				<type>war</type>
+			</dependency>
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>services-file</artifactId>
 				<version>${project.version}</version>
 				<type>war</type>
 			</dependency>

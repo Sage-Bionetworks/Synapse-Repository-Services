@@ -12,7 +12,6 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityClassHelper;
-import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.util.JSONEntityUtil;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -30,6 +29,20 @@ import org.springframework.http.converter.HttpMessageNotWritableException;
 public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSONEntity> {
 
 	private List<MediaType> supportedMedia;
+	/**
+	 * When set to true, this message converter will attempt to convert any object to JSON.
+	 */
+	boolean convertAnyRequestToJson = false;
+	
+	/**
+	 *  When set to true, this message converter will attempt to convert any object to JSON
+	 *  regardless of the requested type.
+	 *  
+	 * @param convertAnyRequestToJson
+	 */
+	public void setConvertAnyRequestToJson(boolean convertAnyRequestToJson) {
+		this.convertAnyRequestToJson = convertAnyRequestToJson;
+	}
 
 	public JSONEntityHttpMessageConverter() {
 		supportedMedia = new ArrayList<MediaType>();
@@ -38,8 +51,14 @@ public class JSONEntityHttpMessageConverter implements	HttpMessageConverter<JSON
 
 	@Override
 	public boolean canRead(Class<?> clazz, MediaType mediaType) {
-		return isJSONType(mediaType) && JSONEntityUtil.isJSONEntity(clazz);
+		// Does the class implement JSONEntity a JSONEntity?
+		if(!JSONEntityUtil.isJSONEntity(clazz)) return false;
+		// Are we converting any request to json?
+		if(convertAnyRequestToJson) return true;
+		// Is the requested type a json type?
+		return isJSONType(mediaType);
 	}
+
 	
 	public static boolean isJSONType(MediaType type){
 		if(type == null) return false;

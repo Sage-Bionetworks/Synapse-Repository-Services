@@ -14,7 +14,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.ErrorResponse;
+import org.sagebionetworks.repo.model.file.ErrorResponse;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -35,68 +35,14 @@ import org.springframework.web.servlet.mvc.multiaction.NoSuchRequestHandlingMeth
 import org.springframework.web.util.NestedServletException;
 
 /**
- * This abstract class attempts to encapsulate exception handling for exceptions
- * common to all controllers.
- * <p>
  * 
- * The basic idea is that we want exception stack traces in the service log, but
- * we don't want to return them to the user. We also want to return
- * human-readable error messages to the client in a format that the client can
- * parse such as JSON. The AnnotationMethodHandlerExceptionResolver is
- * configured with the same HttpMessageConverters as the
- * AnnotationMethodHandlerAdapter and therefore should support all the same
- * encodings.
- * <p>
- * 
- * Note that the @ExceptionHandler can take an array of exception classes to all
- * be handled via the same logic and return the same HTTP status code. I chose
- * to implement them individually so that child classes can override them
- * separately and munge exception reasons as they see fit to produce a better
- * human-readable message.
- * <p>
- * 
- * Developer Note: I tried to do this as a separate controller but it did not
- * work. It seems that the exception handling methods must be <a href=
- * "http://blog.flurdy.com/2010/07/spring-mvc-exceptionhandler-needs-to-be.html"
- * >members of the controller class.</a> In this case inheritance seemed
- * appropriate, though in general we want to prefer composition over
- * inheritance. Also note that unfortunately, this only takes care of exceptions
- * thrown by our controllers. If the exception is instead thrown before or after
- * our controller logic, a different mechanism is needed to handle the
- * exception. See default error page configuration in web.xml
- * <p>
- * 
- * Here are some examples of exceptions not handled by these methods. They
- * assume message with id 4 exists:
- * <p>
- * <ul>
- * <li>returns an error page configured via web.xml since we do not have a
- * message converter configured for this encoding: curl -i -H
- * Accept:application/javascript http://localhost:8080/repo/v1/message/4.js
- * <li>returns an error page configured via web.xml since the DispatcherServlet
- * could find no applicable handler: curl -i -H Accept:application/json
- * http://localhost:8080/repo/v1/message/4/foo
- * </ul>
- * <p>
- * 
- * TODO when our integration test framework is in place, add tests for stuff
- * managed by error pages in web.xml since we can't test that with our unit
- * tests
- * 
- * @author deflaux
  */
 
 public abstract class BaseController {
 
-	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavaiable, please try again later.";
-	private static final Logger log;
+	static final String SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER = "Service temporarily unavailable, please try again later.";
+	private static final Logger log = Logger.getLogger(BaseController.class.getName());
 
-	// this is one way to get stack traces from the server process when running
-	// 'forked off' from the main process
-	// to enable, uncomment the lines below
-	static {
-		log = Logger.getLogger(BaseController.class.getName());
-	}
 
 	/**
 	 * This is an application exception thrown when the request references an
@@ -482,7 +428,9 @@ public abstract class BaseController {
 				: trace.length();
 		String message = "Send a Jira bug report to the platform team with this message: "
 				+ trace.substring(0, endIndex);
-		return new ErrorResponse(message);
+		ErrorResponse reponse =  new ErrorResponse();
+		reponse.setReason(message);
+		return reponse;
 	}
 
 	/**
@@ -521,7 +469,9 @@ public abstract class BaseController {
 	ErrorResponse handleDeadlockExceptions(DeadlockLoserDataAccessException ex,
 			HttpServletRequest request) {
 		log.log(Level.SEVERE, "Handling " + request.toString(), ex);
-		return new ErrorResponse(SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER);
+		ErrorResponse reponse =  new ErrorResponse();
+		reponse.setReason(SERVICE_TEMPORARILY_UNAVAIABLE_PLEASE_TRY_AGAIN_LATER);
+		return reponse;
 	}
 
 	/**
@@ -547,8 +497,9 @@ public abstract class BaseController {
 		if (0 <= normalizedMessage.indexOf("cloudsearch")) {
 			message = "search failed, try again";
 		}
-		return new ErrorResponse(message);
-		// return new ErrorResponse(stackTraceToString(ex));
+		ErrorResponse response =  new ErrorResponse();
+		response.setReason(message);
+		return response;
 	}
 
 	/**

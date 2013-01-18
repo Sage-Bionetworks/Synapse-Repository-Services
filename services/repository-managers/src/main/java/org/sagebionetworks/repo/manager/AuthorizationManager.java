@@ -61,4 +61,14 @@ public interface AuthorizationManager {
 	 */
 	public boolean canAccessActivity(UserInfo userInfo, String activityId);
 	
+	/**
+	 * The raw FileHandle can only be accessed by the user that created it.
+	 * Note: A FileHandle applied to an Entity is gated by the Entity, not the 
+	 * FileHandle creator.
+	 * @param userInfo
+	 * @param creator
+	 * @return
+	 */
+	public boolean canAccessRawFileHandle(UserInfo userInfo, String creator);
+	
 }

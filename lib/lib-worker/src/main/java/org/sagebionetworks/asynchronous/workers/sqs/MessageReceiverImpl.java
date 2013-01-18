@@ -161,14 +161,14 @@ public class MessageReceiverImpl implements MessageReceiver {
 	@Override
 	public int triggerFired() throws InterruptedException{
 		try{
-			if(log.isDebugEnabled()){
-				log.debug("Starting trigger...");
+			if(log.isTraceEnabled()){
+				log.trace("Starting trigger...");
 			}
 			long start = System.currentTimeMillis();
 			int count =triggerFiredImpl();
 			long elapse = System.currentTimeMillis()-start;
-			if(log.isDebugEnabled()){
-				log.debug("Finished trigger in "+elapse+" ms");
+			if(log.isTraceEnabled()){
+				log.trace("Finished trigger in "+elapse+" ms");
 			}
 			return count;
 		}catch (Throwable e){

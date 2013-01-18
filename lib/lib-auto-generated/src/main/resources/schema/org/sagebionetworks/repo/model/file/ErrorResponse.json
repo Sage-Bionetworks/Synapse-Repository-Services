@@ -1,0 +1,8 @@
+{
+	"description": "JSON schema for ErrorResponse.",
+	"properties": {
+		"reason": {
+			"type": "string"
+		}
+	}
+}
