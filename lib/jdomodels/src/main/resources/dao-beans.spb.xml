@@ -84,6 +84,7 @@
 		<property name="bootstrapEntities">
 			<list>
 				<ref bean="rootFolderBootstrapData" />
+				<ref bean="trashFolderBootstrapData" />
 				<!-- ref bean="agreementFolderBootstrapData" /-->
 				<!-- ref bean="eulaFolderBootstrapData" /-->
 			</list>
