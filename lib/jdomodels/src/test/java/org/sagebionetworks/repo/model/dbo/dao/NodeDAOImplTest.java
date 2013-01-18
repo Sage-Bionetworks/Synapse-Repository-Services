@@ -2007,7 +2007,7 @@ public class NodeDAOImplTest {
 			map.put(npr.getId(), npr);
 		}
 
-		results = this.nodeDao.getParentRelations(3, 1000);
+		results = this.nodeDao.getParentRelations(0, 1000);
 		assertNotNull(results);
 		assertTrue(results.getTotalNumberOfResults() > 4);
 		rList = results.getResults();
@@ -2018,7 +2018,7 @@ public class NodeDAOImplTest {
 
 		NodeParentRelation r = map.get(id1);
 		assertEquals(id1, r.getId());
-		assertNotNull(r.getParentId());
+		assertNull(r.getParentId()); // The root
 		// NotFoundException: Cannot find a node with id: 0
 		// assertTrue(this.nodeDao.isNodeRoot(r.getParentId()));
 		assertNotNull(r.getETag());
