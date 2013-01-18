@@ -5,7 +5,7 @@ import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 
-public interface NodeLineageQueryService {
+public interface NodeTreeQueryService {
 
 	/**
 	 * Gets the root entity. Returns null if the root cannot be found.

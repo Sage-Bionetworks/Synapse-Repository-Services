@@ -24,7 +24,7 @@ import org.springframework.aop.framework.Advised;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.test.util.ReflectionTestUtils;
 
-public class NodeLineageQueryServiceImplTest {
+public class NodeTreeQueryServiceImplTest {
 
 	private final String userId = "0";
 	private final String adminUserId = "1";
@@ -33,7 +33,7 @@ public class NodeLineageQueryServiceImplTest {
 	private final String nodeCanAccessY = "syn11029";
 	private final String nodeCannotAccess = "syn11030";
 	private final String nodeIpe = "syn192903"; // IncompletePathException
-	private final NodeLineageQueryService service = new NodeLineageQueryServiceImpl();
+	private final NodeTreeQueryService service = new NodeTreeQueryServiceImpl();
 
 	@Before
 	public void before() throws Exception {
@@ -83,10 +83,10 @@ public class NodeLineageQueryServiceImplTest {
 		when(ntDao.getChildren(keyNodeIpe, 1, null)).thenThrow(new IncompletePathException("ipe"));
 		when(ntDao.getLowestCommonAncestor(keyNodeIpe, keyNodeCanAccessY)).thenThrow(new IncompletePathException("ipe"));
 
-		NodeLineageQueryService srv = service;
+		NodeTreeQueryService srv = service;
 		if(AopUtils.isAopProxy(srv) && srv instanceof Advised) {
 			Object target = ((Advised)srv).getTargetSource().getTarget();
-			srv = (NodeLineageQueryService)target;
+			srv = (NodeTreeQueryService)target;
 		}
 		ReflectionTestUtils.setField(srv, "userManager", userMan);
 		ReflectionTestUtils.setField(srv, "authorizationManager", auMan);

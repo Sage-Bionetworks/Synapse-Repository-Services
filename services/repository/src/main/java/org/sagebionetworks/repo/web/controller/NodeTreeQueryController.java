@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Controller
-public class NodeLineageQueryController extends BaseController {
+public class NodeTreeQueryController extends BaseController {
 
 	@Autowired
 	private ServiceProvider serviceProvider;
@@ -32,7 +32,7 @@ public class NodeLineageQueryController extends BaseController {
 	public @ResponseBody EntityId getRoot(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId)
 			throws DatastoreException, UnauthorizedException {
-		return this.serviceProvider.getNodeLineageQueryService().getRoot(userId);
+		return this.serviceProvider.getNodeTreeQueryService().getRoot(userId);
 	}
 
 	/**
@@ -46,7 +46,7 @@ public class NodeLineageQueryController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId)
 			throws DatastoreException, UnauthorizedException {
-		return this.serviceProvider.getNodeLineageQueryService().getAncestors(userId, entityId);
+		return this.serviceProvider.getNodeTreeQueryService().getAncestors(userId, entityId);
 	}
 
 	/**
@@ -58,7 +58,7 @@ public class NodeLineageQueryController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = true) String userId,
 			@PathVariable(value = UrlHelpers.ID_PATH_VARIABLE) String entityId)
 			throws DatastoreException, UnauthorizedException {
-		return this.serviceProvider.getNodeLineageQueryService().getParent(userId, entityId);
+		return this.serviceProvider.getNodeTreeQueryService().getParent(userId, entityId);
 	}
 
 	/**
@@ -80,7 +80,7 @@ public class NodeLineageQueryController extends BaseController {
 		if (pageSize == null) {
 			pageSize = Integer.valueOf(20);
 		}
-		return this.serviceProvider.getNodeLineageQueryService().getDescendants(
+		return this.serviceProvider.getNodeTreeQueryService().getDescendants(
 				userId, entityId, pageSize, lastDescIdExcl);
 	}
 
@@ -106,7 +106,7 @@ public class NodeLineageQueryController extends BaseController {
 		if (pageSize == null) {
 			pageSize = Integer.valueOf(20);
 		}
-		return this.serviceProvider.getNodeLineageQueryService().getDescendants(
+		return this.serviceProvider.getNodeTreeQueryService().getDescendants(
 				userId, entityId, generation, pageSize, lastDescIdExcl);
 	}
 
@@ -129,7 +129,7 @@ public class NodeLineageQueryController extends BaseController {
 		if (pageSize == null) {
 			pageSize = Integer.valueOf(20);
 		}
-		return this.serviceProvider.getNodeLineageQueryService().getChildren(
+		return this.serviceProvider.getNodeTreeQueryService().getChildren(
 				userId, entityId, pageSize, lastDescIdExcl);
 	}
 }
