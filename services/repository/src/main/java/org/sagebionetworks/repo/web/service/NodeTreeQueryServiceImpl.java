@@ -18,9 +18,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class NodeLineageQueryServiceImpl implements NodeLineageQueryService {
+public class NodeTreeQueryServiceImpl implements NodeTreeQueryService {
 
-	private final Logger logger = Logger.getLogger(NodeLineageQueryServiceImpl.class);
+	private final Logger logger = Logger.getLogger(NodeTreeQueryServiceImpl.class);
 
 	@Autowired
 	private UserManager userManager;
