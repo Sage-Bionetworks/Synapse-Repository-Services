@@ -11,6 +11,7 @@ import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -85,7 +86,11 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		} catch (NumberFormatException e) {
 			throw new IllegalArgumentException("Invalid Entity ID: " + entityId);
 		}
-		nodeManager.get(userInfo, entityId);
+		Node node = nodeManager.get(userInfo, entityId);
+		// if no name is provided, use the Entity name
+		if (submission.getName() == null) {
+			submission.setName(node.getName());
+		}
 		
 		// ensure competition is open
 		Competition comp = competitionManager.getCompetition(compId);
