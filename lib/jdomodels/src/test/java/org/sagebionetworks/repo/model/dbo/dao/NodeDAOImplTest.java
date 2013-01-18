@@ -2019,8 +2019,6 @@ public class NodeDAOImplTest {
 		NodeParentRelation r = map.get(id1);
 		assertEquals(id1, r.getId());
 		assertNull(r.getParentId()); // The root
-		// NotFoundException: Cannot find a node with id: 0
-		// assertTrue(this.nodeDao.isNodeRoot(r.getParentId()));
 		assertNotNull(r.getETag());
 		assertNotNull(r.getTimestamp());
 
