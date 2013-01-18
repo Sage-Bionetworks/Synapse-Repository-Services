@@ -723,7 +723,10 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 					public NodeParentRelation mapRow(ResultSet rs, int rowNum) throws SQLException {
 						NodeParentRelation p = new NodeParentRelation();
 						p.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
-						p.setParentId(KeyFactory.keyToString(rs.getLong(COL_NODE_PARENT_ID)));
+						long parentId = rs.getLong(COL_NODE_PARENT_ID);
+						if (parentId != 0) {
+							p.setParentId(KeyFactory.keyToString(parentId));
+						}
 						p.setETag(rs.getString(COL_NODE_ETAG));
 						p.setTimestamp(DateTime.now());
 						return p;

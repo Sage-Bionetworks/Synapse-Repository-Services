@@ -61,6 +61,9 @@ public class DynamoRdsSynchronizer {
 		// Occasionally count may be out-of-date and out-of-range, in which
 		// case the check will be skipped
 		this.count = (int)results.getTotalNumberOfResults();
+		if (this.count == 0) {
+			this.count = 1;
+		}
 
 		// Now cross check with DynamoDB
 		List<NodeParentRelation> list = results.getResults();
