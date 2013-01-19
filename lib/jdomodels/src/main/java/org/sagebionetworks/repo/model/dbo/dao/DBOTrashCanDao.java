@@ -1,0 +1,42 @@
+package org.sagebionetworks.repo.model.dbo.dao;
+
+import java.util.List;
+
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTrash;
+import org.sagebionetworks.repo.web.NotFoundException;
+
+/**
+ * Database operations on the trash can table.
+ *
+ * @author Eric Wu
+ */
+public interface DBOTrashCanDao {
+
+	/**
+	 * Creates a trash item. This happens when a node is deleted into the trash can.
+	 *
+	 * @param userGroupId  The user who is deleting the item.
+	 * @param nodeId  The node being deleted.
+	 */
+	void create(Long userGroupId, Long nodeId) throws DatastoreException;
+
+	/**
+	 * Gets the trash items deleted by the specified user. Results are paged as
+	 * specified by the begin (inclusive) and the end (exclusive) indices.
+	 */
+	List<DBOTrash> getInRangeForUser(Long userGroupId, Long beginIncl, Long endExcl) throws DatastoreException;
+
+	/**
+	 * Removes a trash item from the trash can when the item is either restored or purged.
+	 *
+	 * @throws NotFoundException When the item is not in the user's trash can.
+	 */
+	void delete(Long userGroupId, Long nodeId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Removes a trash item from the trash can when the item is either restored or purged.
+	 * This is expected to be called by administrators.
+	 */
+	void deleteByNodeId(Long nodeId) throws DatastoreException;
+}
