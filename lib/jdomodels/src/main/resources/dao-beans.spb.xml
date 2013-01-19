@@ -79,6 +79,11 @@
 			scope="singleton">
 	</bean>
 
+	<bean id="trashCanDao"
+			class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDaoImpl"
+			scope="singleton">
+	</bean>
+
 	<bean id="entityBootstrapper"
 		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapperImpl">
 		<property name="bootstrapEntities">
