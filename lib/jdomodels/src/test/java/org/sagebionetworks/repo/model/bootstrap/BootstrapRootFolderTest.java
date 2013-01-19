@@ -99,10 +99,7 @@ public class BootstrapRootFolderTest {
 		assertNotNull(authenticatedUsers.getId());
 		assertEquals(authenticatedUsers.getId(), access.getGroupId().toString());
 		assertNotNull(access.getAccessTypeList());
-		assertEquals(4, access.getAccessTypeList().size());
+		assertEquals(1, access.getAccessTypeList().size());
 		assertEquals(ACCESS_TYPE.CREATE, access.getAccessTypeList().get(0));
-		assertEquals(ACCESS_TYPE.READ, access.getAccessTypeList().get(1));
-		assertEquals(ACCESS_TYPE.UPDATE, access.getAccessTypeList().get(2));
-		assertEquals(ACCESS_TYPE.DELETE, access.getAccessTypeList().get(3));
 	}
 }
