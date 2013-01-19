@@ -23,20 +23,14 @@ public interface DBOTrashCanDao {
 
 	/**
 	 * Gets the trash items deleted by the specified user. Results are paged as
-	 * specified by the begin (inclusive) and the end (exclusive) indices.
+	 * specified by offset (inclusive; staring from 0) and limit.
 	 */
-	List<DBOTrash> getInRangeForUser(Long userGroupId, Long beginIncl, Long endExcl) throws DatastoreException;
+	List<DBOTrash> getInRangeForUser(Long userGroupId, long offset, long limit) throws DatastoreException;
 
 	/**
-	 * Removes a trash item from the trash can when the item is either restored or purged.
+	 * Removes a trash item from the trash can table. This happens when the trash item is either restored or purged.
 	 *
-	 * @throws NotFoundException When the item is not in the user's trash can.
+	 * @throws NotFoundException When the item is not deleted by the user.
 	 */
 	void delete(Long userGroupId, Long nodeId) throws DatastoreException, NotFoundException;
-
-	/**
-	 * Removes a trash item from the trash can when the item is either restored or purged.
-	 * This is expected to be called by administrators.
-	 */
-	void deleteByNodeId(Long nodeId) throws DatastoreException;
 }

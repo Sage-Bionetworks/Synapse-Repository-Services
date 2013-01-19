@@ -105,9 +105,6 @@
 					<property name="accessTypeList">
 						<list>
 							<value>CREATE</value>
-							<value>READ</value>
-							<value>UPDATE</value>
-							<value>DELETE</value>
 						</list>
 					</property>
 				</bean>

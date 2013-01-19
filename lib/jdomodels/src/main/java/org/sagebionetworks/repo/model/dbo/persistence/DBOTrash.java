@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_TRASH_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_TRASH_CAN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
 
@@ -23,8 +22,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
 public class DBOTrash implements AutoIncrementDatabaseObject<DBOTrash> {
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("trashId", COL_TRASH_CAN_TRASH_ID, true),
-		new FieldColumn("nodeId", COL_TRASH_CAN_NODE_ID),
+		new FieldColumn("nodeId", COL_TRASH_CAN_NODE_ID, true),
 		new FieldColumn("deletedBy", COL_TRASH_CAN_DELETED_BY),
 		new FieldColumn("deletedOn", COL_TRASH_CAN_DELETED_ON)
 	};
@@ -37,7 +35,6 @@ public class DBOTrash implements AutoIncrementDatabaseObject<DBOTrash> {
 			@Override
 			public DBOTrash mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOTrash trash = new DBOTrash();
-				trash.setTrashId(rs.getLong(COL_TRASH_CAN_TRASH_ID));
 				trash.setNodeId(rs.getLong(COL_TRASH_CAN_NODE_ID));
 				trash.setDeletedBy(rs.getLong(COL_TRASH_CAN_DELETED_BY));
 				trash.setDeletedOn(rs.getTimestamp(COL_TRASH_CAN_DELETED_ON));
@@ -67,20 +64,12 @@ public class DBOTrash implements AutoIncrementDatabaseObject<DBOTrash> {
 
 	@Override
 	public Long getId() {
-		return trashId;
+		return nodeId;
 	}
 
 	@Override
 	public void setId(Long id) {
-		this.trashId = id;
-	}
-
-	public Long getTrashId() {
-		return trashId;
-	}
-
-	public void setTrashId(Long trashId) {
-		this.trashId = trashId;
+		this.nodeId = id;
 	}
 
 	public Long getNodeId() {
@@ -116,7 +105,6 @@ public class DBOTrash implements AutoIncrementDatabaseObject<DBOTrash> {
 		result = prime * result
 				+ ((deletedOn == null) ? 0 : deletedOn.hashCode());
 		result = prime * result + ((nodeId == null) ? 0 : nodeId.hashCode());
-		result = prime * result + ((trashId == null) ? 0 : trashId.hashCode());
 		return result;
 	}
 
@@ -153,17 +141,9 @@ public class DBOTrash implements AutoIncrementDatabaseObject<DBOTrash> {
 		} else if (!nodeId.equals(other.nodeId)) {
 			return false;
 		}
-		if (trashId == null) {
-			if (other.trashId != null) {
-				return false;
-			}
-		} else if (!trashId.equals(other.trashId)) {
-			return false;
-		}
 		return true;
 	}
 
-	private Long trashId;         // Primary key off a auto-sequence
 	private Long nodeId;          // The node that has been deleted into the trash can
 	private Long deletedBy;       // The user who deleted this item
 	private Timestamp deletedOn;  // The date and time when the deletion occurred
