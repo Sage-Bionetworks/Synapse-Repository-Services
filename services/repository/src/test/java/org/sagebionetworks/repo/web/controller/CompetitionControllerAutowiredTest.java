@@ -265,22 +265,6 @@ public class CompetitionControllerAutowiredTest {
 		assertEquals(initialCount, entityServletHelper.getSubmissionCount(comp1.getId()));
 	}
 	
-	@Test(expected=IllegalArgumentException.class)
-	public void testSubmissionBadEntity() throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, IOException, ServletException, InterruptedException {
-		comp1.setStatus(CompetitionStatus.OPEN);
-		comp1 = entityServletHelper.createCompetition(comp1, ownerName);
-		competitionsToDelete.add(comp1.getId());
-		part1 = entityServletHelper.createParticipant(userName, comp1.getId());
-		participantsToDelete.add(part1);
-		String nodeId = createNode("An entity", ownerId);
-		nodesToDelete.add(nodeId);		
-		
-		// create (userId should not have read permission on the Entity)
-		sub1.setCompetitionId(comp1.getId());
-		sub1.setEntityId(nodeId);
-		sub1 = entityServletHelper.createSubmission(sub1, userName);
-	}
-	
 	@Test
 	public void testPaginated() throws DatastoreException, JSONObjectAdapterException, IOException, NotFoundException, ServletException {
 		// create objects

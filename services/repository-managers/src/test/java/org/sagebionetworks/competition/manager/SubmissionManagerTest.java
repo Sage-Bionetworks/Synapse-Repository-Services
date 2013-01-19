@@ -31,6 +31,7 @@ public class SubmissionManagerTest {
 	private static Competition comp;
 	private static Participant part;
 	private static Submission sub;
+	private static Submission sub2;
 	private static SubmissionStatus subStatus;
 	
 	private static SubmissionDAO mockSubmissionDAO;
@@ -44,7 +45,9 @@ public class SubmissionManagerTest {
 	private static final String OWNER_ID = "34";
 	private static final String USER_ID = "56";
 	private static final String SUB_ID = "78";
+	private static final String SUB2_ID = "87";
 	private static final String ENTITY_ID = "90";
+	private static final String ENTITY2_ID = "99";
 	
 	private static UserInfo ownerInfo;
 	private static UserInfo userInfo;
@@ -81,6 +84,15 @@ public class SubmissionManagerTest {
         sub.setUserId(USER_ID);
         sub.setVersionNumber(0L);
         
+        sub2 = new Submission();
+        sub2.setCompetitionId(COMP_ID);
+        sub2.setCreatedOn(new Date());
+        sub2.setEntityId(ENTITY2_ID);
+        sub2.setId(SUB2_ID);
+        sub2.setName("subName");
+        sub2.setUserId(OWNER_ID);
+        sub2.setVersionNumber(0L);
+        
         subStatus = new SubmissionStatus();
         subStatus.setEtag("subEtag");
         subStatus.setId(SUB_ID);
@@ -101,7 +113,8 @@ public class SubmissionManagerTest {
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(sub);
     	when(mockCompetitionManager.isCompAdmin(eq(OWNER_ID), eq(COMP_ID))).thenReturn(true);
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
-    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);
+    	when(mockNodeManager.get(eq(userInfo), eq(ENTITY_ID))).thenReturn(mockNode);
+    	when(mockNodeManager.get(eq(userInfo), eq(ENTITY2_ID))).thenThrow(new UnauthorizedException());
     	
     	// Submission Manager
     	submissionManager = new SubmissionManagerImpl(mockSubmissionDAO, 
@@ -145,6 +158,12 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionStatusDAO, never()).update(any(SubmissionStatus.class));
 	}
 	
+	@Test(expected=UnauthorizedException.class)
+	public void testUnauthorizedEntity() throws NotFoundException {		
+		// user should not have access to sub2
+		submissionManager.createSubmission(userInfo, sub2);		
+	}
+	
 	@Test(expected=IllegalArgumentException.class)
 	public void testInvalidScore() throws Exception {
 		submissionManager.createSubmission(userInfo, sub);
@@ -172,21 +191,6 @@ public class SubmissionManagerTest {
 	public void testGetSubmissionCount() throws DatastoreException, NotFoundException {
 		submissionManager.getSubmissionCount(COMP_ID);
 		verify(mockSubmissionDAO).getCountByCompetition(eq(COMP_ID));
-	}
-	
-	@Test
-	public void testEntityIdWithPrefix() throws NotFoundException {
-		Submission sub2 = sub;
-		sub2.setEntityId("syn" + ENTITY_ID);
-		submissionManager.createSubmission(ownerInfo, sub2);
-		verify(mockSubmissionDAO).create(eq(sub));
-	}
-	
-	@Test(expected=IllegalArgumentException.class)
-	public void testInvalidEntityId() throws NotFoundException {
-		Submission sub2 = sub;
-		sub2.setEntityId("bad" + ENTITY_ID);
-		submissionManager.createSubmission(ownerInfo, sub2);
 	}
 
 }

@@ -76,17 +76,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		}
 		
 		// ensure entity exists and user has read permissions
-		String entityId = submission.getEntityId();
-		if (entityId.toLowerCase().startsWith("syn")) {
-			entityId = entityId.substring(3);
-			submission.setEntityId(entityId);
-		}
-		try {
-			Long.parseLong(entityId);
-		} catch (NumberFormatException e) {
-			throw new IllegalArgumentException("Invalid Entity ID: " + entityId);
-		}
-		Node node = nodeManager.get(userInfo, entityId);
+		Node node = nodeManager.get(userInfo, submission.getEntityId());
 		// if no name is provided, use the Entity name
 		if (submission.getName() == null) {
 			submission.setName(node.getName());
