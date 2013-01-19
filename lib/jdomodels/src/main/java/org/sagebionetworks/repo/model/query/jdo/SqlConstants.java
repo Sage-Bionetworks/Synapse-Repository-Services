@@ -251,7 +251,6 @@ public class SqlConstants {
 
 	// The trash can table
 	public static final String TABLE_TRASH_CAN            = "TRASH_CAN";
-	public static final String COL_TRASH_CAN_TRASH_ID     = "TRASH_ID";
 	public static final String COL_TRASH_CAN_NODE_ID      = "NODE_ID";
 	public static final String COL_TRASH_CAN_DELETED_BY   = "DELETED_BY";
 	public static final String COL_TRASH_CAN_DELETED_ON   = "DELETED_ON";
