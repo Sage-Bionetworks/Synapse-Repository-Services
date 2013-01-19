@@ -60,8 +60,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
 		DBOTrash trash = trashList.get(0);
-		assertTrue(trash.getId() > 0L);
-		assertEquals(trash.getId(), trash.getTrashId());
+		assertEquals(nodeId1, trash.getId().longValue());
 		assertEquals(userId, trash.getDeletedBy().longValue());
 		assertEquals(nodeId1, trash.getNodeId().longValue());
 		assertNotNull(trash.getDeletedOn());
@@ -72,13 +71,12 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertNotNull(trashList);
 		assertEquals(2, trashList.size());
 
-		trashCanDao.deleteByNodeId(nodeId1);
+		trashCanDao.delete(userId, nodeId1);
 		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
 		trash = trashList.get(0);
-		assertTrue(trash.getId() > 0L);
-		assertEquals(trash.getId(), trash.getTrashId());
+		assertEquals(nodeId2, trash.getId().longValue());
 		assertEquals(userId, trash.getDeletedBy().longValue());
 		assertEquals(nodeId2, trash.getNodeId().longValue());
 		assertNotNull(trash.getDeletedOn());
@@ -92,7 +90,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 	private void clear() throws Exception {
 		List<DBOTrash> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
 		for (DBOTrash trash : trashList) {
-			trashCanDao.delete(userId, trash.getTrashId());
+			trashCanDao.delete(userId, trash.getId());
 		}
 	}
 }

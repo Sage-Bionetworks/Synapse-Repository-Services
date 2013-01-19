@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_ID;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_TRASH_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
@@ -31,14 +30,10 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY
 			+ " LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 
-	private static final String SELECT_TRASH_ID =
-			"SELECT " + COL_TRASH_CAN_TRASH_ID + " FROM " + TABLE_TRASH_CAN
+	private static final String SELECT_TRASH_BY_NODE_ID =
+			"SELECT " + COL_TRASH_CAN_NODE_ID + " FROM " + TABLE_TRASH_CAN
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY
 			+ " AND " + COL_TRASH_CAN_NODE_ID + " = :" + COL_TRASH_CAN_NODE_ID;
-
-	private static final String SELECT_TRASH_ID_BY_NODE_ID =
-			"SELECT " + COL_TRASH_CAN_TRASH_ID + " FROM " + TABLE_TRASH_CAN
-			+ " WHERE " + COL_TRASH_CAN_NODE_ID + " = :" + COL_TRASH_CAN_NODE_ID;
 
 	private static final RowMapper<DBOTrash> rowMapper = (new DBOTrash()).getTableMapping();
 	private static final RowMapper<Long> idRowMapper = ParameterizedSingleColumnRowMapper.newInstance(Long.class);
@@ -72,23 +67,22 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 	}
 
 	@Override
-	public List<DBOTrash> getInRangeForUser(Long userGroupId, Long beginIncl,
-			Long endExcl) throws DatastoreException {
+	public List<DBOTrash> getInRangeForUser(Long userGroupId, long offset,
+			long limit) throws DatastoreException {
 
 		if (userGroupId == null) {
 			throw new IllegalArgumentException("userGroupId cannot be null.");
 		}
-		if (beginIncl >= endExcl) {
-			String msg = "begin must be greater than end [begin=" + beginIncl;
-			msg += ", end=";
-			msg += endExcl;
-			msg += "]";
-			throw new IllegalArgumentException(msg);
+		if (offset < 0) {
+			throw new IllegalArgumentException("offset " + offset + " is < 0.");
+		}
+		if (limit < 0) {
+			throw new IllegalArgumentException("limit " + limit + " is < 0.");
 		}
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue(OFFSET_PARAM_NAME, beginIncl);
-		paramMap.addValue(LIMIT_PARAM_NAME, endExcl - beginIncl);
+		paramMap.addValue(OFFSET_PARAM_NAME, offset);
+		paramMap.addValue(LIMIT_PARAM_NAME, limit);
 		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
 		List<DBOTrash> trashList = simpleJdbcTemplate.query(SELECT_TRASH_FOR_USER, rowMapper, paramMap);
 		return Collections.unmodifiableList(trashList);
@@ -110,29 +104,10 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
 		paramMap.addValue(COL_TRASH_CAN_NODE_ID, nodeId);
-		List<Long> idList = simpleJdbcTemplate.query(SELECT_TRASH_ID, idRowMapper, paramMap);
-		for (Long trashId : idList) {
+		List<Long> idList = simpleJdbcTemplate.query(SELECT_TRASH_BY_NODE_ID, idRowMapper, paramMap);
+		for (Long id : idList) {
 			MapSqlParameterSource params = new MapSqlParameterSource();
-			params.addValue("trashId", trashId);
-			basicDao.deleteObjectById(DBOTrash.class, params);
-		}
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public void deleteByNodeId(Long nodeId) throws DatastoreException {
-
-		if (nodeId == null) {
-			throw new IllegalArgumentException("nodeId cannot be null.");
-		}
-
-		// SELECT then DELETE avoid deadlocks caused by gap locks
-		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue(COL_TRASH_CAN_NODE_ID, nodeId);
-		List<Long> idList = simpleJdbcTemplate.query(SELECT_TRASH_ID_BY_NODE_ID, idRowMapper, paramMap);
-		for (Long trashId : idList) {
-			MapSqlParameterSource params = new MapSqlParameterSource();
-			params.addValue("trashId", trashId);
+			params.addValue("nodeId", id);
 			basicDao.deleteObjectById(DBOTrash.class, params);
 		}
 	}
