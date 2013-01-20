@@ -15,6 +15,7 @@ import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
@@ -169,7 +170,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
 		dbo.setUserId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getUserId()));
 		dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
-		dbo.setEntityId(dto.getEntityId() == null ? null : Long.parseLong(dto.getEntityId()));
+		dbo.setEntityId(dto.getEntityId() == null ? null : KeyFactory.stringToKey(dto.getEntityId()));
 		dbo.setVersionNumber(dto.getVersionNumber());
 		dbo.setName(dto.getName());
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
@@ -186,7 +187,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dto.setId(dbo.getId() == null ? null : dbo.getId().toString());
 		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
 		dto.setCompetitionId(dbo.getCompId() == null ? null : dbo.getCompId().toString());
-		dto.setEntityId(dbo.getEntityId() == null ? null : dbo.getEntityId().toString());
+		dto.setEntityId(dbo.getEntityId() == null ? null : KeyFactory.keyToString(dbo.getEntityId()));
 		dto.setVersionNumber(dbo.getVersionNumber());
 		dto.setName(dbo.getName());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));

@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -219,7 +220,7 @@ public class CompetitionControllerAutowiredTest {
 		competitionsToDelete.add(comp1.getId());
 		part1 = entityServletHelper.createParticipant(userName, comp1.getId());
 		participantsToDelete.add(part1);
-		String nodeId = createNode("An entity");
+		String nodeId = createNode("An entity", userId);
 		assertNotNull(nodeId);
 		nodesToDelete.add(nodeId);
 		
@@ -287,10 +288,10 @@ public class CompetitionControllerAutowiredTest {
 		comp1 = entityServletHelper.getCompetition(comp1.getId());
 		assertFalse("Etag was not updated", oldEtag.equals(comp1.getEtag()));
 		
-		String node1 = createNode("entity1");
+		String node1 = createNode("entity1", userId);
 		assertNotNull(node1);
 		nodesToDelete.add(node1);
-		String node2 = createNode("entity2");
+		String node2 = createNode("entity2", userId);
 		assertNotNull(node2);
 		nodesToDelete.add(node2);
 		
@@ -337,7 +338,7 @@ public class CompetitionControllerAutowiredTest {
 		assertEquals(0, subs.getTotalNumberOfResults());
 	}
 	
-	private String createNode(String name) throws DatastoreException, InvalidModelException, NotFoundException {
+	private String createNode(String name, String ownerId) throws DatastoreException, InvalidModelException, NotFoundException {
 		Node toCreate = new Node();
 		toCreate.setName(name);
 		toCreate.setCreatedByPrincipalId(Long.parseLong(ownerId));

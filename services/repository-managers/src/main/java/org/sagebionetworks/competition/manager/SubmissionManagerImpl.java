@@ -9,7 +9,9 @@ import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.competition.util.CompetitionUtils;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -27,16 +29,20 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	CompetitionManager competitionManager;
 	@Autowired
 	ParticipantManager participantManager;
+	@Autowired
+	NodeManager nodeManager;
 	
 	public SubmissionManagerImpl() {};
 	
 	// for testing purposes
-	protected SubmissionManagerImpl(SubmissionDAO submissionDAO, SubmissionStatusDAO submissionStatusDAO,
-			CompetitionManager competitionManager, ParticipantManager participantManager) {		
+	protected SubmissionManagerImpl(SubmissionDAO submissionDAO, 
+			SubmissionStatusDAO submissionStatusDAO, CompetitionManager competitionManager,
+			ParticipantManager participantManager, NodeManager nodeManager) {		
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
 		this.competitionManager = competitionManager;
 		this.participantManager = participantManager;
+		this.nodeManager = nodeManager;
 	}
 
 	@Override
@@ -62,9 +68,19 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setUserId(principalId);
 		
 		// ensure participant exists
-		if (participantManager.getParticipant(principalId, compId) == null)
+		try {
+			participantManager.getParticipant(principalId, compId);
+		} catch (NotFoundException e) {
 			throw new NotFoundException("User Princpal ID: " + principalId + 
 					" has not joined Competition ID: " + compId);
+		}
+		
+		// ensure entity exists and user has read permissions
+		Node node = nodeManager.get(userInfo, submission.getEntityId());
+		// if no name is provided, use the Entity name
+		if (submission.getName() == null) {
+			submission.setName(node.getName());
+		}
 		
 		// ensure competition is open
 		Competition comp = competitionManager.getCompetition(compId);
