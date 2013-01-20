@@ -1,6 +1,6 @@
 CREATE TABLE JDOSUBMISSION (
     ID bigint(20) NOT NULL,
-    NAME varchar(256) CHARACTER SET latin1 COLLATE latin1_bin NOT NULL,
+    NAME varchar(256) CHARACTER SET latin1 COLLATE latin1_bin,
     COMPETITION_ID bigint(20) NOT NULL,
     USER_ID bigint(20) NOT NULL,
     ENTITY_ID bigint(20) NOT NULL,
