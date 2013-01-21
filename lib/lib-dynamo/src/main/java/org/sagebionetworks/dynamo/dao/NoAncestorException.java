@@ -13,12 +13,4 @@ public class NoAncestorException extends IncompletePathException {
 	public NoAncestorException(String msg) {
 		super(msg);
 	}
-
-	public NoAncestorException(String msg, Throwable e) {
-		super(msg, e);
-	}
-
-	public NoAncestorException(Throwable e) {
-		super(e);
-	}
 }

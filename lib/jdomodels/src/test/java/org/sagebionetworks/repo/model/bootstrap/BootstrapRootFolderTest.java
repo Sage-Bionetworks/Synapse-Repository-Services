@@ -23,6 +23,8 @@ public class BootstrapRootFolderTest {
 	@Autowired
 	EntityBootstrapData agreementFolderBootstrapData;
 	@Autowired
+	EntityBootstrapData trashFolderBootstrapData;
+	@Autowired
 	UserGroupDAO userGroupDAO;
 	
 	@Test
@@ -80,4 +82,24 @@ public class BootstrapRootFolderTest {
 		assertEquals(ACCESS_TYPE.READ, access.getAccessTypeList().get(0));
 	}
 
+	@Test
+	public void testTrashBootstrapDataLoad() throws Exception {
+
+		assertNotNull(trashFolderBootstrapData);
+		assertEquals("/root/trash", trashFolderBootstrapData.getEntityPath());
+		assertEquals(EntityType.folder, trashFolderBootstrapData.getEntityType());
+
+		assertNotNull(trashFolderBootstrapData.getAccessList());
+		assertEquals(1, trashFolderBootstrapData.getAccessList().size());
+		AccessBootstrapData access = trashFolderBootstrapData.getAccessList().get(0);
+		assertNotNull(access);
+		access.setGroupId(Long.parseLong(userGroupDAO.findGroup(access.getGroup().name(), false).getId()));
+		UserGroup authenticatedUsers = userGroupDAO.findGroup(DEFAULT_GROUPS.AUTHENTICATED_USERS.name(), false);
+		assertNotNull(authenticatedUsers);
+		assertNotNull(authenticatedUsers.getId());
+		assertEquals(authenticatedUsers.getId(), access.getGroupId().toString());
+		assertNotNull(access.getAccessTypeList());
+		assertEquals(1, access.getAccessTypeList().size());
+		assertEquals(ACCESS_TYPE.CREATE, access.getAccessTypeList().get(0));
+	}
 }

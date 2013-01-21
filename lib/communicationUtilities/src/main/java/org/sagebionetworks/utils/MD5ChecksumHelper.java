@@ -1,5 +1,6 @@
 package org.sagebionetworks.utils;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,6 +28,17 @@ public class MD5ChecksumHelper {
 		byte[] b = createChecksum(filename);
 		return getHexString(b);
 	}
+	
+	/**
+	 * Create the MD5 of the passed file.
+	 * @param file
+	 * @return
+	 * @throws IOException
+	 */
+	public static String getMD5Checksum(File file) throws IOException {
+		byte[] b = createChecksum(new FileInputStream(file));
+		return getHexString(b);
+	}
 
 	/**
 	 * @param filename
@@ -36,7 +48,10 @@ public class MD5ChecksumHelper {
 	 */
 	public static byte[] createChecksum(String filename) throws IOException {
 		InputStream fis = new FileInputStream(filename);
+		return createChecksum(fis);
+	}
 
+	public static byte[] createChecksum(InputStream fis) throws IOException {
 		byte[] buffer = new byte[1024];
 		MessageDigest complete;
 		try {

@@ -57,7 +57,7 @@ public class SubmissionDAOImplTest {
   		Node toCreate = NodeTestUtils.createNew(name, Long.parseLong(userId));
     	toCreate.setVersionComment("This is the first version of the first node ever!");
     	toCreate.setVersionLabel("0.0.1");
-    	nodeId = nodeDAO.createNew(toCreate).substring(3); // trim "syn" from node ID
+    	nodeId = nodeDAO.createNew(toCreate);
     	
     	// create a Competition
         Competition competition = new Competition();
@@ -67,7 +67,7 @@ public class SubmissionDAOImplTest {
         competition.setCreatedOn(new Date());
         competition.setContentSource("foobar");
         competition.setStatus(CompetitionStatus.PLANNED);
-        compId = competitionDAO.create(competition, userId);
+        compId = competitionDAO.create(competition, Long.parseLong(userId));
         
         // create a Participant
         Participant participant = new Participant();
@@ -198,7 +198,7 @@ public class SubmissionDAOImplTest {
     	
     	compDTO.setCompetitionId("123");
     	compDTO.setCreatedOn(new Date());
-    	compDTO.setEntityId("456");
+    	compDTO.setEntityId("syn456");
     	compDTO.setId("789");
     	compDTO.setName("name");
     	compDTO.setUserId("42");

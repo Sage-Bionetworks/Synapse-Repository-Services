@@ -120,6 +120,17 @@ public class AuthorizationManagerImplUnitTest {
 		verify(mockActivityDAO).getEntitiesGeneratedBy(actId, limit, offset);
 		assertFalse(canAccess);
 	}
+	
+	@Test
+	public void testCanAccessRawFileHandle(){
+		// The admin can access anything
+		String creator = userInfo.getIndividualGroup().getId();
+		assertTrue("Admin should have access to all FileHandles",authorizationManager.canAccessRawFileHandle(adminUser, creator));
+		assertTrue("Creator should have access to their own FileHandles", authorizationManager.canAccessRawFileHandle(userInfo, creator));
+		// Set the creator to be the admin this time.
+		creator = adminUser.getIndividualGroup().getId();
+		assertFalse("Only the creator (or admin) should have access a FileHandle", authorizationManager.canAccessRawFileHandle(userInfo, creator));
+	}
 
 	private QueryResults<String> generateQueryResults(int numResults, int total) {
 		QueryResults<String> results = new QueryResults<String>();

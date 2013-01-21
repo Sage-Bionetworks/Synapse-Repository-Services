@@ -9,8 +9,11 @@ import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.competition.util.CompetitionUtils;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -26,16 +29,20 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	CompetitionManager competitionManager;
 	@Autowired
 	ParticipantManager participantManager;
+	@Autowired
+	NodeManager nodeManager;
 	
 	public SubmissionManagerImpl() {};
 	
 	// for testing purposes
-	protected SubmissionManagerImpl(SubmissionDAO submissionDAO, SubmissionStatusDAO submissionStatusDAO,
-			CompetitionManager competitionManager, ParticipantManager participantManager) {		
+	protected SubmissionManagerImpl(SubmissionDAO submissionDAO, 
+			SubmissionStatusDAO submissionStatusDAO, CompetitionManager competitionManager,
+			ParticipantManager participantManager, NodeManager nodeManager) {		
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
 		this.competitionManager = competitionManager;
 		this.participantManager = participantManager;
+		this.nodeManager = nodeManager;
 	}
 
 	@Override
@@ -52,16 +59,28 @@ public class SubmissionManagerImpl implements SubmissionManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission createSubmission(String userId, Submission submission) throws NotFoundException {
-		CompetitionUtils.ensureNotNull(userId, "User ID");
+	public Submission createSubmission(UserInfo userInfo, Submission submission) throws NotFoundException {
 		CompetitionUtils.ensureNotNull(submission, "Submission ID");
 		String compId = submission.getCompetitionId();
-		submission.setUserId(userId);
+		UserInfo.validateUserInfo(userInfo);
+		String principalId = userInfo.getIndividualGroup().getId();
+		
+		submission.setUserId(principalId);
 		
 		// ensure participant exists
-		if (participantManager.getParticipant(userId, compId) == null)
-			throw new NotFoundException("User ID: " + userId + 
+		try {
+			participantManager.getParticipant(principalId, compId);
+		} catch (NotFoundException e) {
+			throw new NotFoundException("User Princpal ID: " + principalId + 
 					" has not joined Competition ID: " + compId);
+		}
+		
+		// ensure entity exists and user has read permissions
+		Node node = nodeManager.get(userInfo, submission.getEntityId());
+		// if no name is provided, use the Entity name
+		if (submission.getName() == null) {
+			submission.setName(node.getName());
+		}
 		
 		// ensure competition is open
 		Competition comp = competitionManager.getCompetition(compId);
@@ -82,19 +101,27 @@ public class SubmissionManagerImpl implements SubmissionManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public SubmissionStatus updateSubmissionStatus(String userId, SubmissionStatus submissionStatus) throws NotFoundException {
-		CompetitionUtils.ensureNotNull(userId, "User ID");
+	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo, SubmissionStatus submissionStatus) throws NotFoundException {
 		CompetitionUtils.ensureNotNull(submissionStatus, "SubmissionStatus");
+		UserInfo.validateUserInfo(userInfo);
+		String principalId = userInfo.getIndividualGroup().getId();
 		
 		// ensure Submission exists and validate admin rights
 		SubmissionStatus old = getSubmissionStatus(submissionStatus.getId());
 		String compId = getSubmission(submissionStatus.getId()).getCompetitionId();
-		if (!competitionManager.isCompAdmin(userId, compId))
+		if (!competitionManager.isCompAdmin(principalId, compId))
 			throw new UnauthorizedException("Not authorized");
 		
 		if (!old.getEtag().equals(submissionStatus.getEtag()))
 			throw new IllegalArgumentException("Your copy of SubmissionStatus " + 
 					submissionStatus.getId() + " is out of date. Please fetch it again before updating.");
+		
+		// validate score, if any
+		Double score = submissionStatus.getScore();
+		if (score != null) {
+			if (score > 1.0 || score < 0.0)
+				throw new IllegalArgumentException("Scores must be between 0 and 1. Received score = " + score);
+		}
 		
 		// update and return the new Submission
 		submissionStatusDAO.update(submissionStatus);
@@ -103,15 +130,16 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void deleteSubmission(String userId, String submissionId) throws DatastoreException, NotFoundException {
-		CompetitionUtils.ensureNotNull(userId, submissionId);
+	public void deleteSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
+		UserInfo.validateUserInfo(userInfo);
+		String principalId = userInfo.getIndividualGroup().getId();
 		
 		Submission sub = submissionDAO.get(submissionId);		
 		String compId = sub.getCompetitionId();
 		
 		// verify access permission
-		if (!competitionManager.isCompAdmin(userId, compId)) {
-			throw new UnauthorizedException("User ID: " + userId +
+		if (!competitionManager.isCompAdmin(principalId, compId)) {
+			throw new UnauthorizedException("User ID: " + principalId +
 					" is not authorized to modify Submission ID: " + submissionId);
 		}
 		
@@ -120,11 +148,13 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 
 	@Override
-	public List<Submission> getAllSubmissions(String userId, String compId, SubmissionStatusEnum status) throws DatastoreException, UnauthorizedException, NotFoundException {
-		CompetitionUtils.ensureNotNull(userId, "User ID");
+	public List<Submission> getAllSubmissions(UserInfo userInfo, String compId, SubmissionStatusEnum status) throws DatastoreException, UnauthorizedException, NotFoundException {
 		CompetitionUtils.ensureNotNull(compId, "Competition ID");
-		if (!competitionManager.isCompAdmin(userId, compId))
-			throw new UnauthorizedException("User " + userId + " is not authorized to adminster Competition " + compId);
+		UserInfo.validateUserInfo(userInfo);
+		String principalId = userInfo.getIndividualGroup().getId();
+		
+		if (!competitionManager.isCompAdmin(principalId, compId))
+			throw new UnauthorizedException("User Principal ID" + principalId + " is not authorized to adminster Competition " + compId);
 		if (status == null)		
 			return submissionDAO.getAllByCompetition(compId);
 		else

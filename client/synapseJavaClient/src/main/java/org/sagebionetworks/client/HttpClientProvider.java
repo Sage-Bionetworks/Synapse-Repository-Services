@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpUriRequest;
 import org.sagebionetworks.utils.HttpClientHelperException;
 
 /**
@@ -78,5 +79,14 @@ public interface HttpClientProvider {
 	 * @throws HttpClientHelperException
 	 */
 	public HttpResponse performRequest(String string, String requestMethod,	String requestContent, Map<String, String> requestHeaders) throws ClientProtocolException, IOException, HttpClientHelperException;
+	
+	/**
+	 * The strait pass through.
+	 * @param request
+	 * @return
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 */
+	public HttpResponse execute(HttpUriRequest request) throws ClientProtocolException, IOException;
 
 }

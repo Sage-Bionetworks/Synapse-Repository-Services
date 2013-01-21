@@ -278,6 +278,11 @@
 				<artifactId>httpclient</artifactId>
 				<version>4.1.1</version>
 			</dependency>
+			<dependency>
+				<groupId>org.apache.httpcomponents</groupId>
+				<artifactId>httpmime</artifactId>
+				<version>4.1.1</version>
+			</dependency>
 
 			<!-- Synapse internal dependencies -->
 			<dependency>
@@ -331,6 +336,12 @@
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>services-rds</artifactId>
+				<version>${project.version}</version>
+				<type>war</type>
+			</dependency>
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
+				<artifactId>services-file</artifactId>
 				<version>${project.version}</version>
 				<type>war</type>
 			</dependency>
@@ -473,7 +484,13 @@
 				<artifactId>xstream</artifactId>
 				<version>${xstream.version}</version>
 			</dependency>
-
+			
+			<!-- Used to for file upload -->
+			<dependency>
+				<groupId>commons-fileupload</groupId>
+				<artifactId>commons-fileupload</artifactId>
+				<version>1.2</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<!-- Only list globally used plugins in this file -->

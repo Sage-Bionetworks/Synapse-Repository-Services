@@ -1,0 +1,17 @@
+{
+	"description": "JSON schema for ExternalFileHandle",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.FileHandle"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.HasPreviewId"
+		}
+	],
+	"properties": {
+		"externalURL": {
+			"type": "string",
+			"description": "The external URL of this file."
+		}
+	}
+}

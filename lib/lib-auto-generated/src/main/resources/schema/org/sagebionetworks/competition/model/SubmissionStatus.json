@@ -25,7 +25,7 @@
 			"$ref": "org.sagebionetworks.competition.model.SubmissionStatusEnum"
 		},
 		"score": {
-			"type": "integer",
+			"type": "number",
 			"description": "The score for this Submission.",
 			"title": "Score",
 			"transient": true

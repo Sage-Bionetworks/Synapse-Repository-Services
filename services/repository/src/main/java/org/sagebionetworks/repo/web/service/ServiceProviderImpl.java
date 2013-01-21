@@ -37,7 +37,7 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private ActivityService activityService;
 	@Autowired
-	private NodeLineageQueryService nodeLineageQueryService;
+	private NodeTreeQueryService nodeLineageQueryService;
 	@Autowired
 	private CompetitionService competitionService;
 
@@ -83,7 +83,7 @@ public class ServiceProviderImpl implements ServiceProvider {
 		return activityService;
 	}
 	@Override
-	public NodeLineageQueryService getNodeLineageQueryService() {
+	public NodeTreeQueryService getNodeTreeQueryService() {
 		return nodeLineageQueryService;
 	}
 	@Override

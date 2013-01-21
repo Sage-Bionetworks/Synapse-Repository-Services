@@ -46,6 +46,12 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			throw new NullPointerException("childId cannot be null");
 		}
 		if (parentId == null) {
+			// Verify with RDS. This is mainly to skip fake messages
+			// created by other tests
+			if (!this.nodeExists(childId)) {
+				this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
+				return;
+			}
 			// The root
 			parentId = childId;
 		}
@@ -84,6 +90,12 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			throw new NullPointerException("childId cannot be null");
 		}
 		if (parentId == null) {
+			// Verify with RDS. This is mainly to skip fake messages
+			// created by other tests
+			if (!this.nodeExists(childId)) {
+				this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
+				return;
+			}
 			// The root
 			parentId = childId;
 		}
@@ -192,5 +204,13 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			this.nodeTreeDao.delete(cId, timestamp);
 			this.logger.info("Node " + nodeId + " successfully deleted.");
 		}
+	}
+
+	/**
+	 * Whether the node exists in RDS
+	 */
+	private boolean nodeExists(String node) {
+		Long nodeId = KeyFactory.stringToKey(node);
+		return this.nodeDao.doesNodeExist(nodeId);
 	}
 }

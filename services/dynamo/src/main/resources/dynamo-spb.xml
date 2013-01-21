@@ -67,14 +67,38 @@
 			</bean>
 		</property>
 		<property name="startDelay" value="0" />
-		<property name="repeatInterval" value="2000" />
+		<property name="repeatInterval" value="1000" />
+	</bean>
+
+	<bean id="dynamoRdsSynchronizer"
+			class="org.sagebionetworks.dynamo.workers.DynamoRdsSynchronizer"
+			scope="singleton">
+		<constructor-arg index="0" ref="nodeDao" />
+		<constructor-arg index="1" ref="nodeTreeDao" />
+		<constructor-arg index="2" ref="nodeTreeUpdateManager" />
+	</bean>
+
+	<bean id="dynamoRdsSynchronizerTrigger"
+			class="org.springframework.scheduling.quartz.SimpleTriggerBean"
+			scope="singleton">
+		<property name="jobDetail">
+			<bean class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+				<property name="targetObject" ref="dynamoRdsSynchronizer" />
+				<property name="targetMethod" value="triggerFired" />
+			</bean>
+		</property>
+		<property name="startDelay" value="0" />
+		<property name="repeatInterval" value="1000" />
 	</bean>
 
 	<bean id="mainScheduler"
 			class="org.springframework.scheduling.quartz.SchedulerFactoryBean"
 			scope="singleton">
 		<property name="triggers">
-			<list><ref bean="dynamoQueueMessageRetrieverTrigger" /></list>
+			<list>
+				<ref bean="dynamoQueueMessageRetrieverTrigger" />
+				<ref bean="dynamoRdsSynchronizerTrigger" />
+			</list>
 		</property>
 	</bean>
 

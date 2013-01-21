@@ -69,7 +69,7 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		UserProfile userProfile = userProfileDAO.get(ownerId, schema);
 		UserGroup userGroup = userGroupDAO.get(ownerId);
-		if (userInfo.getUser() != null) {
+		if (userInfo != null && userInfo.getUser() != null) {
 			userProfile.setUserName(userInfo.getUser().getUserId());
 			if (userGroup != null)
 				userProfile.setEmail(userGroup.getName());

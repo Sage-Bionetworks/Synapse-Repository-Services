@@ -102,7 +102,7 @@ public class SubmissionBackupDriverTest {
 		status.setEtag("eTag");
 		status.setId(submissionId);
 		status.setModifiedOn(new Date());
-		status.setScore(Long.parseLong(submissionId));
+		status.setScore(0.42);
 		status.setStatus(SubmissionStatusEnum.SCORED);
 		return status;
 	}

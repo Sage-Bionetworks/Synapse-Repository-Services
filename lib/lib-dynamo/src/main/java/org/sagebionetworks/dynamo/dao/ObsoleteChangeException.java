@@ -12,12 +12,4 @@ public class ObsoleteChangeException extends RuntimeException {
 	public ObsoleteChangeException(String msg) {
 		super(msg);
 	}
-
-	public ObsoleteChangeException(String msg, Throwable e) {
-		super(msg, e);
-	}
-
-	public ObsoleteChangeException(Throwable e) {
-		super(e);
-	}
 }

@@ -32,7 +32,7 @@ public interface ServiceProvider {
 
 	public ActivityService getActivityService();
 
-	public NodeLineageQueryService getNodeLineageQueryService();
+	public NodeTreeQueryService getNodeTreeQueryService();
 
 	public CompetitionService getCompetitionService();
 }

@@ -1,0 +1,11 @@
+{
+	"description": "JSON schema for S3 File metadata",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.S3FileHandleInterface"
+		},
+		{
+			"$ref": "org.sagebionetworks.repo.model.file.HasPreviewId"
+		}
+	]
+}

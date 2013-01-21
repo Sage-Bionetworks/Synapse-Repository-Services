@@ -12,12 +12,4 @@ public class IncompletePathException extends RuntimeException {
 	public IncompletePathException(String msg) {
 		super(msg);
 	}
-
-	public IncompletePathException(String msg, Throwable e) {
-		super(msg, e);
-	}
-
-	public IncompletePathException(Throwable e) {
-		super(e);
-	}
 }
