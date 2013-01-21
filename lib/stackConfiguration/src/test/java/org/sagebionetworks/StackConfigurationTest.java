@@ -46,7 +46,7 @@ public class StackConfigurationTest {
 		long maxPreviewByes = confg.getMaxFilePreviewMemoryPoolBytes();
 		System.out.println("Max preview bytes: "+maxPreviewByes);
 		float maxtBytes = Runtime.getRuntime().maxMemory();
-		assertTrue("The maxTransferBytes + maxPreviewByes must be less than or equal to 90% of the max memory",(maxTransferBytes + maxPreviewByes) <= ((long)maxtBytes*0.9f) );
+		assertTrue("The maxTransferBytes + maxPreviewByes must be less than or equal to 90% of the max memory",(maxTransferBytes + maxPreviewByes) <= ((long)maxtBytes*0.90001f) );
 	}
 
 }
