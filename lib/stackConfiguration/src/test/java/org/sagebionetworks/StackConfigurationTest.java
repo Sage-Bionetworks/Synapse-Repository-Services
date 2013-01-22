@@ -25,8 +25,8 @@ public class StackConfigurationTest {
 	@Test
 	public void validateFileMemoryPercentages(){
 		StackConfiguration confg = new StackConfiguration();
-		float transferPercent = confg.getFileTransferMemoryPercentOfMax();
-		float previewPercent = confg.getFilePreivewMemoryPercentOfMax();
+		double transferPercent = confg.getFileTransferMemoryPercentOfMax();
+		double previewPercent = confg.getFilePreivewMemoryPercentOfMax();
 		assertTrue("fileTransferMemoryPercentOfMax + filePreivewMemoryPercentOfMax cannot exceed 90%",transferPercent + previewPercent <= 0.9);
 	}
 	
@@ -45,8 +45,8 @@ public class StackConfigurationTest {
 		System.out.println("Max Transfer bytes: "+maxTransferBytes);
 		long maxPreviewByes = confg.getMaxFilePreviewMemoryPoolBytes();
 		System.out.println("Max preview bytes: "+maxPreviewByes);
-		float maxtBytes = Runtime.getRuntime().maxMemory();
-		assertTrue("The maxTransferBytes + maxPreviewByes must be less than or equal to 90% of the max memory",(maxTransferBytes + maxPreviewByes) <= ((long)maxtBytes*0.90001f) );
+		long maxtBytes = Runtime.getRuntime().maxMemory();
+		assertTrue("The maxTransferBytes + maxPreviewByes must be less than or equal to 90% of the max memory",(maxTransferBytes + maxPreviewByes) <= ((long)maxtBytes*0.9d) );
 	}
 
 }
