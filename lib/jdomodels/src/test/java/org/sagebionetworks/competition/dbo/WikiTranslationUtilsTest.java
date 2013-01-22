@@ -12,6 +12,12 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOWikiAttachment;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 
+/**
+ * Test for WikiTranslationUtils.
+ * 
+ * @author jmhill
+ *
+ */
 public class WikiTranslationUtilsTest {
 	
 
