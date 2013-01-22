@@ -83,6 +83,11 @@
 			class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDaoImpl"
 			scope="singleton">
 	</bean>
+	
+	<bean id="wikiPageDAO"
+			class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiPageDaoImpl"
+			scope="singleton">
+	</bean>
 
 	<bean id="entityBootstrapper"
 		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapperImpl">

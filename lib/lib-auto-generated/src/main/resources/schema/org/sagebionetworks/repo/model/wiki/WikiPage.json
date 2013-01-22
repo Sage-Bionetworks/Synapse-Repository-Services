@@ -9,6 +9,24 @@
 			"type": "string",
 			"description": "The title etag of this object"
 		},
+		"createdOn": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this page was created."
+		},
+		"createdBy": {
+			"type": "string",
+			"description":"The id of the user that created this page."
+		},
+		"modifiedOn": {
+			"type": "string",
+			"format":"date-time",
+			"description":"The timestamp when this page was last modified."
+		},
+		"modifiedBy": {
+			"type": "string",
+			"description":"The id of the user that last modified this page."
+		},		
 		"parentId": {
 			"type": "string",
 			"description": "The parent ID of a wiki that is a sub-page of another wiki."
@@ -25,7 +43,7 @@
 			"type": "array",
 			"description": "The list of attachment file handle ids of this page.",
             "items":{
-                "type":"string",
+                "type":"string"
             }
 		}
 	}

@@ -1,0 +1,13 @@
+{
+	"description": "JSON schema for WikiPage",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The ID of this wiki page."
+		},
+		"title": {
+			"type": "string",
+			"description": "The title to of this page."
+		}
+	}
+}

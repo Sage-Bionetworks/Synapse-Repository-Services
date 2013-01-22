@@ -10,6 +10,7 @@ public interface IdGenerator {
 	public enum TYPE {
 		DOMAIN_IDS,
 		FILE_IDS,
+		WIKI_ID,
 	}
 	
 
