@@ -1,0 +1,18 @@
+{
+	"description": "JSON schema for SummaryWidgetDescriptor",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.widget.WidgetDescriptor"
+		}
+	],
+	"properties": {
+        "records":{
+            "type":"array",
+            "description":"The set of EntityGroupRecords for this group.",
+            "uniqueItems":false,
+            "items":{
+                "$ref":"org.sagebionetworks.repo.model.EntityGroupRecord"
+            }
+        }
+	}
+}
