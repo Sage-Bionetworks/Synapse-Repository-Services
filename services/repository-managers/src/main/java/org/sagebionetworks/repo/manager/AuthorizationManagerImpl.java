@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.sagebionetworks.competition.manager.CompetitionManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -20,6 +21,7 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	NodeDAO nodeDAO;
 	@Autowired
 	private UserManager userManager;
+	@Autowired
+	CompetitionManager competitionManager;
 
 	public AuthorizationManagerImpl() {}
 	
@@ -197,5 +201,25 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (userInfo.isAdmin()) return true;
 		// Only the creator can see the raw file handle
 		return userInfo.getIndividualGroup().getId().equals(creator);
+	}
+
+	@Override
+	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException {
+		// Admins can do anything
+		if(userInfo.isAdmin()) return true;
+		// If the object is an entity then we use existing methods
+		if(ObjectType.ENTITY == objectType){
+			return canAccess(userInfo, objectId, accessType);
+		}else if(ObjectType.COMPETITION == objectType){
+			// Anyone can read from a competition.
+			if(ACCESS_TYPE.READ == accessType){
+				return true;
+			}else{
+				// All other actions require admin access
+				return competitionManager.isCompAdmin(userInfo.getIndividualGroup().getId(), objectId);
+			}
+		}else{
+			throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
+		}
 	}
 }

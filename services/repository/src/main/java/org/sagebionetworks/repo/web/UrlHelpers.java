@@ -93,7 +93,7 @@ public class UrlHelpers {
 	 * 
 	 */
 	public static final String ANNOTATIONS = "/annotations";
-	
+
 	/**
 	 * URL suffix for locationable entity S3Token
 	 * 
@@ -428,7 +428,8 @@ public class UrlHelpers {
 	
 	// Competition URLs
 	public static final String COMPETITION = "/competition";
-	public static final String COMPETITION_WITH_ID = COMPETITION + "/{compId}";
+	public static final String COMPETITION_ID_PATH_VAR = "{compId}";
+	public static final String COMPETITION_WITH_ID = COMPETITION + "/"+COMPETITION_ID_PATH_VAR;
 	public static final String COMPETITION_WITH_NAME = COMPETITION + "/name/{name}";
 	public static final String COMPETITION_COUNT = COMPETITION + "/count";
 	
@@ -442,7 +443,17 @@ public class UrlHelpers {
 	public static final String SUBMISSION_STATUS = SUBMISSION_WITH_ID + "/status";
 	public static final String SUBMISSION_WITH_COMP_ID = COMPETITION_WITH_ID + "/submission";
 	public static final String SUBMISSION_COUNT = SUBMISSION_WITH_COMP_ID + "/count";
-
+	
+	// Wiki URL
+	public static final String WIKI = "/wiki";
+	public static final String WIKI_ID_PATH_VAR = "{wikiId}";
+	public static final String WIKI_WITH_ID = WIKI + "/"+WIKI_ID_PATH_VAR;
+	public static final String ENTITY_WIKI = ENTITY_ID + WIKI;
+	public static final String ENTITY_WIKI_ID = ENTITY_ID + WIKI_WITH_ID;
+	public static final String COMPETITION_WIKI = COMPETITION_WITH_ID + WIKI;
+	public static final String COMPETITION_WIKI_ID = COMPETITION_WITH_ID + WIKI_WITH_ID;
+	
+	
 	/**
 	 * This is a memoized cache for our URL regular expressions
 	 */

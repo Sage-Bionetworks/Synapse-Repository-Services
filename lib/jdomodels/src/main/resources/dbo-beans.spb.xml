@@ -47,6 +47,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrash" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiAttachment" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />
 				<!-- Competition beans -->
 				<bean class="org.sagebionetworks.competition.dbo.CompetitionDBO" />
 				<bean class="org.sagebionetworks.competition.dbo.ParticipantDBO" />

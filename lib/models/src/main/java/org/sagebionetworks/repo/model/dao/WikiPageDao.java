@@ -2,6 +2,8 @@ package org.sagebionetworks.repo.model.dao;
 
 import java.util.List;
 
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -17,8 +19,9 @@ public interface WikiPageDao {
 	 * Create a new wiki page.
 	 * @param page
 	 * @return
+	 * @throws NotFoundException 
 	 */
-	public WikiPage create(WikiPage toCreate);
+	public WikiPage create(WikiPage toCreate, String ownerId, ObjectType ownerType) throws NotFoundException;
 	
 	/**
 	 * Update a wiki page.
@@ -26,7 +29,7 @@ public interface WikiPageDao {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public WikiPage updateWikiPage(WikiPage toUpdate, boolean keepEtag) throws NotFoundException;
+	public WikiPage updateWikiPage(WikiPage toUpdate, String ownerId, ObjectType ownerType, boolean keepEtag) throws NotFoundException;
 		
 	/**
 	 * Get a wiki page.
@@ -34,19 +37,28 @@ public interface WikiPageDao {
 	 * @return
 	 * @throws NotFoundException 
 	 */
-	public WikiPage get(String id) throws NotFoundException;
+	public WikiPage get(WikiPageKey key) throws NotFoundException;
 	
 	/**
 	 * Delete a wiki page.
 	 * @param id
 	 */
-	public void delete(String id);
+	public void delete(WikiPageKey key);
 
 	/**
-	 * Get the children of a given wiki page.
+	 * Get the entire tree of wiki pages for a given owner.
 	 * @param parentId
 	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
 	 */
-	List<WikiHeader> getChildrenHeaders(String parentId);
+	List<WikiHeader> getHeaderTree(String ownerId, ObjectType ownerType) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Lock for update, returning the current etag
+	 * @param wikiId
+	 * @return
+	 */
+	String lockForUpdate(String wikiId);
 
 }

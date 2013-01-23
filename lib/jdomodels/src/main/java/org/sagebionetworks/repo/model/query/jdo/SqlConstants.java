@@ -266,6 +266,7 @@ public class SqlConstants {
 	public static final String COL_WIKI_MODIFIED_ON			= "MODIFIED_ON";
 	public static final String COL_WIKI_MODIFIED_BY			= "MODIFIED_BY";
 	public static final String COL_WIKI_PARENT_ID			= "PARENT_ID";
+	public static final String COL_WIKI_ROOT_ID				= "ROOT_ID";
 	public static final String COL_WIKI_MARKDOWN			= "MARKDOWN";
 	public static final String DDL_FILE_WIKI_PAGE = "schema/WikiPage-ddl.sql";
 	
@@ -274,6 +275,13 @@ public class SqlConstants {
 	public static final String COL_WIKI_ATTACHMENT_ID				= "WIKI_ID";
 	public static final String COL_WIKI_ATTACHMENT_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
 	public static final String DDL_FILE_WIKI_ATTATCHMENT = "schema/WikiAttachments-ddl.sql";
+	
+	// The wiki owners table
+	public static final String TABLE_WIKI_OWNERS					= "WIKI_OWNERS";
+	public static final String COL_WIKI_ONWERS_OWNER_ID				= "OWNER_ID";
+	public static final String COL_WIKI_ONWERS_OBJECT_TYPE			= "OWNER_OBJECT_TYPE";
+	public static final String COL_WIKI_ONWERS_ROOT_WIKI_ID			= "ROOT_WIKI_ID";
+	public static final String DDL_FILE_WIKI_ONWERS = "schema/WikiOwners-ddl.sql";
 
 	// The alias used for the dataset table.
 	public static final String NODE_ALIAS					= "nod";

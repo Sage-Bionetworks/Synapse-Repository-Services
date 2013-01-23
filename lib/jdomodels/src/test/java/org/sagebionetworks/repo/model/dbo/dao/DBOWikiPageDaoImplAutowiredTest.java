@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -15,7 +17,9 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -36,7 +40,7 @@ public class DBOWikiPageDaoImplAutowiredTest {
 	@Autowired
 	private UserGroupDAO userGroupDAO;
 	
-	private List<String> toDelete;
+	private List<WikiPageKey> toDelete;
 	String creatorUserGroupId;
 	
 	S3FileHandle fileOne;
@@ -44,7 +48,7 @@ public class DBOWikiPageDaoImplAutowiredTest {
 	
 	@Before
 	public void before(){
-		toDelete = new LinkedList<String>();
+		toDelete = new LinkedList<WikiPageKey>();
 		creatorUserGroupId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
 		assertNotNull(creatorUserGroupId);
 		// Create a few files
@@ -74,7 +78,7 @@ public class DBOWikiPageDaoImplAutowiredTest {
 	@After
 	public void after(){
 		if(wikiPageDao != null && toDelete != null){
-			for(String id: toDelete){
+			for(WikiPageKey id: toDelete){
 				wikiPageDao.delete(id);
 			}
 		}
@@ -89,23 +93,26 @@ public class DBOWikiPageDaoImplAutowiredTest {
 	
 	/**
 	 * Create a new wiki page.
+	 * @throws NotFoundException 
 	 */
 	@Test
-	public void testCreate(){
+	public void testCreate() throws NotFoundException{
 		// Create a new wiki page with a single attachment
 		WikiPage page = new WikiPage();
 		page.setTitle("Title");
 		page.setCreatedBy(creatorUserGroupId);
 		page.setModifiedBy(creatorUserGroupId);
 		page.setMarkdown("This is the markdown text");
+		String ownerId = "syn123";
+		ObjectType ownerType = ObjectType.ENTITY;
 		// Add an attachment
 		page.setAttachmentFileHandleIds(new LinkedList<String>());
 		page.getAttachmentFileHandleIds().add(fileOne.getId());
 		// Create it
-		WikiPage clone = wikiPageDao.create(page);
+		WikiPage clone = wikiPageDao.create(page, ownerId, ownerType);
 		assertNotNull(clone);
 		assertNotNull(clone.getId());
-		toDelete.add(clone.getId());
+		toDelete.add(new WikiPageKey(ownerId, ownerType, clone.getId()));
 		assertNotNull("createdOn date should have been filled in by the DB", clone.getCreatedOn());
 		assertNotNull("modifiedOn date should have been filled in by the DB", clone.getModifiedOn());
 		assertNotNull(clone.getEtag());
@@ -113,9 +120,14 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		assertEquals(creatorUserGroupId, clone.getModifiedBy());
 		assertEquals(page.getTitle(), clone.getTitle());
 		assertEquals(page.getMarkdown(), clone.getMarkdown());
-		assertEquals(null, clone.getParentId());
+		assertEquals(null, clone.getParentWikiId());
 		// The attachments should be equals
 		assertEquals(page.getAttachmentFileHandleIds(), clone.getAttachmentFileHandleIds());
+		
+		// Make sure we can lock
+		String etag = wikiPageDao.lockForUpdate(clone.getId());
+		assertNotNull(etag);
+		assertEquals(clone.getEtag(), etag);
 	}
 	
 	@Test
@@ -125,13 +137,15 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		page.setCreatedBy(creatorUserGroupId);
 		page.setModifiedBy(creatorUserGroupId);
 		page.setMarkdown("This is the markdown text");
+		String ownerId = "456";
+		ObjectType ownerType = ObjectType.COMPETITION;
 		// Add an attachment
 		page.setAttachmentFileHandleIds(new LinkedList<String>());
 		page.getAttachmentFileHandleIds().add(fileOne.getId());
 		// Create it
-		WikiPage clone = wikiPageDao.create(page);
+		WikiPage clone = wikiPageDao.create(page, ownerId, ownerType);
 		assertNotNull(clone);
-		toDelete.add(clone.getId());
+		toDelete.add(new WikiPageKey(ownerId, ownerType, clone.getId()));
 		String startEtag = clone.getEtag();
 		Long startModifiedOn = clone.getModifiedOn().getTime();
 		// Sleep to ensure the next date is higher.
@@ -140,7 +154,7 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		clone.getAttachmentFileHandleIds().add(fileTwo.getId());
 		clone.setTitle("Updated title");
 		// Update
-		WikiPage clone2 = wikiPageDao.updateWikiPage(clone, true);
+		WikiPage clone2 = wikiPageDao.updateWikiPage(clone,ownerId, ownerType, true);
 		assertNotNull(clone2);
 		assertNotNull(clone2.getEtag());
 		// The etag should be new
@@ -154,15 +168,18 @@ public class DBOWikiPageDaoImplAutowiredTest {
 	}
 	
 	@Test
-	public void testCreateChildPage(){
+	public void testCreateChildPage() throws NotFoundException{
 		WikiPage root = new WikiPage();
 		root.setTitle("Root");
 		root.setCreatedBy(creatorUserGroupId);
 		root.setModifiedBy(creatorUserGroupId);
+		String ownerId = "syn123";
+		ObjectType ownerType = ObjectType.ENTITY;
 		// Create it
-		root = wikiPageDao.create(root);
+		root = wikiPageDao.create(root, ownerId, ownerType);
 		assertNotNull(root);
-		toDelete.add(root.getId());
+		WikiPageKey rootKey = new WikiPageKey(ownerId, ownerType, root.getId());
+		toDelete.add(rootKey);
 		// Add add children
 		int childCount = 3;
 		List<WikiPage> children = new LinkedList<WikiPage>();
@@ -172,24 +189,25 @@ public class DBOWikiPageDaoImplAutowiredTest {
 			child.setTitle("A"+i);
 			child.setCreatedBy(creatorUserGroupId);
 			child.setModifiedBy(creatorUserGroupId);
-			child.setParentId(root.getId());
-			child = wikiPageDao.create(child);
+			child.setParentWikiId(root.getId());
+			child = wikiPageDao.create(child, ownerId, ownerType);
 			children.add(child);
 		}
 		// Now get the children of this parent
-		List<WikiHeader> list = wikiPageDao.getChildrenHeaders(root.getId());
+		List<WikiHeader> list = wikiPageDao.getHeaderTree(ownerId, ownerType);
 		System.out.println(list);
 		assertNotNull(list);
-		assertEquals(childCount, list.size());
+		assertEquals(childCount+1, list.size());
+		// The parent should be first
+		assertEquals("Root", list.get(0).getTitle());
 		// Check the order
-		assertEquals("A0", list.get(0).getTitle());
-		int intLastIndex = childCount-1;
-		assertEquals("A"+intLastIndex, list.get(intLastIndex).getTitle());
+		assertEquals("A0", list.get(1).getTitle());
+		assertEquals("A"+(childCount-1), list.get(childCount).getTitle());
 		// Check cascade delete
-		wikiPageDao.delete(root.getId());
+		wikiPageDao.delete(rootKey);
 		for(WikiPage childWiki: children){
 			try{
-				wikiPageDao.get(childWiki.getId());
+				wikiPageDao.get(new WikiPageKey(ownerId, ownerType, childWiki.getId()));
 				fail("This child should have been deleted when the parent was deleted.");
 			}catch(NotFoundException e){
 				// expected

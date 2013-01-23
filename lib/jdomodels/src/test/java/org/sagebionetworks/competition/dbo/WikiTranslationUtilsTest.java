@@ -32,7 +32,7 @@ public class WikiTranslationUtilsTest {
 		dto.setCreatedOn(new Date(88l));
 		dto.setModifiedBy("987");
 		dto.setModifiedOn(new Date(99l));
-		dto.setParentId("0");
+		dto.setParentWikiId("0");
 		dto.setAttachmentFileHandleIds(new LinkedList<String>());
 		dto.getAttachmentFileHandleIds().add("1974");
 		dto.getAttachmentFileHandleIds().add("1975");

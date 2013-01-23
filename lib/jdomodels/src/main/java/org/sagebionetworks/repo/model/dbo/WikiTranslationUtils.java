@@ -38,7 +38,7 @@ public class WikiTranslationUtils {
 			page.setModifiedOn(new Date(dtoPage.getModifiedOn()));
 		}
 		if(dtoPage.getParentId() != null){
-			page.setParentId(dtoPage.getParentId().toString());
+			page.setParentWikiId(dtoPage.getParentId().toString());
 		}
 		if(dtoPage.getMarkdown() != null){
 			try {
@@ -79,8 +79,8 @@ public class WikiTranslationUtils {
 		if(dto.getModifiedOn() != null){
 			page.setModifiedOn(dto.getModifiedOn().getTime());
 		}
-		if(dto.getParentId() != null){
-			page.setParentId(new Long(dto.getParentId()));
+		if(dto.getParentWikiId() != null){
+			page.setParentId(new Long(dto.getParentWikiId()));
 		}
 		if(dto.getMarkdown() != null){
 			try {

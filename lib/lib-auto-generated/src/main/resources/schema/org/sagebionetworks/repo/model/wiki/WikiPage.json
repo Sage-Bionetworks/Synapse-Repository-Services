@@ -27,7 +27,7 @@
 			"type": "string",
 			"description":"The id of the user that last modified this page."
 		},		
-		"parentId": {
+		"parentWikiId": {
 			"type": "string",
 			"description": "The parent ID of a wiki that is a sub-page of another wiki."
 		},

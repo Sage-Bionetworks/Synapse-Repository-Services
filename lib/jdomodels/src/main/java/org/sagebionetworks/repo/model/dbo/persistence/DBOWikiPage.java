@@ -1,11 +1,20 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_MARKDOWN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_MODIFIED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_MODIFIED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_PARENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_TITLE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_WIKI_PAGE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WIKI_PAGE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
-import java.util.Date;
 
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -27,6 +36,7 @@ public class DBOWikiPage implements DatabaseObject<DBOWikiPage> {
 		new FieldColumn("modifiedBy", COL_WIKI_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_WIKI_MODIFIED_ON),
 		new FieldColumn("parentId", COL_WIKI_PARENT_ID),
+		new FieldColumn("rootId", COL_WIKI_ROOT_ID),
 		new FieldColumn("markdown", COL_WIKI_MARKDOWN),
 	};
 	
@@ -38,6 +48,7 @@ public class DBOWikiPage implements DatabaseObject<DBOWikiPage> {
 	private Long modifiedBy;
 	private Long modifiedOn;
 	private Long parentId;
+	private Long rootId;
 	private byte[] markdown;
 
 	@Override
@@ -159,6 +170,14 @@ public class DBOWikiPage implements DatabaseObject<DBOWikiPage> {
 		this.markdown = markdown;
 	}
 
+	public Long getRootId() {
+		return rootId;
+	}
+
+	public void setRootId(Long rootId) {
+		this.rootId = rootId;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -176,6 +195,7 @@ public class DBOWikiPage implements DatabaseObject<DBOWikiPage> {
 				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result
 				+ ((parentId == null) ? 0 : parentId.hashCode());
+		result = prime * result + ((rootId == null) ? 0 : rootId.hashCode());
 		result = prime * result + ((title == null) ? 0 : title.hashCode());
 		return result;
 	}
@@ -225,6 +245,11 @@ public class DBOWikiPage implements DatabaseObject<DBOWikiPage> {
 			if (other.parentId != null)
 				return false;
 		} else if (!parentId.equals(other.parentId))
+			return false;
+		if (rootId == null) {
+			if (other.rootId != null)
+				return false;
+		} else if (!rootId.equals(other.rootId))
 			return false;
 		if (title == null) {
 			if (other.title != null)

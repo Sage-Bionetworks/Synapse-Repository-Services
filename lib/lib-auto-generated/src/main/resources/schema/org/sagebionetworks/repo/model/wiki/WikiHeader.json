@@ -8,6 +8,10 @@
 		"title": {
 			"type": "string",
 			"description": "The title to of this page."
+		},
+		"parentId": {
+			"type": "string",
+			"description": "The parentID to of this page."
 		}
 	}
 }
