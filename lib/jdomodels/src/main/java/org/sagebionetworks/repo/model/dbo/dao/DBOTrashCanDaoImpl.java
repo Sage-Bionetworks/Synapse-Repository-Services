@@ -7,13 +7,15 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
 
 import java.sql.Timestamp;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.TrashEntity;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashEntity;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
@@ -71,7 +73,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 	}
 
 	@Override
-	public List<DBOTrashEntity> getInRangeForUser(Long userGroupId, long offset,
+	public List<TrashEntity> getInRangeForUser(Long userGroupId, long offset,
 			long limit) throws DatastoreException {
 
 		if (userGroupId == null) {
@@ -89,7 +91,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
 		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
 		List<DBOTrashEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH_FOR_USER, rowMapper, paramMap);
-		return Collections.unmodifiableList(trashList);
+		return convertDboToDto(trashList);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -114,5 +116,22 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 			params.addValue("nodeId", id);
 			basicDao.deleteObjectById(DBOTrashEntity.class, params);
 		}
+	}
+
+	private List<TrashEntity> convertDboToDto(List<DBOTrashEntity> dboList) {
+		List<TrashEntity> trashList = new ArrayList<TrashEntity>(dboList.size());
+		for (DBOTrashEntity dbo : dboList) {
+			trashList.add(convertDboToDto(dbo));
+		}
+		return trashList;
+	}
+
+	private TrashEntity convertDboToDto(DBOTrashEntity dbo) {
+		TrashEntity trash = new TrashEntity();
+		trash.setEntityId(KeyFactory.keyToString(dbo.getId()));
+		trash.setParentId(KeyFactory.keyToString(dbo.getParentId()));
+		trash.setDeletedByPrincipalId(dbo.getDeletedBy().toString());
+		trash.setDeletedOn(dbo.getDeletedOn());
+		return trash;
 	}
 }

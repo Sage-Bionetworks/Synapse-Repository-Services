@@ -12,8 +12,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.TrashEntity;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashEntity;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -40,14 +41,14 @@ public class DBOTrashCanDaoImplAutowiredTest {
 
 		clear();
 
-		List<DBOTrashEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
+		List<TrashEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
 		assertTrue(trashList.size() == 0);
 	}
 
 	@After
 	public void after() throws Exception {
 		clear();
-		List<DBOTrashEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
+		List<TrashEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
 		assertTrue(trashList.size() == 0);
 	}
 
@@ -57,14 +58,13 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		long nodeId1 = 555L;
 		long parentId1 = 5L;
 		trashCanDao.create(userId, nodeId1, parentId1);
-		List<DBOTrashEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
+		List<TrashEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
-		DBOTrashEntity trash = trashList.get(0);
-		assertEquals(nodeId1, trash.getId().longValue());
-		assertEquals(userId, trash.getDeletedBy().longValue());
-		assertEquals(nodeId1, trash.getNodeId().longValue());
-		assertEquals(parentId1, trash.getParentId().longValue());
+		TrashEntity trash = trashList.get(0);
+		assertEquals(KeyFactory.keyToString(nodeId1), trash.getEntityId());
+		assertEquals(Long.toString(userId), trash.getDeletedByPrincipalId());
+		assertEquals(KeyFactory.keyToString(parentId1), trash.getParentId());
 		assertNotNull(trash.getDeletedOn());
 
 		long nodeId2 = 666L;
@@ -79,10 +79,9 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
 		trash = trashList.get(0);
-		assertEquals(nodeId2, trash.getId().longValue());
-		assertEquals(userId, trash.getDeletedBy().longValue());
-		assertEquals(nodeId2, trash.getNodeId().longValue());
-		assertEquals(parentId2, trash.getParentId().longValue());
+		assertEquals(KeyFactory.keyToString(nodeId2), trash.getEntityId());
+		assertEquals(Long.toString(userId), trash.getDeletedByPrincipalId());
+		assertEquals(KeyFactory.keyToString(parentId2), trash.getParentId());
 		assertNotNull(trash.getDeletedOn());
 
 		trashCanDao.delete(userId, nodeId2);
@@ -92,9 +91,9 @@ public class DBOTrashCanDaoImplAutowiredTest {
 	}
 
 	private void clear() throws Exception {
-		List<DBOTrashEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
-		for (DBOTrashEntity trash : trashList) {
-			trashCanDao.delete(userId, trash.getId());
+		List<TrashEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
+		for (TrashEntity trash : trashList) {
+			trashCanDao.delete(userId, KeyFactory.stringToKey(trash.getEntityId()));
 		}
 	}
 }

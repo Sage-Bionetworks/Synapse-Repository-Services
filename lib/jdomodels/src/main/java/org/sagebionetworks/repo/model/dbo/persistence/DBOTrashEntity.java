@@ -96,14 +96,14 @@ public class DBOTrashEntity implements AutoIncrementDatabaseObject<DBOTrashEntit
 	}
 
 	/**
-	 * The ID of the user who deleted the node.
+	 * The ID of the user who deleted the entity.
 	 */
 	public Long getDeletedBy() {
 		return deletedBy;
 	}
 
 	/**
-	 * The ID of the user who deleted the node.
+	 * The ID of the user who deleted the entity.
 	 */
 	public void setDeletedBy(Long deletedBy) {
 		this.deletedBy = deletedBy;
