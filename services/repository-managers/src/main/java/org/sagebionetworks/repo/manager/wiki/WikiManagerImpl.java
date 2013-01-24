@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * WikiManager implemention.
+ * WikiManager implementation.
  * 
  * @author John
  *
@@ -31,20 +31,45 @@ public class WikiManagerImpl implements WikiManager {
 	@Autowired
 	AuthorizationManager authorizationManager;
 
+	/**
+	 * Default for Spring!
+	 */
+	public WikiManagerImpl(){}
+	
+	/**
+	 * The IoC constructor.
+	 * @param wikiPageDao
+	 * @param authorizationManager
+	 */
+	public WikiManagerImpl(WikiPageDao wikiPageDao,
+			AuthorizationManager authorizationManager) {
+		super();
+		this.wikiPageDao = wikiPageDao;
+		this.authorizationManager = authorizationManager;
+	}
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public WikiPage createWikiPage(UserInfo user, String objectId,	ObjectType objectType, WikiPage toCreate) throws NotFoundException, UnauthorizedException{
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(objectId == null) throw new IllegalArgumentException("objectId cannot be null");
+		if(objectType == null) throw new IllegalArgumentException("ObjectType cannot be null");
+		if(toCreate == null) throw new IllegalArgumentException("WikiPage cannot be null");
 		// Check that the user is allowed to perform this action
 		if(!authorizationManager.canAccess(user, objectId,	objectType, ACCESS_TYPE.CREATE)){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.CREATE.name(), objectId, objectType.name()));
 		}
+		// Set created by and modified by
+		toCreate.setCreatedBy(user.getIndividualGroup().getId());
+		toCreate.setModifiedBy(toCreate.getCreatedBy());
 		// pass to the DAO
 		return wikiPageDao.create(toCreate, objectId, objectType);
 	}
 
 	@Override
 	public WikiPage getWikiPage(UserInfo user, WikiPageKey key) throws NotFoundException, UnauthorizedException {
+		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(key == null) throw new IllegalArgumentException("WikiPageKey cannot be null");
 		// Check that the user is allowed to perform this action
 		if(!authorizationManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.CREATE.name(), key.getOwnerObjectId(), key.getOwnerObjectType().name()));
@@ -56,6 +81,8 @@ public class WikiManagerImpl implements WikiManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteWiki(UserInfo user, WikiPageKey key) throws UnauthorizedException, DatastoreException, NotFoundException{
+		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(key == null) throw new IllegalArgumentException("WikiPageKey cannot be null");
 		// Check that the user is allowed to perform this action
 		if(!authorizationManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.DELETE)){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.DELETE.name(), key.getOwnerObjectId(), key.getOwnerObjectType().name()));
@@ -67,15 +94,21 @@ public class WikiManagerImpl implements WikiManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public WikiPage updateWikiPage(UserInfo user, String objectId,	ObjectType objectType, WikiPage toUpdate) throws NotFoundException, UnauthorizedException, ConflictingUpdateException {
+		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(objectId == null) throw new IllegalArgumentException("ObjectType cannot be null");
+		if(objectType == null) throw new IllegalArgumentException("ObjectType cannot be null");
+		if(toUpdate == null) throw new IllegalArgumentException("WikiPage cannot be null");
 		// Check that the user is allowed to perform this action
 		if(!authorizationManager.canAccess(user, objectId,	objectType, ACCESS_TYPE.UPDATE)){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.UPDATE.name(), objectId, objectType.name()));
 		}
 		// Before we can update the Wiki we need to lock.
 		String currentEtag = wikiPageDao.lockForUpdate(toUpdate.getId());
-		if(currentEtag.equals(toUpdate.getEtag())){
+		if(!currentEtag.equals(toUpdate.getEtag())){
 			throw new ConflictingUpdateException("ObjectId: "+objectId+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
+		// Set modified by
+		toUpdate.setModifiedBy(user.getIndividualGroup().getId());
 		// Pass to the DAO
 		return wikiPageDao.updateWikiPage(toUpdate, objectId, objectType, false);
 	}

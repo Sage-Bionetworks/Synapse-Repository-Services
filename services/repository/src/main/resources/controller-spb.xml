@@ -54,6 +54,9 @@
 
 	<!-- The StorageUsage Service -->
 	<bean id="storageUsageService" class="org.sagebionetworks.repo.web.service.StorageUsageServiceImpl" />
+	
+	<!-- The StorageUsage Service -->
+	<bean id="wikiService" class="org.sagebionetworks.repo.web.service.WikiServiceImpl" />
 
 	<!-- The UserProfile Service -->
 	<bean id="userProfileService"

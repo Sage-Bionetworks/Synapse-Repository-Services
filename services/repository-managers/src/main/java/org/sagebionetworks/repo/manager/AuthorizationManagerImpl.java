@@ -53,7 +53,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	AuthorizationManagerImpl(NodeInheritanceDAO nodeInheritanceDAO,
 			AccessControlListDAO accessControlListDAO,
 			AccessRequirementDAO accessRequirementDAO, ActivityDAO activityDAO,
-			NodeQueryDao nodeQueryDao, NodeDAO nodeDAO, UserManager userManager) {
+			NodeQueryDao nodeQueryDao, NodeDAO nodeDAO, UserManager userManager, CompetitionManager competitionManager) {
 		super();
 		this.nodeInheritanceDAO = nodeInheritanceDAO;
 		this.accessControlListDAO = accessControlListDAO;
@@ -62,6 +62,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		this.nodeQueryDao = nodeQueryDao;
 		this.nodeDAO = nodeDAO;
 		this.userManager = userManager;
+		this.competitionManager = competitionManager;
 	}
 
 	private static boolean agreesToTermsOfUse(UserInfo userInfo) {

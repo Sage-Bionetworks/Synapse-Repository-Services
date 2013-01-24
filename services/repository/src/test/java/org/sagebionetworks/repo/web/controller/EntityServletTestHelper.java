@@ -33,7 +33,9 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -971,5 +973,33 @@ public class EntityServletTestHelper {
 		}
 		// Read in the value.
 		return Long.parseLong(response.getContentAsString());
+	}
+	
+	/**
+	 * 
+	 * @param userId
+	 * @param toCreate
+	 * @throws IOException 
+	 * @throws ServletException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public WikiPage createWikiPage(String userId, String ownerId, ObjectType ownerType, WikiPage toCreate) throws ServletException,
+			IOException, JSONObjectAdapterException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		String uri = "/"+ownerType.name().toLowerCase() + "/" + ownerId + "/wiki";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		String body;
+		body = EntityFactory.createJSONStringForEntity(toCreate);
+		request.setContent(body.getBytes("UTF-8"));
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), WikiPage.class);
 	}
 }
