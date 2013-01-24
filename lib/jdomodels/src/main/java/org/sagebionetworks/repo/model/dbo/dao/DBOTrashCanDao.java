@@ -3,7 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTrash;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -26,7 +26,7 @@ public interface DBOTrashCanDao {
 	 * Gets the trash items deleted by the specified user. Results are paged as
 	 * specified by offset (inclusive; staring from 0) and limit (the max number of items retrieved).
 	 */
-	List<DBOTrash> getInRangeForUser(Long userGroupId, long offset, long limit) throws DatastoreException;
+	List<DBOTrashEntity> getInRangeForUser(Long userGroupId, long offset, long limit) throws DatastoreException;
 
 	/**
 	 * Removes a trash item from the trash can table. This happens when the trash item is either restored or purged.

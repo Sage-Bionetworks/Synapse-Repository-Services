@@ -13,7 +13,7 @@ import java.util.List;
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTrash;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
@@ -35,7 +35,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY
 			+ " AND " + COL_TRASH_CAN_NODE_ID + " = :" + COL_TRASH_CAN_NODE_ID;
 
-	private static final RowMapper<DBOTrash> rowMapper = (new DBOTrash()).getTableMapping();
+	private static final RowMapper<DBOTrashEntity> rowMapper = (new DBOTrashEntity()).getTableMapping();
 	private static final RowMapper<Long> idRowMapper = ParameterizedSingleColumnRowMapper.newInstance(Long.class);
 
 	@Autowired
@@ -58,7 +58,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 			throw new IllegalArgumentException("parentId cannot be null.");
 		}
 
-		DBOTrash dbo = new DBOTrash();
+		DBOTrashEntity dbo = new DBOTrashEntity();
 		dbo.setNodeId(nodeId);
 		dbo.setDeletedBy(userGroupId);
 		DateTime dt = DateTime.now();
@@ -71,7 +71,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 	}
 
 	@Override
-	public List<DBOTrash> getInRangeForUser(Long userGroupId, long offset,
+	public List<DBOTrashEntity> getInRangeForUser(Long userGroupId, long offset,
 			long limit) throws DatastoreException {
 
 		if (userGroupId == null) {
@@ -88,7 +88,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		paramMap.addValue(OFFSET_PARAM_NAME, offset);
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
 		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
-		List<DBOTrash> trashList = simpleJdbcTemplate.query(SELECT_TRASH_FOR_USER, rowMapper, paramMap);
+		List<DBOTrashEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH_FOR_USER, rowMapper, paramMap);
 		return Collections.unmodifiableList(trashList);
 	}
 
@@ -112,7 +112,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		for (Long id : idList) {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("nodeId", id);
-			basicDao.deleteObjectById(DBOTrash.class, params);
+			basicDao.deleteObjectById(DBOTrashEntity.class, params);
 		}
 	}
 }

@@ -13,7 +13,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTrash;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -40,14 +40,14 @@ public class DBOTrashCanDaoImplAutowiredTest {
 
 		clear();
 
-		List<DBOTrash> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
+		List<DBOTrashEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
 		assertTrue(trashList.size() == 0);
 	}
 
 	@After
 	public void after() throws Exception {
 		clear();
-		List<DBOTrash> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
+		List<DBOTrashEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
 		assertTrue(trashList.size() == 0);
 	}
 
@@ -57,10 +57,10 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		long nodeId1 = 555L;
 		long parentId1 = 5L;
 		trashCanDao.create(userId, nodeId1, parentId1);
-		List<DBOTrash> trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
+		List<DBOTrashEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
-		DBOTrash trash = trashList.get(0);
+		DBOTrashEntity trash = trashList.get(0);
 		assertEquals(nodeId1, trash.getId().longValue());
 		assertEquals(userId, trash.getDeletedBy().longValue());
 		assertEquals(nodeId1, trash.getNodeId().longValue());
@@ -92,8 +92,8 @@ public class DBOTrashCanDaoImplAutowiredTest {
 	}
 
 	private void clear() throws Exception {
-		List<DBOTrash> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
-		for (DBOTrash trash : trashList) {
+		List<DBOTrashEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
+		for (DBOTrashEntity trash : trashList) {
 			trashCanDao.delete(userId, trash.getId());
 		}
 	}

@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  *
  * @author Eric Wu
  */
-public class DBOTrash implements AutoIncrementDatabaseObject<DBOTrash> {
+public class DBOTrashEntity implements AutoIncrementDatabaseObject<DBOTrashEntity> {
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("nodeId", COL_TRASH_CAN_NODE_ID, true),
@@ -30,13 +30,13 @@ public class DBOTrash implements AutoIncrementDatabaseObject<DBOTrash> {
 	};
 
 	@Override
-	public TableMapping<DBOTrash> getTableMapping() {
+	public TableMapping<DBOTrashEntity> getTableMapping() {
 
-		return new TableMapping<DBOTrash>() {
+		return new TableMapping<DBOTrashEntity>() {
 
 			@Override
-			public DBOTrash mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOTrash trash = new DBOTrash();
+			public DBOTrashEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOTrashEntity trash = new DBOTrashEntity();
 				trash.setNodeId(rs.getLong(COL_TRASH_CAN_NODE_ID));
 				trash.setDeletedBy(rs.getLong(COL_TRASH_CAN_DELETED_BY));
 				trash.setDeletedOn(rs.getTimestamp(COL_TRASH_CAN_DELETED_ON));
@@ -60,8 +60,8 @@ public class DBOTrash implements AutoIncrementDatabaseObject<DBOTrash> {
 			}
 
 			@Override
-			public Class<? extends DBOTrash> getDBOClass() {
-				return DBOTrash.class;
+			public Class<? extends DBOTrashEntity> getDBOClass() {
+				return DBOTrashEntity.class;
 			}};
 	}
 
@@ -162,7 +162,7 @@ public class DBOTrash implements AutoIncrementDatabaseObject<DBOTrash> {
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
-		DBOTrash other = (DBOTrash) obj;
+		DBOTrashEntity other = (DBOTrashEntity) obj;
 		if (deletedBy == null) {
 			if (other.deletedBy != null) {
 				return false;
