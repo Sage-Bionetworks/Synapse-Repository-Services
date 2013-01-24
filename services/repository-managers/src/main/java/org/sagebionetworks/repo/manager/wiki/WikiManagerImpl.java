@@ -1,14 +1,20 @@
 package org.sagebionetworks.repo.manager.wiki;
 
+import java.util.List;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +28,8 @@ import org.springframework.transaction.annotation.Transactional;
  *
  */
 public class WikiManagerImpl implements WikiManager {
+	
+	static private Log log = LogFactory.getLog(WikiManagerImpl.class);	
 	
 	private static final String USER_IS_NOT_AUTHORIZED_TEMPLATE = "User is not authorized to '%1$s' a WikiPage with an onwerId: '%2$s' of type: '%3$s'";
 
@@ -80,12 +88,17 @@ public class WikiManagerImpl implements WikiManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void deleteWiki(UserInfo user, WikiPageKey key) throws UnauthorizedException, DatastoreException, NotFoundException{
+	public void deleteWiki(UserInfo user, WikiPageKey key) throws UnauthorizedException, DatastoreException{
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(key == null) throw new IllegalArgumentException("WikiPageKey cannot be null");
 		// Check that the user is allowed to perform this action
-		if(!authorizationManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.DELETE)){
-			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.DELETE.name(), key.getOwnerObjectId(), key.getOwnerObjectType().name()));
+		try {
+			if(!authorizationManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.DELETE)){
+				throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.DELETE.name(), key.getOwnerObjectId(), key.getOwnerObjectType().name()));
+			}
+		} catch (NotFoundException e) {
+			// If the owner does not exist then it is okay to delete the wiki
+			log.info("Deleting a Wikipage where the owner does not exist: "+key.toString());
 		}
 		// Pass to the DAO
 		wikiPageDao.delete(key);
@@ -111,6 +124,20 @@ public class WikiManagerImpl implements WikiManager {
 		toUpdate.setModifiedBy(user.getIndividualGroup().getId());
 		// Pass to the DAO
 		return wikiPageDao.updateWikiPage(toUpdate, objectId, objectType, false);
+	}
+
+	@Override
+	public PaginatedResults<WikiHeader> getWikiHeaderTree(UserInfo user, String ownerId, ObjectType type, Long limit, Long offset) throws DatastoreException, NotFoundException {
+		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(type == null) throw new IllegalArgumentException("ownerId cannot be null");
+		// Check that the user is allowed to perform this action
+		if(!authorizationManager.canAccess(user,ownerId, type, ACCESS_TYPE.READ)){
+			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.CREATE.name(), ownerId, type.name()));
+		}
+		// Limit and offset are currently ignored.
+		List<WikiHeader> list = wikiPageDao.getHeaderTree(ownerId, type);
+		return new PaginatedResults<WikiHeader>(list, list.size());
 	}
 
 }

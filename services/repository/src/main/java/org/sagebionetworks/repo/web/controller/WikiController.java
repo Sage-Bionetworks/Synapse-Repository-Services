@@ -4,8 +4,11 @@ import static org.sagebionetworks.repo.web.UrlHelpers.*;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -33,10 +36,10 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	WikiPage createEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable(value= ID_PATH_VARIABLE) String entityId,
+			@PathVariable String ownerId,
 			@RequestBody WikiPage toCreate
 			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().createWikiPage(userId, entityId, ObjectType.ENTITY, toCreate);
+		return serviceProvider.getWikiService().createWikiPage(userId, ownerId, ObjectType.ENTITY, toCreate);
 	}
 	
 	@ResponseStatus(HttpStatus.CREATED)
@@ -44,10 +47,10 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	WikiPage createCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable(value= COMPETITION_ID_PATH_VAR) String competitionId,
+			@PathVariable String ownerId,
 			@RequestBody WikiPage toCreate
 			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().createWikiPage(userId, competitionId, ObjectType.COMPETITION, toCreate);
+		return serviceProvider.getWikiService().createWikiPage(userId, ownerId, ObjectType.COMPETITION, toCreate);
 	}
 	
 	// Get methods
@@ -57,10 +60,10 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	WikiPage getEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable(value= ID_PATH_VARIABLE) String entityId,
-			@PathVariable(value= WIKI_ID_PATH_VAR) String wikiId
+			@PathVariable String ownerId,
+			@PathVariable String wikiId
 			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().getWikiPage(userId, new WikiPageKey(entityId, ObjectType.ENTITY, wikiId));
+		return serviceProvider.getWikiService().getWikiPage(userId, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -68,10 +71,10 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	WikiPage getCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable(value= COMPETITION_ID_PATH_VAR) String compId,
-			@PathVariable(value= WIKI_ID_PATH_VAR) String wikiId
+			@PathVariable String ownerId,
+			@PathVariable String wikiId
 			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().getWikiPage(userId, new WikiPageKey(compId, ObjectType.COMPETITION, wikiId));
+		return serviceProvider.getWikiService().getWikiPage(userId, new WikiPageKey(ownerId, ObjectType.COMPETITION, wikiId));
 	}
 	
 	// Update methods.
@@ -81,11 +84,12 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	WikiPage updateEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable(value= ID_PATH_VARIABLE) String entityId,
-			@PathVariable(value= WIKI_ID_PATH_VAR) String wikiId,
+			@PathVariable String ownerId,
+			@PathVariable String wikiId,
 			@RequestBody WikiPage toUpdate
 			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().updateWikiPage(userId, entityId, ObjectType.ENTITY, toUpdate);
+		validateUpateArguments(wikiId, toUpdate);
+		return serviceProvider.getWikiService().updateWikiPage(userId, ownerId, ObjectType.ENTITY, toUpdate);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -93,11 +97,24 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	WikiPage updateCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable(value= COMPETITION_ID_PATH_VAR) String compId,
-			@PathVariable(value= WIKI_ID_PATH_VAR) String wikiId,
+			@PathVariable String ownerId,
+			@PathVariable String wikiId,
 			@RequestBody WikiPage toUpdate
 			) throws DatastoreException, NotFoundException{
-		return serviceProvider.getWikiService().updateWikiPage(userId, compId, ObjectType.ENTITY, toUpdate);
+		validateUpateArguments(wikiId, toUpdate);
+		return serviceProvider.getWikiService().updateWikiPage(userId, ownerId, ObjectType.COMPETITION, toUpdate);
+	}
+
+	/**
+	 * Helper to validate update arguments.
+	 * @param wikiId
+	 * @param wikiPage
+	 */
+	private void validateUpateArguments(String wikiId, WikiPage wikiPage) {
+		if(wikiPage == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		if(!wikiId.equals(wikiPage.getId())){
+			throw new IllegalArgumentException("Path variable wikiId does not match the ID of the passed WikiPage");
+		}
 	}
 	
 	// Delete methods
@@ -107,10 +124,10 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	void deleteEntityWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable(value= ID_PATH_VARIABLE) String entityId,
-			@PathVariable(value= WIKI_ID_PATH_VAR) String wikiId
+			@PathVariable String ownerId,
+			@PathVariable String wikiId
 			) throws DatastoreException, NotFoundException{
-		serviceProvider.getWikiService().deleteWikiPage(userId, new WikiPageKey(entityId, ObjectType.ENTITY, wikiId));
+		serviceProvider.getWikiService().deleteWikiPage(userId, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -118,9 +135,35 @@ public class WikiController extends BaseController {
 	public @ResponseBody
 	void deleteCompetitionWikiPage(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
-			@PathVariable(value= COMPETITION_ID_PATH_VAR) String compId,
-			@PathVariable(value= WIKI_ID_PATH_VAR) String wikiId
+			@PathVariable String ownerId,
+			@PathVariable String wikiId
 			) throws DatastoreException, NotFoundException{
-		serviceProvider.getWikiService().deleteWikiPage(userId, new WikiPageKey(compId, ObjectType.ENTITY, wikiId));
+		serviceProvider.getWikiService().deleteWikiPage(userId, new WikiPageKey(ownerId, ObjectType.COMPETITION, wikiId));
+	}
+	
+	// Get Wiki Hierarchy
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_TREE, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<WikiHeader> getEntityWikiHeaderTree(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
+			@PathVariable String ownerId
+			) throws DatastoreException, NotFoundException{
+		return serviceProvider.getWikiService().getWikiHeaderTree(userId, ownerId, ObjectType.ENTITY, limit, offset);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.COMPETITION_WIKI_TREE, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<WikiHeader> getCompetitionWikiHeaderTree(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false) Long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false) Long limit,
+			@PathVariable String ownerId
+			) throws DatastoreException, NotFoundException{
+		return serviceProvider.getWikiService().getWikiHeaderTree(userId, ownerId, ObjectType.COMPETITION, limit, offset);
 	}
 }

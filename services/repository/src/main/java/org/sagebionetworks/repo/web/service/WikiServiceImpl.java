@@ -3,9 +3,11 @@ package org.sagebionetworks.repo.web.service;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.wiki.WikiManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,12 @@ public class WikiServiceImpl implements WikiService {
 	public void deleteWikiPage(String userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException {
 		UserInfo user = userManager.getUserInfo(userId);
 		wikiManager.deleteWiki(user, wikiPageKey);
+	}
+
+	@Override
+	public PaginatedResults<WikiHeader> getWikiHeaderTree(String userId, String ownerId, ObjectType type, Long limit, Long offest) throws DatastoreException, NotFoundException {
+		UserInfo user = userManager.getUserInfo(userId);
+		return wikiManager.getWikiHeaderTree(user, ownerId, type, limit, offest);
 	}
 
 }

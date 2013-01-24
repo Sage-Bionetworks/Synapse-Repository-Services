@@ -30,9 +30,13 @@ public class WikiManagerTest {
 	AuthorizationManager mockAuthManager;
 	WikiManagerImpl wikiManager;
 	WikiPageKey key;
+	UserInfo user;
 	
 	@Before
 	public void before(){
+		user = new UserInfo(false);
+		user.setIndividualGroup(new UserGroup());
+		user.getIndividualGroup().setId("987");
 		// setup the mocks
 		mockWikiDao = Mockito.mock(WikiPageDao.class);
 		mockAuthManager = Mockito.mock(AuthorizationManager.class);
@@ -100,6 +104,14 @@ public class WikiManagerTest {
 		wikiManager.deleteWiki(new UserInfo(true), null);
 	}
 	
+	@Test
+	public void testDeleteOwnerNotFound() throws UnauthorizedException, NotFoundException{
+		// If the owner does not exist then then we can delete it.
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenThrow(new NotFoundException());
+		wikiManager.deleteWiki(new UserInfo(true), new WikiPageKey("123", ObjectType.COMPETITION, "345"));
+	}
+	
+	
 	@Test (expected=UnauthorizedException.class)
 	public void testCreateUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
@@ -112,16 +124,46 @@ public class WikiManagerTest {
 		// setup allow
 		WikiPage page = new WikiPage();
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
-		wikiManager.createWikiPage(new UserInfo(false), "123", ObjectType.ENTITY, page);
+		wikiManager.createWikiPage(user, "123", ObjectType.ENTITY, page);
 		// Was it passed to the DAO?
 		verify(mockWikiDao, times(1)).create(page, "123", ObjectType.ENTITY);
+	}
+	
+	@Test
+	public void testCreateModifiedByCreatedBy() throws DatastoreException, NotFoundException{
+		// setup allow
+		WikiPage page = new WikiPage();
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
+		when(mockWikiDao.create(any(WikiPage.class), any(String.class), any(ObjectType.class))).thenReturn(page);
+		WikiPage result = wikiManager.createWikiPage(user, "123", ObjectType.ENTITY, page);
+		assertNotNull(result);
+		assertEquals("CreatedBy should have set", user.getIndividualGroup().getId(), result.getCreatedBy());
+		assertEquals("ModifiedBy should have set", user.getIndividualGroup().getId(), result.getModifiedBy());
+		// Was it passed to the DAO?
+		verify(mockWikiDao, times(1)).create(page, "123", ObjectType.ENTITY);
+	}
+	
+	@Test
+	public void testUpdateModifiedBy() throws DatastoreException, NotFoundException{
+		// setup allow
+		WikiPage page = new WikiPage();
+		page.setId("000");
+		page.setEtag("etag");
+		when(mockWikiDao.lockForUpdate("000")).thenReturn("etag");
+		// Start with a different modified by
+		page.setModifiedBy("to be replaced");
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
+		when(mockWikiDao.updateWikiPage(any(WikiPage.class), any(String.class), any(ObjectType.class), anyBoolean())).thenReturn(page);
+		WikiPage result = wikiManager.updateWikiPage(user, "123", ObjectType.ENTITY, page);
+		assertNotNull(result);
+		assertEquals("ModifiedBy should have set", user.getIndividualGroup().getId(), result.getModifiedBy());
 	}
 	
 	@Test (expected=UnauthorizedException.class)
 	public void testUpdateUnauthorized() throws DatastoreException, NotFoundException{
 		// setup deny
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(false);
-		wikiManager.updateWikiPage(new UserInfo(false), "123", ObjectType.ENTITY, new WikiPage());
+		wikiManager.updateWikiPage(user, "123", ObjectType.ENTITY, new WikiPage());
 	}
 	
 	@Test
@@ -132,7 +174,7 @@ public class WikiManagerTest {
 		when(mockWikiDao.lockForUpdate("000")).thenReturn("etag");
 		// setup allow
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
-		wikiManager.updateWikiPage(new UserInfo(false), "123", ObjectType.ENTITY, page);
+		wikiManager.updateWikiPage(user, "123", ObjectType.ENTITY, page);
 		// Was it passed to the DAO?
 		verify(mockWikiDao, times(1)).updateWikiPage(page, "123", ObjectType.ENTITY, false);
 		// The lock must be acquired
@@ -165,6 +207,20 @@ public class WikiManagerTest {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.getWikiPage(new UserInfo(false),key);
 		verify(mockWikiDao, times(1)).get(key);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetTreeUnauthorized() throws DatastoreException, NotFoundException{
+		// setup deny
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(false);
+		wikiManager.getWikiHeaderTree(new UserInfo(false), "123", ObjectType.COMPETITION, null, null);
+	}
+	
+	@Test
+	public void testGetTreeAuthorized() throws DatastoreException, NotFoundException{
+		// setup allow
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
+		wikiManager.getWikiHeaderTree(new UserInfo(false), "123", ObjectType.COMPETITION, null, null);
 	}
 	
 	@Test (expected=UnauthorizedException.class)

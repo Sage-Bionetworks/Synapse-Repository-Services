@@ -446,12 +446,18 @@ public class UrlHelpers {
 	
 	// Wiki URL
 	public static final String WIKI = "/wiki";
-	public static final String WIKI_ID_PATH_VAR = "{wikiId}";
-	public static final String WIKI_WITH_ID = WIKI + "/"+WIKI_ID_PATH_VAR;
-	public static final String ENTITY_WIKI = ENTITY_ID + WIKI;
-	public static final String ENTITY_WIKI_ID = ENTITY_ID + WIKI_WITH_ID;
-	public static final String COMPETITION_WIKI = COMPETITION_WITH_ID + WIKI;
-	public static final String COMPETITION_WIKI_ID = COMPETITION_WITH_ID + WIKI_WITH_ID;
+	public static final String WIKI_HEADER_TREE = "/wikiheadertree";
+	public static final String WIKI_WITH_ID = WIKI + "/{wikiId}";
+	// Entity
+	public static final String ENTITY_OWNER_ID = ENTITY+"/{ownerId}";
+	public static final String ENTITY_WIKI = ENTITY_OWNER_ID + WIKI;
+	public static final String ENTITY_WIKI_TREE = ENTITY_OWNER_ID + WIKI_HEADER_TREE;
+	public static final String ENTITY_WIKI_ID = ENTITY_OWNER_ID + WIKI_WITH_ID;
+	// competition
+	public static final String COMPETITION_OWNER_ID = COMPETITION+"/{ownerId}";
+	public static final String COMPETITION_WIKI = COMPETITION_OWNER_ID+ WIKI;
+	public static final String COMPETITION_WIKI_TREE = COMPETITION_OWNER_ID + WIKI_HEADER_TREE;
+	public static final String COMPETITION_WIKI_ID =COMPETITION_OWNER_ID + WIKI_WITH_ID;
 	
 	
 	/**

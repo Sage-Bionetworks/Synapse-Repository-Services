@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.manager.wiki;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -58,5 +60,18 @@ public interface WikiManager {
 	 * @throws NotFoundException 
 	 */
 	WikiPage updateWikiPage(UserInfo user, String objectId,	ObjectType objectType, WikiPage toUpdate) throws NotFoundException, UnauthorizedException;
+
+	/**
+	 * 
+	 * @param user
+	 * @param ownerId
+	 * @param type
+	 * @param limit
+	 * @param offest
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	PaginatedResults<WikiHeader> getWikiHeaderTree(UserInfo user, String ownerId, ObjectType type,	Long limit, Long offest) throws DatastoreException, NotFoundException;
 
 }

@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.web.service;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -54,5 +56,18 @@ public interface WikiService {
 	 * @throws DatastoreException 
 	 */
 	void deleteWikiPage(String userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the WikiHeaderTree for an owner.
+	 * @param userId
+	 * @param ownerId
+	 * @param entity
+	 * @param limit
+	 * @param offest
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	PaginatedResults<WikiHeader> getWikiHeaderTree(String userId,String ownerId, ObjectType entity, Long limit , Long offest) throws DatastoreException, NotFoundException;
 
 }
