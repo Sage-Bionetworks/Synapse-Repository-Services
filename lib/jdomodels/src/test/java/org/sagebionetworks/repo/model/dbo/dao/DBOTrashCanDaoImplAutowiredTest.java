@@ -55,7 +55,8 @@ public class DBOTrashCanDaoImplAutowiredTest {
 	public void testRoundTrip() throws DatastoreException, NotFoundException {
 
 		long nodeId1 = 555L;
-		trashCanDao.create(userId, nodeId1);
+		long parentId1 = 5L;
+		trashCanDao.create(userId, nodeId1, parentId1);
 		List<DBOTrash> trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
@@ -63,10 +64,12 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(nodeId1, trash.getId().longValue());
 		assertEquals(userId, trash.getDeletedBy().longValue());
 		assertEquals(nodeId1, trash.getNodeId().longValue());
+		assertEquals(parentId1, trash.getParentId().longValue());
 		assertNotNull(trash.getDeletedOn());
 
 		long nodeId2 = 666L;
-		trashCanDao.create(userId, nodeId2);
+		long parentId2 = 6L;
+		trashCanDao.create(userId, nodeId2, parentId2);
 		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(2, trashList.size());
@@ -79,6 +82,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(nodeId2, trash.getId().longValue());
 		assertEquals(userId, trash.getDeletedBy().longValue());
 		assertEquals(nodeId2, trash.getNodeId().longValue());
+		assertEquals(parentId2, trash.getParentId().longValue());
 		assertNotNull(trash.getDeletedOn());
 
 		trashCanDao.delete(userId, nodeId2);

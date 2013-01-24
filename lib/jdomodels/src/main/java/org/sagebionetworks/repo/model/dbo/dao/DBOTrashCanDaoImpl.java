@@ -46,13 +46,16 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void create(Long userGroupId, Long nodeId) throws DatastoreException {
+	public void create(Long userGroupId, Long nodeId, Long parentId) throws DatastoreException {
 
 		if (userGroupId == null) {
 			throw new IllegalArgumentException("userGroupId cannot be null.");
 		}
 		if (nodeId == null) {
 			throw new IllegalArgumentException("nodeId cannot be null.");
+		}
+		if (parentId == null) {
+			throw new IllegalArgumentException("parentId cannot be null.");
 		}
 
 		DBOTrash dbo = new DBOTrash();
@@ -63,6 +66,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		long nowInSeconds = dt.getMillis() - dt.getMillisOfSecond();
 		Timestamp ts = new Timestamp(nowInSeconds);
 		dbo.setDeletedOn(ts);
+		dbo.setParentId(parentId);
 		this.basicDao.createNew(dbo);
 	}
 
