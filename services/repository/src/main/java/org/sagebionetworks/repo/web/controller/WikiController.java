@@ -182,4 +182,16 @@ public class WikiController extends BaseController {
 		// Get the redirect url
 		return serviceProvider.getWikiService().getAttachmentFileHandles(userId, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.COMPETITION_WIKI_ID_ATTCHMENT, method = RequestMethod.GET)
+	public @ResponseBody
+	FileHandleResults getCompetitionWikiAttachmenthHandles(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String ownerId,
+			@PathVariable String wikiId
+			) throws DatastoreException, NotFoundException{
+		// Get the redirect url
+		return serviceProvider.getWikiService().getAttachmentFileHandles(userId, new WikiPageKey(ownerId, ObjectType.COMPETITION, wikiId));
+	}
 }
