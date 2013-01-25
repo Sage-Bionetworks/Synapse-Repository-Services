@@ -16,11 +16,11 @@ import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 
 /**
- * A trash entity in the trash can. It keeps track of who deleted the item and when.
+ * A trashed entity in the trash can. It keeps track of who deleted the item and when.
  *
  * @author Eric Wu
  */
-public class DBOTrashEntity implements AutoIncrementDatabaseObject<DBOTrashEntity> {
+public class DBOTrashedEntity implements AutoIncrementDatabaseObject<DBOTrashedEntity> {
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("nodeId", COL_TRASH_CAN_NODE_ID, true),
@@ -30,13 +30,13 @@ public class DBOTrashEntity implements AutoIncrementDatabaseObject<DBOTrashEntit
 	};
 
 	@Override
-	public TableMapping<DBOTrashEntity> getTableMapping() {
+	public TableMapping<DBOTrashedEntity> getTableMapping() {
 
-		return new TableMapping<DBOTrashEntity>() {
+		return new TableMapping<DBOTrashedEntity>() {
 
 			@Override
-			public DBOTrashEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOTrashEntity trash = new DBOTrashEntity();
+			public DBOTrashedEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOTrashedEntity trash = new DBOTrashedEntity();
 				trash.setNodeId(rs.getLong(COL_TRASH_CAN_NODE_ID));
 				trash.setDeletedBy(rs.getLong(COL_TRASH_CAN_DELETED_BY));
 				trash.setDeletedOn(rs.getTimestamp(COL_TRASH_CAN_DELETED_ON));
@@ -60,8 +60,8 @@ public class DBOTrashEntity implements AutoIncrementDatabaseObject<DBOTrashEntit
 			}
 
 			@Override
-			public Class<? extends DBOTrashEntity> getDBOClass() {
-				return DBOTrashEntity.class;
+			public Class<? extends DBOTrashedEntity> getDBOClass() {
+				return DBOTrashedEntity.class;
 			}};
 	}
 
@@ -162,7 +162,7 @@ public class DBOTrashEntity implements AutoIncrementDatabaseObject<DBOTrashEntit
 		if (getClass() != obj.getClass()) {
 			return false;
 		}
-		DBOTrashEntity other = (DBOTrashEntity) obj;
+		DBOTrashedEntity other = (DBOTrashedEntity) obj;
 		if (deletedBy == null) {
 			if (other.deletedBy != null) {
 				return false;

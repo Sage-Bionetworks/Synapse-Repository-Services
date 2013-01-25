@@ -14,7 +14,7 @@ import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TrashEntity;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashEntity;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +37,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY
 			+ " AND " + COL_TRASH_CAN_NODE_ID + " = :" + COL_TRASH_CAN_NODE_ID;
 
-	private static final RowMapper<DBOTrashEntity> rowMapper = (new DBOTrashEntity()).getTableMapping();
+	private static final RowMapper<DBOTrashedEntity> rowMapper = (new DBOTrashedEntity()).getTableMapping();
 	private static final RowMapper<Long> idRowMapper = ParameterizedSingleColumnRowMapper.newInstance(Long.class);
 
 	@Autowired
@@ -60,7 +60,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 			throw new IllegalArgumentException("parentId cannot be null.");
 		}
 
-		DBOTrashEntity dbo = new DBOTrashEntity();
+		DBOTrashedEntity dbo = new DBOTrashedEntity();
 		dbo.setNodeId(nodeId);
 		dbo.setDeletedBy(userGroupId);
 		DateTime dt = DateTime.now();
@@ -90,7 +90,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		paramMap.addValue(OFFSET_PARAM_NAME, offset);
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
 		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
-		List<DBOTrashEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH_FOR_USER, rowMapper, paramMap);
+		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH_FOR_USER, rowMapper, paramMap);
 		return convertDboToDto(trashList);
 	}
 
@@ -114,19 +114,19 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		for (Long id : idList) {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("nodeId", id);
-			basicDao.deleteObjectById(DBOTrashEntity.class, params);
+			basicDao.deleteObjectById(DBOTrashedEntity.class, params);
 		}
 	}
 
-	private List<TrashEntity> convertDboToDto(List<DBOTrashEntity> dboList) {
+	private List<TrashEntity> convertDboToDto(List<DBOTrashedEntity> dboList) {
 		List<TrashEntity> trashList = new ArrayList<TrashEntity>(dboList.size());
-		for (DBOTrashEntity dbo : dboList) {
+		for (DBOTrashedEntity dbo : dboList) {
 			trashList.add(convertDboToDto(dbo));
 		}
 		return trashList;
 	}
 
-	private TrashEntity convertDboToDto(DBOTrashEntity dbo) {
+	private TrashEntity convertDboToDto(DBOTrashedEntity dbo) {
 		TrashEntity trash = new TrashEntity();
 		trash.setEntityId(KeyFactory.keyToString(dbo.getId()));
 		trash.setParentId(KeyFactory.keyToString(dbo.getParentId()));

@@ -1,5 +1,5 @@
 {
-	"description":"JSON schema for the TrashEntity POJO. A trash entity is an entity in the trash can.",
+	"description":"JSON schema for the TrashEntity POJO. A trashed entity is an entity in the trash can.",
 	"properties":{
 		"entityId":{
 			"type":"string",
