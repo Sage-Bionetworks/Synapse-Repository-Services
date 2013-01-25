@@ -17,7 +17,7 @@ public class NodeTreeQueryServiceImpl implements NodeTreeQueryService {
 			DatastoreException {
 
 		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
+			throw new IllegalArgumentException("Current user cannot be null.");
 		}
 
 		return this.nodeTreeQueryManager.getRoot(currUserName);
@@ -28,10 +28,10 @@ public class NodeTreeQueryServiceImpl implements NodeTreeQueryService {
 			throws UnauthorizedException, DatastoreException {
 
 		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
+			throw new IllegalArgumentException("Current user cannot be null.");
 		}
 		if (nodeId == null) {
-			throw new NullPointerException("Node cannot be null.");
+			throw new IllegalArgumentException("Node cannot be null.");
 		}
 
 		return this.nodeTreeQueryManager.getAncestors(currUserName, nodeId);
@@ -42,10 +42,10 @@ public class NodeTreeQueryServiceImpl implements NodeTreeQueryService {
 			throws UnauthorizedException, DatastoreException {
 
 		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
+			throw new IllegalArgumentException("Current user cannot be null.");
 		}
 		if (nodeId == null) {
-			throw new NullPointerException("Node cannot be null.");
+			throw new IllegalArgumentException("Node cannot be null.");
 		}
 
 		return this.nodeTreeQueryManager.getParent(currUserName, nodeId);
@@ -57,10 +57,10 @@ public class NodeTreeQueryServiceImpl implements NodeTreeQueryService {
 			DatastoreException {
 
 		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
+			throw new IllegalArgumentException("Current user cannot be null.");
 		}
 		if (nodeId == null) {
-			throw new NullPointerException("Node cannot be null.");
+			throw new IllegalArgumentException("Node cannot be null.");
 		}
 
 		return this.nodeTreeQueryManager.getDescendants(currUserName, nodeId, pageSize, lastDescIdExcl);
@@ -72,10 +72,10 @@ public class NodeTreeQueryServiceImpl implements NodeTreeQueryService {
 			throws UnauthorizedException, DatastoreException {
 
 		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
+			throw new IllegalArgumentException("Current user cannot be null.");
 		}
 		if (nodeId == null) {
-			throw new NullPointerException("Node cannot be null.");
+			throw new IllegalArgumentException("Node cannot be null.");
 		}
 
 		return this.nodeTreeQueryManager.getDescendants(
@@ -88,10 +88,10 @@ public class NodeTreeQueryServiceImpl implements NodeTreeQueryService {
 			DatastoreException {
 
 		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
+			throw new IllegalArgumentException("Current user cannot be null.");
 		}
 		if (nodeId == null) {
-			throw new NullPointerException("Node cannot be null.");
+			throw new IllegalArgumentException("Node cannot be null.");
 		}
 
 		return this.nodeTreeQueryManager.getChildren(currUserName, nodeId, pageSize, lastDescIdExcl);
@@ -102,13 +102,13 @@ public class NodeTreeQueryServiceImpl implements NodeTreeQueryService {
 			String nodeY) throws UnauthorizedException, DatastoreException {
 
 		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
+			throw new IllegalArgumentException("Current user cannot be null.");
 		}
 		if (nodeX == null) {
-			throw new NullPointerException("Node cannot be null.");
+			throw new IllegalArgumentException("Node cannot be null.");
 		}
 		if (nodeY == null) {
-			throw new NullPointerException("Node cannot be null.");
+			throw new IllegalArgumentException("Node cannot be null.");
 		}
 
 		return this.nodeTreeQueryManager.getLowestCommonAncestor(currUserName, nodeX, nodeY);
