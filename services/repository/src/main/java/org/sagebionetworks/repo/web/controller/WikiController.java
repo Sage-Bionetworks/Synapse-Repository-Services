@@ -172,7 +172,7 @@ public class WikiController extends BaseController {
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT, method = RequestMethod.GET)
 	public @ResponseBody
 	FileHandleResults getEntityWikiAttachmenthHandles(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,

@@ -454,13 +454,13 @@ public class UrlHelpers {
 	public static final String ENTITY_WIKI = ENTITY_OWNER_ID + WIKI;
 	public static final String ENTITY_WIKI_TREE = ENTITY_OWNER_ID + WIKI_HEADER_TREE;
 	public static final String ENTITY_WIKI_ID = ENTITY_OWNER_ID + WIKI_WITH_ID;
-	public static final String ENTITY_WIKI_ID_ATTCHMENT = ENTITY_OWNER_ID + WIKI_WITH_ID+"";
+	public static final String ENTITY_WIKI_ID_ATTCHMENT = ENTITY_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
 	// competition
 	public static final String COMPETITION_OWNER_ID = COMPETITION+"/{ownerId}";
 	public static final String COMPETITION_WIKI = COMPETITION_OWNER_ID+ WIKI;
 	public static final String COMPETITION_WIKI_TREE = COMPETITION_OWNER_ID + WIKI_HEADER_TREE;
 	public static final String COMPETITION_WIKI_ID =COMPETITION_OWNER_ID + WIKI_WITH_ID;
-	
+	public static final String COMPETITION_WIKI_ID_ATTCHMENT =COMPETITION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
 	
 	/**
 	 * This is a memoized cache for our URL regular expressions
