@@ -250,11 +250,12 @@ public class SqlConstants {
 	public static final String DDL_FILE_ACTIVITY = "schema/Activity-ddl.sql";
 
 	// The trash can table
-	public static final String TABLE_TRASH_CAN            = "TRASH_CAN";
-	public static final String COL_TRASH_CAN_NODE_ID      = "NODE_ID";
-	public static final String COL_TRASH_CAN_DELETED_BY   = "DELETED_BY";
-	public static final String COL_TRASH_CAN_DELETED_ON   = "DELETED_ON";
-	public static final String DDL_FILE_TRASH_CAN = "schema/TrashCan-ddl.sql";
+	public static final String TABLE_TRASH_CAN                  = "TRASH_CAN";
+	public static final String COL_TRASH_CAN_NODE_ID            = "NODE_ID";
+	public static final String COL_TRASH_CAN_DELETED_BY         = "DELETED_BY";
+	public static final String COL_TRASH_CAN_DELETED_ON         = "DELETED_ON";
+	public static final String COL_TRASH_CAN_PARENT_ID          = "PARENT_ID";
+	public static final String DDL_FILE_TRASH_CAN               = "schema/TrashCan-ddl.sql";
 
 	// The alias used for the dataset table.
 	public static final String NODE_ALIAS					= "nod";
