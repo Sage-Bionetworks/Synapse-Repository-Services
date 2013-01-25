@@ -2,11 +2,15 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.sagebionetworks.repo.web.UrlHelpers.*;
 
+import java.util.List;
+
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -165,5 +169,17 @@ public class WikiController extends BaseController {
 			@PathVariable String ownerId
 			) throws DatastoreException, NotFoundException{
 		return serviceProvider.getWikiService().getWikiHeaderTree(userId, ownerId, ObjectType.COMPETITION, limit, offset);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	FileHandleResults getEntityWikiAttachmenthHandles(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String ownerId,
+			@PathVariable String wikiId
+			) throws DatastoreException, NotFoundException{
+		// Get the redirect url
+		return serviceProvider.getWikiService().getAttachmentFileHandles(userId, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
 }

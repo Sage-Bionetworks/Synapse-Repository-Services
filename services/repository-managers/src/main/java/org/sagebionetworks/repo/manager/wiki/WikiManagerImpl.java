@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.wiki;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.commons.logging.Log;
@@ -11,8 +12,12 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileMetadataDao;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -35,6 +40,9 @@ public class WikiManagerImpl implements WikiManager {
 
 	@Autowired
 	WikiPageDao wikiPageDao;
+	
+	@Autowired
+	FileMetadataDao fileMetadataDao;
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
@@ -76,14 +84,26 @@ public class WikiManagerImpl implements WikiManager {
 
 	@Override
 	public WikiPage getWikiPage(UserInfo user, WikiPageKey key) throws NotFoundException, UnauthorizedException {
+		// Validate that the user has read access
+		validateReadAccess(user, key);
+		// Pass to the DAO
+		return wikiPageDao.get(key);
+	}
+
+	/**
+	 * Validate that the user has read access to the owner object.
+	 * @param user
+	 * @param key
+	 * @throws NotFoundException
+	 */
+	private void validateReadAccess(UserInfo user, WikiPageKey key)
+			throws NotFoundException {
 		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(key == null) throw new IllegalArgumentException("WikiPageKey cannot be null");
 		// Check that the user is allowed to perform this action
 		if(!authorizationManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.CREATE.name(), key.getOwnerObjectId(), key.getOwnerObjectType().name()));
 		}
-		// Pass to the DAO
-		return wikiPageDao.get(key);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -138,6 +158,32 @@ public class WikiManagerImpl implements WikiManager {
 		// Limit and offset are currently ignored.
 		List<WikiHeader> list = wikiPageDao.getHeaderTree(ownerId, type);
 		return new PaginatedResults<WikiHeader>(list, list.size());
+	}
+
+	@Override
+	public FileHandleResults getAttachmentFileHandles(UserInfo user, WikiPageKey key) throws NotFoundException {
+		// Validate that the user has read access
+		validateReadAccess(user, key);
+		List<String> handleIds = wikiPageDao.getWikiFileHandleIds(key);
+		List<FileHandle> handles = new LinkedList<FileHandle>();
+		if(handleIds != null){
+			for(String handleId: handleIds){
+				// Look up each handle
+				FileHandle handle = fileMetadataDao.get(handleId);
+				handles.add(handle);
+				// If this handle has a preview then we fetch that as well.
+				if(handle instanceof HasPreviewId){
+					String previewId = ((HasPreviewId)handle).getPreviewId();
+					if(previewId != null){
+						FileHandle preview = fileMetadataDao.get(previewId);
+						handles.add(preview);
+					}
+				}
+			}
+		}
+		FileHandleResults results = new FileHandleResults();
+		results.setList(handles);
+		return results;
 	}
 
 }

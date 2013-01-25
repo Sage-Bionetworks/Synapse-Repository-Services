@@ -6,6 +6,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -49,5 +50,12 @@ public class WikiServiceImpl implements WikiService {
 		UserInfo user = userManager.getUserInfo(userId);
 		return wikiManager.getWikiHeaderTree(user, ownerId, type, limit, offest);
 	}
+
+	@Override
+	public FileHandleResults getAttachmentFileHandles(String userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException {
+		UserInfo user = userManager.getUserInfo(userId);
+		return wikiManager.getAttachmentFileHandles(user, wikiPageKey);
+	}
+
 
 }

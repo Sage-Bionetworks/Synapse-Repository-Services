@@ -214,4 +214,46 @@ public class DBOWikiPageDaoImplAutowiredTest {
 			}
 		}
 	}
+	
+	@Test
+	public void testGetWikiFileHandleIds() throws NotFoundException{
+		WikiPage root = new WikiPage();
+		root.setTitle("Root");
+		root.setCreatedBy(creatorUserGroupId);
+		root.setModifiedBy(creatorUserGroupId);
+		root.setAttachmentFileHandleIds(new LinkedList<String>());
+		// add  file handle to the root.
+		root.getAttachmentFileHandleIds().add(fileOne.getId());
+		String ownerId = "syn123";
+		ObjectType ownerType = ObjectType.ENTITY;
+		// Create it
+		root = wikiPageDao.create(root, ownerId, ownerType);
+		assertNotNull(root);
+		WikiPageKey rootKey = new WikiPageKey(ownerId, ownerType, root.getId());
+		toDelete.add(rootKey);
+		// Add add children
+		// Add a child.
+		WikiPage child = new WikiPage();
+		child.setTitle("Child");
+		child.setCreatedBy(creatorUserGroupId);
+		child.setModifiedBy(creatorUserGroupId);
+		child.setParentWikiId(root.getId());
+		// add  file handle to the child.
+		child.setAttachmentFileHandleIds(new LinkedList<String>());
+		child.getAttachmentFileHandleIds().add(fileTwo.getId());
+		child.getAttachmentFileHandleIds().add(fileOne.getId());
+		child = wikiPageDao.create(child, ownerId, ownerType);
+		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
+		// Now get the FileHandleIds of each
+		List<String> handleList = wikiPageDao.getWikiFileHandleIds(rootKey);
+		assertNotNull(handleList);
+		assertEquals(1, handleList.size());
+		assertEquals(fileOne.getId(), handleList.get(0));
+		// Test the child
+		handleList = wikiPageDao.getWikiFileHandleIds(childKey);
+		assertNotNull(handleList);
+		assertEquals(2, handleList.size());
+		assertEquals(fileOne.getId(), handleList.get(0));
+		assertEquals(fileTwo.getId(), handleList.get(1));
+	}
 }

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -68,6 +69,17 @@ public interface WikiService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	PaginatedResults<WikiHeader> getWikiHeaderTree(String userId,String ownerId, ObjectType entity, Long limit , Long offest) throws DatastoreException, NotFoundException;
+	PaginatedResults<WikiHeader> getWikiHeaderTree(String userId,String ownerId, ObjectType type, Long limit , Long offest) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get all of the file handles of all attachments on the given wiki page.
+	 * @param ownerId
+	 * @param type
+	 * @param wikiId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	FileHandleResults getAttachmentFileHandles(String userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException;
 
 }

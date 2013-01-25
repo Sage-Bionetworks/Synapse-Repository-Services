@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ATTACHMENT_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ATTACHMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ID;
@@ -47,6 +47,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 public class DBOWikiPageDaoImpl implements WikiPageDao {
 	
+	private static final String SQL_SELECT_ATTACHMENT_IDS_USING_ROOT_AND_ID = "SELECT ATT."+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID+" FROM "+TABLE_WIKI_PAGE+" PAG, "+TABLE_WIKI_ATTACHMENT+" ATT WHERE PAG."+COL_WIKI_ID+" = ATT."+COL_WIKI_ATTACHMENT_ID+" AND PAG."+COL_WIKI_ROOT_ID+" = ? AND PAG."+COL_WIKI_ID+" = ? ORDER BY ATT."+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID;
 	private static final String SQL_LOCK_FOR_UPDATE = "SELECT "+COL_WIKI_ETAG+" FROM "+TABLE_WIKI_PAGE+" WHERE "+COL_WIKI_ID+" = ? FOR UPDATE";
 	private static final String SQL_DELETE_USING_ID_AND_ROOT = "DELETE FROM "+TABLE_WIKI_PAGE+" WHERE "+COL_WIKI_ID+" = ? AND "+COL_WIKI_ROOT_ID+" = ?";
 	private static final String SQL_SELECT_WIKI_USING_ID_AND_ROOT = "SELECT * FROM "+TABLE_WIKI_PAGE+" WHERE "+COL_WIKI_ID+" = ? AND "+COL_WIKI_ROOT_ID+" = ?";
@@ -307,5 +308,18 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 	public String lockForUpdate(String wikiId) {
 		// Lock the wiki row and return current Etag.
 		return simpleJdbcTemplate.queryForObject(SQL_LOCK_FOR_UPDATE, String.class, new Long(wikiId));
+	}
+
+	@Override
+	public List<String> getWikiFileHandleIds(WikiPageKey key) throws NotFoundException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		// First filter by root to ensure only handles belonging to the owner are returned.
+		Long rootId = getRootWiki(key.getOwnerObjectId(), key.getOwnerObjectType());
+		return simpleJdbcTemplate.query(SQL_SELECT_ATTACHMENT_IDS_USING_ROOT_AND_ID, new RowMapper<String>() {
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return rs.getString(1);
+			}
+		}, rootId, key.getWikiPageId());
 	}
 }

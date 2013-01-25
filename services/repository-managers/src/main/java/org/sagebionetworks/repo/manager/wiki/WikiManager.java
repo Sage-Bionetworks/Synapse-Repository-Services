@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -73,5 +74,14 @@ public interface WikiManager {
 	 * @throws DatastoreException 
 	 */
 	PaginatedResults<WikiHeader> getWikiHeaderTree(UserInfo user, String ownerId, ObjectType type,	Long limit, Long offest) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the attachment file handles for a give wiki page.
+	 * @param user
+	 * @param wikiPageKey
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	FileHandleResults getAttachmentFileHandles(UserInfo user, WikiPageKey wikiPageKey) throws NotFoundException;
 
 }

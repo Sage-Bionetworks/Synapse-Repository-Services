@@ -109,7 +109,7 @@ public class IT055WikiPageTest {
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(1, results.getList().size());
-		fileHandle = results.getList().get(0);
+		fileHandle = (S3FileHandle) results.getList().get(0);
 		// Create a project, this will own the wiki page.
 		project = new Project();
 		project = synapse.createEntity(project);

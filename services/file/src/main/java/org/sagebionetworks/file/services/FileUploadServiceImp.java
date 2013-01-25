@@ -42,7 +42,7 @@ public class FileUploadServiceImp implements FileUploadService {
 		UserInfo userInfo = userManager.getUserInfo(username);
 		FileUploadResults innerResults = fileUploadManager.uploadfiles(userInfo, new HashSet<String>(0), itemIterator);
 		FileHandleResults results = new FileHandleResults();
-		List<S3FileHandle> list = new LinkedList<S3FileHandle>();
+		List<FileHandle> list = new LinkedList<FileHandle>();
 		results.setList(list);
 		for(S3FileHandle handle: innerResults.getFiles()){
 			list.add(handle);

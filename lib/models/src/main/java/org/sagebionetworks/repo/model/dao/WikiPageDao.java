@@ -60,5 +60,13 @@ public interface WikiPageDao {
 	 * @return
 	 */
 	String lockForUpdate(String wikiId);
+	
+	/**
+	 * Get all of the FileHandleIds for a wiki page.
+	 * @param key
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	List<String> getWikiFileHandleIds(WikiPageKey key) throws NotFoundException;
 
 }
