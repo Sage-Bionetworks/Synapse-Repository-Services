@@ -12,7 +12,7 @@ import java.util.List;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.TrashEntity;
+import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -73,7 +73,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 	}
 
 	@Override
-	public List<TrashEntity> getInRangeForUser(Long userGroupId, long offset,
+	public List<TrashedEntity> getInRangeForUser(Long userGroupId, long offset,
 			long limit) throws DatastoreException {
 
 		if (userGroupId == null) {
@@ -118,16 +118,16 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		}
 	}
 
-	private List<TrashEntity> convertDboToDto(List<DBOTrashedEntity> dboList) {
-		List<TrashEntity> trashList = new ArrayList<TrashEntity>(dboList.size());
+	private List<TrashedEntity> convertDboToDto(List<DBOTrashedEntity> dboList) {
+		List<TrashedEntity> trashList = new ArrayList<TrashedEntity>(dboList.size());
 		for (DBOTrashedEntity dbo : dboList) {
 			trashList.add(convertDboToDto(dbo));
 		}
 		return trashList;
 	}
 
-	private TrashEntity convertDboToDto(DBOTrashedEntity dbo) {
-		TrashEntity trash = new TrashEntity();
+	private TrashedEntity convertDboToDto(DBOTrashedEntity dbo) {
+		TrashedEntity trash = new TrashedEntity();
 		trash.setEntityId(KeyFactory.keyToString(dbo.getId()));
 		trash.setParentId(KeyFactory.keyToString(dbo.getParentId()));
 		trash.setDeletedByPrincipalId(dbo.getDeletedBy().toString());
