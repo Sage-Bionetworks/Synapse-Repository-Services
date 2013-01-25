@@ -285,4 +285,6 @@
 		class="org.sagebionetworks.repo.manager.search.SearchDocumentDriverImpl"
 		scope="singleton" />
 
+	<bean id="nodeTreeQueryManager" class="org.sagebionetworks.repo.manager.NodeTreeQueryManagerImpl" scope="singleton" />
+
 </beans>
