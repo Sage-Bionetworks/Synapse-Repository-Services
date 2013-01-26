@@ -1,4 +1,4 @@
-package org.sagebionetworks.repo.web.service;
+package org.sagebionetworks.repo.manager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -6,8 +6,6 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.sagebionetworks.dynamo.dao.IncompletePathException;
 import org.sagebionetworks.dynamo.dao.NodeTreeDao;
-import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityId;
@@ -18,9 +16,9 @@ import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
-public class NodeLineageQueryServiceImpl implements NodeLineageQueryService {
+public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 
-	private final Logger logger = Logger.getLogger(NodeLineageQueryServiceImpl.class);
+	private final Logger logger = Logger.getLogger(NodeTreeQueryManagerImpl.class);
 
 	@Autowired
 	private UserManager userManager;

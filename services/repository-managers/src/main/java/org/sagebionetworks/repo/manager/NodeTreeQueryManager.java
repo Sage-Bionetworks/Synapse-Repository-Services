@@ -1,11 +1,11 @@
-package org.sagebionetworks.repo.web.service;
+package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityId;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 
-public interface NodeLineageQueryService {
+public interface NodeTreeQueryManager {
 
 	/**
 	 * Gets the root entity. Returns null if the root cannot be found.

@@ -16,8 +16,10 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
@@ -29,18 +31,23 @@ public class SubmissionManagerTest {
 	private static Competition comp;
 	private static Participant part;
 	private static Submission sub;
+	private static Submission sub2;
 	private static SubmissionStatus subStatus;
 	
 	private static SubmissionDAO mockSubmissionDAO;
 	private static SubmissionStatusDAO mockSubmissionStatusDAO;
 	private static CompetitionManager mockCompetitionManager;
 	private static ParticipantManager mockParticipantManager;
+	private static NodeManager mockNodeManager;
+	private static Node mockNode;
 	
 	private static final String COMP_ID = "12";
 	private static final String OWNER_ID = "34";
 	private static final String USER_ID = "56";
 	private static final String SUB_ID = "78";
+	private static final String SUB2_ID = "87";
 	private static final String ENTITY_ID = "90";
+	private static final String ENTITY2_ID = "99";
 	
 	private static UserInfo ownerInfo;
 	private static UserInfo userInfo;
@@ -77,6 +84,15 @@ public class SubmissionManagerTest {
         sub.setUserId(USER_ID);
         sub.setVersionNumber(0L);
         
+        sub2 = new Submission();
+        sub2.setCompetitionId(COMP_ID);
+        sub2.setCreatedOn(new Date());
+        sub2.setEntityId(ENTITY2_ID);
+        sub2.setId(SUB2_ID);
+        sub2.setName("subName");
+        sub2.setUserId(OWNER_ID);
+        sub2.setVersionNumber(0L);
+        
         subStatus = new SubmissionStatus();
         subStatus.setEtag("subEtag");
         subStatus.setId(SUB_ID);
@@ -89,15 +105,21 @@ public class SubmissionManagerTest {
     	mockSubmissionStatusDAO = mock(SubmissionStatusDAO.class);
     	mockCompetitionManager = mock(CompetitionManager.class);
     	mockParticipantManager = mock(ParticipantManager.class);
+    	mockNodeManager = mock(NodeManager.class);
+    	mockNode = mock(Node.class);
+    	
     	when(mockParticipantManager.getParticipant(eq(USER_ID), eq(COMP_ID))).thenReturn(part);
     	when(mockCompetitionManager.getCompetition(eq(COMP_ID))).thenReturn(comp);
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(sub);
     	when(mockCompetitionManager.isCompAdmin(eq(OWNER_ID), eq(COMP_ID))).thenReturn(true);
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
+    	when(mockNodeManager.get(eq(userInfo), eq(ENTITY_ID))).thenReturn(mockNode);
+    	when(mockNodeManager.get(eq(userInfo), eq(ENTITY2_ID))).thenThrow(new UnauthorizedException());
     	
     	// Submission Manager
     	submissionManager = new SubmissionManagerImpl(mockSubmissionDAO, 
-    			mockSubmissionStatusDAO, mockCompetitionManager, mockParticipantManager);
+    			mockSubmissionStatusDAO, mockCompetitionManager, mockParticipantManager,
+    			mockNodeManager);
     }
 	
 	@Test
@@ -134,6 +156,12 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionDAO, never()).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
 		verify(mockSubmissionStatusDAO, never()).update(any(SubmissionStatus.class));
+	}
+	
+	@Test(expected=UnauthorizedException.class)
+	public void testUnauthorizedEntity() throws NotFoundException {		
+		// user should not have access to sub2
+		submissionManager.createSubmission(userInfo, sub2);		
 	}
 	
 	@Test(expected=IllegalArgumentException.class)

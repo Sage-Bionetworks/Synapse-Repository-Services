@@ -21,8 +21,8 @@ import java.util.Queue;
 public class FixedMemoryPool {
 	
 	private volatile int maxNumberOfBlocks;
-	private volatile int maxMemoryBytes = -1;
-	private volatile int blockSizeBytes = -1;
+	private volatile long maxMemoryBytes = -1;
+	private volatile long blockSizeBytes = -1;
 	private volatile int currentBlockCount;
 	private volatile int allocatedBlocks;
 	/**
@@ -39,12 +39,12 @@ public class FixedMemoryPool {
 	public FixedMemoryPool(){
 	}
 
-	public void setMaxMemoryBytes(int maxMemoryBytes) {
+	public void setMaxMemoryBytes(long maxMemoryBytes) {
 		this.maxMemoryBytes = maxMemoryBytes;
 	}
 
-	public void setBlockSizeBytes(int blockSizeBytes) {
-		this.blockSizeBytes = blockSizeBytes;
+	public void setBlockSizeBytes(long blockSizeBytes) {
+		this.blockSizeBytes =  blockSizeBytes;
 	}
 
 	/**
@@ -53,10 +53,10 @@ public class FixedMemoryPool {
 	 * @param maxMemoryBytes - The maximum amount of memory used by the pool in bytes.
 	 * @param blockSizeByes - The size of each block in bytes.  The block size is fixed.
 	 */
-	public FixedMemoryPool(int maxMemoryBytes, int blockSizeByes){
+	public FixedMemoryPool(long maxMemoryBytes, long blockSizeByes){
 		if(blockSizeByes > maxMemoryBytes) throw new IllegalArgumentException("The blockSizeByes cannot be larger than maxMemoryBytes");
-		this.maxMemoryBytes = maxMemoryBytes;
-		this.blockSizeBytes = blockSizeByes;
+		this.maxMemoryBytes = (int) maxMemoryBytes;
+		this.blockSizeBytes = (int) blockSizeByes;
 		initialize();
 	}
 
@@ -67,7 +67,7 @@ public class FixedMemoryPool {
 		if(maxMemoryBytes < 0) throw new IllegalStateException("maxMemoryBytes must be set");
 		if(blockSizeBytes < 0) throw new IllegalStateException("blockSizeBytes must be set");
 		// The pool size is a function of the max memory and the block size.
-		this.maxNumberOfBlocks = this.maxMemoryBytes/this.blockSizeBytes;
+		this.maxNumberOfBlocks = (int) (this.maxMemoryBytes/this.blockSizeBytes);
 		// Note: This pool does not need to thread safe as it is only access within a synchronized methods.
 		pool = new LinkedList<SoftReference<byte[]>>();
 		// We start with an empty pool
@@ -91,7 +91,7 @@ public class FixedMemoryPool {
 			if(currentBlockCount < maxNumberOfBlocks){
 				// Increment the block count and allocate more memory
 				currentBlockCount++;
-				block = new byte[blockSizeBytes];
+				block = new byte[(int) blockSizeBytes];
 			}
 		}else{
 			// We had a soft reference in the pool is it still allocated?
@@ -99,7 +99,7 @@ public class FixedMemoryPool {
 			if(block == null){
 				// a previously allocated block has been garbage collected.
 				// Since we allocated it before we should still be within range
-				block = new byte[blockSizeBytes];
+				block = new byte[(int) blockSizeBytes];
 			}
 		}
 		// return the block if we were able to allocate one.
@@ -214,7 +214,7 @@ public class FixedMemoryPool {
 	 * This is the maximum amount of memory that this pool will attempt to use in bytes.
 	 * @return
 	 */
-	public int getMaxMemoryBytes() {
+	public long getMaxMemoryBytes() {
 		return maxMemoryBytes;
 	}
 
@@ -222,7 +222,7 @@ public class FixedMemoryPool {
 	 * The fixed size of each block in the pool in bytes.
 	 * @return
 	 */
-	public int getBlockSizeBytes() {
+	public long getBlockSizeBytes() {
 		return blockSizeBytes;
 	}
 

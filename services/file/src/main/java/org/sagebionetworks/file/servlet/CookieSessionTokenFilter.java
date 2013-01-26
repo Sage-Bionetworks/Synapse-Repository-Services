@@ -54,6 +54,7 @@ public class CookieSessionTokenFilter implements Filter {
 			// override the request
 			HeaderRequestWraper wapper = new HeaderRequestWraper(request);
 			wapper.addHeader(AuthorizationConstants.SESSION_TOKEN_PARAM, sessionToken);
+			wapper.addHeader("Accept", "application/json");
 			request = wapper;
 		}
 		// pass it along.
