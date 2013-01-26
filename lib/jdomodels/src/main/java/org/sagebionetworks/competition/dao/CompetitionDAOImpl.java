@@ -113,7 +113,7 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 			dbo = basicDao.createNew(dbo);
 			return dbo.getId().toString();
 		} catch (Exception e) {
-			String message = "id=" + dbo.getId() + " name=" + dto.getName();
+			String message = e.getMessage() + " id=" + dbo.getId() + " name=" + dto.getName();
 			
 			// check if a name conflict occurred
 			if (e.getClass() == IllegalArgumentException.class) {
@@ -236,12 +236,20 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	 * @param dto
 	 * @param dbo
 	 */
-	protected static void copyDtoToDbo(Competition dto, CompetitionDBO dbo) {		
-		dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
+	protected static void copyDtoToDbo(Competition dto, CompetitionDBO dbo) {	
+		try {
+			dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Invalid Competition ID: " + dto.getId());
+		}
 		dbo.seteTag(dto.getEtag());
 		dbo.setName(dto.getName());
 		dbo.setDescription(dto.getDescription() == null ? null : dto.getDescription().getBytes());
-		dbo.setOwnerId(dto.getOwnerId() == null ? null : Long.parseLong(dto.getOwnerId()));
+		try {
+			dbo.setOwnerId(dto.getOwnerId() == null ? null : Long.parseLong(dto.getOwnerId()));
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Invalid Owner ID: " + dto.getOwnerId());
+		}
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
 		dbo.setContentSource(dto.getContentSource());
 		dbo.setStatusEnum(dto.getStatus());

@@ -51,6 +51,7 @@ import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
+import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -164,8 +165,9 @@ public class Synapse {
 	protected static final String COUNT = "count";
 	protected static final String NAME = "name";
 	protected static final String PARTICIPANT = "participant";
-	protected static final String SUBMISSION = "submission";
+	protected static final String SUBMISSION = "submission";	
 	protected static final String STATUS = "status";
+	protected static final String STATUS_SUFFIX = "?status=";
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 	
@@ -3059,7 +3061,6 @@ public class Synapse {
 		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
 		String uri = createEntityUri(COMPETITION_URI_PATH, compId) + "/" + PARTICIPANT;
 		JSONObject jsonObj = postUri(uri);
-		jsonObj = createJSONObject(uri, jsonObj);
 		return initializeFromJSONObject(jsonObj, Participant.class);
 	}
 	
@@ -3068,7 +3069,6 @@ public class Synapse {
 		String uri = createEntityUri(COMPETITION_URI_PATH, compId) + "/" + PARTICIPANT
 				+ "/" + idToAdd;
 		JSONObject jsonObj = postUri(uri);
-		jsonObj = createJSONObject(uri, jsonObj);
 		return initializeFromJSONObject(jsonObj, Participant.class);
 	}
 	
@@ -3176,6 +3176,21 @@ public class Synapse {
 	public PaginatedResults<Submission> getAllSubmissions(String compId) throws SynapseException {
 		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
 		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + SUBMISSION;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Submission> results = new PaginatedResults<Submission>(Submission.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public PaginatedResults<Submission> getAllSubmissionsByStatus(String compId, SubmissionStatusEnum status) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + SUBMISSION + STATUS_SUFFIX + status.toString();
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<Submission> results = new PaginatedResults<Submission>(Submission.class);

@@ -64,7 +64,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 		try {
 			dbo = basicDao.createNew(dbo);
 		} catch (Exception e) {
-			throw new DatastoreException("userId="+dbo.getUserId()+" competitionId="+dto.getCompetitionId(), e);
+			throw new DatastoreException(e.getMessage() + " [userId="+dbo.getUserId()+" competitionId="+dto.getCompetitionId() + "]", e);
 		}
 	}
 
@@ -130,9 +130,17 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	 * @param dto
 	 * @param dbo
 	 */
-	protected static void copyDtoToDbo(Participant dto, ParticipantDBO dbo) {		
-		dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
-		dbo.setUserId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getUserId()));
+	protected static void copyDtoToDbo(Participant dto, ParticipantDBO dbo) {
+		try {
+			dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Invalid Competition ID: " + dto.getCompetitionId());
+		}
+		try {
+			dbo.setUserId(dto.getUserId() == null ? null : Long.parseLong(dto.getUserId()));
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Invalid User ID: " + dto.getUserId());
+		}
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
 	}
 	

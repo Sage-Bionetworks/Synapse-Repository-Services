@@ -82,7 +82,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			dbo = basicDao.createNew(dbo);
 			return dbo.getId().toString();
 		} catch (Exception e) {
-			throw new DatastoreException("id=" + dbo.getId() + " userId=" + 
+			throw new DatastoreException(e.getMessage() + " id=" + dbo.getId() + " userId=" + 
 						dto.getUserId() + " entityId=" + dto.getEntityId(), e);
 		}
 	}
@@ -167,9 +167,21 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	 * @param dbo
 	 */
 	protected static void copyDtoToDbo(Submission dto, SubmissionDBO dbo) {	
-		dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
-		dbo.setUserId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getUserId()));
-		dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
+		try {
+			dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Invalid Submission ID: " + dto.getId());
+		}
+		try {
+			dbo.setUserId(dto.getUserId() == null ? null : Long.parseLong(dto.getUserId()));
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Invalid User ID: " + dto.getUserId());
+		}
+		try {
+			dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Invalid Competition ID: " + dto.getCompetitionId());
+		}
 		dbo.setEntityId(dto.getEntityId() == null ? null : KeyFactory.stringToKey(dto.getEntityId()));
 		dbo.setVersionNumber(dto.getVersionNumber());
 		dbo.setName(dto.getName());
