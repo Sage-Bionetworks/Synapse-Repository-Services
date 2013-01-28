@@ -278,7 +278,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		List<DynamoWriteOperation> deleteOpList = new ArrayList<DynamoWriteOperation>();
 		for (String deleteNode : deleteList) {
 			// Note we do not check path-from-root for delete
-			List<DboNodeLineage> dboList = this.query(deleteNode, -1, LineageType.ANCESTOR, this.writeMapper);
+			List<DboNodeLineage> dboList = this.query(deleteNode, LineageType.ANCESTOR, -1, this.writeMapper);
 			for (int i = 0; i < dboList.size(); i++) {
 				DboNodeLineage dbo = dboList.get(i);
 				if (timestamp.before(dbo.getTimestamp())) {
@@ -489,7 +489,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 
 		// Use the dummy ROOT to locate the actual root
 		// The actual root is directly below the dummy ROOT
-		List<DboNodeLineage> results = this.query(DboNodeLineage.ROOT, 1, LineageType.DESCENDANT, mapper);
+		List<DboNodeLineage> results = this.query(DboNodeLineage.ROOT, LineageType.DESCENDANT, 1, mapper);
 
 		if (results == null || results.isEmpty()) {
 			return null;
@@ -513,7 +513,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		assert mapper != null;
 
 		// Parent is exactly 1 node away
-		List<DboNodeLineage> dboList = this.query(child, 1, LineageType.ANCESTOR, mapper);
+		List<DboNodeLineage> dboList = this.query(child, LineageType.ANCESTOR, 1, mapper);
 
 		if (dboList == null || dboList.isEmpty()) {
 			return null;
@@ -542,7 +542,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 
 		// The list of ancestors in the order of distance from this node. The list includes
 		// the dummy root if and only if this node is the actual root.
-		final List<DboNodeLineage> dboList = this.query(node, -1, LineageType.ANCESTOR, mapper);
+		final List<DboNodeLineage> dboList = this.query(node, LineageType.ANCESTOR, -1, mapper);
 
 		if (dboList == null) {
 			throw new NoAncestorException("Null list of ancestors returned from DynamoDB for node " + node);
@@ -608,7 +608,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		assert nodeId != null;
 		assert mapper != null;
 
-		List<DboNodeLineage> dboList = this.query(nodeId, -1, LineageType.DESCENDANT, mapper);
+		List<DboNodeLineage> dboList = this.query(nodeId, LineageType.DESCENDANT, -1, mapper);
 		final List<NodeLineage> descList = new ArrayList<NodeLineage>(dboList.size());
 		for (DboNodeLineage dbo : dboList) {
 			// The query method handles paging internally. It returns a 'lazy-loaded' collection.
@@ -734,8 +734,8 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 	 * @param lineageType   The type of query, whether it is ancestor or descendant
 	 * @param dynamoMapper  The DynamoDB mapper used to perform the query
 	 */
-	private List<DboNodeLineage> query(final String nodeId, final int distance,
-			final LineageType lineageType, final DynamoDBMapper dynamoMapper) {
+	private List<DboNodeLineage> query(final String nodeId, final LineageType lineageType,
+			final int distance, final DynamoDBMapper dynamoMapper) {
 
 		assert nodeId != null;
 		assert lineageType != null;
