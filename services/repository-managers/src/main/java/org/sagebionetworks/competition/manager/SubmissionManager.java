@@ -105,6 +105,18 @@ public interface SubmissionManager {
 			throws DatastoreException, NotFoundException;
 
 	/**
+	 * Get all Submissions by a given Synapse user to a given Competition.
+	 * 
+	 * @param compId
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	List<Submission> getAllSubmissionsByCompetitionAndUser(UserInfo userInfo,
+			String compId) throws DatastoreException, NotFoundException;
+
+	/**
 	 * Get the number of Submissions to a given Competition.
 	 * 
 	 * @param compId

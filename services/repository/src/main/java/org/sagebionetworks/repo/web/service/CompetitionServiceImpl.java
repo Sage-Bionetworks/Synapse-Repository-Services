@@ -184,6 +184,13 @@ public class CompetitionServiceImpl implements CompetitionService {
 			throws DatastoreException, NotFoundException {
 		return submissionManager.getAllSubmissionsByUser(princpalId);
 	}
+	
+	@Override
+	public List<Submission> getAllSubmissionsByCompetitionAndUser(String compId, String userName)
+			throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return submissionManager.getAllSubmissionsByCompetitionAndUser(userInfo, compId);
+	}
 
 	@Override
 	public long getSubmissionCount(String compId) throws DatastoreException,

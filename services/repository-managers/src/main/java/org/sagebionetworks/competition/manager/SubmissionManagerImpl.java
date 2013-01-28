@@ -167,6 +167,13 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
+	public List<Submission> getAllSubmissionsByCompetitionAndUser(UserInfo userInfo, String compId) throws DatastoreException, NotFoundException {
+		UserInfo.validateUserInfo(userInfo);
+		String principalId = userInfo.getIndividualGroup().getId();
+		return submissionDAO.getAllByCompetitionAndUser(compId, principalId);
+	}
+	
+	@Override
 	public long getSubmissionCount(String compId) throws DatastoreException, NotFoundException {
 		CompetitionUtils.ensureNotNull(compId, "Competition ID");
 		return submissionDAO.getCountByCompetition(compId);

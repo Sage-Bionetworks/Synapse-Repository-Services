@@ -165,7 +165,8 @@ public class Synapse {
 	protected static final String COUNT = "count";
 	protected static final String NAME = "name";
 	protected static final String PARTICIPANT = "participant";
-	protected static final String SUBMISSION = "submission";	
+	protected static final String SUBMISSION = "submission";
+	protected static final String SUBMISSION_ADMIN = SUBMISSION + "/all";	
 	protected static final String STATUS = "status";
 	protected static final String STATUS_SUFFIX = "?status=";
 
@@ -3175,7 +3176,7 @@ public class Synapse {
 	
 	public PaginatedResults<Submission> getAllSubmissions(String compId) throws SynapseException {
 		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
-		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + SUBMISSION;
+		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + SUBMISSION_ADMIN;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<Submission> results = new PaginatedResults<Submission>(Submission.class);
@@ -3190,7 +3191,7 @@ public class Synapse {
 	
 	public PaginatedResults<Submission> getAllSubmissionsByStatus(String compId, SubmissionStatusEnum status) throws SynapseException {
 		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
-		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + SUBMISSION + STATUS_SUFFIX + status.toString();
+		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + SUBMISSION_ADMIN + STATUS_SUFFIX + status.toString();
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		PaginatedResults<Submission> results = new PaginatedResults<Submission>(Submission.class);
@@ -3202,6 +3203,22 @@ public class Synapse {
 			throw new SynapseException(e);
 		}
 	}
+	
+	public PaginatedResults<Submission> getMySubmissions(String compId) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + SUBMISSION;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Submission> results = new PaginatedResults<Submission>(Submission.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
 	
 	public Long getSubmissionCount(String compId) throws SynapseException {
 		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");

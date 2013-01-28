@@ -190,6 +190,26 @@ public class SubmissionDAOImplTest {
     }
     
     @Test
+    public void testGetAllByCompetitionAndUser() throws DatastoreException, NotFoundException {
+    	submissionId = submissionDAO.create(submission);
+    	
+    	// hit compId and hit user => should find 1 submission
+    	List<Submission> subs = submissionDAO.getAllByCompetitionAndUser(compId, userId);
+    	assertEquals(1, subs.size());
+    	submission.setCreatedOn(subs.get(0).getCreatedOn());
+    	submission.setId(subs.get(0).getId());
+    	assertEquals(subs.get(0), submission);
+    	
+    	// miss compId and hit user => should find 0 submissions
+    	subs = submissionDAO.getAllByCompetitionAndUser(compId_does_not_exist, userId);
+    	assertEquals(0, subs.size());
+    	
+    	// hit compId and miss user => should find 0 submissions
+    	subs = submissionDAO.getAllByCompetitionAndUser(compId, userId_does_not_exist);
+    	assertEquals(0, subs.size());
+    }
+    
+    @Test
     public void testDtoToDbo() {
     	Submission compDTO = new Submission();
     	Submission compDTOclone = new Submission();

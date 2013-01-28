@@ -93,4 +93,16 @@ public interface SubmissionDAO {
 			SubmissionStatusEnum status) throws DatastoreException,
 			NotFoundException;
 
+	/**
+	 * Get all Submissions from a given user for a given competition.
+	 * 
+	 * @param userId
+	 * @param compId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	List<Submission> getAllByCompetitionAndUser(String compId, String principalId)
+			throws DatastoreException, NotFoundException;
+
 }

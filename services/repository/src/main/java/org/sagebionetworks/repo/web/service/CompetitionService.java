@@ -248,7 +248,7 @@ public interface CompetitionService {
 
 	/**
 	 * Get all Submissions by a given Synapse user. These may span multiple
-	 * Comptitions.
+	 * Competitions.
 	 * 
 	 * @param principalId
 	 * @return
@@ -257,6 +257,18 @@ public interface CompetitionService {
 	 */
 	public List<Submission> getAllSubmissionsByUser(String principalId)
 			throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get all Submissions by a given Synapse user, for a given Competition
+	 * 
+	 * @param compId
+	 * @param princpalId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	List<Submission> getAllSubmissionsByCompetitionAndUser(String compId,
+			String userName) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the number of Submissions to a given Competition.

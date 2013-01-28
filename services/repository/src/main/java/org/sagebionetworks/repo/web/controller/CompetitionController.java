@@ -275,9 +275,9 @@ public class CompetitionController extends BaseController {
 	
 	// TODO: Add pagination support
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_COMP_ID, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_COMP_ID_ADMIN, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<Submission> getAllSubmissions(
+	PaginatedResults<Submission> getAllSubmissionsAdmin(
 			@PathVariable String compId,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
@@ -290,6 +290,27 @@ public class CompetitionController extends BaseController {
 		}
 		
 		List<Submission> subs = serviceProvider.getCompetitionService().getAllSubmissions(userId, compId, status);
+		return new PaginatedResults<Submission>(
+				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_COMP_ID_ADMIN,
+				subs,
+				subs.size(),
+				0,
+				0,
+				"",
+				null
+			);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_COMP_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<Submission> getAllSubmissions(
+			@PathVariable String compId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException 
+	{
+		List<Submission> subs = serviceProvider.getCompetitionService().getAllSubmissionsByCompetitionAndUser(compId, userId);
 		return new PaginatedResults<Submission>(
 				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_COMP_ID,
 				subs,

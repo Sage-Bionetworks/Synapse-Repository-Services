@@ -48,6 +48,11 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION +
 			" WHERE "+ SQLConstants.COL_SUBMISSION_COMP_ID + "=:"+ COMP_ID;
 	
+	private static final String SELECT_BY_COMP_AND_USER_SQL = 
+			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION +
+			" WHERE "+ SQLConstants.COL_SUBMISSION_USER_ID + "=:"+ USER_ID +
+			" AND " + SQLConstants.COL_SUBMISSION_COMP_ID + "=:"+ COMP_ID;
+	
 	private static final String SELECT_BY_COMPETITION_AND_STATUS_SQL = 
 			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION + " n " +
 			"INNER JOIN " + SQLConstants.TABLE_SUBSTATUS + " r " +
@@ -116,6 +121,21 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COMP_ID, compId);		
 		List<SubmissionDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_COMPETITION_SQL, rowMapper, param);
+		List<Submission> dtos = new ArrayList<Submission>();
+		for (SubmissionDBO dbo : dbos) {
+			Submission dto = new Submission();
+			copyDboToDto(dbo, dto);
+			dtos.add(dto);
+		}
+		return dtos;
+	}
+	
+	@Override
+	public List<Submission> getAllByCompetitionAndUser(String compId, String principalId) throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(USER_ID, principalId);
+		param.addValue(COMP_ID, compId);
+		List<SubmissionDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_COMP_AND_USER_SQL, rowMapper, param);
 		List<Submission> dtos = new ArrayList<Submission>();
 		for (SubmissionDBO dbo : dbos) {
 			Submission dto = new Submission();

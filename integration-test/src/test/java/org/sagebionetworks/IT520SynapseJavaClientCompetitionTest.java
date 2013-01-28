@@ -38,6 +38,7 @@ public class IT520SynapseJavaClientCompetitionTest {
 	private static Synapse synapseTwo = null;
 	private static Project project = null;
 	private static Study dataset = null;
+	private static Project projectTwo = null;
 	
 	private static String userName;
 	
@@ -85,9 +86,11 @@ public class IT520SynapseJavaClientCompetitionTest {
 		dataset = new Study();
 		dataset.setParentId(project.getId());
 		dataset = synapseOne.createEntity(dataset);
+		projectTwo = synapseTwo.createEntity(new Project());
 		
 		entitiesToDelete.add(project.getId());
 		entitiesToDelete.add(dataset.getId());
+		entitiesToDelete.add(projectTwo.getId());
 		
 		// initialize Competitions
 		comp1 = new Competition();
@@ -337,5 +340,52 @@ public class IT520SynapseJavaClientCompetitionTest {
 		
 		subs = synapseOne.getAllSubmissions(comp2.getId());
 		assertEquals(0, subs.getTotalNumberOfResults());
+	}
+	
+	@Test
+	public void testGetMySubmissions() throws SynapseException {
+		// create objects
+		comp1.setStatus(CompetitionStatus.OPEN);
+		comp1 = synapseOne.createCompetition(comp1);
+		assertNotNull(comp1.getId());
+		competitionsToDelete.add(comp1.getId());
+		
+		part1 = synapseOne.createParticipant(comp1.getId());
+		assertNotNull(part1);
+		participantsToDelete.add(part1);
+		
+		part2 = synapseTwo.createParticipant(comp1.getId());
+		assertNotNull(part2);
+		participantsToDelete.add(part2);
+		
+		String entityId1 = project.getId();
+		assertNotNull(entityId1);
+		entitiesToDelete.add(entityId1);
+		String entityId2 = dataset.getId();
+		assertNotNull(entityId2);
+		entitiesToDelete.add(entityId2);
+		
+		sub1.setCompetitionId(comp1.getId());
+		sub1.setEntityId(entityId1);
+		sub1.setVersionNumber(1L);
+		sub1.setUserId(userName);
+		sub1 = synapseOne.createSubmission(sub1);
+		assertNotNull(sub1.getId());
+		submissionsToDelete.add(sub1.getId());
+		
+		sub2.setCompetitionId(comp1.getId());
+		sub2.setEntityId(projectTwo.getId());
+		sub2.setVersionNumber(1L);
+		sub2.setUserId(userName);
+		sub2 = synapseTwo.createSubmission(sub2);
+		assertNotNull(sub2.getId());
+		submissionsToDelete.add(sub2.getId());
+		
+		// paginated submissions
+		PaginatedResults<Submission> subs = synapseOne.getMySubmissions(comp1.getId());
+		assertEquals(1, subs.getTotalNumberOfResults());
+		for (Submission s : subs.getResults())
+			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1));
+
 	}
 }
