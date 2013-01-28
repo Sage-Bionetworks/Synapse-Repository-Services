@@ -96,8 +96,8 @@ public class ParticipantManagerTest {
     
     @Test
     public void testGetAllParticipants() throws NumberFormatException, DatastoreException, NotFoundException {
-    	participantManager.getAllParticipants(COMP_ID);
-    	verify(mockParticipantDAO).getAllByCompetition(eq(COMP_ID));
+    	participantManager.getAllParticipants(COMP_ID, 10, 0);
+    	verify(mockParticipantDAO).getAllByCompetition(eq(COMP_ID), eq(10L), eq(0L));
     }
     
     @Test

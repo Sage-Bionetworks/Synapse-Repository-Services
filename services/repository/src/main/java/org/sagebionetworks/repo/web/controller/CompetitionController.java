@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.competition.model.Competition;
@@ -181,20 +180,13 @@ public class CompetitionController extends BaseController {
 	@RequestMapping(value = UrlHelpers.PARTICIPANT, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Participant> getAllParticipants(
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@PathVariable String compId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		List<Participant> parts = serviceProvider.getCompetitionService().getAllParticipants(compId);
-		return new PaginatedResults<Participant>(
-				request.getServletPath() + UrlHelpers.PARTICIPANT,
-				parts,
-				parts.size(),
-				0,
-				0,
-				"",
-				null
-			);
+		return serviceProvider.getCompetitionService().getAllParticipants(compId, limit, offset, request);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -277,8 +269,10 @@ public class CompetitionController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_COMP_ID_ADMIN, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<Submission> getAllSubmissionsAdmin(
+	PaginatedResults<Submission> getAllSubmissions(
 			@PathVariable String compId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
 			HttpServletRequest request
@@ -287,39 +281,22 @@ public class CompetitionController extends BaseController {
 		SubmissionStatusEnum status = null;
 		if (statusString.length() > 0) {
 			status = SubmissionStatusEnum.valueOf(statusString.toUpperCase().trim());
-		}
-		
-		List<Submission> subs = serviceProvider.getCompetitionService().getAllSubmissions(userId, compId, status);
-		return new PaginatedResults<Submission>(
-				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_COMP_ID_ADMIN,
-				subs,
-				subs.size(),
-				0,
-				0,
-				"",
-				null
-			);
+		}		
+		return serviceProvider.getCompetitionService().getAllSubmissions(userId, compId, status, offset, limit, request);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_COMP_ID, method = RequestMethod.GET)
 	public @ResponseBody
-	PaginatedResults<Submission> getAllSubmissions(
+	PaginatedResults<Submission> getMySubmissions(
 			@PathVariable String compId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		List<Submission> subs = serviceProvider.getCompetitionService().getAllSubmissionsByCompetitionAndUser(compId, userId);
-		return new PaginatedResults<Submission>(
-				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_COMP_ID,
-				subs,
-				subs.size(),
-				0,
-				0,
-				"",
-				null
-			);
+		return serviceProvider.getCompetitionService().getAllSubmissionsByCompetitionAndUser(compId, userId, limit, offset, request);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)

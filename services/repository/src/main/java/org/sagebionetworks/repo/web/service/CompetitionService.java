@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.competition.model.Competition;
@@ -152,7 +151,7 @@ public interface CompetitionService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<Participant> getAllParticipants(String compId)
+	public PaginatedResults<Participant> getAllParticipants(String compId, long limit, long offset, HttpServletRequest request)
 			throws NumberFormatException, DatastoreException, NotFoundException;
 
 	/**
@@ -237,38 +236,45 @@ public interface CompetitionService {
 	 * @param userId
 	 * @param compId
 	 * @param status
+	 * @param limit
+	 * @param offset
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public List<Submission> getAllSubmissions(String userId, String compId,
-			SubmissionStatusEnum status) throws DatastoreException,
-			UnauthorizedException, NotFoundException;
+	public PaginatedResults<Submission> getAllSubmissions(String userId, String compId,
+			SubmissionStatusEnum status, long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get all Submissions by a given Synapse user. These may span multiple
 	 * Competitions.
 	 * 
 	 * @param principalId
+	 * @param limit
+	 * @param offset
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<Submission> getAllSubmissionsByUser(String principalId)
+	public PaginatedResults<Submission> getAllSubmissionsByUser(String principalId, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get all Submissions by a given Synapse user, for a given Competition
 	 * 
 	 * @param compId
-	 * @param princpalId
+	 * @param userName
+	 * @param limit
+	 * @param offset
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	List<Submission> getAllSubmissionsByCompetitionAndUser(String compId,
-			String userName) throws DatastoreException, NotFoundException;
+	PaginatedResults<Submission> getAllSubmissionsByCompetitionAndUser(String compId,
+			String userName, long limit, long offset, HttpServletRequest request) 
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the number of Submissions to a given Competition.

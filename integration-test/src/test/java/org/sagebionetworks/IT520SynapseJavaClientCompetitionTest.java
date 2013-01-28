@@ -318,27 +318,27 @@ public class IT520SynapseJavaClientCompetitionTest {
 			assertTrue("Unknown Competition returned: " + c.toString(), c.equals(comp1) || c.equals(comp2));
 		
 		// paginated participants
-		PaginatedResults<Participant> parts = synapseOne.getAllParticipants(comp1.getId());
+		PaginatedResults<Participant> parts = synapseOne.getAllParticipants(comp1.getId(), 10, 0);
 		assertEquals(2, parts.getTotalNumberOfResults());
 		for (Participant p : parts.getResults())
 			assertTrue("Unknown Participant returned: " + p.toString(), p.equals(part1) || p.equals(part2));
 		
-		parts = synapseOne.getAllParticipants(comp2.getId());
+		parts = synapseOne.getAllParticipants(comp2.getId(), 10, 0);
 		assertEquals(0, parts.getTotalNumberOfResults());
 		
 		// paginated submissions
-		PaginatedResults<Submission> subs = synapseOne.getAllSubmissions(comp1.getId());
+		PaginatedResults<Submission> subs = synapseOne.getAllSubmissions(comp1.getId(), 10, 0);
 		assertEquals(2, subs.getTotalNumberOfResults());
 		for (Submission s : subs.getResults())
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
 		
-		subs = synapseOne.getAllSubmissionsByStatus(comp1.getId(), SubmissionStatusEnum.OPEN);
+		subs = synapseOne.getAllSubmissionsByStatus(comp1.getId(), SubmissionStatusEnum.OPEN, 10, 0);
 		assertEquals(2, subs.getTotalNumberOfResults());
 		
-		subs = synapseOne.getAllSubmissionsByStatus(comp1.getId(), SubmissionStatusEnum.CLOSED);
+		subs = synapseOne.getAllSubmissionsByStatus(comp1.getId(), SubmissionStatusEnum.CLOSED, 10, 0);
 		assertEquals(0, subs.getTotalNumberOfResults());
 		
-		subs = synapseOne.getAllSubmissions(comp2.getId());
+		subs = synapseOne.getAllSubmissions(comp2.getId(), 10, 0);
 		assertEquals(0, subs.getTotalNumberOfResults());
 	}
 	
@@ -382,7 +382,7 @@ public class IT520SynapseJavaClientCompetitionTest {
 		submissionsToDelete.add(sub2.getId());
 		
 		// paginated submissions
-		PaginatedResults<Submission> subs = synapseOne.getMySubmissions(comp1.getId());
+		PaginatedResults<Submission> subs = synapseOne.getMySubmissions(comp1.getId(), 10, 0);
 		assertEquals(1, subs.getTotalNumberOfResults());
 		for (Submission s : subs.getResults())
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1));

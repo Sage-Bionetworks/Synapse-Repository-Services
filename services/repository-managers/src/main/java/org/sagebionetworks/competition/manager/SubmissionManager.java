@@ -1,11 +1,10 @@
 package org.sagebionetworks.competition.manager;
 
-import java.util.List;
-
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -89,9 +88,9 @@ public interface SubmissionManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public List<Submission> getAllSubmissions(UserInfo userInfo, String compId,
-			SubmissionStatusEnum status) throws DatastoreException,
-			UnauthorizedException, NotFoundException;
+	public QueryResults<Submission> getAllSubmissions(UserInfo userInfo, String compId,
+			SubmissionStatusEnum status, long limit, long offset) 
+			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get all Submissions by a given Synapse user.
@@ -101,7 +100,7 @@ public interface SubmissionManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<Submission> getAllSubmissionsByUser(String userId)
+	public QueryResults<Submission> getAllSubmissionsByUser(String userId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -113,8 +112,9 @@ public interface SubmissionManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	List<Submission> getAllSubmissionsByCompetitionAndUser(UserInfo userInfo,
-			String compId) throws DatastoreException, NotFoundException;
+	QueryResults<Submission> getAllSubmissionsByCompetitionAndUser(UserInfo userInfo,
+			String compId, long limit, long offset)
+			throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the number of Submissions to a given Competition.

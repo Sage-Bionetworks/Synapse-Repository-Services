@@ -40,29 +40,55 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	private static final String COMP_ID = DBOConstants.PARAM_SUBMISSION_COMP_ID;
 	private static final String STATUS = DBOConstants.PARAM_SUBSTATUS_STATUS;
 	
-	private static final String SELECT_BY_USER_SQL = 
-			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION +
-			" WHERE "+ SQLConstants.COL_SUBMISSION_USER_ID + "=:"+ USER_ID;
+	private static final String SELECT_ALL = "SELECT *";
+	private static final String SELECT_COUNT = "SELECT COUNT(*)";
+	private static final String LIMIT_OFFSET = 			
+			" LIMIT :"+ SQLConstants.LIMIT_PARAM_NAME +
+			" OFFSET :" + SQLConstants.OFFSET_PARAM_NAME;
 	
-	private static final String SELECT_BY_COMPETITION_SQL = 
-			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION +
+	private static final String BY_USER_SQL = 
+			" FROM "+ SQLConstants.TABLE_SUBMISSION +
+			" WHERE "+ SQLConstants.COL_SUBMISSION_USER_ID + "=:"+ USER_ID;
+
+	private static final String BY_COMPETITION_SQL = 
+			" FROM "+ SQLConstants.TABLE_SUBMISSION +
 			" WHERE "+ SQLConstants.COL_SUBMISSION_COMP_ID + "=:"+ COMP_ID;
 	
-	private static final String SELECT_BY_COMP_AND_USER_SQL = 
-			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION +
+	private static final String BY_COMP_AND_USER_SQL = 
+			" FROM "+ SQLConstants.TABLE_SUBMISSION +
 			" WHERE "+ SQLConstants.COL_SUBMISSION_USER_ID + "=:"+ USER_ID +
 			" AND " + SQLConstants.COL_SUBMISSION_COMP_ID + "=:"+ COMP_ID;
 	
-	private static final String SELECT_BY_COMPETITION_AND_STATUS_SQL = 
-			"SELECT * FROM "+ SQLConstants.TABLE_SUBMISSION + " n " +
-			"INNER JOIN " + SQLConstants.TABLE_SUBSTATUS + " r " +
-			"ON n." + SQLConstants.COL_SUBMISSION_ID + " = r." + SQLConstants.COL_SUBSTATUS_SUBMISSION_ID +
+	private static final String BY_COMPETITION_AND_STATUS_SQL = 
+			" FROM "+ SQLConstants.TABLE_SUBMISSION + " n" +
+			" INNER JOIN " + SQLConstants.TABLE_SUBSTATUS + " r" +
+			" ON n." + SQLConstants.COL_SUBMISSION_ID + " = r." + SQLConstants.COL_SUBSTATUS_SUBMISSION_ID +
 			" WHERE n."+ SQLConstants.COL_SUBMISSION_COMP_ID + "=:"+ COMP_ID +
 			" AND r." + SQLConstants.COL_SUBSTATUS_STATUS + "=:" + STATUS;
 	
+	private static final String SELECT_BY_USER_SQL = 
+			SELECT_ALL + BY_USER_SQL + LIMIT_OFFSET;
+	
+	private static final String SELECT_BY_COMPETITION_SQL = 
+			SELECT_ALL + BY_COMPETITION_SQL + LIMIT_OFFSET;
+	
+	private static final String SELECT_BY_COMP_AND_USER_SQL = 
+			SELECT_ALL + BY_COMP_AND_USER_SQL + LIMIT_OFFSET;
+	
+	private static final String SELECT_BY_COMPETITION_AND_STATUS_SQL = 
+			SELECT_ALL + BY_COMPETITION_AND_STATUS_SQL + LIMIT_OFFSET;
+	
+	private static final String COUNT_BY_USER_SQL = 
+			SELECT_COUNT + BY_USER_SQL;
+	
 	private static final String COUNT_BY_COMPETITION_SQL = 
-			"SELECT COUNT(*) FROM " +  SQLConstants.TABLE_SUBMISSION +
-			" WHERE "+ SQLConstants.COL_PARTICIPANT_COMP_ID + "=:" + COMP_ID;
+			SELECT_COUNT + BY_COMPETITION_SQL;
+	
+	private static final String COUNT_BY_COMP_AND_USER_SQL = 
+			SELECT_COUNT + BY_COMP_AND_USER_SQL;
+	
+	private static final String COUNT_BY_COMPETITION_AND_STATUS_SQL = 
+			SELECT_COUNT + BY_COMPETITION_AND_STATUS_SQL;
 	
 	private static final RowMapper<SubmissionDBO> rowMapper = ((new SubmissionDBO()).getTableMapping());
 
@@ -103,8 +129,15 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	}
 	
 	@Override
-	public List<Submission> getAllByUser(String userId) throws DatastoreException, NotFoundException {
+	public long getCount() throws DatastoreException, NotFoundException {
+		return basicDao.getCount(SubmissionDBO.class);
+	}
+
+	@Override
+	public List<Submission> getAllByUser(String userId, long limit, long offset) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
+		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);
 		param.addValue(USER_ID, userId);		
 		List<SubmissionDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_USER_SQL, rowMapper, param);
 		List<Submission> dtos = new ArrayList<Submission>();
@@ -117,40 +150,19 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	}
 	
 	@Override
-	public List<Submission> getAllByCompetition(String compId) throws DatastoreException, NotFoundException {
+	public long getCountByUser(String userId) throws DatastoreException, NotFoundException {
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put(USER_ID, userId);
+		return simpleJdbcTemplate.queryForLong(COUNT_BY_USER_SQL, parameters);
+	}
+	
+	@Override
+	public List<Submission> getAllByCompetition(String compId, long limit, long offset) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
+		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);
 		param.addValue(COMP_ID, compId);		
 		List<SubmissionDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_COMPETITION_SQL, rowMapper, param);
-		List<Submission> dtos = new ArrayList<Submission>();
-		for (SubmissionDBO dbo : dbos) {
-			Submission dto = new Submission();
-			copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
-		return dtos;
-	}
-	
-	@Override
-	public List<Submission> getAllByCompetitionAndUser(String compId, String principalId) throws DatastoreException, NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(USER_ID, principalId);
-		param.addValue(COMP_ID, compId);
-		List<SubmissionDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_COMP_AND_USER_SQL, rowMapper, param);
-		List<Submission> dtos = new ArrayList<Submission>();
-		for (SubmissionDBO dbo : dbos) {
-			Submission dto = new Submission();
-			copyDboToDto(dbo, dto);
-			dtos.add(dto);
-		}
-		return dtos;
-	}
-	
-	@Override
-	public List<Submission> getAllByCompetitionAndStatus(String compId, SubmissionStatusEnum status) throws DatastoreException, NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(COMP_ID, compId);
-		param.addValue(STATUS, status.ordinal());
-		List<SubmissionDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_COMPETITION_AND_STATUS_SQL, rowMapper, param);
 		List<Submission> dtos = new ArrayList<Submission>();
 		for (SubmissionDBO dbo : dbos) {
 			Submission dto = new Submission();
@@ -166,12 +178,57 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		parameters.put(COMP_ID, compId);
 		return simpleJdbcTemplate.queryForLong(COUNT_BY_COMPETITION_SQL, parameters);
 	}
+
+	@Override
+	public List<Submission> getAllByCompetitionAndUser(String compId, String principalId, long limit, long offset) throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
+		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);	
+		param.addValue(USER_ID, principalId);
+		param.addValue(COMP_ID, compId);
+		List<SubmissionDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_COMP_AND_USER_SQL, rowMapper, param);
+		List<Submission> dtos = new ArrayList<Submission>();
+		for (SubmissionDBO dbo : dbos) {
+			Submission dto = new Submission();
+			copyDboToDto(dbo, dto);
+			dtos.add(dto);
+		}
+		return dtos;
+	}
 	
 	@Override
-	public long getCount() throws DatastoreException, NotFoundException {
-		return basicDao.getCount(SubmissionDBO.class);
+	public long getCountByCompetitionAndUser(String compId, String userId) throws DatastoreException, NotFoundException {
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put(COMP_ID, compId);
+		parameters.put(USER_ID, userId);
+		return simpleJdbcTemplate.queryForLong(COUNT_BY_COMP_AND_USER_SQL, parameters);
 	}
-
+	
+	@Override
+	public List<Submission> getAllByCompetitionAndStatus(String compId, SubmissionStatusEnum status, long limit, long offset) throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
+		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);	
+		param.addValue(COMP_ID, compId);
+		param.addValue(STATUS, status.ordinal());
+		List<SubmissionDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_COMPETITION_AND_STATUS_SQL, rowMapper, param);
+		List<Submission> dtos = new ArrayList<Submission>();
+		for (SubmissionDBO dbo : dbos) {
+			Submission dto = new Submission();
+			copyDboToDto(dbo, dto);
+			dtos.add(dto);
+		}
+		return dtos;
+	}
+	
+	@Override
+	public long getCountByCompetitionAndStatus(String compId, SubmissionStatusEnum status) throws DatastoreException, NotFoundException {
+		Map<String, Object> parameters = new HashMap<String, Object>();
+		parameters.put(COMP_ID, compId);
+		parameters.put(STATUS, status.ordinal());
+		return simpleJdbcTemplate.queryForLong(COUNT_BY_COMPETITION_AND_STATUS_SQL, parameters);
+	}
+	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public void delete(String id) throws DatastoreException, NotFoundException {

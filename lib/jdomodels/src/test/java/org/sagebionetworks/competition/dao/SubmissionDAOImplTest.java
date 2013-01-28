@@ -134,14 +134,15 @@ public class SubmissionDAOImplTest {
     	submissionId = submissionDAO.create(submission);
     	
     	// userId should have submissions
-    	List<Submission> subs = submissionDAO.getAllByUser(userId);
+    	List<Submission> subs = submissionDAO.getAllByUser(userId, 10, 0);
     	assertEquals(1, subs.size());
+    	assertEquals(subs.size(), submissionDAO.getCountByUser(userId));
     	submission.setCreatedOn(subs.get(0).getCreatedOn());
     	submission.setId(subs.get(0).getId());
     	assertEquals(subs.get(0), submission);
     	
     	// userId_does_not_exist should not have any submissions
-    	subs = submissionDAO.getAllByUser(userId_does_not_exist);
+    	subs = submissionDAO.getAllByUser(userId_does_not_exist, 10, 0);
     	assertEquals(0, subs.size());
     }
     
@@ -150,15 +151,15 @@ public class SubmissionDAOImplTest {
     	submissionId = submissionDAO.create(submission);
     	
     	// compId should have submissions
-    	List<Submission> subs = submissionDAO.getAllByCompetition(compId);
+    	List<Submission> subs = submissionDAO.getAllByCompetition(compId, 10, 0);
     	assertEquals(1, subs.size());
-    	assertEquals(1, submissionDAO.getCountByCompetition(compId));
+    	assertEquals(subs.size(), submissionDAO.getCountByCompetition(compId));
     	submission.setCreatedOn(subs.get(0).getCreatedOn());
     	submission.setId(subs.get(0).getId());
     	assertEquals(subs.get(0), submission);
     	
     	// compId_does_not_exist should not have any submissions
-    	subs = submissionDAO.getAllByCompetition(compId_does_not_exist);
+    	subs = submissionDAO.getAllByCompetition(compId_does_not_exist, 10, 0);
     	assertEquals(0, subs.size());
     	assertEquals(0, submissionDAO.getCountByCompetition(compId_does_not_exist));
     }
@@ -174,19 +175,22 @@ public class SubmissionDAOImplTest {
     	submissionStatusDAO.create(subStatus);
     	
     	// hit compId and hit status => should find 1 submission
-    	List<Submission> subs = submissionDAO.getAllByCompetitionAndStatus(compId, SubmissionStatusEnum.OPEN);
+    	List<Submission> subs = submissionDAO.getAllByCompetitionAndStatus(compId, SubmissionStatusEnum.OPEN, 10, 0);
     	assertEquals(1, subs.size());
+    	assertEquals(subs.size(), submissionDAO.getCountByCompetitionAndStatus(compId, SubmissionStatusEnum.OPEN));
     	submission.setCreatedOn(subs.get(0).getCreatedOn());
     	submission.setId(subs.get(0).getId());
     	assertEquals(subs.get(0), submission);
     	
     	// miss compId and hit status => should find 0 submissions
-    	subs = submissionDAO.getAllByCompetitionAndStatus(compId_does_not_exist, SubmissionStatusEnum.OPEN);
+    	subs = submissionDAO.getAllByCompetitionAndStatus(compId_does_not_exist, SubmissionStatusEnum.OPEN, 10, 0);
     	assertEquals(0, subs.size());
+    	assertEquals(subs.size(), submissionDAO.getCountByCompetitionAndStatus(compId_does_not_exist, SubmissionStatusEnum.OPEN));
     	
     	// hit compId and miss status => should find 0 submissions
-    	subs = submissionDAO.getAllByCompetitionAndStatus(compId, SubmissionStatusEnum.CLOSED);
+    	subs = submissionDAO.getAllByCompetitionAndStatus(compId, SubmissionStatusEnum.CLOSED, 10, 0);
     	assertEquals(0, subs.size());
+    	assertEquals(subs.size(), submissionDAO.getCountByCompetitionAndStatus(compId, SubmissionStatusEnum.CLOSED));
     }
     
     @Test
@@ -194,19 +198,22 @@ public class SubmissionDAOImplTest {
     	submissionId = submissionDAO.create(submission);
     	
     	// hit compId and hit user => should find 1 submission
-    	List<Submission> subs = submissionDAO.getAllByCompetitionAndUser(compId, userId);
+    	List<Submission> subs = submissionDAO.getAllByCompetitionAndUser(compId, userId, 10, 0);
     	assertEquals(1, subs.size());
+    	assertEquals(subs.size(), submissionDAO.getCountByCompetitionAndUser(compId, userId));
     	submission.setCreatedOn(subs.get(0).getCreatedOn());
     	submission.setId(subs.get(0).getId());
     	assertEquals(subs.get(0), submission);
     	
     	// miss compId and hit user => should find 0 submissions
-    	subs = submissionDAO.getAllByCompetitionAndUser(compId_does_not_exist, userId);
+    	subs = submissionDAO.getAllByCompetitionAndUser(compId_does_not_exist, userId, 10, 0);
     	assertEquals(0, subs.size());
+    	assertEquals(subs.size(), submissionDAO.getCountByCompetitionAndUser(compId_does_not_exist, userId));
     	
     	// hit compId and miss user => should find 0 submissions
-    	subs = submissionDAO.getAllByCompetitionAndUser(compId, userId_does_not_exist);
+    	subs = submissionDAO.getAllByCompetitionAndUser(compId, userId_does_not_exist, 10, 0);
     	assertEquals(0, subs.size());
+    	assertEquals(subs.size(), submissionDAO.getCountByCompetitionAndUser(compId, userId_does_not_exist));
     }
     
     @Test
