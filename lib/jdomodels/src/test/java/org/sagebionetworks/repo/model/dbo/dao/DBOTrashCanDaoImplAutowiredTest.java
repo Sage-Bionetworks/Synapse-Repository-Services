@@ -64,7 +64,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		TrashedEntity trash = trashList.get(0);
 		assertEquals(KeyFactory.keyToString(nodeId1), trash.getEntityId());
 		assertEquals(Long.toString(userId), trash.getDeletedByPrincipalId());
-		assertEquals(KeyFactory.keyToString(parentId1), trash.getParentId());
+		assertEquals(KeyFactory.keyToString(parentId1), trash.getOriginalParentId());
 		assertNotNull(trash.getDeletedOn());
 
 		long nodeId2 = 666L;
@@ -81,7 +81,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		trash = trashList.get(0);
 		assertEquals(KeyFactory.keyToString(nodeId2), trash.getEntityId());
 		assertEquals(Long.toString(userId), trash.getDeletedByPrincipalId());
-		assertEquals(KeyFactory.keyToString(parentId2), trash.getParentId());
+		assertEquals(KeyFactory.keyToString(parentId2), trash.getOriginalParentId());
 		assertNotNull(trash.getDeletedOn());
 
 		trashCanDao.delete(userId, nodeId2);

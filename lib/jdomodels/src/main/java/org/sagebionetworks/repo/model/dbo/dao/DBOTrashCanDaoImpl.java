@@ -129,7 +129,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 	private TrashedEntity convertDboToDto(DBOTrashedEntity dbo) {
 		TrashedEntity trash = new TrashedEntity();
 		trash.setEntityId(KeyFactory.keyToString(dbo.getId()));
-		trash.setParentId(KeyFactory.keyToString(dbo.getParentId()));
+		trash.setOriginalParentId(KeyFactory.keyToString(dbo.getParentId()));
 		trash.setDeletedByPrincipalId(dbo.getDeletedBy().toString());
 		trash.setDeletedOn(dbo.getDeletedOn());
 		return trash;
