@@ -7,6 +7,7 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.competition.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -286,5 +287,58 @@ public interface CompetitionService {
 	 */
 	public long getSubmissionCount(String compId) throws DatastoreException,
 			NotFoundException;
+
+	/**
+	 * Get bundled Submissions and SubmissionStatuses by Competition and user.
+	 * 
+	 * @param compId
+	 * @param userName
+	 * @param limit
+	 * @param offset
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByCompetitionAndUser(
+			String compId, String userName, long limit, long offset,
+			HttpServletRequest request) throws DatastoreException,
+			NotFoundException;
+
+	/**
+	 * Get bundled Submissions and SubmissionStatuses by user.
+	 * 
+	 * @param princpalId
+	 * @param limit
+	 * @param offset
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByUser(
+			String princpalId, long limit, long offset,
+			HttpServletRequest request) throws DatastoreException,
+			NotFoundException;
+
+	/**
+	 * Get bundled Submissions and SubmissionStatuses by Competition and status.
+	 * Requires admin permission on the Competition.
+	 * 
+	 * @param userName
+	 * @param compId
+	 * @param status
+	 * @param limit
+	 * @param offset
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundles(String userName,
+			String compId, SubmissionStatusEnum status, long limit,
+			long offset, HttpServletRequest request) throws DatastoreException,
+			UnauthorizedException, NotFoundException;
 
 }

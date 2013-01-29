@@ -41,6 +41,8 @@ public class UrlHelpers {
 	/**
 	 * Used for batch requests
 	 */
+	public static final String ALL					= "/all";
+	
 	public static final String BATCH				= "/batch";
 	
 	public static final String PERMISSIONS 			= "/permissions";
@@ -442,7 +444,9 @@ public class UrlHelpers {
 	public static final String SUBMISSION_WITH_ID = SUBMISSION + "/{subId}";
 	public static final String SUBMISSION_STATUS = SUBMISSION_WITH_ID + "/status";
 	public static final String SUBMISSION_WITH_COMP_ID = COMPETITION_WITH_ID + "/submission";
-	public static final String SUBMISSION_WITH_COMP_ID_ADMIN = SUBMISSION_WITH_COMP_ID + "/all";
+	public static final String SUBMISSION_WITH_COMP_ID_BUNDLE = SUBMISSION_WITH_COMP_ID + BUNDLE;
+	public static final String SUBMISSION_WITH_COMP_ID_ADMIN = SUBMISSION_WITH_COMP_ID + ALL;
+	public static final String SUBMISSION_WITH_COMP_ID_ADMIN_BUNDLE = SUBMISSION_WITH_COMP_ID + BUNDLE + ALL;
 	public static final String SUBMISSION_COUNT = SUBMISSION_WITH_COMP_ID + "/count";
 	
 	// Wiki URL

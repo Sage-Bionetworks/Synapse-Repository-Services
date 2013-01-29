@@ -1,5 +1,6 @@
 package org.sagebionetworks.competition.manager;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.competition.dao.SubmissionDAO;
@@ -9,6 +10,7 @@ import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.competition.util.CompetitionUtils;
+import org.sagebionetworks.repo.competition.model.SubmissionBundle;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
@@ -173,11 +175,25 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
+	public QueryResults<SubmissionBundle> getAllSubmissionBundles(UserInfo userInfo, String compId, SubmissionStatusEnum status, long limit, long offset) 
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		QueryResults<Submission> submissions = getAllSubmissions(userInfo, compId, status, limit, offset);
+		return submissionsToSubmissionBundles(submissions);
+	}
+	
+	@Override
 	public QueryResults<Submission> getAllSubmissionsByUser(String userId, long limit, long offset) throws DatastoreException, NotFoundException {
 		List<Submission> submissions = submissionDAO.getAllByUser(userId, limit, offset);
 		long totalNumberOfResults = submissionDAO.getCountByUser(userId);
 		QueryResults<Submission> res = new QueryResults<Submission>(submissions, totalNumberOfResults);
 		return res;
+	}
+	
+	@Override
+	public QueryResults<SubmissionBundle> getAllSubmissionBundlesByUser(String userId, long limit, long offset) 
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		QueryResults<Submission> submissions = getAllSubmissionsByUser(userId, limit, offset);
+		return submissionsToSubmissionBundles(submissions);
 	}
 	
 	@Override
@@ -192,9 +208,27 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 	
 	@Override
+	public QueryResults<SubmissionBundle> getAllSubmissionBundlesByCompetitionAndUser(UserInfo userInfo, String compId, long limit, long offset)
+			throws DatastoreException, NotFoundException {
+		QueryResults<Submission> submissions = getAllSubmissionsByCompetitionAndUser(userInfo, compId, limit, offset);
+		return submissionsToSubmissionBundles(submissions);
+	}
+		
+	@Override
 	public long getSubmissionCount(String compId) throws DatastoreException, NotFoundException {
 		CompetitionUtils.ensureNotNull(compId, "Competition ID");
 		return submissionDAO.getCountByCompetition(compId);
+	}
+	
+	protected QueryResults<SubmissionBundle> submissionsToSubmissionBundles(QueryResults<Submission> submissions) throws DatastoreException, NotFoundException {
+		List<SubmissionBundle> bundles = new ArrayList<SubmissionBundle>(submissions.getResults().size());
+		for (Submission sub : submissions.getResults()) {
+			SubmissionBundle bun = new SubmissionBundle();
+			bun.setSubmission(sub);
+			bun.setSubmissionStatus(getSubmissionStatus(sub.getId()));
+			bundles.add(bun);
+		}
+		return new QueryResults<SubmissionBundle>(bundles, submissions.getTotalNumberOfResults());
 	}
 
 }

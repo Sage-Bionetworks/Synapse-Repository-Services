@@ -21,6 +21,7 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.competition.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -264,7 +265,7 @@ public class IT520SynapseJavaClientCompetitionTest {
 	}
 	
 	@Test
-	public void testPaginated() throws SynapseException {
+	public void testCompetitionsParticipantsPaginated() throws SynapseException {
 		// create objects
 		comp1.setStatus(CompetitionStatus.OPEN);
 		comp1 = synapseOne.createCompetition(comp1);
@@ -325,21 +326,96 @@ public class IT520SynapseJavaClientCompetitionTest {
 		
 		parts = synapseOne.getAllParticipants(comp2.getId(), 10, 0);
 		assertEquals(0, parts.getTotalNumberOfResults());
+	}
+	
+	@Test
+	public void testSubmissionsPaginated() throws SynapseException {
+		// create objects
+		comp1.setStatus(CompetitionStatus.OPEN);
+		comp1 = synapseOne.createCompetition(comp1);
+		assertNotNull(comp1.getId());
+		competitionsToDelete.add(comp1.getId());
+		comp2 = synapseOne.createCompetition(comp2);
+		assertNotNull(comp2.getId());
+		competitionsToDelete.add(comp2.getId());
 		
-		// paginated submissions
-		PaginatedResults<Submission> subs = synapseOne.getAllSubmissions(comp1.getId(), 10, 0);
+		part1 = synapseOne.createParticipant(comp1.getId());
+		assertNotNull(part1);
+		participantsToDelete.add(part1);
+				
+		String userId = synapseTwo.getMyProfile().getOwnerId();
+		part2 = synapseOne.createParticipantAsAdmin(comp1.getId(), userId);
+		assertNotNull(part2);
+		participantsToDelete.add(part2);
+		
+		String entityId1 = project.getId();
+		assertNotNull(entityId1);
+		entitiesToDelete.add(entityId1);
+		String entityId2 = dataset.getId();
+		assertNotNull(entityId2);
+		entitiesToDelete.add(entityId2);
+		
+		sub1.setCompetitionId(comp1.getId());
+		sub1.setEntityId(entityId1);
+		sub1.setVersionNumber(1L);
+		sub1.setUserId(userName);
+		sub1 = synapseOne.createSubmission(sub1);
+		assertNotNull(sub1.getId());
+		submissionsToDelete.add(sub1.getId());		
+		sub2.setCompetitionId(comp1.getId());
+		sub2.setEntityId(entityId2);
+		sub2.setVersionNumber(1L);
+		sub2.setUserId(userName);
+		sub2 = synapseOne.createSubmission(sub2);
+		assertNotNull(sub2.getId());
+		submissionsToDelete.add(sub2.getId());
+				
+		// paginated submissions and bundles
+		PaginatedResults<Submission> subs;
+		PaginatedResults<SubmissionBundle> subBundles;
+		
+		subs = synapseOne.getAllSubmissions(comp1.getId(), 10, 0);
+		subBundles = synapseOne.getAllSubmissionBundles(comp1.getId(), 10, 0);		
 		assertEquals(2, subs.getTotalNumberOfResults());
-		for (Submission s : subs.getResults())
+		assertEquals(2, subBundles.getTotalNumberOfResults());
+		for (Submission s : subs.getResults()) {
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
+		}
+		for (SubmissionBundle bundle : subBundles.getResults()) {
+			Submission sub = bundle.getSubmission();
+			SubmissionStatus status = bundle.getSubmissionStatus();
+			assertTrue("Unknown Submission returned: " + bundle.toString(), sub.equals(sub1) || sub.equals(sub2));
+			assertTrue("SubmissionBundle contents do not match: " + bundle.toString(), sub.getId().equals(status.getId()));
+		}
+		
 		
 		subs = synapseOne.getAllSubmissionsByStatus(comp1.getId(), SubmissionStatusEnum.OPEN, 10, 0);
+		subBundles = synapseOne.getAllSubmissionBundlesByStatus(comp1.getId(), SubmissionStatusEnum.OPEN, 10, 0);
 		assertEquals(2, subs.getTotalNumberOfResults());
+		assertEquals(2, subBundles.getTotalNumberOfResults());
+		for (Submission s : subs.getResults()) {
+			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
+		}
+		for (SubmissionBundle bundle : subBundles.getResults()) {
+			Submission sub = bundle.getSubmission();
+			SubmissionStatus status = bundle.getSubmissionStatus();
+			assertTrue("Unknown Submission returned: " + bundle.toString(), sub.equals(sub1) || sub.equals(sub2));
+			assertTrue("SubmissionBundle contents do not match: " + bundle.toString(), sub.getId().equals(status.getId()));
+		}
 		
 		subs = synapseOne.getAllSubmissionsByStatus(comp1.getId(), SubmissionStatusEnum.CLOSED, 10, 0);
+		subBundles = synapseOne.getAllSubmissionBundlesByStatus(comp1.getId(), SubmissionStatusEnum.CLOSED, 10, 0);
 		assertEquals(0, subs.getTotalNumberOfResults());
+		assertEquals(0, subBundles.getTotalNumberOfResults());
+		assertEquals(0, subs.getResults().size());
+		assertEquals(0, subBundles.getResults().size());
 		
 		subs = synapseOne.getAllSubmissions(comp2.getId(), 10, 0);
+		subBundles = synapseOne.getAllSubmissionBundles(comp2.getId(), 10, 0);
 		assertEquals(0, subs.getTotalNumberOfResults());
+		assertEquals(0, subBundles.getTotalNumberOfResults());
+		assertEquals(0, subs.getResults().size());
+		assertEquals(0, subBundles.getResults().size());
 	}
 	
 	@Test
