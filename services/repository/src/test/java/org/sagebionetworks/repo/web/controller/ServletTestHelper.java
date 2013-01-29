@@ -17,8 +17,6 @@ import org.codehaus.jackson.JsonParseException;
 import org.codehaus.jackson.map.JsonMappingException;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -56,14 +54,12 @@ import org.sagebionetworks.repo.model.ontology.Concept;
 import org.sagebionetworks.repo.model.ontology.ConceptResponsePage;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.search.SearchResults;
-import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.schema.adapter.JSONEntity;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -71,8 +67,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
-import org.springframework.mock.web.MockServletConfig;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * Helper class to make HttpServlet request.
