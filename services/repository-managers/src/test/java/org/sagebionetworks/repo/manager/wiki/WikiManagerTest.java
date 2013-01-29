@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.manager.wiki;
 
+import java.util.LinkedList;
+import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -13,8 +16,13 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dao.FileMetadataDao;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -28,6 +36,7 @@ public class WikiManagerTest {
 	
 	WikiPageDao mockWikiDao;
 	AuthorizationManager mockAuthManager;
+	FileMetadataDao mockFileDao;
 	WikiManagerImpl wikiManager;
 	WikiPageKey key;
 	UserInfo user;
@@ -40,8 +49,9 @@ public class WikiManagerTest {
 		// setup the mocks
 		mockWikiDao = Mockito.mock(WikiPageDao.class);
 		mockAuthManager = Mockito.mock(AuthorizationManager.class);
+		mockFileDao = Mockito.mock(FileMetadataDao.class);
 		key = new WikiPageKey("123", ObjectType.COMPETITION, "345");
-		wikiManager = new WikiManagerImpl(mockWikiDao, mockAuthManager);
+		wikiManager = new WikiManagerImpl(mockWikiDao, mockAuthManager, mockFileDao);
 	}
 	
 	@Test (expected=IllegalArgumentException.class)
@@ -237,5 +247,60 @@ public class WikiManagerTest {
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.deleteWiki(new UserInfo(false),key);
 		verify(mockWikiDao, times(1)).delete(key);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetAttachmentFileHandlesUnauthroized() throws DatastoreException, NotFoundException{
+		// deny
+		when(mockAuthManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)).thenReturn(false);
+		// Ready to make the call
+		wikiManager.getAttachmentFileHandles(user, key);
+	}
+	
+	@Test
+	public void testGetAttachmentFileHandles() throws DatastoreException, NotFoundException{
+		// Setup the test handles
+		// null preview
+		S3FileHandle s3NullPrivew = new S3FileHandle();
+		s3NullPrivew.setId("1");
+		s3NullPrivew.setPreviewId(null);
+		when(mockFileDao.get("1")).thenReturn(s3NullPrivew);
+		// with preview
+		S3FileHandle s3WithPrivew = new S3FileHandle();
+		s3WithPrivew.setId("2");
+		s3WithPrivew.setPreviewId("3");
+		when(mockFileDao.get("2")).thenReturn(s3WithPrivew);
+		// The preview
+		PreviewFileHandle preview = new PreviewFileHandle();
+		preview.setId("3");
+		when(mockFileDao.get("3")).thenReturn(preview);
+		// Setup the wiki
+		WikiPageKey key = new WikiPageKey("syn123", ObjectType.WIKI, "456");
+		List<String> wikiHandleIds = new LinkedList<String>();
+		// The list only contains the S3 handles and not the previews
+		wikiHandleIds.add("2");
+		wikiHandleIds.add("1");
+		when(mockWikiDao.getWikiFileHandleIds(key)).thenReturn(wikiHandleIds);
+		// Allow
+		when(mockAuthManager.canAccess(user, key.getOwnerObjectId(), key.getOwnerObjectType(), ACCESS_TYPE.READ)).thenReturn(true);
+		// Ready to make the call
+		FileHandleResults results = wikiManager.getAttachmentFileHandles(user, key);
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		assertEquals("There should be 3 file handles, one for each of the two S3 files and for the preview.",3, results.getList().size());
+		FileHandle handle = results.getList().get(0);
+		assertNotNull(handle);
+		assertEquals("2", handle.getId());
+		assertTrue(handle instanceof S3FileHandle);
+		// next should be the preview
+		handle = results.getList().get(1);
+		assertNotNull(handle);
+		assertEquals("3", handle.getId());
+		assertTrue(handle instanceof PreviewFileHandle);
+		// Last should be the null preview
+		handle = results.getList().get(2);
+		assertNotNull(handle);
+		assertEquals("1", handle.getId());
+		assertTrue(handle instanceof S3FileHandle);
 	}
 }

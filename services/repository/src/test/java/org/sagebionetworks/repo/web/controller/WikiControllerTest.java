@@ -5,6 +5,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -18,7 +19,10 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.dao.FileMetadataDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -40,12 +44,17 @@ public class WikiControllerTest {
 	@Autowired
 	UserManager userManager;
 	
+	@Autowired
+	FileMetadataDao fileMetadataDao;
+	
 	private String userName;
 	private String ownerId;
 	
 	Project entity;
 	Competition competition;
 	List<WikiPageKey> toDelete;
+	S3FileHandle handleOne;
+	PreviewFileHandle handleTwo;
 	
 	@Before
 	public void before() throws Exception{
@@ -53,7 +62,26 @@ public class WikiControllerTest {
 		userName = TestUserDAO.TEST_USER_NAME;
 		ownerId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 		toDelete = new LinkedList<WikiPageKey>();
+		// Create a file handle
+		handleOne = new S3FileHandle();
+		handleOne.setCreatedBy(ownerId);
+		handleOne.setCreatedOn(new Date());
+		handleOne.setBucketName("bucket");
+		handleOne.setKey("key");
+		handleOne.setEtag("etag");
+		handleOne = fileMetadataDao.createFile(handleOne);
+		// Create a preview
+		handleTwo = new PreviewFileHandle();
+		handleTwo.setCreatedBy(ownerId);
+		handleTwo.setCreatedOn(new Date());
+		handleTwo.setBucketName("bucket");
+		handleTwo.setKey("key");
+		handleTwo.setEtag("etag");
+		handleTwo = fileMetadataDao.createFile(handleTwo);
+		// Set two as the preview of one
+		fileMetadataDao.setPreviewId(handleOne.getId(), handleTwo.getId());
 	}
+	
 	
 	@After
 	public void after() throws Exception{
@@ -66,6 +94,12 @@ public class WikiControllerTest {
 		}
 		for(WikiPageKey key: toDelete){
 			entityServletHelper.deleteWikiPage(key, userName);
+		}
+		if(handleOne != null && handleOne.getId() != null){
+			fileMetadataDao.delete(handleOne.getId());
+		}
+		if(handleTwo != null && handleTwo.getId() != null){
+			fileMetadataDao.delete(handleTwo.getId());
 		}
 	}
 	

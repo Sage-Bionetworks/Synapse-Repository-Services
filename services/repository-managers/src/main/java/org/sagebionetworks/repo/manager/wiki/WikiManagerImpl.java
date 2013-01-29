@@ -58,10 +58,11 @@ public class WikiManagerImpl implements WikiManager {
 	 * @param authorizationManager
 	 */
 	public WikiManagerImpl(WikiPageDao wikiPageDao,
-			AuthorizationManager authorizationManager) {
+			AuthorizationManager authorizationManager, FileMetadataDao fileMetadataDao) {
 		super();
 		this.wikiPageDao = wikiPageDao;
 		this.authorizationManager = authorizationManager;
+		this.fileMetadataDao = fileMetadataDao;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
