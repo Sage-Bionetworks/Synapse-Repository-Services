@@ -101,9 +101,9 @@ public class IT049FileHandleTest {
 		assertNotNull(results);
 		// We should have one image on the list
 		assertNotNull(results.getList());
-		toDelete.addAll(results.getList());
 		assertEquals(1, results.getList().size());
-		S3FileHandle handle = results.getList().get(0);
+		S3FileHandle handle = (S3FileHandle) results.getList().get(0);
+		toDelete.add(handle);
 		System.out.println(handle);
 		assertEquals("image/png", handle.getContentType());
 		assertEquals(FILE_NAME, handle.getFileName());

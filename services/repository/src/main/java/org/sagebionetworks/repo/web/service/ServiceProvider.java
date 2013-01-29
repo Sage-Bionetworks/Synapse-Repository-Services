@@ -35,4 +35,6 @@ public interface ServiceProvider {
 	public NodeTreeQueryService getNodeTreeQueryService();
 
 	public CompetitionService getCompetitionService();
+	
+	public WikiService getWikiService();
 }

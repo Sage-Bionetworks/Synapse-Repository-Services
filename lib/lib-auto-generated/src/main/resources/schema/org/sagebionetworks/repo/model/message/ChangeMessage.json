@@ -24,18 +24,8 @@
 			"description":"The new Etag of the changed object"
 		},
 		"objectType": {
-			"type": "string",
 			"description": "The type of the object that changed",
-			"name": "ObjectType",
-			"id": "org.sagebionetworks.repo.model.message.ObjectType",
-			"enum": [
-				"ENTITY",
-				"PRINCIPAL",
-				"ACTIVITY",
-				"COMPETITION",
-				"SUBMISSION",
-				"FILE"
-			]
+			"$ref":"org.sagebionetworks.repo.model.message.ObjectType"
 		},
 		"changeType": {
 			"type": "string",

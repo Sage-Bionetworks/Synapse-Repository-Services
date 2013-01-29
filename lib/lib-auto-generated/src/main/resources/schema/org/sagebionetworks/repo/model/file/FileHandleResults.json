@@ -4,7 +4,7 @@
 		"list": {
 			"type": "array",
 			"items": {
-				"$ref": "org.sagebionetworks.repo.model.file.S3FileHandle"
+				"$ref": "org.sagebionetworks.repo.model.file.FileHandle"
 			}
 		}
 	}

@@ -59,6 +59,16 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 	public PaginatedResults(Class<? extends T> clazz) {
 		this.clazz = (Class<T>) clazz;
 	}
+	
+	/**
+	 * The simple constructor.
+	 * @param results
+	 * @param totalNumberOfResults
+	 */
+	public PaginatedResults(List<T> results, long totalNumberOfResults){
+		this.results = results;
+		this.totalNumberOfResults = totalNumberOfResults;
+	}
 
 	/**
 	 * Constructor used by controllers to form a paginated response object
