@@ -278,10 +278,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		List<DynamoWriteOperation> deleteOpList = new ArrayList<DynamoWriteOperation>();
 		for (String deleteNode : deleteList) {
 			// Note we do not check path-from-root for delete
-			String hashKey = DboNodeLineage.createHashKey(deleteNode, LineageType.ANCESTOR);
-			AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-			DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-			List<DboNodeLineage> dboList = this.writeMapper.query(DboNodeLineage.class, queryExpression);
+			List<DboNodeLineage> dboList = this.query(deleteNode, LineageType.ANCESTOR, -1, this.writeMapper);
 			for (int i = 0; i < dboList.size(); i++) {
 				DboNodeLineage dbo = dboList.get(i);
 				if (timestamp.before(dbo.getTimestamp())) {
@@ -491,17 +488,8 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		assert mapper != null;
 
 		// Use the dummy ROOT to locate the actual root
-		String hashKey = DboNodeLineage.ROOT_HASH_KEY;
-		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-
-		String rangeKey = DboNodeLineage.createRangeKey(1, "");
-		Condition rangeKeyCondition = new Condition()
-				.withComparisonOperator(ComparisonOperator.BEGINS_WITH)
-				.withAttributeValueList(new AttributeValue().withS(rangeKey));
-		queryExpression.setRangeKeyCondition(rangeKeyCondition);
-
-		List<DboNodeLineage> results = mapper.query(DboNodeLineage.class, queryExpression);
+		// The actual root is directly below the dummy ROOT
+		List<DboNodeLineage> results = this.query(DboNodeLineage.ROOT, LineageType.DESCENDANT, 1, mapper);
 
 		if (results == null || results.isEmpty()) {
 			return null;
@@ -519,23 +507,13 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 	 * in DynamoDB. The parent may or may not exist. The root will return the dummy ROOT
 	 * as the parent.
 	 */
-	private NodeLineage getParentLineage(String child, DynamoDBMapper mapper) {
+	private NodeLineage getParentLineage(final String child, final DynamoDBMapper mapper) {
 
 		assert child != null;
 		assert mapper != null;
 
-		String hashKey = DboNodeLineage.createHashKey(child, LineageType.ANCESTOR);
-		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-
 		// Parent is exactly 1 node away
-		String rangeKeyStart = DboNodeLineage.createRangeKey(1, "");
-		Condition rangeKeyCondition = new Condition()
-				.withComparisonOperator(ComparisonOperator.BEGINS_WITH)
-				.withAttributeValueList(new AttributeValue().withS(rangeKeyStart));
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		queryExpression.setRangeKeyCondition(rangeKeyCondition);
-
-		List<DboNodeLineage> dboList = mapper.query(DboNodeLineage.class, queryExpression);
+		List<DboNodeLineage> dboList = this.query(child, LineageType.ANCESTOR, 1, mapper);
 
 		if (dboList == null || dboList.isEmpty()) {
 			return null;
@@ -556,19 +534,15 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 	 *
 	 * @throws IncompletePathException When the path is incomplete
 	 */
-	private List<NodeLineage> getCompletePathFromRoot(final String node, DynamoDBMapper mapper)
+	private List<NodeLineage> getCompletePathFromRoot(final String node, final DynamoDBMapper mapper)
 			throws IncompletePathException {
 
 		assert node != null;
 		assert mapper != null;
 
-		String hashKey = DboNodeLineage.createHashKey(node, LineageType.ANCESTOR);
-		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-
 		// The list of ancestors in the order of distance from this node. The list includes
 		// the dummy root if and only if this node is the actual root.
-		final List<DboNodeLineage> dboList = mapper.query(DboNodeLineage.class, queryExpression);
+		final List<DboNodeLineage> dboList = this.query(node, LineageType.ANCESTOR, -1, mapper);
 
 		if (dboList == null) {
 			throw new NoAncestorException("Null list of ancestors returned from DynamoDB for node " + node);
@@ -629,15 +603,12 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 	/**
 	 * Finds all the descendants. Use this internally for updating only.
 	 */
-	private List<NodeLineage> getDescendants(String nodeId, DynamoDBMapper mapper) {
+	private List<NodeLineage> getDescendants(final String nodeId, final DynamoDBMapper mapper) {
 
 		assert nodeId != null;
 		assert mapper != null;
 
-		String hashKey = DboNodeLineage.createHashKey(nodeId, LineageType.DESCENDANT);
-		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
-		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
-		List<DboNodeLineage> dboList = mapper.query(DboNodeLineage.class, queryExpression);
+		List<DboNodeLineage> dboList = this.query(nodeId, LineageType.DESCENDANT, -1, mapper);
 		final List<NodeLineage> descList = new ArrayList<NodeLineage>(dboList.size());
 		for (DboNodeLineage dbo : dboList) {
 			// The query method handles paging internally. It returns a 'lazy-loaded' collection.
@@ -753,5 +724,36 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		AttributeValue rangeKeyValue = new AttributeValue().withS(rangeKey);
 		Key lastKeyEvaluated = new Key().withHashKeyElement(hashKeyValue).withRangeKeyElement(rangeKeyValue);
 		return lastKeyEvaluated;
+	}
+
+	/**
+	 * Performs a simple query on the specified node.
+	 *
+	 * @param nodeId        The node to perform query on
+	 * @param distance      The distance to the node, the range key, supply a value <= 0 to ignore the range
+	 * @param lineageType   The type of query, whether it is ancestor or descendant
+	 * @param dynamoMapper  The DynamoDB mapper used to perform the query
+	 */
+	private List<DboNodeLineage> query(final String nodeId, final LineageType lineageType,
+			final int distance, final DynamoDBMapper dynamoMapper) {
+
+		assert nodeId != null;
+		assert lineageType != null;
+		assert dynamoMapper != null;
+
+		final String hashKey = DboNodeLineage.createHashKey(nodeId, lineageType);
+		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
+		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
+
+		if (distance > 0) {
+			String rangeKeyStart = DboNodeLineage.createRangeKey(distance, "");
+			Condition rangeKeyCondition = new Condition()
+					.withComparisonOperator(ComparisonOperator.BEGINS_WITH)
+					.withAttributeValueList(new AttributeValue().withS(rangeKeyStart));
+			queryExpression.setRangeKeyCondition(rangeKeyCondition);
+		}
+
+		List<DboNodeLineage> dboList = dynamoMapper.query(DboNodeLineage.class, queryExpression);
+		return dboList;
 	}
 }
