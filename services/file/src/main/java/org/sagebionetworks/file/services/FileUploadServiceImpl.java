@@ -25,7 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author John
  *
  */
-public class FileUploadServiceImp implements FileUploadService {
+public class FileUploadServiceImpl implements FileUploadService {
 	
 	
 	@Autowired

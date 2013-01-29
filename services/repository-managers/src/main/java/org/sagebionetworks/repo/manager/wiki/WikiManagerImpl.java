@@ -67,20 +67,20 @@ public class WikiManagerImpl implements WikiManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public WikiPage createWikiPage(UserInfo user, String objectId,	ObjectType objectType, WikiPage toCreate) throws NotFoundException, UnauthorizedException{
-		if(user == null) throw new IllegalArgumentException("UserInfo cannot be null");
+	public WikiPage createWikiPage(UserInfo user, String objectId,	ObjectType objectType, WikiPage wikiPage) throws NotFoundException, UnauthorizedException{
+		if(user == null) throw new IllegalArgumentException("user cannot be null");
 		if(objectId == null) throw new IllegalArgumentException("objectId cannot be null");
-		if(objectType == null) throw new IllegalArgumentException("ObjectType cannot be null");
-		if(toCreate == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		if(objectType == null) throw new IllegalArgumentException("objectType cannot be null");
+		if(wikiPage == null) throw new IllegalArgumentException("wikiPage cannot be null");
 		// Check that the user is allowed to perform this action
 		if(!authorizationManager.canAccess(user, objectId,	objectType, ACCESS_TYPE.CREATE)){
 			throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_TEMPLATE, ACCESS_TYPE.CREATE.name(), objectId, objectType.name()));
 		}
 		// Set created by and modified by
-		toCreate.setCreatedBy(user.getIndividualGroup().getId());
-		toCreate.setModifiedBy(toCreate.getCreatedBy());
+		wikiPage.setCreatedBy(user.getIndividualGroup().getId());
+		wikiPage.setModifiedBy(wikiPage.getCreatedBy());
 		// pass to the DAO
-		return wikiPageDao.create(toCreate, objectId, objectType);
+		return wikiPageDao.create(wikiPage, objectId, objectType);
 	}
 
 	@Override

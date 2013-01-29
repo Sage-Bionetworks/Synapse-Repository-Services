@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.FileMetadataDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -164,13 +165,17 @@ public class WikiControllerTest {
 		child.setTitle("Child");
 		child.setMarkdown("child markdown");
 		child.setParentWikiId(wiki.getId());
+		child.setAttachmentFileHandleIds(new LinkedList<String>());
+		// Note, we are adding a file handle with a preview.
+		// Both the S3FileHandle and its Preview should be returned from getWikiFileHandles()
+		child.getAttachmentFileHandleIds().add(handleOne.getId());
 		// Create it!
 		child = entityServletHelper.createWikiPage(userName, ownerId, ownerType, child);
 		assertNotNull(child);
 		assertNotNull(child.getId());
 		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
 		toDelete.add(childKey);
-		// List the Hieracy
+		// List the hierarchy
 		PaginatedResults<WikiHeader> paginated = entityServletHelper.getWikiHeaderTree(userName, ownerId, ownerType);
 		assertNotNull(paginated);
 		assertNotNull(paginated.getResults());
@@ -186,6 +191,15 @@ public class WikiControllerTest {
 		assertEquals(childeHeader.getId(), childeHeader.getId());
 		assertEquals(childeHeader.getTitle(), childeHeader.getTitle());
 		assertEquals(wiki.getId(), childeHeader.getParentId());
+		// Check that we can get the FileHandles for each wiki		
+		FileHandleResults handles = entityServletHelper.getWikiFileHandles(userName, childKey);
+		assertNotNull(handles);
+		assertNotNull(handles.getList());
+		assertEquals(2, handles.getList().size());
+		// The first should be the S3FileHandle, the second should be the Preview.
+		assertEquals(handleOne.getId(), handles.getList().get(0).getId());
+		assertEquals(handleTwo.getId(), handles.getList().get(1).getId());
+		
 		// Now delete the wiki
 		entityServletHelper.deleteWikiPage(key, userName);
 		try{

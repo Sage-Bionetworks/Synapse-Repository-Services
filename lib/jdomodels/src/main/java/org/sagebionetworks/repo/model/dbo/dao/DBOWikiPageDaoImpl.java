@@ -47,6 +47,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 public class DBOWikiPageDaoImpl implements WikiPageDao {
 	
+	private static final String SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE = "SELECT "+COL_WIKI_ONWERS_ROOT_WIKI_ID+" FROM "+TABLE_WIKI_OWNERS+" WHERE "+COL_WIKI_ONWERS_OWNER_ID+" = ? AND "+COL_WIKI_ONWERS_OBJECT_TYPE+" = ?";
 	private static final String SQL_SELECT_ATTACHMENT_IDS_USING_ROOT_AND_ID = "SELECT ATT."+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID+" FROM "+TABLE_WIKI_PAGE+" PAG, "+TABLE_WIKI_ATTACHMENT+" ATT WHERE PAG."+COL_WIKI_ID+" = ATT."+COL_WIKI_ATTACHMENT_ID+" AND PAG."+COL_WIKI_ROOT_ID+" = ? AND PAG."+COL_WIKI_ID+" = ? ORDER BY ATT."+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID;
 	private static final String SQL_LOCK_FOR_UPDATE = "SELECT "+COL_WIKI_ETAG+" FROM "+TABLE_WIKI_PAGE+" WHERE "+COL_WIKI_ID+" = ? FOR UPDATE";
 	private static final String SQL_DELETE_USING_ID_AND_ROOT = "DELETE FROM "+TABLE_WIKI_PAGE+" WHERE "+COL_WIKI_ID+" = ? AND "+COL_WIKI_ROOT_ID+" = ?";
@@ -166,7 +167,7 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 	 */
 	private Long getRootWiki(Long ownerId, ObjectType ownerType) throws NotFoundException {
 		try{
-			return simpleJdbcTemplate.queryForLong("SELECT "+COL_WIKI_ONWERS_ROOT_WIKI_ID+" FROM "+TABLE_WIKI_OWNERS+" WHERE "+COL_WIKI_ONWERS_OWNER_ID+" = ? AND "+COL_WIKI_ONWERS_OBJECT_TYPE+" = ?", ownerId, ownerType.name());
+			return simpleJdbcTemplate.queryForLong(SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE, ownerId, ownerType.name());
 		}catch(DataAccessException e){
 			throw new NotFoundException("A root wiki does not exist for ownerId: "+ownerId+" and ownerType: "+ownerType);
 		}
@@ -219,7 +220,7 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 		// First we need to delete the attachments.
 		DBOWikiPage newDBO = WikiTranslationUtils.createDBOFromDTO(toUpdate);
 		List<DBOWikiAttachment> newAttachments = WikiTranslationUtils.createDBOAttachmentsFromDTO(toUpdate, wikiId);
-		replaceAttachmetns(wikiId, newAttachments);
+		replaceAttachments(wikiId, newAttachments);
 		// Now update the wiki
 		if(!keepEtag){
 			// We keep the etag for migration scenarios.
@@ -281,7 +282,7 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 	/**
 	 * Replace all of the attachments.
 	 */
-	private void replaceAttachmetns(Long wikiId, List<DBOWikiAttachment> newAttachments){
+	private void replaceAttachments(Long wikiId, List<DBOWikiAttachment> newAttachments){
 		// First we get the existing attachments, and delete each one.
 		// Note: Deleting the attachments using 'DELETE FROM WIKI_ATTACHMENTS WHERE WIKI_ID = ?'
 		// will result in MySql gap locks which cause needless deadlock.  To avoid this we delete each
