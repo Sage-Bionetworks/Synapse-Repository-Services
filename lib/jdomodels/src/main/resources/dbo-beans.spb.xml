@@ -44,7 +44,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStackStatus" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrash" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiAttachment" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />

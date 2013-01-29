@@ -28,19 +28,34 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void nodeParentChanged(String nodeId, String parentNodeId) throws NotFoundException, DatastoreException {
-		//first determine who this node is inheriting from
-		String oldBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);		
-		//if node inherits from itself everything is in order
-		if (oldBenefactorId.equals(nodeId)){
-			return;
-		}		
-		//here node needs to be set to nearest benefactor and children
-		//need to be adjusted accordingly.  Nearest benefactor will be 
-		//set to what the parent node has as benefactor
-		String changeToId = nodeInheritanceDao.getBenefactor(parentNodeId);
+	public void nodeParentChanged(String nodeId, String parentNodeId)
+			throws NotFoundException, DatastoreException {
+		nodeParentChanged(nodeId, parentNodeId, true);
+	}
 
-		//change our node and all appropriate children
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void nodeParentChanged(String nodeId, String parentNodeId, boolean skipSelfBenefactor) 
+			throws NotFoundException, DatastoreException {
+
+		if (nodeId == null) {
+			throw new IllegalArgumentException("nodeId cannot be null.");
+		}
+		if (parentNodeId == null) {
+			throw new IllegalArgumentException("parentNodeId cannot be null.");
+		}
+
+		// First determine who this node is inheriting from
+		String oldBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);	
+
+		if (skipSelfBenefactor && oldBenefactorId.equals(nodeId)) {
+			return;
+		}
+
+		// Here node needs to be set to nearest benefactor and children
+		// need to be adjusted accordingly. Nearest benefactor will be 
+		// set to what the parent node has as benefactor
+		String changeToId = nodeInheritanceDao.getBenefactor(parentNodeId);
 		changeAllChildrenTo(oldBenefactorId, nodeId, changeToId);
 	}
 
