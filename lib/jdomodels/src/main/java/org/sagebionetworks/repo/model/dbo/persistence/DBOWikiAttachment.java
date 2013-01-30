@@ -21,10 +21,12 @@ public class DBOWikiAttachment implements DatabaseObject<DBOWikiAttachment>  {
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("wikiId", COL_WIKI_ATTACHMENT_ID, true),
 		new FieldColumn("fileHandleId", COL_WIKI_ATTACHMENT_FILE_HANDLE_ID, true),
+		new FieldColumn("fileName", COL_WIKI_ATTACHMENT_FILE_NAME),
 	};
 
 	private Long wikiId;
 	private Long fileHandleId;
+	private String fileName;
 	
 	@Override
 	public TableMapping<DBOWikiAttachment> getTableMapping() {
@@ -35,6 +37,7 @@ public class DBOWikiAttachment implements DatabaseObject<DBOWikiAttachment>  {
 				DBOWikiAttachment result = new DBOWikiAttachment();
 				result.setWikiId(rs.getLong(COL_WIKI_ATTACHMENT_ID));
 				result.setFileHandleId(rs.getLong(COL_WIKI_ATTACHMENT_FILE_HANDLE_ID));
+				result.setFileName(rs.getString(COL_WIKI_ATTACHMENT_FILE_NAME));
 				return result;
 			}
 
@@ -77,12 +80,22 @@ public class DBOWikiAttachment implements DatabaseObject<DBOWikiAttachment>  {
 		this.fileHandleId = fileHandleId;
 	}
 
+	public String getFileName() {
+		return fileName;
+	}
+
+	public void setFileName(String fileName) {
+		this.fileName = fileName;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
 				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
+		result = prime * result
+				+ ((fileName == null) ? 0 : fileName.hashCode());
 		result = prime * result + ((wikiId == null) ? 0 : wikiId.hashCode());
 		return result;
 	}
@@ -101,6 +114,11 @@ public class DBOWikiAttachment implements DatabaseObject<DBOWikiAttachment>  {
 				return false;
 		} else if (!fileHandleId.equals(other.fileHandleId))
 			return false;
+		if (fileName == null) {
+			if (other.fileName != null)
+				return false;
+		} else if (!fileName.equals(other.fileName))
+			return false;
 		if (wikiId == null) {
 			if (other.wikiId != null)
 				return false;
@@ -108,5 +126,12 @@ public class DBOWikiAttachment implements DatabaseObject<DBOWikiAttachment>  {
 			return false;
 		return true;
 	}
+
+	@Override
+	public String toString() {
+		return "DBOWikiAttachment [wikiId=" + wikiId + ", fileHandleId="
+				+ fileHandleId + ", fileName=" + fileName + "]";
+	}
+
 
 }

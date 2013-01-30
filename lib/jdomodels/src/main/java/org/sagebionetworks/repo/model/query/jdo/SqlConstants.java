@@ -275,6 +275,7 @@ public class SqlConstants {
 	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
 	public static final String COL_WIKI_ATTACHMENT_ID				= "WIKI_ID";
 	public static final String COL_WIKI_ATTACHMENT_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
+	public static final String COL_WIKI_ATTACHMENT_FILE_NAME		= "FILE_NAME";
 	public static final String DDL_FILE_WIKI_ATTATCHMENT = "schema/WikiAttachments-ddl.sql";
 	
 	// The wiki owners table

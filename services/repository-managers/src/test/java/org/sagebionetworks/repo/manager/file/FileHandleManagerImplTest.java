@@ -8,6 +8,8 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
@@ -22,7 +24,7 @@ import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.file.FileUploadManagerImpl;
+import org.sagebionetworks.repo.manager.file.FileHandleManagerImpl;
 import org.sagebionetworks.repo.manager.file.FileUploadResults;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
@@ -31,13 +33,15 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
+import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.internal.Mimetypes;
 import com.amazonaws.util.BinaryUtils;
@@ -49,14 +53,14 @@ import com.amazonaws.util.StringInputStream;
  * @author jmhill
  *
  */
-public class FileUploadManagerImplTest {
+public class FileHandleManagerImplTest {
 	
-	FileUploadManagerImpl manager;
+	FileHandleManagerImpl manager;
 	FileItemIterator mockIterator;
 	FileItemStream mockFileStream;
 	FileItemStream mockParamParentIdStream;
 	UserInfo mockUser;
-	FileMetadataDao mockfileMetadataDao;
+	FileHandleDao mockfileMetadataDao;
 	FileTransferStrategy mockPrimaryStrategy;
 	FileTransferStrategy mockFallbackStrategy;
 	S3FileHandle validResults;
@@ -67,7 +71,7 @@ public class FileUploadManagerImplTest {
 	@Before
 	public void before() throws UnsupportedEncodingException, IOException, NoSuchAlgorithmException{
 		mockIterator = Mockito.mock(FileItemIterator.class);
-		mockfileMetadataDao = Mockito.mock(FileMetadataDao.class);
+		mockfileMetadataDao = Mockito.mock(FileHandleDao.class);
 		mockS3Client = Mockito.mock(AmazonS3Client.class);
 		mockAuthorizationManager = Mockito.mock(AuthorizationManager.class);
 		
@@ -115,7 +119,7 @@ public class FileUploadManagerImplTest {
 		validResults.setBucketName("bucket");
 		validResults.setKey("key");
 		// the manager to test.
-		manager = new FileUploadManagerImpl(mockfileMetadataDao, mockPrimaryStrategy, mockFallbackStrategy, mockAuthorizationManager, mockS3Client);
+		manager = new FileHandleManagerImpl(mockfileMetadataDao, mockPrimaryStrategy, mockFallbackStrategy, mockAuthorizationManager, mockS3Client);
 	}
 	
 	@Test (expected=IllegalStateException.class)
@@ -233,7 +237,7 @@ public class FileUploadManagerImplTest {
 	public void testCreateMetadata() throws UnsupportedEncodingException{
 		// Create the metadata
 		InputStream stream = new StringInputStream("stream");
-		TransferRequest metadata = FileUploadManagerImpl.createRequest(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testCreateMetadata", stream);
+		TransferRequest metadata = FileHandleManagerImpl.createRequest(Mimetypes.MIMETYPE_OCTET_STREAM, "123", "testCreateMetadata", stream);
 		assertNotNull(metadata);
 		assertEquals(StackConfiguration.getS3Bucket(), metadata.getS3bucketName());
 		assertEquals(Mimetypes.MIMETYPE_OCTET_STREAM, metadata.getContentType());
@@ -319,6 +323,33 @@ public class FileUploadManagerImplTest {
 		verify(mockS3Client, times(1)).deleteObject(preview.getBucketName(), preview.getKey());
 		// The database handle of the preview should be deleted.
 		verify(mockfileMetadataDao, times(1)).delete(preview.getId());
+	}
+	
+	@Test
+	public void testGetRedirectURLForFileHandleExternal() throws DatastoreException, NotFoundException, MalformedURLException{
+		ExternalFileHandle external = new ExternalFileHandle();
+		external.setId("123");
+		external.setExternalURL("http://google.com");
+		when(mockfileMetadataDao.get(external.getId())).thenReturn(external);
+		// fire!
+		URL redirect = manager.getRedirectURLForFileHandle(external.getId());
+		assertNotNull(redirect);
+		assertEquals(external.getExternalURL(), redirect.toString());
+	}
+	
+	@Test
+	public void testGetRedirectURLForFileHandleS3() throws DatastoreException, NotFoundException, MalformedURLException{
+		S3FileHandle s3FileHandle = new S3FileHandle();
+		s3FileHandle.setId("123");
+		s3FileHandle.setBucketName("bucket");
+		s3FileHandle.setKey("key");
+		when(mockfileMetadataDao.get(s3FileHandle.getId())).thenReturn(s3FileHandle);
+		String expecedURL = "https://amamzon.com";
+		when(mockS3Client.generatePresignedUrl(any(String.class), any(String.class), any(Date.class), any(HttpMethod.class))).thenReturn(new URL(expecedURL));
+		// fire!
+		URL redirect = manager.getRedirectURLForFileHandle(s3FileHandle.getId());
+		assertNotNull(redirect);
+		assertEquals(expecedURL, redirect.toString());
 	}
 
 }
