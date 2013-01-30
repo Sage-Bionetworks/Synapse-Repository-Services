@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.manager.trash;
 
 /**
- * Constants for trash and trash cans.
+ * Constants for the trash and trash cans.
  *
  * @author Eric Wu
  */
