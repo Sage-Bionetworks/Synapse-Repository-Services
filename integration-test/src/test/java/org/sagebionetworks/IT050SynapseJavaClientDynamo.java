@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 
+@Ignore //see PLFM-1716
 public class IT050SynapseJavaClientDynamo {
 
 	public static final long MAX_WAIT_TIME_MS = 15 * 60 * 1000; // 15 min

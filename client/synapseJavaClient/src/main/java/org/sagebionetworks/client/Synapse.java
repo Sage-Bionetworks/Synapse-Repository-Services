@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -24,11 +25,14 @@ import java.util.Set;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.util.EntityUtils;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.log4j.Logger;
@@ -147,6 +151,9 @@ public class Synapse {
 	protected static final String WIKI_ID_URI_TEMPLATE = "/%1$s/%2$s/wiki/%3$s";
 	protected static final String WIKI_TREE_URI_TEMPLATE = "/%1$s/%2$s/wikiheadertree";
 	protected static final String ATTACHMENT_HANDLES = "/attachmenthandles";
+	protected static final String ATTACHMENT_FILE = "/attachment";
+	protected static final String ATTACHMENT_FILE_PREVIEW = "/attachmentpreview";
+	protected static final String FILE_NAME_PARAMETER = "?fileName=";
 	
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 	
@@ -1505,6 +1512,77 @@ public class Synapse {
 		return getJSONEntity(getRepoEndpoint(), uri, FileHandleResults.class);
 	}
 	
+	/**
+	 * 
+	 * @param key - Identifies a wiki page.
+	 * @param fileName - The name of the attachment file.
+	 * @return
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 */
+	public File downloadWikiAttachment(WikiPageKey key, String fileName) throws ClientProtocolException, IOException{
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = createWikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName;
+		return downloadFile(getRepoEndpoint(), uri);	
+	}
+
+	/**
+	 * Download the preview of a wiki attachment file.
+	 * @param key - Identifies a wiki page.
+	 * @param fileName - The name of the original attachment file that you want to downlaod a preview for.
+	 * @return
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
+	 * @throws ClientProtocolException 
+	 */
+	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName) throws ClientProtocolException, FileNotFoundException, IOException{
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = createWikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName;
+		return downloadFile(getRepoEndpoint(), uri);	
+	}
+	/**
+	 * Download the file at the given URL.
+	 * @param uri
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws FileNotFoundException
+	 */
+	private File downloadFile(String endpoint, String uri) throws ClientProtocolException, IOException, FileNotFoundException {
+		HttpGet get = new HttpGet(endpoint+uri);
+		// Add the headers
+		for(String headerKey: this.defaultGETDELETEHeaders.keySet()){
+			String value = this.defaultGETDELETEHeaders.get(headerKey);
+			get.setHeader(headerKey, value);
+		}
+		// Add the header that sets the content type and the boundary
+		HttpResponse response = clientProvider.execute(get);
+		HttpEntity entity = response.getEntity();
+		InputStream input = entity.getContent();
+		File temp = File.createTempFile("downloadWikiAttachment", ".tmp");
+		FileOutputStream fos = new FileOutputStream(temp);
+		try{
+			byte[] buffer = new byte[1024]; 
+			int read = -1;
+			while((read = input.read(buffer)) > 0){
+				fos.write(buffer, 0, read);
+			}
+			return temp;
+		}finally{
+			if(fos != null){
+				fos.flush();
+				fos.close();
+			}
+			if(input != null){
+				input.close();
+			}
+		}
+	}
+		
 	/**
 	 * Update a WikiPage
 	 * @param ownerId

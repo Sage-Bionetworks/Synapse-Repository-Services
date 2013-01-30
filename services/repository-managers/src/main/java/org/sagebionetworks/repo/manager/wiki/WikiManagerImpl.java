@@ -212,7 +212,7 @@ public class WikiManagerImpl implements WikiManager {
 			}
 		}
 		// Pass to the DAO
-		return wikiPageDao.updateWikiPage(wikiPage, new HashMap<String, FileHandle>(), objectId, objectType, false);
+		return wikiPageDao.updateWikiPage(wikiPage, nameToHandleMap, objectId, objectType, false);
 	}
 
 	@Override

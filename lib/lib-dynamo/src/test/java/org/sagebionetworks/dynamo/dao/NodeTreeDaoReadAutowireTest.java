@@ -11,6 +11,7 @@ import junit.framework.Assert;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.dynamo.DynamoTestUtil;
@@ -25,6 +26,7 @@ import com.amazonaws.services.dynamodb.model.AttributeValue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:dynamo-dao-spb.xml" })
+@Ignore // see: PLFM-1714
 public class NodeTreeDaoReadAutowireTest {
 
 	@Autowired

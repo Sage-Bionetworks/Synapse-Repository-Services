@@ -538,5 +538,8 @@ public class WikiManagerTest {
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.updateWikiPage(user, ownerId, ownerType, page);
+		Map<String, FileHandle> fileHandleMap = wikiManager.buildFileNameMap(page);
+		
+		verify(mockWikiDao, times(1)).updateWikiPage(page, fileHandleMap, ownerId, ownerType, false);
 	}
 }

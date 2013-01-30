@@ -27,11 +27,13 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class IT055WikiPageTest {
 	
@@ -150,7 +152,7 @@ public class IT055WikiPageTest {
 	}
 	
 	@Test
-	public void testGetWikiPageAttachmentFileHandles() throws Exception{
+	public void testGetWikiPageAttachments() throws Exception{
 		WikiPage wiki = new WikiPage();
 		wiki.setTitle("IT055WikiPageTest.testGetWikiPageAttachmentFileHandles");
 		wiki.setAttachmentFileHandleIds(new LinkedList<String>());
@@ -165,7 +167,45 @@ public class IT055WikiPageTest {
 		// There should be two handles for this WikiPage, one for the origin file
 		// and the other for the preview.
 		FileHandleResults results = synapse.getWikiAttachmenthHandles(key);
-		
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		// there should be two things on the list, the original file and its preview.
+		assertEquals(2, results.getList().size());
+		FileHandle one = results.getList().get(0);
+		assertTrue(one instanceof S3FileHandle);
+		S3FileHandle handle = (S3FileHandle) one;
+		FileHandle two = results.getList().get(1);
+		assertTrue(two instanceof PreviewFileHandle);
+		PreviewFileHandle preview = (PreviewFileHandle) two;
+		assertTrue(handle.getPreviewId().equals(preview.getId()));
+		// Make sure we can download
+		File mainFile = null;
+		File previewFile = null;
+		try{
+			// Download the files from Synapse:
+			mainFile = synapse.downloadWikiAttachment(key, handle.getFileName());
+			assertNotNull(mainFile);
+			// the file should be the expected size
+			assertEquals(handle.getContentSize().longValue(), mainFile.length());
+			// Check the MD5
+			String md5 = MD5ChecksumHelper.getMD5Checksum(mainFile);
+			assertEquals(handle.getContentMd5(), md5);
+			// download the preview
+			previewFile = synapse.downloadWikiAttachmentPreview(key, handle.getFileName());
+			assertNotNull(previewFile);
+			// the file should be the expected size
+			assertEquals(preview.getContentSize().longValue(), previewFile.length());
+			// The preview FileHandle md5 is currently null
+//			md5 = MD5ChecksumHelper.getMD5Checksum(previewFile);
+//			assertEquals(preview.getContentMd5(), md5);
+		}finally{
+			if(mainFile != null){
+				mainFile.delete();
+			}
+			if(previewFile != null){
+				previewFile.delete();
+			}
+		}
 	}
 
 	/**
