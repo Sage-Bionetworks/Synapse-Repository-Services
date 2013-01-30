@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.model.dao;
 
+import java.net.MalformedURLException;
+
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -10,13 +12,14 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * @author John
  *
  */
-public interface FileMetadataDao {
+public interface FileHandleDao {
 	
 	/**
 	 * Create S3 file metadata.
 	 * 
 	 * @param metadata
 	 * @return
+	 * @throws MalformedURLException 
 	 */
 	public <T extends FileHandle> T createFile(T metadata);
 	

@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.net.URL;
 import java.util.List;
 
 import javax.servlet.ServletException;
@@ -1144,5 +1145,59 @@ public class EntityServletTestHelper {
 			throw new ServletTestHelperException(response);
 		}
 		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), FileHandleResults.class);
+	}
+	
+	/**
+	 * Get the temporary Redirect URL for a Wiki File.
+	 * @param userName
+	 * @param key
+	 * @param fileName
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public URL getWikiAttachmentFileURL(String userName, WikiPageKey key, String fileName) throws ServletException, IOException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = createURI(key)+"/attachment";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		request.setParameter("fileName", fileName);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.TEMPORARY_REDIRECT.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		// Get the redirect location
+		return new URL(response.getRedirectedUrl());
+	}
+	
+	/**
+	 * Get the temporary Redirect URL for a Wiki File.
+	 * @param userName
+	 * @param key
+	 * @param fileName
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public URL getWikiAttachmentPreviewFileURL(String userName, WikiPageKey key, String fileName) throws ServletException, IOException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = createURI(key)+"/attachmentpreview";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		request.setParameter("fileName", fileName);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.TEMPORARY_REDIRECT.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		// Get the redirect location
+		return new URL(response.getRedirectedUrl());
 	}
 }

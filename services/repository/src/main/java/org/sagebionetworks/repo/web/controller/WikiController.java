@@ -2,7 +2,11 @@ package org.sagebionetworks.repo.web.controller;
 
 import static org.sagebionetworks.repo.web.UrlHelpers.*;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.List;
+
+import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -170,9 +174,9 @@ public class WikiController extends BaseController {
 			) throws DatastoreException, NotFoundException{
 		return serviceProvider.getWikiService().getWikiHeaderTree(userId, ownerId, ObjectType.COMPETITION, limit, offset);
 	}
-	
+	// Handles
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_HANDLE, method = RequestMethod.GET)
 	public @ResponseBody
 	FileHandleResults getEntityWikiAttachmenthHandles(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
@@ -184,7 +188,7 @@ public class WikiController extends BaseController {
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.COMPETITION_WIKI_ID_ATTCHMENT, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.COMPETITION_WIKI_ID_ATTCHMENT_HANDLE, method = RequestMethod.GET)
 	public @ResponseBody
 	FileHandleResults getCompetitionWikiAttachmenthHandles(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
@@ -193,5 +197,67 @@ public class WikiController extends BaseController {
 			) throws DatastoreException, NotFoundException{
 		// Get the redirect url
 		return serviceProvider.getWikiService().getAttachmentFileHandles(userId, new WikiPageKey(ownerId, ObjectType.COMPETITION, wikiId));
+	}
+	
+	// Files
+	@ResponseStatus(HttpStatus.TEMPORARY_REDIRECT)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_FILE, method = RequestMethod.GET)
+	public @ResponseBody
+	void getEntityWikiAttachmentFile(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String ownerId,
+			@PathVariable String wikiId,
+			@RequestParam String fileName,
+			HttpServletResponse response
+			) throws DatastoreException, NotFoundException, IOException{
+		// Get the redirect url
+		URL redirectUrl = serviceProvider.getWikiService().getAttachmentRedirectURL(userId,  new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId), fileName);
+		response.sendRedirect(redirectUrl.toString());
+	}
+	
+	@ResponseStatus(HttpStatus.TEMPORARY_REDIRECT)
+	@RequestMapping(value = UrlHelpers.COMPETITION_WIKI_ID_ATTCHMENT_FILE, method = RequestMethod.GET)
+	public @ResponseBody
+	void getCompetitionAttachmentFile(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String ownerId,
+			@PathVariable String wikiId,
+			@RequestParam String fileName,
+			HttpServletResponse response
+			) throws DatastoreException, NotFoundException, IOException{
+		// Get the redirect url
+		URL redirectUrl = serviceProvider.getWikiService().getAttachmentRedirectURL(userId,  new WikiPageKey(ownerId, ObjectType.COMPETITION, wikiId), fileName);
+		response.sendRedirect(redirectUrl.toString());
+	}
+	
+	// Files
+	@ResponseStatus(HttpStatus.TEMPORARY_REDIRECT)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_FILE_PREVIEW, method = RequestMethod.GET)
+	public @ResponseBody
+	void getEntityWikiAttachmenPreviewFile(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String ownerId,
+			@PathVariable String wikiId,
+			@RequestParam String fileName,
+			HttpServletResponse response
+			) throws DatastoreException, NotFoundException, IOException{
+		// Get the redirect url
+		URL redirectUrl = serviceProvider.getWikiService().getAttachmentPreviewRedirectURL(userId,  new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId), fileName);
+		response.sendRedirect(redirectUrl.toString());
+	}
+	
+	@ResponseStatus(HttpStatus.TEMPORARY_REDIRECT)
+	@RequestMapping(value = UrlHelpers.COMPETITION_WIKI_ID_ATTCHMENT_FILE_PREVIEW, method = RequestMethod.GET)
+	public @ResponseBody
+	void getCompetitionAttachmenthPreviewFile(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String ownerId,
+			@PathVariable String wikiId,
+			@RequestParam String fileName,
+			HttpServletResponse response
+			) throws DatastoreException, NotFoundException, IOException{
+		// Get the redirect url
+		URL redirectUrl = serviceProvider.getWikiService().getAttachmentPreviewRedirectURL(userId,  new WikiPageKey(ownerId, ObjectType.COMPETITION, wikiId), fileName);
+		response.sendRedirect(redirectUrl.toString());
 	}
 }

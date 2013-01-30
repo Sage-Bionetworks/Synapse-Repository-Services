@@ -447,6 +447,8 @@ public class UrlHelpers {
 	// Wiki URL
 	public static final String WIKI = "/wiki";
 	public static final String WIKI_HEADER_TREE = "/wikiheadertree";
+	public static final String ATTACHMENT = "/attachment";
+	public static final String ATTACHMENT_PREVIEW = "/attachmentpreview";
 	public static final String ATTACHMENT_HANDLES = "/attachmenthandles";
 	public static final String WIKI_WITH_ID = WIKI + "/{wikiId}";
 	// Entity
@@ -454,13 +456,17 @@ public class UrlHelpers {
 	public static final String ENTITY_WIKI = ENTITY_OWNER_ID + WIKI;
 	public static final String ENTITY_WIKI_TREE = ENTITY_OWNER_ID + WIKI_HEADER_TREE;
 	public static final String ENTITY_WIKI_ID = ENTITY_OWNER_ID + WIKI_WITH_ID;
-	public static final String ENTITY_WIKI_ID_ATTCHMENT = ENTITY_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
+	public static final String ENTITY_WIKI_ID_ATTCHMENT_HANDLE = ENTITY_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
+	public static final String ENTITY_WIKI_ID_ATTCHMENT_FILE = ENTITY_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
+	public static final String ENTITY_WIKI_ID_ATTCHMENT_FILE_PREVIEW = ENTITY_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;
 	// competition
 	public static final String COMPETITION_OWNER_ID = COMPETITION+"/{ownerId}";
 	public static final String COMPETITION_WIKI = COMPETITION_OWNER_ID+ WIKI;
 	public static final String COMPETITION_WIKI_TREE = COMPETITION_OWNER_ID + WIKI_HEADER_TREE;
 	public static final String COMPETITION_WIKI_ID =COMPETITION_OWNER_ID + WIKI_WITH_ID;
-	public static final String COMPETITION_WIKI_ID_ATTCHMENT =COMPETITION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
+	public static final String COMPETITION_WIKI_ID_ATTCHMENT_HANDLE =COMPETITION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
+	public static final String COMPETITION_WIKI_ID_ATTCHMENT_FILE =COMPETITION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
+	public static final String COMPETITION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =COMPETITION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;
 	
 	/**
 	 * This is a memoized cache for our URL regular expressions

@@ -16,7 +16,7 @@ import org.junit.Test;
 import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.util.ResourceTracker;
@@ -30,7 +30,7 @@ import com.amazonaws.services.s3.model.PutObjectRequest;
 public class PreviewManagerImplTest {
 	
 	PreviewManagerImpl previewManager;
-	FileMetadataDao stubFileMetadataDao;
+	FileHandleDao stubFileMetadataDao;
 	AmazonS3Client mockS3Client;
 	TempFileProvider mockFileProvider;
 	PreviewGenerator mockPreviewGenerator;

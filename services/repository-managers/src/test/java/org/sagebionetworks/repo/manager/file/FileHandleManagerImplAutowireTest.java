@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
@@ -21,11 +22,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.file.FileUploadManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileUploadResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -40,18 +41,18 @@ import com.amazonaws.util.StringInputStream;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
-public class FileUploadManagerImplAutowireTest {
+public class FileHandleManagerImplAutowireTest {
 	
 	List<S3FileHandle> toDelete;
 	
 	@Autowired
-	FileUploadManager fileUploadManager;
+	FileHandleManager fileUploadManager;
 	
 	@Autowired
 	AmazonS3Client s3Client;
 	
 	@Autowired
-	FileMetadataDao fileMetadataDao;
+	FileHandleDao fileHandleDao;
 	
 	@Autowired
 	public UserProvider testUserProvider;
@@ -103,7 +104,7 @@ public class FileUploadManagerImplAutowireTest {
 				// delete the file from S3.
 				s3Client.deleteObject(meta.getBucketName(), meta.getKey());
 				// We also need to delete the data from the database
-				fileMetadataDao.delete(meta.getId());
+				fileHandleDao.delete(meta.getId());
 			}
 		}
 	}
@@ -141,10 +142,12 @@ public class FileUploadManagerImplAutowireTest {
 			assertNotNull(metaResult.getKey());
 			assertTrue("The key should start with the userID", metaResult.getKey().startsWith(userInfo.getIndividualGroup().getId()));			
 			// Validate this is in the database
-			S3FileHandle fromDB = (S3FileHandle) fileMetadataDao.get(metaResult.getId());
+			S3FileHandle fromDB = (S3FileHandle) fileHandleDao.get(metaResult.getId());
 			assertEquals(metaResult, fromDB);
+			// Test the Pre-Signed URL
+			URL presigned = fileUploadManager.getRedirectURLForFileHandle(metaResult.getId());
+			assertNotNull(presigned);
 		}
-		
 	}
 	
 }

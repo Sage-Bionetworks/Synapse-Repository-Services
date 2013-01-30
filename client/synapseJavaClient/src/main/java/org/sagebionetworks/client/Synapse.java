@@ -146,6 +146,7 @@ public class Synapse {
 	protected static final String WIKI_URI_TEMPLATE = "/%1$s/%2$s/wiki";
 	protected static final String WIKI_ID_URI_TEMPLATE = "/%1$s/%2$s/wiki/%3$s";
 	protected static final String WIKI_TREE_URI_TEMPLATE = "/%1$s/%2$s/wikiheadertree";
+	protected static final String ATTACHMENT_HANDLES = "/attachmenthandles";
 	
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 	
@@ -1489,6 +1490,19 @@ public class Synapse {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		String uri = createWikiURL(key);
 		return getJSONEntity(getRepoEndpoint(), uri, WikiPage.class);
+	}
+	
+	/**
+	 * Get all of the FileHandles associated with a WikiPage, including any PreviewHandles.
+	 * @param key
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	public FileHandleResults getWikiAttachmenthHandles(WikiPageKey key) throws JSONObjectAdapterException, SynapseException{
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = createWikiURL(key)+ATTACHMENT_HANDLES;
+		return getJSONEntity(getRepoEndpoint(), uri, FileHandleResults.class);
 	}
 	
 	/**

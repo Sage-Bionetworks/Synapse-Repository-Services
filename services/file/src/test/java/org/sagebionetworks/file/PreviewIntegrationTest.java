@@ -15,10 +15,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
-import org.sagebionetworks.repo.manager.file.FileUploadManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -43,7 +43,7 @@ public class PreviewIntegrationTest {
 	public static final long MAX_WAIT = 30*1000; // 30 seconds
 	
 	@Autowired
-	FileUploadManager fileUploadManager;
+	FileHandleManager fileUploadManager;
 	@Autowired
 	private UserProvider userProvider;
 	@Autowired
@@ -52,7 +52,7 @@ public class PreviewIntegrationTest {
 	AmazonS3Client s3Client;
 	
 	@Autowired
-	FileMetadataDao fileMetadataDao;
+	FileHandleDao fileMetadataDao;
 	
 	List<S3FileHandleInterface> toDelete;
 	UserInfo userInfo;

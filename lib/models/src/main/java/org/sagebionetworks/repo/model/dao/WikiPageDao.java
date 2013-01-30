@@ -1,8 +1,10 @@
 package org.sagebionetworks.repo.model.dao;
 
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -16,20 +18,27 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public interface WikiPageDao {
 
 	/**
-	 * Create a new wiki page.
-	 * @param page
+	 * Create a new WikiPage.
+	 * @param toCreate
+	 * @param fileNameToFileHandleMap - Maps the name of a file to its FileHandle.  Used to ensure file names are unique within a single WikiPage.
+	 * @param ownerId
+	 * @param ownerType
 	 * @return
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
-	public WikiPage create(WikiPage toCreate, String ownerId, ObjectType ownerType) throws NotFoundException;
+	public WikiPage create(WikiPage toCreate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType) throws NotFoundException;
 	
 	/**
-	 * Update a wiki page.
+	 * Update a wikipage.
 	 * @param toUpdate
+	 * @param fileNameToFileHandleMap - Maps the name of a file to its FileHandle.  Used to ensure file names are unique within a single WikiPage.
+	 * @param ownerId
+	 * @param ownerType
+	 * @param keepEtag
 	 * @return
-	 * @throws NotFoundException 
+	 * @throws NotFoundException
 	 */
-	public WikiPage updateWikiPage(WikiPage toUpdate, String ownerId, ObjectType ownerType, boolean keepEtag) throws NotFoundException;
+	public WikiPage updateWikiPage(WikiPage toUpdate, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, boolean keepEtag) throws NotFoundException;
 		
 	/**
 	 * Get a wiki page.
@@ -68,5 +77,15 @@ public interface WikiPageDao {
 	 * @throws NotFoundException 
 	 */
 	List<String> getWikiFileHandleIds(WikiPageKey key) throws NotFoundException;
+	
+	/**
+	 * Lookup the FileHandleId for a given WikiPage with the given name.
+	 * 
+	 * @param ownerId
+	 * @param type
+	 * @param fileName
+	 * @return
+	 */
+	String getWikiAttachmentFileHandleForFileName(WikiPageKey key, String fileName) throws NotFoundException;
 
 }
