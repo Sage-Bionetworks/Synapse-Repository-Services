@@ -1,15 +1,13 @@
 package org.sagebionetworks.repo.manager.trash;
 
+
 import java.util.List;
 
 import org.sagebionetworks.dynamo.dao.NodeTreeDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
-import org.sagebionetworks.repo.manager.NodeManagerImpl;
-import org.sagebionetworks.repo.manager.NodeTreeQueryManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TrashedEntity;
@@ -51,6 +49,7 @@ public class TrashManagerImpl implements TrashManager {
 			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
 		}
 
+
 		// Whether it is too big for the trash can
 		List<String> idList = this.nodeTreeDao.getDescendants(
 				KeyFactory.stringToKey(nodeId).toString(), TrashConstants.MAX_TRASHABLE + 1, null);
@@ -59,7 +58,6 @@ public class TrashManagerImpl implements TrashManager {
 					"Too big to fit into trashcan. Entity " + nodeId
 					+ " has more than " + TrashConstants.MAX_TRASHABLE + " descendants.");
 		}
-
 
 		/*
 		// Now lock this node
