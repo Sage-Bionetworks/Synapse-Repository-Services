@@ -564,8 +564,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
 		// Create a Select for update query
 		final Long longId = KeyFactory.stringToKey(id);
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("bindId", longId);
+
 		// Check the eTags
 		String currentTag = simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, longId);
 		if(!currentTag.equals(eTag)){
