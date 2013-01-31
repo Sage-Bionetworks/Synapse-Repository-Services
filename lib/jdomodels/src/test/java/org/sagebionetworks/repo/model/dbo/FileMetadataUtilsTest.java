@@ -2,10 +2,11 @@ package org.sagebionetworks.repo.model.dbo;
 
 import static org.junit.Assert.*;
 
+import java.net.MalformedURLException;
 import java.util.Date;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -14,7 +15,7 @@ import org.sagebionetworks.repo.model.file.S3FileHandle;
 public class FileMetadataUtilsTest {
 	
 	@Test
-	public void testExternalFileMetadataRoundTrip(){
+	public void testExternalFileMetadataRoundTrip() throws MalformedURLException{
 		// External
 		ExternalFileHandle meta = new ExternalFileHandle();
 		meta.setCreatedBy("456");
@@ -23,16 +24,36 @@ public class FileMetadataUtilsTest {
 		meta.setId("987");
 		meta.setPreviewId("456");
 		meta.setEtag("etag");
+		meta.setFileName("fileName");
 		System.out.println(meta);
 		// Convert to dbo
-		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(meta);
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
+		assertNotNull(dbo);
+		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
+		assertEquals(meta, clone);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testExternalFileMalformedURL() {
+		// External
+		ExternalFileHandle meta = new ExternalFileHandle();
+		meta.setCreatedBy("456");
+		meta.setCreatedOn(new Date());
+		// malformed URL
+		meta.setExternalURL("F:/file");
+		meta.setId("987");
+		meta.setPreviewId("456");
+		meta.setEtag("etag");
+		System.out.println(meta);
+		// Convert to dbo
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
 		assertNotNull(dbo);
 		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
 		assertEquals(meta, clone);
 	}
 	
 	@Test
-	public void testS3FileMetadataRoundTrip(){
+	public void testS3FileMetadataRoundTrip() throws MalformedURLException{
 		// External
 		S3FileHandle meta = new S3FileHandle();
 		meta.setCreatedBy("456");
@@ -49,14 +70,14 @@ public class FileMetadataUtilsTest {
 		
 		System.out.println(meta);
 		// Convert to dbo
-		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(meta);
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
 		assertNotNull(dbo);
 		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
 		assertEquals(meta, clone);
 	}
 	
 	@Test
-	public void testPreviewFileMetadataRoundTrip(){
+	public void testPreviewFileMetadataRoundTrip() throws MalformedURLException{
 		// External
 		PreviewFileHandle meta = new PreviewFileHandle();
 		meta.setCreatedBy("456");
@@ -71,7 +92,7 @@ public class FileMetadataUtilsTest {
 		meta.setEtag("etag");
 		System.out.println(meta);
 		// Convert to dbo
-		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(meta);
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);
 		assertNotNull(dbo);
 		FileHandle clone = FileMetadataUtils.createDTOFromDBO(dbo);
 		assertEquals(meta, clone);

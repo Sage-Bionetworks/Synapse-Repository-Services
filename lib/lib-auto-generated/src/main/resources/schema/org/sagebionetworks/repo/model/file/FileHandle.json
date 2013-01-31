@@ -20,6 +20,10 @@
 		},
         "concreteType":{
             "type":"string"
-        }
+        },
+		"fileName": {
+			"type": "string",
+			"description": "The short, user visible name for this file."
+		}
 	}
 }

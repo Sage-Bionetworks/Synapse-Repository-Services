@@ -17,6 +17,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WIKI_P
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -31,6 +32,7 @@ import org.sagebionetworks.repo.model.dbo.WikiTranslationUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOWikiAttachment;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -45,8 +47,16 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * The basic implementation of the WikiPageDao.
+ * 
+ * @author John
+ *
+ */
 public class DBOWikiPageDaoImpl implements WikiPageDao {
 	
+	private static final String SQL_FIND_WIKI_ATTACHMENT_BY_NAME = "SELECT WA."+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID+" FROM "+TABLE_WIKI_OWNERS+" WO, "+TABLE_WIKI_PAGE+" WP, "+TABLE_WIKI_ATTACHMENT+" WA WHERE WO."+COL_WIKI_ONWERS_OWNER_ID+" = ? AND WO."+COL_WIKI_ONWERS_OBJECT_TYPE+" = ? AND WO."+COL_WIKI_ONWERS_ROOT_WIKI_ID+" = WP."+COL_WIKI_ROOT_ID+" AND WP."+COL_WIKI_ID+" = ? AND WP."+COL_WIKI_ID+" = WA."+COL_WIKI_ATTACHMENT_ID+" AND WA."+COL_WIKI_ATTACHMENT_FILE_NAME+"= ?";
+	private static final String SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE = "SELECT "+COL_WIKI_ONWERS_ROOT_WIKI_ID+" FROM "+TABLE_WIKI_OWNERS+" WHERE "+COL_WIKI_ONWERS_OWNER_ID+" = ? AND "+COL_WIKI_ONWERS_OBJECT_TYPE+" = ?";
 	private static final String SQL_SELECT_ATTACHMENT_IDS_USING_ROOT_AND_ID = "SELECT ATT."+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID+" FROM "+TABLE_WIKI_PAGE+" PAG, "+TABLE_WIKI_ATTACHMENT+" ATT WHERE PAG."+COL_WIKI_ID+" = ATT."+COL_WIKI_ATTACHMENT_ID+" AND PAG."+COL_WIKI_ROOT_ID+" = ? AND PAG."+COL_WIKI_ID+" = ? ORDER BY ATT."+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID;
 	private static final String SQL_LOCK_FOR_UPDATE = "SELECT "+COL_WIKI_ETAG+" FROM "+TABLE_WIKI_PAGE+" WHERE "+COL_WIKI_ID+" = ? FOR UPDATE";
 	private static final String SQL_DELETE_USING_ID_AND_ROOT = "DELETE FROM "+TABLE_WIKI_PAGE+" WHERE "+COL_WIKI_ID+" = ? AND "+COL_WIKI_ROOT_ID+" = ?";
@@ -89,23 +99,24 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public WikiPage create(WikiPage toCreate, String ownerId, ObjectType ownerType) throws NotFoundException {
-		if(toCreate == null) throw new IllegalArgumentException("FileMetadata cannot be null");
-		if(ownerId == null) throw new IllegalArgumentException("OnwerId cannot be null");
-		if(ownerType == null) throw new IllegalArgumentException("OwnerType cannot be null");
-		
+	public WikiPage create(WikiPage wikiPage, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType) throws NotFoundException {
+		if(wikiPage == null) throw new IllegalArgumentException("wikiPage cannot be null");
+		if(fileNameToFileHandleMap == null) throw new IllegalArgumentException("fileNameToFileIdMap cannot be null");
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+
 		// Convert to a DBO
-		DBOWikiPage dbo = WikiTranslationUtils.createDBOFromDTO(toCreate);
+		DBOWikiPage dbo = WikiTranslationUtils.createDBOFromDTO(wikiPage);
 		dbo.setCreatedOn(System.currentTimeMillis());
 		dbo.setModifiedOn(dbo.getCreatedOn());
 		
-		if(toCreate.getId() == null){
+		if(wikiPage.getId() == null){
 			dbo.setId(idGenerator.generateNewId(TYPE.WIKI_ID));
 		}else{
 			// If an id was provided then it must not exist
-			if(doesExist(toCreate.getId())) throw new IllegalArgumentException("A wiki page already exists with ID: "+toCreate.getId());
+			if(doesExist(wikiPage.getId())) throw new IllegalArgumentException("A wiki page already exists with ID: "+wikiPage.getId());
 			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(new Long(toCreate.getId()), TYPE.WIKI_ID);
+			idGenerator.reserveId(new Long(wikiPage.getId()), TYPE.WIKI_ID);
 		}
 		// When we migrate we keep the original etag.  When it is null we set it.
 		if(dbo.getEtag() == null){
@@ -122,7 +133,7 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 			createRootOwnerEntry(ownerIdLong, ownerType, dbo.getId());
 		}
 		// Create the attachments
-		List<DBOWikiAttachment> attachments = WikiTranslationUtils.createDBOAttachmentsFromDTO(toCreate, dbo.getId());
+		List<DBOWikiAttachment> attachments = WikiTranslationUtils.createDBOAttachmentsFromDTO(fileNameToFileHandleMap, dbo.getId());
 		// Save them to the DB
 		if(attachments.size() >0){
 			basicDao.createBatch(attachments);
@@ -166,7 +177,7 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 	 */
 	private Long getRootWiki(Long ownerId, ObjectType ownerType) throws NotFoundException {
 		try{
-			return simpleJdbcTemplate.queryForLong("SELECT "+COL_WIKI_ONWERS_ROOT_WIKI_ID+" FROM "+TABLE_WIKI_OWNERS+" WHERE "+COL_WIKI_ONWERS_OWNER_ID+" = ? AND "+COL_WIKI_ONWERS_OBJECT_TYPE+" = ?", ownerId, ownerType.name());
+			return simpleJdbcTemplate.queryForLong(SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE, ownerId, ownerType.name());
 		}catch(DataAccessException e){
 			throw new NotFoundException("A root wiki does not exist for ownerId: "+ownerId+" and ownerType: "+ownerType);
 		}
@@ -209,17 +220,20 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public WikiPage updateWikiPage(WikiPage toUpdate, String ownerId, ObjectType ownerType, boolean keepEtag) throws NotFoundException {
-		if(toUpdate == null) throw new IllegalArgumentException("WikiPage cannot be null");
-		if(toUpdate.getId() == null) throw new IllegalArgumentException("WikiPage.getID() cannot be null");
+	public WikiPage updateWikiPage(WikiPage wikiPage, Map<String, FileHandle> fileNameToFileHandleMap, String ownerId, ObjectType ownerType, boolean keepEtag) throws NotFoundException {
+		if(wikiPage == null) throw new IllegalArgumentException("wikiPage cannot be null");
+		if(fileNameToFileHandleMap == null) throw new IllegalArgumentException("fileNameToFileHandleMap cannot be null");
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+		if(wikiPage.getId() == null) throw new IllegalArgumentException("wikiPage.getID() cannot be null");
 		Long ownerIdLong = KeyFactory.stringToKey(ownerId);
 		// does this page exist?
-		if(!doesExist(toUpdate.getId())) throw new NotFoundException("No WikiPage exists with id: "+toUpdate.getId());
-		Long wikiId = new Long(toUpdate.getId());
+		if(!doesExist(wikiPage.getId())) throw new NotFoundException("No WikiPage exists with id: "+wikiPage.getId());
+		Long wikiId = new Long(wikiPage.getId());
 		// First we need to delete the attachments.
-		DBOWikiPage newDBO = WikiTranslationUtils.createDBOFromDTO(toUpdate);
-		List<DBOWikiAttachment> newAttachments = WikiTranslationUtils.createDBOAttachmentsFromDTO(toUpdate, wikiId);
-		replaceAttachmetns(wikiId, newAttachments);
+		DBOWikiPage newDBO = WikiTranslationUtils.createDBOFromDTO(wikiPage);
+		List<DBOWikiAttachment> newAttachments = WikiTranslationUtils.createDBOAttachmentsFromDTO(fileNameToFileHandleMap, wikiId);
+		replaceAttachments(wikiId, newAttachments);
 		// Now update the wiki
 		if(!keepEtag){
 			// We keep the etag for migration scenarios.
@@ -234,7 +248,7 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 		// Send the change message
 		tagMessenger.sendMessage(newDBO.getId().toString(), newDBO.getEtag(), ObjectType.WIKI, ChangeType.UPDATE);
 		// Return the results.
-		return get(new WikiPageKey(ownerId, ownerType, toUpdate.getId().toString()));
+		return get(new WikiPageKey(ownerId, ownerType, wikiPage.getId().toString()));
 	}
 
 	@Override
@@ -281,7 +295,7 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 	/**
 	 * Replace all of the attachments.
 	 */
-	private void replaceAttachmetns(Long wikiId, List<DBOWikiAttachment> newAttachments){
+	private void replaceAttachments(Long wikiId, List<DBOWikiAttachment> newAttachments){
 		// First we get the existing attachments, and delete each one.
 		// Note: Deleting the attachments using 'DELETE FROM WIKI_ATTACHMENTS WHERE WIKI_ID = ?'
 		// will result in MySql gap locks which cause needless deadlock.  To avoid this we delete each
@@ -322,4 +336,17 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 			}
 		}, rootId, key.getWikiPageId());
 	}
+
+	@Override
+	public String getWikiAttachmentFileHandleForFileName(WikiPageKey key, String fileName) throws NotFoundException{
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		Long ownerId = KeyFactory.stringToKey(key.getOwnerObjectId());
+		try{
+			return ""+simpleJdbcTemplate.queryForLong(SQL_FIND_WIKI_ATTACHMENT_BY_NAME, ownerId, key.getOwnerObjectType().name(), key.getWikiPageId(), fileName);
+		}catch(EmptyResultDataAccessException e){
+			throw new NotFoundException("Cannot find a wiki attachment for OwnerID: "+key.getOwnerObjectId()+", ObjectType: "+key.getOwnerObjectType()+", WikiPageId: "+key.getWikiPageId()+", fileName: "+fileName);
+		}
+	}
+
 }

@@ -83,5 +83,14 @@ public interface WikiManager {
 	 * @throws NotFoundException 
 	 */
 	FileHandleResults getAttachmentFileHandles(UserInfo user, WikiPageKey wikiPageKey) throws NotFoundException;
+	
+	/**
+	 * Get the FileHandle ID for a given WikiPage and file name.
+	 * 
+	 * @param wikiPageKey
+	 * @param fileName
+	 * @return
+	 */
+	String getFileHandleIdForFileName(UserInfo user, WikiPageKey wikiPageKey, String fileName) throws NotFoundException, UnauthorizedException;
 
 }

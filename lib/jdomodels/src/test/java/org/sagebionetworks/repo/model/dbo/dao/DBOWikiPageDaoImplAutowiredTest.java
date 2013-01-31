@@ -6,8 +6,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.After;
 import org.junit.Before;
@@ -15,9 +17,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.UserGroupDAO;
-import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
@@ -32,7 +35,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class DBOWikiPageDaoImplAutowiredTest {
 
 	@Autowired
-	FileMetadataDao fileMetadataDao;
+	FileHandleDao fileMetadataDao;
 	
 	@Autowired
 	WikiPageDao wikiPageDao;
@@ -51,6 +54,8 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		toDelete = new LinkedList<WikiPageKey>();
 		creatorUserGroupId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
 		assertNotNull(creatorUserGroupId);
+		// We use a long file name to test the uniqueness constraint
+		String longFileNamePrefix = "loooooooooooooooooooooooooooooooooooooonnnnnnnnnnnnnnnnnnnnnnnnnnnggggggggggggggggggggggggg";
 		// Create a few files
 		S3FileHandle meta = new S3FileHandle();
 		meta.setBucketName("bucketName");
@@ -59,7 +64,7 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		meta.setContentSize(123l);
 		meta.setContentMd5("md5");
 		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("foobar.txt");
+		meta.setFileName(longFileNamePrefix+".txt1");
 		meta = fileMetadataDao.createFile(meta);
 		fileOne = meta;
 		// Two
@@ -70,7 +75,7 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		meta.setContentSize(123l);
 		meta.setContentMd5("md52");
 		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("foobar2.txt");
+		meta.setFileName(longFileNamePrefix+".txt2");
 		meta = fileMetadataDao.createFile(meta);
 		fileTwo = meta;
 	}
@@ -108,8 +113,10 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		// Add an attachment
 		page.setAttachmentFileHandleIds(new LinkedList<String>());
 		page.getAttachmentFileHandleIds().add(fileOne.getId());
-		// Create it
-		WikiPage clone = wikiPageDao.create(page, ownerId, ownerType);
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		fileNameMap.put(fileOne.getFileName(), fileOne);
+  		// Create it
+		WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType);
 		assertNotNull(clone);
 		assertNotNull(clone.getId());
 		toDelete.add(new WikiPageKey(ownerId, ownerType, clone.getId()));
@@ -142,8 +149,10 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		// Add an attachment
 		page.setAttachmentFileHandleIds(new LinkedList<String>());
 		page.getAttachmentFileHandleIds().add(fileOne.getId());
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		fileNameMap.put(fileOne.getFileName(),fileOne);
 		// Create it
-		WikiPage clone = wikiPageDao.create(page, ownerId, ownerType);
+		WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType);
 		assertNotNull(clone);
 		toDelete.add(new WikiPageKey(ownerId, ownerType, clone.getId()));
 		String startEtag = clone.getEtag();
@@ -153,8 +162,9 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		// Add another attachment to the list.
 		clone.getAttachmentFileHandleIds().add(fileTwo.getId());
 		clone.setTitle("Updated title");
+		fileNameMap.put(fileTwo.getFileName(), fileTwo);
 		// Update
-		WikiPage clone2 = wikiPageDao.updateWikiPage(clone,ownerId, ownerType, true);
+		WikiPage clone2 = wikiPageDao.updateWikiPage(clone, fileNameMap, ownerId, ownerType, true);
 		assertNotNull(clone2);
 		assertNotNull(clone2.getEtag());
 		// The etag should be new
@@ -176,7 +186,7 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		String ownerId = "syn123";
 		ObjectType ownerType = ObjectType.ENTITY;
 		// Create it
-		root = wikiPageDao.create(root, ownerId, ownerType);
+		root = wikiPageDao.create(root, new HashMap<String, FileHandle>(), ownerId, ownerType);
 		assertNotNull(root);
 		WikiPageKey rootKey = new WikiPageKey(ownerId, ownerType, root.getId());
 		toDelete.add(rootKey);
@@ -190,7 +200,7 @@ public class DBOWikiPageDaoImplAutowiredTest {
 			child.setCreatedBy(creatorUserGroupId);
 			child.setModifiedBy(creatorUserGroupId);
 			child.setParentWikiId(root.getId());
-			child = wikiPageDao.create(child, ownerId, ownerType);
+			child = wikiPageDao.create(child, new HashMap<String, FileHandle>(), ownerId, ownerType);
 			children.add(child);
 		}
 		// Now get the children of this parent
@@ -224,10 +234,12 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		root.setAttachmentFileHandleIds(new LinkedList<String>());
 		// add  file handle to the root.
 		root.getAttachmentFileHandleIds().add(fileOne.getId());
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		fileNameMap.put(fileOne.getFileName(), fileOne);
 		String ownerId = "syn123";
 		ObjectType ownerType = ObjectType.ENTITY;
 		// Create it
-		root = wikiPageDao.create(root, ownerId, ownerType);
+		root = wikiPageDao.create(root, fileNameMap, ownerId, ownerType);
 		assertNotNull(root);
 		WikiPageKey rootKey = new WikiPageKey(ownerId, ownerType, root.getId());
 		toDelete.add(rootKey);
@@ -242,7 +254,10 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		child.setAttachmentFileHandleIds(new LinkedList<String>());
 		child.getAttachmentFileHandleIds().add(fileTwo.getId());
 		child.getAttachmentFileHandleIds().add(fileOne.getId());
-		child = wikiPageDao.create(child, ownerId, ownerType);
+		Map<String, FileHandle> childFileNameMap = new HashMap<String, FileHandle>();
+		childFileNameMap.put(fileTwo.getFileName(), fileTwo);
+		childFileNameMap.put(fileOne.getFileName(), fileOne);
+		child = wikiPageDao.create(child, childFileNameMap, ownerId, ownerType);
 		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
 		// Now get the FileHandleIds of each
 		List<String> handleList = wikiPageDao.getWikiFileHandleIds(rootKey);
@@ -255,5 +270,35 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		assertEquals(2, handleList.size());
 		assertEquals(fileOne.getId(), handleList.get(0));
 		assertEquals(fileTwo.getId(), handleList.get(1));
+	}
+	
+	@Test
+	public void testgetWikiAttachmentFileHandleForFileName() throws Exception{
+		String ownerId = "syn123";
+		ObjectType ownerType = ObjectType.ENTITY;
+		WikiPage root = new WikiPage();
+		root.setTitle("Root");
+		root.setCreatedBy(creatorUserGroupId);
+		root.setModifiedBy(creatorUserGroupId);
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		fileNameMap.put(fileOne.getFileName(), fileOne);
+		fileNameMap.put(fileTwo.getFileName(), fileTwo);
+		root = wikiPageDao.create(root, fileNameMap, ownerId, ownerType);
+		assertNotNull(root);
+		WikiPageKey key = new WikiPageKey(ownerId, ownerType, root.getId());
+		toDelete.add(key);
+		// Now lookup each file using its name.
+		String id = wikiPageDao.getWikiAttachmentFileHandleForFileName(key, fileOne.getFileName());
+		assertEquals(fileOne.getId(), id);
+		// The second
+		id = wikiPageDao.getWikiAttachmentFileHandleForFileName(key, fileTwo.getFileName());
+		assertEquals(fileTwo.getId(), id);
+		// Test the not found case
+		try{
+			wikiPageDao.getWikiAttachmentFileHandleForFileName(key, fileTwo.getFileName()+"1");
+			fail("The file name does not exist and should have failed");
+		}catch(NotFoundException e){
+			// expected
+		}
 	}
 }

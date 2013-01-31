@@ -2,6 +2,9 @@ package org.sagebionetworks.repo.manager.file;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -19,7 +22,8 @@ import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -30,6 +34,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
 
 /**
@@ -38,14 +43,16 @@ import com.amazonaws.services.s3.AmazonS3Client;
  * @author John
  *
  */
-public class FileUploadManagerImpl implements FileUploadManager {
+public class FileHandleManagerImpl implements FileHandleManager {
 	
-	static private Log log = LogFactory.getLog(FileUploadManagerImpl.class);
+	public static final long PRESIGNED_URL_EXPIRE_TIME_MS = 30*1000; // 30 secs
+	
+	static private Log log = LogFactory.getLog(FileHandleManagerImpl.class);
 	
 	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s"; // userid/UUID
 	
 	@Autowired
-	FileMetadataDao fileMetadataDao;
+	FileHandleDao fileHandleDao;
 	
 	@Autowired
 	AuthorizationManager authorizationManager;
@@ -65,7 +72,7 @@ public class FileUploadManagerImpl implements FileUploadManager {
 	/**
 	 * Used by spring
 	 */
-	public FileUploadManagerImpl(){
+	public FileHandleManagerImpl(){
 		super();
 	}
 
@@ -77,12 +84,12 @@ public class FileUploadManagerImpl implements FileUploadManager {
 	 * @param authorizationManager
 	 * @param s3Client
 	 */
-	public FileUploadManagerImpl(FileMetadataDao fileMetadataDao,
+	public FileHandleManagerImpl(FileHandleDao fileMetadataDao,
 			FileTransferStrategy primaryStrategy,
 			FileTransferStrategy fallbackStrategy,
 			AuthorizationManager authorizationManager, AmazonS3Client s3Client) {
 		super();
-		this.fileMetadataDao = fileMetadataDao;
+		this.fileHandleDao = fileMetadataDao;
 		this.primaryStrategy = primaryStrategy;
 		this.fallbackStrategy = fallbackStrategy;
 		this.authorizationManager = authorizationManager;
@@ -164,7 +171,7 @@ public class FileUploadManagerImpl implements FileUploadManager {
 		// set this user as the creator of the file
 		s3Meta.setCreatedBy(userId);
 		// Save the file metadata to the DB.
-		s3Meta= fileMetadataDao.createFile(s3Meta);
+		s3Meta= fileHandleDao.createFile(s3Meta);
 		return s3Meta;
 	}
 	
@@ -191,7 +198,7 @@ public class FileUploadManagerImpl implements FileUploadManager {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(handleId == null) throw new IllegalArgumentException("FileHandleId cannot be null");
 		// Get the file handle
-		FileHandle handle = fileMetadataDao.get(handleId);
+		FileHandle handle = fileHandleDao.get(handleId);
 		// Only the user that created this handle is authorized to get it.
 		if(!authorizationManager.canAccessRawFileHandle(userInfo, handle.getCreatedBy())){
 			throw new UnauthorizedException("Only the creator of a FileHandle can access the raw FileHandle");
@@ -206,7 +213,7 @@ public class FileUploadManagerImpl implements FileUploadManager {
 		if(handleId == null) throw new IllegalArgumentException("FileHandleId cannot be null");
 		// Get the file handle
 		try {
-			FileHandle handle = fileMetadataDao.get(handleId);
+			FileHandle handle = fileHandleDao.get(handleId);
 			// Is the user authorized?
 			if(!authorizationManager.canAccessRawFileHandle(userInfo, handle.getCreatedBy())){
 				throw new UnauthorizedException("Only the creator of a FileHandle can delete the raw FileHandle");
@@ -226,12 +233,32 @@ public class FileUploadManagerImpl implements FileUploadManager {
 				s3Client.deleteObject(s3Handle.getBucketName(), s3Handle.getKey());
 			}
 			// Delete the handle from the DB
-			fileMetadataDao.delete(handleId);
+			fileHandleDao.delete(handleId);
 		} catch (NotFoundException e) {
 			// there is nothing to do if the handle does not exist.
 			return;
 		}
 		
+	}
+
+	@Override
+	public URL getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException {
+		// First lookup the file handle
+		FileHandle handle = fileHandleDao.get(handleId);
+		if(handle instanceof ExternalFileHandle){
+			ExternalFileHandle efh = (ExternalFileHandle) handle;
+			try {
+				return new URL(efh.getExternalURL());
+			} catch (MalformedURLException e) {
+				throw new DatastoreException(e);
+			}
+		}else if(handle instanceof S3FileHandleInterface){
+			S3FileHandleInterface s3File = (S3FileHandleInterface) handle;
+			// Create a pre-signed url
+			return s3Client.generatePresignedUrl(s3File.getBucketName(), s3File.getKey(), new Date(System.currentTimeMillis()+PRESIGNED_URL_EXPIRE_TIME_MS), HttpMethod.GET);
+		}else{
+			throw new IllegalArgumentException("Unknown FileHandle class: "+handle.getClass().getName());
+		}
 	}
 
 }

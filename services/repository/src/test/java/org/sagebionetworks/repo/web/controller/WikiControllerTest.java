@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.fail;
 
+import java.net.URL;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -18,7 +20,11 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -40,12 +46,17 @@ public class WikiControllerTest {
 	@Autowired
 	UserManager userManager;
 	
+	@Autowired
+	FileHandleDao fileMetadataDao;
+	
 	private String userName;
 	private String ownerId;
 	
 	Project entity;
 	Competition competition;
 	List<WikiPageKey> toDelete;
+	S3FileHandle handleOne;
+	PreviewFileHandle handleTwo;
 	
 	@Before
 	public void before() throws Exception{
@@ -53,7 +64,28 @@ public class WikiControllerTest {
 		userName = TestUserDAO.TEST_USER_NAME;
 		ownerId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 		toDelete = new LinkedList<WikiPageKey>();
+		// Create a file handle
+		handleOne = new S3FileHandle();
+		handleOne.setCreatedBy(ownerId);
+		handleOne.setCreatedOn(new Date());
+		handleOne.setBucketName("bucket");
+		handleOne.setKey("mainFileKey");
+		handleOne.setEtag("etag");
+		handleOne.setFileName("foo.bar");
+		handleOne = fileMetadataDao.createFile(handleOne);
+		// Create a preview
+		handleTwo = new PreviewFileHandle();
+		handleTwo.setCreatedBy(ownerId);
+		handleTwo.setCreatedOn(new Date());
+		handleTwo.setBucketName("bucket");
+		handleTwo.setKey("previewFileKey");
+		handleTwo.setEtag("etag");
+		handleTwo.setFileName("bar.txt");
+		handleTwo = fileMetadataDao.createFile(handleTwo);
+		// Set two as the preview of one
+		fileMetadataDao.setPreviewId(handleOne.getId(), handleTwo.getId());
 	}
+	
 	
 	@After
 	public void after() throws Exception{
@@ -66,6 +98,12 @@ public class WikiControllerTest {
 		}
 		for(WikiPageKey key: toDelete){
 			entityServletHelper.deleteWikiPage(key, userName);
+		}
+		if(handleOne != null && handleOne.getId() != null){
+			fileMetadataDao.delete(handleOne.getId());
+		}
+		if(handleTwo != null && handleTwo.getId() != null){
+			fileMetadataDao.delete(handleTwo.getId());
 		}
 	}
 	
@@ -130,13 +168,17 @@ public class WikiControllerTest {
 		child.setTitle("Child");
 		child.setMarkdown("child markdown");
 		child.setParentWikiId(wiki.getId());
+		child.setAttachmentFileHandleIds(new LinkedList<String>());
+		// Note, we are adding a file handle with a preview.
+		// Both the S3FileHandle and its Preview should be returned from getWikiFileHandles()
+		child.getAttachmentFileHandleIds().add(handleOne.getId());
 		// Create it!
 		child = entityServletHelper.createWikiPage(userName, ownerId, ownerType, child);
 		assertNotNull(child);
 		assertNotNull(child.getId());
 		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
 		toDelete.add(childKey);
-		// List the Hieracy
+		// List the hierarchy
 		PaginatedResults<WikiHeader> paginated = entityServletHelper.getWikiHeaderTree(userName, ownerId, ownerType);
 		assertNotNull(paginated);
 		assertNotNull(paginated.getResults());
@@ -152,6 +194,26 @@ public class WikiControllerTest {
 		assertEquals(childeHeader.getId(), childeHeader.getId());
 		assertEquals(childeHeader.getTitle(), childeHeader.getTitle());
 		assertEquals(wiki.getId(), childeHeader.getParentId());
+		// Check that we can get the FileHandles for each wiki		
+		FileHandleResults handles = entityServletHelper.getWikiFileHandles(userName, childKey);
+		assertNotNull(handles);
+		assertNotNull(handles.getList());
+		assertEquals(2, handles.getList().size());
+		// The first should be the S3FileHandle, the second should be the Preview.
+		assertEquals(handleOne.getId(), handles.getList().get(0).getId());
+		assertEquals(handleTwo.getId(), handles.getList().get(1).getId());
+		
+		// Get the presigned URL for the first file
+		URL presigned  = entityServletHelper.getWikiAttachmentFileURL(userName, childKey, handleOne.getFileName());
+		assertNotNull(presigned);
+		assertTrue(presigned.toString().indexOf("mainFileKey") > 0);
+		System.out.println(presigned);
+		// Get the preview presigned URL.
+		presigned  = entityServletHelper.getWikiAttachmentPreviewFileURL(userName, childKey, handleOne.getFileName());
+		assertNotNull(presigned);
+		assertTrue(presigned.toString().indexOf("previewFileKey") > 0);
+		System.out.println(presigned);
+		
 		// Now delete the wiki
 		entityServletHelper.deleteWikiPage(key, userName);
 		try{

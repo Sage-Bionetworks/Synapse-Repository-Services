@@ -4,9 +4,11 @@ import java.io.UnsupportedEncodingException;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 
 import org.sagebionetworks.repo.model.dbo.persistence.DBOWikiAttachment;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 
 /**
@@ -98,15 +100,20 @@ public class WikiTranslationUtils {
 	 * @param dto
 	 * @return
 	 */
-	public static List<DBOWikiAttachment> createDBOAttachmentsFromDTO(WikiPage dto, Long wikiId){
-		if(dto == null) throw new IllegalArgumentException("DTO cannot be null");
+	public static List<DBOWikiAttachment> createDBOAttachmentsFromDTO(Map<String, FileHandle> fileNameToFileHandleMap, Long wikiId){
+		if(fileNameToFileHandleMap == null) throw new IllegalArgumentException("fileNameToFileIdMap cannot be null");
 		if(wikiId == null) throw new IllegalArgumentException("wikiId cannot be null"); 
 		List<DBOWikiAttachment> list = new LinkedList<DBOWikiAttachment>();
-		if(dto.getAttachmentFileHandleIds() != null){
-			for(String id: dto.getAttachmentFileHandleIds()){
+		if(fileNameToFileHandleMap != null){
+			for(String fileName: fileNameToFileHandleMap.keySet()){
 				DBOWikiAttachment attachment = new DBOWikiAttachment();
+				FileHandle handle = fileNameToFileHandleMap.get(fileName);
+				if(handle == null) throw new IllegalArgumentException("FileHandle is null for fileName: "+fileName);
+				if(handle.getId() == null) throw new IllegalArgumentException("FileHandle.getId id null for fileName: "+fileName);
+				if(!fileName.equals(handle.getFileName())) throw new IllegalArgumentException("Map fileName does not mach the FileHandle.getFileName()");
 				attachment.setWikiId(wikiId);
-				attachment.setFileHandleId(Long.parseLong(id));
+				attachment.setFileHandleId(Long.parseLong(handle.getId()));
+				attachment.setFileName(handle.getFileName());
 				list.add(attachment);
 			}
 		}

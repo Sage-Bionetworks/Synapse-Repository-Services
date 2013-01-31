@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.net.URL;
+
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -81,5 +83,27 @@ public interface WikiService {
 	 * @throws DatastoreException 
 	 */
 	FileHandleResults getAttachmentFileHandles(String userId, WikiPageKey wikiPageKey) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get the Redirect URL for a given attachment.
+	 * @param userId
+	 * @param wikiPageKey
+	 * @param fileName
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	URL getAttachmentRedirectURL(String userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get the redirect URL for a given Preview.
+	 * @param userId
+	 * @param wikiPageKey
+	 * @param fileName
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	URL getAttachmentPreviewRedirectURL(String userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
 
 }

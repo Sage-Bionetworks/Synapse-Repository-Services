@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.net.URL;
 import java.util.List;
 
 import javax.servlet.ServletException;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
@@ -1017,7 +1019,7 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
-		String uri = "/"+key.getOwnerObjectType().name().toLowerCase() + "/" + key.getOwnerObjectId() + "/wiki/"+key.getWikiPageId();
+		String uri = createURI(key);
 		request.setRequestURI(uri);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
@@ -1041,7 +1043,7 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		String uri = "/"+key.getOwnerObjectType().name().toLowerCase() + "/" + key.getOwnerObjectId() + "/wiki/"+key.getWikiPageId();
+		String uri = createURI(key);
 		request.setRequestURI(uri);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, useranme);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
@@ -1050,6 +1052,15 @@ public class EntityServletTestHelper {
 			throw new ServletTestHelperException(response);
 		}
 		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), WikiPage.class);
+	}
+	
+	/**
+	 * Simple helper for creating a URI for a WikiPage using its key
+	 * @param key
+	 * @return
+	 */
+	public String createURI(WikiPageKey key) {
+		return "/"+key.getOwnerObjectType().name().toLowerCase() + "/" + key.getOwnerObjectId() + "/wiki/"+key.getWikiPageId();
 	}
 	
 	/**
@@ -1108,5 +1119,85 @@ public class EntityServletTestHelper {
 		PaginatedResults<WikiHeader> result = new PaginatedResults<WikiHeader>(WikiHeader.class);
 		result.initializeFromJSONObject(adapter);
 		return result;
+	}
+	
+	/**
+	 * Get the paginated results of a wiki header.
+	 * @param userName
+	 * @param ownerId
+	 * @param ownerType
+	 * @return
+	 * @throws IOException 
+	 * @throws ServletException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public FileHandleResults getWikiFileHandles(String userName, WikiPageKey key) throws ServletException, IOException, JSONObjectAdapterException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = createURI(key)+"/attachmenthandles";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), FileHandleResults.class);
+	}
+	
+	/**
+	 * Get the temporary Redirect URL for a Wiki File.
+	 * @param userName
+	 * @param key
+	 * @param fileName
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public URL getWikiAttachmentFileURL(String userName, WikiPageKey key, String fileName) throws ServletException, IOException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = createURI(key)+"/attachment";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		request.setParameter("fileName", fileName);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.TEMPORARY_REDIRECT.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		// Get the redirect location
+		return new URL(response.getRedirectedUrl());
+	}
+	
+	/**
+	 * Get the temporary Redirect URL for a Wiki File.
+	 * @param userName
+	 * @param key
+	 * @param fileName
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public URL getWikiAttachmentPreviewFileURL(String userName, WikiPageKey key, String fileName) throws ServletException, IOException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = createURI(key)+"/attachmentpreview";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		request.setParameter("fileName", fileName);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.TEMPORARY_REDIRECT.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		// Get the redirect location
+		return new URL(response.getRedirectedUrl());
 	}
 }

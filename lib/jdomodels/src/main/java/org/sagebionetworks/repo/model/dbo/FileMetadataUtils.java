@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.model.dbo;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Timestamp;
 
-import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata.MetadataType;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -21,8 +23,9 @@ public class FileMetadataUtils {
 	 * Convert abstract DTO to the DBO.
 	 * @param dto
 	 * @return
+	 * @throws MalformedURLException 
 	 */
-	public static DBOFileMetadata createDBOFromDTO(FileHandle dto){
+	public static DBOFileHandle createDBOFromDTO(FileHandle dto) {
 		if(dto == null) throw new IllegalArgumentException("DTO cannot be null");
 		if(dto instanceof ExternalFileHandle){
 			return createDBOFromDTO((ExternalFileHandle)dto);
@@ -39,10 +42,18 @@ public class FileMetadataUtils {
 	 * Convert from the DTO to the DBO.
 	 * @param dto
 	 * @return
+	 * @throws MalformedURLException 
 	 */
-	private static DBOFileMetadata createDBOFromDTO(ExternalFileHandle dto){
-		DBOFileMetadata dbo = new DBOFileMetadata();
+	private static DBOFileHandle createDBOFromDTO(ExternalFileHandle dto) {
+		DBOFileHandle dbo = new DBOFileHandle();
 		dbo.setMetadataType(MetadataType.EXTERNAL);
+		// Validate the URL
+		try {
+			// Make sure it is really a URL.
+			new URL(dto.getExternalURL());
+		} catch (MalformedURLException e) {
+			throw new IllegalArgumentException(e);
+		}
 		dbo.setKey(dto.getExternalURL());
 		dbo.setEtag(dto.getEtag());
 		if(dto.getCreatedBy() != null){
@@ -57,6 +68,7 @@ public class FileMetadataUtils {
 		if(dto.getCreatedOn() != null){
 			dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
 		}
+		dbo.setName(dto.getFileName());
 		return dbo;
 	}
 	
@@ -65,8 +77,8 @@ public class FileMetadataUtils {
 	 * @param dto
 	 * @return
 	 */
-	private static DBOFileMetadata createDBOFromDTO(S3FileHandle dto){
-		DBOFileMetadata dbo = new DBOFileMetadata();
+	private static DBOFileHandle createDBOFromDTO(S3FileHandle dto){
+		DBOFileHandle dbo = new DBOFileHandle();
 		dbo.setMetadataType(MetadataType.S3);
 		if(dto.getPreviewId() != null){
 			dbo.setPreviewId(new Long(dto.getPreviewId()));
@@ -76,8 +88,8 @@ public class FileMetadataUtils {
 		return dbo;
 	}
 	
-	private static DBOFileMetadata createDBOFromDTO(PreviewFileHandle dto){
-		DBOFileMetadata dbo = new DBOFileMetadata();
+	private static DBOFileHandle createDBOFromDTO(PreviewFileHandle dto){
+		DBOFileHandle dbo = new DBOFileHandle();
 		dbo.setMetadataType(MetadataType.PREVIEW);
 		// Fill in the common data.
 		setDBOFromDTO(dbo, dto);
@@ -88,7 +100,7 @@ public class FileMetadataUtils {
 	 * @param dbo
 	 * @param dto
 	 */
-	private static void setDBOFromDTO(DBOFileMetadata dbo, S3FileHandleInterface dto){
+	private static void setDBOFromDTO(DBOFileHandle dbo, S3FileHandleInterface dto){
 		if(dto.getId() != null){
 			dbo.setId(new Long(dto.getId()));
 		}
@@ -112,7 +124,7 @@ public class FileMetadataUtils {
 	 * @param dbo
 	 * @return
 	 */
-	public static FileHandle createDTOFromDBO(DBOFileMetadata dbo){
+	public static FileHandle createDTOFromDBO(DBOFileHandle dbo){
 		// First determine the type
 		if(MetadataType.EXTERNAL == dbo.getMetadataTypeEnum()){
 			// External
@@ -129,6 +141,7 @@ public class FileMetadataUtils {
 			}
 			external.setEtag(dbo.getEtag());
 			external.setExternalURL(dbo.getKey());
+			external.setFileName(dbo.getName());
 			return external;
 		}else if(MetadataType.S3 == dbo.getMetadataTypeEnum() || MetadataType.PREVIEW == dbo.getMetadataTypeEnum()){
 			S3FileHandleInterface metaInterface = null;

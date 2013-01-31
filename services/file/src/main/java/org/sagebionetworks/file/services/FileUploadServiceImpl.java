@@ -8,7 +8,7 @@ import java.util.List;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.manager.file.FileUploadManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.FileUploadResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -25,14 +25,14 @@ import org.springframework.beans.factory.annotation.Autowired;
  * @author John
  *
  */
-public class FileUploadServiceImp implements FileUploadService {
+public class FileUploadServiceImpl implements FileUploadService {
 	
 	
 	@Autowired
 	UserManager userManager;
 	
 	@Autowired
-	FileUploadManager fileUploadManager;
+	FileHandleManager fileUploadManager;
 
 	@Override
 	public FileHandleResults uploadFiles(String username, FileItemIterator itemIterator) throws DatastoreException, NotFoundException, FileUploadException, IOException, ServiceUnavailableException {

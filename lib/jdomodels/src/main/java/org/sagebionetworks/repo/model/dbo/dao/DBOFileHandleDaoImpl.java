@@ -1,20 +1,23 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
+
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.TagMessenger;
-import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
-
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -30,7 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
  * @author John
  *
  */
-public class DBOFileMetadataDao implements FileMetadataDao {
+public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
 
@@ -55,7 +58,7 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_FILES_ID.toLowerCase(), id);
-		DBOFileMetadata dbo = basicDao.getObjectById(DBOFileMetadata.class, param);
+		DBOFileHandle dbo = basicDao.getObjectById(DBOFileHandle.class, param);
 		return FileMetadataUtils.createDTOFromDBO(dbo);
 	}
 
@@ -68,23 +71,24 @@ public class DBOFileMetadataDao implements FileMetadataDao {
 		// Send the delete message
 		tagMessenger.sendDeleteMessage(id, ObjectType.FILE);
 		// Delete this object
-		basicDao.deleteObjectById(DBOFileMetadata.class, param);
+		basicDao.deleteObjectById(DBOFileHandle.class, param);
 	}
 
 	@SuppressWarnings("unchecked")
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends FileHandle> T createFile(T metadata){
-		if(metadata == null) throw new IllegalArgumentException("FileMetadata cannot be null");
+	public <T extends FileHandle> T createFile(T fileHandle) {
+		if(fileHandle == null) throw new IllegalArgumentException("fileHandle cannot be null");
+		if(fileHandle.getFileName() == null) throw new IllegalArgumentException("fileHandle.getFileName cannot be null");
 		// Convert to a DBO
-		DBOFileMetadata dbo = FileMetadataUtils.createDBOFromDTO(metadata);
-		if(metadata.getId() == null){
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(fileHandle);
+		if(fileHandle.getId() == null){
 			dbo.setId(idGenerator.generateNewId(TYPE.FILE_IDS));
 		}else{
 			// If an id was provided then it must not exist
-			if(doesExist(metadata.getId())) throw new IllegalArgumentException("A file object already exists with ID: "+metadata.getId());
+			if(doesExist(fileHandle.getId())) throw new IllegalArgumentException("A file object already exists with ID: "+fileHandle.getId());
 			// Make sure the ID generator has reserved this ID.
-			idGenerator.reserveId(new Long(metadata.getId()), TYPE.FILE_IDS);
+			idGenerator.reserveId(new Long(fileHandle.getId()), TYPE.FILE_IDS);
 		}
 		// When we migrate we keep the original etag.  When it is null we set it.
 		if(dbo.getEtag() == null){

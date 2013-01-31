@@ -14,6 +14,6 @@
 	<import resource="classpath:managers-spb.xml" />
 	<import resource="file-sqs-manager-spb.xml" />
 		
-	<bean id="fileService" class="org.sagebionetworks.file.services.FileUploadServiceImp" />
+	<bean id="fileService" class="org.sagebionetworks.file.services.FileUploadServiceImpl" />
 	
 </beans>
