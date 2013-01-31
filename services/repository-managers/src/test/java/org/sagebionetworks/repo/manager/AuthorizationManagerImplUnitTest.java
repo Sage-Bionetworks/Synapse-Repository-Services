@@ -2,7 +2,10 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -10,6 +13,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
+
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -19,11 +23,12 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -86,9 +91,9 @@ public class AuthorizationManagerImplUnitTest {
 		act.setId(actId);
 		act.setCreatedBy(adminUser.getIndividualGroup().getId());
 		when(mockActivityDAO.get(actId)).thenReturn(act);
-		QueryResults<String> results1 = generateQueryResults(limit, total);
-		QueryResults<String> results2 = generateQueryResults(total-limit, total);		
-		QueryResults<String> results3 = generateQueryResults(total-(2*limit), total);
+		PaginatedResults<Reference> results1 = generateQueryResults(limit, total);
+		PaginatedResults<Reference> results2 = generateQueryResults(total-limit, total);		
+		PaginatedResults<Reference> results3 = generateQueryResults(total-(2*limit), total);
 		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset)).thenReturn(results1);
 		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset+limit)).thenReturn(results2);		
 		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset+(2*limit))).thenReturn(results3);
@@ -110,7 +115,7 @@ public class AuthorizationManagerImplUnitTest {
 		act.setId(actId);
 		act.setCreatedBy(adminUser.getIndividualGroup().getId());
 		when(mockActivityDAO.get(actId)).thenReturn(act);
-		QueryResults<String> results1 = generateQueryResults(1, 1);		
+		PaginatedResults<Reference> results1 = generateQueryResults(1, 1);		
 		when(mockActivityDAO.getEntitiesGeneratedBy(actId, limit, offset)).thenReturn(results1);		
 		
 		boolean canAccess = authorizationManager.canAccessActivity(userInfo, actId);
@@ -186,11 +191,13 @@ public class AuthorizationManagerImplUnitTest {
 	}
 	
 
-	private QueryResults<String> generateQueryResults(int numResults, int total) {
-		QueryResults<String> results = new QueryResults<String>();
-		List<String> resultList = new ArrayList<String>();		
+	private PaginatedResults<Reference> generateQueryResults(int numResults, int total) {
+		PaginatedResults<Reference> results = new PaginatedResults<Reference>();
+		List<Reference> resultList = new ArrayList<Reference>();		
 		for(int i=0; i<numResults; i++) {
-			resultList.add("nodeId");
+			Reference ref = new Reference();
+			ref.setTargetId("nodeId");
+			resultList.add(ref);
 		}
 		results.setResults(resultList);
 		results.setTotalNumberOfResults(total);

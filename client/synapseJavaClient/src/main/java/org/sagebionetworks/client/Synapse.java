@@ -150,6 +150,7 @@ public class Synapse {
 	protected static final String BUNDLE = "/bundle";
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 	protected static final String ACTIVITY_URI_PATH = "/activity";
+	protected static final String GENERATED_PATH = "/generated";
 	
 	protected static final String WIKI_URI_TEMPLATE = "/%1$s/%2$s/wiki";
 	protected static final String WIKI_ID_URI_TEMPLATE = "/%1$s/%2$s/wiki/%3$s";
@@ -2997,6 +2998,23 @@ public class Synapse {
 		if (activityId == null) throw new IllegalArgumentException("Activity id cannot be null");
 		String uri = createEntityUri(ACTIVITY_URI_PATH, activityId);
 		deleteUri(uri);
+	}
+	
+	public PaginatedResults<Reference> getEntitiesGeneratedBy(String activityId, Integer limit, Integer offset) throws SynapseException {
+		if (activityId == null) throw new IllegalArgumentException("Activity id cannot be null");
+		String url = createEntityUri(ACTIVITY_URI_PATH, activityId + GENERATED_PATH +
+				"?" + OFFSET + "=" + offset + "&limit=" + limit);
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Reference> results = new PaginatedResults<Reference>(Reference.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+		
 	}
 	
 	/**

@@ -9,6 +9,9 @@ import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeType;
@@ -120,6 +123,21 @@ public class ActivityManagerImpl implements ActivityManager {
 		return activityDAO.doesActivityExist(id);
 	}
 	
+	@Override
+	public PaginatedResults<Reference> getEntitiesGeneratedBy(UserInfo userInfo, String activityId,
+			Integer limit, Integer offset) throws DatastoreException, NotFoundException, UnauthorizedException {
+		if (offset==null) offset = 0;
+		if (limit==null) limit = Integer.MAX_VALUE;
+		// hack the validation for a zero based offset
+		ServiceConstants.validatePaginationParams(offset == 0 ? 1L : (long)offset, (long)limit);
+
+		Activity act = activityDAO.get(activityId);
+		if(!authorizationManager.canAccessActivity(userInfo, activityId)) { 			
+			throw new UnauthorizedException(userInfo.getIndividualGroup().getName() +" lacks access to the requested object.");
+		}
+		return activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
+	}
+
 	
 	/*
 	 * Private Methods
