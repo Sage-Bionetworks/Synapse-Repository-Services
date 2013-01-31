@@ -26,7 +26,6 @@ import com.amazonaws.services.dynamodb.model.AttributeValue;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:dynamo-dao-spb.xml" })
-@Ignore // see: PLFM-1714
 public class NodeTreeDaoReadAutowireTest {
 
 	@Autowired
