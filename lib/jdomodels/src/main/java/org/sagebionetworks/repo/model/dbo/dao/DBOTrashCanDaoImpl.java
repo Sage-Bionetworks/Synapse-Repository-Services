@@ -52,7 +52,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void create(Long userGroupId, Long nodeId, Long parentId) throws DatastoreException {
+	public void create(String userGroupId, String nodeId, String parentId) throws DatastoreException {
 
 		if (userGroupId == null) {
 			throw new IllegalArgumentException("userGroupId cannot be null.");
@@ -65,32 +65,32 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		}
 
 		DBOTrashedEntity dbo = new DBOTrashedEntity();
-		dbo.setNodeId(nodeId);
-		dbo.setDeletedBy(userGroupId);
+		dbo.setNodeId(KeyFactory.stringToKey(nodeId));
+		dbo.setDeletedBy(KeyFactory.stringToKey(userGroupId));
 		DateTime dt = DateTime.now();
 		// MySQL TIMESTAMP only keeps seconds (not ms) so for consistency we only write seconds
 		long nowInSeconds = dt.getMillis() - dt.getMillisOfSecond();
 		Timestamp ts = new Timestamp(nowInSeconds);
 		dbo.setDeletedOn(ts);
-		dbo.setParentId(parentId);
+		dbo.setParentId(KeyFactory.stringToKey(parentId));
 		this.basicDao.createNew(dbo);
 	}
 
 	@Override
-	public int getCount(Long userGroupId) throws DatastoreException {
+	public int getCount(String userGroupId) throws DatastoreException {
 
 		if (userGroupId == null) {
 			throw new IllegalArgumentException("userGroupId cannot be null");
 		}
 
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();;
-		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
+		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, KeyFactory.stringToKey(userGroupId));
 		Long count = simpleJdbcTemplate.queryForLong(SELECT_COUNT_FOR_USER, paramMap);
 		return count.intValue();
 	}
 
 	@Override
-	public boolean exists(Long userGroupId, Long nodeId) throws DatastoreException {
+	public boolean exists(String userGroupId, String nodeId) throws DatastoreException {
 
 		if (userGroupId == null) {
 			throw new IllegalArgumentException("userGroupId cannot be null.");
@@ -99,12 +99,12 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 			throw new IllegalArgumentException("nodeId cannot be null.");
 		}
 
-		List<Long> idList = getNodeList(userGroupId, nodeId);
+		List<Long> idList = getNodeList(KeyFactory.stringToKey(userGroupId), KeyFactory.stringToKey(nodeId));
 		return (idList != null && idList.size() > 0);
 	}
 
 	@Override
-	public List<TrashedEntity> getInRangeForUser(Long userGroupId, long offset,
+	public List<TrashedEntity> getInRangeForUser(String userGroupId, long offset,
 			long limit) throws DatastoreException {
 
 		if (userGroupId == null) {
@@ -120,14 +120,14 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(OFFSET_PARAM_NAME, offset);
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
-		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
+		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, KeyFactory.stringToKey(userGroupId));
 		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH_FOR_USER, rowMapper, paramMap);
 		return convertDboToDto(trashList);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void delete(Long userGroupId, Long nodeId)
+	public void delete(String userGroupId, String nodeId)
 			throws DatastoreException, NotFoundException {
 
 		if (userGroupId == null) {
@@ -138,7 +138,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		}
 
 		// SELECT then DELETE avoid deadlocks caused by gap locks
-		List<Long> idList = getNodeList(userGroupId, nodeId);
+		List<Long> idList = getNodeList(KeyFactory.stringToKey(userGroupId), KeyFactory.stringToKey(nodeId));
 		for (Long id : idList) {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("nodeId", id);
