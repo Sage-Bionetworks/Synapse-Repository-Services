@@ -27,8 +27,15 @@ public interface TagMessenger {
 	public void sendMessage(ObservableEntity observable, ChangeType changeType);
 	
 	/**
+	 * Sends a change message without parent ID.
+	 * @throws IllegalArgumentException When the object is type ENTITY, parent ID is required.
 	 */
-	public void sendMessage(String id, String etag, ObjectType objectType, ChangeType changeType);
+	public void sendMessage(String id, String etag, ObjectType objectType, ChangeType changeType) throws IllegalArgumentException;
+
+	/**
+	 * Sends a change message.
+	 */
+	public void sendMessage(String id, String parentId, String etag, ObjectType objectType, ChangeType changeType);
 	
 	/**
 	 * Send a delete message without an etag.
