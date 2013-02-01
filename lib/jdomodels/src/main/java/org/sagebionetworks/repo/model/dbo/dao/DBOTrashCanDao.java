@@ -23,6 +23,16 @@ public interface DBOTrashCanDao {
 	void create(Long userGroupId, Long nodeId, Long parentId) throws DatastoreException;
 
 	/**
+	 * How many entities are in this user's trash can.
+	 */
+	int getCount(Long userGroupId) throws DatastoreException;
+
+	/**
+	 * Whether the user deleted the entity in the trash can.
+	 */
+	boolean exists(Long userGroupId, Long nodeId) throws DatastoreException;
+
+	/**
 	 * Gets the trash items deleted by the specified user. Results are paged as
 	 * specified by offset (inclusive; staring from 0) and limit (the max number of items retrieved).
 	 */

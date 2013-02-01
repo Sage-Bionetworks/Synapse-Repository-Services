@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -66,6 +67,16 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(Long.toString(userId), trash.getDeletedByPrincipalId());
 		assertEquals(KeyFactory.keyToString(parentId1), trash.getOriginalParentId());
 		assertNotNull(trash.getDeletedOn());
+		int count = trashCanDao.getCount(userId);
+		assertEquals(1, count);
+		count = trashCanDao.getCount(837948837783838309L); // non-existing user
+		assertEquals(0, count);
+		boolean exists = trashCanDao.exists(userId, nodeId1);
+		assertTrue(exists);
+		exists = trashCanDao.exists(2839238478539L, nodeId1);
+		assertFalse(exists);
+		exists = trashCanDao.exists(userId, 118493838393848L);
+		assertFalse(exists);
 
 		long nodeId2 = 666L;
 		long parentId2 = 6L;
@@ -73,6 +84,10 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(2, trashList.size());
+		count = trashCanDao.getCount(userId);
+		assertEquals(2, count);
+		exists = trashCanDao.exists(userId, nodeId2);
+		assertTrue(exists);
 
 		trashCanDao.delete(userId, nodeId1);
 		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
@@ -83,11 +98,23 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(Long.toString(userId), trash.getDeletedByPrincipalId());
 		assertEquals(KeyFactory.keyToString(parentId2), trash.getOriginalParentId());
 		assertNotNull(trash.getDeletedOn());
+		count = trashCanDao.getCount(userId);
+		assertEquals(1, count);
+		exists = trashCanDao.exists(userId, nodeId2);
+		assertTrue(exists);
+		exists = trashCanDao.exists(userId, nodeId1);
+		assertFalse(exists);
 
 		trashCanDao.delete(userId, nodeId2);
 		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(0, trashList.size());
+		count = trashCanDao.getCount(userId);
+		assertEquals(0, count);
+		exists = trashCanDao.exists(userId, nodeId1);
+		assertFalse(exists);
+		exists = trashCanDao.exists(userId, nodeId2);
+		assertFalse(exists);
 	}
 
 	private void clear() throws Exception {

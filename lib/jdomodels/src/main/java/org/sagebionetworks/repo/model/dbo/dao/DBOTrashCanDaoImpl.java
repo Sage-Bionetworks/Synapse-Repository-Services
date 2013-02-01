@@ -27,6 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 
+	private static final String SELECT_COUNT_FOR_USER =
+			"SELECT COUNT("+ COL_TRASH_CAN_NODE_ID + ") FROM " + TABLE_TRASH_CAN
+			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY;
+
 	private static final String SELECT_TRASH_FOR_USER =
 			"SELECT * FROM " + TABLE_TRASH_CAN
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY
@@ -73,6 +77,33 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 	}
 
 	@Override
+	public int getCount(Long userGroupId) throws DatastoreException {
+
+		if (userGroupId == null) {
+			throw new IllegalArgumentException("userGroupId cannot be null");
+		}
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();;
+		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
+		Long count = simpleJdbcTemplate.queryForLong(SELECT_COUNT_FOR_USER, paramMap);
+		return count.intValue();
+	}
+
+	@Override
+	public boolean exists(Long userGroupId, Long nodeId) throws DatastoreException {
+
+		if (userGroupId == null) {
+			throw new IllegalArgumentException("userGroupId cannot be null.");
+		}
+		if (nodeId == null) {
+			throw new IllegalArgumentException("nodeId cannot be null.");
+		}
+
+		List<Long> idList = getNodeList(userGroupId, nodeId);
+		return (idList != null && idList.size() > 0);
+	}
+
+	@Override
 	public List<TrashedEntity> getInRangeForUser(Long userGroupId, long offset,
 			long limit) throws DatastoreException {
 
@@ -107,15 +138,20 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		}
 
 		// SELECT then DELETE avoid deadlocks caused by gap locks
-		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
-		paramMap.addValue(COL_TRASH_CAN_NODE_ID, nodeId);
-		List<Long> idList = simpleJdbcTemplate.query(SELECT_TRASH_BY_NODE_ID, idRowMapper, paramMap);
+		List<Long> idList = getNodeList(userGroupId, nodeId);
 		for (Long id : idList) {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("nodeId", id);
 			basicDao.deleteObjectById(DBOTrashedEntity.class, params);
 		}
+	}
+
+	private List<Long> getNodeList(Long userGroupId, Long nodeId) {
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
+		paramMap.addValue(COL_TRASH_CAN_NODE_ID, nodeId);
+		List<Long> idList = simpleJdbcTemplate.query(SELECT_TRASH_BY_NODE_ID, idRowMapper, paramMap);
+		return idList;
 	}
 
 	private List<TrashedEntity> convertDboToDto(List<DBOTrashedEntity> dboList) {
