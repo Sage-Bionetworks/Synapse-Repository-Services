@@ -495,7 +495,6 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
 		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, 1L);
 		verify(mockNodeDao).lockNodeAndIncrementEtag(eq(nodeId), anyString());
-		verify(mockNodeDao).lockNodeAndIncrementEtag(eq(nodeId), anyString(), eq(ChangeType.UPDATE));
 		verify(mockNodeDao).promoteNodeVersion(eq(nodeId), eq(1L));
 	}
 
