@@ -36,12 +36,11 @@ public interface TagMessenger {
 	 * Sends a change message.
 	 */
 	public void sendMessage(String id, String parentId, String etag, ObjectType objectType, ChangeType changeType);
-	
+
 	/**
 	 * Send a delete message without an etag.
 	 * @param objectId - The ID of the object that has been deleted.
 	 * @param objectType - The type of object that was deleted.
 	 */
 	public void sendDeleteMessage(String objectId, ObjectType objectType);
-
 }

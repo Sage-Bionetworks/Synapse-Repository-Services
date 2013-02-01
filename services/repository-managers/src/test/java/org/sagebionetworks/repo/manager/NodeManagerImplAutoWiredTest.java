@@ -5,11 +5,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -549,7 +547,7 @@ public class NodeManagerImplAutoWiredTest {
 		fetchedChild.setParentId(newProjectId);
 		nodeManagerWMocks.update(testUser, fetchedChild);
 		verify(mockNodeDao, times(1)).changeNodeParent(childId, newProjectId);
-		verify(mockNodeInheritanceManager, times(1)).nodeParentChanged(childId, newProjectId);
+		verify(mockNodeInheritanceManager, times(1)).nodeParentChanged(childId, newProjectId, true);
 	}
 	
 	/**
@@ -590,7 +588,7 @@ public class NodeManagerImplAutoWiredTest {
 		when(mockNodeDao.getParentId(anyString())).thenReturn(new String(fetchedNode.getParentId()));
 		nodeManagerWMocks.update(testUser, fetchedNode);
 		verify(mockNodeDao, never()).changeNodeParent(anyString(), anyString());
-		verify(mockNodeInheritanceManager, never()).nodeParentChanged(anyString(), anyString());
+		verify(mockNodeInheritanceManager, never()).nodeParentChanged(anyString(), anyString(), anyBoolean());
 	}
 	
 	@Test

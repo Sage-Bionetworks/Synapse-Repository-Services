@@ -264,7 +264,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		Node result = nodeDao.getNodeForVersion(nodeId, versionNumber);
 		return result;
 	}
-	
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Node update(UserInfo userInfo, Node updated)
@@ -273,42 +273,57 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return update(userInfo, updated, null, false);
 	}
 
-
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public Node update(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+	public Node update(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion)
+			throws ConflictingUpdateException, NotFoundException, DatastoreException,
+			UnauthorizedException, InvalidModelException {
+
 		UserInfo.validateUserInfo(userInfo);
-		Long userIndividualGroupId = Long.parseLong(userInfo.getIndividualGroup().getId());
-		NodeManagerImpl.validateNode(updatedNode);
 		if (!authorizationManager.canAccess(userInfo, updatedNode.getId(), ACCESS_TYPE.UPDATE)) {
-			throw new UnauthorizedException(userInfo.getUser().getUserId()+" lacks change access to the requested object.");
+			throw new UnauthorizedException(userInfo.getUser().getUserId() + " lacks change access to the requested object.");
 		}
-		// make sure the eTags match
-		if(updatedAnnos != null){
-			if(!updatedNode.getETag().equals(updatedAnnos.getEtag())) throw new IllegalArgumentException("The passed node and annotations do not have the same eTag");
+
+		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, true);
+
+		return get(userInfo, updatedNode.getId());
+	}
+
+	private void updateNode(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion, boolean skipSelfBenefactor)
+			throws ConflictingUpdateException, NotFoundException, DatastoreException,
+			UnauthorizedException, InvalidModelException {
+
+		NodeManagerImpl.validateNode(updatedNode);
+
+		// Make sure the eTags match
+		if (updatedAnnos != null) {
+			if (!updatedNode.getETag().equals(updatedAnnos.getEtag())) {
+				throw new IllegalArgumentException("The passed node and annotations do not have the same eTag");
+			}
 		}
-		
-		// check whether the user is allowed to connect to the specified activity
+
 		canConnectToActivity(updatedNode.getActivityId(), userInfo);
-		
-		// Now lock this node
-		String nextETag = nodeDao.lockNodeAndIncrementEtag(updatedNode.getId(), updatedNode.getETag());
-		
-		// clear node creation data.  this tells NodeDAO not to change the fields
+
+		final String nextETag = nodeDao.lockNodeAndIncrementEtag(updatedNode.getId(), updatedNode.getETag());
+
+		// Clear node creation data to make sure NodeDAO does not change the fields
 		NodeManagerImpl.clearNodeCreationDataForUpdate(updatedNode);
+
 		// Clear the modified data and fill it in with the new data
+		Long userIndividualGroupId = Long.parseLong(userInfo.getIndividualGroup().getId());
 		NodeManagerImpl.validateNodeModifiedData(userIndividualGroupId, updatedNode);
+
 		// If this is a new version then we need to create a new version before the update
-		if(newVersion){
+		if (newVersion) {
 			// This will create a new version and set the new version to 
 			// be the current version.  Then the rest of the update will then
 			// be applied to this new version.
 			nodeDao.createNewVersion(updatedNode);
 		}
-		
-		//identify if update is a parentId change by comparing our
-		//updatedNode's parentId with the parentId our node is showing in database
-		//change in database, and update benefactorID/permissions
+
+		// Identify if update is a parentId change by comparing our
+		// updatedNode's parentId with the parentId in database
+		// and update benefactorID/permissions
 		String parentInDatabase = nodeDao.getParentId(updatedNode.getId());
 		String parentInUpdate = updatedNode.getParentId();
 		if (isParenIdChange(parentInDatabase, parentInUpdate)) {
@@ -316,24 +331,24 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 				throw new UnauthorizedException(userInfo.getUser().getDisplayName() + " is not authorized to create an entity here.");
 			}
 			nodeDao.changeNodeParent(updatedNode.getId(), updatedNode.getParentId());
-			nodeInheritanceManager.nodeParentChanged(updatedNode.getId(), updatedNode.getParentId());
+			nodeInheritanceManager.nodeParentChanged(updatedNode.getId(), updatedNode.getParentId(), skipSelfBenefactor);
 		}
-	
+
 		// Now make the actual update.
 		nodeDao.updateNode(updatedNode);
+
 		// Also update the Annotations if provided
 		if(updatedAnnos != null){
 			updatedAnnos.setEtag(nextETag);
 			validateAnnotations(updatedAnnos);
 			nodeDao.updateAnnotations(updatedNode.getId(), updatedAnnos);
 		}
-		if(log.isDebugEnabled()){
+
+		if (log.isDebugEnabled()) {
 			log.debug("username "+userInfo.getUser().getUserId()+" updated node: "+updatedNode.getId()+", with a new eTag: "+nextETag);
 		}
-		// Return the new node
-		return get(userInfo, updatedNode.getId());
 	}
-	
+
 	/**
 	 * Is this a parent ID change.  Note: ParenID can be null.
 	 * This was added for PLFM-1533.

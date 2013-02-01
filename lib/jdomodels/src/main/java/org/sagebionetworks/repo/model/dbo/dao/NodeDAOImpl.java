@@ -562,11 +562,12 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public String lockNodeAndIncrementEtag(String id, String eTag)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
+
 		// Create a Select for update query
 		final Long longId = KeyFactory.stringToKey(id);
-
-		// Check the eTags
 		String currentTag = simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, longId);
+
+		// Check the e-tags
 		if(!currentTag.equals(eTag)){
 			throw new ConflictingUpdateException("Node: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
@@ -574,7 +575,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		DBONode node = getNodeById(longId);
 		tagMessenger.generateEtagAndSendMessage(node, ChangeType.UPDATE);
 		currentTag = node.geteTag();
-		// Update the etag
+		// Update the e-tag
 		int updated = simpleJdbcTemplate.update(UPDATE_ETAG_SQL, currentTag, longId);
 		if(updated != 1) throw new ConflictingUpdateException("Failed to lock Node: "+longId);
 		
