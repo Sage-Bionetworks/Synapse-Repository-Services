@@ -11,7 +11,7 @@ import java.util.concurrent.Callable;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
-import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -38,7 +38,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	static private Log log = LogFactory.getLog(PreviewManagerImpl.class);
 	
 	@Autowired
-	FileMetadataDao fileMetadataDao;
+	FileHandleDao fileMetadataDao;
 	
 	@Autowired
 	AmazonS3Client s3Client;
@@ -71,7 +71,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * @param generatorList
 	 * @param maxPreviewMemory
 	 */
-	public PreviewManagerImpl(FileMetadataDao fileMetadataDao,
+	public PreviewManagerImpl(FileHandleDao fileMetadataDao,
 			AmazonS3Client s3Client, TempFileProvider tempFileProvider,
 			List<PreviewGenerator> generatorList, Long maxPreviewMemory) {
 		super();

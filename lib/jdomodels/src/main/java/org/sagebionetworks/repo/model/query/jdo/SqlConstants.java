@@ -248,7 +248,7 @@ public class SqlConstants {
 	public static final String COL_ACTIVITY_MODIFIED_ON			= "MODIFIED_ON";
 	public static final String COL_ACTIVITY_SERIALIZED_OBJECT 	= "SERIALIZED_OBJECT";
 	public static final String DDL_FILE_ACTIVITY = "schema/Activity-ddl.sql";
-
+	
 	// The trash can table
 	public static final String TABLE_TRASH_CAN                  = "TRASH_CAN";
 	public static final String COL_TRASH_CAN_NODE_ID            = "NODE_ID";
@@ -256,7 +256,35 @@ public class SqlConstants {
 	public static final String COL_TRASH_CAN_DELETED_ON         = "DELETED_ON";
 	public static final String COL_TRASH_CAN_PARENT_ID          = "PARENT_ID";
 	public static final String DDL_FILE_TRASH_CAN               = "schema/TrashCan-ddl.sql";
-
+	
+	// The wiki page table
+	public static final String TABLE_WIKI_PAGE				= "WIKI_PAGE";
+	public static final String COL_WIKI_ID					= "ID";
+	public static final String COL_WIKI_ETAG				= "ETAG";
+	public static final String COL_WIKI_TITLE				= "TITLE";
+	public static final String COL_WIKI_CREATED_ON			= "CREATED_ON";
+	public static final String COL_WIKI_CREATED_BY			= "CREATED_BY";
+	public static final String COL_WIKI_MODIFIED_ON			= "MODIFIED_ON";
+	public static final String COL_WIKI_MODIFIED_BY			= "MODIFIED_BY";
+	public static final String COL_WIKI_PARENT_ID			= "PARENT_ID";
+	public static final String COL_WIKI_ROOT_ID				= "ROOT_ID";
+	public static final String COL_WIKI_MARKDOWN			= "MARKDOWN";
+	public static final String DDL_FILE_WIKI_PAGE = "schema/WikiPage-ddl.sql";
+	
+	// The wiki attachment table
+	public static final String TABLE_WIKI_ATTACHMENT				= "WIKI_ATTACHMENTS";
+	public static final String COL_WIKI_ATTACHMENT_ID				= "WIKI_ID";
+	public static final String COL_WIKI_ATTACHMENT_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
+	public static final String COL_WIKI_ATTACHMENT_FILE_NAME		= "FILE_NAME";
+	public static final String DDL_FILE_WIKI_ATTATCHMENT = "schema/WikiAttachments-ddl.sql";
+	
+	// The wiki owners table
+	public static final String TABLE_WIKI_OWNERS					= "WIKI_OWNERS";
+	public static final String COL_WIKI_ONWERS_OWNER_ID				= "OWNER_ID";
+	public static final String COL_WIKI_ONWERS_OBJECT_TYPE			= "OWNER_OBJECT_TYPE";
+	public static final String COL_WIKI_ONWERS_ROOT_WIKI_ID			= "ROOT_WIKI_ID";
+	public static final String DDL_FILE_WIKI_ONWERS = "schema/WikiOwners-ddl.sql";
+	
 	// The alias used for the dataset table.
 	public static final String NODE_ALIAS					= "nod";
 	public static final String REVISION_ALIAS				= "rev";

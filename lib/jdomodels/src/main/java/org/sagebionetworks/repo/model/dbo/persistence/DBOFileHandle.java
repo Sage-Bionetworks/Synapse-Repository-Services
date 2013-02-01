@@ -28,7 +28,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  * @author John
  *
  */
-public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
+public class DBOFileHandle implements DatabaseObject<DBOFileHandle> {
 	
 	/**
 	 * The type of metadata represented.
@@ -70,12 +70,12 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 	private String name;
 
 	@Override
-	public TableMapping<DBOFileMetadata> getTableMapping() {
-		return new TableMapping<DBOFileMetadata>() {
+	public TableMapping<DBOFileHandle> getTableMapping() {
+		return new TableMapping<DBOFileHandle>() {
 			
 			@Override
-			public DBOFileMetadata mapRow(ResultSet rs, int rowNum) throws SQLException {
-				DBOFileMetadata results = new DBOFileMetadata();
+			public DBOFileHandle mapRow(ResultSet rs, int rowNum) throws SQLException {
+				DBOFileHandle results = new DBOFileHandle();
 				results.setId(rs.getLong(COL_FILES_ID));
 				results.setEtag(rs.getString(COL_FILES_ETAG));
 				// This can be null
@@ -114,8 +114,8 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 			}
 			
 			@Override
-			public Class<? extends DBOFileMetadata> getDBOClass() {
-				return DBOFileMetadata.class;
+			public Class<? extends DBOFileHandle> getDBOClass() {
+				return DBOFileHandle.class;
 			}
 		};
 	}
@@ -255,7 +255,7 @@ public class DBOFileMetadata implements DatabaseObject<DBOFileMetadata> {
 			return false;
 		if (getClass() != obj.getClass())
 			return false;
-		DBOFileMetadata other = (DBOFileMetadata) obj;
+		DBOFileHandle other = (DBOFileHandle) obj;
 		if (bucketName == null) {
 			if (other.bucketName != null)
 				return false;

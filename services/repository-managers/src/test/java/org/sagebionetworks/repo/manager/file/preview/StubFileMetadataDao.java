@@ -5,7 +5,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -16,7 +16,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * @author jmhill
  *
  */
-public class StubFileMetadataDao implements FileMetadataDao {
+public class StubFileMetadataDao implements FileHandleDao {
 
 	Map<String, FileHandle> map = new HashMap<String, FileHandle>();
 

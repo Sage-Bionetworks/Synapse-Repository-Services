@@ -24,7 +24,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeType" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONodeTypeAlias" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOActivity" />
-				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileMetadata" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORevision" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation" />
@@ -45,7 +45,9 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStorageLocation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOChange" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity" />
-				
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiAttachment" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />
 				<!-- Competition beans -->
 				<bean class="org.sagebionetworks.competition.dbo.CompetitionDBO" />
 				<bean class="org.sagebionetworks.competition.dbo.ParticipantDBO" />

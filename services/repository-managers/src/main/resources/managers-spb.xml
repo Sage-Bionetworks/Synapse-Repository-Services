@@ -33,7 +33,7 @@
 	<!-- Activity manager -->
 	<bean id="activityManager" class="org.sagebionetworks.repo.manager.ActivityManagerImpl" />
 	
-	<!-- Fixed Memory Pool - Used to provied a fix amount of memory used for transfering files
+	<!-- Fixed Memory Pool - Used to provided a fix amount of memory used for transfering files
 	      from http input streams to S3 -->
 	<bean id="fileTransferFixedMemoryPool" class="org.sagebionetworks.repo.util.FixedMemoryPool" init-method="initialize">
 	    <!-- This first argument controls the maximum memory used by the pool -->
@@ -51,7 +51,7 @@
 	<bean id="tempFileTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.TempFileTransferStrategy" />
 	
 	<!-- File Upload manager -->
-	<bean id="fileUploadManager" class="org.sagebionetworks.repo.manager.file.FileUploadManagerImpl" >
+	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" >
 	    <!-- The memory strategy is the primary -->
 	    <property name="primaryStrategy" ref="memoryTransferStrategy"/>
 	   	<!-- The temp strategy is the fall-back -->
@@ -211,6 +211,9 @@
 		scope="singleton" />
 		
 	<bean id="submissionManager" class="org.sagebionetworks.competition.manager.SubmissionManagerImpl" 
+		scope="singleton" />
+	
+	<bean id="wikiManager" class="org.sagebionetworks.repo.manager.wiki.WikiManagerImpl" 
 		scope="singleton" />
 
 	<!-- The thread pool used by the backup/restore daemons -->
