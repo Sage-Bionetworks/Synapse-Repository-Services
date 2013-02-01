@@ -12,4 +12,9 @@ public class TrashConstants {
 	 * into the trash can at one time.
 	 */
 	public static final int MAX_TRASHABLE = 500;
+
+	/**
+	 * The path to the bootstrapped trash folder.
+	 */
+	public static final String TRASH_FOLDER_PATH = "/root/trash";
 }

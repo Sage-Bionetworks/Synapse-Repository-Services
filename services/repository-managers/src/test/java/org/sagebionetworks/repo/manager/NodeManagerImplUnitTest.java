@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -494,6 +495,7 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
 		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, 1L);
 		verify(mockNodeDao).lockNodeAndIncrementEtag(eq(nodeId), anyString());
+		verify(mockNodeDao).lockNodeAndIncrementEtag(eq(nodeId), anyString(), eq(ChangeType.UPDATE));
 		verify(mockNodeDao).promoteNodeVersion(eq(nodeId), eq(1L));
 	}
 

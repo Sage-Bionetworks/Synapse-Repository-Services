@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -267,6 +268,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
+	public void updateForTrashCan(UserInfo userInfo, Node updatedNode, ChangeType changeType)
+			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
+		updateNode(userInfo, updatedNode, null, false, false, changeType);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
 	public Node update(UserInfo userInfo, Node updated)
 			throws ConflictingUpdateException, NotFoundException,
 			DatastoreException, UnauthorizedException, InvalidModelException {
@@ -276,20 +284,20 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Node update(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion)
-			throws ConflictingUpdateException, NotFoundException, DatastoreException,
-			UnauthorizedException, InvalidModelException {
+			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 
 		UserInfo.validateUserInfo(userInfo);
 		if (!authorizationManager.canAccess(userInfo, updatedNode.getId(), ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException(userInfo.getUser().getUserId() + " lacks change access to the requested object.");
 		}
 
-		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, true);
+		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, true, ChangeType.UPDATE);
 
 		return get(userInfo, updatedNode.getId());
 	}
 
-	private void updateNode(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos, boolean newVersion, boolean skipSelfBenefactor)
+	private void updateNode(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos,
+			boolean newVersion, boolean skipSelfBenefactor, ChangeType changeType)
 			throws ConflictingUpdateException, NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
 
@@ -304,7 +312,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 
 		canConnectToActivity(updatedNode.getActivityId(), userInfo);
 
-		final String nextETag = nodeDao.lockNodeAndIncrementEtag(updatedNode.getId(), updatedNode.getETag());
+		final String nextETag = nodeDao.lockNodeAndIncrementEtag(updatedNode.getId(), updatedNode.getETag(), changeType);
 
 		// Clear node creation data to make sure NodeDAO does not change the fields
 		NodeManagerImpl.clearNodeCreationDataForUpdate(updatedNode);
