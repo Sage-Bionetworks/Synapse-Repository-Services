@@ -25,14 +25,12 @@ import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -60,7 +58,6 @@ public class CompetitionControllerAutowiredTest {
 	
 	private static String ownerName;
 	private static String userName;
-	private static String ownerId;
 	private static String userId;
 	
 	private static Competition comp1;
@@ -85,7 +82,7 @@ public class CompetitionControllerAutowiredTest {
 		// get user IDs
 		ownerName = TestUserDAO.ADMIN_USER_NAME;
 		userName = TestUserDAO.TEST_USER_NAME;
-		ownerId = userManager.getUserInfo(ownerName).getIndividualGroup().getId();
+		userManager.getUserInfo(ownerName).getIndividualGroup().getId();
 		userId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 		
 		// initialize Competitions

@@ -39,7 +39,9 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	
 	private static final String SELECT_BY_COMPETITION_SQL = 
 			"SELECT * FROM "+ SQLConstants.TABLE_PARTICIPANT +
-			" WHERE "+ SQLConstants.COL_PARTICIPANT_COMP_ID + "=:"+ COMP_ID;
+			" WHERE "+ SQLConstants.COL_PARTICIPANT_COMP_ID + "=:"+ COMP_ID +
+			" LIMIT :"+ SQLConstants.LIMIT_PARAM_NAME +
+			" OFFSET :" + SQLConstants.OFFSET_PARAM_NAME;
 	
 	private static final String COUNT_BY_COMPETITION_SQL = 
 			"SELECT COUNT(*) FROM " +  SQLConstants.TABLE_PARTICIPANT +
@@ -64,7 +66,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 		try {
 			dbo = basicDao.createNew(dbo);
 		} catch (Exception e) {
-			throw new DatastoreException("userId="+dbo.getUserId()+" competitionId="+dto.getCompetitionId(), e);
+			throw new DatastoreException(e.getMessage() + " [userId="+dbo.getUserId()+" competitionId="+dto.getCompetitionId() + "]", e);
 		}
 	}
 
@@ -95,8 +97,10 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	}
 	
 	@Override
-	public List<Participant> getAllByCompetition(String compId) throws DatastoreException, NotFoundException {
+	public List<Participant> getAllByCompetition(String compId, long limit, long offset) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(SQLConstants.OFFSET_PARAM_NAME, offset);
+		param.addValue(SQLConstants.LIMIT_PARAM_NAME, limit);	
 		param.addValue(COMP_ID, compId);		
 		List<ParticipantDBO> dbos = simpleJdbcTemplate.query(SELECT_BY_COMPETITION_SQL, rowMapper, param);
 		List<Participant> dtos = new ArrayList<Participant>();
@@ -130,9 +134,17 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	 * @param dto
 	 * @param dbo
 	 */
-	protected static void copyDtoToDbo(Participant dto, ParticipantDBO dbo) {		
-		dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
-		dbo.setUserId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getUserId()));
+	protected static void copyDtoToDbo(Participant dto, ParticipantDBO dbo) {
+		try {
+			dbo.setCompId(dto.getCompetitionId() == null ? null : Long.parseLong(dto.getCompetitionId()));
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Invalid Competition ID: " + dto.getCompetitionId());
+		}
+		try {
+			dbo.setUserId(dto.getUserId() == null ? null : Long.parseLong(dto.getUserId()));
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Invalid User ID: " + dto.getUserId());
+		}
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
 	}
 	

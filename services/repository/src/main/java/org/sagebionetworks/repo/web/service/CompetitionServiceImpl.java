@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.competition.manager.CompetitionManager;
@@ -11,6 +10,7 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
+import org.sagebionetworks.repo.competition.model.SubmissionBundle;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -57,9 +57,9 @@ public class CompetitionServiceImpl implements CompetitionService {
 		return new PaginatedResults<Competition>(
 				request.getServletPath() + UrlHelpers.COMPETITION,
 				res.getResults(),
-				(int) res.getTotalNumberOfResults(),
-				1,
-				(int) res.getTotalNumberOfResults(),
+				res.getTotalNumberOfResults(),
+				offset,
+				limit,
 				"",
 				false				
 			);
@@ -123,9 +123,18 @@ public class CompetitionServiceImpl implements CompetitionService {
 	}
 
 	@Override
-	public List<Participant> getAllParticipants(String compId)
+	public PaginatedResults<Participant> getAllParticipants(String compId, long limit, long offset, HttpServletRequest request)
 			throws NumberFormatException, DatastoreException, NotFoundException {
-		return participantManager.getAllParticipants(compId);
+		QueryResults<Participant> res = participantManager.getAllParticipants(compId, limit, offset);
+		return new PaginatedResults<Participant>(
+				request.getServletPath() + UrlHelpers.PARTICIPANT,
+				res.getResults(),
+				res.getTotalNumberOfResults(),
+				offset,
+				limit,
+				"",
+				false			
+			);
 	}
 
 	@Override
@@ -172,17 +181,102 @@ public class CompetitionServiceImpl implements CompetitionService {
 	}
 
 	@Override
-	public List<Submission> getAllSubmissions(String userName, String compId,
-			SubmissionStatusEnum status) throws DatastoreException,
-			UnauthorizedException, NotFoundException {
+	public PaginatedResults<Submission> getAllSubmissions(String userName, String compId,
+			SubmissionStatusEnum status, long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userName);
-		return submissionManager.getAllSubmissions(userInfo, compId, status);
+		QueryResults<Submission> res = submissionManager.getAllSubmissions(userInfo, compId, status, limit, offset);
+		return new PaginatedResults<Submission>(
+				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_COMP_ID_ADMIN,
+				res.getResults(),
+				res.getTotalNumberOfResults(),
+				offset,
+				limit,
+				"",
+				false			
+			);
+	}
+	
+	@Override
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundles(String userName, String compId,
+			SubmissionStatusEnum status, long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		QueryResults<SubmissionBundle> res = submissionManager.getAllSubmissionBundles(userInfo, compId, status, limit, offset);
+		return new PaginatedResults<SubmissionBundle>(
+				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_COMP_ID_ADMIN_BUNDLE,
+				res.getResults(),
+				res.getTotalNumberOfResults(),
+				offset,
+				limit,
+				"",
+				false			
+			);
 	}
 
 	@Override
-	public List<Submission> getAllSubmissionsByUser(String princpalId)
+	public PaginatedResults<Submission> getAllSubmissionsByUser(String princpalId, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, NotFoundException {
-		return submissionManager.getAllSubmissionsByUser(princpalId);
+		QueryResults<Submission> res = submissionManager.getAllSubmissionsByUser(princpalId, limit, offset);
+		return new PaginatedResults<Submission>(
+				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_COMP_ID,
+				res.getResults(),
+				res.getTotalNumberOfResults(),
+				offset,
+				limit,
+				"",
+				false			
+			);
+	}
+	
+	@Override
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByUser(
+			String princpalId, long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, NotFoundException {
+		QueryResults<SubmissionBundle> res = submissionManager.getAllSubmissionBundlesByUser(princpalId, limit, offset);
+		return new PaginatedResults<SubmissionBundle>(
+				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_COMP_ID_ADMIN,
+				res.getResults(),
+				res.getTotalNumberOfResults(),
+				offset,
+				limit,
+				"",
+				false			
+			);
+	}
+	
+	@Override
+	public PaginatedResults<Submission> getAllSubmissionsByCompetitionAndUser(
+			String compId, String userName, long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		QueryResults<Submission> res = submissionManager.getAllSubmissionsByCompetitionAndUser(userInfo, compId, limit, offset);
+		return new PaginatedResults<Submission>(
+				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_COMP_ID,
+				res.getResults(),
+				res.getTotalNumberOfResults(),
+				offset,
+				limit,
+				"",
+				false			
+			);
+	}
+	
+	@Override
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByCompetitionAndUser(
+			String compId, String userName, long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		QueryResults<SubmissionBundle> res = submissionManager.getAllSubmissionBundlesByCompetitionAndUser(userInfo, compId, limit, offset);
+		return new PaginatedResults<SubmissionBundle>(
+				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_COMP_ID_BUNDLE,
+				res.getResults(),
+				res.getTotalNumberOfResults(),
+				offset,
+				limit,
+				"",
+				false			
+			);
 	}
 
 	@Override
