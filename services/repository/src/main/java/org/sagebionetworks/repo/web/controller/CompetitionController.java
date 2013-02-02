@@ -1,5 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.competition.model.Competition;
@@ -7,7 +10,7 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
-import org.sagebionetworks.repo.competition.model.SubmissionBundle;
+import org.sagebionetworks.competition.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -90,9 +93,10 @@ public class CompetitionController extends BaseController {
 	Competition findCompetition(
 			@PathVariable String name,
 			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException 
+			) throws DatastoreException, UnauthorizedException, NotFoundException, UnsupportedEncodingException 
 	{
-		return serviceProvider.getCompetitionService().findCompetition(name);
+		String decodedName = URLDecoder.decode(name, "UTF-8");
+		return serviceProvider.getCompetitionService().findCompetition(decodedName);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)

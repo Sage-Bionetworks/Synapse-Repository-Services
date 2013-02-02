@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,7 +22,7 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
-import org.sagebionetworks.repo.competition.model.SubmissionBundle;
+import org.sagebionetworks.competition.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -95,7 +96,7 @@ public class IT520SynapseJavaClientCompetitionTest {
 		
 		// initialize Competitions
 		comp1 = new Competition();
-		comp1.setName("name");
+		comp1.setName("some name");
 		comp1.setDescription("description");
         comp1.setContentSource("contentSource");
         comp1.setStatus(CompetitionStatus.PLANNED);
@@ -146,7 +147,7 @@ public class IT520SynapseJavaClientCompetitionTest {
 	}
 	
 	@Test
-	public void testCompetitionRoundTrip() throws SynapseException {
+	public void testCompetitionRoundTrip() throws SynapseException, UnsupportedEncodingException {
 		Long initialCount = synapseOne.getCompetitionCount();
 		
 		// Create
@@ -154,6 +155,8 @@ public class IT520SynapseJavaClientCompetitionTest {
 		assertNotNull(comp1.getEtag());
 		assertNotNull(comp1.getId());
 		competitionsToDelete.add(comp1.getId());
+		Long newCount = initialCount + 1;
+		assertEquals(newCount, synapseOne.getCompetitionCount());
 		
 		// Read
 		Competition fetched = synapseOne.getCompetition(comp1.getId());
@@ -167,8 +170,6 @@ public class IT520SynapseJavaClientCompetitionTest {
 		assertFalse("eTag was not updated", updated.getEtag().equals(fetched.getEtag()));
 		fetched.setEtag(updated.getEtag());
 		assertEquals(fetched, updated);
-		Long newCount = initialCount + 1;
-		assertEquals(newCount, synapseOne.getCompetitionCount());
 		
 		// Delete
 		synapseOne.deleteCompetition(comp1.getId());
@@ -278,40 +279,12 @@ public class IT520SynapseJavaClientCompetitionTest {
 		part1 = synapseOne.createParticipant(comp1.getId());
 		assertNotNull(part1);
 		participantsToDelete.add(part1);
-		
-		
+				
 		String userId = synapseTwo.getMyProfile().getOwnerId();
 		part2 = synapseOne.createParticipantAsAdmin(comp1.getId(), userId);
 		assertNotNull(part2);
 		participantsToDelete.add(part2);
-		
-		// fetch comp1 and verify that eTag has been updated
-		String oldEtag = comp1.getEtag();
-		comp1 = synapseOne.getCompetition(comp1.getId());
-		assertFalse("Etag was not updated", oldEtag.equals(comp1.getEtag()));
-		
-		String entityId1 = project.getId();
-		assertNotNull(entityId1);
-		entitiesToDelete.add(entityId1);
-		String entityId2 = dataset.getId();
-		assertNotNull(entityId2);
-		entitiesToDelete.add(entityId2);
-		
-		sub1.setCompetitionId(comp1.getId());
-		sub1.setEntityId(entityId1);
-		sub1.setVersionNumber(1L);
-		sub1.setUserId(userName);
-		sub1 = synapseOne.createSubmission(sub1);
-		assertNotNull(sub1.getId());
-		submissionsToDelete.add(sub1.getId());		
-		sub2.setCompetitionId(comp1.getId());
-		sub2.setEntityId(entityId2);
-		sub2.setVersionNumber(1L);
-		sub2.setUserId(userName);
-		sub2 = synapseOne.createSubmission(sub2);
-		assertNotNull(sub2.getId());
-		submissionsToDelete.add(sub2.getId());
-		
+
 		// paginated competitions
 		PaginatedResults<Competition> comps = synapseOne.getCompetitionsPaginated(10, 0);
 		assertEquals(2, comps.getTotalNumberOfResults());
@@ -387,8 +360,7 @@ public class IT520SynapseJavaClientCompetitionTest {
 			assertTrue("Unknown Submission returned: " + bundle.toString(), sub.equals(sub1) || sub.equals(sub2));
 			assertTrue("SubmissionBundle contents do not match: " + bundle.toString(), sub.getId().equals(status.getId()));
 		}
-		
-		
+				
 		subs = synapseOne.getAllSubmissionsByStatus(comp1.getId(), SubmissionStatusEnum.OPEN, 10, 0);
 		subBundles = synapseOne.getAllSubmissionBundlesByStatus(comp1.getId(), SubmissionStatusEnum.OPEN, 10, 0);
 		assertEquals(2, subs.getTotalNumberOfResults());
