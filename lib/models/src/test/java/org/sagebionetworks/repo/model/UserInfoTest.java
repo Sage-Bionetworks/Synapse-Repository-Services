@@ -6,19 +6,19 @@ import java.util.List;
 import org.junit.Test;
 
 public class UserInfoTest {
-	
+
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateNull(){
 		UserInfo.validateUserInfo(null);
 	}
-	
+
 	@Test (expected=IllegalArgumentException.class)
 	public void testValidateNullUser(){
 		UserInfo info = new UserInfo(false);
 		UserInfo.validateUserInfo(info);
 	}
-	
-	@Test (expected=IllegalArgumentException.class)
+
+	@Test (expected=InvalidUserException.class)
 	public void testValidateNullUserId(){
 		UserInfo info = new UserInfo(false);
 		User user = new User();
@@ -26,7 +26,7 @@ public class UserInfoTest {
 		UserInfo.validateUserInfo(info);
 	}
 
-	@Test (expected=IllegalArgumentException.class)
+	@Test (expected=InvalidUserException.class)
 	public void testValidateNullUserUserId(){
 		UserInfo info = new UserInfo(false);
 		User user = new User();
@@ -43,7 +43,7 @@ public class UserInfoTest {
 		info.setGroups(groups);
 		UserInfo.validateUserInfo(info);
 	}
-	
+
 	@Test
 	public void testValidateValid(){
 		UserInfo info = new UserInfo(false);

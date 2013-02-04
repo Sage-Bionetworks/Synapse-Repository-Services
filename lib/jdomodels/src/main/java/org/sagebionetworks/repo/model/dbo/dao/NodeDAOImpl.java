@@ -562,20 +562,42 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	@Override
 	public String lockNodeAndIncrementEtag(String id, String eTag)
 			throws NotFoundException, ConflictingUpdateException, DatastoreException {
+		return lockNodeAndIncrementEtag(id, eTag, ChangeType.UPDATE);
+	}
+
+	/**
+	 * Note: You cannot call this method outside of a transaction.
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.MANDATORY)
+	@Override
+	public String lockNodeAndIncrementEtag(String id, String eTag, ChangeType changeType)
+			throws NotFoundException, ConflictingUpdateException, DatastoreException {
+
+		if (id == null) {
+			throw new IllegalArgumentException("id cannot be null");
+		}
+		if (eTag == null) {
+			throw new IllegalArgumentException("eTag cannot be null");
+		}
+		if (changeType == null) {
+			throw new IllegalArgumentException("changeType cannot be null");
+		}
+
 		// Create a Select for update query
 		final Long longId = KeyFactory.stringToKey(id);
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("bindId", longId);
-		// Check the eTags
 		String currentTag = simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, longId);
+
+		// Check the e-tags
 		if(!currentTag.equals(eTag)){
 			throw new ConflictingUpdateException("Node: "+id+" was updated since you last fetched it, retrieve it again and reapply the update");
 		}
 		// Get a new e-tag
 		DBONode node = getNodeById(longId);
-		tagMessenger.generateEtagAndSendMessage(node, ChangeType.UPDATE);
+		tagMessenger.generateEtagAndSendMessage(node, changeType);
 		currentTag = node.geteTag();
-		// Update the etag
+		// Update the e-tag
 		int updated = simpleJdbcTemplate.update(UPDATE_ETAG_SQL, currentTag, longId);
 		if(updated != 1) throw new ConflictingUpdateException("Failed to lock Node: "+longId);
 		

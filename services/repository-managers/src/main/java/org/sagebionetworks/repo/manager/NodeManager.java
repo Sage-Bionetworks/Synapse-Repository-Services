@@ -15,6 +15,7 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -109,7 +110,15 @@ public interface NodeManager {
 	 * @throws Exception 
 	 */
 	public Node update(UserInfo userInfo, Node updated) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
-	
+
+	/**
+	 * Moves a node in and out of a trash can by updating it. It points the parent
+	 * to the trash can folder by going through the same node update process but
+	 * provides the flexibility of specifying different change types. 
+	 */
+	public void updateForTrashCan(UserInfo userInfo, Node updatedNode, ChangeType changeType)
+			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
+
 	/**
 	 * Update a node and its annotations in the same call.  This means we only need to acquire the lock once.
 	 * @param username
@@ -123,8 +132,7 @@ public interface NodeManager {
 	 * @throws InvalidModelException 
 	 */
 	public Node update(UserInfo userInfo, Node updatedNode, NamedAnnotations annos, boolean newVersion) throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
-	
-	
+
 	/**
 	 * Get the annotations for a node
 	 * @param username
