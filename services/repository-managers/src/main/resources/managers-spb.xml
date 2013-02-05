@@ -32,7 +32,10 @@
 
 	<!-- Activity manager -->
 	<bean id="activityManager" class="org.sagebionetworks.repo.manager.ActivityManagerImpl" />
-	
+
+	<!-- Trash manager -->
+	<bean id="trashManager" class="org.sagebionetworks.repo.manager.trash.TrashManagerImpl" />
+
 	<!-- Fixed Memory Pool - Used to provided a fix amount of memory used for transfering files
 	      from http input streams to S3 -->
 	<bean id="fileTransferFixedMemoryPool" class="org.sagebionetworks.repo.util.FixedMemoryPool" init-method="initialize">

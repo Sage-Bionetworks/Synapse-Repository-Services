@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 

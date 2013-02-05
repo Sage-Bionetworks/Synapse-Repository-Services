@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 
@@ -144,8 +145,20 @@ public interface NodeDAO extends MigratableDAO {
 	 * @throws DatastoreException 
 	 */
 	public String lockNodeAndIncrementEtag(String id, String eTag) throws NotFoundException, ConflictingUpdateException, DatastoreException;
-	
-	
+
+	/**
+	 * Lock the given node using 'SELECT FOR UPDATE', and increment the etag.
+	 * @param id
+	 * @param eTag - The current eTag for this node.  If this eTag does not match the current
+	 * eTag, then ConflictingUpdateException will be thrown.
+	 * @return the new etag
+	 * @throws NotFoundException - Thrown if the node does not exist.
+	 * @throws ConflictingUpdateException - Thrown if the passed eTag does not match the current eTag.
+	 * This exception indicates that the node has changed since the last time the user fetched it.
+	 * @throws DatastoreException 
+	 */
+	public String lockNodeAndIncrementEtag(String id, String eTag, ChangeType changeType) throws NotFoundException, ConflictingUpdateException, DatastoreException;
+
 	/**
 	 * Make changes to an existing node.
 	 * @param updatedNode fields that are left null are not modified
