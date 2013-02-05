@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -44,6 +45,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private UserManager userManager;
 	@Autowired
 	CompetitionManager competitionManager;
+	@Autowired
+	FileHandleDao fileHandleDao;
 
 	public AuthorizationManagerImpl() {}
 	
@@ -53,7 +56,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	AuthorizationManagerImpl(NodeInheritanceDAO nodeInheritanceDAO,
 			AccessControlListDAO accessControlListDAO,
 			AccessRequirementDAO accessRequirementDAO, ActivityDAO activityDAO,
-			NodeQueryDao nodeQueryDao, NodeDAO nodeDAO, UserManager userManager, CompetitionManager competitionManager) {
+			NodeQueryDao nodeQueryDao, NodeDAO nodeDAO, UserManager userManager, CompetitionManager competitionManager, FileHandleDao fileHandleDao) {
 		super();
 		this.nodeInheritanceDAO = nodeInheritanceDAO;
 		this.accessControlListDAO = accessControlListDAO;
@@ -63,6 +66,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		this.nodeDAO = nodeDAO;
 		this.userManager = userManager;
 		this.competitionManager = competitionManager;
+		this.fileHandleDao = fileHandleDao;
 	}
 
 	private static boolean agreesToTermsOfUse(UserInfo userInfo) {
@@ -222,5 +226,15 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		}else{
 			throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
 		}
+	}
+
+	@Override
+	public boolean canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException {
+		// Admins can do anything
+		if(userInfo.isAdmin()) return true;
+		// Lookup the creator by
+		String creator  = fileHandleDao.getHandleCreator(fileHandleId);
+		// Call the other methods
+		return canAccessRawFileHandle(userInfo, creator);
 	}
 }

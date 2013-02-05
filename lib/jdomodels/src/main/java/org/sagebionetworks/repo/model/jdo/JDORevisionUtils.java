@@ -31,6 +31,10 @@ public class JDORevisionUtils {
 			copy.setReferences(Arrays.copyOf(toCopy.getReferences(), toCopy.getReferences().length));
 		}
 		// do not copy over Activity id!
+		// copy the file handle
+		if(toCopy.getFileHandleId() != null){
+			copy.setFileHandleId(toCopy.getFileHandleId());
+		}
 		return copy;
 	}
 	

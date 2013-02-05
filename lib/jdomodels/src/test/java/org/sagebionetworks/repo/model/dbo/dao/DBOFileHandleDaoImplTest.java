@@ -113,7 +113,34 @@ public class DBOFileHandleDaoImplTest {
 		FileHandle clone = fileHandleDao.get(id);
 		assertEquals(meta, clone);
 	}
+	
+	@Test
+	public void testGetCreator() throws NotFoundException{
+		// Create the metadata
+		S3FileHandle meta = new S3FileHandle();
+		meta.setBucketName("bucketName");
+		meta.setKey("key");
+		meta.setContentType("content type");
+		meta.setContentSize(123l);
+		meta.setContentMd5("md5");
+		meta.setCreatedBy(creatorUserGroupId);
+		meta.setFileName("foobar.txt");
+		// Save it
+		meta = fileHandleDao.createFile(meta);
+		assertNotNull(meta.getId());
+		String id = meta.getId();
+		assertNotNull(id);
+		toDelete.add(id);
+		// Get the creator
+		String lookupCreator = fileHandleDao.getHandleCreator(id);
+		assertEquals(creatorUserGroupId, lookupCreator);
+	}
 
+	@Test (expected=NotFoundException.class)
+	public void testGetCreatorNotFound() throws NotFoundException{
+		// Use an invalid file handle id.
+		String lookupCreator = fileHandleDao.getHandleCreator("99999");
+	}
 
 	
 	@Test

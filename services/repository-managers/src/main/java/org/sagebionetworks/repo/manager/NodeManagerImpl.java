@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -61,6 +62,8 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private ReferenceDao referenceDao;
 	@Autowired 
 	private ActivityManager activityManager;
+	@Autowired
+	private FileHandleDao fileHandleDao;
 	
 	
 	/**
@@ -70,7 +73,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 */
 	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, 
 			AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper, 
-			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao, ActivityManager activityManager){
+			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao, ActivityManager activityManager, FileHandleDao fileHandleDao){
 		this.nodeDao = nodeDao;
 		this.authorizationManager = authDoa;
 		this.aclDAO = aclDao;
@@ -78,6 +81,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		this.nodeInheritanceManager = nodeInheritanceManager;
 		this.referenceDao = referenceDao;
 		this.activityManager = activityManager;
+		this.fileHandleDao = fileHandleDao;
 	}
 	
 	/**
@@ -123,6 +127,11 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// check whether the user is allowed to create this type of node
 		if (!authorizationManager.canCreate(userInfo, newNode)) {
 			throw new UnauthorizedException(userInfo.getUser().getUserId()+" is not allowed to create items within container "+newNode.getParentId());
+		}
+		
+		if(newNode.getFileHandleId() != null){
+			// To set the file handle on a create the caller must have permission 
+			if(!authorizationManager.canAccessRawFileHandle(userInfo, creator))
 		}
 
 		// check whether the user is allowed to connect to the specified activity
