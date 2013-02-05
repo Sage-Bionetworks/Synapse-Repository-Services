@@ -2,7 +2,6 @@ package org.sagebionetworks.competition.dbo;
 
 import static org.sagebionetworks.competition.query.jdo.SQLConstants.*;
 import static org.sagebionetworks.competition.dbo.DBOConstants.*;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,7 +28,7 @@ public class SubmissionStatusDBO implements DatabaseObject<SubmissionStatusDBO>,
 			new FieldColumn(PARAM_SUBSTATUS_MODIFIED_ON, COL_SUBSTATUS_MODIFIED_ON),
 			new FieldColumn(PARAM_SUBSTATUS_STATUS, COL_SUBSTATUS_STATUS),
 			new FieldColumn(PARAM_SUBSTATUS_SCORE, COL_SUBSTATUS_SCORE),
-			new FieldColumn(PARAM_SUBSTATUS_SERIALIZED_ENTITY, COL_ACCESS_REQUIREMENT_SERIALIZED_ENTITY)
+			new FieldColumn(PARAM_SUBSTATUS_SERIALIZED_ENTITY, COL_SUBSTATUS_SERIALIZED_ENTITY)
 			};
 
 	public TableMapping<SubmissionStatusDBO> getTableMapping() {
