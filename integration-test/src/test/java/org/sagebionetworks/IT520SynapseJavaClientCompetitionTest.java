@@ -246,6 +246,7 @@ public class IT520SynapseJavaClientCompetitionTest {
 		Thread.sleep(1L);
 		status.setScore(0.5);
 		status.setStatus(SubmissionStatusEnum.SCORED);
+		status.setReport("Lorem ipsum");
 		SubmissionStatus statusClone = synapseOne.updateSubmissionStatus(status);
 		assertFalse("Modified date was not updated", status.getModifiedOn().equals(statusClone.getModifiedOn()));
 		status.setModifiedOn(statusClone.getModifiedOn());

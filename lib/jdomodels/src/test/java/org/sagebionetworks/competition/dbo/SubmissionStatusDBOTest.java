@@ -106,6 +106,7 @@ public class SubmissionStatusDBOTest {
         status.setModifiedOn(System.currentTimeMillis());
         status.setStatusEnum(SubmissionStatusEnum.OPEN);
         status.setScore(0.0);
+        status.setSerializedEntity("foo".getBytes());
         
         // Create it
         SubmissionStatusDBO clone = dboBasicDao.createNew(status);
