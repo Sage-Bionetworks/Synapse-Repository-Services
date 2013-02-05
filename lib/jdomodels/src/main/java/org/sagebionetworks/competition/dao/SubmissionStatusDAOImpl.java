@@ -77,7 +77,7 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 			dbo = basicDao.createNew(dbo);
 			return dbo.getId().toString();
 		} catch (Exception e) {
-			throw new DatastoreException("id=" + dbo.getId(), e);
+			throw new DatastoreException(e.getMessage() + " id=" + dbo.getId(), e);
 		}
 	}
 
@@ -137,8 +137,12 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	 * @param dto
 	 * @param dbo
 	 */
-	protected static void copyDtoToDbo(SubmissionStatus dto, SubmissionStatusDBO dbo) {	
-		dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
+	protected static void copyDtoToDbo(SubmissionStatus dto, SubmissionStatusDBO dbo) {
+		try {
+			dbo.setId(dto.getId() == null ? null : Long.parseLong(dto.getId()));
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Invalid Submission ID: " + dto.getId());
+		}
 		dbo.seteTag(dto.getEtag());
 		dbo.setModifiedOn(dto.getModifiedOn() == null ? null : dto.getModifiedOn().getTime());
 		dbo.setScore(dto.getScore());

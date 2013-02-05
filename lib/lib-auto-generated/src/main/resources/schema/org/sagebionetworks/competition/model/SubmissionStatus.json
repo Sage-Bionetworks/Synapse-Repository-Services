@@ -4,7 +4,7 @@
 	"properties": {
 		"id": {
 			"type": "string",
-			"description": "The unique, immutable Synapse ID of this Submission.",
+			"description": "The unique, immutable Synapse ID of the Submission.",
 			"transient": true
 		},
 		"etag": {
@@ -14,7 +14,7 @@
 		"modifiedOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date on which Submission was created.",
+			"description": "The date on which the status was last modified.",
 			"title": "Created On",
 			"transient": true
 		},

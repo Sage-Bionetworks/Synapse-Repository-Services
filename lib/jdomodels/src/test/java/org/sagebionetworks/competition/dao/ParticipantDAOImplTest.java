@@ -100,7 +100,7 @@ public class ParticipantDAOImplTest {
         participantDAO.create(part1);
         participantDAO.create(part2);
         
-        List<Participant> parts = participantDAO.getAllByCompetition(compId1);
+        List<Participant> parts = participantDAO.getAllByCompetition(compId1, 10, 0);
         assertEquals(1, parts.size());
         for (Participant p : parts) {
         	assertNotNull(p.getCreatedOn());

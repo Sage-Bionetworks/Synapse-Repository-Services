@@ -16,7 +16,7 @@
 			"title": "Deleted On",
 			"description":"The date and time when the deletion occurred."			
 		},
-		"parentId": {
+		"originalParentId": {
 			"type": "string",
 			"description": "The ID of the original parent before deletion."
 		}

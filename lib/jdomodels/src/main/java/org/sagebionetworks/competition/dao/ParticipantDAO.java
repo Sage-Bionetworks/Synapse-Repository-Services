@@ -48,7 +48,7 @@ public interface ParticipantDAO {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	List<Participant> getAllByCompetition(String compId)
+	List<Participant> getAllByCompetition(String compId, long limit, long offset)
 	throws DatastoreException, NotFoundException;
 
 	/**

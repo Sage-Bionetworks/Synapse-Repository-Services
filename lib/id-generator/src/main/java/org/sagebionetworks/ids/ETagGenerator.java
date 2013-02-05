@@ -3,14 +3,20 @@ package org.sagebionetworks.ids;
 import org.sagebionetworks.repo.model.TaggableEntity;
 
 /**
- * Generates e-tags for entities.
+ * Generates e-tags for taggable entities.
  *
- * @author ewu
+ * @author Eric Wu
  */
 public interface ETagGenerator {
 
 	/**
-	 * Generates a tag for the given entity.
+	 * Generates a e-tag for the given entity. The entity might
+	 * (or might not) be used to compute the e-tag.
 	 */
 	String generateETag(TaggableEntity entity);
+
+	/**
+	 * Generates a random e-tag.
+	 */
+	String generateETag();
 }

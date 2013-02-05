@@ -7,6 +7,7 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -113,9 +114,12 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	}
 	
 	@Override
-	public List<Participant> getAllParticipants(String compId) throws NumberFormatException, DatastoreException, NotFoundException {
+	public QueryResults<Participant> getAllParticipants(String compId, long limit, long offset) throws NumberFormatException, DatastoreException, NotFoundException {
 		CompetitionUtils.ensureNotNull(compId, "Competition ID");
-		return participantDAO.getAllByCompetition(compId);
+		List<Participant> participants = participantDAO.getAllByCompetition(compId, limit, offset);
+		long totalNumberOfResults = participantDAO.getCountByCompetition(compId);
+		QueryResults<Participant> res = new QueryResults<Participant>(participants, totalNumberOfResults);
+		return res;
 	}
 	
 	@Override

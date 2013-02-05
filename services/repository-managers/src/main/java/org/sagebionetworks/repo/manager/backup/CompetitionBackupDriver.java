@@ -73,7 +73,7 @@ public class CompetitionBackupDriver implements GenericBackupDriver {
 				
 				CompetitionBackup compBackup = new CompetitionBackup();
 				compBackup.setCompetition(competitionDAO.get(idToBackup));
-				compBackup.setParticipants(participantDAO.getAllByCompetition(idToBackup));
+				compBackup.setParticipants(participantDAO.getAllByCompetition(idToBackup, Long.MAX_VALUE, 0L));
 				ZipEntry entry = new ZipEntry(idToBackup + ZIP_ENTRY_SUFFIX);
 				zos.putNextEntry(entry);
 				NodeSerializerUtil.writeCompetitionBackup(compBackup, zos);

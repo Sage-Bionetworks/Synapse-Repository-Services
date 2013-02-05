@@ -89,7 +89,7 @@ public class CompetitionBackupDriverTest {
 					Participant p = (Participant)args[0];
 					parts.put(p.getUserId(), p);
 					return null;
-				} else if (method.equals(ParticipantDAO.class.getMethod("getAllByCompetition", String.class))) {
+				} else if (method.equals(ParticipantDAO.class.getMethod("getAllByCompetition", String.class, long.class, long.class))) {
 					String compId = (String)args[0];
 					List<Participant> result = new ArrayList<Participant>();
 					for (Participant p : parts.values()) if (compId.equals(p.getCompetitionId())) result.add(p);

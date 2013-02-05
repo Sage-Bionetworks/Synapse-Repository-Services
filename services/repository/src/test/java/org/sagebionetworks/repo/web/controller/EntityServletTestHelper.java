@@ -943,7 +943,7 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId + "/submission");
+		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId + "/submission/all");
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		if (status != null) {
 			request.setParameter(UrlHelpers.STATUS, status.toString());
