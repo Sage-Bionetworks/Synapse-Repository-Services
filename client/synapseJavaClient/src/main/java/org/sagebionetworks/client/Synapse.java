@@ -52,7 +52,7 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
-import org.sagebionetworks.repo.competition.model.SubmissionBundle;
+import org.sagebionetworks.competition.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -3024,9 +3024,10 @@ public class Synapse {
 		return res.getTotalNumberOfResults();
 	}
 	
-	public Competition findCompetition(String name) throws SynapseException {
+	public Competition findCompetition(String name) throws SynapseException, UnsupportedEncodingException {
 		if (name == null) throw new IllegalArgumentException("Competition name cannot be null");
-		String url = COMPETITION_URI_PATH + "/" + NAME + "/" + name;		
+		String encodedName = URLEncoder.encode(name, "UTF-8");
+		String url = COMPETITION_URI_PATH + "/" + NAME + "/" + encodedName;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		try {
@@ -3059,6 +3060,9 @@ public class Synapse {
 		deleteUri(uri);
 	}
 	
+	/**
+	 * Adds the authenticated user as a Participant in Competition compId
+	 */
 	public Participant createParticipant(String compId) throws SynapseException {
 		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
 		String uri = createEntityUri(COMPETITION_URI_PATH, compId) + "/" + PARTICIPANT;
@@ -3066,10 +3070,13 @@ public class Synapse {
 		return initializeFromJSONObject(jsonObj, Participant.class);
 	}
 	
-	public Participant createParticipantAsAdmin(String compId, String idToAdd) throws SynapseException {
+	/**
+	 * Adds a separate user as a Participant in Competition compId.
+	 */
+	public Participant createParticipantAsAdmin(String compId, String participantPrincipalId) throws SynapseException {
 		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
 		String uri = createEntityUri(COMPETITION_URI_PATH, compId) + "/" + PARTICIPANT
-				+ "/" + idToAdd;
+				+ "/" + participantPrincipalId;
 		JSONObject jsonObj = postUri(uri);
 		return initializeFromJSONObject(jsonObj, Participant.class);
 	}
@@ -3088,6 +3095,9 @@ public class Synapse {
 		}
 	}
 	
+	/**
+	 * Removes user principalId from Competition compId.
+	 */
 	public void deleteParticipant(String compId, String principalId) throws SynapseException {
 		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
 		if (principalId == null) throw new IllegalArgumentException("Principal ID cannot be null");
@@ -3276,7 +3286,7 @@ public class Synapse {
 	
 	public Long getSubmissionCount(String compId) throws SynapseException {
 		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
-		PaginatedResults<Submission> res = getAllSubmissions(compId, 1, 0);
+		PaginatedResults<Submission> res = getAllSubmissions(compId, 0, 0);
 		return res.getTotalNumberOfResults();
 	}
 }

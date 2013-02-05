@@ -30,5 +30,12 @@
 			"title": "Score",
 			"transient": true
 		}
+		,
+		"report": {
+			"type": "string",
+			"description": "A textual report describing this Submission. May contain additional scoring information, error logs, etc.",
+			"title": "Report",
+			"transient": true
+		}
 	}
 }

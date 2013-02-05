@@ -68,7 +68,7 @@ public class SimpleLoginServlet implements Servlet {
 			user.setEmail(username);
 			Session session = CrowdAuthUtil.authenticate(user, true);
 			// Add it as a cookie
-			Cookie cookie = new Cookie(AuthorizationConstants.SESSION_TOKEN_PARAM, session.getSessionToken());
+			Cookie cookie = new Cookie(AuthorizationConstants.SESSION_TOKEN_COOKIE_NAME, session.getSessionToken());
 			cookie.setPath("/");
 			cookie.setMaxAge(1000*60*1);
 			response.addCookie(cookie);

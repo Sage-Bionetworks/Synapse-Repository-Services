@@ -157,10 +157,11 @@ public class SubmissionStatusDAOImplTest {
     	subStatusDTO.setModifiedOn(new Date());
     	subStatusDTO.setScore(0.42);
     	subStatusDTO.setStatus(SubmissionStatusEnum.CLOSED);
+    	subStatusDTO.setReport("lorem ipsum");
     	    	
-    	SubmissionStatusDAOImpl.copyDtoToDbo(subStatusDTO, subStatusDBO);
-    	SubmissionStatusDAOImpl.copyDboToDto(subStatusDBO, subStatusDTOclone);
-    	SubmissionStatusDAOImpl.copyDtoToDbo(subStatusDTOclone, subStatusDBOclone);
+    	subStatusDBO = SubmissionStatusDAOImpl.convertDtoToDbo(subStatusDTO);
+    	subStatusDTOclone = SubmissionStatusDAOImpl.convertDboToDto(subStatusDBO);
+    	subStatusDBOclone = SubmissionStatusDAOImpl.convertDtoToDbo(subStatusDTOclone);
     	
     	assertEquals(subStatusDTO, subStatusDTOclone);
     	assertEquals(subStatusDBO, subStatusDBOclone);

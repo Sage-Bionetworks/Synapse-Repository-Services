@@ -181,6 +181,11 @@ public class SubmissionManagerTest {
 		verify(mockSubmissionDAO).getAllByCompetitionAndStatus(eq(COMP_ID), eq(statusEnum), eq(10L), eq(0L));
 	}
 	
+	@Test(expected = UnauthorizedException.class)
+	public void testGetAllSubmissionsUnauthorized() throws DatastoreException, UnauthorizedException, NotFoundException {
+		submissionManager.getAllSubmissions(ownerInfo, USER_ID, null, 10, 0);
+	}
+	
 	@Test
 	public void testGetAllSubmissionsByUser() throws DatastoreException, NotFoundException {
 		submissionManager.getAllSubmissionsByUser(USER_ID, 10, 0);

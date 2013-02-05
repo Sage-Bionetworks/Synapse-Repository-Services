@@ -109,6 +109,11 @@ public class AuthorizationConstants {
 	 * The header for the session token
 	 */
 	public static final String SESSION_TOKEN_PARAM = "sessionToken";
+	
+	/**
+	 * For special cases where the session token is added as a cookie, this is the name of the cookie we look for.
+	 */
+	public static final String SESSION_TOKEN_COOKIE_NAME = "org.sagbionetworks.security.user.login.token";
 
 	/**
 	 * This is the name of the attribute in Crowd for the creation date for a User
