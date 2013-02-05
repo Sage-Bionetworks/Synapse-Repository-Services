@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -55,7 +56,7 @@ public class UploadController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value ="/fileHandle" , method = RequestMethod.POST)
-	public @ResponseBody FileHandleResults uploadFiles(HttpServletRequest request, HttpServletResponse response, @RequestHeader HttpHeaders headers)	throws FileUploadException, IOException, DatastoreException, NotFoundException, ServiceUnavailableException, JSONObjectAdapterException {
+	void uploadFiles(HttpServletRequest request, HttpServletResponse response, @RequestHeader HttpHeaders headers)	throws FileUploadException, IOException, DatastoreException, NotFoundException, ServiceUnavailableException, JSONObjectAdapterException {
 		// Get the user ID
 		String userId = request.getParameter(AuthorizationConstants.USER_ID_PARAM);
 		if(userId == null) throw new UnauthorizedException("The user must be authenticated");
@@ -65,8 +66,10 @@ public class UploadController extends BaseController {
 			throw new IllegalArgumentException("This service only supports: content-type = multipart/form-data");
 		}
 		// Pass it along.
+		FileHandleResults results = fileService.uploadFiles(userId, new ServletFileUpload().getItemIterator(request));
 		response.setContentType("application/json");
-		return fileService.uploadFiles(userId, new ServletFileUpload().getItemIterator(request));
+		response.setStatus(HttpStatus.CREATED.value());
+		response.getOutputStream().print(EntityFactory.createJSONStringForEntity(results));
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
