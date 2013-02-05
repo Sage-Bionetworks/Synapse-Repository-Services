@@ -10,7 +10,7 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
-import org.sagebionetworks.repo.competition.model.SubmissionBundle;
+import org.sagebionetworks.competition.model.SubmissionBundle;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
