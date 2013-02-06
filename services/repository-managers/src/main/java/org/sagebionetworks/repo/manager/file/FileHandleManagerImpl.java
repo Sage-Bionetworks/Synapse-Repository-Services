@@ -200,7 +200,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// Get the file handle
 		FileHandle handle = fileHandleDao.get(handleId);
 		// Only the user that created this handle is authorized to get it.
-		if(!authorizationManager.canAccessRawFileHandle(userInfo, handle.getCreatedBy())){
+		if(!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handle.getCreatedBy())){
 			throw new UnauthorizedException("Only the creator of a FileHandle can access the raw FileHandle");
 		}
 		return handle;
@@ -215,7 +215,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		try {
 			FileHandle handle = fileHandleDao.get(handleId);
 			// Is the user authorized?
-			if(!authorizationManager.canAccessRawFileHandle(userInfo, handle.getCreatedBy())){
+			if(!authorizationManager.canAccessRawFileHandleByCreator(userInfo, handle.getCreatedBy())){
 				throw new UnauthorizedException("Only the creator of a FileHandle can delete the raw FileHandle");
 			}
 			// If this file has a preview then we want to delete the preview as well.

@@ -201,7 +201,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	}
 
 	@Override
-	public boolean canAccessRawFileHandle(UserInfo userInfo, String creator) {
+	public boolean canAccessRawFileHandleByCreator(UserInfo userInfo, String creator) {
 		// Admins can see anything.
 		if (userInfo.isAdmin()) return true;
 		// Only the creator can see the raw file handle
@@ -235,6 +235,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		// Lookup the creator by
 		String creator  = fileHandleDao.getHandleCreator(fileHandleId);
 		// Call the other methods
-		return canAccessRawFileHandle(userInfo, creator);
+		return canAccessRawFileHandleByCreator(userInfo, creator);
 	}
 }

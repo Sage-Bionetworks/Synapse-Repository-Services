@@ -78,7 +78,7 @@ public interface AuthorizationManager {
 	 * @param creator
 	 * @return
 	 */
-	public boolean canAccessRawFileHandle(UserInfo userInfo, String creator);
+	public boolean canAccessRawFileHandleByCreator(UserInfo userInfo, String creator);
 	
 	/**
 	 * 

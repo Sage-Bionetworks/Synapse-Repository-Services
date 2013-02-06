@@ -62,8 +62,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	private ReferenceDao referenceDao;
 	@Autowired 
 	private ActivityManager activityManager;
-	@Autowired
-	private FileHandleDao fileHandleDao;
 	
 	
 	/**
@@ -73,7 +71,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	 */
 	public NodeManagerImpl(NodeDAO nodeDao, AuthorizationManager authDoa, 
 			AccessControlListDAO aclDao, EntityBootstrapper entityBootstrapper, 
-			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao, ActivityManager activityManager, FileHandleDao fileHandleDao){
+			NodeInheritanceManager nodeInheritanceManager, ReferenceDao referenceDao, ActivityManager activityManager){
 		this.nodeDao = nodeDao;
 		this.authorizationManager = authDoa;
 		this.aclDAO = aclDao;
@@ -81,7 +79,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		this.nodeInheritanceManager = nodeInheritanceManager;
 		this.referenceDao = referenceDao;
 		this.activityManager = activityManager;
-		this.fileHandleDao = fileHandleDao;
 	}
 	
 	/**
@@ -128,10 +125,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if (!authorizationManager.canCreate(userInfo, newNode)) {
 			throw new UnauthorizedException(userInfo.getUser().getUserId()+" is not allowed to create items within container "+newNode.getParentId());
 		}
-		
+		// Handle permission around file handles.
 		if(newNode.getFileHandleId() != null){
 			// To set the file handle on a create the caller must have permission 
-			if(!authorizationManager.canAccessRawFileHandle(userInfo, creator))
+			if(!authorizationManager.canAccessRawFileHandleById(userInfo, newNode.getFileHandleId())){
+				throw new UnauthorizedException("Only the creator of a FileHandle can assigne it to an Entity");
+			}
 		}
 
 		// check whether the user is allowed to connect to the specified activity

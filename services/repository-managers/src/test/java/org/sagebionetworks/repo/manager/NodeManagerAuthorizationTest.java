@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -8,6 +8,7 @@ import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -81,6 +82,30 @@ public class NodeManagerAuthorizationTest {
 		when(mockAuthDao.canCreate(mockUserInfo, mockNode)).thenReturn(false);
 		// Should fail
 		nodeManager.createNewNode(mockNode, mockUserInfo);
+	}
+	
+	@Test (expected=UnauthorizedException.class)
+	public void testUnauthorizedCreateNewNodeFileHandle() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
+		// The user is allowed to create the file handle but not allowed to use the file handle.
+		String fileHandleId = "123456";
+		when(mockAuthDao.canCreate(mockUserInfo, mockNode)).thenReturn(true);
+		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(false);
+		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
+		// Should fail
+		nodeManager.createNewNode(mockNode, mockUserInfo);
+	}
+	
+	@Test 
+	public void testAuthorizedCreateNewNodeFileHandle() throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException{
+		// The user is allowed to create the file handle but not allowed to use the file handle.
+		String fileHandleId = "123456";
+		when(mockAuthDao.canCreate(mockUserInfo, mockNode)).thenReturn(true);
+		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(true);
+		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
+		when(mockEntityBootstrapper.getChildAclSchemeForPath(any(String.class))).thenReturn(ACL_SCHEME.INHERIT_FROM_PARENT);
+		// Should fail
+		nodeManager.createNewNode(mockNode, mockUserInfo);
+		verify(mockNodeDao).createNew(mockNode);
 	}
 	
 	@Test (expected=UnauthorizedException.class)
