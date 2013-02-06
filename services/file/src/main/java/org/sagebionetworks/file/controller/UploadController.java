@@ -70,6 +70,8 @@ public class UploadController extends BaseController {
 		response.setContentType("application/json");
 		response.setStatus(HttpStatus.CREATED.value());
 		response.getOutputStream().print(EntityFactory.createJSONStringForEntity(results));
+		// Not flushing causes the stream to be empty for the GWT use case.
+		response.getOutputStream().flush();
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
