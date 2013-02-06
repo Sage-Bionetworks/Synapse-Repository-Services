@@ -57,6 +57,9 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 				rev.setModifiedBy(rs.getLong(COL_REVISION_MODIFIED_BY));
 				rev.setModifiedOn(rs.getLong(COL_REVISION_MODIFIED_ON));
 				rev.setFileHandleId(rs.getLong(COL_REVISION_FILE_HANDLE_ID));
+				if(rs.wasNull()){
+					rev.setFileHandleId(null);
+				}
 				java.sql.Blob blob = rs.getBlob(COL_REVISION_ANNOS_BLOB);
 				if(blob != null){
 					rev.setAnnotations(blob.getBytes(1, (int) blob.length()));

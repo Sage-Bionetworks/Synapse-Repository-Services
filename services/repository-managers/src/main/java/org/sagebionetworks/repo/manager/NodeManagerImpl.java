@@ -295,10 +295,16 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			throws ConflictingUpdateException, NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 
 		UserInfo.validateUserInfo(userInfo);
+		// Validate that the user can update the node.
 		if (!authorizationManager.canAccess(userInfo, updatedNode.getId(), ACCESS_TYPE.UPDATE)) {
 			throw new UnauthorizedException(userInfo.getUser().getUserId() + " lacks change access to the requested object.");
 		}
-
+		
+		// Validate that the user can assign the file handle if they have it.
+		if(updatedNode.getFileHandleId() != null){
+			// First determine if this is a change
+			String currentHandleId = nodeDao.getCurrentFileHandleId(updatedNode.getId());
+		}
 		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, true, ChangeType.UPDATE);
 
 		return get(userInfo, updatedNode.getId());

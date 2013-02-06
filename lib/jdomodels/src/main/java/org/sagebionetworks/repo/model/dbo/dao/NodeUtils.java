@@ -69,6 +69,8 @@ class NodeUtils {
 		} 	
 		if(dto.getFileHandleId() != null){
 			rev.setFileHandleId(KeyFactory.stringToKey(dto.getFileHandleId()));
+		}else{
+			rev.setFileHandleId(null);
 		}
 		// bring in activity id, if set
 		if(deleteActivityId) {
