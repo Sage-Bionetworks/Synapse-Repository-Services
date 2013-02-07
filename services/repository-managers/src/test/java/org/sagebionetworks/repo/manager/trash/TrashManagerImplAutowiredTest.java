@@ -58,52 +58,5 @@ public class TrashManagerImplAutowiredTest {
 
 	@Test
 	public void testSingleNodeRoundTrip() throws Exception {
-
-		QueryResults<TrashedEntity> results = trashManager.viewTrash(testUserInfo, 0, 1000);
-		assertEquals(0L, results.getTotalNumberOfResults());
-		assertEquals(0, results.getResults().size());
-
-		Node newNode = new Node();
-		newNode.setName("TrashManagerImplAutowiredTest");
-		newNode.setNodeType(EntityType.project.name());
-		final String nodeId = nodeManager.createNewNode(newNode, testUserInfo);
-		assertNotNull(nodeId);
-		toClearList.add(nodeId);
-		Node nodeBack = nodeManager.get(testUserInfo, nodeId);
-		assertNotNull(nodeBack);
-		final String parentId = nodeBack.getParentId();
-
-		trashManager.moveToTrash(testUserInfo, nodeId);
-
-		try {
-			nodeBack = nodeManager.get(testUserInfo, nodeId);
-			assertNotNull(nodeBack);
-		} catch (UnauthorizedException e) {
-			// TODO: We should throw NotFoundException for items in trash can.
-			assertTrue(true);
-		} catch (Throwable e) {
-			fail();
-		}
-
-		results = trashManager.viewTrash(testUserInfo, 0, 1000);
-		assertEquals(1L, results.getTotalNumberOfResults());
-		assertEquals(1, results.getResults().size());
-		TrashedEntity trash = results.getResults().get(0);
-		assertNotNull(trash);
-		assertEquals(nodeId, trash.getEntityId());
-		assertEquals(parentId, trash.getOriginalParentId());
-		System.out.println(trash.getDeletedByPrincipalId());
-		System.out.println(trash.getDeletedOn());
-
-		trashManager.restoreFromTrash(testUserInfo, nodeId, parentId);
-
-		results = trashManager.viewTrash(testUserInfo, 0, 1000);
-		assertEquals(0L, results.getTotalNumberOfResults());
-		assertEquals(0, results.getResults().size());
-
-		nodeBack = nodeManager.get(testUserInfo, nodeId);
-		assertNotNull(nodeBack);
-		assertEquals(nodeId, nodeBack.getId());
-		assertEquals(parentId, nodeBack.getParentId());
 	}
 }
