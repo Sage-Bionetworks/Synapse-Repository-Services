@@ -90,12 +90,6 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		throws NotFoundException, DatastoreException {
 		// if is an administrator, return true
 		if (userInfo.isAdmin()) return true;
-		{
-			// if the user is the owner of the object, then she has full access to the object
-			Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
-			Node node = nodeDAO.getNode(nodeId);
-			if (node.getCreatedByPrincipalId().equals(principalId)) return true;
-		}
 		if (accessType.equals(ACCESS_TYPE.DOWNLOAD)) {
 			return canDownload(userInfo, nodeId);
 		}
@@ -137,9 +131,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		String permissionsBenefactor = nodeInheritanceDAO.getBenefactor(entityId);
 		UserInfo anonymousUser = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 		permission.setCanPublicRead(this.accessControlListDAO.canAccess(anonymousUser.getGroups(), permissionsBenefactor, ACCESS_TYPE.READ));
-		boolean isCreator = node.getCreatedByPrincipalId().equals(Long.parseLong(userInfo.getIndividualGroup().getId()));
-		// Admin and owner/creator get all
-		if (userInfo.isAdmin() || isCreator) {
+		// Admin gets all
+		if (userInfo.isAdmin()) {
 			permission.setCanAddChild(true);
 			permission.setCanChangePermissions(true);
 			permission.setCanDelete(true);
