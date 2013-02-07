@@ -55,6 +55,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
+import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -587,7 +588,7 @@ public class NodeDAOImplTest {
 	
  	// Calling getETagForUpdate() outside of a transaction in not allowed, and will throw an exception.
 	@Test(expected=IllegalTransactionStateException.class)
-	public void testGetETagForUpdate() throws Exception {
+	public void testGetETagForUpdate1() throws Exception {
 		Node toCreate = privateCreateNew("testGetETagForUpdate");
 		String id = nodeDao.createNew(toCreate);
 		toDelete.add(id);
@@ -596,7 +597,19 @@ public class NodeDAOImplTest {
 		eTag = nodeDao.lockNodeAndIncrementEtag(id, eTag);
 		fail("Should have thrown an IllegalTransactionStateException");
 	}
-	
+
+ 	// Calling getETagForUpdate() outside of a transaction in not allowed, and will throw an exception.
+	@Test(expected=IllegalTransactionStateException.class)
+	public void testGetETagForUpdate2() throws Exception {
+		Node toCreate = privateCreateNew("testGetETagForUpdate");
+		String id = nodeDao.createNew(toCreate);
+		toDelete.add(id);
+		assertNotNull(id);
+		String eTag = nodeDao.peekCurrentEtag(id);
+		eTag = nodeDao.lockNodeAndIncrementEtag(id, eTag, ChangeType.DELETE);
+		fail("Should have thrown an IllegalTransactionStateException");
+	}
+
 	@Test
 	public void testUpdateNode() throws Exception{
 		Node node = privateCreateNew("testUpdateNode");

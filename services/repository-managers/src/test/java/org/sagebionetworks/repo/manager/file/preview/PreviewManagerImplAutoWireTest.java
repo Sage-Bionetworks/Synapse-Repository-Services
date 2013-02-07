@@ -14,10 +14,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.manager.file.FileUploadManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dao.FileMetadataDao;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -39,7 +39,7 @@ public class PreviewManagerImplAutoWireTest {
 	private static String LITTLE_IMAGE_NAME = "LittleImage.png";
 	
 	@Autowired
-	FileUploadManager fileUploadManager;
+	FileHandleManager fileUploadManager;
 	
 	@Autowired
 	PreviewManager previewManager;
@@ -51,7 +51,7 @@ public class PreviewManagerImplAutoWireTest {
 	AmazonS3Client s3Client;
 	
 	@Autowired
-	FileMetadataDao fileMetadataDao;
+	FileHandleDao fileMetadataDao;
 	
 	private UserInfo userInfo;
 	List<S3FileHandleInterface> toDelete = new LinkedList<S3FileHandleInterface>();

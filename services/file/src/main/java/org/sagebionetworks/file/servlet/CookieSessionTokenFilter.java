@@ -43,7 +43,7 @@ public class CookieSessionTokenFilter implements Filter {
 		if(cookies != null){
 			log.debug("Found: "+cookies.length+" cookies");
 			for(Cookie cookie: cookies){
-				if(AuthorizationConstants.SESSION_TOKEN_PARAM.equals(cookie.getName())){
+				if(AuthorizationConstants.SESSION_TOKEN_COOKIE_NAME.equals(cookie.getName())){
 					sessionToken = cookie.getValue();
 					log.debug("Found a cookie with the session token: "+sessionToken);
 				}

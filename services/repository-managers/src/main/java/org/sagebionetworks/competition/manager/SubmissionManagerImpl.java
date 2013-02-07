@@ -1,17 +1,20 @@
 package org.sagebionetworks.competition.manager;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.sagebionetworks.competition.dao.SubmissionDAO;
 import org.sagebionetworks.competition.dao.SubmissionStatusDAO;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.Submission;
+import org.sagebionetworks.competition.model.SubmissionBundle;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.competition.util.CompetitionUtils;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -148,28 +151,84 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 
 	@Override
-	public List<Submission> getAllSubmissions(UserInfo userInfo, String compId, SubmissionStatusEnum status) throws DatastoreException, UnauthorizedException, NotFoundException {
+	public QueryResults<Submission> getAllSubmissions(UserInfo userInfo, String compId, SubmissionStatusEnum status, long limit, long offset) 
+			throws DatastoreException, UnauthorizedException, NotFoundException {
 		CompetitionUtils.ensureNotNull(compId, "Competition ID");
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
 		
 		if (!competitionManager.isCompAdmin(principalId, compId))
 			throw new UnauthorizedException("User Principal ID" + principalId + " is not authorized to adminster Competition " + compId);
-		if (status == null)		
-			return submissionDAO.getAllByCompetition(compId);
-		else
-			return submissionDAO.getAllByCompetitionAndStatus(compId, status);
+		
+		List<Submission> submissions;
+		long totalNumberOfResults;
+		if (status == null)	{
+			submissions = submissionDAO.getAllByCompetition(compId, limit, offset);
+			totalNumberOfResults = submissionDAO.getCountByCompetition(compId);
+		} else {
+			submissions = submissionDAO.getAllByCompetitionAndStatus(compId, status, limit, offset);
+			totalNumberOfResults = submissionDAO.getCountByCompetitionAndStatus(compId, status);
+		}
+		
+		QueryResults<Submission> res = new QueryResults<Submission>(submissions, totalNumberOfResults);
+		return res;
 	}
 	
 	@Override
-	public List<Submission> getAllSubmissionsByUser(String userId) throws DatastoreException, NotFoundException {
-		return submissionDAO.getAllByUser(userId);
+	public QueryResults<SubmissionBundle> getAllSubmissionBundles(UserInfo userInfo, String compId, SubmissionStatusEnum status, long limit, long offset) 
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		QueryResults<Submission> submissions = getAllSubmissions(userInfo, compId, status, limit, offset);
+		return submissionsToSubmissionBundles(submissions);
 	}
 	
+	@Override
+	public QueryResults<Submission> getAllSubmissionsByUser(String userId, long limit, long offset) throws DatastoreException, NotFoundException {
+		List<Submission> submissions = submissionDAO.getAllByUser(userId, limit, offset);
+		long totalNumberOfResults = submissionDAO.getCountByUser(userId);
+		QueryResults<Submission> res = new QueryResults<Submission>(submissions, totalNumberOfResults);
+		return res;
+	}
+	
+	@Override
+	public QueryResults<SubmissionBundle> getAllSubmissionBundlesByUser(String userId, long limit, long offset) 
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		QueryResults<Submission> submissions = getAllSubmissionsByUser(userId, limit, offset);
+		return submissionsToSubmissionBundles(submissions);
+	}
+	
+	@Override
+	public QueryResults<Submission> getAllSubmissionsByCompetitionAndUser(UserInfo userInfo, String compId, long limit, long offset)
+			throws DatastoreException, NotFoundException {
+		UserInfo.validateUserInfo(userInfo);
+		String principalId = userInfo.getIndividualGroup().getId();
+		List<Submission> submissions = submissionDAO.getAllByCompetitionAndUser(compId, principalId, limit, offset);
+		long totalNumberOfResults = submissionDAO.getCountByCompetitionAndUser(compId, principalId);
+		QueryResults<Submission> res = new QueryResults<Submission>(submissions, totalNumberOfResults);
+		return res;	
+	}
+	
+	@Override
+	public QueryResults<SubmissionBundle> getAllSubmissionBundlesByCompetitionAndUser(UserInfo userInfo, String compId, long limit, long offset)
+			throws DatastoreException, NotFoundException {
+		QueryResults<Submission> submissions = getAllSubmissionsByCompetitionAndUser(userInfo, compId, limit, offset);
+		return submissionsToSubmissionBundles(submissions);
+	}
+		
 	@Override
 	public long getSubmissionCount(String compId) throws DatastoreException, NotFoundException {
 		CompetitionUtils.ensureNotNull(compId, "Competition ID");
 		return submissionDAO.getCountByCompetition(compId);
+	}
+	
+	protected QueryResults<SubmissionBundle> submissionsToSubmissionBundles(QueryResults<Submission> submissions) throws DatastoreException, NotFoundException {
+		List<SubmissionBundle> bundles = new ArrayList<SubmissionBundle>(submissions.getResults().size());
+		for (Submission sub : submissions.getResults()) {
+			SubmissionBundle bun = new SubmissionBundle();
+			bun.setSubmission(sub);
+			bun.setSubmissionStatus(getSubmissionStatus(sub.getId()));
+			bundles.add(bun);
+		}
+		return new QueryResults<SubmissionBundle>(bundles, submissions.getTotalNumberOfResults());
 	}
 
 }

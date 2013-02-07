@@ -16,7 +16,7 @@ import org.springframework.beans.factory.annotation.Autowired;
  *
  */
 public class TagMessengerImpl implements TagMessenger{
-	
+
 	@Autowired
 	private ETagGenerator eTagGenerator;
 	@Autowired
@@ -61,14 +61,58 @@ public class TagMessengerImpl implements TagMessenger{
 	}
 
 	@Override
-	public void sendMessage(String id, String etag, ObjectType objectType,	ChangeType changeType) {
+	public void sendMessage(String id, String etag, ObjectType objectType,	ChangeType changeType) throws IllegalArgumentException {
+
+		if (id == null) {
+			throw new IllegalArgumentException("id cannot be null");
+		}
+		if (etag == null) {
+			throw new IllegalArgumentException("etag cannot be null");
+		}
+		if (objectType == null) {
+			throw new IllegalArgumentException("objectType cannot be null");
+		}
+		if (changeType == null) {
+			throw new IllegalArgumentException("changeType cannot be null");
+		}
+		if (ObjectType.ENTITY.equals(objectType)) {
+			// TODO: Should use polymorphism instead. This method is only called for File/Wiki types.
+			throw new IllegalArgumentException("ObjectType.ENTITY must set parent ID.");
+		}
+
 		ChangeMessage message = new ChangeMessage();
 		message.setChangeType(changeType);
 		message.setObjectType(objectType);
 		message.setObjectId(id);
 		message.setObjectEtag(etag);
 		transactionalMessanger.sendMessageAfterCommit(message);
-		
 	}
 
+	@Override
+	public void sendMessage(String id, String parentId, String etag, ObjectType objectType,	ChangeType changeType) {
+
+		if (id == null) {
+			throw new IllegalArgumentException("id cannot be null");
+		}
+		if (parentId == null) {
+			throw new IllegalArgumentException("parentId cannot be null");
+		}
+		if (etag == null) {
+			throw new IllegalArgumentException("etag cannot be null");
+		}
+		if (objectType == null) {
+			throw new IllegalArgumentException("objectType cannot be null");
+		}
+		if (changeType == null) {
+			throw new IllegalArgumentException("changeType cannot be null");
+		}
+
+		ChangeMessage message = new ChangeMessage();
+		message.setChangeType(changeType);
+		message.setObjectType(objectType);
+		message.setObjectId(id);
+		message.setParentId(parentId);
+		message.setObjectEtag(etag);
+		transactionalMessanger.sendMessageAfterCommit(message);
+	}
 }

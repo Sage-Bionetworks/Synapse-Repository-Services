@@ -175,16 +175,21 @@ public class SubmissionManagerTest {
 	@Test
 	public void testGetAllSubmissions() throws DatastoreException, UnauthorizedException, NotFoundException {
 		SubmissionStatusEnum statusEnum = SubmissionStatusEnum.CLOSED;
-		submissionManager.getAllSubmissions(ownerInfo, COMP_ID, null);
-		submissionManager.getAllSubmissions(ownerInfo, COMP_ID, statusEnum);
-		verify(mockSubmissionDAO).getAllByCompetition(eq(COMP_ID));
-		verify(mockSubmissionDAO).getAllByCompetitionAndStatus(eq(COMP_ID), eq(statusEnum));
+		submissionManager.getAllSubmissions(ownerInfo, COMP_ID, null, 10, 0);
+		submissionManager.getAllSubmissions(ownerInfo, COMP_ID, statusEnum, 10, 0);
+		verify(mockSubmissionDAO).getAllByCompetition(eq(COMP_ID), anyLong(), anyLong());
+		verify(mockSubmissionDAO).getAllByCompetitionAndStatus(eq(COMP_ID), eq(statusEnum), eq(10L), eq(0L));
+	}
+	
+	@Test(expected = UnauthorizedException.class)
+	public void testGetAllSubmissionsUnauthorized() throws DatastoreException, UnauthorizedException, NotFoundException {
+		submissionManager.getAllSubmissions(ownerInfo, USER_ID, null, 10, 0);
 	}
 	
 	@Test
 	public void testGetAllSubmissionsByUser() throws DatastoreException, NotFoundException {
-		submissionManager.getAllSubmissionsByUser(USER_ID);
-		verify(mockSubmissionDAO).getAllByUser(eq(USER_ID));
+		submissionManager.getAllSubmissionsByUser(USER_ID, 10, 0);
+		verify(mockSubmissionDAO).getAllByUser(eq(USER_ID), eq(10L), eq(0L));
 	}
 	
 	@Test

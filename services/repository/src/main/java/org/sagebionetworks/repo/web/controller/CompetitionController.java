@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.web.controller;
 
-import java.util.List;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.competition.model.Competition;
@@ -8,6 +10,7 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
+import org.sagebionetworks.competition.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -90,9 +93,10 @@ public class CompetitionController extends BaseController {
 	Competition findCompetition(
 			@PathVariable String name,
 			HttpServletRequest request
-			) throws DatastoreException, UnauthorizedException, NotFoundException 
+			) throws DatastoreException, UnauthorizedException, NotFoundException, UnsupportedEncodingException 
 	{
-		return serviceProvider.getCompetitionService().findCompetition(name);
+		String decodedName = URLDecoder.decode(name, "UTF-8");
+		return serviceProvider.getCompetitionService().findCompetition(decodedName);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -176,25 +180,17 @@ public class CompetitionController extends BaseController {
 		serviceProvider.getCompetitionService().removeParticipant(userId, compId, partId);
 	}
 	
-	// TODO: Add pagination support
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.PARTICIPANT, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Participant> getAllParticipants(
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@PathVariable String compId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		List<Participant> parts = serviceProvider.getCompetitionService().getAllParticipants(compId);
-		return new PaginatedResults<Participant>(
-				request.getServletPath() + UrlHelpers.PARTICIPANT,
-				parts,
-				parts.size(),
-				0,
-				0,
-				"",
-				null
-			);
+		return serviceProvider.getCompetitionService().getAllParticipants(compId, limit, offset, request);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -273,12 +269,13 @@ public class CompetitionController extends BaseController {
 		serviceProvider.getCompetitionService().deleteSubmission(userId, subId);
 	}
 	
-	// TODO: Add pagination support
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_COMP_ID, method = RequestMethod.GET)
+	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_COMP_ID_ADMIN, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<Submission> getAllSubmissions(
 			@PathVariable String compId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
 			HttpServletRequest request
@@ -287,18 +284,55 @@ public class CompetitionController extends BaseController {
 		SubmissionStatusEnum status = null;
 		if (statusString.length() > 0) {
 			status = SubmissionStatusEnum.valueOf(statusString.toUpperCase().trim());
-		}
-		
-		List<Submission> subs = serviceProvider.getCompetitionService().getAllSubmissions(userId, compId, status);
-		return new PaginatedResults<Submission>(
-				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_COMP_ID,
-				subs,
-				subs.size(),
-				0,
-				0,
-				"",
-				null
-			);
+		}		
+		return serviceProvider.getCompetitionService().getAllSubmissions(userId, compId, status, offset, limit, request);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_COMP_ID_ADMIN_BUNDLE, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<SubmissionBundle> getAllSubmissionBundles(
+			@PathVariable String compId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException 
+	{
+		SubmissionStatusEnum status = null;
+		if (statusString.length() > 0) {
+			status = SubmissionStatusEnum.valueOf(statusString.toUpperCase().trim());
+		}		
+		return serviceProvider.getCompetitionService().getAllSubmissionBundles(userId, compId, status, offset, limit, request);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_COMP_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<Submission> getMySubmissions(
+			@PathVariable String compId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException 
+	{
+		return serviceProvider.getCompetitionService().getAllSubmissionsByCompetitionAndUser(compId, userId, limit, offset, request);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_COMP_ID_BUNDLE, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<SubmissionBundle> getMySubmissionBundles(
+			@PathVariable String compId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException 
+	{
+		return serviceProvider.getCompetitionService().getAllSubmissionBundlesByCompetitionAndUser(compId, userId, limit, offset, request);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)

@@ -4,7 +4,7 @@
 	"properties": {
 		"id": {
 			"type": "string",
-			"description": "The unique, immutable Synapse ID of this Submission.",
+			"description": "The unique, immutable Synapse ID of the Submission.",
 			"transient": true
 		},
 		"etag": {
@@ -14,7 +14,7 @@
 		"modifiedOn": {
 			"type": "string",
 			"format": "date-time",
-			"description": "The date on which Submission was created.",
+			"description": "The date on which the status was last modified.",
 			"title": "Created On",
 			"transient": true
 		},
@@ -28,6 +28,13 @@
 			"type": "number",
 			"description": "The score for this Submission.",
 			"title": "Score",
+			"transient": true
+		}
+		,
+		"report": {
+			"type": "string",
+			"description": "A textual report describing this Submission. May contain additional scoring information, error logs, etc.",
+			"title": "Report",
 			"transient": true
 		}
 	}

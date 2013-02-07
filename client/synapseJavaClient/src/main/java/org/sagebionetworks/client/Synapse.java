@@ -4,6 +4,7 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -24,11 +25,14 @@ import java.util.Set;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
 import org.apache.http.Header;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.util.EntityUtils;
+import org.apache.http.entity.FileEntity;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.FileBody;
 import org.apache.log4j.Logger;
@@ -43,6 +47,12 @@ import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.competition.model.Competition;
+import org.sagebionetworks.competition.model.Participant;
+import org.sagebionetworks.competition.model.Submission;
+import org.sagebionetworks.competition.model.SubmissionStatus;
+import org.sagebionetworks.competition.model.SubmissionStatusEnum;
+import org.sagebionetworks.competition.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -79,8 +89,10 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.model.search.SearchResults;
@@ -88,6 +100,8 @@ import org.sagebionetworks.repo.model.search.query.SearchQuery;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.model.versionInfo.SynapseVersionInfo;
+import org.sagebionetworks.repo.model.wiki.WikiHeader;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -101,8 +115,6 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  * Low-level Java Client API for Synapse REST APIs
  */
 public class Synapse {
-
-
 
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
@@ -138,6 +150,26 @@ public class Synapse {
 	protected static final String BUNDLE = "/bundle";
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 	protected static final String ACTIVITY_URI_PATH = "/activity";
+	
+	protected static final String WIKI_URI_TEMPLATE = "/%1$s/%2$s/wiki";
+	protected static final String WIKI_ID_URI_TEMPLATE = "/%1$s/%2$s/wiki/%3$s";
+	protected static final String WIKI_TREE_URI_TEMPLATE = "/%1$s/%2$s/wikiheadertree";
+	protected static final String ATTACHMENT_HANDLES = "/attachmenthandles";
+	protected static final String ATTACHMENT_FILE = "/attachment";
+	protected static final String ATTACHMENT_FILE_PREVIEW = "/attachmentpreview";
+	protected static final String FILE_NAME_PARAMETER = "?fileName=";
+	
+	protected static final String COMPETITION_URI_PATH = "/competition";
+	protected static final String COUNT = "count";
+	protected static final String NAME = "name";
+	protected static final String ALL = "/all";
+	protected static final String PARTICIPANT = "participant";
+	protected static final String SUBMISSION = "submission";
+	protected static final String SUBMISSION_BUNDLE = SUBMISSION + BUNDLE;
+	protected static final String SUBMISSION_ALL = SUBMISSION + ALL;
+	protected static final String SUBMISSION_ALL_BUNDLE = SUBMISSION + BUNDLE + ALL;
+	protected static final String STATUS = "status";
+	protected static final String STATUS_SUFFIX = "?status=";
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
 	
@@ -1025,8 +1057,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	@SuppressWarnings("cast")
-	public <T extends JSONEntity> T getEntity(String entityId,
-			Class<? extends T> clazz) throws SynapseException {
+	public <T extends JSONEntity> T getEntity(String entityId, Class<? extends T> clazz) throws SynapseException {
 		if (entityId == null)
 			throw new IllegalArgumentException("EntityId cannot be null");
 		if (clazz == null)
@@ -1176,6 +1207,17 @@ public class Synapse {
 			throws SynapseException {
 		return putJSONObject(repoEndpoint, uri, entity, headers);
 	}
+	
+	/**
+	 * Create a dataset, layer, etc..
+	 * 
+	 * @param uri
+	 * @throws SynapseException
+	 */
+	public JSONObject postUri(String uri) throws SynapseException {
+		return postUri(repoEndpoint, uri);
+	}
+
 
 	/**
 	 * Delete a dataset, layer, etc..
@@ -1439,7 +1481,196 @@ public class Synapse {
 			is.close();
 		}
 	}
+	
+	/**
+	 * 
+	 * Create a wiki page for a given owner object.
+	 * 
+	 * @param ownerId
+	 * @param ownerType
+	 * @param toCreate
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public WikiPage createWikiPage(String ownerId, ObjectType ownerType, WikiPage toCreate) throws JSONObjectAdapterException, SynapseException{
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+		if(toCreate == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		String uri = createWikiURL(ownerId, ownerType);
+		return createJSONEntity(getRepoEndpoint(), uri, toCreate);
+	}
 
+	/**
+	 * Helper to create a wiki URL that does not include the wiki id.
+	 * @param ownerId
+	 * @param ownerType
+	 * @return
+	 */
+	private String createWikiURL(String ownerId, ObjectType ownerType) {
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+		return String.format(WIKI_URI_TEMPLATE, ownerType.name().toLowerCase(), ownerId);
+	}
+
+	/**
+	 * Get a WikiPage using its key
+	 * @param key
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public WikiPage getWikiPage(WikiPageKey key) throws JSONObjectAdapterException, SynapseException{
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = createWikiURL(key);
+		return getJSONEntity(getRepoEndpoint(), uri, WikiPage.class);
+	}
+	
+	/**
+	 * Get all of the FileHandles associated with a WikiPage, including any PreviewHandles.
+	 * @param key
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	public FileHandleResults getWikiAttachmenthHandles(WikiPageKey key) throws JSONObjectAdapterException, SynapseException{
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = createWikiURL(key)+ATTACHMENT_HANDLES;
+		return getJSONEntity(getRepoEndpoint(), uri, FileHandleResults.class);
+	}
+	
+	/**
+	 * 
+	 * @param key - Identifies a wiki page.
+	 * @param fileName - The name of the attachment file.
+	 * @return
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 */
+	public File downloadWikiAttachment(WikiPageKey key, String fileName) throws ClientProtocolException, IOException{
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = createWikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName;
+		return downloadFile(getRepoEndpoint(), uri);	
+	}
+
+	/**
+	 * Download the preview of a wiki attachment file.
+	 * @param key - Identifies a wiki page.
+	 * @param fileName - The name of the original attachment file that you want to downlaod a preview for.
+	 * @return
+	 * @throws IOException 
+	 * @throws FileNotFoundException 
+	 * @throws ClientProtocolException 
+	 */
+	public File downloadWikiAttachmentPreview(WikiPageKey key, String fileName) throws ClientProtocolException, FileNotFoundException, IOException{
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = createWikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName;
+		return downloadFile(getRepoEndpoint(), uri);	
+	}
+	/**
+	 * Download the file at the given URL.
+	 * @param uri
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws FileNotFoundException
+	 */
+	private File downloadFile(String endpoint, String uri) throws ClientProtocolException, IOException, FileNotFoundException {
+		HttpGet get = new HttpGet(endpoint+uri);
+		// Add the headers
+		for(String headerKey: this.defaultGETDELETEHeaders.keySet()){
+			String value = this.defaultGETDELETEHeaders.get(headerKey);
+			get.setHeader(headerKey, value);
+		}
+		// Add the header that sets the content type and the boundary
+		HttpResponse response = clientProvider.execute(get);
+		HttpEntity entity = response.getEntity();
+		InputStream input = entity.getContent();
+		File temp = File.createTempFile("downloadWikiAttachment", ".tmp");
+		FileOutputStream fos = new FileOutputStream(temp);
+		try{
+			byte[] buffer = new byte[1024]; 
+			int read = -1;
+			while((read = input.read(buffer)) > 0){
+				fos.write(buffer, 0, read);
+			}
+			return temp;
+		}finally{
+			if(fos != null){
+				fos.flush();
+				fos.close();
+			}
+			if(input != null){
+				input.close();
+			}
+		}
+	}
+		
+	/**
+	 * Update a WikiPage
+	 * @param ownerId
+	 * @param ownerType
+	 * @param toUpdate
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	public WikiPage updateWikiPage(String ownerId, ObjectType ownerType, WikiPage toUpdate) throws JSONObjectAdapterException, SynapseException{
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+		if(toUpdate == null) throw new IllegalArgumentException("WikiPage cannot be null");
+		if(toUpdate.getId() == null) throw new IllegalArgumentException("WikiPage.getId() cannot be null");
+		String uri = String.format(WIKI_ID_URI_TEMPLATE, ownerType.name().toLowerCase(), ownerId, toUpdate.getId());
+		return updateJSONEntity(getRepoEndpoint(), uri, toUpdate);
+	}
+	
+	/**
+	 * Delete a WikiPage
+	 * @param key
+	 * @throws SynapseException
+	 */
+	public void deleteWikiPage(WikiPageKey key) throws SynapseException{
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = createWikiURL(key);
+		deleteUri(getRepoEndpoint(), uri);
+	}
+	
+	/**
+	 * Helper to build a URL for a wiki page.
+	 * @param key
+	 * @return
+	 */
+	private String createWikiURL(WikiPageKey key) {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		return String.format(WIKI_ID_URI_TEMPLATE, key.getOwnerObjectType().name().toLowerCase(), key.getOwnerObjectId(), key.getWikiPageId());
+	}
+	
+	/**
+	 * Get the WikiHeader tree for a given owner object.
+	 * @param ownerId
+	 * @param ownerType
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public PaginatedResults<WikiHeader> getWikiHeaderTree(String ownerId, ObjectType ownerType) throws SynapseException, JSONObjectAdapterException{
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+		String uri = String.format(WIKI_TREE_URI_TEMPLATE, ownerType.name().toLowerCase(), ownerId);
+		Map<String, String> requestHeaders = new HashMap<String, String>();
+		requestHeaders.putAll(defaultGETDELETEHeaders);
+		JSONObject object = signAndDispatchSynapseRequest(getRepoEndpoint(), uri, "GET", null,requestHeaders);
+		PaginatedResults<WikiHeader> paginated = new PaginatedResults<WikiHeader>(WikiHeader.class);
+		paginated.initializeFromJSONObject(new JSONObjectAdapterImpl(object));
+		return paginated;
+	}
+
+	
+	
 	/**
 	 * Download the locationable to a tempfile
 	 * 
@@ -1448,6 +1679,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws SynapseUserException
 	 */
+	@Deprecated
 	public File downloadLocationableFromSynapse(Locationable locationable)
 			throws SynapseException {
 		// TODO do the equivalent of the R client synapse cache and file naming
@@ -1476,6 +1708,7 @@ public class Synapse {
 	 * @return destination file
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	public File downloadLocationableFromSynapse(Locationable locationable,
 			File destinationFile) throws SynapseException {
 		List<LocationData> locations = locationable.getLocations();
@@ -1504,11 +1737,13 @@ public class Synapse {
 	 * @return destination file
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	public File downloadFromSynapse(LocationData location, String md5,
 			File destinationFile) throws SynapseException {
 		return downloadFromSynapse(location.getPath(), md5, destinationFile);
 	}
 	
+	@Deprecated
 	public File downloadFromSynapse(String path, String md5,
 				File destinationFile) throws SynapseException {
 		try {
@@ -1541,6 +1776,7 @@ public class Synapse {
 	 * @return the updated locationable
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	public Locationable uploadLocationableToSynapse(Locationable locationable,
 			File dataFile) throws SynapseException {
 
@@ -1565,6 +1801,7 @@ public class Synapse {
 	 * @return the updated locationable
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	public Locationable uploadLocationableToSynapse(Locationable locationable,
 			File dataFile, String md5) throws SynapseException {
 
@@ -1602,6 +1839,7 @@ public class Synapse {
 	 * @return the updated locationable
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
 			String externalUrl) throws SynapseException {
 		return updateExternalLocationableToSynapse(locationable, externalUrl, null);
@@ -1615,6 +1853,7 @@ public class Synapse {
 	 * @return the updated locationable
 	 * @throws SynapseException
 	 */
+	@Deprecated
 	public Locationable updateExternalLocationableToSynapse(Locationable locationable,
 			String externalUrl, String md5) throws SynapseException {
 		// set the upload location in the locationable so that Synapse
@@ -1638,6 +1877,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws IOException
 	 */
+	@Deprecated
 	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile) throws JSONObjectAdapterException, SynapseException, IOException{
 		return uploadAttachmentToSynapse(entityId, dataFile, dataFile.getName());
 	}
@@ -1653,6 +1893,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws IOException 
 	 */
+	@Deprecated
 	public AttachmentData uploadAttachmentToSynapse(String entityId, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
 		return uploadAttachmentToSynapse(entityId, AttachmentType.ENTITY, dataFile, fileName);
 	}
@@ -1667,6 +1908,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws IOException 
 	 */	
+	@Deprecated
 	public AttachmentData uploadUserProfileAttachmentToSynapse(String userId, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
 		return uploadAttachmentToSynapse(userId, AttachmentType.USER_PROFILE, dataFile, fileName);
 	}
@@ -1682,6 +1924,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws IOException 
 	 */	
+	@Deprecated
 	public AttachmentData uploadAttachmentToSynapse(String id, AttachmentType attachmentType, File dataFile, String fileName) throws JSONObjectAdapterException, SynapseException, IOException{
 		// First we need to get an S3 token
 		S3AttachmentToken token = new S3AttachmentToken();
@@ -1711,6 +1954,7 @@ public class Synapse {
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
+	@Deprecated
 	public PresignedUrl createAttachmentPresignedUrl(String id, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
 		return createAttachmentPresignedUrl(id, AttachmentType.ENTITY, tokenOrPreviewId);
 	}
@@ -1723,6 +1967,7 @@ public class Synapse {
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
+	@Deprecated
 	public PresignedUrl createUserProfileAttachmentPresignedUrl(String id, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
 		return createAttachmentPresignedUrl(id, AttachmentType.USER_PROFILE, tokenOrPreviewId);
 	}
@@ -1736,6 +1981,7 @@ public class Synapse {
 	 * @throws SynapseException 
 	 * @throws JSONObjectAdapterException 
 	 */
+	@Deprecated
 	public PresignedUrl createAttachmentPresignedUrl(String id, AttachmentType attachmentType, String tokenOrPreviewId) throws SynapseException, JSONObjectAdapterException{
 		String url = getAttachmentTypeURL(attachmentType)+"/"+id+ATTACHMENT_URL;
 		PresignedUrl preIn = new PresignedUrl();
@@ -1756,6 +2002,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
+	@Deprecated
 	public PresignedUrl waitForPreviewToBeCreated(String entityId, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
 		return waitForPreviewToBeCreated(entityId, AttachmentType.ENTITY, tokenOrPreviewId, timeout);
 	}
@@ -1768,6 +2015,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
+	@Deprecated
 	public PresignedUrl waitForUserProfilePreviewToBeCreated(String userId, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
 		return waitForPreviewToBeCreated(userId, AttachmentType.USER_PROFILE, tokenOrPreviewId, timeout);
 	}
@@ -1781,6 +2029,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
+	@Deprecated
 	public PresignedUrl waitForPreviewToBeCreated(String id, AttachmentType type, String tokenOrPreviewId, int timeout) throws SynapseException, JSONObjectAdapterException{
 		long start = System.currentTimeMillis();
 		PresignedUrl url = createAttachmentPresignedUrl(id, type, tokenOrPreviewId);
@@ -1809,6 +2058,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
+	@Deprecated
 	public void downloadEntityAttachment(String entityId, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
 		downloadAttachment(entityId, AttachmentType.ENTITY, attachmentData, destFile);
 	}
@@ -1821,6 +2071,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
+	@Deprecated
 	public void downloadUserProfileAttachment(String userId, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
 		downloadAttachment(userId, AttachmentType.USER_PROFILE, attachmentData, destFile);
 	}
@@ -1833,6 +2084,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
+	@Deprecated
 	public void downloadAttachment(String id, AttachmentType type, AttachmentData attachmentData, File destFile) throws SynapseException, JSONObjectAdapterException{
 		// First get the URL
 		String url = null;
@@ -1856,6 +2108,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
+	@Deprecated
 	public void downloadEntityAttachmentPreview(String entityId, String previewId, File destFile) throws SynapseException, JSONObjectAdapterException{
 		downloadAttachmentPreview(entityId, AttachmentType.ENTITY, previewId, destFile);
 	}
@@ -1868,6 +2121,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
+	@Deprecated
 	public void downloadUserProfileAttachmentPreview(String userId, String previewId, File destFile) throws SynapseException, JSONObjectAdapterException{
 		downloadAttachmentPreview(userId, AttachmentType.USER_PROFILE, previewId, destFile);
 	}
@@ -1881,6 +2135,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 * @throws JSONObjectAdapterException
 	 */
+	@Deprecated
 	public void downloadAttachmentPreview(String id, AttachmentType type, String previewId, File destFile) throws SynapseException, JSONObjectAdapterException{
 		// First get the URL
 		String url = null;
@@ -1898,6 +2153,7 @@ public class Synapse {
 	 * @throws JSONObjectAdapterException
 	 * @throws SynapseException 
 	 */
+	@Deprecated
 	public S3AttachmentToken createAttachmentS3Token(String id, ServiceConstants.AttachmentType attachmentType, S3AttachmentToken token) throws JSONObjectAdapterException, SynapseException{
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		if(token == null) throw new IllegalArgumentException("S3AttachmentToken cannot be null");
@@ -1970,6 +2226,85 @@ public class Synapse {
 
 		return signAndDispatchSynapseRequest(endpoint, uri, "POST", entity.toString(),
 				headers);
+	}
+	
+	/**
+	 * Create any JSONEntity
+	 * @param endpoint
+	 * @param uri
+	 * @param entity
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException 
+	 */
+	@SuppressWarnings("unchecked")
+	protected <T extends JSONEntity> T createJSONEntity (String endpoint, String uri, T entity) throws JSONObjectAdapterException, SynapseException{
+		if (null == endpoint) {
+			throw new IllegalArgumentException("must provide endpoint");
+		}
+		if (null == uri) {
+			throw new IllegalArgumentException("must provide uri");
+		}
+		if (null == entity) {
+			throw new IllegalArgumentException("must provide entity");
+		}
+		Map<String,String> headers = new HashMap<String, String>();
+		if(defaultPOSTPUTHeaders != null) headers.putAll(defaultPOSTPUTHeaders);
+		String postJSON = EntityFactory.createJSONStringForEntity(entity);
+		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "POST", postJSON,	headers);
+		return (T) EntityFactory.createEntityFromJSONObject(jsonObject, entity.getClass());
+	}
+	
+	/**
+	 * Update any JSONEntity
+	 * @param endpoint
+	 * @param uri
+	 * @param entity
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	@SuppressWarnings("unchecked")
+	protected <T extends JSONEntity> T updateJSONEntity(String endpoint, String uri, T entity) throws JSONObjectAdapterException, SynapseException{
+		if (null == endpoint) {
+			throw new IllegalArgumentException("must provide endpoint");
+		}
+		if (null == uri) {
+			throw new IllegalArgumentException("must provide uri");
+		}
+		if (null == entity) {
+			throw new IllegalArgumentException("must provide entity");
+		}
+		Map<String,String> headers = new HashMap<String, String>();
+		if(defaultPOSTPUTHeaders != null) headers.putAll(defaultPOSTPUTHeaders);
+		String postJSON = EntityFactory.createJSONStringForEntity(entity);
+		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "PUT", postJSON,	headers);
+		return (T) EntityFactory.createEntityFromJSONObject(jsonObject, entity.getClass());
+	}
+	
+	/**
+	 * Get a JSONEntity.
+	 * @param endpoint
+	 * @param uri
+	 * @param clazz
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	protected <T extends JSONEntity> T getJSONEntity(String endpoint, String uri, Class<? extends T> clazz) throws JSONObjectAdapterException, SynapseException{
+		if (null == endpoint) {
+			throw new IllegalArgumentException("must provide endpoint");
+		}
+		if (null == uri) {
+			throw new IllegalArgumentException("must provide uri");
+		}
+		if (null == clazz) {
+			throw new IllegalArgumentException("must provide entity");
+		}
+		Map<String,String> headers = new HashMap<String, String>();
+		if(defaultPOSTPUTHeaders != null) headers.putAll(defaultGETDELETEHeaders);;
+		JSONObject jsonObject = signAndDispatchSynapseRequest(endpoint, uri, "GET", null, headers);
+		return (T) EntityFactory.createEntityFromJSONObject(jsonObject, clazz);
 	}
 
 	/**
@@ -2069,6 +2404,18 @@ public class Synapse {
 			requestHeaders.putAll(defaultPOSTPUTHeaders);
 			return signAndDispatchSynapseRequest(endpoint, uri, "PUT", 
 					entity.toString(), requestHeaders);
+	}
+	
+	/**
+	 * Call Create on any URI
+	 * 
+	 * @param endpoint
+	 * @param uri
+	 * @throws SynapseException
+	 */
+	public JSONObject postUri(String endpoint, String uri) throws SynapseException {
+		if (null == uri) throw new IllegalArgumentException("must provide uri");		
+		return signAndDispatchSynapseRequest(endpoint, uri, "POST", null, defaultPOSTPUTHeaders);
 	}
 
 	/**
@@ -2633,5 +2980,313 @@ public class Synapse {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
+	}
+	
+	public Competition createCompetition(Competition comp) throws SynapseException {
+		String uri = COMPETITION_URI_PATH;
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(comp);
+			jsonObj = createJSONObject(uri, jsonObj);
+			return initializeFromJSONObject(jsonObj, Competition.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public Competition getCompetition(String compId) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String url = createEntityUri(COMPETITION_URI_PATH, compId);		
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			return new Competition(adapter);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+	
+	public PaginatedResults<Competition> getCompetitionsPaginated(int offset, int limit) throws SynapseException {
+		String url = COMPETITION_URI_PATH +	"?" + OFFSET + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Competition> results = new PaginatedResults<Competition>(Competition.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public Long getCompetitionCount() throws SynapseException {
+		PaginatedResults<Competition> res = getCompetitionsPaginated(0,0);
+		return res.getTotalNumberOfResults();
+	}
+	
+	public Competition findCompetition(String name) throws SynapseException, UnsupportedEncodingException {
+		if (name == null) throw new IllegalArgumentException("Competition name cannot be null");
+		String encodedName = URLEncoder.encode(name, "UTF-8");
+		String url = COMPETITION_URI_PATH + "/" + NAME + "/" + encodedName;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			return new Competition(adapter);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+	
+	public Competition updateCompetition(Competition comp) throws SynapseException {
+		if (comp == null) throw new IllegalArgumentException("Competition can not be null");
+		String url = createEntityUri(COMPETITION_URI_PATH, comp.getId());		
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		JSONObject obj;
+		try {
+			obj = new JSONObject(comp.writeToJSONObject(toUpdateAdapter).toJSONString());
+			JSONObject jsonObj = putJSONObject(url, obj, new HashMap<String,String>());
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			return new Competition(adapter);
+		} catch (JSONException e1) {
+			throw new RuntimeException(e1);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+	
+	public void deleteCompetition(String compId) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String uri = createEntityUri(COMPETITION_URI_PATH, compId);
+		deleteUri(uri);
+	}
+	
+	/**
+	 * Adds the authenticated user as a Participant in Competition compId
+	 */
+	public Participant createParticipant(String compId) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String uri = createEntityUri(COMPETITION_URI_PATH, compId) + "/" + PARTICIPANT;
+		JSONObject jsonObj = postUri(uri);
+		return initializeFromJSONObject(jsonObj, Participant.class);
+	}
+	
+	/**
+	 * Adds a separate user as a Participant in Competition compId.
+	 */
+	public Participant createParticipantAsAdmin(String compId, String participantPrincipalId) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String uri = createEntityUri(COMPETITION_URI_PATH, compId) + "/" + PARTICIPANT
+				+ "/" + participantPrincipalId;
+		JSONObject jsonObj = postUri(uri);
+		return initializeFromJSONObject(jsonObj, Participant.class);
+	}
+	
+	public Participant getParticipant(String compId, String principalId) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		if (principalId == null) throw new IllegalArgumentException("Principal ID cannot be null");
+		String uri = createEntityUri(COMPETITION_URI_PATH, compId) + "/" + PARTICIPANT
+				+ "/" + principalId;		
+		JSONObject jsonObj = getEntity(uri);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			return new Participant(adapter);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+	
+	/**
+	 * Removes user principalId from Competition compId.
+	 */
+	public void deleteParticipant(String compId, String principalId) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		if (principalId == null) throw new IllegalArgumentException("Principal ID cannot be null");
+		String uri = createEntityUri(COMPETITION_URI_PATH, compId) + "/" + PARTICIPANT
+				+ "/" + principalId;
+		deleteUri(uri);
+	}
+	
+	public PaginatedResults<Participant> getAllParticipants(String compId, long limit, long offset) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + PARTICIPANT +
+				"?" + OFFSET + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Participant> results = new PaginatedResults<Participant>(Participant.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public Long getParticipantCount(String compId) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		PaginatedResults<Participant> res = getAllParticipants(compId, 0, 0);
+		return res.getTotalNumberOfResults();
+	}
+	
+	public Submission createSubmission(Submission sub) throws SynapseException {
+		String uri = COMPETITION_URI_PATH + "/" + SUBMISSION;
+		try {
+			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(sub);
+			jsonObj = createJSONObject(uri, jsonObj);
+			return initializeFromJSONObject(jsonObj, Submission.class);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public Submission getSubmission(String subId) throws SynapseException {
+		if (subId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String url = COMPETITION_URI_PATH + "/" + SUBMISSION + "/" + subId;		
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			return new Submission(adapter);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+	
+	public SubmissionStatus getSubmissionStatus(String subId) throws SynapseException {
+		if (subId == null) throw new IllegalArgumentException("Submission id cannot be null");
+		String url = COMPETITION_URI_PATH + "/" + SUBMISSION + "/" + subId + "/" + STATUS;		
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			return new SubmissionStatus(adapter);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+	
+	public SubmissionStatus updateSubmissionStatus(SubmissionStatus status) throws SynapseException {
+		if (status == null) throw new IllegalArgumentException("SubmissionStatus  cannot be null");
+		String url = COMPETITION_URI_PATH + "/" + SUBMISSION + "/" + status.getId() + "/" + STATUS;			
+		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
+		JSONObject obj;
+		try {
+			obj = new JSONObject(status.writeToJSONObject(toUpdateAdapter).toJSONString());
+			JSONObject jsonObj = putJSONObject(url, obj, new HashMap<String,String>());
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			return new SubmissionStatus(adapter);
+		} catch (JSONException e1) {
+			throw new RuntimeException(e1);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+	
+	public void deleteSubmission(String subId) throws SynapseException {
+		if (subId == null) throw new IllegalArgumentException("Submission id cannot be null");
+		String uri = COMPETITION_URI_PATH + "/" + SUBMISSION + "/" + subId;			
+		deleteUri(uri);
+	}
+	
+	public PaginatedResults<Submission> getAllSubmissions(String compId, long limit, long offset) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + SUBMISSION_ALL +
+				"?offset" + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Submission> results = new PaginatedResults<Submission>(Submission.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundles(String compId, long limit, long offset) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + SUBMISSION_ALL_BUNDLE +
+				"?offset" + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<SubmissionBundle> results = new PaginatedResults<SubmissionBundle>(SubmissionBundle.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public PaginatedResults<Submission> getAllSubmissionsByStatus(
+			String compId, SubmissionStatusEnum status, long limit, long offset) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + SUBMISSION_ALL + 
+				STATUS_SUFFIX + status.toString() + "&offset=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Submission> results = new PaginatedResults<Submission>(Submission.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByStatus(
+			String compId, SubmissionStatusEnum status, long limit, long offset) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + SUBMISSION_ALL_BUNDLE + 
+				STATUS_SUFFIX + status.toString() + "&offset=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<SubmissionBundle> results = new PaginatedResults<SubmissionBundle>(SubmissionBundle.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public PaginatedResults<Submission> getMySubmissions(String compId, long limit, long offset) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + SUBMISSION +
+				"?offset" + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Submission> results = new PaginatedResults<Submission>(Submission.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	public PaginatedResults<SubmissionBundle> getMySubmissionBundles(String compId, long limit, long offset) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		String url = COMPETITION_URI_PATH +	"/" + compId + "/" + SUBMISSION_BUNDLE +
+				"?offset" + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<SubmissionBundle> results = new PaginatedResults<SubmissionBundle>(SubmissionBundle.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}	
+	
+	public Long getSubmissionCount(String compId) throws SynapseException {
+		if (compId == null) throw new IllegalArgumentException("Competition id cannot be null");
+		PaginatedResults<Submission> res = getAllSubmissions(compId, 0, 0);
+		return res.getTotalNumberOfResults();
 	}
 }

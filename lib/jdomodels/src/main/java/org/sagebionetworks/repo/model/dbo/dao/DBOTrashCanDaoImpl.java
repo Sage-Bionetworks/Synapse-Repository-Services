@@ -7,13 +7,15 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
 
 import java.sql.Timestamp;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOTrash;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOTrashedEntity;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
@@ -25,6 +27,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 
+	private static final String SELECT_COUNT_FOR_USER =
+			"SELECT COUNT("+ COL_TRASH_CAN_NODE_ID + ") FROM " + TABLE_TRASH_CAN
+			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY;
+
 	private static final String SELECT_TRASH_FOR_USER =
 			"SELECT * FROM " + TABLE_TRASH_CAN
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY
@@ -35,7 +41,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY
 			+ " AND " + COL_TRASH_CAN_NODE_ID + " = :" + COL_TRASH_CAN_NODE_ID;
 
-	private static final RowMapper<DBOTrash> rowMapper = (new DBOTrash()).getTableMapping();
+	private static final RowMapper<DBOTrashedEntity> rowMapper = (new DBOTrashedEntity()).getTableMapping();
 	private static final RowMapper<Long> idRowMapper = ParameterizedSingleColumnRowMapper.newInstance(Long.class);
 
 	@Autowired
@@ -46,7 +52,45 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void create(Long userGroupId, Long nodeId) throws DatastoreException {
+	public void create(String userGroupId, String nodeId, String parentId) throws DatastoreException {
+
+		if (userGroupId == null) {
+			throw new IllegalArgumentException("userGroupId cannot be null.");
+		}
+		if (nodeId == null) {
+			throw new IllegalArgumentException("nodeId cannot be null.");
+		}
+		if (parentId == null) {
+			throw new IllegalArgumentException("parentId cannot be null.");
+		}
+
+		DBOTrashedEntity dbo = new DBOTrashedEntity();
+		dbo.setNodeId(KeyFactory.stringToKey(nodeId));
+		dbo.setDeletedBy(KeyFactory.stringToKey(userGroupId));
+		DateTime dt = DateTime.now();
+		// MySQL TIMESTAMP only keeps seconds (not ms) so for consistency we only write seconds
+		long nowInSeconds = dt.getMillis() - dt.getMillisOfSecond();
+		Timestamp ts = new Timestamp(nowInSeconds);
+		dbo.setDeletedOn(ts);
+		dbo.setParentId(KeyFactory.stringToKey(parentId));
+		this.basicDao.createNew(dbo);
+	}
+
+	@Override
+	public int getCount(String userGroupId) throws DatastoreException {
+
+		if (userGroupId == null) {
+			throw new IllegalArgumentException("userGroupId cannot be null");
+		}
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();;
+		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, KeyFactory.stringToKey(userGroupId));
+		Long count = simpleJdbcTemplate.queryForLong(SELECT_COUNT_FOR_USER, paramMap);
+		return count.intValue();
+	}
+
+	@Override
+	public boolean exists(String userGroupId, String nodeId) throws DatastoreException {
 
 		if (userGroupId == null) {
 			throw new IllegalArgumentException("userGroupId cannot be null.");
@@ -55,19 +99,12 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 			throw new IllegalArgumentException("nodeId cannot be null.");
 		}
 
-		DBOTrash dbo = new DBOTrash();
-		dbo.setNodeId(nodeId);
-		dbo.setDeletedBy(userGroupId);
-		DateTime dt = DateTime.now();
-		// MySQL TIMESTAMP only keeps seconds (not ms) so for consistency we only write seconds
-		long nowInSeconds = dt.getMillis() - dt.getMillisOfSecond();
-		Timestamp ts = new Timestamp(nowInSeconds);
-		dbo.setDeletedOn(ts);
-		this.basicDao.createNew(dbo);
+		List<Long> idList = getNodeList(KeyFactory.stringToKey(userGroupId), KeyFactory.stringToKey(nodeId));
+		return (idList != null && idList.size() > 0);
 	}
 
 	@Override
-	public List<DBOTrash> getInRangeForUser(Long userGroupId, long offset,
+	public List<TrashedEntity> getInRangeForUser(String userGroupId, long offset,
 			long limit) throws DatastoreException {
 
 		if (userGroupId == null) {
@@ -83,14 +120,14 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(OFFSET_PARAM_NAME, offset);
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
-		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
-		List<DBOTrash> trashList = simpleJdbcTemplate.query(SELECT_TRASH_FOR_USER, rowMapper, paramMap);
-		return Collections.unmodifiableList(trashList);
+		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, KeyFactory.stringToKey(userGroupId));
+		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH_FOR_USER, rowMapper, paramMap);
+		return convertDboToDto(trashList);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void delete(Long userGroupId, Long nodeId)
+	public void delete(String userGroupId, String nodeId)
 			throws DatastoreException, NotFoundException {
 
 		if (userGroupId == null) {
@@ -101,14 +138,36 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		}
 
 		// SELECT then DELETE avoid deadlocks caused by gap locks
+		List<Long> idList = getNodeList(KeyFactory.stringToKey(userGroupId), KeyFactory.stringToKey(nodeId));
+		for (Long id : idList) {
+			MapSqlParameterSource params = new MapSqlParameterSource();
+			params.addValue("nodeId", id);
+			basicDao.deleteObjectById(DBOTrashedEntity.class, params);
+		}
+	}
+
+	private List<Long> getNodeList(Long userGroupId, Long nodeId) {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
 		paramMap.addValue(COL_TRASH_CAN_NODE_ID, nodeId);
 		List<Long> idList = simpleJdbcTemplate.query(SELECT_TRASH_BY_NODE_ID, idRowMapper, paramMap);
-		for (Long id : idList) {
-			MapSqlParameterSource params = new MapSqlParameterSource();
-			params.addValue("nodeId", id);
-			basicDao.deleteObjectById(DBOTrash.class, params);
+		return idList;
+	}
+
+	private List<TrashedEntity> convertDboToDto(List<DBOTrashedEntity> dboList) {
+		List<TrashedEntity> trashList = new ArrayList<TrashedEntity>(dboList.size());
+		for (DBOTrashedEntity dbo : dboList) {
+			trashList.add(convertDboToDto(dbo));
 		}
+		return trashList;
+	}
+
+	private TrashedEntity convertDboToDto(DBOTrashedEntity dbo) {
+		TrashedEntity trash = new TrashedEntity();
+		trash.setEntityId(KeyFactory.keyToString(dbo.getId()));
+		trash.setOriginalParentId(KeyFactory.keyToString(dbo.getParentId()));
+		trash.setDeletedByPrincipalId(dbo.getDeletedBy().toString());
+		trash.setDeletedOn(dbo.getDeletedOn());
+		return trash;
 	}
 }

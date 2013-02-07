@@ -1,6 +1,5 @@
 package org.sagebionetworks.repo.web.service;
 
-import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.competition.model.Competition;
@@ -8,6 +7,7 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
+import org.sagebionetworks.competition.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -152,7 +152,7 @@ public interface CompetitionService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<Participant> getAllParticipants(String compId)
+	public PaginatedResults<Participant> getAllParticipants(String compId, long limit, long offset, HttpServletRequest request)
 			throws NumberFormatException, DatastoreException, NotFoundException;
 
 	/**
@@ -237,25 +237,44 @@ public interface CompetitionService {
 	 * @param userId
 	 * @param compId
 	 * @param status
+	 * @param limit
+	 * @param offset
 	 * @return
 	 * @throws DatastoreException
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public List<Submission> getAllSubmissions(String userId, String compId,
-			SubmissionStatusEnum status) throws DatastoreException,
-			UnauthorizedException, NotFoundException;
+	public PaginatedResults<Submission> getAllSubmissions(String userId, String compId,
+			SubmissionStatusEnum status, long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get all Submissions by a given Synapse user. These may span multiple
-	 * Comptitions.
+	 * Competitions.
 	 * 
 	 * @param principalId
+	 * @param limit
+	 * @param offset
 	 * @return
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<Submission> getAllSubmissionsByUser(String principalId)
+	public PaginatedResults<Submission> getAllSubmissionsByUser(String principalId, long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get all Submissions by a given Synapse user, for a given Competition
+	 * 
+	 * @param compId
+	 * @param userName
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	PaginatedResults<Submission> getAllSubmissionsByCompetitionAndUser(String compId,
+			String userName, long limit, long offset, HttpServletRequest request) 
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -268,5 +287,58 @@ public interface CompetitionService {
 	 */
 	public long getSubmissionCount(String compId) throws DatastoreException,
 			NotFoundException;
+
+	/**
+	 * Get bundled Submissions and SubmissionStatuses by Competition and user.
+	 * 
+	 * @param compId
+	 * @param userName
+	 * @param limit
+	 * @param offset
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByCompetitionAndUser(
+			String compId, String userName, long limit, long offset,
+			HttpServletRequest request) throws DatastoreException,
+			NotFoundException;
+
+	/**
+	 * Get bundled Submissions and SubmissionStatuses by user.
+	 * 
+	 * @param princpalId
+	 * @param limit
+	 * @param offset
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByUser(
+			String princpalId, long limit, long offset,
+			HttpServletRequest request) throws DatastoreException,
+			NotFoundException;
+
+	/**
+	 * Get bundled Submissions and SubmissionStatuses by Competition and status.
+	 * Requires admin permission on the Competition.
+	 * 
+	 * @param userName
+	 * @param compId
+	 * @param status
+	 * @param limit
+	 * @param offset
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundles(String userName,
+			String compId, SubmissionStatusEnum status, long limit,
+			long offset, HttpServletRequest request) throws DatastoreException,
+			UnauthorizedException, NotFoundException;
 
 }

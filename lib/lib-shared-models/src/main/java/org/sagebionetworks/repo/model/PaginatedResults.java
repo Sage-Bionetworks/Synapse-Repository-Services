@@ -59,6 +59,16 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 	public PaginatedResults(Class<? extends T> clazz) {
 		this.clazz = (Class<T>) clazz;
 	}
+	
+	/**
+	 * The simple constructor.
+	 * @param results
+	 * @param totalNumberOfResults
+	 */
+	public PaginatedResults(List<T> results, long totalNumberOfResults){
+		this.results = results;
+		this.totalNumberOfResults = totalNumberOfResults;
+	}
 
 	/**
 	 * Constructor used by controllers to form a paginated response object
@@ -75,10 +85,10 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 	 *            the 1-based offset for the initial result in the list
 	 * @param limit
 	 *            the upper limit on the length of results being returned
-	 * @param ascending
-	 *            whether or not the sort direction is ascending
 	 * @param sort
 	 *            the field upon which to sort
+	 * @param ascending
+	 *            whether or not the sort direction is ascending
 	 */
 	public PaginatedResults(String urlPath, List<T> results,
 			long totalNumberOfResults, long offset, long limit,

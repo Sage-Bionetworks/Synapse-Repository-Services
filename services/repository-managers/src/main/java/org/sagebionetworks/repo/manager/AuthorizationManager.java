@@ -5,6 +5,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface AuthorizationManager {
@@ -19,9 +20,19 @@ public interface AuthorizationManager {
 	 * @exception NotFoundException if the group or node is invalid
 	 * 
 	 */
-	public boolean canAccess(UserInfo userInfo, String nodeId, ACCESS_TYPE accessType) 
-		throws NotFoundException, DatastoreException;
-		
+	public boolean canAccess(UserInfo userInfo, String nodeId, ACCESS_TYPE accessType) 	throws NotFoundException, DatastoreException;
+	
+	/**
+	 * Can a user access an Object?
+	 * @param userInfo
+	 * @param objectId
+	 * @param objectType
+	 * @param accessType
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public boolean canAccess(UserInfo userInfo, String objectId, ObjectType objectType, ACCESS_TYPE accessType) throws DatastoreException, NotFoundException;
 	/**
     *
 	 * @param nodeId

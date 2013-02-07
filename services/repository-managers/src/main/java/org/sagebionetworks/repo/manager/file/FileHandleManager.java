@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.file;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Set;
 
 import org.apache.commons.fileupload.FileItemIterator;
@@ -19,7 +21,7 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
  * @author John
  *
  */
-public interface FileUploadManager {
+public interface FileHandleManager {
 
 	/**
 	 * Upload all of the files found in a request and capture all of the parameters and meta-data.
@@ -62,5 +64,16 @@ public interface FileUploadManager {
 	 * @throws DatastoreException
 	 */
 	void deleteFileHandle(UserInfo userInfo, String handleId) throws DatastoreException;
+	
+	/**
+	 * Get the redirect URL for a given FileHandle ID.  The UserInfo is not needed as Authorization should have already been
+	 * checked before attempting this call.
+	 * @param handleId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 * @throws MalformedURLException 
+	 */
+	URL getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException;
 
 }

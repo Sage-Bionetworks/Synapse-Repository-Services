@@ -5,6 +5,8 @@ import static org.sagebionetworks.competition.dbo.DBOConstants.*;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Arrays;
+
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.TaggableEntity;
@@ -25,7 +27,8 @@ public class SubmissionStatusDBO implements DatabaseObject<SubmissionStatusDBO>,
 			new FieldColumn(PARAM_SUBSTATUS_ETAG, COL_SUBSTATUS_ETAG),
 			new FieldColumn(PARAM_SUBSTATUS_MODIFIED_ON, COL_SUBSTATUS_MODIFIED_ON),
 			new FieldColumn(PARAM_SUBSTATUS_STATUS, COL_SUBSTATUS_STATUS),
-			new FieldColumn(PARAM_SUBSTATUS_SCORE, COL_SUBSTATUS_SCORE)
+			new FieldColumn(PARAM_SUBSTATUS_SCORE, COL_SUBSTATUS_SCORE),
+			new FieldColumn(PARAM_SUBSTATUS_SERIALIZED_ENTITY, COL_SUBSTATUS_SERIALIZED_ENTITY)
 			};
 
 	public TableMapping<SubmissionStatusDBO> getTableMapping() {
@@ -38,6 +41,10 @@ public class SubmissionStatusDBO implements DatabaseObject<SubmissionStatusDBO>,
 				sub.setModifiedOn(rs.getLong(COL_SUBSTATUS_MODIFIED_ON));
 				sub.setStatus(rs.getInt(COL_SUBSTATUS_STATUS));
 				sub.setScore(rs.getDouble(COL_SUBSTATUS_SCORE));
+				java.sql.Blob blob = rs.getBlob(COL_SUBSTATUS_SERIALIZED_ENTITY);
+				if(blob != null){
+					sub.setSerializedEntity(blob.getBytes(1, (int) blob.length()));
+				}
 				return sub;
 			}
 
@@ -64,6 +71,7 @@ public class SubmissionStatusDBO implements DatabaseObject<SubmissionStatusDBO>,
 	private Long modifiedOn;
 	private int status;
 	private Double score;
+	private byte[] serializedEntity;
 
 	public Long getId() {
 		return id;
@@ -106,11 +114,23 @@ public class SubmissionStatusDBO implements DatabaseObject<SubmissionStatusDBO>,
 	public void setScore(Double score) {
 		this.score = score;
 	}
-	
 	@Override
-	public String toString() {
-		return "DBOSubmissionStatus [id = " + id + ", etag = " + eTag + ", modifiedOn=" + modifiedOn 
-				+ ", status = " + SubmissionStatusEnum.values()[status].toString()+  ", score = " + score + "]";
+	public String getIdString() {
+		return id.toString();
+	}
+	@Override
+	public String getParentIdString() {
+		return null;
+	}
+	@Override
+	public ObjectType getObjectType() {
+		return ObjectType.SUBMISSION;
+	}
+	public byte[] getSerializedEntity() {
+		return serializedEntity;
+	}
+	public void setSerializedEntity(byte[] serializedEntity) {
+		this.serializedEntity = serializedEntity;
 	}
 	@Override
 	public int hashCode() {
@@ -121,6 +141,7 @@ public class SubmissionStatusDBO implements DatabaseObject<SubmissionStatusDBO>,
 		result = prime * result
 				+ ((modifiedOn == null) ? 0 : modifiedOn.hashCode());
 		result = prime * result + ((score == null) ? 0 : score.hashCode());
+		result = prime * result + Arrays.hashCode(serializedEntity);
 		result = prime * result + status;
 		return result;
 	}
@@ -153,20 +174,18 @@ public class SubmissionStatusDBO implements DatabaseObject<SubmissionStatusDBO>,
 				return false;
 		} else if (!score.equals(other.score))
 			return false;
+		if (!Arrays.equals(serializedEntity, other.serializedEntity))
+			return false;
 		if (status != other.status)
 			return false;
 		return true;
 	}
 	@Override
-	public String getIdString() {
-		return id.toString();
+	public String toString() {
+		return "SubmissionStatusDBO [id=" + id + ", eTag=" + eTag
+				+ ", modifiedOn=" + modifiedOn + ", status=" + status
+				+ ", score=" + score + ", serializedEntity="
+				+ Arrays.toString(serializedEntity) + "]";
 	}
-	@Override
-	public String getParentIdString() {
-		return null;
-	}
-	@Override
-	public ObjectType getObjectType() {
-		return ObjectType.SUBMISSION;
-	}
+	
 }

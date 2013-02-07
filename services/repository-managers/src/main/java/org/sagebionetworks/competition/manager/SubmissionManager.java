@@ -1,11 +1,11 @@
 package org.sagebionetworks.competition.manager;
 
-import java.util.List;
-
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
+import org.sagebionetworks.competition.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -89,9 +89,9 @@ public interface SubmissionManager {
 	 * @throws UnauthorizedException
 	 * @throws NotFoundException
 	 */
-	public List<Submission> getAllSubmissions(UserInfo userInfo, String compId,
-			SubmissionStatusEnum status) throws DatastoreException,
-			UnauthorizedException, NotFoundException;
+	public QueryResults<Submission> getAllSubmissions(UserInfo userInfo, String compId,
+			SubmissionStatusEnum status, long limit, long offset) 
+			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Get all Submissions by a given Synapse user.
@@ -101,7 +101,20 @@ public interface SubmissionManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public List<Submission> getAllSubmissionsByUser(String userId)
+	public QueryResults<Submission> getAllSubmissionsByUser(String userId, long limit, long offset)
+			throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get all Submissions by a given Synapse user to a given Competition.
+	 * 
+	 * @param compId
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public QueryResults<Submission> getAllSubmissionsByCompetitionAndUser(UserInfo userInfo,
+			String compId, long limit, long offset)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -114,5 +127,53 @@ public interface SubmissionManager {
 	 */
 	public long getSubmissionCount(String compId) throws DatastoreException,
 			NotFoundException;
+
+	/**
+	 * Get bundled Submissions and SubmissionStatuses by Competition and user.
+	 * 
+	 * @param userInfo
+	 * @param compId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	public QueryResults<SubmissionBundle> getAllSubmissionBundlesByCompetitionAndUser(
+			UserInfo userInfo, String compId, long limit, long offset)
+			throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get bundled Submissions and SubmissionStatuses by user.
+	 * 
+	 * @param userId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public QueryResults<SubmissionBundle> getAllSubmissionBundlesByUser(String userId,
+			long limit, long offset) throws DatastoreException,
+			UnauthorizedException, NotFoundException;
+
+	/**
+	 * Get bundled Submissions and SubmissionStatuses by Competition and status.
+	 * Requires admin permission on the Competition.
+	 * 
+	 * @param userInfo
+	 * @param compId
+	 * @param status
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public QueryResults<SubmissionBundle> getAllSubmissionBundles(UserInfo userInfo,
+			String compId, SubmissionStatusEnum status, long limit, long offset)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 }

@@ -1,0 +1,24 @@
+{
+	"description":"JSON schema for the TrashEntity POJO. A trashed entity is an entity in the trash can.",
+	"properties":{
+		"entityId":{
+			"type":"string",
+			"description":"The id of the entity."			
+		},
+		"deletedByPrincipalId":{
+			"type":"string",
+			"title": "Deleted By",
+			"description":"The ID of the user who deleted the entity."			
+		},
+		"deletedOn":{
+			"type": "string",
+			"format": "date-time",
+			"title": "Deleted On",
+			"description":"The date and time when the deletion occurred."			
+		},
+		"originalParentId": {
+			"type": "string",
+			"description": "The ID of the original parent before deletion."
+		}
+	}
+}
