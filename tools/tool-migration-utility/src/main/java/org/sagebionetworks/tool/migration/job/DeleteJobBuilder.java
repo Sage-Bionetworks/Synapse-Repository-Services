@@ -46,40 +46,45 @@ public class DeleteJobBuilder implements Callable<BuilderResponse> {
 
 	@Override
 	public BuilderResponse call() throws Exception {
-		// Get the two clients		
-		int deleteSubmitted = 0;
-		//Set<MigratableObjectDescriptor> batchToDelete = new HashSet<MigratableObjectDescriptor>();
-		Map<MigratableObjectType, Set<String>> batchesToDelete = new HashMap<MigratableObjectType, Set<String>>();
-		// Walk over the dest list.
-		for(MigratableObjectData dest: destList){
-			// Find any entity in the destination that does not exist in the source.
-			if(!sourceMap.containsKey(dest.getId())){
-				MigratableObjectType objectType = dest.getId().getType();
+		try {
+			// Get the two clients		
+			int deleteSubmitted = 0;
+			//Set<MigratableObjectDescriptor> batchToDelete = new HashSet<MigratableObjectDescriptor>();
+			Map<MigratableObjectType, Set<String>> batchesToDelete = new HashMap<MigratableObjectType, Set<String>>();
+			// Walk over the dest list.
+			for(MigratableObjectData dest: destList){
+				// Find any entity in the destination that does not exist in the source.
+				if(!sourceMap.containsKey(dest.getId())){
+					MigratableObjectType objectType = dest.getId().getType();
+					Set<String> batchToDelete = batchesToDelete.get(objectType);
+					if (batchToDelete==null) {
+						batchToDelete = new HashSet<String>();
+						batchesToDelete.put(objectType, batchToDelete);
+					}
+					batchToDelete.add(dest.getId().getId());
+					deleteSubmitted++;
+					if(batchToDelete.size() >= this.batchSize){
+						Job createJob = new Job(batchToDelete, objectType, Type.DELETE);
+						this.queue.add(createJob);
+						batchesToDelete.remove(objectType);
+					}
+				}
+			}
+			// Submit any creates left over
+			for (MigratableObjectType objectType : batchesToDelete.keySet()) {
 				Set<String> batchToDelete = batchesToDelete.get(objectType);
-				if (batchToDelete==null) {
-					batchToDelete = new HashSet<String>();
-					batchesToDelete.put(objectType, batchToDelete);
-				}
-				batchToDelete.add(dest.getId().getId());
-				deleteSubmitted++;
-				if(batchToDelete.size() >= this.batchSize){
-					Job createJob = new Job(batchToDelete, objectType, Type.DELETE);
-					this.queue.add(createJob);
-					batchesToDelete.remove(objectType);
+				if(!batchToDelete.isEmpty()){
+					Job updateJob = new Job(batchToDelete, objectType, Type.DELETE);
+					this.queue.add(updateJob);
 				}
 			}
+			batchesToDelete.clear();
+			// Report the results.
+			return new BuilderResponse(deleteSubmitted, 0);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
 		}
-		// Submit any creates left over
-		for (MigratableObjectType objectType : batchesToDelete.keySet()) {
-			Set<String> batchToDelete = batchesToDelete.get(objectType);
-			if(!batchToDelete.isEmpty()){
-				Job updateJob = new Job(batchToDelete, objectType, Type.DELETE);
-				this.queue.add(updateJob);
-			}
-		}
-		batchesToDelete.clear();
-		// Report the results.
-		return new BuilderResponse(deleteSubmitted, 0);
 	}
 	
 
