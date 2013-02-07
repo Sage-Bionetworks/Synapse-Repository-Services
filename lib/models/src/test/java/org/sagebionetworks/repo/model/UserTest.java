@@ -9,13 +9,13 @@ public class UserTest {
 		User.validateUser(null);
 	}
 
-	@Test (expected=InvalidUserException.class)
+	@Test (expected=UserNotFoundException.class)
 	public void testValidateNullId(){
 		User user = new User();
 		User.validateUser(user);
 	}
 
-	@Test (expected=InvalidUserException.class)
+	@Test (expected=UserNotFoundException.class)
 	public void testValidateNullUserId(){
 		User user = new User();
 		user.setId("1010");
