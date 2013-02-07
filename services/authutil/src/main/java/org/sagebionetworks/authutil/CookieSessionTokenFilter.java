@@ -1,4 +1,4 @@
-package org.sagebionetworks.file.servlet;
+package org.sagebionetworks.authutil;
 
 import java.io.IOException;
 
