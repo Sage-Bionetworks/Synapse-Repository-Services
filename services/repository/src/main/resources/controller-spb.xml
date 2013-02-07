@@ -77,9 +77,9 @@
 	<bean id="nodeTreeQueryService"
 		class="org.sagebionetworks.repo.web.service.NodeTreeQueryServiceImpl" />
 		
-	<!-- The Competition Service -->
-	<bean id="competitionService"
-		class="org.sagebionetworks.repo.web.service.CompetitionServiceImpl" />
+	<!-- The Evaluation Service -->
+	<bean id="evaluationService"
+		class="org.sagebionetworks.repo.web.service.EvaluationServiceImpl" />
 
 	<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />

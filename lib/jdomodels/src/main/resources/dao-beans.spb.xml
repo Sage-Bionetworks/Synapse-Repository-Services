@@ -121,11 +121,11 @@
 	<bean id="asynchronousDAO" class="org.sagebionetworks.repo.model.dbo.dao.AsynchronousDAOImpl" />
 
 	<!-- DAO for Competition objects -->
-	<bean id="competitionDAO" class="org.sagebionetworks.competition.dao.CompetitionDAOImpl"
+	<bean id="evaluationDAO" class="org.sagebionetworks.evaluation.dao.EvaluationDAOImpl"
 		depends-on="idGenerator" />
-	<bean id="participatnDAO" class="org.sagebionetworks.competition.dao.ParticipantDAOImpl" />
-	<bean id="submissionDAO" class="org.sagebionetworks.competition.dao.SubmissionDAOImpl"
+	<bean id="participatnDAO" class="org.sagebionetworks.evaluation.dao.ParticipantDAOImpl" />
+	<bean id="submissionDAO" class="org.sagebionetworks.evaluation.dao.SubmissionDAOImpl"
 		depends-on="idGenerator" />
-	<bean id="submissionStatusDAO" class="org.sagebionetworks.competition.dao.SubmissionStatusDAOImpl" />
+	<bean id="submissionStatusDAO" class="org.sagebionetworks.evaluation.dao.SubmissionStatusDAOImpl" />
 
 </beans>
