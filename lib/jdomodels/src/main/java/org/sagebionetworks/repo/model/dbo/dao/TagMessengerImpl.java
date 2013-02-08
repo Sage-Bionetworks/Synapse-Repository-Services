@@ -26,7 +26,7 @@ public class TagMessengerImpl implements TagMessenger{
 	public void generateEtagAndSendMessage(ObservableEntity observable,
 			ChangeType changeType) {
 		// Send a message that an entity was created
-		String newEtag = eTagGenerator.generateETag(observable);
+		String newEtag = eTagGenerator.generateETag();
 		observable.seteTag(newEtag);
 		// Create the message
 		ChangeMessage message = new ChangeMessage();
@@ -61,7 +61,7 @@ public class TagMessengerImpl implements TagMessenger{
 	}
 
 	@Override
-	public void sendMessage(String id, String etag, ObjectType objectType,	ChangeType changeType) throws IllegalArgumentException {
+	public void sendMessage(String id, String etag, ObjectType objectType,	ChangeType changeType) {
 
 		if (id == null) {
 			throw new IllegalArgumentException("id cannot be null");
@@ -74,10 +74,6 @@ public class TagMessengerImpl implements TagMessenger{
 		}
 		if (changeType == null) {
 			throw new IllegalArgumentException("changeType cannot be null");
-		}
-		if (ObjectType.ENTITY.equals(objectType)) {
-			// TODO: Should use polymorphism instead. This method is only called for File/Wiki types.
-			throw new IllegalArgumentException("ObjectType.ENTITY must set parent ID.");
 		}
 
 		ChangeMessage message = new ChangeMessage();

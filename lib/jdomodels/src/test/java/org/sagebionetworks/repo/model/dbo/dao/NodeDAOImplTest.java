@@ -692,7 +692,7 @@ public class NodeDAOImplTest {
 		annos.addAnnotation("bigBlob", bigBlob);
 		annos.addAnnotation("dateKey", new Date(System.currentTimeMillis()));
 		// update the eTag
-		String newETagString = eTagGenerator.generateETag(null);
+		String newETagString = eTagGenerator.generateETag();
 		annos.setEtag(newETagString);
 		// Update them
 		nodeDao.updateAnnotations(id, named);
