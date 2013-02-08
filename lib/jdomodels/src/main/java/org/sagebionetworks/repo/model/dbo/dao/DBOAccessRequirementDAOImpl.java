@@ -7,6 +7,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_A
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_APPROVAL_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ACCESS_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ACCESS_REQUIREMENT_NODE_ID;
@@ -16,8 +18,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_APPROVAL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS_REQUIREMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_ACCESS_REQUIREMENT;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_ON;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ACCESS_REQUIREMENT_CREATED_BY;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -36,7 +36,6 @@ import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -160,7 +159,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		DBOAccessRequirement dbo = new DBOAccessRequirement();
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
 		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId());
-		if (dbo.geteTag()==null) dbo.seteTag(eTagGenerator.generateETag(dbo));
+		if (dbo.geteTag()==null) dbo.seteTag(eTagGenerator.generateETag());
 		dbo = basicDao.createNew(dbo);
 		populateNodeAccessRequirement(dbo.getId(), dto.getEntityIds());
 		T result = (T)AccessRequirementUtils.copyDboToDto(dbo, getEntities(dbo.getId()));
@@ -339,7 +338,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 		AccessRequirementUtils.copyDtoToDbo(dto, dbo);
 		if (!fromBackup) {
 			// Update with a new e-tag; otherwise, the backup e-tag is used implicitly
-			dbo.seteTag(eTagGenerator.generateETag(dbo));
+			dbo.seteTag(eTagGenerator.generateETag());
 		}
 
 		boolean success = basicDao.update(dbo);

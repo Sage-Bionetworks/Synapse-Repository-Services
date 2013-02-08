@@ -639,6 +639,13 @@ public class StackConfiguration {
 	}
 
 	/**
+	 * The maximum number of entities that can be moved into the trash can at one time.
+	 */
+	public static int getTrashCanMaxTrashable(){
+		return Integer.parseInt(configuration.getProperty("org.sagebionetworks.repo.manager.trash.max.trashable"));
+	}
+
+	/**
 	 * The name of the AWS topic where repository changes messages are published.
 	 * @return
 	 */
@@ -706,7 +713,7 @@ public class StackConfiguration {
 	public double getFilePreivewMemoryPercentOfMax(){
 		return Double.parseDouble(configuration.getProperty("org.sagebionetworks.repo.manager.file.preview.memory.percent.of.max"));
 	}
-	
+
 	/**
 	 * Validate that fileTransferMemoryPercentOfMax + filePreivewMemoryPercentOfMax does not exceed 90%
 	 */
