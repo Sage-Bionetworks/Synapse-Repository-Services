@@ -185,6 +185,10 @@ public class IT055WikiPageTest {
 			// Download the files from Synapse:
 			mainFile = synapse.downloadWikiAttachment(key, handle.getFileName());
 			assertNotNull(mainFile);
+			// Make sure we can also just get the temporary URL
+			URL tempUrl = synapse.getWikiAttachmentTemporaryUrl(key, handle.getFileName());
+			assertNotNull(tempUrl);
+			assertTrue("Did not get the expected URL",tempUrl.toString().indexOf(handle.getKey()) > 0);
 			// the file should be the expected size
 			assertEquals(handle.getContentSize().longValue(), mainFile.length());
 			// Check the MD5
@@ -195,6 +199,10 @@ public class IT055WikiPageTest {
 			assertNotNull(previewFile);
 			// the file should be the expected size
 			assertEquals(preview.getContentSize().longValue(), previewFile.length());
+			// Make sure we can also just get the temporary URL
+			tempUrl = synapse.getWikiAttachmentPreviewTemporaryUrl(key, handle.getFileName());
+			assertNotNull(tempUrl);
+			assertTrue("Did not get the expected URL",tempUrl.toString().indexOf(preview.getKey()) > 0);
 			// The preview FileHandle md5 is currently null
 //			md5 = MD5ChecksumHelper.getMD5Checksum(previewFile);
 //			assertEquals(preview.getContentMd5(), md5);
