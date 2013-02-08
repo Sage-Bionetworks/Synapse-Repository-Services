@@ -1568,11 +1568,8 @@ public class Synapse {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createWikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName+REDIRECT_PARAMETER+"false";
-		HttpGet get = new HttpGet(uri);
-		HttpResponse response = clientProvider.execute(get);
-		String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
-		return new URL(responseBody);
+		String uri = getRepoEndpoint()+createWikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName+REDIRECT_PARAMETER+"false";
+		return getUrl(uri);
 	}
 	
 
@@ -1605,8 +1602,25 @@ public class Synapse {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = createWikiURL(key)+ATTACHMENT_FILE+ATTACHMENT_FILE_PREVIEW+encodedName+REDIRECT_PARAMETER+"false";
+		String uri = getRepoEndpoint()+createWikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName+REDIRECT_PARAMETER+"false";
+		return getUrl(uri);
+	}
+
+	/**
+	 * Fetch a temporary url.
+	 * @param uri
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws MalformedURLException
+	 */
+	protected URL getUrl(String uri) throws ClientProtocolException, IOException,
+			MalformedURLException {
 		HttpGet get = new HttpGet(uri);
+		for(String headerKey: this.defaultGETDELETEHeaders.keySet()){
+			String value = this.defaultGETDELETEHeaders.get(headerKey);
+			get.setHeader(headerKey, value);
+		}
 		HttpResponse response = clientProvider.execute(get);
 		String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
 		return new URL(responseBody);
