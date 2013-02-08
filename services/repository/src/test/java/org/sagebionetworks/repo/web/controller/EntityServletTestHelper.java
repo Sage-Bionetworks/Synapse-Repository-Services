@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.web.controller;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 
@@ -1156,7 +1158,7 @@ public class EntityServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public URL getWikiAttachmentFileURL(String userName, WikiPageKey key, String fileName) throws ServletException, IOException{
+	public URL getWikiAttachmentFileURL(String userName, WikiPageKey key, String fileName, Boolean redirect) throws ServletException, IOException{
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -1165,13 +1167,12 @@ public class EntityServletTestHelper {
 		request.setRequestURI(uri);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
 		request.setParameter("fileName", fileName);
+		if(redirect != null){
+			request.setParameter("redirect", redirect.toString());
+		}
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		DispatchServletSingleton.getInstance().service(request, response);
-		if (response.getStatus() != HttpStatus.TEMPORARY_REDIRECT.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		// Get the redirect location
-		return new URL(response.getRedirectedUrl());
+		return handleRedirectReponse(redirect, response);
 	}
 	
 	/**
@@ -1183,7 +1184,7 @@ public class EntityServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public URL getWikiAttachmentPreviewFileURL(String userName, WikiPageKey key, String fileName) throws ServletException, IOException{
+	public URL getWikiAttachmentPreviewFileURL(String userName, WikiPageKey key, String fileName, Boolean redirect) throws ServletException, IOException{
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -1192,12 +1193,38 @@ public class EntityServletTestHelper {
 		request.setRequestURI(uri);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
 		request.setParameter("fileName", fileName);
+		if(redirect != null){
+			request.setParameter("redirect", redirect.toString());
+		}
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		DispatchServletSingleton.getInstance().service(request, response);
-		if (response.getStatus() != HttpStatus.TEMPORARY_REDIRECT.value()) {
-			throw new ServletTestHelperException(response);
+		return handleRedirectReponse(redirect, response);
+	}
+	
+	/**
+	 * 
+	 * @param redirect
+	 * @param response
+	 * @return
+	 * @throws MalformedURLException
+	 * @throws UnsupportedEncodingException
+	 */
+	private URL handleRedirectReponse(Boolean redirect,	MockHttpServletResponse response) throws MalformedURLException,
+			UnsupportedEncodingException {
+		// Redirect response is different than non-redirect.
+		if(redirect == null || Boolean.TRUE.equals(redirect)){
+			if (response.getStatus() != HttpStatus.TEMPORARY_REDIRECT.value()) {
+				throw new ServletTestHelperException(response);
+			}
+			// Get the redirect location
+			return new URL(response.getRedirectedUrl());
+		}else{
+			// Redirect=false
+			if (response.getStatus() != HttpStatus.OK.value()) {
+				throw new ServletTestHelperException(response);
+			}
+			// Get the redirect location
+			return new URL(response.getContentAsString());
 		}
-		// Get the redirect location
-		return new URL(response.getRedirectedUrl());
 	}
 }
