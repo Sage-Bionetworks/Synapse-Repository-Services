@@ -158,6 +158,7 @@ public class Synapse {
 	protected static final String ATTACHMENT_FILE = "/attachment";
 	protected static final String ATTACHMENT_FILE_PREVIEW = "/attachmentpreview";
 	protected static final String FILE_NAME_PARAMETER = "?fileName=";
+	protected static final String REDIRECT_PARAMETER = "&redirect=";
 	
 	protected static final String COMPETITION_URI_PATH = "/competition";
 	protected static final String COUNT = "count";
@@ -1554,6 +1555,23 @@ public class Synapse {
 		String uri = createWikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName;
 		return downloadFile(getRepoEndpoint(), uri);	
 	}
+	
+	/**
+	 * Get the temporary URL for a WikiPage attachment. This is an alternative to downloading the attachment to a file.
+	 * @param key - Identifies a wiki page.
+	 * @param fileName - The name of the attachment file.
+	 * @return
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 */
+	public URL getWikiAttachmentTemporaryUrl(WikiPageKey key, String fileName) throws ClientProtocolException, IOException{
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = getRepoEndpoint()+createWikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName+REDIRECT_PARAMETER+"false";
+		return getUrl(uri);
+	}
+	
 
 	/**
 	 * Download the preview of a wiki attachment file.
@@ -1570,6 +1588,42 @@ public class Synapse {
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
 		String uri = createWikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName;
 		return downloadFile(getRepoEndpoint(), uri);	
+	}
+	
+	/**
+	 * Get the temporary URL for a WikiPage attachment preview. This is an alternative to downloading the attachment to a file.
+	 * @param key - Identifies a wiki page.
+	 * @param fileName - The name of the attachment file.
+	 * @return
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 */
+	public URL getWikiAttachmentPreviewTemporaryUrl(WikiPageKey key, String fileName) throws ClientProtocolException, IOException{
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
+		String encodedName = URLEncoder.encode(fileName, "UTF-8");
+		String uri = getRepoEndpoint()+createWikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName+REDIRECT_PARAMETER+"false";
+		return getUrl(uri);
+	}
+
+	/**
+	 * Fetch a temporary url.
+	 * @param uri
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws IOException
+	 * @throws MalformedURLException
+	 */
+	protected URL getUrl(String uri) throws ClientProtocolException, IOException,
+			MalformedURLException {
+		HttpGet get = new HttpGet(uri);
+		for(String headerKey: this.defaultGETDELETEHeaders.keySet()){
+			String value = this.defaultGETDELETEHeaders.get(headerKey);
+			get.setHeader(headerKey, value);
+		}
+		HttpResponse response = clientProvider.execute(get);
+		String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
+		return new URL(responseBody);
 	}
 	/**
 	 * Download the file at the given URL.

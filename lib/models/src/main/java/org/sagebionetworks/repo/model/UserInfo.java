@@ -48,7 +48,7 @@ public class UserInfo {
 	/**
 	 * Is the passed userInfo object valid?
 	 */
-	public static void validateUserInfo(UserInfo info) throws InvalidUserException {
+	public static void validateUserInfo(UserInfo info) throws UserNotFoundException {
 
 		if (info == null) throw new IllegalArgumentException("UserInfo cannot be null");
 

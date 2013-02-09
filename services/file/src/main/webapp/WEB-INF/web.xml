@@ -14,7 +14,7 @@
 			if it finds it, the token will be added to the header of the request  -->
 	<filter>
 		<filter-name>cookieFilter</filter-name>
-		<filter-class>org.sagebionetworks.file.servlet.CookieSessionTokenFilter</filter-class>
+		<filter-class>org.sagebionetworks.authutil.CookieSessionTokenFilter</filter-class>
 	</filter>
 
 	<filter-mapping>

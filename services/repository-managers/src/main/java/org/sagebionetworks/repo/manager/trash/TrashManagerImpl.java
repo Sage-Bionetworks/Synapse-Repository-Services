@@ -175,7 +175,7 @@ public class TrashManagerImpl implements TrashManager {
 	}
 
 	/**
-	 * Gets the IDs of all the descendants.
+	 * Recursively gets the IDs of all the descendants.
 	 */
 	private void getDescendants(String nodeId, Collection<String> descendants) {
 		List<String> children = this.nodeDao.getChildrenIdsAsList(nodeId);
@@ -184,6 +184,7 @@ public class TrashManagerImpl implements TrashManager {
 			return;
 		}
 		for (String child : children) {
+			// Recursion
 			getDescendants(child, descendants);
 		}
 	}
