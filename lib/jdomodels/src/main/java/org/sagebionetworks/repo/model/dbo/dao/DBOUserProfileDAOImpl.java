@@ -64,7 +64,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			InvalidModelException {
 		DBOUserProfile jdo = new DBOUserProfile();
 		UserProfileUtils.copyDtoToDbo(dto, jdo, schema);
-		if (jdo.geteTag()==null) jdo.seteTag(eTagGenerator.generateETag(jdo));
+		if (jdo.geteTag()==null) jdo.seteTag(eTagGenerator.generateETag());
 		jdo = basicDao.createNew(jdo);
 		return jdo.getOwnerId().toString();
 	}
@@ -151,7 +151,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 		UserProfileUtils.copyDtoToDbo(dto, dbo, schema);
 		if (!fromBackup) {
 			// Update with a new e-tag; otherwise, the backup e-tag is used implicitly
-			dbo.seteTag(eTagGenerator.generateETag(dbo));
+			dbo.seteTag(eTagGenerator.generateETag());
 		}
 
 		boolean success = basicDao.update(dbo);

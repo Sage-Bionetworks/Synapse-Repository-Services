@@ -18,13 +18,13 @@ public class UserGroupTest {
 		UserGroupUtil.validate(null);
 	}
 
-	@Test (expected=InvalidUserException.class)
+	@Test (expected=UserNotFoundException.class)
 	public void validateNullId(){
 		UserGroup userGroup = new UserGroup();
 		UserGroupUtil.validate(userGroup);
 	}
 
-	@Test (expected=InvalidUserException.class)
+	@Test (expected=UserNotFoundException.class)
 	public void validateNullName(){
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("99");
@@ -40,7 +40,7 @@ public class UserGroupTest {
 		UserGroupUtil.validate(userGroup);
 	}
 
-	@Test(expected=InvalidUserException.class)
+	@Test(expected=UserNotFoundException.class)
 	public void validateGroupWithEmailAddressName(){
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("99");
@@ -49,7 +49,7 @@ public class UserGroupTest {
 		UserGroupUtil.validate(userGroup);
 	}
 
-	@Test(expected=InvalidUserException.class)
+	@Test(expected=UserNotFoundException.class)
 	public void validateUserWithoutEmailAddressName(){
 		UserGroup userGroup = new UserGroup();
 		userGroup.setId("99");

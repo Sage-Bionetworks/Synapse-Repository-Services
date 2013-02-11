@@ -18,7 +18,7 @@ public class UserInfoTest {
 		UserInfo.validateUserInfo(info);
 	}
 
-	@Test (expected=InvalidUserException.class)
+	@Test (expected=UserNotFoundException.class)
 	public void testValidateNullUserId(){
 		UserInfo info = new UserInfo(false);
 		User user = new User();
@@ -26,7 +26,7 @@ public class UserInfoTest {
 		UserInfo.validateUserInfo(info);
 	}
 
-	@Test (expected=InvalidUserException.class)
+	@Test (expected=UserNotFoundException.class)
 	public void testValidateNullUserUserId(){
 		UserInfo info = new UserInfo(false);
 		User user = new User();

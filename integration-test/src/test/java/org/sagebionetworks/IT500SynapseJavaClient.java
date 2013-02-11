@@ -817,8 +817,8 @@ public class IT500SynapseJavaClient {
 		r.setTermsOfUse("I promise to be good.");
 		synapse.createAccessRequirement(r);
 		
-		// check that owner can download
-		assertTrue(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
+		// check that owner cannot download before accepting the terms
+		assertFalse(synapse.canAccess(layer.getId(), ACCESS_TYPE.DOWNLOAD));
 		
 		Synapse otherUser = createSynapseClient(
 				StackConfiguration.getIntegrationTestUserTwoName(),

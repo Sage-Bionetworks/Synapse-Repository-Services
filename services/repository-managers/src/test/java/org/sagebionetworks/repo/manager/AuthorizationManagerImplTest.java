@@ -131,7 +131,7 @@ public class AuthorizationManagerImplTest {
 		}
 	}
 	
-	// test that removing a user from the ACL for their own node doesn't remove their access
+	// test that removing a user from the ACL for their own node also removes their access
 	@Test
 	public void testOwnership() throws Exception {
 		String pIdString = userInfo.getIndividualGroup().getId();
@@ -155,7 +155,7 @@ public class AuthorizationManagerImplTest {
 		assertTrue(foundit);
 		acl = permissionsManager.updateACL(acl, adminUser);
 
-		assertTrue(authorizationManager.canAccess(userInfo, nodeCreatedByTestUser.getId(), ACCESS_TYPE.READ));
+		assertFalse(authorizationManager.canAccess(userInfo, nodeCreatedByTestUser.getId(), ACCESS_TYPE.READ));
 	}
 	
 	
@@ -501,21 +501,22 @@ public class AuthorizationManagerImplTest {
 		assertEquals(false, uep.getCanDelete());
 		assertEquals(false, uep.getCanEdit());
 		assertEquals(false, uep.getCanView());
+		assertEquals(true, uep.getCanDownload());
 		assertEquals(false, uep.getCanEnableInheritance());
 
-		// but now change the ownership so the user is the owner
+		// now change the ownership so the user is the owner
 		node.setCreatedByPrincipalId(Long.parseLong(userInfo.getIndividualGroup().getId()));
 		nodeDao.updateNode(node);
 		
-		// now the user can do anything..
+		// the user still cannot do anything..
 		uep = authorizationManager.getUserPermissionsForEntity(userInfo,  node.getId());
-		assertEquals(true, uep.getCanAddChild());
-		assertEquals(true, uep.getCanChangePermissions());
-		assertEquals(true, uep.getCanDelete());
-		assertEquals(true, uep.getCanEdit());
-		assertEquals(true, uep.getCanView());
+		assertEquals(false, uep.getCanAddChild());
+		assertEquals(false, uep.getCanChangePermissions());
+		assertEquals(false, uep.getCanDelete());
+		assertEquals(false, uep.getCanEdit());
+		assertEquals(false, uep.getCanView());
 		assertEquals(true, uep.getCanDownload());
-		assertEquals(false, uep.getCanEnableInheritance()); // ... except this
+		assertEquals(false, uep.getCanEnableInheritance());
 		assertEquals(nodeCreatedByTestUser.getCreatedByPrincipalId(), uep.getOwnerPrincipalId());
 	}
 	

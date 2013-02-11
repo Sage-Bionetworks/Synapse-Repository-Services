@@ -98,9 +98,9 @@ public class User implements Base {
 	 * Is this a valid user?
 	 * @param user
 	 */
-	public static void validateUser(User user) throws InvalidUserException {
+	public static void validateUser(User user) throws UserNotFoundException {
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
-		if(user.getUserId() == null) throw new InvalidUserException("User.userId cannot be null");
+		if(user.getUserId() == null) throw new UserNotFoundException("User.userId cannot be null");
 	}
 	/* (non-Javadoc)
 	 * @see java.lang.Object#hashCode()

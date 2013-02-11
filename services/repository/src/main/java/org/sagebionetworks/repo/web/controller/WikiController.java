@@ -200,7 +200,6 @@ public class WikiController extends BaseController {
 	}
 	
 	// Files
-	@ResponseStatus(HttpStatus.TEMPORARY_REDIRECT)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void getEntityWikiAttachmentFile(
@@ -208,14 +207,14 @@ public class WikiController extends BaseController {
 			@PathVariable String ownerId,
 			@PathVariable String wikiId,
 			@RequestParam String fileName,
+			@RequestParam (required = false) Boolean redirect,
 			HttpServletResponse response
 			) throws DatastoreException, NotFoundException, IOException{
 		// Get the redirect url
 		URL redirectUrl = serviceProvider.getWikiService().getAttachmentRedirectURL(userId,  new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId), fileName);
-		response.sendRedirect(redirectUrl.toString());
+		handleRedirect(redirect, redirectUrl, response);
 	}
 	
-	@ResponseStatus(HttpStatus.TEMPORARY_REDIRECT)
 	@RequestMapping(value = UrlHelpers.COMPETITION_WIKI_ID_ATTCHMENT_FILE, method = RequestMethod.GET)
 	public @ResponseBody
 	void getCompetitionAttachmentFile(
@@ -223,15 +222,15 @@ public class WikiController extends BaseController {
 			@PathVariable String ownerId,
 			@PathVariable String wikiId,
 			@RequestParam String fileName,
+			@RequestParam (required = false) Boolean redirect,
 			HttpServletResponse response
 			) throws DatastoreException, NotFoundException, IOException{
 		// Get the redirect url
 		URL redirectUrl = serviceProvider.getWikiService().getAttachmentRedirectURL(userId,  new WikiPageKey(ownerId, ObjectType.COMPETITION, wikiId), fileName);
-		response.sendRedirect(redirectUrl.toString());
+		handleRedirect(redirect, redirectUrl, response);
 	}
 	
 	// Files
-	@ResponseStatus(HttpStatus.TEMPORARY_REDIRECT)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID_ATTCHMENT_FILE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
 	void getEntityWikiAttachmenPreviewFile(
@@ -239,14 +238,14 @@ public class WikiController extends BaseController {
 			@PathVariable String ownerId,
 			@PathVariable String wikiId,
 			@RequestParam String fileName,
+			@RequestParam (required = false) Boolean redirect,
 			HttpServletResponse response
 			) throws DatastoreException, NotFoundException, IOException{
 		// Get the redirect url
 		URL redirectUrl = serviceProvider.getWikiService().getAttachmentPreviewRedirectURL(userId,  new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId), fileName);
-		response.sendRedirect(redirectUrl.toString());
+		handleRedirect(redirect, redirectUrl, response);
 	}
 	
-	@ResponseStatus(HttpStatus.TEMPORARY_REDIRECT)
 	@RequestMapping(value = UrlHelpers.COMPETITION_WIKI_ID_ATTCHMENT_FILE_PREVIEW, method = RequestMethod.GET)
 	public @ResponseBody
 	void getCompetitionAttachmenthPreviewFile(
@@ -254,10 +253,36 @@ public class WikiController extends BaseController {
 			@PathVariable String ownerId,
 			@PathVariable String wikiId,
 			@RequestParam String fileName,
+			@RequestParam (required = false) Boolean redirect,
 			HttpServletResponse response
 			) throws DatastoreException, NotFoundException, IOException{
 		// Get the redirect url
 		URL redirectUrl = serviceProvider.getWikiService().getAttachmentPreviewRedirectURL(userId,  new WikiPageKey(ownerId, ObjectType.COMPETITION, wikiId), fileName);
-		response.sendRedirect(redirectUrl.toString());
+		handleRedirect(redirect, redirectUrl, response);
+	}
+	
+	/**
+	 * We either redirect the response to the passed URL or return the URL as plain text.
+	 * @param redirect If null then the URL will be redirected.  To get the URL returned as plain text without a redirect an redirect must equal Boolean.FALSE.
+	 * @param redirectUrl
+	 * @param response
+	 * @throws IOException
+	 */
+	private void handleRedirect(Boolean redirect, URL redirectUrl, HttpServletResponse response) throws IOException{
+		// Redirect by default
+		if(redirect == null){
+			redirect = Boolean.TRUE;
+		}
+		if(Boolean.TRUE.equals(redirect)){
+			// Standard redirect
+			response.setStatus(HttpStatus.TEMPORARY_REDIRECT.value());
+			response.sendRedirect(redirectUrl.toString());
+		}else{
+			// Return the redirect url instead of redirecting.
+			response.setStatus(HttpStatus.OK.value());
+			response.setContentType("text/plain");
+			response.getWriter().write(redirectUrl.toString());
+			response.getWriter().flush();
+		}
 	}
 }

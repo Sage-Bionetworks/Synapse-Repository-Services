@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.trash;
 
+import org.sagebionetworks.StackConfiguration;
+
 /**
  * Constants for the trash and trash cans.
  *
@@ -11,7 +13,7 @@ public class TrashConstants {
 	 * The maximum number of entities that can be moved
 	 * into the trash can at one time.
 	 */
-	public static final int MAX_TRASHABLE = 500;
+	public static final int MAX_TRASHABLE = StackConfiguration.getTrashCanMaxTrashable();
 
 	/**
 	 * The path to the bootstrapped trash folder.
