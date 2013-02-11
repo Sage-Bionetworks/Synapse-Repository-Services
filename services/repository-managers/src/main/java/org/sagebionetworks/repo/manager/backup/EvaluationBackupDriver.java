@@ -161,23 +161,23 @@ public class EvaluationBackupDriver implements GenericBackupDriver {
 			throws DatastoreException, NotFoundException,
 			InvalidModelException, ConflictingUpdateException {
 		
-		Evaluation competition = backup.getEvaluation();
+		Evaluation evaluation = backup.getEvaluation();
 		List<Participant> participants = backup.getParticipants();
 		
 		// create the Competition
 		Evaluation existingComp = null;
 		try {
-			existingComp = evaluationDAO.get(competition.getId().toString());
+			existingComp = evaluationDAO.get(evaluation.getId().toString());
 		} catch (NotFoundException e) {}
 		if (null == existingComp) {
 			// create
-			evaluationDAO.create(competition, Long.parseLong(competition.getOwnerId()));
+			evaluationDAO.create(evaluation, Long.parseLong(evaluation.getOwnerId()));
 		} else {
 			// update only when backup is different from the current system
-			if (existingComp.getEtag().equals(competition.getEtag())) {
+			if (existingComp.getEtag().equals(evaluation.getEtag())) {
 				return;
 			}
-			evaluationDAO.updateFromBackup(competition);
+			evaluationDAO.updateFromBackup(evaluation);
 		}
 		
 		// create the Participants

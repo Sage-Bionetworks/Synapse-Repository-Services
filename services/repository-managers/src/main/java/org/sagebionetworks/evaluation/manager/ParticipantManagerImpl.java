@@ -45,6 +45,8 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Participant addParticipant(UserInfo userInfo, String evalId) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
+		Evaluation eval = EvaluationManager.getEvaluation(evalId);		
+		EvaluationUtils.ensureEvaluationIsOpen(eval);
 		UserInfo.validateUserInfo(userInfo);
 		String principalIdToAdd = userInfo.getIndividualGroup().getId();
 		
