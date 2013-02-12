@@ -58,6 +58,7 @@ public class SubmissionStatusDAOImplTest {
     	// create a competition
         Competition competition = new Competition();
         competition.setEtag("etag");
+        competition.setId("1234");
         competition.setName("name");
         competition.setOwnerId(userId);
         competition.setCreatedOn(new Date());
@@ -74,6 +75,7 @@ public class SubmissionStatusDAOImplTest {
         // create a submission
         Submission submission = new Submission();
         submission.setName(name);
+        submission.setId("5678");
         submission.setEntityId(nodeId);
         submission.setVersionNumber(versionNumber);
         submission.setUserId(userId);

@@ -42,7 +42,7 @@ public class SubmissionDAOImplTest {
 	NodeDAO nodeDAO;
  
 	private String nodeId = null;
-    private String submissionId = null;
+    private String submissionId = "206";
     private String userId = "0";
     private String userId_does_not_exist = "2";
     private String compId;
@@ -62,6 +62,7 @@ public class SubmissionDAOImplTest {
     	// create a Competition
         Competition competition = new Competition();
         competition.setEtag("etag");
+        competition.setId("1234");
         competition.setName("name");
         competition.setOwnerId(userId);
         competition.setCreatedOn(new Date());

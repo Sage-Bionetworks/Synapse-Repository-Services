@@ -63,6 +63,7 @@ public class CompetitionDAOImplTest {
 	public void testCRUD() throws Exception {	
 		// Initialize Competition
 		Competition comp = new Competition();
+		comp.setId("123");
 		comp.setName(COMPETITION_NAME);
         comp.setContentSource(COMPETITION_CONTENT_SOURCE);
         comp.setStatus(CompetitionStatus.PLANNED);
@@ -109,6 +110,7 @@ public class CompetitionDAOImplTest {
 	public void testFind() throws Exception {
 		// Initialize Competition
 		Competition comp = new Competition();
+		comp.setId("123");
 		comp.setName(COMPETITION_NAME);
         comp.setContentSource(COMPETITION_CONTENT_SOURCE);
         comp.setStatus(CompetitionStatus.PLANNED);
@@ -127,6 +129,7 @@ public class CompetitionDAOImplTest {
     public void testSameName() throws Exception{
         // Initialize a new competition
 		Competition comp = new Competition();
+		comp.setId("123");
 		comp.setName(COMPETITION_NAME);
         comp.setContentSource(COMPETITION_CONTENT_SOURCE);
         comp.setStatus(CompetitionStatus.PLANNED);
@@ -162,6 +165,7 @@ public class CompetitionDAOImplTest {
     public void testGetInRange() throws DatastoreException, NotFoundException {
     	// Initialize Competition
 		Competition comp = new Competition();
+		comp.setId("123");
 		comp.setName(COMPETITION_NAME);
         comp.setContentSource(COMPETITION_CONTENT_SOURCE);
         comp.setStatus(CompetitionStatus.PLANNED);
@@ -182,6 +186,7 @@ public class CompetitionDAOImplTest {
     public void testGetInRangeByStatus() throws DatastoreException, NotFoundException {
     	// Initialize Competition
 		Competition comp = new Competition();
+		comp.setId("123");
 		comp.setName(COMPETITION_NAME);
         comp.setContentSource(COMPETITION_CONTENT_SOURCE);
         comp.setStatus(CompetitionStatus.PLANNED);

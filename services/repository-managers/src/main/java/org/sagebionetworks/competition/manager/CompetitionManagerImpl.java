@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.competition.dao.CompetitionDAO;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.util.CompetitionUtils;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -20,12 +21,16 @@ import org.springframework.transaction.annotation.Transactional;
 public class CompetitionManagerImpl implements CompetitionManager {
 	
 	@Autowired
+	private IdGenerator idGenerator;
+	
+	@Autowired
 	CompetitionDAO competitionDAO;
 	
 	public CompetitionManagerImpl() {}
 	
 	// Used for testing purposes
-	protected CompetitionManagerImpl(CompetitionDAO competitionDAO) {
+	protected CompetitionManagerImpl(IdGenerator idGenerator, CompetitionDAO competitionDAO) {
+		this.idGenerator = idGenerator;
 		this.competitionDAO = competitionDAO;
 	}
 	
@@ -36,6 +41,10 @@ public class CompetitionManagerImpl implements CompetitionManager {
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
 		comp.setName(EntityNameValidation.valdiateName(comp.getName()));
+		
+		// always generate a unique ID
+		comp.setId(idGenerator.generateNewId().toString());
+		
 		String id = competitionDAO.create(comp, Long.parseLong(principalId));
 		return competitionDAO.get(id);
 	}

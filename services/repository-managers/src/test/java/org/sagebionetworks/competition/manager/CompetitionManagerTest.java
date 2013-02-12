@@ -14,6 +14,7 @@ import org.junit.Test;
 import org.sagebionetworks.competition.dao.CompetitionDAO;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.CompetitionStatus;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -26,21 +27,26 @@ public class CompetitionManagerTest {
 		
 	private static CompetitionManager competitionManager;
 	private static Competition comp;
+	private static Competition compWithId;
 	
+	private static IdGenerator mockIdGenerator;
 	private static CompetitionDAO mockCompetitionDAO;
-	
+
 	private static final Long OWNER_ID = 123L;
 	private static final Long USER_ID = 456L;
 	private static UserInfo ownerInfo;
 	private static UserInfo userInfo;
 	
 	private static final String COMPETITION_NAME = "test-competition";
-    private static final String COMPETITION_ID = "foo";
+    private static final String COMPETITION_ID = "123";
     private static final String COMPETITION_CONTENT_SOURCE = "Baz";
     private static final String COMPETITION_ETAG = "etag";
     
     @Before
-    public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {    	
+    public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
+    	// ID Generator
+    	mockIdGenerator = mock(IdGenerator.class);
+    	
     	// Competition DAO
     	mockCompetitionDAO = mock(CompetitionDAO.class);
     	
@@ -51,26 +57,47 @@ public class CompetitionManagerTest {
     	userInfo.getIndividualGroup().setId(USER_ID.toString());
     	
 		// Competition
+    	Date date = new Date();
 		comp = new Competition();
 		comp.setName(COMPETITION_NAME);
-		comp.setId(COMPETITION_ID);
 		comp.setOwnerId(ownerInfo.getIndividualGroup().getId());
         comp.setContentSource(COMPETITION_CONTENT_SOURCE);
         comp.setStatus(CompetitionStatus.PLANNED);
-        comp.setCreatedOn(new Date());
+        comp.setCreatedOn(date);
         comp.setEtag(COMPETITION_ETAG);
+
+		compWithId = new Competition();
+		compWithId.setName(COMPETITION_NAME);		
+		compWithId.setOwnerId(ownerInfo.getIndividualGroup().getId());
+		compWithId.setContentSource(COMPETITION_CONTENT_SOURCE);
+		compWithId.setStatus(CompetitionStatus.PLANNED);
+		compWithId.setCreatedOn(date);
+		compWithId.setEtag(COMPETITION_ETAG);
+		compWithId.setId(COMPETITION_ID);
         
         // Competition Manager
-    	competitionManager = new CompetitionManagerImpl(mockCompetitionDAO);
-		when(mockCompetitionDAO.create(eq(comp), eq(OWNER_ID))).thenReturn(comp.getId());
+    	competitionManager = new CompetitionManagerImpl(mockIdGenerator, mockCompetitionDAO);
+    	
+    	// configure mocks
+    	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(COMPETITION_ID));		
     	when(mockCompetitionDAO.get(eq(COMPETITION_ID))).thenReturn(comp);
     	when(mockCompetitionDAO.lookupByName(eq(COMPETITION_NAME))).thenReturn(COMPETITION_ID);
+    	when(mockCompetitionDAO.create(eq(compWithId), eq(OWNER_ID))).thenReturn(COMPETITION_ID);
     }
 	
 	@Test
 	public void testCreateCompetition() throws Exception {		
 		Competition clone = competitionManager.createCompetition(ownerInfo, comp);
-		assertEquals("'create' returned unexpected Competition ID", comp, clone);
+		assertEquals("'create' returned unexpected Competition ID", compWithId, clone);
+		verify(mockCompetitionDAO).create(eq(comp), eq(OWNER_ID));
+	}
+	
+	@Test
+	public void testCreateCompetitionWithPassedId() throws Exception {
+		// Create a Competition with a specified ID, which should get overwritten
+		comp.setId(COMPETITION_ID + "foo");
+		Competition clone = competitionManager.createCompetition(ownerInfo, comp);
+		assertEquals("'create' returned unexpected Competition ID", compWithId, clone);
 		verify(mockCompetitionDAO).create(eq(comp), eq(OWNER_ID));
 	}
 	
@@ -83,19 +110,19 @@ public class CompetitionManagerTest {
 	
 	@Test
 	public void testUpdateCompetitionAsOwner() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
-		competitionManager.updateCompetition(ownerInfo, comp);
-		verify(mockCompetitionDAO).update(eq(comp));
+		competitionManager.updateCompetition(ownerInfo, compWithId);
+		verify(mockCompetitionDAO).update(eq(compWithId));
 	}
 	
 	@Test
 	public void testUpdateCompetitionAsUser() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException {
 		try {
-			competitionManager.updateCompetition(userInfo, comp);
+			competitionManager.updateCompetition(userInfo, compWithId);
 			fail("User should not have permission to update competition");
 		} catch (UnauthorizedException e) {
 			// expected
 		}
-		verify(mockCompetitionDAO, times(0)).update(eq(comp));
+		verify(mockCompetitionDAO, never()).update(eq(compWithId));
 	}
 
 	@Test
