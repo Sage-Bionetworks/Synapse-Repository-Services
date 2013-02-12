@@ -44,12 +44,12 @@ public class EvaluationManagerTest {
     @Before
     public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {    	
     	// Competition DAO
-    	mockEvaluationDAO = mock(EvaluationDAO.class);
+    	mockEvaluationDAO = mock(EvaluationDAO.class);    	
     	
     	// UserInfo
-    	ownerInfo = UserInfoUtils.createValidUserInfo();
+    	ownerInfo = UserInfoUtils.createValidUserInfo(false);
     	ownerInfo.getIndividualGroup().setId(OWNER_ID.toString());
-    	userInfo = UserInfoUtils.createValidUserInfo();
+    	userInfo = UserInfoUtils.createValidUserInfo(false);
     	userInfo.getIndividualGroup().setId(USER_ID.toString());
     	
 		// Competition
@@ -128,9 +128,9 @@ public class EvaluationManagerTest {
 	@Test
 	public void testIsAdmin() throws DatastoreException, UnauthorizedException, NotFoundException {
 		assertTrue("Owner should be an admin of their own Competition", 
-				evaluationManager.isEvalAdmin(OWNER_ID.toString(), COMPETITION_ID));
+				evaluationManager.isEvalAdmin(ownerInfo, COMPETITION_ID));
 		assertFalse("Non-owner user should NOT be an admin of this Competition", 
-				evaluationManager.isEvalAdmin(USER_ID.toString(), COMPETITION_ID));
+				evaluationManager.isEvalAdmin(userInfo, COMPETITION_ID));
 	}
 
 }

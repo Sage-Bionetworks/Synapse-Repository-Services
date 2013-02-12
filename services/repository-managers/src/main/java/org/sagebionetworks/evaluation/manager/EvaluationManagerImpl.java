@@ -73,7 +73,6 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public Evaluation updateEvaluation(UserInfo userInfo, Evaluation eval) throws DatastoreException, NotFoundException, UnauthorizedException, InvalidModelException, ConflictingUpdateException {
 		EvaluationUtils.ensureNotNull(eval, "Evaluation");
 		UserInfo.validateUserInfo(userInfo);
-		String principalId = userInfo.getIndividualGroup().getId();
 		
 		Evaluation old = evaluationDAO.get(eval.getId());
 		if (old == null) 
@@ -81,7 +80,7 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		if (!old.getEtag().equals(eval.getEtag()))
 			throw new IllegalArgumentException("Your copy of Evaluation " + eval.getId() + " is out of date. Please fetch it again before updating.");
 
-		validateAdminAccess(principalId, old);
+		validateAdminAccess(userInfo, old);
 		validateEvaluation(old, eval);		
 		evaluationDAO.update(eval);
 		return getEvaluation(eval.getId());
@@ -99,31 +98,34 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	public void deleteEvaluation(UserInfo userInfo, String id) throws DatastoreException, NotFoundException, UnauthorizedException {
 		EvaluationUtils.ensureNotNull(id, "Evaluation ID");
 		UserInfo.validateUserInfo(userInfo);
-		String principalId = userInfo.getIndividualGroup().getId();
 		Evaluation comp = evaluationDAO.get(id);
 		if (comp == null) throw new NotFoundException("No Evaluation found with id " + id);
-		validateAdminAccess(principalId, comp);
+		validateAdminAccess(userInfo, comp);
 		evaluationDAO.delete(id);
 	}
 		
 	@Override
-	public boolean isEvalAdmin(String userId, String evalId) throws DatastoreException, UnauthorizedException, NotFoundException {
-		EvaluationUtils.ensureNotNull(userId, "User ID");
+	public boolean isEvalAdmin(UserInfo userInfo, String evalId) throws DatastoreException, UnauthorizedException, NotFoundException {
+		EvaluationUtils.ensureNotNull(userInfo, "UserInfo");
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
 		Evaluation comp = getEvaluation(evalId);
-		return isCompAdmin(userId, comp);
+		return isEvalAdmin(userInfo, comp);
 	}
 	
-	private boolean isCompAdmin(String userId, Evaluation comp) {
-		if (userId.equals(comp.getOwnerId())) return true;
+	private boolean isEvalAdmin(UserInfo userInfo, Evaluation eval) {
+		// check if user is a Synapse admin
+		if (userInfo.isAdmin()) return true;
 		
-		// TODO: check list of admins
-		return false;
+		// check if user is the owner of the Evaluation
+		String userId = userInfo.getIndividualGroup().getId();
+		return userId.equals(eval.getOwnerId());
+		
+		// TODO: check if user is an authorized admin of the Evaluation
 	}
 	
-	private void validateAdminAccess(String userId, Evaluation comp) {
-		if (!isCompAdmin(userId, comp))
-			throw new UnauthorizedException("User ID " + userId +
+	private void validateAdminAccess(UserInfo userInfo, Evaluation comp) {
+		if (!isEvalAdmin(userInfo, comp))
+			throw new UnauthorizedException("User ID " + userInfo.getIndividualGroup().getId() +
 					" is not authorized to modify Evaluation ID " + comp.getId() +
 					" (" + comp.getName() + ")");
 	}

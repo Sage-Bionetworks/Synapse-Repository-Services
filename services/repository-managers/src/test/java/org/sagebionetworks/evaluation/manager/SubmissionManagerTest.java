@@ -59,9 +59,9 @@ public class SubmissionManagerTest {
     @Before
     public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {    	
 		// User Info
-    	ownerInfo = UserInfoUtils.createValidUserInfo();
+    	ownerInfo = UserInfoUtils.createValidUserInfo(false);
     	ownerInfo.getIndividualGroup().setId(OWNER_ID);
-    	userInfo = UserInfoUtils.createValidUserInfo();
+    	userInfo = UserInfoUtils.createValidUserInfo(false);
     	userInfo.getIndividualGroup().setId(USER_ID);
     	
     	// Objects
@@ -115,7 +115,7 @@ public class SubmissionManagerTest {
     	when(mockParticipantManager.getParticipant(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
     	when(mockCompetitionManager.getEvaluation(eq(EVAL_ID))).thenReturn(comp);
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(sub);
-    	when(mockCompetitionManager.isEvalAdmin(eq(OWNER_ID), eq(EVAL_ID))).thenReturn(true);
+    	when(mockCompetitionManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
     	when(mockNodeManager.get(eq(userInfo), eq(ENTITY_ID))).thenReturn(mockNode);
     	when(mockNodeManager.get(eq(userInfo), eq(ENTITY2_ID))).thenThrow(new UnauthorizedException());

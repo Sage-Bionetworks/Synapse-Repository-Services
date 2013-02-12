@@ -45,9 +45,9 @@ public class ParticipantManagerTest {
     @Before
     public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
 		// User Info
-    	ownerInfo = UserInfoUtils.createValidUserInfo();
+    	ownerInfo = UserInfoUtils.createValidUserInfo(false);
     	ownerInfo.getIndividualGroup().setId(OWNER_ID);
-    	userInfo = UserInfoUtils.createValidUserInfo();
+    	userInfo = UserInfoUtils.createValidUserInfo(false);
     	userInfo.getIndividualGroup().setId(USER_ID);
     	
     	// Competition
@@ -72,7 +72,7 @@ public class ParticipantManagerTest {
     	when(mockParticipantDAO.get(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
     	when(mockUserManager.getDisplayName(eq(Long.parseLong(USER_ID)))).thenReturn("foo");
     	when(mockCompetitionManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
-    	when(mockCompetitionManager.isEvalAdmin(eq(OWNER_ID), eq(EVAL_ID))).thenReturn(true);
+    	when(mockCompetitionManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
         
         // Participant Manager
     	participantManager = new ParticipantManagerImpl(mockParticipantDAO, mockUserManager, mockCompetitionManager);

@@ -112,7 +112,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// ensure Submission exists and validate admin rights
 		SubmissionStatus old = getSubmissionStatus(submissionStatus.getId());
 		String evalId = getSubmission(submissionStatus.getId()).getEvaluationId();
-		if (!evaluationManager.isEvalAdmin(principalId, evalId))
+		if (!evaluationManager.isEvalAdmin(userInfo, evalId))
 			throw new UnauthorizedException("Not authorized");
 		
 		if (!old.getEtag().equals(submissionStatus.getEtag()))
@@ -141,7 +141,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		String evalId = sub.getEvaluationId();
 		
 		// verify access permission
-		if (!evaluationManager.isEvalAdmin(principalId, evalId)) {
+		if (!evaluationManager.isEvalAdmin(userInfo, evalId)) {
 			throw new UnauthorizedException("User ID: " + principalId +
 					" is not authorized to modify Submission ID: " + submissionId);
 		}
@@ -157,7 +157,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
 		
-		if (!evaluationManager.isEvalAdmin(principalId, evalId))
+		if (!evaluationManager.isEvalAdmin(userInfo, evalId))
 			throw new UnauthorizedException("User Principal ID" + principalId + " is not authorized to adminster Evaluation " + evalId);
 		
 		List<Submission> submissions;
