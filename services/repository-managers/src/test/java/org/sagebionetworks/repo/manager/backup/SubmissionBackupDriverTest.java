@@ -15,11 +15,11 @@ import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.competition.dao.SubmissionDAO;
-import org.sagebionetworks.competition.dao.SubmissionStatusDAO;
-import org.sagebionetworks.competition.model.Submission;
-import org.sagebionetworks.competition.model.SubmissionStatus;
-import org.sagebionetworks.competition.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.dao.SubmissionDAO;
+import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
+import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -109,7 +109,7 @@ public class SubmissionBackupDriverTest {
 	
 	private Submission createSubmission(String submissionId) throws Exception {
 		Submission sub = new Submission();
-		sub.setCompetitionId("123");
+		sub.setEvaluationId("123");
 		sub.setCreatedOn(new Date());
 		sub.setEntityId("42");
 		sub.setId(submissionId);

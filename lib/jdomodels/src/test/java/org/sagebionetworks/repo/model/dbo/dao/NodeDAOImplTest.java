@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
+import javax.xml.crypto.NodeSetData;
+
 import org.joda.time.DateTime;
 import org.junit.After;
 import org.junit.Before;
@@ -53,16 +55,20 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.orm.jdo.JdoObjectRetrievalFailureException;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 import org.springframework.transaction.IllegalTransactionStateException;
+import org.springframework.transaction.UnexpectedRollbackException;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -92,14 +98,21 @@ public class NodeDAOImplTest {
 	@Autowired
 	private ActivityDAO activityDAO;
 	
+	@Autowired
+	private FileHandleDao fileHandleDao;
+	
 	// the datasets that must be deleted at the end of each test.
 	List<String> toDelete = new ArrayList<String>();
 	List<String> activitiesToDelete = new ArrayList<String>();
+	List<String> fileHandlesToDelete = new ArrayList<String>();
 	
 	private Long creatorUserGroupId = null;	
 	private Long altUserGroupId = null;
 	private Activity testActivity = null;
 	private Activity testActivity2 = null;
+	
+	private S3FileHandle fileHandle = null;
+	private S3FileHandle fileHandle2 = null;
 	
 	@Before
 	public void before() throws Exception {
@@ -115,6 +128,10 @@ public class NodeDAOImplTest {
 		
 		testActivity = createTestActivity(1L);		
 		testActivity2 = createTestActivity(2L);		
+		
+		// Create file handles that can be used in tests
+		fileHandle = createTestFileHandle("One", creatorUserGroupId.toString());
+		fileHandle2 = createTestFileHandle("Two", creatorUserGroupId.toString());
 	}
 	
 	@After
@@ -132,6 +149,11 @@ public class NodeDAOImplTest {
 		if(activitiesToDelete != null & activityDAO != null) {
 			for(String id : activitiesToDelete) {
 				activityDAO.delete(id);
+			}
+		}
+		if(fileHandleDao != null && fileHandle != null){
+			for(String id : fileHandlesToDelete) {
+				fileHandleDao.delete(id);
 			}
 		}
 	}
@@ -2086,6 +2108,70 @@ public class NodeDAOImplTest {
 		VersionInfo promotedVersion = nodeDao.promoteNodeVersion(entityId, new Long(2));
 		assertEquals(new Long(2), promotedVersion.getVersionNumber());
 	}
+	
+	@Test
+	public void testNodeWithFileHandle() throws Exception{
+		Node n1 = NodeTestUtils.createNew("testNodeWithFileHandle.name1", creatorUserGroupId);
+		// Set the file handle on the new node
+		n1.setFileHandleId(fileHandle.getId());
+		String id = nodeDao.createNew(n1);
+		assertNotNull(id);
+		toDelete.add(id);
+		// Validate that we cannot delete the handle while it is assigned to a node
+		try{
+			fileHandleDao.delete(fileHandle.getId());
+			fail("Should not be able to delete a file handle that has been assigned");
+		}catch(DataIntegrityViolationException e){
+			// This is expected.
+		}catch(UnexpectedRollbackException e){
+			// This can also happen
+		}
+		Node clone = nodeDao.getNode(id);
+		Long v1 = clone.getVersionNumber();
+		assertEquals(fileHandle.getId(), clone.getFileHandleId());
+		// Create a new version
+		clone.setVersionLabel("v2");
+		nodeDao.createNewVersion(clone);
+		clone = nodeDao.getNode(id);
+		// Create a new version
+		Long v2 = clone.getVersionNumber();
+		assertFalse(v1.equals(v2));
+		// v2 should now have the second file handle
+		assertEquals("Creating a new version should copy the FileHandlId from the previous version", fileHandle.getId(), clone.getFileHandleId());
+		// Now create a third version with a new file handle
+		clone.setFileHandleId(fileHandle2.getId());
+		clone.setVersionLabel("v3");
+		nodeDao.createNewVersion(clone);
+		clone = nodeDao.getNode(id);
+		// Create a new version
+		Long v3 = clone.getVersionNumber();
+		assertFalse(v3.equals(v2));
+		Node v1Node = nodeDao.getNodeForVersion(id, v1);
+		Node v2Node = nodeDao.getNodeForVersion(id, v2);
+		Node v3Node = nodeDao.getNodeForVersion(id, v3);
+		assertEquals("V1 should have the first file handle", fileHandle.getId(), v1Node.getFileHandleId());
+		assertEquals("V2 should also have the first file handle", fileHandle.getId(), v2Node.getFileHandleId());
+		assertEquals("V3 should also have the second file handle", fileHandle2.getId(), v3Node.getFileHandleId());
+		// Get the file handle
+		String fileHandleId = nodeDao.getFileHandleIdForCurrentVersion(id);
+		assertEquals(fileHandle2.getId(), fileHandleId);
+		// Try with the version parameter.
+		fileHandleId = nodeDao.getFileHandleIdForVersion(id, v1);
+		assertEquals(fileHandle.getId(), fileHandleId);
+		// Make sure we can set it to null
+		clone.setFileHandleId(null);
+		nodeDao.updateNode(clone);
+		clone = nodeDao.getNode(id);
+		assertEquals(null, clone.getFileHandleId());
+		fileHandleId = nodeDao.getFileHandleIdForCurrentVersion(id);
+		assertEquals(null, fileHandleId);
+		// Make sure we can set it to null
+		// Now delete the node
+		nodeDao.delete(id);
+		// We should be able to delete the file handles now as they are no longer in use.
+		fileHandleDao.delete(fileHandle.getId());
+		fileHandleDao.delete(fileHandle2.getId());
+	}
 
 	/*
 	 * Private Methods
@@ -2100,6 +2186,23 @@ public class NodeDAOImplTest {
 		activityDAO.create(act);
 		activitiesToDelete.add(act.getId());
 		return act;
+	}
+	
+	/**
+	 * Create a test FileHandle
+	 * @param fileName
+	 * @param createdById
+	 * @return
+	 */
+	private S3FileHandle createTestFileHandle(String fileName, String createdById){
+		S3FileHandle fileHandle = new S3FileHandle();
+		fileHandle.setBucketName("bucket");
+		fileHandle.setKey("key");
+		fileHandle.setCreatedBy(createdById);
+		fileHandle.setFileName(fileName);
+		fileHandle = fileHandleDao.createFile(fileHandle);
+		fileHandlesToDelete.add(fileHandle.getId());
+		return fileHandle;
 	}
 
 }

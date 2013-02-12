@@ -74,12 +74,19 @@ public interface AuthorizationManager {
 	
 	/**
 	 * The raw FileHandle can only be accessed by the user that created it.
-	 * Note: A FileHandle applied to an Entity is gated by the Entity, not the 
-	 * FileHandle creator.
 	 * @param userInfo
 	 * @param creator
 	 * @return
 	 */
-	public boolean canAccessRawFileHandle(UserInfo userInfo, String creator);
+	public boolean canAccessRawFileHandleByCreator(UserInfo userInfo, String creator);
+	
+	/**
+	 * 
+	 * @param userInfo
+	 * @param fileHandleId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public boolean canAccessRawFileHandleById(UserInfo userInfo, String fileHandleId) throws NotFoundException;
 	
 }

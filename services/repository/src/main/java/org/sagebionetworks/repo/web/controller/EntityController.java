@@ -1,10 +1,12 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.repo.manager.SchemaManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
@@ -24,8 +26,8 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -33,6 +35,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.web.NotFoundException;
+import static org.sagebionetworks.repo.web.UrlHelpers.*;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -1013,4 +1016,53 @@ public class EntityController extends BaseController{
 		serviceProvider.getEntityService().deleteActivityForEntity(userId, id, request);	
 	}
 	
+	// Files
+	/**
+	 * Redirect the caller to the URL of the file associated with the current version of this entity.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param redirect - When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.ENTITY_FILE, method = RequestMethod.GET)
+	public @ResponseBody
+	void fileRedirectURLForCurrentVersion(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			@RequestParam (required = false) Boolean redirect,
+			HttpServletResponse response
+			) throws DatastoreException, NotFoundException, IOException{
+		// Get the redirect url
+		URL redirectUrl = serviceProvider.getEntityService().getFileRedirectURLForCurrentVersion(userId,  id);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+	
+	/**
+	 * Redirect the caller to the URL of the file associated with the current version of this entity.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param redirect - When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE, method = RequestMethod.GET)
+	public @ResponseBody
+	void fileRedirectURLForVersion(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			@PathVariable Long versionNumber,
+			@RequestParam (required = false) Boolean redirect,
+			HttpServletResponse response
+			) throws DatastoreException, NotFoundException, IOException{
+		// Get the redirect url
+		URL redirectUrl = serviceProvider.getEntityService().getFileRedirectURLForVersion(userId,  id, versionNumber);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
 }

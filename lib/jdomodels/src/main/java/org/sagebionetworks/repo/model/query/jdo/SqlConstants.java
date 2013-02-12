@@ -32,17 +32,18 @@ public class SqlConstants {
 	public static final String DDL_FILE_NODE			="schema/Node-ddl.sql";
 	
 	// The Revision table
-	public static final String TABLE_REVISION 			= "JDOREVISION";
-	public static final String COL_REVISION_OWNER_NODE	= "OWNER_NODE_ID";
-	public static final String COL_REVISION_NUMBER		= "NUMBER";
-	public static final String COL_REVISION_ACTIVITY_ID	= "ACTIVITY_ID";
-	public static final String COL_REVISION_LABEL		= "LABEL";
-	public static final String COL_REVISION_COMMENT		= "COMMENT";
-	public static final String COL_REVISION_ANNOS_BLOB	= "ANNOTATIONS";
-	public static final String COL_REVISION_REFS_BLOB	= "REFERENCES";
-	public static final String COL_REVISION_MODIFIED_BY	= "MODIFIED_BY";
-	public static final String COL_REVISION_MODIFIED_ON	= "MODIFIED_ON";
-	public static final String DDL_FILE_REVISION		="schema/Revision-ddl.sql";
+	public static final String TABLE_REVISION 				= "JDOREVISION";
+	public static final String COL_REVISION_OWNER_NODE		= "OWNER_NODE_ID";
+	public static final String COL_REVISION_NUMBER			= "NUMBER";
+	public static final String COL_REVISION_ACTIVITY_ID		= "ACTIVITY_ID";
+	public static final String COL_REVISION_LABEL			= "LABEL";
+	public static final String COL_REVISION_COMMENT			= "COMMENT";
+	public static final String COL_REVISION_ANNOS_BLOB		= "ANNOTATIONS";
+	public static final String COL_REVISION_REFS_BLOB		= "REFERENCES";
+	public static final String COL_REVISION_MODIFIED_BY		= "MODIFIED_BY";
+	public static final String COL_REVISION_MODIFIED_ON		= "MODIFIED_ON";
+	public static final String COL_REVISION_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
+	public static final String DDL_FILE_REVISION			="schema/Revision-ddl.sql";
 
 	// The Reference table
 	public static final String TABLE_REFERENCE						= "JDOREFERENCE";

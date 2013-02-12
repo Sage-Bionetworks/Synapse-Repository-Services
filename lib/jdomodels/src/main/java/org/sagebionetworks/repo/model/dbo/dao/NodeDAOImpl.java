@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
@@ -95,6 +95,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
+	private static final String SQL_SELECT_REV_FILE_HANDLE_ID = "SELECT "+COL_REVISION_FILE_HANDLE_ID+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+COL_REVISION_NUMBER+" = ?";
 	private static final String SELECT_REVISIONS_ONLY = "SELECT R."+COL_REVISION_REFS_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER+" = N."+COL_CURRENT_REV;
 	private static final String SELECT_ANNOTATIONS_ONLY_PREFIX = "SELECT N."+COL_NODE_ID+", N."+COL_NODE_ETAG+", N."+COL_NODE_CREATED_ON+", N."+COL_NODE_CREATED_BY+", R."+COL_REVISION_ANNOS_BLOB+" FROM  "+TABLE_NODE+" N, "+TABLE_REVISION+" R WHERE N."+COL_NODE_ID+" = ? AND R."+COL_REVISION_OWNER_NODE+" = N."+COL_NODE_ID+" AND R."+COL_REVISION_NUMBER;
 	private static final String CANNOT_FIND_A_NODE_WITH_ID = "Cannot find a node with id: ";
@@ -1295,7 +1296,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	public VersionInfo promoteNodeVersion(String nodeId, Long versionNumber)
 			throws NotFoundException, DatastoreException {
 		// Get current version number, then increment and update the given versionNumber to new
-		int latestVersionNumberPlusOne = getLatestVersionNumberForNode(nodeId) + 1;
+		long latestVersionNumberPlusOne = getCurrentRevisionNumber(nodeId) + 1;
 		if (latestVersionNumberPlusOne != versionNumber + 1) {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue(OLD_REV_PARAM_NAME, versionNumber);
@@ -1314,10 +1315,28 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		return versionsOfEntity.getResults().get(0);
 	}
 
-	private int getLatestVersionNumberForNode(String nodeId) {
-		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue(OWNER_ID_PARAM_NAME, KeyFactory.stringToKey(nodeId));
-		return simpleJdbcTemplate.queryForInt(SQL_GET_LATEST_VERSION_NUMBER, params);
+	@Override
+	public String getFileHandleIdForCurrentVersion(String id) throws DatastoreException, NotFoundException {
+		// lookup the current rev.
+		Long currentRev = getCurrentRevisionNumber(id);
+		// use the current rev to lookup the handle.
+		return getFileHandleIdForVersion(id, currentRev);
 	}
+
+	@Override
+	public String getFileHandleIdForVersion(String id, Long versionNumber) {
+		Long nodeId = KeyFactory.stringToKey(id);
+		try{
+			long handleId = simpleJdbcTemplate.queryForLong(SQL_SELECT_REV_FILE_HANDLE_ID, nodeId, versionNumber);
+			if(handleId > 0){
+				return ""+handleId;
+			}else{
+				return null;
+			}
+		}catch (EmptyResultDataAccessException e){
+			return null;
+		}
+	}
+
 
 }

@@ -583,4 +583,16 @@ public class EntityManagerImpl implements EntityManager {
 		return nodeManager.promoteEntityVersion(userInfo, id, versionNumber);
 	}
 
+	@Override
+	public String getFileHandleIdForCurrentVersion(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException {
+		// The manager handles this call.
+		return nodeManager.getFileHandleIdForCurrentVersion(userInfo, id);
+	}
+
+	@Override
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws UnauthorizedException, NotFoundException {
+		// The manager handles this call.
+		return nodeManager.getFileHandleIdForVersion(userInfo, id, versionNumber);
+	}
+
 }

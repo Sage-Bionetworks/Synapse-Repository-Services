@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
@@ -37,6 +37,7 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 		new FieldColumn("comment", COL_REVISION_COMMENT),
 		new FieldColumn("modifiedBy", COL_REVISION_MODIFIED_BY),
 		new FieldColumn("modifiedOn", COL_REVISION_MODIFIED_ON),
+		new FieldColumn("fileHandleId", COL_REVISION_FILE_HANDLE_ID),
 		new FieldColumn("annotations", COL_REVISION_ANNOS_BLOB),
 		new FieldColumn("references", COL_REVISION_REFS_BLOB),
 		};
@@ -55,6 +56,10 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 				rev.setComment(rs.getString(COL_REVISION_COMMENT));
 				rev.setModifiedBy(rs.getLong(COL_REVISION_MODIFIED_BY));
 				rev.setModifiedOn(rs.getLong(COL_REVISION_MODIFIED_ON));
+				rev.setFileHandleId(rs.getLong(COL_REVISION_FILE_HANDLE_ID));
+				if(rs.wasNull()){
+					rev.setFileHandleId(null);
+				}
 				java.sql.Blob blob = rs.getBlob(COL_REVISION_ANNOS_BLOB);
 				if(blob != null){
 					rev.setAnnotations(blob.getBytes(1, (int) blob.length()));
@@ -94,6 +99,7 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 	private String comment;
 	private Long modifiedBy;
 	private Long modifiedOn;
+	private Long fileHandleId;
 	private byte[] annotations;
 	private byte[] references;
 
@@ -151,6 +157,14 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 	public void setActivityId(Long activityId) {
 		this.activityId = activityId;
 	}
+	
+	public Long getFileHandleId() {
+		return fileHandleId;
+	}
+	public void setFileHandleId(Long fileHandleId) {
+		this.fileHandleId = fileHandleId;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -159,6 +173,8 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 				+ ((activityId == null) ? 0 : activityId.hashCode());
 		result = prime * result + Arrays.hashCode(annotations);
 		result = prime * result + ((comment == null) ? 0 : comment.hashCode());
+		result = prime * result
+				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
 		result = prime * result + ((label == null) ? 0 : label.hashCode());
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
@@ -190,6 +206,11 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 			if (other.comment != null)
 				return false;
 		} else if (!comment.equals(other.comment))
+			return false;
+		if (fileHandleId == null) {
+			if (other.fileHandleId != null)
+				return false;
+		} else if (!fileHandleId.equals(other.fileHandleId))
 			return false;
 		if (label == null) {
 			if (other.label != null)
@@ -225,7 +246,8 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 		return "DBORevision [owner=" + owner + ", revisionNumber="
 				+ revisionNumber + ", activityId=" + activityId + ", label="
 				+ label + ", comment=" + comment + ", modifiedBy=" + modifiedBy
-				+ ", modifiedOn=" + modifiedOn + ", annotations="
+				+ ", modifiedOn=" + modifiedOn + ", fileHandleId="
+				+ fileHandleId + ", annotations="
 				+ Arrays.toString(annotations) + ", references="
 				+ Arrays.toString(references) + "]";
 	}

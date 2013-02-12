@@ -67,7 +67,11 @@ class NodeUtils {
 		if(dto.getVersionLabel() != null){
 			rev.setLabel(dto.getVersionLabel());
 		} 	
-		
+		if(dto.getFileHandleId() != null){
+			rev.setFileHandleId(KeyFactory.stringToKey(dto.getFileHandleId()));
+		}else{
+			rev.setFileHandleId(null);
+		}
 		// bring in activity id, if set
 		if(deleteActivityId) {
 			rev.setActivityId(null);
@@ -157,7 +161,9 @@ class NodeUtils {
 		if(rev.getRevisionNumber() != null){
 			dto.setVersionNumber(rev.getRevisionNumber());
 		}
-
+		if(rev.getFileHandleId() != null){
+			dto.setFileHandleId(rev.getFileHandleId().toString());
+		}
 		if(rev.getActivityId() != null) {
 			dto.setActivityId(rev.getActivityId().toString());
 		} 
