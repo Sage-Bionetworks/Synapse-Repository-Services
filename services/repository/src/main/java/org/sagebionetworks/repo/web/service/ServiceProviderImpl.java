@@ -42,6 +42,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private CompetitionService competitionService;
 	@Autowired
 	private WikiService wikiService;
+	@Autowired
+	private TrashService trashService;
 
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -95,5 +97,9 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public WikiService getWikiService() {
 		return wikiService;
+	}
+	@Override
+	public TrashService getTrashService() {
+		return trashService;
 	}
 }
