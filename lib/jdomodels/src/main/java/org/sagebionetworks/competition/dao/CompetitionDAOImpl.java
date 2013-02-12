@@ -13,7 +13,6 @@ import org.sagebionetworks.competition.dbo.DBOConstants;
 import org.sagebionetworks.competition.model.Competition;
 import org.sagebionetworks.competition.model.CompetitionStatus;
 import org.sagebionetworks.competition.util.CompetitionUtils;
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -38,9 +37,6 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDao;
-
-	@Autowired
-	private IdGenerator idGenerator;
 	
 	@Autowired
 	private TagMessenger tagMessenger;
@@ -88,14 +84,12 @@ public class CompetitionDAOImpl implements CompetitionDAO {
 	public String create(Competition dto, Long ownerId) throws DatastoreException {
 		CompetitionUtils.ensureNotNull(dto, "Competition object");
 		CompetitionUtils.ensureNotNull(ownerId, "Owner ID");
+		CompetitionUtils.ensureNotNull(dto.getId(), "Competition ID");
 		
 		// convert to DBO
 		CompetitionDBO dbo = new CompetitionDBO();
 		copyDtoToDbo(dto, dbo);
-		
-		// generate unique ID
-		dbo.setId(idGenerator.generateNewId());
-		
+				
 		// set Owner ID
 		dbo.setOwnerId(ownerId);
 		

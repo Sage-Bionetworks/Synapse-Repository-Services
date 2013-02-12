@@ -40,12 +40,14 @@ public class ParticipantDAOImplTest {
     	// create and persist competitions
         Competition competition = new Competition();
         competition.setEtag("etag");
+        competition.setId("1234");
         competition.setName("name");
         competition.setCreatedOn(new Date());
         competition.setContentSource("foobar");
         competition.setStatus(CompetitionStatus.PLANNED);
         compId1 = competitionDAO.create(competition, principalId);
         competition.setName("name2");
+        competition.setId("5678");
         competition.setStatus(CompetitionStatus.CLOSED);
         compId2 = competitionDAO.create(competition, principalId);        
         
@@ -59,7 +61,7 @@ public class ParticipantDAOImplTest {
     }
     
     @After
-    public void after() throws DatastoreException {
+    public void tearDown() throws DatastoreException {
 		try {
 			participantDAO.delete(principalId_str, compId1);
 		} catch (NotFoundException e)  {};

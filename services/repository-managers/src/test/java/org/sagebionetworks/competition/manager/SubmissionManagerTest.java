@@ -4,6 +4,8 @@ import static org.mockito.Mockito.*;
 
 import java.util.Date;
 
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
 import org.junit.Before;
@@ -16,6 +18,7 @@ import org.sagebionetworks.competition.model.Participant;
 import org.sagebionetworks.competition.model.Submission;
 import org.sagebionetworks.competition.model.SubmissionStatus;
 import org.sagebionetworks.competition.model.SubmissionStatusEnum;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -32,8 +35,11 @@ public class SubmissionManagerTest {
 	private static Participant part;
 	private static Submission sub;
 	private static Submission sub2;
+	private static Submission subWithId;
+	private static Submission sub2WithId;
 	private static SubmissionStatus subStatus;
 	
+	private static IdGenerator mockIdGenerator;
 	private static SubmissionDAO mockSubmissionDAO;
 	private static SubmissionStatusDAO mockSubmissionStatusDAO;
 	private static CompetitionManager mockCompetitionManager;
@@ -79,7 +85,6 @@ public class SubmissionManagerTest {
         sub.setCompetitionId(COMP_ID);
         sub.setCreatedOn(new Date());
         sub.setEntityId(ENTITY_ID);
-        sub.setId(SUB_ID);
         sub.setName("subName");
         sub.setUserId(USER_ID);
         sub.setVersionNumber(0L);
@@ -88,10 +93,27 @@ public class SubmissionManagerTest {
         sub2.setCompetitionId(COMP_ID);
         sub2.setCreatedOn(new Date());
         sub2.setEntityId(ENTITY2_ID);
-        sub2.setId(SUB2_ID);
         sub2.setName("subName");
         sub2.setUserId(OWNER_ID);
         sub2.setVersionNumber(0L);
+        
+        subWithId = new Submission();
+        subWithId.setCompetitionId(COMP_ID);
+        subWithId.setCreatedOn(new Date());
+        subWithId.setEntityId(ENTITY_ID);
+        subWithId.setId(SUB_ID);
+        subWithId.setName("subName");
+        subWithId.setUserId(USER_ID);
+        subWithId.setVersionNumber(0L);
+        
+        sub2WithId = new Submission();
+        sub2WithId.setCompetitionId(COMP_ID);
+        sub2WithId.setCreatedOn(new Date());
+        sub2WithId.setEntityId(ENTITY2_ID);
+        sub2WithId.setId(SUB2_ID);
+        sub2WithId.setName("subName");
+        sub2WithId.setUserId(OWNER_ID);
+        sub2WithId.setVersionNumber(0L);
         
         subStatus = new SubmissionStatus();
         subStatus.setEtag("subEtag");
@@ -101,6 +123,7 @@ public class SubmissionManagerTest {
         subStatus.setStatus(SubmissionStatusEnum.OPEN);       
 		
     	// Mocks
+    	mockIdGenerator = mock(IdGenerator.class);
     	mockSubmissionDAO = mock(SubmissionDAO.class);
     	mockSubmissionStatusDAO = mock(SubmissionStatusDAO.class);
     	mockCompetitionManager = mock(CompetitionManager.class);
@@ -108,6 +131,7 @@ public class SubmissionManagerTest {
     	mockNodeManager = mock(NodeManager.class);
     	mockNode = mock(Node.class);
     	
+    	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
     	when(mockParticipantManager.getParticipant(eq(USER_ID), eq(COMP_ID))).thenReturn(part);
     	when(mockCompetitionManager.getCompetition(eq(COMP_ID))).thenReturn(comp);
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(sub);
@@ -117,18 +141,20 @@ public class SubmissionManagerTest {
     	when(mockNodeManager.get(eq(userInfo), eq(ENTITY2_ID))).thenThrow(new UnauthorizedException());
     	
     	// Submission Manager
-    	submissionManager = new SubmissionManagerImpl(mockSubmissionDAO, 
+    	submissionManager = new SubmissionManagerImpl(mockIdGenerator, mockSubmissionDAO, 
     			mockSubmissionStatusDAO, mockCompetitionManager, mockParticipantManager,
     			mockNodeManager);
     }
 	
 	@Test
 	public void testCRUDAsAdmin() throws Exception {
+		assertNull(sub.getId());
+		assertNotNull(subWithId.getId());
 		submissionManager.createSubmission(userInfo, sub);
 		submissionManager.getSubmission(SUB_ID);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 		submissionManager.deleteSubmission(ownerInfo, SUB_ID);
-		verify(mockSubmissionDAO).create(eq(sub));
+		verify(mockSubmissionDAO).create(eq(subWithId));
 		verify(mockSubmissionDAO, times(3)).get(eq(SUB_ID));
 		verify(mockSubmissionDAO).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
@@ -137,6 +163,8 @@ public class SubmissionManagerTest {
 	
 	@Test
 	public void testCRUDAsUser() throws NotFoundException {
+		assertNull(sub.getId());
+		assertNotNull(subWithId.getId());
 		submissionManager.createSubmission(userInfo, sub);
 		submissionManager.getSubmission(SUB_ID);
 		try {
@@ -151,7 +179,7 @@ public class SubmissionManagerTest {
 		} catch (UnauthorizedException e) {
 			//expected
 		}
-		verify(mockSubmissionDAO).create(eq(sub));
+		verify(mockSubmissionDAO).create(eq(subWithId));
 		verify(mockSubmissionDAO, times(3)).get(eq(SUB_ID));
 		verify(mockSubmissionDAO, never()).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
