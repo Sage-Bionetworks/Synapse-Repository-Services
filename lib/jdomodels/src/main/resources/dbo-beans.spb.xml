@@ -49,10 +49,10 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiAttachment" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />
 				<!-- Competition beans -->
-				<bean class="org.sagebionetworks.competition.dbo.CompetitionDBO" />
-				<bean class="org.sagebionetworks.competition.dbo.ParticipantDBO" />
-				<bean class="org.sagebionetworks.competition.dbo.SubmissionDBO" />
-				<bean class="org.sagebionetworks.competition.dbo.SubmissionStatusDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.ParticipantDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO" />
 			</list>
 		</property>
 	</bean>

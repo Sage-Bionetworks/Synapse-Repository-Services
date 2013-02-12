@@ -11,7 +11,7 @@ import java.util.Collection;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementBackup;
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.CompetitionBackup;
+import org.sagebionetworks.repo.model.EvaluationBackup;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
@@ -148,16 +148,16 @@ public class NodeSerializerUtil  {
 		return (Activity)xstream.fromXML(reader);
 	}
 	
-	public static void writeCompetitionBackup(CompetitionBackup cb, OutputStream out) {
+	public static void writeCompetitionBackup(EvaluationBackup cb, OutputStream out) {
 		OutputStreamWriter writer = new OutputStreamWriter(out);
 		XStream xstream = createXStream();
 		xstream.toXML(cb, writer);
 	}
 	
-	public static CompetitionBackup readCompetitionBackup(InputStream in) {
+	public static EvaluationBackup readCompetitionBackup(InputStream in) {
 		InputStreamReader reader = new InputStreamReader(in);
 		XStream xstream = createXStream();
-		return (CompetitionBackup) xstream.fromXML(reader);
+		return (EvaluationBackup) xstream.fromXML(reader);
 	}
 	
 	public static void writeSubmissionBackup(SubmissionBackup sb, OutputStream out) {
@@ -181,7 +181,7 @@ public class NodeSerializerUtil  {
 		xstream.alias(ALIAS_ANNOTATIONS, Annotations.class);
 		xstream.alias(ALIAS_NAME_SPACE, NamedAnnotations.class);
 		xstream.alias(ALIAS_ACTIVITY, Activity.class);
-		xstream.alias(ALIAS_COMPETITION, CompetitionBackup.class);
+		xstream.alias(ALIAS_COMPETITION, EvaluationBackup.class);
 		xstream.alias(ALIAS_SUBMISSION, SubmissionBackup.class);
 		return xstream;
 	}

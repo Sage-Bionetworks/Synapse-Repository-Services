@@ -4,7 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.competition.manager.CompetitionManager;
+import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -16,7 +16,6 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -44,7 +43,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	@Autowired
 	private UserManager userManager;
 	@Autowired
-	CompetitionManager competitionManager;
+	EvaluationManager evaluationManager;
 	@Autowired
 	FileHandleDao fileHandleDao;
 
@@ -56,7 +55,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	AuthorizationManagerImpl(NodeInheritanceDAO nodeInheritanceDAO,
 			AccessControlListDAO accessControlListDAO,
 			AccessRequirementDAO accessRequirementDAO, ActivityDAO activityDAO,
-			NodeQueryDao nodeQueryDao, NodeDAO nodeDAO, UserManager userManager, CompetitionManager competitionManager, FileHandleDao fileHandleDao) {
+			NodeQueryDao nodeQueryDao, NodeDAO nodeDAO, UserManager userManager, 
+			EvaluationManager competitionManager, FileHandleDao fileHandleDao) {
 		super();
 		this.nodeInheritanceDAO = nodeInheritanceDAO;
 		this.accessControlListDAO = accessControlListDAO;
@@ -65,7 +65,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		this.nodeQueryDao = nodeQueryDao;
 		this.nodeDAO = nodeDAO;
 		this.userManager = userManager;
-		this.competitionManager = competitionManager;
+		this.evaluationManager = competitionManager;
 		this.fileHandleDao = fileHandleDao;
 	}
 
@@ -208,13 +208,13 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		// If the object is an entity then we use existing methods
 		if(ObjectType.ENTITY == objectType){
 			return canAccess(userInfo, objectId, accessType);
-		}else if(ObjectType.COMPETITION == objectType){
+		}else if(ObjectType.EVALUATION == objectType){
 			// Anyone can read from a competition.
 			if(ACCESS_TYPE.READ == accessType){
 				return true;
 			}else{
 				// All other actions require admin access
-				return competitionManager.isCompAdmin(userInfo.getIndividualGroup().getId(), objectId);
+				return evaluationManager.isEvalAdmin(userInfo.getIndividualGroup().getId(), objectId);
 			}
 		}else{
 			throw new IllegalArgumentException("Unknown ObjectType: "+objectType);
