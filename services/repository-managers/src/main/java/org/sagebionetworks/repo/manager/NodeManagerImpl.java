@@ -26,7 +26,6 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
-import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.jdo.EntityNameValidation;
 import org.sagebionetworks.repo.model.jdo.FieldTypeCache;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -46,6 +45,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class NodeManagerImpl implements NodeManager, InitializingBean {
 	
+	private static final String FILE_HANDLE_UNAUTHORIZED_TEMPLATE = "Only the creator of a FileHandle can assign it to an Entity.  FileHandleId = '%1$s', UserId = '%2$s'";
+
 	static private Log log = LogFactory.getLog(NodeManagerImpl.class);	
 	
 	@Autowired
@@ -129,7 +130,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		if(newNode.getFileHandleId() != null){
 			// To set the file handle on a create the caller must have permission 
 			if(!authorizationManager.canAccessRawFileHandleById(userInfo, newNode.getFileHandleId())){
-				throw new UnauthorizedException("Only the creator of a FileHandle can assigne it to an Entity");
+				throw new UnauthorizedException(createFileHandleUnauthorizedMessage(newNode.getFileHandleId(), userInfo));
 			}
 		}
 
@@ -160,6 +161,17 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			log.debug("username: "+userInfo.getUser().getUserId()+" created node: "+id);
 		}
 		return id;
+	}
+
+	/**
+	 * Create an unauthorized message for file handles.
+	 * 
+	 * @param fileHandleId
+	 * @param userInfo
+	 * @return
+	 */
+	private String createFileHandleUnauthorizedMessage(String fileHandleId,	UserInfo userInfo) {
+		return String.format(FILE_HANDLE_UNAUTHORIZED_TEMPLATE, fileHandleId, userInfo.getIndividualGroup().getId());
 	}
 	
 	/**
@@ -303,7 +315,13 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Validate that the user can assign the file handle if they have it.
 		if(updatedNode.getFileHandleId() != null){
 			// First determine if this is a change
-			String currentHandleId = nodeDao.getCurrentFileHandleId(updatedNode.getId());
+			String currentHandleId = nodeDao.getFileHandleIdForCurrentVersion(updatedNode.getId());
+			if(!updatedNode.getFileHandleId().equals(currentHandleId)){
+				// This is a change so the user must be the creator of the new file handle
+				if(!authorizationManager.canAccessRawFileHandleById(userInfo, updatedNode.getFileHandleId())){
+					throw new UnauthorizedException(createFileHandleUnauthorizedMessage(updatedNode.getFileHandleId(), userInfo));
+				}
+			}
 		}
 		updateNode(userInfo, updatedNode, updatedAnnos, newVersion, true, ChangeType.UPDATE);
 
@@ -559,12 +577,17 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	public QueryResults<VersionInfo> getVersionsOfEntity(UserInfo userInfo,
 			String entityId, long offset, long limit) throws NotFoundException,
 			UnauthorizedException, DatastoreException {
+		validateReadAccess(userInfo, entityId);
+		return nodeDao.getVersionsOfEntity(entityId, offset, limit);
+	}
+
+	public void validateReadAccess(UserInfo userInfo, String entityId)
+			throws NotFoundException {
 		UserInfo.validateUserInfo(userInfo);
 		if (!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.READ)) {
 			String userName = userInfo.getUser().getUserId();
 			throw new UnauthorizedException(userName+" lacks read access to the requested object.");
 		}
-		return nodeDao.getVersionsOfEntity(entityId, offset, limit);
 	}
 
 	@Override
@@ -620,4 +643,50 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		return nodeDao.promoteNodeVersion(nodeId, versionNumber);
 	}
 
+	@Override
+	public String getFileHandleIdForCurrentVersion(UserInfo userInfo, String id) throws NotFoundException, UnauthorizedException {
+		// Validate that the user has download permission.
+		validateDownload(userInfo, id);
+		// Get the value from the dao
+		String fileHandleId = nodeDao.getFileHandleIdForCurrentVersion(id);
+		checkFileHandleId(id, fileHandleId);
+		return fileHandleId;
+	}
+
+	@Override
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, UnauthorizedException {
+		// Validate that the user has download permission.
+		validateDownload(userInfo, id);
+		// Get the value from the dao
+		String fileHandleId = nodeDao.getFileHandleIdForVersion(id, versionNumber);
+		checkFileHandleId(id, fileHandleId);
+		return fileHandleId;
+	}
+	
+	/**
+	 * Throws a NotFoundException when a file handle is null
+	 * @param entityId
+	 * @param fileHandleId
+	 * @throws NotFoundException
+	 */
+	private void checkFileHandleId(String entityId, String fileHandleId)
+			throws NotFoundException {
+		if(fileHandleId == null) throw new NotFoundException("Object "+entityId+" does not have a file handle associated with it.");
+	}
+
+	/**
+	 * Helper to validate that the user has download permission.
+	 * @param userInfo
+	 * @param id
+	 * @throws NotFoundException
+	 */
+	private void validateDownload(UserInfo userInfo, String id)
+			throws NotFoundException {
+		// First the user must have read access to the entity.
+		validateReadAccess(userInfo, id);
+		// They must have permission to dowload the file to get the handle.
+		if (!authorizationManager.canAccess(userInfo, id, ACCESS_TYPE.DOWNLOAD)) {
+			throw new UnauthorizedException(userInfo.getUser().getUserId() +" lacks download access to the specified object.");
+		}
+	}
 }

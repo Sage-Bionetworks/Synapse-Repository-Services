@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import static org.junit.Assert.*;
 import static org.mockito.Mockito.*;
 
 import org.junit.Before;
@@ -106,6 +107,135 @@ public class NodeManagerAuthorizationTest {
 		// Should fail
 		nodeManager.createNewNode(mockNode, mockUserInfo);
 		verify(mockNodeDao).createNew(mockNode);
+	}
+	
+	/**
+	 * Test the case where the user has update permission on the node but they did not create the file handle so they cannot
+	 * assign it to the node.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test
+	public void testUnauthorizedUpdateNodeFileHandle() throws DatastoreException, NotFoundException{
+		String fileHandleId = "123456";
+		String oldFileHandleId = "9876";
+		// The user can update the node.
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.UPDATE)).thenReturn(true);
+		// The old file handle does not match the new file handle.
+		when(mockNodeDao.getFileHandleIdForCurrentVersion(mockNode.getId())).thenReturn(oldFileHandleId);
+		// The user did not create the file handle.
+		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(false);
+		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
+		// Should fail
+		try{
+			nodeManager.update(mockUserInfo, mockNode);
+			fail("Should have failed");
+		}catch(UnauthorizedException e){
+			assertTrue("The exception message should contain the file handle id",e.getMessage().indexOf(fileHandleId) > 0);
+			assertTrue("The exception message should contain the user's id",e.getMessage().indexOf(mockUserInfo.getIndividualGroup().getId()) > 0);
+		}
+	}
+	
+	/**
+	 * Test the case where the user has update permission on a node that already had an file handle.
+	 * In this case the file handle currently on the node was created by someone else so the current user would not
+	 * be able to set it.  However, since the file handle is not changing, the user should be allowed to proceed with the update.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test
+	public void testAuthorizedUpdateNodeFileHandleNotChanged() throws DatastoreException, NotFoundException{
+		String fileHandleId = "123456";
+		// The user can update the node.
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.READ)).thenReturn(true);
+		// The file handle was already set on this node so it is not changing with this update.
+		when(mockNodeDao.getFileHandleIdForCurrentVersion(mockNode.getId())).thenReturn(fileHandleId);
+		// If the user were to set this file handle it would fail as they are not the creator of the file handle.
+		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(false);
+		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
+		// Should fail
+		nodeManager.update(mockUserInfo, mockNode);
+		// The change should make it to the dao
+		verify(mockNodeDao).updateNode(mockNode);
+	}
+	
+	/**
+	 * For this case the user has update permission on the node.  This update is changing the file handle
+	 * and the user has permission to use the new file handle, so the update should succeed.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test
+	public void testAuthorizedUpdateNodeFileHandleChanged() throws DatastoreException, NotFoundException{
+		String fileHandleId = "123456";
+		String oldFileHandleId = "9876";
+		// The user can update the node.
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.UPDATE)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.READ)).thenReturn(true);
+		// The current file handle on the node does not match the new handle.
+		when(mockNodeDao.getFileHandleIdForCurrentVersion(mockNode.getId())).thenReturn(oldFileHandleId);
+		// The user can access the new file handle.
+		when(mockAuthDao.canAccessRawFileHandleById(mockUserInfo, fileHandleId)).thenReturn(true);
+		when(mockNode.getFileHandleId()).thenReturn(fileHandleId);
+		// Should fail
+		nodeManager.update(mockUserInfo, mockNode);
+		// The change should make it to the dao
+		verify(mockNodeDao).updateNode(mockNode);
+	}
+	
+	/**
+	 * For this case the user has read access on the node but not download access.
+	 * 
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test (expected=UnauthorizedException.class)
+	public void testUnauthorizedGetFileHandle1() throws DatastoreException, NotFoundException{
+		String fileHandleId = "123456";
+		// The user has access to read the node
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.READ)).thenReturn(true);
+		// The user does not have permission to dowload the file
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.DOWNLOAD)).thenReturn(false);
+		nodeManager.getFileHandleIdForCurrentVersion(mockUserInfo, mockNode.getId());
+	}
+	
+	/**
+	 * Not found when there is not file handle id.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test (expected=NotFoundException.class)
+	public void testNotFoundGetFileHandle() throws DatastoreException, NotFoundException{
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.DOWNLOAD)).thenReturn(true);
+		when(mockNodeDao.getFileHandleIdForCurrentVersion( mockNode.getId())).thenReturn(null);
+		nodeManager.getFileHandleIdForCurrentVersion(mockUserInfo, mockNode.getId());
+	}
+	
+	@Test
+	public void testGetFileHandleIdForCurrentVersion() throws DatastoreException, NotFoundException{
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.READ)).thenReturn(true);
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.DOWNLOAD)).thenReturn(true);
+		String expectedFileHandleId = "999999";
+		when(mockNodeDao.getFileHandleIdForCurrentVersion( mockNode.getId())).thenReturn(expectedFileHandleId);
+		String handleId = nodeManager.getFileHandleIdForCurrentVersion(mockUserInfo, mockNode.getId());
+		assertEquals(expectedFileHandleId, handleId);
+	}
+	/**
+	 * For this case the user has download access to the node but not read.
+	 * 
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@Test (expected=UnauthorizedException.class)
+	public void testUnauthorizedGetFileHandle2() throws DatastoreException, NotFoundException{
+		String fileHandleId = "123456";
+		// The user does not have access to read the node
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.READ)).thenReturn(false);
+		// The user does have permission to dowload the file
+		when(mockAuthDao.canAccess(mockUserInfo, mockNode.getId(), ACCESS_TYPE.DOWNLOAD)).thenReturn(false);
+		nodeManager.getFileHandleIdForCurrentVersion(mockUserInfo, mockNode.getId());
 	}
 	
 	@Test (expected=UnauthorizedException.class)

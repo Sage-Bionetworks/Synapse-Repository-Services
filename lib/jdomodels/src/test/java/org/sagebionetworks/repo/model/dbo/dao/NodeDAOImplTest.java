@@ -2153,7 +2153,7 @@ public class NodeDAOImplTest {
 		assertEquals("V2 should also have the first file handle", fileHandle.getId(), v2Node.getFileHandleId());
 		assertEquals("V3 should also have the second file handle", fileHandle2.getId(), v3Node.getFileHandleId());
 		// Get the file handle
-		String fileHandleId = nodeDao.getFileHandleIdCurrentVersion(id);
+		String fileHandleId = nodeDao.getFileHandleIdForCurrentVersion(id);
 		assertEquals(fileHandle2.getId(), fileHandleId);
 		// Try with the version parameter.
 		fileHandleId = nodeDao.getFileHandleIdForVersion(id, v1);
@@ -2163,7 +2163,7 @@ public class NodeDAOImplTest {
 		nodeDao.updateNode(clone);
 		clone = nodeDao.getNode(id);
 		assertEquals(null, clone.getFileHandleId());
-		fileHandleId = nodeDao.getFileHandleIdCurrentVersion(id);
+		fileHandleId = nodeDao.getFileHandleIdForCurrentVersion(id);
 		assertEquals(null, fileHandleId);
 		// Make sure we can set it to null
 		// Now delete the node

@@ -1316,7 +1316,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	}
 
 	@Override
-	public String getFileHandleIdCurrentVersion(String id) throws DatastoreException, NotFoundException {
+	public String getFileHandleIdForCurrentVersion(String id) throws DatastoreException, NotFoundException {
 		// lookup the current rev.
 		Long currentRev = getCurrentRevisionNumber(id);
 		// use the current rev to lookup the handle.
@@ -1327,8 +1327,12 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	public String getFileHandleIdForVersion(String id, Long versionNumber) {
 		Long nodeId = KeyFactory.stringToKey(id);
 		try{
-			Long handleId = simpleJdbcTemplate.queryForLong(SQL_SELECT_REV_FILE_HANDLE_ID, nodeId, versionNumber);
-			return ""+handleId;
+			long handleId = simpleJdbcTemplate.queryForLong(SQL_SELECT_REV_FILE_HANDLE_ID, nodeId, versionNumber);
+			if(handleId > 0){
+				return ""+handleId;
+			}else{
+				return null;
+			}
 		}catch (EmptyResultDataAccessException e){
 			return null;
 		}

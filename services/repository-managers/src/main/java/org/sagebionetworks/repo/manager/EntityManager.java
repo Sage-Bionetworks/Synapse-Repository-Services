@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
+import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 
@@ -358,4 +359,26 @@ public interface EntityManager {
 	 */
 	VersionInfo promoteEntityVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * Get the FileHandle ID for the current version of the entity.
+	 * @param userInfo
+	 * @param id
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 */
+	public String getFileHandleIdForCurrentVersion(UserInfo userInfo, String id) throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * Get the FileHandle ID for a given version number.
+	 * @param userInfo
+	 * @param id
+	 * @param versionNumber
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 */
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws UnauthorizedException, NotFoundException;
 }

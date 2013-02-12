@@ -385,7 +385,7 @@ public interface NodeDAO extends MigratableDAO {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	public String getFileHandleIdCurrentVersion(String id) throws DatastoreException, NotFoundException;
+	public String getFileHandleIdForCurrentVersion(String id) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Get the FileHandle Id for a given version number.

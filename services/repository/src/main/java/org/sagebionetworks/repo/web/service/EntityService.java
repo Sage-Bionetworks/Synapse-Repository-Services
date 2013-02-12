@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 
@@ -710,5 +711,26 @@ public interface EntityService {
 	public VersionInfo promoteEntityVersion(String userId, String id,
 			Long versionNumber) throws DatastoreException,
 			NotFoundException, UnauthorizedException;
+
+	/**
+	 * Get the file redirect URL for the current version of the entity.
+	 * @param userId
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public URL getFileRedirectURLForCurrentVersion(String userId, String entityId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the file redirect URL for a given version number.
+	 * @param userId
+	 * @param id
+	 * @param versionNumber
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public URL getFileRedirectURLForVersion(String userId, String id, Long versionNumber) throws DatastoreException, NotFoundException;
 
 }
