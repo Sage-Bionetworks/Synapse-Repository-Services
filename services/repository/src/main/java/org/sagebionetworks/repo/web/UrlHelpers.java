@@ -166,6 +166,10 @@ public class UrlHelpers {
 	public static final String ENTITY_ID_ACL = ENTITY_ID+ACL;
 	public static final String ENTITY_ID_ID_BENEFACTOR = ENTITY_ID+BENEFACTOR;
 	
+	public static final String FILE= "/file";
+	public static final String ENTITY_FILE = ENTITY_ID+FILE;
+	public static final String ENTITY_VERSION_FILE = ENTITY_ID+VERSION+VERSION_NUMBER+FILE;
+	
 	/**
 	 * Activity URLs
 	 */

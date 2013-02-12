@@ -252,7 +252,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// denied!
-		when(mockAuthorizationManager.canAccessRawFileHandle(mockUser, validResults.getCreatedBy())).thenReturn(false);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(false);
 		manager.getRawFileHandle(mockUser, handleId);
 	}
 	
@@ -262,7 +262,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// allow
-		when(mockAuthorizationManager.canAccessRawFileHandle(mockUser, validResults.getCreatedBy())).thenReturn(true);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(true);
 		FileHandle handle = manager.getRawFileHandle(mockUser, handleId);
 		assertEquals("failed to get the handle", handle, validResults);
 	}
@@ -281,7 +281,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// denied!
-		when(mockAuthorizationManager.canAccessRawFileHandle(mockUser, validResults.getCreatedBy())).thenReturn(false);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(false);
 		manager.deleteFileHandle(mockUser, handleId);
 	}
 	
@@ -291,7 +291,7 @@ public class FileHandleManagerImplTest {
 		String handleId = "123";
 		when(mockfileMetadataDao.get(handleId)).thenReturn(validResults);
 		// allow!
-		when(mockAuthorizationManager.canAccessRawFileHandle(mockUser, validResults.getCreatedBy())).thenReturn(true);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(mockUser, validResults.getCreatedBy())).thenReturn(true);
 		manager.deleteFileHandle(mockUser, handleId);
 		// The S3 file should get deleted.
 		verify(mockS3Client, times(1)).deleteObject(validResults.getBucketName(), validResults.getKey());
@@ -312,7 +312,7 @@ public class FileHandleManagerImplTest {
 		when(mockfileMetadataDao.get(validResults.getId())).thenReturn(validResults);
 		when(mockfileMetadataDao.get(preview.getId())).thenReturn(preview);
 		// Allow all calls
-		when(mockAuthorizationManager.canAccessRawFileHandle(any(UserInfo.class), any(String.class))).thenReturn(true);
+		when(mockAuthorizationManager.canAccessRawFileHandleByCreator(any(UserInfo.class), any(String.class))).thenReturn(true);
 		// Now deleting the original handle should trigger the delete of the previews.
 		manager.deleteFileHandle(mockUser, validResults.getId());
 		// The S3 file should get deleted.

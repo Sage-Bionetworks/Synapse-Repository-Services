@@ -392,8 +392,8 @@ public class WikiManagerTest {
 		page.getAttachmentFileHandleIds().add(one.getId());
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandle(user, user.getIndividualGroup().getId())).thenReturn(true);
-		when(mockAuthManager.canAccessRawFileHandle(user, "007")).thenReturn(false);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, "007")).thenReturn(false);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
@@ -432,8 +432,8 @@ public class WikiManagerTest {
 		page.getAttachmentFileHandleIds().add(one.getId());
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandle(user, user.getIndividualGroup().getId())).thenReturn(true);
-		when(mockAuthManager.canAccessRawFileHandle(user, "007")).thenReturn(false);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, "007")).thenReturn(false);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.createWikiPage(user, "syn123", ObjectType.ENTITY, page);
@@ -477,8 +477,8 @@ public class WikiManagerTest {
 		when(mockWikiDao.getWikiFileHandleIds(key)).thenReturn(currentFileHandleIds);
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandle(user, user.getIndividualGroup().getId())).thenReturn(true);
-		when(mockAuthManager.canAccessRawFileHandle(user, "007")).thenReturn(false);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, "007")).thenReturn(false);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.updateWikiPage(user, ownerId, ownerType, page);
@@ -533,8 +533,8 @@ public class WikiManagerTest {
 		when(mockWikiDao.getWikiFileHandleIds(key)).thenReturn(currentFileHandleIds);
 		
 		// Allow one but deny the other.
-		when(mockAuthManager.canAccessRawFileHandle(user, user.getIndividualGroup().getId())).thenReturn(true);
-		when(mockAuthManager.canAccessRawFileHandle(user, "007")).thenReturn(false);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, user.getIndividualGroup().getId())).thenReturn(true);
+		when(mockAuthManager.canAccessRawFileHandleByCreator(user, "007")).thenReturn(false);
 		// Allow access to the owner.
 		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(true);
 		wikiManager.updateWikiPage(user, ownerId, ownerType, page);

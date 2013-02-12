@@ -571,7 +571,7 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY+"/"+entity.getId());
+		request.setRequestURI(UrlHelpers.ENTITY+"/"+entity.getId()+"/version");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
 		StringWriter out = new StringWriter();
@@ -1202,6 +1202,43 @@ public class EntityServletTestHelper {
 	}
 	
 	/**
+	 * Get the temporary Redirect URL for a Wiki File.
+	 * @param userName
+	 * @param entityId
+	 * @param redirect - Defaults to null, which will follow the redirect.  When set to FALSE, a call will be made without a redirect.
+	 * @param preview - Defaults to null, wich will get the File and not the preview of the File.  When set to TRUE, the URL of the preview will be returned.
+	 * @param versionNumber - Defaults to null, wich will get the file for the current version.  When set to a version number, the file (or preview) assocaited
+	 * with that version number will be returned.
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	private URL getEntityFileURL(String userName, String entityId, Boolean redirect, Boolean preview, Long versionNumber) throws ServletException, IOException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String suffix = "/file";
+		if(Boolean.TRUE.equals(preview)){
+			// This is a preview request.
+			suffix = "/filepreview";
+		}
+		String version = "";
+		if(versionNumber != null){
+			version = "/version/"+versionNumber;
+		}
+		String uri = "/entity/"+entityId+version+suffix;
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		if(redirect != null){
+			request.setParameter("redirect", redirect.toString());
+		}
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		return handleRedirectReponse(redirect, response);
+	}
+	
+	/**
 	 * 
 	 * @param redirect
 	 * @param response
@@ -1226,5 +1263,33 @@ public class EntityServletTestHelper {
 			// Get the redirect location
 			return new URL(response.getContentAsString());
 		}
+	}
+	/**
+	 * Get the file URL for the current version.
+	 * @param userName
+	 * @param entityId
+	 * @param redirect
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public URL getEntityFileURLForCurrentVersion(String userName, String entityId, Boolean redirect) throws ServletException, IOException {
+		Boolean preview = null;
+		Long versionNumber = null;
+		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
+	}
+	/**
+	 * 
+	 * @param userName
+	 * @param id
+	 * @param versionNumber
+	 * @param redirect
+	 * @return
+	 * @throws IOException 
+	 * @throws ServletException 
+	 */
+	public URL getEntityFileURLForVersion(String userName, String entityId, Long versionNumber, Boolean redirect) throws ServletException, IOException {
+		Boolean preview = null;
+		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
 	}
 }

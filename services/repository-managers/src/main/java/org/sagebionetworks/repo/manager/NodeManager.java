@@ -292,4 +292,27 @@ public interface NodeManager {
 	public VersionInfo promoteEntityVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException;
 
+	/**
+	 * Get the FileHandleId of the file associated with the current version of the entity.
+	 * The caller must have permission to downlaod this file to get the handle.
+	 * @param userInfo
+	 * @param id
+	 * @return
+	 * @throws UnauthorizedException 
+	 * @throws NotFoundException 
+	 */
+	public String getFileHandleIdForCurrentVersion(UserInfo userInfo, String id) throws NotFoundException, UnauthorizedException;
+
+	/**
+	 * Get the FileHandleId of the file associated with a given version of the entity.
+	 * The caller must have permission to downlaod this file to get the handle.
+	 * @param userInfo
+	 * @param id
+	 * @param versionNumber
+	 * @return
+	 * @throws UnauthorizedException 
+	 * @throws NotFoundException 
+	 */
+	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws NotFoundException, UnauthorizedException;
+
 }

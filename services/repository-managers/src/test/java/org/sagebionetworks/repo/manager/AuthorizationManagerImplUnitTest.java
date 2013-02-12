@@ -17,6 +17,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.sagebionetworks.competition.manager.CompetitionManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -37,6 +38,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -54,6 +57,7 @@ public class AuthorizationManagerImplUnitTest {
 	NodeQueryDao mockNodeQueryDao;	
 	NodeDAO mockNodeDAO;
 	UserManager mockUserManager;
+	FileHandleDao mockFileHandleDao;
 	
 	AuthorizationManager authorizationManager = null;
 	UserInfo userInfo = null;
@@ -69,11 +73,12 @@ public class AuthorizationManagerImplUnitTest {
 		mockNodeDAO = mock(NodeDAO.class);
 		mockUserManager = mock(UserManager.class);
 		mockCompetitionManager = mock(CompetitionManager.class);
+		mockFileHandleDao = mock(FileHandleDao.class);
 		
 		authorizationManager = new AuthorizationManagerImpl(
 				mockNodeInheritanceDAO, mockAccessControlListDAO,
 				mockAccessRequirementDAO, mockActivityDAO, mockNodeQueryDao,
-				mockNodeDAO, mockUserManager, mockCompetitionManager);
+				mockNodeDAO, mockUserManager, mockCompetitionManager, mockFileHandleDao);
 		
 		userInfo = new UserInfo(false);
 		UserGroup userInfoGroup = new UserGroup();
@@ -133,14 +138,30 @@ public class AuthorizationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testCanAccessRawFileHandle(){
+	public void testCanAccessRawFileHandleByCreator(){
 		// The admin can access anything
 		String creator = userInfo.getIndividualGroup().getId();
-		assertTrue("Admin should have access to all FileHandles",authorizationManager.canAccessRawFileHandle(adminUser, creator));
-		assertTrue("Creator should have access to their own FileHandles", authorizationManager.canAccessRawFileHandle(userInfo, creator));
+		assertTrue("Admin should have access to all FileHandles",authorizationManager.canAccessRawFileHandleByCreator(adminUser, creator));
+		assertTrue("Creator should have access to their own FileHandles", authorizationManager.canAccessRawFileHandleByCreator(userInfo, creator));
 		// Set the creator to be the admin this time.
 		creator = adminUser.getIndividualGroup().getId();
-		assertFalse("Only the creator (or admin) should have access a FileHandle", authorizationManager.canAccessRawFileHandle(userInfo, creator));
+		assertFalse("Only the creator (or admin) should have access a FileHandle", authorizationManager.canAccessRawFileHandleByCreator(userInfo, creator));
+	}
+	
+	@Test
+	public void testCanAccessRawFileHandleById() throws NotFoundException{
+		// The admin can access anything
+		String creator = userInfo.getIndividualGroup().getId();
+		String fileHandlId = "3333";
+		when(mockFileHandleDao.getHandleCreator(fileHandlId)).thenReturn(creator);
+		assertTrue("Admin should have access to all FileHandles",authorizationManager.canAccessRawFileHandleById(adminUser, fileHandlId));
+		assertTrue("Creator should have access to their own FileHandles", authorizationManager.canAccessRawFileHandleById(userInfo, fileHandlId));
+		// change the users id
+		UserInfo notTheCreatoro = new UserInfo(false);
+		UserGroup userInfoGroup = new UserGroup();
+		userInfoGroup.setId("999999");
+		notTheCreatoro.setIndividualGroup(userInfoGroup);
+		assertFalse("Only the creator (or admin) should have access a FileHandle", authorizationManager.canAccessRawFileHandleById(notTheCreatoro, fileHandlId));
 	}
 	
 	@Test

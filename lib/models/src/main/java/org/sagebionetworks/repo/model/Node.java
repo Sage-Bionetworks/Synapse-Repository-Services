@@ -27,6 +27,7 @@ public class Node {
 	String benefactorId;
 	Map<String, Set<Reference>> references;
 	String activityId;
+	String fileHandleId;
 	
 	// these are the string names of the users 
 	// we will transition to using 'createdByPrincipalId, modifiedByPrincipalId,
@@ -195,16 +196,21 @@ public class Node {
 	public void setActivityId(String activityId) {
 		this.activityId = activityId;
 	}
-
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
+	
+	public String getFileHandleId() {
+		return fileHandleId;
+	}
+	public void setFileHandleId(String fileHandleId) {
+		this.fileHandleId = fileHandleId;
+	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
 				+ ((activityId == null) ? 0 : activityId.hashCode());
+		result = prime * result
+				+ ((benefactorId == null) ? 0 : benefactorId.hashCode());
 		result = prime * result
 				+ ((createdBy == null) ? 0 : createdBy.hashCode());
 		result = prime
@@ -216,6 +222,8 @@ public class Node {
 		result = prime * result
 				+ ((description == null) ? 0 : description.hashCode());
 		result = prime * result + ((eTag == null) ? 0 : eTag.hashCode());
+		result = prime * result
+				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
@@ -238,8 +246,6 @@ public class Node {
 				+ ((versionLabel == null) ? 0 : versionLabel.hashCode());
 		result = prime * result
 				+ ((versionNumber == null) ? 0 : versionNumber.hashCode());
-		result = prime * result
-				+ ((benefactorId == null) ? 0 : benefactorId.hashCode());
 		return result;
 	}
 	@Override
@@ -255,6 +261,11 @@ public class Node {
 			if (other.activityId != null)
 				return false;
 		} else if (!activityId.equals(other.activityId))
+			return false;
+		if (benefactorId == null) {
+			if (other.benefactorId != null)
+				return false;
+		} else if (!benefactorId.equals(other.benefactorId))
 			return false;
 		if (createdBy == null) {
 			if (other.createdBy != null)
@@ -280,6 +291,11 @@ public class Node {
 			if (other.eTag != null)
 				return false;
 		} else if (!eTag.equals(other.eTag))
+			return false;
+		if (fileHandleId == null) {
+			if (other.fileHandleId != null)
+				return false;
+		} else if (!fileHandleId.equals(other.fileHandleId))
 			return false;
 		if (id == null) {
 			if (other.id != null)
@@ -336,11 +352,6 @@ public class Node {
 				return false;
 		} else if (!versionNumber.equals(other.versionNumber))
 			return false;
-		if (benefactorId == null) {
-			if (other.benefactorId != null)
-				return false;
-		} else if (!benefactorId.equals(other.benefactorId))
-			return false;
 		return true;
 	}
 	@Override
@@ -353,9 +364,10 @@ public class Node {
 				+ ", nodeType=" + nodeType + ", eTag=" + eTag
 				+ ", versionNumber=" + versionNumber + ", versionComment="
 				+ versionComment + ", versionLabel=" + versionLabel
-				+ ", references=" + references + ", activityId=" + activityId
-				+ ", createdBy=" + createdBy + ", modifiedBy=" + modifiedBy
-				+ "]";
+				+ ", benefactorId=" + benefactorId + ", references="
+				+ references + ", activityId=" + activityId + ", fileHandleId="
+				+ fileHandleId + ", createdBy=" + createdBy + ", modifiedBy="
+				+ modifiedBy + "]";
 	}
 	
 }

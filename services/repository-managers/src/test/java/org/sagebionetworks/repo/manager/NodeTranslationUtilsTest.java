@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ExampleEntity;
+import org.sagebionetworks.repo.model.File;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
@@ -437,6 +438,15 @@ public class NodeTranslationUtilsTest {
 		// The value should now be cleared out.
 		assertEquals(null, primaryAnnos.getSingleValue("singleInteger"));
 
+	}
+	
+	@Test
+	public void testFileEntityRoundTrip() throws InstantiationException, IllegalAccessException{
+		String fileHandle = "12345";
+		File file = new File();
+		file.setDataFileHandleId(fileHandle);
+		File clone = cloneUsingNodeTranslation(file);
+		assertEquals(file, clone);
 	}
 	
 	

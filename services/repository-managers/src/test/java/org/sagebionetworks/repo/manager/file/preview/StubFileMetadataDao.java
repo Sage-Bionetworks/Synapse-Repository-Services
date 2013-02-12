@@ -57,4 +57,10 @@ public class StubFileMetadataDao implements FileHandleDao {
 		return map.keySet().contains(id);
 	}
 
+	@Override
+	public String getHandleCreator(String fileHandleId)
+			throws NotFoundException {
+		return map.get(fileHandleId).getCreatedBy();
+	}
+
 }

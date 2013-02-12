@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
@@ -10,6 +10,7 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -35,6 +36,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
+	private static final String SQL_SELECT_CREATOR = "SELECT "+COL_FILES_CREATED_BY+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
+
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
 
 	/**
@@ -71,7 +74,12 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		// Send the delete message
 		tagMessenger.sendDeleteMessage(id, ObjectType.FILE);
 		// Delete this object
-		basicDao.deleteObjectById(DBOFileHandle.class, param);
+		try{
+			basicDao.deleteObjectById(DBOFileHandle.class, param);
+		}catch (DataIntegrityViolationException e){
+			// This occurs when we try to delete a handle that is in use.
+			new DataIntegrityViolationException("Cannot delete a file handle that has been assigned to an owner object. FileHandle id: "+id);
+		}
 	}
 
 	@SuppressWarnings("unchecked")
@@ -143,5 +151,17 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			return false;
 		}
 
+	}
+
+	@Override
+	public String getHandleCreator(String fileHandleId) throws NotFoundException {
+		if(fileHandleId == null) throw new IllegalArgumentException("fileHandleId cannot be null");
+		try{
+			// Lookup the creator.
+			Long creator = simpleJdbcTemplate.queryForLong(SQL_SELECT_CREATOR, Long.parseLong(fileHandleId));
+			return creator.toString();
+		}catch(EmptyResultDataAccessException e){
+			throw new NotFoundException("The FileHandle does not exist: "+fileHandleId);
+		}
 	}
 }
