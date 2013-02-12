@@ -85,6 +85,7 @@ public class NodeTranslationUtils {
 		nameConvertion.put("creator", "createdBy");
 		nameConvertion.put("creationDate", "createdOn");
 		nameConvertion.put("etag", "eTag");
+		nameConvertion.put("dataFileHandleId", "fileHandleId");
 		// build the primary field cache
 		buildPrimaryFieldCache();
 	}

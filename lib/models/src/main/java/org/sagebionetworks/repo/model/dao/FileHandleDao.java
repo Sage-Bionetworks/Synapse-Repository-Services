@@ -53,4 +53,12 @@ public interface FileHandleDao {
 	 * @return true if it exists.
 	 */
 	public boolean doesExist(String id);
+
+	/**
+	 * Lookup the creator of a FileHandle.
+	 * @param fileHandleId
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public String getHandleCreator(String fileHandleId) throws NotFoundException;
 }
