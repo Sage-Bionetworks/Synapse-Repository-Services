@@ -145,7 +145,7 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		page.setModifiedBy(creatorUserGroupId);
 		page.setMarkdown("This is the markdown text");
 		String ownerId = "456";
-		ObjectType ownerType = ObjectType.COMPETITION;
+		ObjectType ownerType = ObjectType.EVALUATION;
 		// Add an attachment
 		page.setAttachmentFileHandleIds(new LinkedList<String>());
 		page.getAttachmentFileHandleIds().add(fileOne.getId());
