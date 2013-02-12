@@ -192,7 +192,7 @@
                 "org.sagebionetworks.repo.model.Project"
             ],
             "aliases":[
-                "file",
+                "file"
             ],
             "name":"file",
             "entityType":"org.sagebionetworks.repo.model.File",
