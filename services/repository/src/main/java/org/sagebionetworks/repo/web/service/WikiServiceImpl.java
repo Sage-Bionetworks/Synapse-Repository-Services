@@ -79,20 +79,9 @@ public class WikiServiceImpl implements WikiService {
 		// First lookup the FileHandle
 		String fileHandleId = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
 		// Get FileHandle
-		FileHandle handle = fileHandleManager.getRawFileHandle(user, fileHandleId);
-		if(handle instanceof HasPreviewId){
-			// Use the FileHandle ID to get the URL
-			String previewId = ((HasPreviewId)handle).getPreviewId();
-			if(previewId == null){
-				new NotFoundException("A preview does not exist for FileHandle: "+handle);
-			}
-			// Get the URL of the preview.
-			return fileHandleManager.getRedirectURLForFileHandle(previewId);
-		}else{
-			throw new IllegalArgumentException("The FileHandle class does not support previews: "+handle.getClass().getName());
-		}
-
+		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
+		// Get the URL of the preview.
+		return fileHandleManager.getRedirectURLForFileHandle(previewId);
 	}
-
 
 }

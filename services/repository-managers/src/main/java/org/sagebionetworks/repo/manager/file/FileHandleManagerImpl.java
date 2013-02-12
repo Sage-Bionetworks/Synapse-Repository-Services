@@ -261,4 +261,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		}
 	}
 
+	@Override
+	public String getPreviewFileHandleId(String handleId) throws DatastoreException, NotFoundException {
+		return fileHandleDao.getPreviewFileHandleId(handleId);
+	}
+
 }

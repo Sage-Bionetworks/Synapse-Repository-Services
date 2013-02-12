@@ -158,7 +158,9 @@ public class Synapse {
 	protected static final String ATTACHMENT_FILE = "/attachment";
 	protected static final String ATTACHMENT_FILE_PREVIEW = "/attachmentpreview";
 	protected static final String FILE_NAME_PARAMETER = "?fileName=";
-	protected static final String REDIRECT_PARAMETER = "&redirect=";
+	protected static final String REDIRECT_PARAMETER = "redirect=";
+	protected static final String AND_REDIRECT_PARAMETER = "&"+REDIRECT_PARAMETER;
+	protected static final String QUERY_REDIRECT_PARAMETER = "?"+REDIRECT_PARAMETER;
 	
 	protected static final String COMPETITION_URI_PATH = "/competition";
 	protected static final String COUNT = "count";
@@ -1568,7 +1570,7 @@ public class Synapse {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = getRepoEndpoint()+createWikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName+REDIRECT_PARAMETER+"false";
+		String uri = getRepoEndpoint()+createWikiURL(key)+ATTACHMENT_FILE+FILE_NAME_PARAMETER+encodedName+AND_REDIRECT_PARAMETER+"false";
 		return getUrl(uri);
 	}
 	
@@ -1602,7 +1604,21 @@ public class Synapse {
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		if(fileName == null) throw new IllegalArgumentException("fileName cannot be null");
 		String encodedName = URLEncoder.encode(fileName, "UTF-8");
-		String uri = getRepoEndpoint()+createWikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName+REDIRECT_PARAMETER+"false";
+		String uri = getRepoEndpoint()+createWikiURL(key)+ATTACHMENT_FILE_PREVIEW+FILE_NAME_PARAMETER+encodedName+AND_REDIRECT_PARAMETER+"false";
+		return getUrl(uri);
+	}
+	
+	/**
+	 * Get the temporary URL for the data file of a FileEntity.  This is an alternative to downloading the file.
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws MalformedURLException
+	 * @throws IOException
+	 */
+	public URL getFileEntityTemporaryUrlForCurrentVersion(String entityId) throws ClientProtocolException, MalformedURLException, IOException{
+		String uri = getRepoEndpoint()+"/entity/"+entityId+"/file"+QUERY_REDIRECT_PARAMETER+"false";
 		return getUrl(uri);
 	}
 

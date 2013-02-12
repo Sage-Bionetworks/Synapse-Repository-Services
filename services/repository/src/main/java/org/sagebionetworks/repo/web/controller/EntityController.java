@@ -1065,4 +1065,53 @@ public class EntityController extends BaseController{
 		URL redirectUrl = serviceProvider.getEntityService().getFileRedirectURLForVersion(userId,  id, versionNumber);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
 	}
+	
+	/**
+	 * Redirect the caller to the URL of the file associated with the current version of this entity.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param redirect - When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.ENTITY_FILE_PREVIEW, method = RequestMethod.GET)
+	public @ResponseBody
+	void filePreviewRedirectURLForCurrentVersion(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			@RequestParam (required = false) Boolean redirect,
+			HttpServletResponse response
+			) throws DatastoreException, NotFoundException, IOException{
+		// Get the redirect url
+		URL redirectUrl = serviceProvider.getEntityService().getFilePreviewRedirectURLForCurrentVersion(userId,  id);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+	
+	/**
+	 * Redirect the caller to the URL of the file associated with the current version of this entity.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @param redirect - When set to false, the URL will be returned as text/plain instead of redirecting.
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE_PREVIEW, method = RequestMethod.GET)
+	public @ResponseBody
+	void filePreviewRedirectURLForVersion(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			@PathVariable Long versionNumber,
+			@RequestParam (required = false) Boolean redirect,
+			HttpServletResponse response
+			) throws DatastoreException, NotFoundException, IOException{
+		// Get the redirect url
+		URL redirectUrl = serviceProvider.getEntityService().getFilePreviewRedirectURLForVersion(userId,  id, versionNumber);
+		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
 }
