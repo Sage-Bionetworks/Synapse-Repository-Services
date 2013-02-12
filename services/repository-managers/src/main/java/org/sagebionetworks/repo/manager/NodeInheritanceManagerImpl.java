@@ -52,6 +52,12 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 			return;
 		}
 
+		if (nodeDao.isNodeRoot(parentNodeId)) {
+			// The benefactor cannot be the root
+			setNodeToInheritFromItself(nodeId);
+			return;
+		}
+
 		// Here node needs to be set to nearest benefactor and children
 		// need to be adjusted accordingly. Nearest benefactor will be 
 		// set to what the parent node has as benefactor

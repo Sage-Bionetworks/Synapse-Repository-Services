@@ -143,6 +143,7 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(nodeChildRetrieved);
 		assertEquals(nodeChildId, nodeChildRetrieved.getId());
 		assertEquals(nodeParentId, nodeChildRetrieved.getParentId());
+		assertEquals(nodeParentId, nodeInheritanceManager.getBenefactor(nodeChildRetrieved.getId()));
 	}
 
 	@Test
@@ -189,16 +190,10 @@ public class TrashManagerImplAutowiredTest {
 		assertEquals(0L, results.getTotalNumberOfResults());
 		assertEquals(0, results.getResults().size());
 
-		try {
-			// This is a rather strange scenario
-			// Where the node is restored to the root (or any node that the
-			// user has the CREATE privilege, the node's benefactor is set
-			// the root. The user does not have READ access on the node however
-			nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
-			fail();
-		} catch (UnauthorizedException e) {
-			assertTrue(true);
-		}
+		nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
+		assertNotNull(nodeRetrieved);
+		assertEquals(nodeId, nodeRetrieved.getId());
+		assertEquals(nodeId, nodeInheritanceManager.getBenefactor(nodeRetrieved.getId()));
 	}
 
 	@Test
