@@ -45,8 +45,12 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Participant addParticipant(UserInfo userInfo, String evalId) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
-		Evaluation eval = EvaluationManager.getEvaluation(evalId);		
-		EvaluationUtils.ensureEvaluationIsOpen(eval);
+		Evaluation eval = EvaluationManager.getEvaluation(evalId);
+		try {
+			EvaluationUtils.ensureEvaluationIsOpen(eval);
+		} catch (IllegalStateException e) {
+			throw new UnauthorizedException("Cannot join Evaluation ID " + evalId + " which is not currently OPEN.");
+		}
 		UserInfo.validateUserInfo(userInfo);
 		String principalIdToAdd = userInfo.getIndividualGroup().getId();
 		
