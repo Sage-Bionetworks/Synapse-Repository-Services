@@ -37,4 +37,6 @@ public interface ServiceProvider {
 	public CompetitionService getCompetitionService();
 	
 	public WikiService getWikiService();
+
+	public TrashService getTrashService();
 }

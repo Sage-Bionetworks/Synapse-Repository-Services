@@ -278,7 +278,22 @@ public class UrlHelpers {
 	/**
 	 * Gets the children for the specified node.
 	 */
-	public static final String ENTITY_CHILDREN = ENTITY_ID + "/children";;
+	public static final String ENTITY_CHILDREN = ENTITY_ID + "/children";
+
+	/**
+	 * Moves an entity to the trash can.
+	 */
+	public static final String ENTITY_MOVE_TO_TRASH_ID = ENTITY + "/moveToTrash" + ID;
+
+	/**
+	 * Restores an entity from the trash can back to a parent entity.
+	 */
+	public static final String ENTITY_RESTORE_FROM_TRASH = ENTITY + "/restoreFromTrash" + ID + PARENT_ID;
+
+	/**
+	 * Views the current trash can.
+	 */
+	public static final String ENTITY_VIEW_TRASH = ENTITY + "/viewTrash";
 
 	/**
 	 * URL path for query controller
