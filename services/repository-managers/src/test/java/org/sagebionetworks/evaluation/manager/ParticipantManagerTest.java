@@ -16,6 +16,7 @@ import org.sagebionetworks.evaluation.manager.ParticipantManagerImpl;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -109,7 +110,7 @@ public class ParticipantManagerTest {
     	verify(mockParticipantDAO).delete(eq(USER_ID), eq(EVAL_ID));
     }
     
-    @Test(expected=IllegalStateException.class)
+    @Test(expected=UnauthorizedException.class)
     public void testCRDAsUser_NotOpen() throws DatastoreException, NotFoundException {
     	// user should not be able to join Evaluation if it is closed
     	eval.setStatus(EvaluationStatus.CLOSED);

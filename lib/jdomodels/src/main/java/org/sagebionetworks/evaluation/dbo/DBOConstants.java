@@ -2,7 +2,7 @@ package org.sagebionetworks.evaluation.dbo;
 
 public class DBOConstants {
 	
-	// Competition
+	// Evaluation
 	public static final String PARAM_EVALUATION_ID = "id";
 	public static final String PARAM_EVALUATION_ETAG = "eTag";
 	public static final String PARAM_EVALUATION_NAME = "name";
