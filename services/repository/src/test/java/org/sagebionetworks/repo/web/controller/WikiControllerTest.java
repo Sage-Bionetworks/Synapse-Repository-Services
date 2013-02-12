@@ -1,10 +1,6 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
 import java.net.URL;
 import java.util.Date;
 import java.util.LinkedList;
@@ -14,8 +10,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.competition.model.Competition;
-import org.sagebionetworks.competition.model.CompetitionStatus;
+import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -53,7 +49,7 @@ public class WikiControllerTest {
 	private String ownerId;
 	
 	Project entity;
-	Competition competition;
+	Evaluation evaluation;
 	List<WikiPageKey> toDelete;
 	S3FileHandle handleOne;
 	PreviewFileHandle handleTwo;
@@ -93,8 +89,8 @@ public class WikiControllerTest {
 		if(entity != null){
 			entityServletHelper.deleteEntity(entity.getId(), userName);
 		}
-		if(competition != null){
-			entityServletHelper.deleteCompetition(competition.getId(), userName);
+		if(evaluation != null){
+			entityServletHelper.deleteEvaluation(evaluation.getId(), userName);
 		}
 		for(WikiPageKey key: toDelete){
 			entityServletHelper.deleteWikiPage(key, userName);
@@ -120,14 +116,14 @@ public class WikiControllerTest {
 	@Test
 	public void testCompetitionWikiCRUD() throws Exception {
 		// create an entity
-		competition = new Competition();
-		competition.setName("testCompetitionWikiCRUD");
-		competition.setContentSource("not sure what this is");
-		competition.setDescription("a test descrption");
-		competition.setStatus(CompetitionStatus.OPEN);
-		competition = entityServletHelper.createCompetition(competition, userName);
+		evaluation = new Evaluation();
+		evaluation.setName("testCompetitionWikiCRUD");
+		evaluation.setContentSource("not sure what this is");
+		evaluation.setDescription("a test descrption");
+		evaluation.setStatus(EvaluationStatus.OPEN);
+		evaluation = entityServletHelper.createEvaluation(evaluation, userName);
 		// Test all wiki CRUD for an entity
-		doWikiCRUDForOwnerObject(competition.getId(), ObjectType.COMPETITION);
+		doWikiCRUDForOwnerObject(evaluation.getId(), ObjectType.EVALUATION);
 	}
 	
 	/**

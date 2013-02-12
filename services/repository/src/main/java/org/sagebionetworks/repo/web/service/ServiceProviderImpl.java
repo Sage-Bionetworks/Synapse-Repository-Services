@@ -39,7 +39,7 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Autowired
 	private NodeTreeQueryService nodeLineageQueryService;
 	@Autowired
-	private CompetitionService competitionService;
+	private EvaluationService competitionService;
 	@Autowired
 	private WikiService wikiService;
 
@@ -89,7 +89,7 @@ public class ServiceProviderImpl implements ServiceProvider {
 		return nodeLineageQueryService;
 	}
 	@Override
-	public CompetitionService getCompetitionService() {
+	public EvaluationService getEvaluationService() {
 		return competitionService;
 	}
 	@Override

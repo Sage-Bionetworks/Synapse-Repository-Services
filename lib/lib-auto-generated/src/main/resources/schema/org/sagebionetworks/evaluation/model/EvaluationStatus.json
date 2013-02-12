@@ -1,0 +1,11 @@
+{
+    "description":"JSON schema for the possible states of a Synapse Evaluation.",
+    "name": "EvaluationStatus",
+    "type":"string",
+    "enum":[
+        "PLANNED",
+        "OPEN",
+        "CLOSED",
+        "COMPLETED"
+    ]
+}

@@ -434,26 +434,26 @@ public class UrlHelpers {
 	 */
 	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
 	
-	// Competition URLs
-	public static final String COMPETITION = "/competition";
-	public static final String COMPETITION_ID_PATH_VAR = "{compId}";
-	public static final String COMPETITION_WITH_ID = COMPETITION + "/"+COMPETITION_ID_PATH_VAR;
-	public static final String COMPETITION_WITH_NAME = COMPETITION + "/name/{name}";
-	public static final String COMPETITION_COUNT = COMPETITION + "/count";
+	// Evaluation URLs
+	public static final String EVALUATION = "/evaluation";
+	public static final String EVALUATION_ID_PATH_VAR = "{evalId}";
+	public static final String EVALUATION_WITH_ID = EVALUATION + "/" + EVALUATION_ID_PATH_VAR;
+	public static final String EVALUATION_WITH_NAME = EVALUATION + "/name/{name}";
+	public static final String EVALUATION_COUNT = EVALUATION + "/count";
 	
-	public static final String PARTICIPANT = COMPETITION_WITH_ID + "/participant";
+	public static final String PARTICIPANT = EVALUATION_WITH_ID + "/participant";
 	public static final String PARTICIPANT_WITH_ID = PARTICIPANT + "/{partId}";
 	public static final String PARTICIPANT_COUNT = PARTICIPANT + "/count";
 	
 	public static final String STATUS = "status";
-	public static final String SUBMISSION = COMPETITION + "/submission";
+	public static final String SUBMISSION = EVALUATION + "/submission";
 	public static final String SUBMISSION_WITH_ID = SUBMISSION + "/{subId}";
 	public static final String SUBMISSION_STATUS = SUBMISSION_WITH_ID + "/status";
-	public static final String SUBMISSION_WITH_COMP_ID = COMPETITION_WITH_ID + "/submission";
-	public static final String SUBMISSION_WITH_COMP_ID_BUNDLE = SUBMISSION_WITH_COMP_ID + BUNDLE;
-	public static final String SUBMISSION_WITH_COMP_ID_ADMIN = SUBMISSION_WITH_COMP_ID + ALL;
-	public static final String SUBMISSION_WITH_COMP_ID_ADMIN_BUNDLE = SUBMISSION_WITH_COMP_ID + BUNDLE + ALL;
-	public static final String SUBMISSION_COUNT = SUBMISSION_WITH_COMP_ID + "/count";
+	public static final String SUBMISSION_WITH_EVAL_ID = EVALUATION_WITH_ID + "/submission";
+	public static final String SUBMISSION_WITH_EVAL_ID_BUNDLE = SUBMISSION_WITH_EVAL_ID + BUNDLE;
+	public static final String SUBMISSION_WITH_EVAL_ID_ADMIN = SUBMISSION_WITH_EVAL_ID + ALL;
+	public static final String SUBMISSION_WITH_EVAL_ID_ADMIN_BUNDLE = SUBMISSION_WITH_EVAL_ID + BUNDLE + ALL;
+	public static final String SUBMISSION_COUNT = SUBMISSION_WITH_EVAL_ID + "/count";
 	
 	// Wiki URL
 	public static final String WIKI = "/wiki";
@@ -470,14 +470,14 @@ public class UrlHelpers {
 	public static final String ENTITY_WIKI_ID_ATTCHMENT_HANDLE = ENTITY_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
 	public static final String ENTITY_WIKI_ID_ATTCHMENT_FILE = ENTITY_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
 	public static final String ENTITY_WIKI_ID_ATTCHMENT_FILE_PREVIEW = ENTITY_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;
-	// competition
-	public static final String COMPETITION_OWNER_ID = COMPETITION+"/{ownerId}";
-	public static final String COMPETITION_WIKI = COMPETITION_OWNER_ID+ WIKI;
-	public static final String COMPETITION_WIKI_TREE = COMPETITION_OWNER_ID + WIKI_HEADER_TREE;
-	public static final String COMPETITION_WIKI_ID =COMPETITION_OWNER_ID + WIKI_WITH_ID;
-	public static final String COMPETITION_WIKI_ID_ATTCHMENT_HANDLE =COMPETITION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
-	public static final String COMPETITION_WIKI_ID_ATTCHMENT_FILE =COMPETITION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
-	public static final String COMPETITION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =COMPETITION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;
+	// Evaluation
+	public static final String EVALUATION_OWNER_ID = EVALUATION+"/{ownerId}";
+	public static final String EVALUATION_WIKI = EVALUATION_OWNER_ID+ WIKI;
+	public static final String EVALUATION_WIKI_TREE = EVALUATION_OWNER_ID + WIKI_HEADER_TREE;
+	public static final String EVALUATION_WIKI_ID =EVALUATION_OWNER_ID + WIKI_WITH_ID;
+	public static final String EVALUATION_WIKI_ID_ATTCHMENT_HANDLE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_HANDLES;
+	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT;
+	public static final String EVALUATION_WIKI_ID_ATTCHMENT_FILE_PREVIEW =EVALUATION_OWNER_ID + WIKI_WITH_ID+ATTACHMENT_PREVIEW;
 	
 	/**
 	 * This is a memoized cache for our URL regular expressions

@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.competition.model.Submission;
-import org.sagebionetworks.competition.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionStatus;
 
 public class SubmissionBackup {
 

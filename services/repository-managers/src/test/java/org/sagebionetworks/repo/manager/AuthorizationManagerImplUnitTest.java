@@ -1,58 +1,39 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Date;
 import java.util.List;
-import java.util.Random;
-import java.util.Set;
-
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.sagebionetworks.competition.manager.CompetitionManager;
+import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
-import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
 import org.sagebionetworks.repo.model.ActivityDAO;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 public class AuthorizationManagerImplUnitTest {
 	
 	NodeInheritanceDAO mockNodeInheritanceDAO;	
 	AccessControlListDAO mockAccessControlListDAO;	
 	AccessRequirementDAO  mockAccessRequirementDAO;
-	CompetitionManager mockCompetitionManager;
+	EvaluationManager mockEvaluationManager;
 	ActivityDAO mockActivityDAO;
 	NodeQueryDao mockNodeQueryDao;	
 	NodeDAO mockNodeDAO;
@@ -72,13 +53,13 @@ public class AuthorizationManagerImplUnitTest {
 		mockNodeQueryDao = mock(NodeQueryDao.class);	
 		mockNodeDAO = mock(NodeDAO.class);
 		mockUserManager = mock(UserManager.class);
-		mockCompetitionManager = mock(CompetitionManager.class);
+		mockEvaluationManager = mock(EvaluationManager.class);
 		mockFileHandleDao = mock(FileHandleDao.class);
 		
 		authorizationManager = new AuthorizationManagerImpl(
 				mockNodeInheritanceDAO, mockAccessControlListDAO,
 				mockAccessRequirementDAO, mockActivityDAO, mockNodeQueryDao,
-				mockNodeDAO, mockUserManager, mockCompetitionManager, mockFileHandleDao);
+				mockNodeDAO, mockUserManager, mockEvaluationManager, mockFileHandleDao);
 		
 		userInfo = new UserInfo(false);
 		UserGroup userInfoGroup = new UserGroup();
@@ -168,7 +149,7 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanAccessWithObjecTypeAdmin() throws DatastoreException, NotFoundException{
 		// Admin can always access
 		assertTrue("An admin can access any entity",authorizationManager.canAccess(adminUser, "syn123", ObjectType.ENTITY, ACCESS_TYPE.DELETE));
-		assertTrue("An admin can access any competition",authorizationManager.canAccess(adminUser, "334", ObjectType.COMPETITION, ACCESS_TYPE.DELETE));
+		assertTrue("An admin can access any competition",authorizationManager.canAccess(adminUser, "334", ObjectType.EVALUATION, ACCESS_TYPE.DELETE));
 	}
 	
 	@Test
@@ -190,18 +171,18 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanAccessWithObjecTypeCompetitionNonCompAdmin() throws DatastoreException, UnauthorizedException, NotFoundException{
 		String compId = "123";
 		// This user is not an admin but the should be able to read.
-		when(mockCompetitionManager.isCompAdmin(any(String.class), any(String.class))).thenReturn(false);
-		assertTrue("User should have read access to any competition.", authorizationManager.canAccess(userInfo, compId, ObjectType.COMPETITION, ACCESS_TYPE.READ));
-		assertFalse("User should not have delete access to this competition.", authorizationManager.canAccess(userInfo, compId, ObjectType.COMPETITION, ACCESS_TYPE.DELETE));
+		when(mockEvaluationManager.isEvalAdmin(any(String.class), any(String.class))).thenReturn(false);
+		assertTrue("User should have read access to any competition.", authorizationManager.canAccess(userInfo, compId, ObjectType.EVALUATION, ACCESS_TYPE.READ));
+		assertFalse("User should not have delete access to this competition.", authorizationManager.canAccess(userInfo, compId, ObjectType.EVALUATION, ACCESS_TYPE.DELETE));
 	}
 	
 	@Test
 	public void testCanAccessWithObjecTypeCompetitionCompAdmin() throws DatastoreException, UnauthorizedException, NotFoundException{
 		String compId = "123";
 		// This user is not an admin but the should be able to read.
-		when(mockCompetitionManager.isCompAdmin(any(String.class), any(String.class))).thenReturn(true);
-		assertTrue("A competition admin should have read access", authorizationManager.canAccess(userInfo, compId, ObjectType.COMPETITION, ACCESS_TYPE.READ));
-		assertTrue("A competition admin should have delete access", authorizationManager.canAccess(userInfo, compId, ObjectType.COMPETITION, ACCESS_TYPE.DELETE));
+		when(mockEvaluationManager.isEvalAdmin(any(String.class), any(String.class))).thenReturn(true);
+		assertTrue("A competition admin should have read access", authorizationManager.canAccess(userInfo, compId, ObjectType.EVALUATION, ACCESS_TYPE.READ));
+		assertTrue("A competition admin should have delete access", authorizationManager.canAccess(userInfo, compId, ObjectType.EVALUATION, ACCESS_TYPE.DELETE));
 	}
 	
 
