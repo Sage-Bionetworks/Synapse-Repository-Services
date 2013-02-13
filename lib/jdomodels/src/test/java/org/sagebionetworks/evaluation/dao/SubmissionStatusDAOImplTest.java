@@ -155,6 +155,22 @@ public class SubmissionStatusDAOImplTest {
     }
     
     @Test
+    public void testCreateFromBackup() throws Exception{
+        // Initialize a new SubmissionStatus object for submissionId
+        SubmissionStatus status = new SubmissionStatus();
+        status.setModifiedOn(new Date());
+        status.setId(submissionId);
+        status.setEtag("original-eTag");
+        status.setStatus(SubmissionStatusEnum.OPEN);
+        status.setScore(0.1);
+        
+        // Create it
+        submissionStatusDAO.createFromBackup(status);
+        SubmissionStatus restored = submissionStatusDAO.get(submissionId);
+        assertEquals(status, restored);
+    }
+    
+    @Test
     public void testDtoToDbo() {
     	SubmissionStatus subStatusDTO = new SubmissionStatus();
     	SubmissionStatus subStatusDTOclone = new SubmissionStatus();

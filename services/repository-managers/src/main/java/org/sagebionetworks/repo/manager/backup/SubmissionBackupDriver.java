@@ -169,7 +169,7 @@ public class SubmissionBackupDriver implements GenericBackupDriver {
 		if (null == existing) {
 			// create
 			submissionDAO.create(submission);
-			submissionStatusDAO.create(submissionStatus);
+			submissionStatusDAO.createFromBackup(submissionStatus);
 		} else {
 			// Update only when backup is different from the current system
 			if (!submissionStatus.getEtag().equals(existing.getEtag())) {

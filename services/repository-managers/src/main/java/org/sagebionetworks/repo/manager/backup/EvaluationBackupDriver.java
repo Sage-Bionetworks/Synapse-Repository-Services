@@ -171,7 +171,7 @@ public class EvaluationBackupDriver implements GenericBackupDriver {
 		} catch (NotFoundException e) {}
 		if (null == existingComp) {
 			// create
-			evaluationDAO.create(evaluation, Long.parseLong(evaluation.getOwnerId()));
+			evaluationDAO.createFromBackup(evaluation, Long.parseLong(evaluation.getOwnerId()));
 		} else {
 			// update only when backup is different from the current system
 			if (existingComp.getEtag().equals(evaluation.getEtag())) {

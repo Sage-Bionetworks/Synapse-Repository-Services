@@ -91,8 +91,8 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(Submission dto) throws DatastoreException {
-		EvaluationUtils.ensureNotNull(dto,  "Submission");
-		EvaluationUtils.ensureNotNull(dto, "Submission ID");
+		EvaluationUtils.ensureNotNull(dto, "Submission");
+		EvaluationUtils.ensureNotNull(dto.getId(), "Submission ID");
 		
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();

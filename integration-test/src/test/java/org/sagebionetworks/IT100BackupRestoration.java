@@ -3,7 +3,6 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -16,9 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.http.client.ClientProtocolException;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.After;
@@ -53,16 +50,12 @@ import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
-import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.PutObjectResult;
-import com.amazonaws.services.s3.model.S3Object;
 
 /**
  * This test will push data from a backup into synapse.
@@ -640,6 +633,7 @@ public class IT100BackupRestoration {
 		// Create a Participant
         Participant part = synapse.createParticipant(eval.getId());
         assertNotNull(part);
+        eval = synapse.getEvaluation(eval.getId());
         
 		// Verify creation
 		assertTrue(synapse.getEvaluationCount().equals(initialEvaluationCount + 1L));
@@ -683,11 +677,8 @@ public class IT100BackupRestoration {
 		
 		// Verify restoration
 		PaginatedResults<Evaluation> evalsPaginated = synapse.getEvaluationsPaginated(0, 10);
-		assertEquals(1L, evalsPaginated.getTotalNumberOfResults());
+		assertEquals(initialEvaluationCount + 1, evalsPaginated.getTotalNumberOfResults());
 		Evaluation evalRestored = evalsPaginated.getResults().get(0);
-		assertNotNull(evalRestored.getEtag());
-		assertFalse("eTag was not updated on restoration", evalRestored.getEtag().equals(eval.getEtag()));
-		eval.setEtag(evalRestored.getEtag());
 		assertEquals(eval, evalRestored);
 		
 		PaginatedResults<Participant> parts = synapse.getAllParticipants(eval.getId(), 0, 10);
@@ -716,7 +707,7 @@ public class IT100BackupRestoration {
 		Evaluation eval = new Evaluation();
 		eval = new Evaluation();
 		eval.setId("123");
-		eval.setName("asdfafss");
+		eval.setName("my eval");
         eval.setContentSource("foobar");
         eval.setStatus(EvaluationStatus.OPEN);
         eval = synapse.createEvaluation(eval);
@@ -742,9 +733,10 @@ public class IT100BackupRestoration {
 		submission.setName("my submission");
 		submission.setVersionNumber(1L);
 		submission = synapse.createSubmission(submission);
-		
+				
 		// Verify creation
 		assertTrue(synapse.getSubmissionCount(eval.getId()).equals(1L));
+		SubmissionStatus submissionStatus = synapse.getSubmissionStatus(submission.getId());
         
         // Start the backup
         BackupSubmission backupSub = new BackupSubmission();
@@ -786,8 +778,8 @@ public class IT100BackupRestoration {
 		assertEquals(1L, subsPaginated.getTotalNumberOfResults());
 		Submission submissionRestored = subsPaginated.getResults().get(0);
 		assertEquals(submission, submissionRestored);
-		SubmissionStatus submissionStatus = synapse.getSubmissionStatus(submission.getId());
-		assertEquals(submission.getId(), submissionStatus.getId());
+		SubmissionStatus submissionStatusRestored = synapse.getSubmissionStatus(submission.getId());
+		assertEquals(submissionStatus, submissionStatusRestored);
 		
 		// Clean up
 		synapse.deleteObject(mod);

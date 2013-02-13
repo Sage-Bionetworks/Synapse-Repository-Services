@@ -70,9 +70,7 @@ public class EvaluationDAOImplTest {
 	}
 	
 	@Test
-	public void testCRUD() throws Exception {	
-
-        
+	public void testCRUD() throws Exception {        
         // Create it
 		long initialCount = evaluationDAO.getCount();
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
@@ -183,6 +181,20 @@ public class EvaluationDAOImplTest {
 		evalList = evaluationDAO.getInRange(10, 0, EvaluationStatus.OPEN);
 		assertEquals(0, evalList.size());
     }
+    
+	@Test
+	public void testCreateFromBackup() throws Exception {        
+        // Create it
+		eval.setOwnerId(EVALUATION_OWNER_ID.toString());
+		eval.setEtag("original-etag");
+		String evalId = evaluationDAO.createFromBackup(eval, EVALUATION_OWNER_ID);
+		assertNotNull(evalId);
+		toDelete.add(evalId);
+		
+		// Get it
+		Evaluation created = evaluationDAO.get(evalId);
+		assertEquals(eval, created);
+	}
     
     @Test
     public void testDtoToDbo() {

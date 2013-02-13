@@ -83,6 +83,16 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(Evaluation dto, Long ownerId) throws DatastoreException {
+		return create(dto, ownerId, false);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public String createFromBackup(Evaluation dto, Long ownerId) throws DatastoreException {
+		return create(dto, ownerId, true);
+	}
+		
+	private String create(Evaluation dto, Long ownerId, boolean fromBackup) {
 		EvaluationUtils.ensureNotNull(dto, "Evaluation object");
 		EvaluationUtils.ensureNotNull(ownerId, "Owner ID");
 		EvaluationUtils.ensureNotNull(dto.getId(), "Evaluation ID");
@@ -94,8 +104,10 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		// set Owner ID
 		dbo.setOwnerId(ownerId);
 		
-		// generate eTag
-		tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
+		// generate a new eTag, unless restoring from backup
+		if (!fromBackup) {			
+			tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
+		}
 		
 		// ensure DBO has required information
 		verifyEvaluationDBO(dbo);
