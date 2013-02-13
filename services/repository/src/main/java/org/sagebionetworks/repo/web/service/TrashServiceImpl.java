@@ -41,12 +41,19 @@ public class TrashServiceImpl implements TrashService {
 			HttpServletRequest request) throws DatastoreException, NotFoundException {
 
 		if(offset == null){
-			offset = 1;
+			offset = 0;
 		}
 		if(limit == null){
 			limit = 10;
 		}
-		ServiceConstants.validatePaginationParams((long)offset, (long)limit);
+		if (offset < 0) {
+			throw new IllegalArgumentException(
+					"pagination offset must be 0 or greater");
+		}
+		if (limit < 0) {
+			throw new IllegalArgumentException(
+					"pagination limit must be 0 or greater");
+		}
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		QueryResults<TrashedEntity> trashEntities = trashManager.viewTrash(userInfo, offset, limit);
