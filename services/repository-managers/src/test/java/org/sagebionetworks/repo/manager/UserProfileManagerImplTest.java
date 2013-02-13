@@ -63,23 +63,20 @@ public class UserProfileManagerImplTest {
 			individualGroup.setName(TEST_USER_NAME);
 			individualGroup.setIsIndividual(true);
 			individualGroup.setCreationDate(new Date());
-			individualGroup.setId(userGroupDAO.create(individualGroup));
-			// we also make an user profile for this individual
-			ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-			try {
-				userProfile = userProfileDAO.get(individualGroup.getId(), schema);
-			} catch (NotFoundException nfe) {
-				userProfile = null;
-			}
-			if (userProfile==null) {
-				userProfile = new UserProfile();
-				userProfile.setOwnerId(individualGroup.getId());
-				userProfile.setDisplayName(TEST_USER_DISPLAY_NAME);
-				userProfile.setRStudioUrl("myPrivateRStudioUrl");
-				String id = userProfileDAO.create(userProfile, schema);
-				userProfile = userProfileDAO.get(id, schema);
-			}
+			userGroupDAO.create(individualGroup);
 		}
+		individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
+		assertNotNull(individualGroup);
+		// we also make an user profile for this individual
+		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
+		userProfile = new UserProfile();
+		userProfile.setOwnerId(individualGroup.getId());
+		userProfile.setDisplayName(TEST_USER_DISPLAY_NAME);
+		userProfile.setRStudioUrl("myPrivateRStudioUrl");
+		String id = userProfileDAO.create(userProfile, schema);
+		userProfile = userProfileDAO.get(id, schema);
+		assertNotNull(userProfile);
+
 		mockIdGenerator = Mockito.mock(IdGenerator.class);
 		mockLocationHelper = Mockito.mock(LocationHelper.class);
 	}
@@ -89,7 +86,9 @@ public class UserProfileManagerImplTest {
 		UserGroup individualGroup = userGroupDAO.findGroup(TEST_USER_NAME, true);
 		userGroupDAO.delete(individualGroup.getId());
 		individualGroup = null;
-		userProfile = null;
+		if(userProfile != null && userProfile.getOwnerId() != null){
+			userProfileDAO.delete(userProfile.getOwnerId());
+		}
 	}
 	
 	@Test

@@ -185,7 +185,18 @@
 			"name":"page",
 			"entityType":"org.sagebionetworks.repo.model.Page",
 			"defaultParentPath":"/root"
-		}
-		
+		},
+		{
+            "validParentTypes":[
+            	"org.sagebionetworks.repo.model.Folder",
+                "org.sagebionetworks.repo.model.Project"
+            ],
+            "aliases":[
+                "file"
+            ],
+            "name":"file",
+            "entityType":"org.sagebionetworks.repo.model.File",
+            "defaultParentPath":"/root"
+        }
     ]
 }

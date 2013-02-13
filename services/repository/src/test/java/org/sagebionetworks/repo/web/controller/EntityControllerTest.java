@@ -7,7 +7,9 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import javax.servlet.ServletException;
@@ -17,18 +19,23 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.File;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -47,14 +54,67 @@ public class EntityControllerTest {
 	
 	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
 	
+	@Autowired
+	FileHandleDao fileMetadataDao;
+	@Autowired
+	UserManager userManager;
+	
 	private List<String> toDelete = null;
-
+	S3FileHandle handleOne;
+	PreviewFileHandle previewOne;
+	S3FileHandle handleTwo;
+	PreviewFileHandle previewTwo;
+	private String userName;
+	private String ownerId;
 	/**
 	 * @throws java.lang.Exception
 	 */
 	@Before
 	public void setUp() throws Exception {
+		userName = TestUserDAO.TEST_USER_NAME;
+		ownerId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 		toDelete = new ArrayList<String>();
+		// Create a file handle
+		handleOne = new S3FileHandle();
+		handleOne.setCreatedBy(ownerId);
+		handleOne.setCreatedOn(new Date());
+		handleOne.setBucketName("bucket");
+		handleOne.setKey("EntityControllerTest.mainFileKey");
+		handleOne.setEtag("etag");
+		handleOne.setFileName("foo.bar");
+		handleOne = fileMetadataDao.createFile(handleOne);
+		// Create a preview
+		previewOne = new PreviewFileHandle();
+		previewOne.setCreatedBy(ownerId);
+		previewOne.setCreatedOn(new Date());
+		previewOne.setBucketName("bucket");
+		previewOne.setKey("EntityControllerTest.previewFileKey");
+		previewOne.setEtag("etag");
+		previewOne.setFileName("bar.txt");
+		previewOne = fileMetadataDao.createFile(previewOne);
+		// Set two as the preview of one
+		fileMetadataDao.setPreviewId(handleOne.getId(), previewOne.getId());
+		
+		// Create a file handle
+		handleTwo = new S3FileHandle();
+		handleTwo.setCreatedBy(ownerId);
+		handleTwo.setCreatedOn(new Date());
+		handleTwo.setBucketName("bucket");
+		handleTwo.setKey("EntityControllerTest.mainFileKeyTwo");
+		handleTwo.setEtag("etag");
+		handleTwo.setFileName("foo2.bar");
+		handleTwo = fileMetadataDao.createFile(handleTwo);
+		// Create a preview
+		previewTwo = new PreviewFileHandle();
+		previewTwo.setCreatedBy(ownerId);
+		previewTwo.setCreatedOn(new Date());
+		previewTwo.setBucketName("bucket");
+		previewTwo.setKey("EntityControllerTest.previewFileKeyTwo");
+		previewTwo.setEtag("etag");
+		previewTwo.setFileName("bar2.txt");
+		previewTwo = fileMetadataDao.createFile(previewTwo);
+		// Set two as the preview of one
+		fileMetadataDao.setPreviewId(handleTwo.getId(), previewTwo.getId());
 	}
 	
 	@After
@@ -67,6 +127,18 @@ public class EntityControllerTest {
 					// Try even if it fails.
 				}
 			}
+		}
+		if(handleOne != null && handleOne.getId() != null){
+			fileMetadataDao.delete(handleOne.getId());
+		}
+		if(previewOne != null && previewOne.getId() != null){
+			fileMetadataDao.delete(previewOne.getId());
+		}
+		if(handleTwo != null && handleTwo.getId() != null){
+			fileMetadataDao.delete(handleTwo.getId());
+		}
+		if(previewTwo != null && previewTwo.getId() != null){
+			fileMetadataDao.delete(previewTwo.getId());
 		}
 	}
 	
@@ -290,11 +362,120 @@ public class EntityControllerTest {
 		c.setEntityType(c.getClass().getName());
 		c.setMd5(String.format("%032x", 1));
 		Code cclone = (Code) entityServletHelper.createEntity(c, TEST_USER1, null);
-		cclone.setMd5(String.format("%032x", 2));
+		cclone.setVersionLabel("v2");
 		toDelete.add(cclone.getId());
 		Code cclone2 = (Code) entityServletHelper.createNewVersion(TEST_USER1, cclone);
 		VersionInfo info = entityServletHelper.promoteVersion(TEST_USER1, cclone2.getId(), 1L);
 		assertNotNull(info);
 		assertEquals(new Long(3), info.getVersionNumber());
+	}
+	
+	/**
+	 * Test that we can create a file entity.
+	 * @throws NotFoundException 
+	 * @throws IOException 
+	 * @throws ServletException 
+	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException 
+	 * @throws Exception 
+	 */
+	@Test
+	public void testFileEntityCRUD() throws Exception {
+		// Create a project
+		Project parent = new Project();
+		parent.setName("project");
+		parent.setEntityType(Project.class.getName());
+		Project parentClone = (Project) entityServletHelper.createEntity(parent, userName, null);
+		String parentId = parentClone.getId();
+		toDelete.add(parentId);
+		// Create a file entity
+		File file = new File();
+		file.setName("FileName");
+		file.setEntityType(File.class.getName());
+		file.setParentId(parentId);
+		file.setDataFileHandleId(handleOne.getId());
+		// Save it
+		file = (File) entityServletHelper.createEntity(file, userName, null);
+		assertNotNull(file);
+		assertNotNull(file.getId());
+		toDelete.add(file.getId());
+		assertEquals(handleOne.getId(), file.getDataFileHandleId());
+		// Sshould start on V1
+		assertEquals(new Long(1), file.getVersionNumber());
+		
+		// Now create a second version using the second files
+		file.setDataFileHandleId(handleTwo.getId());
+		file.setVersionComment("V2 comment");
+		file.setVersionLabel("V2");
+		file = (File) entityServletHelper.createNewVersion(userName, file);
+		// Validate we are on V3
+		assertEquals(new Long(2), file.getVersionNumber());
+		// First get the URL for the current version
+		URL url = entityServletHelper.getEntityFileURLForCurrentVersion(userName, file.getId(), null);
+		assertNotNull(url);
+		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleTwo.getKey()) > 0);
+		URL urlNoRedirect = entityServletHelper.getEntityFileURLForCurrentVersion(userName, file.getId(), Boolean.FALSE);
+		assertNotNull(urlNoRedirect);
+//		assertEquals("The same URL should be returned for both redirects and non-redirects", url, urlNoRedirect);
+		// Now the first version
+		url = entityServletHelper.getEntityFileURLForVersion(userName, file.getId(), 1l, null);
+		assertNotNull(url);
+		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleOne.getKey()) > 0);
+		urlNoRedirect = entityServletHelper.getEntityFileURLForVersion(userName, file.getId(), 1l, Boolean.FALSE);
+		assertNotNull(urlNoRedirect);
+//		assertEquals("The same URL should be returned for both redirects and non-redirects", url, urlNoRedirect);
+		// Validate that we can get the URL of the file
+//		Boolean redirect = null;
+//		Boolean preview = null;
+//		Long versionNumber = null;
+//		URL url = entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
+//		assertNotNull(url);
+//		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleOne.getKey()) > 0);
+//		System.out.println(url);
+//		// Validate the other parameters
+//		redirect = Boolean.FALSE;
+//		preview = null;
+//		versionNumber = null;
+//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
+//		assertNotNull(url);
+//		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleOne.getKey()) > 0);
+//		// with version number, redirect
+//		redirect = null;
+//		preview = null;
+//		versionNumber = new Long(1);
+//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
+//		assertNotNull(url);
+//		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleOne.getKey()) > 0);
+//		// with version number, no redirect
+//		redirect = Boolean.FALSE;
+//		preview = null;
+//		versionNumber = new Long(1);
+//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
+//		assertNotNull(url);
+//		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleOne.getKey()) > 0);
+//		// preview - redirect
+//		redirect = null;
+//		preview = Boolean.TRUE;
+//		versionNumber = null;
+//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
+//		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewOne.getKey()) > 0);
+//		// preview - no redirect
+//		redirect = Boolean.FALSE;
+//		preview = Boolean.TRUE;
+//		versionNumber = null;
+//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
+//		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewOne.getKey()) > 0);
+//		// preview, with version number, redirect
+//		redirect = null;
+//		preview = Boolean.TRUE;
+//		versionNumber = new Long(1);
+//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
+//		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewOne.getKey()) > 0);
+//		// preview, with version number, no redirect
+//		redirect = Boolean.FALSE;
+//		preview = Boolean.TRUE;
+//		versionNumber = new Long(1);
+//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
+//		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewOne.getKey()) > 0);
 	}
 }

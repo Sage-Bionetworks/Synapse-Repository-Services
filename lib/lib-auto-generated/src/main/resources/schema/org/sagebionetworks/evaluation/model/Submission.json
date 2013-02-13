@@ -1,0 +1,41 @@
+{
+	"description": "Schema defining a Submission to a Synapse Evaluation",
+	"name": "Submission",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The unique, immutable Synapse ID of this Submission.",
+			"transient": true
+		},
+		"userId": {
+			"type": "string",
+			"description": "The Synapse ID of the creator of this Submission.",
+			"transient": true
+		},
+		"evaluationId": {
+			"type": "string",
+			"description": "The Synapse ID of the Evaluation this Submission is for.",
+			"transient": true
+		},
+		"entityId": {
+			"type": "string",
+			"description": "The Synapse ID of the Entity in this Submission.",
+			"transient": true
+		},
+		"versionNumber":{
+            "type":"integer",
+            "description":"The version number of the Entity."            
+        },
+        "name": {
+			"type": "string",
+			"description": "The title of this Submission.",
+			"transient": true
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date on which Submission was created.",
+			"transient": true
+		}
+	}
+}

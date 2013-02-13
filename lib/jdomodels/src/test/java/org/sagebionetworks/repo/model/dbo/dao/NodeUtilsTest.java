@@ -56,6 +56,7 @@ public class NodeUtilsTest {
 //		node.setVersionNumber("2");
 		node.setReferences(new HashMap<String, Set<Reference>>());
 		node.setActivityId("1234");
+		node.setFileHandleId("9999888777");
 		// Now create a revision for this node
 		DBONode jdoNode = new DBONode();
 		DBORevision jdoRev = new DBORevision();
@@ -67,6 +68,7 @@ public class NodeUtilsTest {
 		// Make a copy form the jdo
 		Node copy = NodeUtils.copyFromJDO(jdoNode, jdoRev);
 		assertNotNull(copy);
+		assertNotNull(copy.getFileHandleId());
 		// It should match
 		assertEquals(node, copy);
 	}

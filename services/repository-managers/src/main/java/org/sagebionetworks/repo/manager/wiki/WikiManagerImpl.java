@@ -94,7 +94,7 @@ public class WikiManagerImpl implements WikiManager {
 		// Validate that the user can assign all file handles
 		for(FileHandle handle: nameToHandleMap.values()){
 			// the user must have access to the raw FileHandle to assign it to an object.
-			if(!authorizationManager.canAccessRawFileHandle(user, handle.getCreatedBy())){
+			if(!authorizationManager.canAccessRawFileHandleByCreator(user, handle.getCreatedBy())){
 				throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_FILE_HANDLE_TEMPLATE, handle.getId()));
 			}
 		}
@@ -206,7 +206,7 @@ public class WikiManagerImpl implements WikiManager {
 			// We need to check any new handle
 			if(!currentHandleSet.contains(handle.getId())){
 				// the user must have access to the raw FileHandle to assign it to an object.
-				if(!authorizationManager.canAccessRawFileHandle(user, handle.getCreatedBy())){
+				if(!authorizationManager.canAccessRawFileHandleByCreator(user, handle.getCreatedBy())){
 					throw new UnauthorizedException(String.format(USER_IS_NOT_AUTHORIZED_FILE_HANDLE_TEMPLATE, handle.getId()));
 				}
 			}

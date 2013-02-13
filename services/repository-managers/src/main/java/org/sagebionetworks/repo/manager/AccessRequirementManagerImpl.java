@@ -91,16 +91,6 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Override
 	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException {
-		{
-			// if the user is the owner of the object, then she has full access to the object
-			// and therefore has no unmet access requirements
-			Long principalId = Long.parseLong(userInfo.getIndividualGroup().getId());
-			Node node = nodeDAO.getNode(entityId);
-			if (node.getCreatedByPrincipalId().equals(principalId)) {
-				return new QueryResults<AccessRequirement>(new ArrayList<AccessRequirement>(), 0);
-			}
-		}
-		
 		List<Long> principalIds = new ArrayList<Long>();
 		principalIds.add(Long.parseLong(userInfo.getIndividualGroup().getId()));
 		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)

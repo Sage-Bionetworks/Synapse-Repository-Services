@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.web.controller;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.List;
 
@@ -14,11 +16,11 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.sagebionetworks.competition.model.Competition;
-import org.sagebionetworks.competition.model.Participant;
-import org.sagebionetworks.competition.model.Submission;
-import org.sagebionetworks.competition.model.SubmissionStatus;
-import org.sagebionetworks.competition.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.Participant;
+import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionStatus;
+import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.BatchResults;
@@ -569,7 +571,7 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.ENTITY+"/"+entity.getId());
+		request.setRequestURI(UrlHelpers.ENTITY+"/"+entity.getId()+"/version");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, username);
 		StringWriter out = new StringWriter();
@@ -584,11 +586,11 @@ public class EntityServletTestHelper {
 		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), entity.getClass());
 	}
 	
-	//////////////////////////
-	// Competition Services //
-	//////////////////////////
+	/////////////////////////
+	// Evaluation Services //
+	/////////////////////////
 	
-	public Competition createCompetition(Competition comp, String userId)
+	public Evaluation createEvaluation(Evaluation eval, String userId)
 			throws JSONObjectAdapterException, IOException, DatastoreException,
 			NotFoundException, ServletException 
 	{
@@ -596,11 +598,11 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION);
+		request.setRequestURI(UrlHelpers.EVALUATION);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
-		comp.writeToJSONObject(joa);
+		eval.writeToJSONObject(joa);
 		String body = joa.toJSONString();
 		request.setContent(body.getBytes("UTF-8"));
 		dispatcherServlet.service(request, response);
@@ -612,15 +614,15 @@ public class EntityServletTestHelper {
 		StringReader reader = new StringReader(response.getContentAsString());
 		String json = JSONEntityHttpMessageConverter.readToString(reader);
 		joa = new JSONObjectAdapterImpl(json);
-		return new Competition(joa);
+		return new Evaluation(joa);
 	}
 	
-	public Competition getCompetition(String compId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public Evaluation getEvaluation(String evalId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION+"/"+compId);
+		request.setRequestURI(UrlHelpers.EVALUATION+"/"+evalId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -631,15 +633,15 @@ public class EntityServletTestHelper {
 		StringReader reader = new StringReader(response.getContentAsString());
 		String json = JSONEntityHttpMessageConverter.readToString(reader);
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
-		return new Competition(joa);
+		return new Evaluation(joa);
 	}
 	
-	public Competition findCompetition(String name) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public Evaluation findEvaluation(String name) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION+"/name/"+name);
+		request.setRequestURI(UrlHelpers.EVALUATION+"/name/"+name);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -650,10 +652,10 @@ public class EntityServletTestHelper {
 		StringReader reader = new StringReader(response.getContentAsString());
 		String json = JSONEntityHttpMessageConverter.readToString(reader);
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
-		return new Competition(joa);
+		return new Evaluation(joa);
 	}
 	
-	public Competition updateCompetition(Competition comp, String userId) 
+	public Evaluation updateEvaluation(Evaluation eval, String userId) 
 			throws JSONObjectAdapterException, IOException, NotFoundException,
 			DatastoreException, ServletException
 	{
@@ -661,11 +663,11 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION+"/"+comp.getId());
+		request.setRequestURI(UrlHelpers.EVALUATION+"/"+eval.getId());
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
-		comp.writeToJSONObject(joa);
+		eval.writeToJSONObject(joa);
 		String body = joa.toJSONString();
 		request.setContent(body.getBytes("UTF-8"));
 		dispatcherServlet.service(request, response);
@@ -677,17 +679,17 @@ public class EntityServletTestHelper {
 		StringReader reader = new StringReader(response.getContentAsString());
 		String json = JSONEntityHttpMessageConverter.readToString(reader);
 		joa = new JSONObjectAdapterImpl(json);
-		return new Competition(joa);
+		return new Evaluation(joa);
 	}
 	
-	public void deleteCompetition(String compId, String userId) throws ServletException,
+	public void deleteEvaluation(String evalId, String userId) throws ServletException,
 			IOException, NotFoundException, DatastoreException
 	{
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId);
+		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evalId);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -696,12 +698,12 @@ public class EntityServletTestHelper {
 		}
 	}
 	
-	public PaginatedResults<Competition> getCompetitionsPaginated(long limit, long offset) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public PaginatedResults<Evaluation> getEvaluationsPaginated(long limit, long offset) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION);
+		request.setRequestURI(UrlHelpers.EVALUATION);
 		request.setParameter(ServiceConstants.PAGINATION_OFFSET_PARAM, "" + offset);
 		request.setParameter(ServiceConstants.PAGINATION_LIMIT_PARAM, "" + limit);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
@@ -714,17 +716,17 @@ public class EntityServletTestHelper {
 		StringReader reader = new StringReader(response.getContentAsString());
 		String json = JSONEntityHttpMessageConverter.readToString(reader);
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
-		PaginatedResults<Competition> res = new PaginatedResults<Competition>(Competition.class);
+		PaginatedResults<Evaluation> res = new PaginatedResults<Evaluation>(Evaluation.class);
 		res.initializeFromJSONObject(joa);
 		return res;
 	}
 	
-	public long getCompetitionCount() throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public long getEvaluationCount() throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION_COUNT);
+		request.setRequestURI(UrlHelpers.EVALUATION_COUNT);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -735,7 +737,7 @@ public class EntityServletTestHelper {
 		return Long.parseLong(response.getContentAsString());
 	}
 	
-	public Participant createParticipant(String userId, String compId)
+	public Participant createParticipant(String userId, String evalId)
 			throws JSONObjectAdapterException, IOException, DatastoreException,
 			NotFoundException, ServletException 
 	{
@@ -743,7 +745,7 @@ public class EntityServletTestHelper {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("POST");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION+"/"+compId+"/participant");
+		request.setRequestURI(UrlHelpers.EVALUATION+"/"+evalId+"/participant");
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
@@ -761,12 +763,12 @@ public class EntityServletTestHelper {
 		return new Participant(joa);
 	}
 	
-	public Participant getParticipant(String partId, String compId) throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public Participant getParticipant(String partId, String evalId) throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION+"/"+compId+"/participant/" + partId);
+		request.setRequestURI(UrlHelpers.EVALUATION+"/"+evalId+"/participant/" + partId);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, partId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		dispatcherServlet.service(request, response);
@@ -781,12 +783,12 @@ public class EntityServletTestHelper {
 		return new Participant(joa);
 	}
 	
-	public void deleteParticipant(String userId, String partId, String compId) throws ServletException, IOException, DatastoreException, NotFoundException {
+	public void deleteParticipant(String userId, String partId, String evalId) throws ServletException, IOException, DatastoreException, NotFoundException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId + "/participant/" + partId);
+		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evalId + "/participant/" + partId);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -795,12 +797,12 @@ public class EntityServletTestHelper {
 		}
 	}
 	
-	public PaginatedResults<Participant> getAllParticipants(String compId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public PaginatedResults<Participant> getAllParticipants(String evalId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId + "/participant");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evalId + "/participant");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -816,12 +818,12 @@ public class EntityServletTestHelper {
 		return res;
 	}
 	
-	public long getParticipantCount(String compId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public long getParticipantCount(String evalId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId + "/participant/count");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evalId + "/participant/count");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -938,12 +940,12 @@ public class EntityServletTestHelper {
 		}
 	}
 	
-	public PaginatedResults<Submission> getAllSubmissions(String userId, String compId, SubmissionStatusEnum status) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public PaginatedResults<Submission> getAllSubmissions(String userId, String evalId, SubmissionStatusEnum status) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId + "/submission/all");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evalId + "/submission/all");
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		if (status != null) {
 			request.setParameter(UrlHelpers.STATUS, status.toString());
@@ -963,12 +965,12 @@ public class EntityServletTestHelper {
 		return res;
 	}
 	
-	public long getSubmissionCount(String compId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
+	public long getSubmissionCount(String evalId) throws ServletException, IOException, JSONObjectAdapterException, NotFoundException, DatastoreException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
-		request.setRequestURI(UrlHelpers.COMPETITION + "/" + compId + "/submission/count");
+		request.setRequestURI(UrlHelpers.EVALUATION + "/" + evalId + "/submission/count");
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
@@ -1156,7 +1158,7 @@ public class EntityServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public URL getWikiAttachmentFileURL(String userName, WikiPageKey key, String fileName) throws ServletException, IOException{
+	public URL getWikiAttachmentFileURL(String userName, WikiPageKey key, String fileName, Boolean redirect) throws ServletException, IOException{
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -1165,13 +1167,12 @@ public class EntityServletTestHelper {
 		request.setRequestURI(uri);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
 		request.setParameter("fileName", fileName);
+		if(redirect != null){
+			request.setParameter("redirect", redirect.toString());
+		}
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		DispatchServletSingleton.getInstance().service(request, response);
-		if (response.getStatus() != HttpStatus.TEMPORARY_REDIRECT.value()) {
-			throw new ServletTestHelperException(response);
-		}
-		// Get the redirect location
-		return new URL(response.getRedirectedUrl());
+		return handleRedirectReponse(redirect, response);
 	}
 	
 	/**
@@ -1183,7 +1184,7 @@ public class EntityServletTestHelper {
 	 * @throws ServletException
 	 * @throws IOException
 	 */
-	public URL getWikiAttachmentPreviewFileURL(String userName, WikiPageKey key, String fileName) throws ServletException, IOException{
+	public URL getWikiAttachmentPreviewFileURL(String userName, WikiPageKey key, String fileName, Boolean redirect) throws ServletException, IOException{
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
@@ -1192,12 +1193,103 @@ public class EntityServletTestHelper {
 		request.setRequestURI(uri);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
 		request.setParameter("fileName", fileName);
+		if(redirect != null){
+			request.setParameter("redirect", redirect.toString());
+		}
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		DispatchServletSingleton.getInstance().service(request, response);
-		if (response.getStatus() != HttpStatus.TEMPORARY_REDIRECT.value()) {
-			throw new ServletTestHelperException(response);
+		return handleRedirectReponse(redirect, response);
+	}
+	
+	/**
+	 * Get the temporary Redirect URL for a Wiki File.
+	 * @param userName
+	 * @param entityId
+	 * @param redirect - Defaults to null, which will follow the redirect.  When set to FALSE, a call will be made without a redirect.
+	 * @param preview - Defaults to null, wich will get the File and not the preview of the File.  When set to TRUE, the URL of the preview will be returned.
+	 * @param versionNumber - Defaults to null, wich will get the file for the current version.  When set to a version number, the file (or preview) assocaited
+	 * with that version number will be returned.
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	private URL getEntityFileURL(String userName, String entityId, Boolean redirect, Boolean preview, Long versionNumber) throws ServletException, IOException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String suffix = "/file";
+		if(Boolean.TRUE.equals(preview)){
+			// This is a preview request.
+			suffix = "/filepreview";
 		}
-		// Get the redirect location
-		return new URL(response.getRedirectedUrl());
+		String version = "";
+		if(versionNumber != null){
+			version = "/version/"+versionNumber;
+		}
+		String uri = "/entity/"+entityId+version+suffix;
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		if(redirect != null){
+			request.setParameter("redirect", redirect.toString());
+		}
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		return handleRedirectReponse(redirect, response);
+	}
+	
+	/**
+	 * 
+	 * @param redirect
+	 * @param response
+	 * @return
+	 * @throws MalformedURLException
+	 * @throws UnsupportedEncodingException
+	 */
+	private URL handleRedirectReponse(Boolean redirect,	MockHttpServletResponse response) throws MalformedURLException,
+			UnsupportedEncodingException {
+		// Redirect response is different than non-redirect.
+		if(redirect == null || Boolean.TRUE.equals(redirect)){
+			if (response.getStatus() != HttpStatus.TEMPORARY_REDIRECT.value()) {
+				throw new ServletTestHelperException(response);
+			}
+			// Get the redirect location
+			return new URL(response.getRedirectedUrl());
+		}else{
+			// Redirect=false
+			if (response.getStatus() != HttpStatus.OK.value()) {
+				throw new ServletTestHelperException(response);
+			}
+			// Get the redirect location
+			return new URL(response.getContentAsString());
+		}
+	}
+	/**
+	 * Get the file URL for the current version.
+	 * @param userName
+	 * @param entityId
+	 * @param redirect
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public URL getEntityFileURLForCurrentVersion(String userName, String entityId, Boolean redirect) throws ServletException, IOException {
+		Boolean preview = null;
+		Long versionNumber = null;
+		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
+	}
+	/**
+	 * 
+	 * @param userName
+	 * @param id
+	 * @param versionNumber
+	 * @param redirect
+	 * @return
+	 * @throws IOException 
+	 * @throws ServletException 
+	 */
+	public URL getEntityFileURLForVersion(String userName, String entityId, Long versionNumber, Boolean redirect) throws ServletException, IOException {
+		Boolean preview = null;
+		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
 	}
 }

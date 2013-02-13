@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -10,6 +11,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -79,6 +81,8 @@ public class EntityServiceImpl implements EntityService {
 	private IdGenerator idGenerator;
 	@Autowired
 	private AllTypesValidator allTypesValidator;
+	@Autowired
+	FileHandleManager fileHandleManager;
 	
 	public EntityServiceImpl(){}
 
@@ -680,6 +684,29 @@ public class EntityServiceImpl implements EntityService {
 		if(versionNumber == null) throw new IllegalArgumentException("VersionNumber cannot be null");
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return entityManager.promoteEntityVersion(userInfo, id, versionNumber);
+	}
+
+
+	@Override
+	public URL getFileRedirectURLForCurrentVersion(String userId, String id) throws DatastoreException, NotFoundException {
+		if(id == null) throw new IllegalArgumentException("Entity Id cannot be null");
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		// Get the file handle.
+		String fileHandleId =  entityManager.getFileHandleIdForCurrentVersion(userInfo, id);
+		// Use the FileHandle ID to get the URL
+		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
+	}
+
+	@Override
+	public URL getFileRedirectURLForVersion(String userId, String id, Long versionNumber) throws DatastoreException, NotFoundException {
+		if(id == null) throw new IllegalArgumentException("Entity Id cannot be null");
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		// Get the file handle.
+		String fileHandleId =  entityManager.getFileHandleIdForVersion(userInfo, id, versionNumber);
+		// Use the FileHandle ID to get the URL
+		return fileHandleManager.getRedirectURLForFileHandle(fileHandleId);
 	}
 
 }

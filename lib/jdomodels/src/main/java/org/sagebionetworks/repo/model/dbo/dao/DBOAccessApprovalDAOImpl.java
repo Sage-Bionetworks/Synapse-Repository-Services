@@ -83,7 +83,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		DBOAccessApproval dbo = new DBOAccessApproval();
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
 		if (dbo.getId()==null) dbo.setId(idGenerator.generateNewId());
-		if (dbo.geteTag()==null) dbo.seteTag(eTagGenerator.generateETag(dbo));
+		if (dbo.geteTag()==null) dbo.seteTag(eTagGenerator.generateETag());
 		dbo = basicDao.createNew(dbo);
 		T result = (T)AccessApprovalUtils.copyDboToDto(dbo);
 		return result;
@@ -173,7 +173,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 		AccessApprovalUtils.copyDtoToDbo(dto, dbo);
 		if (!fromBackup) {
 			// Update with a new e-tag; otherwise, the backup e-tag is used implicitly
-			dbo.seteTag(eTagGenerator.generateETag(dbo));
+			dbo.seteTag(eTagGenerator.generateETag());
 		}
 
 		boolean success = basicDao.update(dbo);
