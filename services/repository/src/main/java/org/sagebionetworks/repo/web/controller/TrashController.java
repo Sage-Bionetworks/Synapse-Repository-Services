@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -25,13 +26,14 @@ import org.springframework.web.bind.annotation.ResponseStatus;
  *
  * @author Eric Wu
  */
-public class TrashController {
+@Controller
+public class TrashController extends BaseController {
 
 	@Autowired
 	private ServiceProvider serviceProvider;
 
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = {UrlHelpers.ENTITY_ANNOTATIONS}, method = RequestMethod.PUT)
+	@RequestMapping(value = {UrlHelpers.TRASHCAN_TRASH}, method = RequestMethod.PUT)
 	public void moveToTrash(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id)
@@ -40,7 +42,7 @@ public class TrashController {
 	}
 
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = {UrlHelpers.ENTITY_ANNOTATIONS}, method = RequestMethod.PUT)
+	@RequestMapping(value = {UrlHelpers.TRASHCAN_RESTORE}, method = RequestMethod.PUT)
 	public void restoreFromTrash(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id,
@@ -50,7 +52,7 @@ public class TrashController {
 	}
 
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = {UrlHelpers.ENTITY_ID}, method = RequestMethod.GET)
+	@RequestMapping(value = {UrlHelpers.TRASHCAN_VIEW}, method = RequestMethod.GET)
 	public @ResponseBody PaginatedResults<TrashedEntity> viewTrash(
 	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
