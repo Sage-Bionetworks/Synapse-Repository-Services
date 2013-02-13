@@ -3120,7 +3120,7 @@ public class Synapse {
 		}
 	}
 	
-	public PaginatedResults<Evaluation> getEvaluationsPaginated(int limit, int offset) throws SynapseException {
+	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit) throws SynapseException {
 		String url = EVALUATION_URI_PATH +	"?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
@@ -3221,7 +3221,7 @@ public class Synapse {
 		deleteUri(uri);
 	}
 	
-	public PaginatedResults<Participant> getAllParticipants(String evalId, long limit, long offset) throws SynapseException {
+	public PaginatedResults<Participant> getAllParticipants(String evalId, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + PARTICIPANT +
 				"?" + OFFSET + "=" + offset + "&limit=" + limit;
@@ -3317,7 +3317,7 @@ public class Synapse {
 		}
 	}
 	
-	public PaginatedResults<SubmissionBundle> getAllSubmissionBundles(String evalId, long limit, long offset) throws SynapseException {
+	public PaginatedResults<SubmissionBundle> getAllSubmissionBundles(String evalId, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_ALL_BUNDLE +
 				"?offset" + "=" + offset + "&limit=" + limit;
@@ -3334,7 +3334,7 @@ public class Synapse {
 	}
 	
 	public PaginatedResults<Submission> getAllSubmissionsByStatus(
-			String evalId, SubmissionStatusEnum status, long limit, long offset) throws SynapseException {
+			String evalId, SubmissionStatusEnum status, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_ALL + 
 				STATUS_SUFFIX + status.toString() + "&offset=" + offset + "&limit=" + limit;
@@ -3351,7 +3351,7 @@ public class Synapse {
 	}
 	
 	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByStatus(
-			String evalId, SubmissionStatusEnum status, long limit, long offset) throws SynapseException {
+			String evalId, SubmissionStatusEnum status, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_ALL_BUNDLE + 
 				STATUS_SUFFIX + status.toString() + "&offset=" + offset + "&limit=" + limit;
@@ -3367,7 +3367,7 @@ public class Synapse {
 		}
 	}
 	
-	public PaginatedResults<Submission> getMySubmissions(String evalId, long limit, long offset) throws SynapseException {
+	public PaginatedResults<Submission> getMySubmissions(String evalId, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION +
 				"?offset" + "=" + offset + "&limit=" + limit;
@@ -3383,7 +3383,7 @@ public class Synapse {
 		}
 	}
 	
-	public PaginatedResults<SubmissionBundle> getMySubmissionBundles(String evalId, long limit, long offset) throws SynapseException {
+	public PaginatedResults<SubmissionBundle> getMySubmissionBundles(String evalId, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_BUNDLE +
 				"?offset" + "=" + offset + "&limit=" + limit;

@@ -682,7 +682,7 @@ public class IT100BackupRestoration {
 		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
 		
 		// Verify restoration
-		PaginatedResults<Evaluation> evalsPaginated = synapse.getEvaluationsPaginated(10, 0);
+		PaginatedResults<Evaluation> evalsPaginated = synapse.getEvaluationsPaginated(0, 10);
 		assertEquals(1L, evalsPaginated.getTotalNumberOfResults());
 		Evaluation evalRestored = evalsPaginated.getResults().get(0);
 		assertNotNull(evalRestored.getEtag());
@@ -690,7 +690,7 @@ public class IT100BackupRestoration {
 		eval.setEtag(evalRestored.getEtag());
 		assertEquals(eval, evalRestored);
 		
-		PaginatedResults<Participant> parts = synapse.getAllParticipants(eval.getId(), 10, 0);
+		PaginatedResults<Participant> parts = synapse.getAllParticipants(eval.getId(), 0, 10);
 		assertEquals(1L, parts.getTotalNumberOfResults());
 		Participant partRestored = parts.getResults().get(0);
 		assertEquals(part, partRestored);

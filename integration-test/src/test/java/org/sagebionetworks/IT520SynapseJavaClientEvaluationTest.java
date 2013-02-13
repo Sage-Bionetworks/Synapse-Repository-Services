@@ -8,7 +8,10 @@ import static org.junit.Assert.fail;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -290,18 +293,20 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// paginated evaluations
 		eval1 = synapseOne.getEvaluation(eval1.getId());
 		eval2 = synapseOne.getEvaluation(eval2.getId());
-		PaginatedResults<Evaluation> evals = synapseOne.getEvaluationsPaginated(10, 0);
+		PaginatedResults<Evaluation> evals = synapseOne.getEvaluationsPaginated(0, 10);
 		assertEquals(initialEvaluationCount + 2, evals.getTotalNumberOfResults());
-		for (Evaluation e : evals.getResults())
-			assertTrue("Unknown Evaluation returned: " + e.toString(), e.equals(eval1) || e.equals(eval2));
+		Set<Evaluation> evalSet = new HashSet<Evaluation>();
+		evalSet.addAll(evals.getResults());
+		assertTrue(evalSet.contains(eval1));
+		assertTrue(evalSet.contains(eval2));
 		
 		// paginated participants
-		PaginatedResults<Participant> parts = synapseOne.getAllParticipants(eval1.getId(), 10, 0);
+		PaginatedResults<Participant> parts = synapseOne.getAllParticipants(eval1.getId(), 0, 10);
 		assertEquals(2, parts.getTotalNumberOfResults());
 		for (Participant p : parts.getResults())
 			assertTrue("Unknown Participant returned: " + p.toString(), p.equals(part1) || p.equals(part2));
 		
-		parts = synapseOne.getAllParticipants(eval2.getId(), 10, 0);
+		parts = synapseOne.getAllParticipants(eval2.getId(), 0, 10);
 		assertEquals(0, parts.getTotalNumberOfResults());
 	}
 	
@@ -351,8 +356,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		PaginatedResults<Submission> subs;
 		PaginatedResults<SubmissionBundle> subBundles;
 		
-		subs = synapseOne.getAllSubmissions(eval1.getId(), 10, 0);
-		subBundles = synapseOne.getAllSubmissionBundles(eval1.getId(), 10, 0);		
+		subs = synapseOne.getAllSubmissions(eval1.getId(), 0, 10);
+		subBundles = synapseOne.getAllSubmissionBundles(eval1.getId(), 0, 10);		
 		assertEquals(2, subs.getTotalNumberOfResults());
 		assertEquals(2, subBundles.getTotalNumberOfResults());
 		for (Submission s : subs.getResults()) {
@@ -365,8 +370,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 			assertTrue("SubmissionBundle contents do not match: " + bundle.toString(), sub.getId().equals(status.getId()));
 		}
 				
-		subs = synapseOne.getAllSubmissionsByStatus(eval1.getId(), SubmissionStatusEnum.OPEN, 10, 0);
-		subBundles = synapseOne.getAllSubmissionBundlesByStatus(eval1.getId(), SubmissionStatusEnum.OPEN, 10, 0);
+		subs = synapseOne.getAllSubmissionsByStatus(eval1.getId(), SubmissionStatusEnum.OPEN, 0, 10);
+		subBundles = synapseOne.getAllSubmissionBundlesByStatus(eval1.getId(), SubmissionStatusEnum.OPEN, 0, 10);
 		assertEquals(2, subs.getTotalNumberOfResults());
 		assertEquals(2, subBundles.getTotalNumberOfResults());
 		for (Submission s : subs.getResults()) {
@@ -379,15 +384,15 @@ public class IT520SynapseJavaClientEvaluationTest {
 			assertTrue("SubmissionBundle contents do not match: " + bundle.toString(), sub.getId().equals(status.getId()));
 		}
 		
-		subs = synapseOne.getAllSubmissionsByStatus(eval1.getId(), SubmissionStatusEnum.CLOSED, 10, 0);
-		subBundles = synapseOne.getAllSubmissionBundlesByStatus(eval1.getId(), SubmissionStatusEnum.CLOSED, 10, 0);
+		subs = synapseOne.getAllSubmissionsByStatus(eval1.getId(), SubmissionStatusEnum.CLOSED, 0, 10);
+		subBundles = synapseOne.getAllSubmissionBundlesByStatus(eval1.getId(), SubmissionStatusEnum.CLOSED, 0, 10);
 		assertEquals(0, subs.getTotalNumberOfResults());
 		assertEquals(0, subBundles.getTotalNumberOfResults());
 		assertEquals(0, subs.getResults().size());
 		assertEquals(0, subBundles.getResults().size());
 		
-		subs = synapseOne.getAllSubmissions(eval2.getId(), 10, 0);
-		subBundles = synapseOne.getAllSubmissionBundles(eval2.getId(), 10, 0);
+		subs = synapseOne.getAllSubmissions(eval2.getId(), 0, 10);
+		subBundles = synapseOne.getAllSubmissionBundles(eval2.getId(), 0, 10);
 		assertEquals(0, subs.getTotalNumberOfResults());
 		assertEquals(0, subBundles.getTotalNumberOfResults());
 		assertEquals(0, subs.getResults().size());
@@ -434,7 +439,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		submissionsToDelete.add(sub2.getId());
 		
 		// paginated submissions
-		PaginatedResults<Submission> subs = synapseOne.getMySubmissions(eval1.getId(), 10, 0);
+		PaginatedResults<Submission> subs = synapseOne.getMySubmissions(eval1.getId(), 0, 10);
 		assertEquals(1, subs.getTotalNumberOfResults());
 		for (Submission s : subs.getResults())
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1));
