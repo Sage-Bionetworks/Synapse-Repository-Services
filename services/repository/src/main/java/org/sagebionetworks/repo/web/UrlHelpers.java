@@ -291,9 +291,14 @@ public class UrlHelpers {
 	public static final String TRASHCAN_TRASH = TRASHCAN + "/trash" + ID;
 
 	/**
+	 * Restores an entity from the trash can back to the original parent before it is deleted to the trash can.
+	 */
+	public static final String TRASHCAN_RESTORE = TRASHCAN + "/restore" + ID;
+
+	/**
 	 * Restores an entity from the trash can back to a parent entity.
 	 */
-	public static final String TRASHCAN_RESTORE = TRASHCAN + "/restore" + ID + PARENT_ID;
+	public static final String TRASHCAN_RESTORE_TO_PARENT = TRASHCAN + "/restore" + ID + PARENT_ID;
 
 	/**
 	 * Views the current trash can.

@@ -45,6 +45,15 @@ public class TrashController extends BaseController {
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_RESTORE}, method = RequestMethod.PUT)
 	public void restoreFromTrash(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		this.serviceProvider.getTrashService().restoreFromTrash(userId, id, null);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = {UrlHelpers.TRASHCAN_RESTORE_TO_PARENT}, method = RequestMethod.PUT)
+	public void restoreFromTrash(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id,
 			@PathVariable String parentId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
