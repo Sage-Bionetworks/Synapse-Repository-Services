@@ -57,10 +57,12 @@ public class ParticipantDAOImplTest {
         // initialize Participants
         part1 = new Participant();
         part1.setUserId(principalId_str);
-        part1.setEvaluationId(evalId1);        
+        part1.setEvaluationId(evalId1);
+        part1.setCreatedOn(new Date());
         part2 = new Participant();
         part2.setUserId(principalId_str);
         part2.setEvaluationId(evalId2);
+        part2.setCreatedOn(new Date());
     }
     
     @After

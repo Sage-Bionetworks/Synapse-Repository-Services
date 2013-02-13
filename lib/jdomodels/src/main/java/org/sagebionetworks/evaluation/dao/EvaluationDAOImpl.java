@@ -94,9 +94,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 		// set Owner ID
 		dbo.setOwnerId(ownerId);
 		
-		// set creation date
-		dbo.setCreatedOn(System.currentTimeMillis());
-		
 		// generate eTag
 		tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
 		
@@ -114,7 +111,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			if (e.getClass() == IllegalArgumentException.class) {
 				IllegalArgumentException e2 = (IllegalArgumentException) e;
 				if (e2.getCause().getClass() == DuplicateKeyException.class)
-					message = "A Evaluation already exists with the name '" +
+					message = "An Evaluation already exists with the name '" +
 							dto.getName() + "'";
 			}
 			

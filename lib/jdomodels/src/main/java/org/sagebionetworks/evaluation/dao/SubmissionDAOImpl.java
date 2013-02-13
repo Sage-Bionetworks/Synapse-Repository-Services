@@ -97,9 +97,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
 		copyDtoToDbo(dto, dbo);
-					
-		// Set creation date
-		dbo.setCreatedOn(System.currentTimeMillis());
 		
 		// Ensure DBO has required information
 		verifySubmissionDBO(dbo);

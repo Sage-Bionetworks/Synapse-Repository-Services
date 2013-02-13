@@ -6,6 +6,7 @@ import java.util.Date;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -61,20 +62,20 @@ public class EvaluationManagerTest {
 		// Evaluation
     	Date date = new Date();
 		eval = new Evaluation();
+		eval.setCreatedOn(date);
 		eval.setName(EVALUATION_NAME);
 		eval.setOwnerId(ownerInfo.getIndividualGroup().getId());
         eval.setContentSource(EVALUATION_CONTENT_SOURCE);
         eval.setStatus(EvaluationStatus.PLANNED);
-        eval.setCreatedOn(date);
         eval.setEtag(EVALUATION_ETAG);
         
 		evalWithId = new Evaluation();
+		evalWithId.setCreatedOn(date);
 		evalWithId.setId(EVALUATION_ID);
 		evalWithId.setName(EVALUATION_NAME);
 		evalWithId.setOwnerId(ownerInfo.getIndividualGroup().getId());
 		evalWithId.setContentSource(EVALUATION_CONTENT_SOURCE);
 		evalWithId.setStatus(EvaluationStatus.PLANNED);
-		evalWithId.setCreatedOn(date);
 		evalWithId.setEtag(EVALUATION_ETAG);
         
         // Evaluation Manager
@@ -82,7 +83,7 @@ public class EvaluationManagerTest {
     	
     	// configure mocks
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(EVALUATION_ID));
-		when(mockEvaluationDAO.create(eq(eval), eq(OWNER_ID))).thenReturn(eval.getId());
+		when(mockEvaluationDAO.create(any(Evaluation.class), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
     	when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(eval);
     	when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME))).thenReturn(EVALUATION_ID);
     	when(mockEvaluationDAO.create(eq(evalWithId), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
@@ -91,7 +92,9 @@ public class EvaluationManagerTest {
 	@Test
 	public void testCreateEvaluation() throws Exception {		
 		Evaluation clone = evaluationManager.createEvaluation(ownerInfo, eval);
-		assertEquals("'create' returned unexpected Evaluation ID", evalWithId, clone);
+		assertNotNull(clone.getCreatedOn());
+		evalWithId.setCreatedOn(clone.getCreatedOn());
+		assertEquals("'create' returned unexpected Evaluation", evalWithId, clone);
 		verify(mockEvaluationDAO).create(eq(eval), eq(OWNER_ID));
 	}
 	
@@ -104,6 +107,7 @@ public class EvaluationManagerTest {
 	
 	@Test
 	public void testUpdateEvaluationAsOwner() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+		assertNotNull(evalWithId.getCreatedOn());
 		evaluationManager.updateEvaluation(ownerInfo, evalWithId);
 		verify(mockEvaluationDAO).update(eq(evalWithId));
 	}

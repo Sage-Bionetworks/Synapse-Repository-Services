@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.dao.ParticipantDAO;
@@ -58,6 +59,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		Participant part = new Participant();
 		part.setEvaluationId(evalId);
 		part.setUserId(principalIdToAdd);
+		part.setCreatedOn(new Date());
 		participantDAO.create(part);
 		
 		// trigger etag update of the parent Evaluation
@@ -88,6 +90,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		Participant part = new Participant();
 		part.setEvaluationId(evalId);
 		part.setUserId(principalIdToAdd);
+		part.setCreatedOn(new Date());
 		participantDAO.create(part);
 		
 		// trigger etag update of the parent Evaluation

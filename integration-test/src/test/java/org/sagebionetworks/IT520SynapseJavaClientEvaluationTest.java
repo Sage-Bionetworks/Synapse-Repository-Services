@@ -9,7 +9,6 @@ import static org.junit.Assert.fail;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -268,6 +267,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 	
 	@Test
 	public void testEvaluationsParticipantsPaginated() throws SynapseException {
+		Long initialEvaluationCount = synapseOne.getEvaluationCount();
+		
 		// create objects
 		eval1.setStatus(EvaluationStatus.OPEN);
 		eval1 = synapseOne.createEvaluation(eval1);
@@ -287,10 +288,12 @@ public class IT520SynapseJavaClientEvaluationTest {
 		participantsToDelete.add(part2);
 
 		// paginated evaluations
+		eval1 = synapseOne.getEvaluation(eval1.getId());
+		eval2 = synapseOne.getEvaluation(eval2.getId());
 		PaginatedResults<Evaluation> evals = synapseOne.getEvaluationsPaginated(10, 0);
-		assertEquals(2, evals.getTotalNumberOfResults());
-		for (Evaluation c : evals.getResults())
-			assertTrue("Unknown Evaluation returned: " + c.toString(), c.equals(eval1) || c.equals(eval2));
+		assertEquals(initialEvaluationCount + 2, evals.getTotalNumberOfResults());
+		for (Evaluation e : evals.getResults())
+			assertTrue("Unknown Evaluation returned: " + e.toString(), e.equals(eval1) || e.equals(eval2));
 		
 		// paginated participants
 		PaginatedResults<Participant> parts = synapseOne.getAllParticipants(eval1.getId(), 10, 0);

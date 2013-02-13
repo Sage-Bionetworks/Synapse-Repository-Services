@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
@@ -44,6 +45,9 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		
 		// always generate a unique ID
 		eval.setId(idGenerator.generateNewId().toString());
+		
+		// set creation date
+		eval.setCreatedOn(new Date());
 		
 		String id = evaluationDAO.create(eval, Long.parseLong(principalId));
 		return evaluationDAO.get(id);

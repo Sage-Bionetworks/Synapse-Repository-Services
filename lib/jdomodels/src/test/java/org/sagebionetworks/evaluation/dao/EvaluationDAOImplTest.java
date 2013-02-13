@@ -49,6 +49,7 @@ public class EvaluationDAOImplTest {
 		toDelete = new ArrayList<String>();
 		// Initialize Evaluation
 		eval = new Evaluation();
+		eval.setCreatedOn(new Date());
 		eval.setId("123");
 		eval.setName(EVALUATION_NAME);
         eval.setContentSource(EVALUATION_CONTENT_SOURCE);
@@ -111,13 +112,7 @@ public class EvaluationDAOImplTest {
 	}
 
 	@Test
-	public void testFind() throws Exception {
-		// Initialize Evaluation
-		Evaluation eval = new Evaluation();
-		eval.setName(EVALUATION_NAME);
-        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
-        eval.setStatus(EvaluationStatus.PLANNED);
-        
+	public void testFind() throws Exception {        
         // Create it
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
 		assertNotNull(evalId);

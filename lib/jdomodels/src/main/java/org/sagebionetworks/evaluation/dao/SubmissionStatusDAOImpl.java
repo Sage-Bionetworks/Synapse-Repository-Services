@@ -64,9 +64,6 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	public String create(SubmissionStatus dto) throws DatastoreException {		
 		// Convert to DBO
 		SubmissionStatusDBO dbo = convertDtoToDbo(dto);
-
-		// Set modified date
-		dbo.setModifiedOn(System.currentTimeMillis());
 		
 		// Generate eTag
 		tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);

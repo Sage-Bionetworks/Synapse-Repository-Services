@@ -77,12 +77,14 @@ public class SubmissionDAOImplTest {
         
         // create a Participant
         Participant participant = new Participant();
+        participant.setCreatedOn(new Date());
         participant.setUserId(userId);
         participant.setEvaluationId(evalId);
         participantDAO.create(participant);
         
         // Initialize a Submission
         submission = new Submission();
+        submission.setCreatedOn(new Date());
         submission.setId(submissionId);
         submission.setName(name);
         submission.setEvaluationId(evalId);
@@ -178,6 +180,7 @@ public class SubmissionDAOImplTest {
     	SubmissionStatus subStatus = new SubmissionStatus();
     	subStatus.setId(submissionId);
     	subStatus.setStatus(SubmissionStatusEnum.OPEN);
+    	subStatus.setModifiedOn(new Date());
     	submissionStatusDAO.create(subStatus);
     	
     	// hit evalId and hit status => should find 1 submission

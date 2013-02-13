@@ -28,6 +28,7 @@ public class SubmissionBackupDriver implements GenericBackupDriver {
 
 	@Autowired
 	private SubmissionDAO submissionDAO;
+	@Autowired
 	private SubmissionStatusDAO submissionStatusDAO;
 
 	public SubmissionBackupDriver() { }

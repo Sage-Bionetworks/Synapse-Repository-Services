@@ -73,6 +73,7 @@ public class SubmissionStatusDAOImplTest {
         
         // create a participant
         Participant participant = new Participant();
+        participant.setCreatedOn(new Date());
         participant.setUserId(userId);
         participant.setEvaluationId(evalId);
         participantDAO.create(participant);
@@ -109,6 +110,7 @@ public class SubmissionStatusDAOImplTest {
     public void testCRUD() throws Exception{
         // Initialize a new SubmissionStatus object for submissionId
         SubmissionStatus status = new SubmissionStatus();
+        status.setModifiedOn(new Date());
         status.setId(submissionId);
         status.setEtag(null);
         status.setStatus(SubmissionStatusEnum.OPEN);

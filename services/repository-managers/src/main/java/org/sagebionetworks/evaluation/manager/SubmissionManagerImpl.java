@@ -1,6 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
@@ -95,14 +96,18 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		// always generate a unique ID
 		submission.setId(idGenerator.generateNewId().toString());
+				
+		// Set creation date
+		submission.setCreatedOn(new Date());
 		
-		// create the Submission and an accompanying SubmissionStatus object
+		// create the Submission	
 		String id = submissionDAO.create(submission);
 		
 		// create an accompanying SubmissionStatus object
 		SubmissionStatus status = new SubmissionStatus();
 		status.setId(id);
 		status.setStatus(SubmissionStatusEnum.OPEN);
+		status.setModifiedOn(new Date());
 		submissionStatusDAO.create(status);
 		
 		// return the Submission

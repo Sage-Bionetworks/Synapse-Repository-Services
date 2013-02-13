@@ -83,7 +83,7 @@ public class ParticipantManagerTest {
     	participantManager.addParticipantAsAdmin(ownerInfo, EVAL_ID, USER_ID);
     	participantManager.getParticipant(USER_ID, EVAL_ID);
     	participantManager.removeParticipant(ownerInfo, EVAL_ID, USER_ID);
-    	verify(mockParticipantDAO).create(eq(part));
+    	verify(mockParticipantDAO).create(any(Participant.class));
     	verify(mockParticipantDAO, times(2)).get(eq(USER_ID), eq(EVAL_ID));
     	verify(mockParticipantDAO).delete(eq(USER_ID), eq(EVAL_ID));
     }
@@ -95,7 +95,7 @@ public class ParticipantManagerTest {
     	participantManager.addParticipantAsAdmin(ownerInfo, EVAL_ID, USER_ID);
     	participantManager.getParticipant(USER_ID, EVAL_ID);
     	participantManager.removeParticipant(ownerInfo, EVAL_ID, USER_ID);
-    	verify(mockParticipantDAO).create(eq(part));
+    	verify(mockParticipantDAO).create(any(Participant.class));
     	verify(mockParticipantDAO, times(2)).get(eq(USER_ID), eq(EVAL_ID));
     	verify(mockParticipantDAO).delete(eq(USER_ID), eq(EVAL_ID));
     }
@@ -105,7 +105,7 @@ public class ParticipantManagerTest {
     	participantManager.addParticipant(userInfo, EVAL_ID);
     	participantManager.getParticipant(USER_ID, EVAL_ID);
     	participantManager.removeParticipant(userInfo, EVAL_ID, USER_ID);
-    	verify(mockParticipantDAO).create(eq(part));
+    	verify(mockParticipantDAO).create(any(Participant.class));
     	verify(mockParticipantDAO, times(2)).get(eq(USER_ID), eq(EVAL_ID));
     	verify(mockParticipantDAO).delete(eq(USER_ID), eq(EVAL_ID));
     }

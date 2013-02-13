@@ -3120,7 +3120,7 @@ public class Synapse {
 		}
 	}
 	
-	public PaginatedResults<Evaluation> getEvaluationsPaginated(int offset, int limit) throws SynapseException {
+	public PaginatedResults<Evaluation> getEvaluationsPaginated(int limit, int offset) throws SynapseException {
 		String url = EVALUATION_URI_PATH +	"?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
@@ -3301,7 +3301,7 @@ public class Synapse {
 		deleteUri(uri);
 	}
 	
-	public PaginatedResults<Submission> getAllSubmissions(String evalId, long limit, long offset) throws SynapseException {
+	public PaginatedResults<Submission> getAllSubmissions(String evalId, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
 		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_ALL +
 				"?offset" + "=" + offset + "&limit=" + limit;
