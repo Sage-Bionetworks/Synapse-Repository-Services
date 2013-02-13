@@ -37,7 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
 	private static final String SQL_SELECT_CREATOR = "SELECT "+COL_FILES_CREATED_BY+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
-
+	private static final String SQL_SELECT_PREVIEW_ID = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
 
 	/**
@@ -161,6 +161,24 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			Long creator = simpleJdbcTemplate.queryForLong(SQL_SELECT_CREATOR, Long.parseLong(fileHandleId));
 			return creator.toString();
 		}catch(EmptyResultDataAccessException e){
+			throw new NotFoundException("The FileHandle does not exist: "+fileHandleId);
+		}
+	}
+
+	@Override
+	public String getPreviewFileHandleId(String fileHandleId)
+			throws NotFoundException {
+		if(fileHandleId == null) throw new IllegalArgumentException("fileHandleId cannot be null");
+		try{
+			// Lookup the creator.
+			long previewId = simpleJdbcTemplate.queryForLong(SQL_SELECT_PREVIEW_ID, Long.parseLong(fileHandleId));
+			if(previewId > 0){
+				return Long.toString(previewId);
+			}else{
+				throw new NotFoundException("A preview does not exist for: "+fileHandleId);
+			}
+		}catch(EmptyResultDataAccessException e){
+			// This occurs when the file handle does not exist
 			throw new NotFoundException("The FileHandle does not exist: "+fileHandleId);
 		}
 	}

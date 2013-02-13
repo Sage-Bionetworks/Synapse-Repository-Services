@@ -721,6 +721,17 @@ public interface EntityService {
 	 * @throws DatastoreException 
 	 */
 	public URL getFileRedirectURLForCurrentVersion(String userId, String entityId) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get the file preview redirect URL for the current version of the entity.
+	 * @param userId
+	 * @param entityId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public URL getFilePreviewRedirectURLForCurrentVersion(String userId, String entityId) throws DatastoreException, NotFoundException;
+
 
 	/**
 	 * Get the file redirect URL for a given version number.
@@ -732,5 +743,16 @@ public interface EntityService {
 	 * @throws DatastoreException 
 	 */
 	public URL getFileRedirectURLForVersion(String userId, String id, Long versionNumber) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get the file preview redirect URL for a given version number.
+	 * @param userId
+	 * @param id
+	 * @param versionNumber
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public URL getFilePreviewRedirectURLForVersion(String userId, String id, Long versionNumber) throws DatastoreException, NotFoundException;
 
 }

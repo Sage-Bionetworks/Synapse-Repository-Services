@@ -61,4 +61,12 @@ public interface FileHandleDao {
 	 * @throws NotFoundException 
 	 */
 	public String getHandleCreator(String fileHandleId) throws NotFoundException;
+
+	/**
+	 * Get the preview associated with a given file handle.
+	 * 
+	 * @param handleId
+	 * @return
+	 */
+	public String getPreviewFileHandleId(String handleId) throws NotFoundException;
 }

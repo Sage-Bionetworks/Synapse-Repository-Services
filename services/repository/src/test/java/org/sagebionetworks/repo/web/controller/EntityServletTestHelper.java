@@ -1278,6 +1278,21 @@ public class EntityServletTestHelper {
 		Long versionNumber = null;
 		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
 	}
+	
+	/**
+	 * Get the file preview URL for the current version.
+	 * @param userName
+	 * @param entityId
+	 * @param redirect
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 */
+	public URL getEntityFilePreviewURLForCurrentVersion(String userName, String entityId, Boolean redirect) throws ServletException, IOException {
+		Boolean preview = Boolean.TRUE;
+		Long versionNumber = null;
+		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
+	}
 	/**
 	 * 
 	 * @param userName
@@ -1290,6 +1305,21 @@ public class EntityServletTestHelper {
 	 */
 	public URL getEntityFileURLForVersion(String userName, String entityId, Long versionNumber, Boolean redirect) throws ServletException, IOException {
 		Boolean preview = null;
+		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
+	}
+	
+	/**
+	 * 
+	 * @param userName
+	 * @param id
+	 * @param versionNumber
+	 * @param redirect
+	 * @return
+	 * @throws IOException 
+	 * @throws ServletException 
+	 */
+	public URL getEntityFilePreviewURLForVersion(String userName, String entityId, Long versionNumber, Boolean redirect) throws ServletException, IOException {
+		Boolean preview = Boolean.TRUE;
 		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
 	}
 }

@@ -20,7 +20,7 @@ import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ExampleEntity;
-import org.sagebionetworks.repo.model.File;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
@@ -443,9 +443,9 @@ public class NodeTranslationUtilsTest {
 	@Test
 	public void testFileEntityRoundTrip() throws InstantiationException, IllegalAccessException{
 		String fileHandle = "12345";
-		File file = new File();
+		FileEntity file = new FileEntity();
 		file.setDataFileHandleId(fileHandle);
-		File clone = cloneUsingNodeTranslation(file);
+		FileEntity clone = cloneUsingNodeTranslation(file);
 		assertEquals(file, clone);
 	}
 	
