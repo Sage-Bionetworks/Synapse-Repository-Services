@@ -11,6 +11,7 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
@@ -25,6 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubmissionManagerImpl implements SubmissionManager {
 	
 	@Autowired
+	private IdGenerator idGenerator;
+	@Autowired
 	SubmissionDAO submissionDAO;
 	@Autowired
 	SubmissionStatusDAO submissionStatusDAO;
@@ -38,9 +41,10 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public SubmissionManagerImpl() {};
 	
 	// for testing purposes
-	protected SubmissionManagerImpl(SubmissionDAO submissionDAO, 
+	protected SubmissionManagerImpl(IdGenerator idGenerator, SubmissionDAO submissionDAO, 
 			SubmissionStatusDAO submissionStatusDAO, EvaluationManager evaluationManager,
-			ParticipantManager participantManager, NodeManager nodeManager) {		
+			ParticipantManager participantManager, NodeManager nodeManager) {
+		this.idGenerator = idGenerator;
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
 		this.evaluationManager = evaluationManager;
@@ -63,7 +67,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Submission createSubmission(UserInfo userInfo, Submission submission) throws NotFoundException {
-		EvaluationUtils.ensureNotNull(submission, "Submission ID");
+		EvaluationUtils.ensureNotNull(submission, "Submission");
 		String evalId = submission.getEvaluationId();
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
@@ -89,6 +93,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		Evaluation eval = evaluationManager.getEvaluation(evalId);
 		EvaluationUtils.ensureEvaluationIsOpen(eval);
 		
+		// always generate a unique ID
+		submission.setId(idGenerator.generateNewId().toString());
+		
 		// create the Submission and an accompanying SubmissionStatus object
 		String id = submissionDAO.create(submission);
 		
@@ -107,7 +114,6 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo, SubmissionStatus submissionStatus) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionStatus, "SubmissionStatus");
 		UserInfo.validateUserInfo(userInfo);
-		String principalId = userInfo.getIndividualGroup().getId();
 		
 		// ensure Submission exists and validate admin rights
 		SubmissionStatus old = getSubmissionStatus(submissionStatus.getId());

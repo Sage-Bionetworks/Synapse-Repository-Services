@@ -5,6 +5,7 @@ import java.util.List;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -22,11 +23,15 @@ public class EvaluationManagerImpl implements EvaluationManager {
 	@Autowired
 	EvaluationDAO evaluationDAO;
 	
+	@Autowired
+	private IdGenerator idGenerator;
+	
 	public EvaluationManagerImpl() {}
 	
 	// Used for testing purposes
-	protected EvaluationManagerImpl(EvaluationDAO evaluationDAO) {
+	protected EvaluationManagerImpl(EvaluationDAO evaluationDAO, IdGenerator idGenerator) {
 		this.evaluationDAO = evaluationDAO;
+		this.idGenerator = idGenerator;
 	}
 	
 	@Override
@@ -36,6 +41,10 @@ public class EvaluationManagerImpl implements EvaluationManager {
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
 		eval.setName(EntityNameValidation.valdiateName(eval.getName()));
+		
+		// always generate a unique ID
+		eval.setId(idGenerator.generateNewId().toString());
+		
 		String id = evaluationDAO.create(eval, Long.parseLong(principalId));
 		return evaluationDAO.get(id);
 	}

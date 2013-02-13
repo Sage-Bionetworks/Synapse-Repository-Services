@@ -12,7 +12,6 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.query.jdo.SQLConstants;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -31,9 +30,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
-	
-	@Autowired
-	private IdGenerator idGenerator;
 	
 	private static final String ID = DBOConstants.PARAM_SUBMISSION_ID;
 	private static final String USER_ID = DBOConstants.PARAM_SUBMISSION_USER_ID;
@@ -94,14 +90,14 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String create(Submission dto) throws DatastoreException {		
+	public String create(Submission dto) throws DatastoreException {
+		EvaluationUtils.ensureNotNull(dto,  "Submission");
+		EvaluationUtils.ensureNotNull(dto, "Submission ID");
+		
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
 		copyDtoToDbo(dto, dbo);
-		
-		// Generate ID
-		dbo.setId(idGenerator.generateNewId());
-			
+					
 		// Set creation date
 		dbo.setCreatedOn(System.currentTimeMillis());
 		

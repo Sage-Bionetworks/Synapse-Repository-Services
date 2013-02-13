@@ -47,7 +47,7 @@ public class SubmissionDAOImplTest {
 	NodeDAO nodeDAO;
  
 	private String nodeId = null;
-    private String submissionId = null;
+    private String submissionId = "206";
     private String userId = "0";
     private String userId_does_not_exist = "2";
     private String evalId;
@@ -65,14 +65,15 @@ public class SubmissionDAOImplTest {
     	nodeId = nodeDAO.createNew(toCreate);
     	
     	// create a Evaluation
-        Evaluation Evaluation = new Evaluation();
-        Evaluation.setEtag("etag");
-        Evaluation.setName("name");
-        Evaluation.setOwnerId(userId);
-        Evaluation.setCreatedOn(new Date());
-        Evaluation.setContentSource("foobar");
-        Evaluation.setStatus(EvaluationStatus.PLANNED);
-        evalId = evaluationDAO.create(Evaluation, Long.parseLong(userId));
+        Evaluation evaluation = new Evaluation();
+        evaluation.setId("1234");
+        evaluation.setEtag("etag");
+        evaluation.setName("name");
+        evaluation.setOwnerId(userId);
+        evaluation.setCreatedOn(new Date());
+        evaluation.setContentSource("foobar");
+        evaluation.setStatus(EvaluationStatus.PLANNED);
+        evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
         
         // create a Participant
         Participant participant = new Participant();

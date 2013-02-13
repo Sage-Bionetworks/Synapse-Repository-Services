@@ -16,6 +16,7 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.EvaluationManagerImpl;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -28,7 +29,9 @@ public class EvaluationManagerTest {
 		
 	private static EvaluationManager evaluationManager;
 	private static Evaluation eval;
+	private static Evaluation evalWithId;
 	
+	private static IdGenerator mockIdGenerator;
 	private static EvaluationDAO mockEvaluationDAO;
 	
 	private static final Long OWNER_ID = 123L;
@@ -36,14 +39,17 @@ public class EvaluationManagerTest {
 	private static UserInfo ownerInfo;
 	private static UserInfo userInfo;
 	
-	private static final String COMPETITION_NAME = "test-competition";
-    private static final String COMPETITION_ID = "foo";
-    private static final String COMPETITION_CONTENT_SOURCE = "Baz";
-    private static final String COMPETITION_ETAG = "etag";
+	private static final String EVALUATION_NAME = "test-evaluation";
+    private static final String EVALUATION_ID = "1234";
+    private static final String EVALUATION_CONTENT_SOURCE = "Baz";
+    private static final String EVALUATION_ETAG = "etag";
     
     @Before
-    public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {    	
-    	// Competition DAO
+    public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
+    	// ID Generator
+    	mockIdGenerator = mock(IdGenerator.class);
+    	
+    	// Evaluation DAO
     	mockEvaluationDAO = mock(EvaluationDAO.class);    	
     	
     	// UserInfo
@@ -52,69 +58,82 @@ public class EvaluationManagerTest {
     	userInfo = UserInfoUtils.createValidUserInfo(false);
     	userInfo.getIndividualGroup().setId(USER_ID.toString());
     	
-		// Competition
+		// Evaluation
+    	Date date = new Date();
 		eval = new Evaluation();
-		eval.setName(COMPETITION_NAME);
-		eval.setId(COMPETITION_ID);
+		eval.setName(EVALUATION_NAME);
 		eval.setOwnerId(ownerInfo.getIndividualGroup().getId());
-        eval.setContentSource(COMPETITION_CONTENT_SOURCE);
+        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
         eval.setStatus(EvaluationStatus.PLANNED);
-        eval.setCreatedOn(new Date());
-        eval.setEtag(COMPETITION_ETAG);
+        eval.setCreatedOn(date);
+        eval.setEtag(EVALUATION_ETAG);
         
-        // Competition Manager
-    	evaluationManager = new EvaluationManagerImpl(mockEvaluationDAO);
+		evalWithId = new Evaluation();
+		evalWithId.setId(EVALUATION_ID);
+		evalWithId.setName(EVALUATION_NAME);
+		evalWithId.setOwnerId(ownerInfo.getIndividualGroup().getId());
+		evalWithId.setContentSource(EVALUATION_CONTENT_SOURCE);
+		evalWithId.setStatus(EvaluationStatus.PLANNED);
+		evalWithId.setCreatedOn(date);
+		evalWithId.setEtag(EVALUATION_ETAG);
+        
+        // Evaluation Manager
+    	evaluationManager = new EvaluationManagerImpl(mockEvaluationDAO, mockIdGenerator);
+    	
+    	// configure mocks
+    	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(EVALUATION_ID));
 		when(mockEvaluationDAO.create(eq(eval), eq(OWNER_ID))).thenReturn(eval.getId());
-    	when(mockEvaluationDAO.get(eq(COMPETITION_ID))).thenReturn(eval);
-    	when(mockEvaluationDAO.lookupByName(eq(COMPETITION_NAME))).thenReturn(COMPETITION_ID);
+    	when(mockEvaluationDAO.get(eq(EVALUATION_ID))).thenReturn(eval);
+    	when(mockEvaluationDAO.lookupByName(eq(EVALUATION_NAME))).thenReturn(EVALUATION_ID);
+    	when(mockEvaluationDAO.create(eq(evalWithId), eq(OWNER_ID))).thenReturn(EVALUATION_ID);
     }
 	
 	@Test
-	public void testCreateCompetition() throws Exception {		
+	public void testCreateEvaluation() throws Exception {		
 		Evaluation clone = evaluationManager.createEvaluation(ownerInfo, eval);
-		assertEquals("'create' returned unexpected Competition ID", eval, clone);
+		assertEquals("'create' returned unexpected Evaluation ID", evalWithId, clone);
 		verify(mockEvaluationDAO).create(eq(eval), eq(OWNER_ID));
 	}
 	
 	@Test
-	public void testGetCompetition() throws DatastoreException, NotFoundException, UnauthorizedException {
-		Evaluation comp2 = evaluationManager.getEvaluation(COMPETITION_ID);
-		assertEquals(eval, comp2);
-		verify(mockEvaluationDAO).get(eq(COMPETITION_ID));
+	public void testGetEvaluation() throws DatastoreException, NotFoundException, UnauthorizedException {
+		Evaluation eval2 = evaluationManager.getEvaluation(EVALUATION_ID);
+		assertEquals(eval, eval2);
+		verify(mockEvaluationDAO).get(eq(EVALUATION_ID));
 	}
 	
 	@Test
-	public void testUpdateCompetitionAsOwner() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
-		evaluationManager.updateEvaluation(ownerInfo, eval);
-		verify(mockEvaluationDAO).update(eq(eval));
+	public void testUpdateEvaluationAsOwner() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException, UnauthorizedException {
+		evaluationManager.updateEvaluation(ownerInfo, evalWithId);
+		verify(mockEvaluationDAO).update(eq(evalWithId));
 	}
 	
 	@Test
-	public void testUpdateCompetitionAsUser() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException {
+	public void testUpdateEvaluationAsUser() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException {
 		try {
-			evaluationManager.updateEvaluation(userInfo, eval);
-			fail("User should not have permission to update competition");
+			evaluationManager.updateEvaluation(userInfo, evalWithId);
+			fail("User should not have permission to update evaluation");
 		} catch (UnauthorizedException e) {
 			// expected
 		}
-		verify(mockEvaluationDAO, times(0)).update(eq(eval));
+		verify(mockEvaluationDAO, never()).update(eq(eval));
 	}
 
 	@Test
 	public void testFind() throws DatastoreException, UnauthorizedException, NotFoundException {
-		Evaluation comp2 = evaluationManager.findEvaluation(COMPETITION_NAME);
-		assertEquals(eval, comp2);
-		verify(mockEvaluationDAO).lookupByName(eq(COMPETITION_NAME));
+		Evaluation eval2 = evaluationManager.findEvaluation(EVALUATION_NAME);
+		assertEquals(eval, eval2);
+		verify(mockEvaluationDAO).lookupByName(eq(EVALUATION_NAME));
 	}
 	
 	@Test(expected=NotFoundException.class)
 	public void testFindDoesNotExist() throws DatastoreException, UnauthorizedException, NotFoundException {
-		evaluationManager.findEvaluation(COMPETITION_NAME +  "2");
+		evaluationManager.findEvaluation(EVALUATION_NAME +  "2");
 	}
 	
 	@Test
 	public void testInvalidName() throws DatastoreException, InvalidModelException, ConflictingUpdateException, NotFoundException {
-		// note that the Competition Manager relies on EntityNameValidation.java
+		// note that the Evaluation Manager relies on EntityNameValidation.java
 		eval.setName("$ This is an invalid name");
 		try {
 			evaluationManager.createEvaluation(ownerInfo, eval);			
@@ -127,10 +146,10 @@ public class EvaluationManagerTest {
 	
 	@Test
 	public void testIsAdmin() throws DatastoreException, UnauthorizedException, NotFoundException {
-		assertTrue("Owner should be an admin of their own Competition", 
-				evaluationManager.isEvalAdmin(ownerInfo, COMPETITION_ID));
-		assertFalse("Non-owner user should NOT be an admin of this Competition", 
-				evaluationManager.isEvalAdmin(userInfo, COMPETITION_ID));
+		assertTrue("Owner should be an admin of their own Evaluation", 
+				evaluationManager.isEvalAdmin(ownerInfo, EVALUATION_ID));
+		assertFalse("Non-owner user should NOT be an admin of this Evaluation", 
+				evaluationManager.isEvalAdmin(userInfo, EVALUATION_ID));
 	}
 
 }

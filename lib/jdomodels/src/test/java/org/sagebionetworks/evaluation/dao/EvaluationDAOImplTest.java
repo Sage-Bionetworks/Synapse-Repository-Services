@@ -35,7 +35,8 @@ public class EvaluationDAOImplTest {
 	
 	@Autowired
 	private EvaluationDAO evaluationDAO;
-		
+	
+	private Evaluation eval;	
 	List<String> toDelete;
 	
 	private static final String EVALUATION_NAME = "test-evaluation";
@@ -46,6 +47,12 @@ public class EvaluationDAOImplTest {
 	@Before
 	public void setUp() throws Exception {
 		toDelete = new ArrayList<String>();
+		// Initialize Evaluation
+		eval = new Evaluation();
+		eval.setId("123");
+		eval.setName(EVALUATION_NAME);
+        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
+        eval.setStatus(EvaluationStatus.PLANNED);
 	}
 
 	@After
@@ -63,11 +70,7 @@ public class EvaluationDAOImplTest {
 	
 	@Test
 	public void testCRUD() throws Exception {	
-		// Initialize Evaluation
-		Evaluation eval = new Evaluation();
-		eval.setName(EVALUATION_NAME);
-        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
-        eval.setStatus(EvaluationStatus.PLANNED);
+
         
         // Create it
 		long initialCount = evaluationDAO.getCount();
@@ -126,13 +129,7 @@ public class EvaluationDAOImplTest {
 	}
 	
     @Test
-    public void testSameName() throws Exception{
-        // Initialize a new Evaluation
-		Evaluation eval = new Evaluation();
-		eval.setName(EVALUATION_NAME);
-        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
-        eval.setStatus(EvaluationStatus.PLANNED);
- 
+    public void testSameName() throws Exception{ 
         // Create it
 		long initialCount = evaluationDAO.getCount();
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
@@ -161,13 +158,7 @@ public class EvaluationDAOImplTest {
     }
     
     @Test
-    public void testGetInRange() throws DatastoreException, NotFoundException {
-    	// Initialize Evaluation
-		Evaluation eval = new Evaluation();
-		eval.setName(EVALUATION_NAME);
-        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
-        eval.setStatus(EvaluationStatus.PLANNED);
-        
+    public void testGetInRange() throws DatastoreException, NotFoundException {        
         // Create it
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
 		assertNotNull(evalId);
@@ -181,13 +172,7 @@ public class EvaluationDAOImplTest {
     }
     
     @Test
-    public void testGetInRangeByStatus() throws DatastoreException, NotFoundException {
-    	// Initialize Evaluation
-		Evaluation eval = new Evaluation();
-		eval.setName(EVALUATION_NAME);
-        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
-        eval.setStatus(EvaluationStatus.PLANNED);
-        
+    public void testGetInRangeByStatus() throws DatastoreException, NotFoundException {        
         // Create it
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
 		assertNotNull(evalId);

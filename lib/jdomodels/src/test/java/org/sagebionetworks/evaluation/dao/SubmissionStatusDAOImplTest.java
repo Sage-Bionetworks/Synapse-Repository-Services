@@ -62,6 +62,7 @@ public class SubmissionStatusDAOImplTest {
     	
     	// create an evaluation
         Evaluation evaluation = new Evaluation();
+        evaluation.setId("1234");
         evaluation.setEtag("etag");
         evaluation.setName("name");
         evaluation.setOwnerId(userId);
@@ -78,6 +79,7 @@ public class SubmissionStatusDAOImplTest {
         
         // create a submission
         Submission submission = new Submission();
+        submission.setId("5678");
         submission.setName(name);
         submission.setEntityId(nodeId);
         submission.setVersionNumber(versionNumber);

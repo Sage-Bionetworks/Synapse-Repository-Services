@@ -14,7 +14,6 @@ import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -39,9 +38,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDao;
-
-	@Autowired
-	private IdGenerator idGenerator;
 	
 	@Autowired
 	private TagMessenger tagMessenger;
@@ -89,13 +85,11 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	public String create(Evaluation dto, Long ownerId) throws DatastoreException {
 		EvaluationUtils.ensureNotNull(dto, "Evaluation object");
 		EvaluationUtils.ensureNotNull(ownerId, "Owner ID");
+		EvaluationUtils.ensureNotNull(dto.getId(), "Evaluation ID");
 		
 		// convert to DBO
 		EvaluationDBO dbo = new EvaluationDBO();
 		copyDtoToDbo(dto, dbo);
-		
-		// generate unique ID
-		dbo.setId(idGenerator.generateNewId());
 		
 		// set Owner ID
 		dbo.setOwnerId(ownerId);
