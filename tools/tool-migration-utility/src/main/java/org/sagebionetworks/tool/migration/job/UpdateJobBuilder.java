@@ -53,49 +53,54 @@ public class UpdateJobBuilder implements Callable<BuilderResponse> {
 
 	@Override
 	public BuilderResponse call() throws Exception {
-		// Get the two clients		
-		int updateSubmitted = 0;
-		// Walk over the source list
-		Map<MigratableObjectType, Set<String>> batchesToUpdate = new HashMap<MigratableObjectType, Set<String>>();
-		for(MigratableObjectData source: sourceList) {
-			// We only care about entities that already exist
-			MigratableObjectData destObject = destMap.get(source.getId());
-			if(destObject != null){
-				// Do the eTags match?
-				if(     etagsDiffer(source.getEtag(), destObject.getEtag())
-						// also check dependencies
-						&& JobUtil.dependenciesFulfilled(source, destMap.keySet())
-				) {
-					System.out.println("UpdateJobBuilder: Need to update "+source.getId()+" source etag is "+source.getEtag()+
-							" while dest etag is "+destObject.getEtag());
-					// Tags do not match. New dependencies are in place.  Let's migrate it!
-					MigratableObjectType objectType = source.getId().getType();
-					Set<String> batchToUpdate = batchesToUpdate.get(objectType);
-					if (batchToUpdate==null) {
-						batchToUpdate = new HashSet<String>();
-						batchesToUpdate.put(objectType, batchToUpdate);
-					}
-					batchToUpdate.add(source.getId().getId());
-					updateSubmitted++;
-					if(batchToUpdate.size() >= this.batchSize){
-						Job createJob = new Job(batchToUpdate, objectType, Type.UPDATE);
-						this.queue.add(createJob);
-						batchesToUpdate.remove(objectType);
+		try {
+			// Get the two clients		
+			int updateSubmitted = 0;
+			// Walk over the source list
+			Map<MigratableObjectType, Set<String>> batchesToUpdate = new HashMap<MigratableObjectType, Set<String>>();
+			for(MigratableObjectData source: sourceList) {
+				// We only care about entities that already exist
+				MigratableObjectData destObject = destMap.get(source.getId());
+				if(destObject != null){
+					// Do the eTags match?
+					if(     etagsDiffer(source.getEtag(), destObject.getEtag())
+							// also check dependencies
+							&& JobUtil.dependenciesFulfilled(source, destMap.keySet())
+					) {
+						System.out.println("UpdateJobBuilder: Need to update "+source.getId()+" source etag is "+source.getEtag()+
+								" while dest etag is "+destObject.getEtag());
+						// Tags do not match. New dependencies are in place.  Let's migrate it!
+						MigratableObjectType objectType = source.getId().getType();
+						Set<String> batchToUpdate = batchesToUpdate.get(objectType);
+						if (batchToUpdate==null) {
+							batchToUpdate = new HashSet<String>();
+							batchesToUpdate.put(objectType, batchToUpdate);
+						}
+						batchToUpdate.add(source.getId().getId());
+						updateSubmitted++;
+						if(batchToUpdate.size() >= this.batchSize){
+							Job createJob = new Job(batchToUpdate, objectType, Type.UPDATE);
+							this.queue.add(createJob);
+							batchesToUpdate.remove(objectType);
+						}
 					}
 				}
 			}
-		}
-		// Submit any updates left over
-		for (MigratableObjectType objectType : batchesToUpdate.keySet()) {
-			Set<String> batchToUpdate = batchesToUpdate.get(objectType);
-			if(!batchToUpdate.isEmpty()) {
-				Job updateJob = new Job(batchToUpdate, objectType, Type.UPDATE);
-				this.queue.add(updateJob);
+			// Submit any updates left over
+			for (MigratableObjectType objectType : batchesToUpdate.keySet()) {
+				Set<String> batchToUpdate = batchesToUpdate.get(objectType);
+				if(!batchToUpdate.isEmpty()) {
+					Job updateJob = new Job(batchToUpdate, objectType, Type.UPDATE);
+					this.queue.add(updateJob);
+				}
 			}
+			batchesToUpdate.clear();
+			// Report the results.
+			return new BuilderResponse(updateSubmitted, 0);
+		} catch (Exception e) {
+			e.printStackTrace();
+			throw e;
 		}
-		batchesToUpdate.clear();
-		// Report the results.
-		return new BuilderResponse(updateSubmitted, 0);
 	}
 
 
