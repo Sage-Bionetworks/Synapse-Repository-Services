@@ -283,7 +283,7 @@ public class UrlHelpers {
 	/**
 	 * For trash can APIs.
 	 */
-	public static final String TRASHCAN = "/trash";
+	public static final String TRASHCAN = "/trashcan";
 
 	/**
 	 * Moves an entity to the trash can.
