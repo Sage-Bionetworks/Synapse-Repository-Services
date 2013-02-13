@@ -115,6 +115,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
  */
 public class Synapse {
 
+
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
 	protected static final Logger log = Logger.getLogger(Synapse.class.getName());
@@ -188,6 +189,8 @@ public class Synapse {
 	protected static final String VERSION_INFO = "/version";
 	
 	protected static final String FILE_HANDLE = "/fileHandle";
+	private static final String FILE = "/file";
+	private static final String FILE_PREVIEW = "/filepreview";
 	
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
@@ -1608,7 +1611,7 @@ public class Synapse {
 	}
 	
 	/**
-	 * Get the temporary URL for the data file of a FileEntity.  This is an alternative to downloading the file.
+	 * Get the temporary URL for the data file of a FileEntity for the current version of the entity..  This is an alternative to downloading the file.
 	 * 
 	 * @param entityId
 	 * @return
@@ -1617,9 +1620,52 @@ public class Synapse {
 	 * @throws IOException
 	 */
 	public URL getFileEntityTemporaryUrlForCurrentVersion(String entityId) throws ClientProtocolException, MalformedURLException, IOException{
-		String uri = getRepoEndpoint()+"/entity/"+entityId+"/file"+QUERY_REDIRECT_PARAMETER+"false";
+		String uri = getRepoEndpoint()+ENTITY+"/"+entityId+FILE+QUERY_REDIRECT_PARAMETER+"false";
 		return getUrl(uri);
 	}
+	
+	/**
+	 * Get the temporary URL for the data file preview of a FileEntity for the current version of the entity..  This is an alternative to downloading the file.
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws MalformedURLException
+	 * @throws IOException
+	 */
+	public URL getFileEntityPreviewTemporaryUrlForCurrentVersion(String entityId) throws ClientProtocolException, MalformedURLException, IOException{
+		String uri = getRepoEndpoint()+ENTITY+"/"+entityId+FILE_PREVIEW+QUERY_REDIRECT_PARAMETER+"false";
+		return getUrl(uri);
+	}
+	
+	/**
+	 * Get the temporary URL for the data file of a FileEntity for a given version number.  This is an alternative to downloading the file.
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws MalformedURLException
+	 * @throws IOException
+	 */
+	public URL getFileEntityTemporaryUrlForVersion(String entityId, Long versionNumber) throws ClientProtocolException, MalformedURLException, IOException{
+		String uri = getRepoEndpoint()+ENTITY+"/"+entityId+VERSION_INFO+"/"+versionNumber+FILE+QUERY_REDIRECT_PARAMETER+"false";
+		return getUrl(uri);
+	}
+	
+	/**
+	 * Get the temporary URL for the data file of a FileEntity for a given version number.  This is an alternative to downloading the file.
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws ClientProtocolException
+	 * @throws MalformedURLException
+	 * @throws IOException
+	 */
+	public URL getFileEntityPreviewTemporaryUrlForVersion(String entityId, Long versionNumber) throws ClientProtocolException, MalformedURLException, IOException{
+		String uri = getRepoEndpoint()+ENTITY+"/"+entityId+VERSION_INFO+"/"+versionNumber+FILE_PREVIEW+QUERY_REDIRECT_PARAMETER+"false";
+		return getUrl(uri);
+	}
+
 
 	/**
 	 * Fetch a temporary url.
