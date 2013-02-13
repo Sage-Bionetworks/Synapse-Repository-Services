@@ -168,10 +168,10 @@ public class AuthorizationManagerImplUnitTest {
 	}
 	
 	@Test
-	public void testCanAccessWithObjecTypeCompetitionNonCompAdmin() throws DatastoreException, UnauthorizedException, NotFoundException{
+	public void testCanAccessWithObjectTypeCompetitionNonCompAdmin() throws DatastoreException, UnauthorizedException, NotFoundException{
 		String compId = "123";
 		// This user is not an admin but the should be able to read.
-		when(mockEvaluationManager.isEvalAdmin(any(String.class), any(String.class))).thenReturn(false);
+		when(mockEvaluationManager.isEvalAdmin(any(UserInfo.class), any(String.class))).thenReturn(false);
 		assertTrue("User should have read access to any competition.", authorizationManager.canAccess(userInfo, compId, ObjectType.EVALUATION, ACCESS_TYPE.READ));
 		assertFalse("User should not have delete access to this competition.", authorizationManager.canAccess(userInfo, compId, ObjectType.EVALUATION, ACCESS_TYPE.DELETE));
 	}
@@ -180,7 +180,7 @@ public class AuthorizationManagerImplUnitTest {
 	public void testCanAccessWithObjecTypeCompetitionCompAdmin() throws DatastoreException, UnauthorizedException, NotFoundException{
 		String compId = "123";
 		// This user is not an admin but the should be able to read.
-		when(mockEvaluationManager.isEvalAdmin(any(String.class), any(String.class))).thenReturn(true);
+		when(mockEvaluationManager.isEvalAdmin(any(UserInfo.class), any(String.class))).thenReturn(true);
 		assertTrue("A competition admin should have read access", authorizationManager.canAccess(userInfo, compId, ObjectType.EVALUATION, ACCESS_TYPE.READ));
 		assertTrue("A competition admin should have delete access", authorizationManager.canAccess(userInfo, compId, ObjectType.EVALUATION, ACCESS_TYPE.DELETE));
 	}

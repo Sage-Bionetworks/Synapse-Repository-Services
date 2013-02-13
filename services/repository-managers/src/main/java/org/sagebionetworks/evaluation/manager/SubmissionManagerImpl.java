@@ -1,6 +1,7 @@
 package org.sagebionetworks.evaluation.manager;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
@@ -11,6 +12,7 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
+import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
@@ -25,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class SubmissionManagerImpl implements SubmissionManager {
 	
 	@Autowired
+	private IdGenerator idGenerator;
+	@Autowired
 	SubmissionDAO submissionDAO;
 	@Autowired
 	SubmissionStatusDAO submissionStatusDAO;
@@ -38,9 +42,10 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public SubmissionManagerImpl() {};
 	
 	// for testing purposes
-	protected SubmissionManagerImpl(SubmissionDAO submissionDAO, 
+	protected SubmissionManagerImpl(IdGenerator idGenerator, SubmissionDAO submissionDAO, 
 			SubmissionStatusDAO submissionStatusDAO, EvaluationManager evaluationManager,
-			ParticipantManager participantManager, NodeManager nodeManager) {		
+			ParticipantManager participantManager, NodeManager nodeManager) {
+		this.idGenerator = idGenerator;
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
 		this.evaluationManager = evaluationManager;
@@ -63,7 +68,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Submission createSubmission(UserInfo userInfo, Submission submission) throws NotFoundException {
-		EvaluationUtils.ensureNotNull(submission, "Submission ID");
+		EvaluationUtils.ensureNotNull(submission, "Submission");
 		String evalId = submission.getEvaluationId();
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
@@ -89,13 +94,20 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		Evaluation eval = evaluationManager.getEvaluation(evalId);
 		EvaluationUtils.ensureEvaluationIsOpen(eval);
 		
-		// create the Submission and an accompanying SubmissionStatus object
+		// always generate a unique ID
+		submission.setId(idGenerator.generateNewId().toString());
+				
+		// Set creation date
+		submission.setCreatedOn(new Date());
+		
+		// create the Submission	
 		String id = submissionDAO.create(submission);
 		
 		// create an accompanying SubmissionStatus object
 		SubmissionStatus status = new SubmissionStatus();
 		status.setId(id);
 		status.setStatus(SubmissionStatusEnum.OPEN);
+		status.setModifiedOn(new Date());
 		submissionStatusDAO.create(status);
 		
 		// return the Submission
@@ -107,12 +119,11 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public SubmissionStatus updateSubmissionStatus(UserInfo userInfo, SubmissionStatus submissionStatus) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionStatus, "SubmissionStatus");
 		UserInfo.validateUserInfo(userInfo);
-		String principalId = userInfo.getIndividualGroup().getId();
 		
 		// ensure Submission exists and validate admin rights
 		SubmissionStatus old = getSubmissionStatus(submissionStatus.getId());
 		String evalId = getSubmission(submissionStatus.getId()).getEvaluationId();
-		if (!evaluationManager.isEvalAdmin(principalId, evalId))
+		if (!evaluationManager.isEvalAdmin(userInfo, evalId))
 			throw new UnauthorizedException("Not authorized");
 		
 		if (!old.getEtag().equals(submissionStatus.getEtag()))
@@ -141,7 +152,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		String evalId = sub.getEvaluationId();
 		
 		// verify access permission
-		if (!evaluationManager.isEvalAdmin(principalId, evalId)) {
+		if (!evaluationManager.isEvalAdmin(userInfo, evalId)) {
 			throw new UnauthorizedException("User ID: " + principalId +
 					" is not authorized to modify Submission ID: " + submissionId);
 		}
@@ -157,7 +168,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
 		
-		if (!evaluationManager.isEvalAdmin(principalId, evalId))
+		if (!evaluationManager.isEvalAdmin(userInfo, evalId))
 			throw new UnauthorizedException("User Principal ID" + principalId + " is not authorized to adminster Evaluation " + evalId);
 		
 		List<Submission> submissions;

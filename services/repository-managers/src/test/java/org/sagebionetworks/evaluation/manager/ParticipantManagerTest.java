@@ -45,9 +45,9 @@ public class ParticipantManagerTest {
     @Before
     public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
 		// User Info
-    	ownerInfo = UserInfoUtils.createValidUserInfo();
+    	ownerInfo = UserInfoUtils.createValidUserInfo(false);
     	ownerInfo.getIndividualGroup().setId(OWNER_ID);
-    	userInfo = UserInfoUtils.createValidUserInfo();
+    	userInfo = UserInfoUtils.createValidUserInfo(false);
     	userInfo.getIndividualGroup().setId(USER_ID);
     	
     	// Competition
@@ -72,7 +72,7 @@ public class ParticipantManagerTest {
     	when(mockParticipantDAO.get(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
     	when(mockUserManager.getDisplayName(eq(Long.parseLong(USER_ID)))).thenReturn("foo");
     	when(mockCompetitionManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
-    	when(mockCompetitionManager.isEvalAdmin(eq(OWNER_ID), eq(EVAL_ID))).thenReturn(true);
+    	when(mockCompetitionManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
         
         // Participant Manager
     	participantManager = new ParticipantManagerImpl(mockParticipantDAO, mockUserManager, mockCompetitionManager);
@@ -83,7 +83,7 @@ public class ParticipantManagerTest {
     	participantManager.addParticipantAsAdmin(ownerInfo, EVAL_ID, USER_ID);
     	participantManager.getParticipant(USER_ID, EVAL_ID);
     	participantManager.removeParticipant(ownerInfo, EVAL_ID, USER_ID);
-    	verify(mockParticipantDAO).create(eq(part));
+    	verify(mockParticipantDAO).create(any(Participant.class));
     	verify(mockParticipantDAO, times(2)).get(eq(USER_ID), eq(EVAL_ID));
     	verify(mockParticipantDAO).delete(eq(USER_ID), eq(EVAL_ID));
     }
@@ -95,7 +95,7 @@ public class ParticipantManagerTest {
     	participantManager.addParticipantAsAdmin(ownerInfo, EVAL_ID, USER_ID);
     	participantManager.getParticipant(USER_ID, EVAL_ID);
     	participantManager.removeParticipant(ownerInfo, EVAL_ID, USER_ID);
-    	verify(mockParticipantDAO).create(eq(part));
+    	verify(mockParticipantDAO).create(any(Participant.class));
     	verify(mockParticipantDAO, times(2)).get(eq(USER_ID), eq(EVAL_ID));
     	verify(mockParticipantDAO).delete(eq(USER_ID), eq(EVAL_ID));
     }
@@ -105,7 +105,7 @@ public class ParticipantManagerTest {
     	participantManager.addParticipant(userInfo, EVAL_ID);
     	participantManager.getParticipant(USER_ID, EVAL_ID);
     	participantManager.removeParticipant(userInfo, EVAL_ID, USER_ID);
-    	verify(mockParticipantDAO).create(eq(part));
+    	verify(mockParticipantDAO).create(any(Participant.class));
     	verify(mockParticipantDAO, times(2)).get(eq(USER_ID), eq(EVAL_ID));
     	verify(mockParticipantDAO).delete(eq(USER_ID), eq(EVAL_ID));
     }

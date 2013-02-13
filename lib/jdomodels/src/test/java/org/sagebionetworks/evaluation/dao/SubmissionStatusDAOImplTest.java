@@ -62,6 +62,7 @@ public class SubmissionStatusDAOImplTest {
     	
     	// create an evaluation
         Evaluation evaluation = new Evaluation();
+        evaluation.setId("1234");
         evaluation.setEtag("etag");
         evaluation.setName("name");
         evaluation.setOwnerId(userId);
@@ -72,12 +73,14 @@ public class SubmissionStatusDAOImplTest {
         
         // create a participant
         Participant participant = new Participant();
+        participant.setCreatedOn(new Date());
         participant.setUserId(userId);
         participant.setEvaluationId(evalId);
         participantDAO.create(participant);
         
         // create a submission
         Submission submission = new Submission();
+        submission.setId("5678");
         submission.setName(name);
         submission.setEntityId(nodeId);
         submission.setVersionNumber(versionNumber);
@@ -107,6 +110,7 @@ public class SubmissionStatusDAOImplTest {
     public void testCRUD() throws Exception{
         // Initialize a new SubmissionStatus object for submissionId
         SubmissionStatus status = new SubmissionStatus();
+        status.setModifiedOn(new Date());
         status.setId(submissionId);
         status.setEtag(null);
         status.setStatus(SubmissionStatusEnum.OPEN);
@@ -148,6 +152,22 @@ public class SubmissionStatusDAOImplTest {
         } catch (NotFoundException e) {
         	// expected
         }
+    }
+    
+    @Test
+    public void testCreateFromBackup() throws Exception{
+        // Initialize a new SubmissionStatus object for submissionId
+        SubmissionStatus status = new SubmissionStatus();
+        status.setModifiedOn(new Date());
+        status.setId(submissionId);
+        status.setEtag("original-eTag");
+        status.setStatus(SubmissionStatusEnum.OPEN);
+        status.setScore(0.1);
+        
+        // Create it
+        submissionStatusDAO.createFromBackup(status);
+        SubmissionStatus restored = submissionStatusDAO.get(submissionId);
+        assertEquals(status, restored);
     }
     
     @Test

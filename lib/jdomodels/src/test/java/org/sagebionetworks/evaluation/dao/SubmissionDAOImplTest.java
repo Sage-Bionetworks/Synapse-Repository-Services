@@ -47,7 +47,7 @@ public class SubmissionDAOImplTest {
 	NodeDAO nodeDAO;
  
 	private String nodeId = null;
-    private String submissionId = null;
+    private String submissionId = "206";
     private String userId = "0";
     private String userId_does_not_exist = "2";
     private String evalId;
@@ -65,23 +65,26 @@ public class SubmissionDAOImplTest {
     	nodeId = nodeDAO.createNew(toCreate);
     	
     	// create a Evaluation
-        Evaluation Evaluation = new Evaluation();
-        Evaluation.setEtag("etag");
-        Evaluation.setName("name");
-        Evaluation.setOwnerId(userId);
-        Evaluation.setCreatedOn(new Date());
-        Evaluation.setContentSource("foobar");
-        Evaluation.setStatus(EvaluationStatus.PLANNED);
-        evalId = evaluationDAO.create(Evaluation, Long.parseLong(userId));
+        Evaluation evaluation = new Evaluation();
+        evaluation.setId("1234");
+        evaluation.setEtag("etag");
+        evaluation.setName("name");
+        evaluation.setOwnerId(userId);
+        evaluation.setCreatedOn(new Date());
+        evaluation.setContentSource("foobar");
+        evaluation.setStatus(EvaluationStatus.PLANNED);
+        evalId = evaluationDAO.create(evaluation, Long.parseLong(userId));
         
         // create a Participant
         Participant participant = new Participant();
+        participant.setCreatedOn(new Date());
         participant.setUserId(userId);
         participant.setEvaluationId(evalId);
         participantDAO.create(participant);
         
         // Initialize a Submission
         submission = new Submission();
+        submission.setCreatedOn(new Date());
         submission.setId(submissionId);
         submission.setName(name);
         submission.setEvaluationId(evalId);
@@ -177,6 +180,7 @@ public class SubmissionDAOImplTest {
     	SubmissionStatus subStatus = new SubmissionStatus();
     	subStatus.setId(submissionId);
     	subStatus.setStatus(SubmissionStatusEnum.OPEN);
+    	subStatus.setModifiedOn(new Date());
     	submissionStatusDAO.create(subStatus);
     	
     	// hit evalId and hit status => should find 1 submission

@@ -55,9 +55,6 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 		// Convert to DBO
 		ParticipantDBO dbo = new ParticipantDBO();
 		copyDtoToDbo(dto, dbo);
-			
-		// Set creation date
-		dbo.setCreatedOn(System.currentTimeMillis());
 		
 		// Ensure DBO has required information
 		verifyParticipantDBO(dbo);

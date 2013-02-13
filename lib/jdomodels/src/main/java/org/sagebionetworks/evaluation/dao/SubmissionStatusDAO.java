@@ -20,6 +20,16 @@ public interface SubmissionStatusDAO extends MigratableDAO {
 			throws DatastoreException;
 
 	/**
+	 * Create a SubmissionStatus object from backup. The passed eTag will be
+	 * preserved.
+	 * 
+	 * @param dto
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public String createFromBackup(SubmissionStatus dto) throws DatastoreException;
+
+	/**
 	 * Get a SubmissionStatus object, by Submission ID
 	 * 
 	 * @param id

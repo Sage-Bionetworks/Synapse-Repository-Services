@@ -61,15 +61,24 @@ public class SubmissionStatusDAOImpl implements SubmissionStatusDAO {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String create(SubmissionStatus dto) throws DatastoreException {		
+	public String create(SubmissionStatus dto) throws DatastoreException {
+		return create(dto, false);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public String createFromBackup(SubmissionStatus dto) throws DatastoreException {
+		return create(dto, true);
+	}	
+	
+	private String create(SubmissionStatus dto, boolean fromBackup) throws DatastoreException {
 		// Convert to DBO
 		SubmissionStatusDBO dbo = convertDtoToDbo(dto);
-
-		// Set modified date
-		dbo.setModifiedOn(System.currentTimeMillis());
 		
-		// Generate eTag
-		tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
+		// generate a new eTag, unless restoring from backup
+		if (!fromBackup) {			
+			tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
+		}
 		
 		// Ensure DBO has required information
 		verifySubmissionStatusDBO(dbo);

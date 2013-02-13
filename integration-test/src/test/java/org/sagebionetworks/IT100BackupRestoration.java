@@ -3,7 +3,6 @@ package org.sagebionetworks;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -16,9 +15,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.apache.commons.io.IOUtils;
 import org.apache.http.client.ClientProtocolException;
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.After;
@@ -29,6 +26,11 @@ import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.Participant;
+import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -36,6 +38,7 @@ import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
@@ -47,16 +50,12 @@ import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
-import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
-
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.PutObjectResult;
-import com.amazonaws.services.s3.model.S3Object;
 
 /**
  * This test will push data from a backup into synapse.
@@ -608,5 +607,184 @@ public class IT100BackupRestoration {
 			// Wait.
 			Thread.sleep(1000);
 		}
+	}
+
+	/**
+	 * Test the complete round trip of Evaluation migration.
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 * @throws InterruptedException 
+	 */
+	@Test
+	public void testEvaluationMigrationRoundTrip() throws Exception {
+		Long initialEvaluationCount = synapse.getEvaluationCount();
+		
+		// Create an Evaluation
+		Evaluation eval = new Evaluation();
+		eval = new Evaluation();
+		eval.setId("123");
+		eval.setName("my evaluation");
+        eval.setContentSource("foobar");
+        eval.setStatus(EvaluationStatus.OPEN);
+        eval = synapse.createEvaluation(eval);
+        assertNotNull(eval);
+        assertTrue(synapse.getEvaluationCount().equals(initialEvaluationCount + 1));
+        
+		// Create a Participant
+        Participant part = synapse.createParticipant(eval.getId());
+        assertNotNull(part);
+        eval = synapse.getEvaluation(eval.getId());
+        
+		// Verify creation
+		assertTrue(synapse.getEvaluationCount().equals(initialEvaluationCount + 1L));
+		assertTrue(synapse.getParticipantCount(eval.getId()).equals(1L));
+        
+        // Start the backup
+        BackupSubmission backupSub = new BackupSubmission();
+		backupSub.setEntityIdsToBackup(new HashSet<String>(Arrays.asList(new String[]{eval.getId()})));
+		BackupRestoreStatus status = synapse.startBackupDaemon(backupSub, MigratableObjectType.EVALUATION);
+		assertNotNull(status);
+		assertNotNull(status.getStatus());
+		assertFalse(status.getErrorMessage(),DaemonStatus.FAILED == status.getStatus());
+		assertTrue(DaemonType.BACKUP == status.getType());
+		String restoreId = status.getId();
+		assertNotNull(restoreId);
+		
+		// Wait for it to finish
+		status = waitForDaemon(status.getId());
+		assertNotNull(status.getBackupUrl());
+		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+		
+		// Delete the Evaluation from the system
+		MigratableObjectDescriptor mod = new MigratableObjectDescriptor();
+		mod.setId(eval.getId());
+		mod.setType(MigratableObjectType.EVALUATION);
+		synapse.deleteObject(mod);
+		
+		// Verify deletion
+		assertTrue(synapse.getEvaluationCount().equals(initialEvaluationCount));
+		assertTrue(synapse.getParticipantCount(eval.getId()).equals(0L));
+		
+		// Restore from backup
+		RestoreSubmission restoreSub = new RestoreSubmission();
+		String backupFileName = getFileNameFromUrl(status.getBackupUrl());
+		restoreSub.setFileName(backupFileName);
+		status = synapse.startRestoreDaemon(restoreSub, MigratableObjectType.EVALUATION);
+		
+		// Wait for it to finish
+		status = waitForDaemon(status.getId());
+		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+		
+		// Verify restoration
+		PaginatedResults<Evaluation> evalsPaginated = synapse.getEvaluationsPaginated(0, 10);
+		assertEquals(initialEvaluationCount + 1, evalsPaginated.getTotalNumberOfResults());
+		Evaluation evalRestored = evalsPaginated.getResults().get(0);
+		assertEquals(eval, evalRestored);
+		
+		PaginatedResults<Participant> parts = synapse.getAllParticipants(eval.getId(), 0, 10);
+		assertEquals(1L, parts.getTotalNumberOfResults());
+		Participant partRestored = parts.getResults().get(0);
+		assertEquals(part, partRestored);
+		
+		// Clean up
+		synapse.deleteObject(mod);
+		try {
+			synapse.deleteEvaluation(eval.getId());
+		} catch (Exception e) {}
+	}
+	
+	/**
+	 * Test the complete round trip of Submission migration.
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 * @throws InterruptedException 
+	 */
+	@Test
+	public void testSubmissionMigrationRoundTrip() throws Exception {
+		Long initialEvaluationCount = synapse.getEvaluationCount();
+		
+		// Create Evaluation
+		Evaluation eval = new Evaluation();
+		eval = new Evaluation();
+		eval.setId("123");
+		eval.setName("my eval");
+        eval.setContentSource("foobar");
+        eval.setStatus(EvaluationStatus.OPEN);
+        eval = synapse.createEvaluation(eval);
+        assertNotNull(eval);
+        assertTrue(synapse.getEvaluationCount().equals(initialEvaluationCount + 1));
+        
+		// Create Participant
+        Participant part = synapse.createParticipant(eval.getId());
+        assertNotNull(part);
+        assertTrue(synapse.getParticipantCount(eval.getId()).equals(1L));
+        
+        // Create Node
+		Project project = new Project();
+		project.setDescription("foo");
+		project = synapse.createEntity(project);
+		assertNotNull(project);
+		toDelete.add(project);
+		
+		// Create Submission
+		Submission submission = new Submission();
+		submission.setEntityId(project.getId());
+		submission.setEvaluationId(eval.getId());
+		submission.setName("my submission");
+		submission.setVersionNumber(1L);
+		submission = synapse.createSubmission(submission);
+				
+		// Verify creation
+		assertTrue(synapse.getSubmissionCount(eval.getId()).equals(1L));
+		SubmissionStatus submissionStatus = synapse.getSubmissionStatus(submission.getId());
+        
+        // Start the backup
+        BackupSubmission backupSub = new BackupSubmission();
+		backupSub.setEntityIdsToBackup(new HashSet<String>(Arrays.asList(new String[]{submission.getId()})));
+		BackupRestoreStatus status = synapse.startBackupDaemon(backupSub, MigratableObjectType.SUBMISSION);
+		assertNotNull(status);
+		assertNotNull(status.getStatus());
+		assertFalse(status.getErrorMessage(),DaemonStatus.FAILED == status.getStatus());
+		assertTrue(DaemonType.BACKUP == status.getType());
+		String restoreId = status.getId();
+		assertNotNull(restoreId);
+		
+		// Wait for it to finish
+		status = waitForDaemon(restoreId);
+		assertNotNull(status.getBackupUrl());
+		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+		
+		// Delete the Submission from the system
+		MigratableObjectDescriptor mod = new MigratableObjectDescriptor();
+		mod.setId(submission.getId());
+		mod.setType(MigratableObjectType.SUBMISSION);
+		synapse.deleteObject(mod);
+		
+		// Verify deletion
+		assertTrue(synapse.getSubmissionCount(eval.getId()).equals(0L));
+		
+		// Restore from backup
+		RestoreSubmission restoreSub = new RestoreSubmission();
+		String backupFileName = getFileNameFromUrl(status.getBackupUrl());
+		restoreSub.setFileName(backupFileName);
+		status = synapse.startRestoreDaemon(restoreSub, MigratableObjectType.SUBMISSION);
+		
+		// Wait for it to finish
+		status = waitForDaemon(status.getId());
+		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+		
+		// Verify restoration
+		PaginatedResults<Submission> subsPaginated = synapse.getAllSubmissions(eval.getId(), 10, 0);
+		assertEquals(1L, subsPaginated.getTotalNumberOfResults());
+		Submission submissionRestored = subsPaginated.getResults().get(0);
+		assertEquals(submission, submissionRestored);
+		SubmissionStatus submissionStatusRestored = synapse.getSubmissionStatus(submission.getId());
+		assertEquals(submissionStatus, submissionStatusRestored);
+		
+		// Clean up
+		synapse.deleteObject(mod);
+		try {
+			synapse.deleteEvaluation(eval.getId());
+		} catch (Exception e) {}
 	}
 }

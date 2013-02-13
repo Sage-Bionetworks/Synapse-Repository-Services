@@ -57,11 +57,11 @@ public interface EvaluationManager {
 	/**
 	 * Check whether a given user is an adminsitrator of a given Evaluation.
 	 * 
-	 * @param userId
+	 * @param userInfo
 	 * @param evalId
 	 * @return
 	 */
-	public boolean isEvalAdmin(String userId, String evalId) throws DatastoreException, UnauthorizedException, NotFoundException;
+	public boolean isEvalAdmin(UserInfo userInfo, String evalId) throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
 	 * Update the eTag of a Evaluation. For use when modifying objects
