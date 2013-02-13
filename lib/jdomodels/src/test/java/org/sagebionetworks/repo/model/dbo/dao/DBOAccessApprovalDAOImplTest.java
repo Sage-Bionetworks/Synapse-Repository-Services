@@ -74,12 +74,12 @@ public class DBOAccessApprovalDAOImplTest {
 			node2 = NodeTestUtils.createNew("bar", Long.parseLong(individualGroup.getId()));
 			node2.setId( nodeDAO.createNew(node2) );
 		};
-		accessRequirement = DBOAccessRequirementDAOImplTest.newAccessRequirement(individualGroup, node);
+		accessRequirement = DBOAccessRequirementDAOImplTest.newAccessRequirement(individualGroup, node, "foo");
 		accessRequirement = accessRequirementDAO.create(accessRequirement);
 		Long id = accessRequirement.getId();
 		assertNotNull(id);
 		
-		accessRequirement2 = DBOAccessRequirementDAOImplTest.newAccessRequirement(individualGroup, node2);
+		accessRequirement2 = DBOAccessRequirementDAOImplTest.newAccessRequirement(individualGroup, node2, "bar");
 		accessRequirement2 = accessRequirementDAO.create(accessRequirement2);
 		id = accessRequirement2.getId();
 		assertNotNull(id);
