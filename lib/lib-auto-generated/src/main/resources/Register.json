@@ -195,7 +195,7 @@
                 "file"
             ],
             "name":"file",
-            "entityType":"org.sagebionetworks.repo.model.File",
+            "entityType":"org.sagebionetworks.repo.model.FileEntity",
             "defaultParentPath":"/root"
         }
     ]
