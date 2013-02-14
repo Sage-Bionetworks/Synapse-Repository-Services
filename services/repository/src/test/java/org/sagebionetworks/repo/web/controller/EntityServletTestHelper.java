@@ -1057,6 +1057,32 @@ public class EntityServletTestHelper {
 	}
 	
 	/**
+	 * Get the root wiki page.
+	 * @param ownerId
+	 * @param ownerType
+	 * @param userName
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public WikiPage getRootWikiPage(String ownerId, ObjectType ownerType, String userName) throws ServletException, IOException, JSONObjectAdapterException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = "/"+ownerType.name().toLowerCase() + "/" + ownerId + "/wiki";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), WikiPage.class);
+	}
+	
+	/**
 	 * Simple helper for creating a URI for a WikiPage using its key
 	 * @param key
 	 * @return
@@ -1322,4 +1348,5 @@ public class EntityServletTestHelper {
 		Boolean preview = Boolean.TRUE;
 		return getEntityFileURL(userName, entityId, redirect, preview, versionNumber);
 	}
+
 }

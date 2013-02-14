@@ -134,6 +134,9 @@ public class IT055WikiPageTest {
 		assertEquals(fileHandle.getId(), wiki.getAttachmentFileHandleIds().get(0));
 		// test get
 		wiki = synapse.getWikiPage(key);
+		
+		WikiPage root = synapse.getRootWikiPage(project.getId(), ObjectType.ENTITY);
+		assertEquals(wiki, root);
 		// Get the tree
 		PaginatedResults<WikiHeader> tree = synapse.getWikiHeaderTree(key.getOwnerObjectId(), key.getOwnerObjectType());
 		assertNotNull(tree);
