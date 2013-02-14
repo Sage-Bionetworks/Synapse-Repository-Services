@@ -329,7 +329,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	private void updateNode(UserInfo userInfo, Node updatedNode, NamedAnnotations updatedAnnos,
-			boolean newVersion, boolean skipSelfBenefactor, ChangeType changeType)
+			boolean newVersion, boolean skipBenefactor, ChangeType changeType)
 			throws ConflictingUpdateException, NotFoundException, DatastoreException,
 			UnauthorizedException, InvalidModelException {
 
@@ -364,14 +364,36 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// Identify if update is a parentId change by comparing our
 		// updatedNode's parentId with the parentId in database
 		// and update benefactorID/permissions
-		String parentInDatabase = nodeDao.getParentId(updatedNode.getId());
-		String parentInUpdate = updatedNode.getParentId();
+		final String parentInDatabase = nodeDao.getParentId(updatedNode.getId());
+		final String parentInUpdate = updatedNode.getParentId();
+		final String nodeInUpdate = updatedNode.getId();
 		if (isParenIdChange(parentInDatabase, parentInUpdate)) {
 			if (!authorizationManager.canAccess(userInfo, parentInUpdate, ACCESS_TYPE.CREATE)) {
 				throw new UnauthorizedException(userInfo.getUser().getDisplayName() + " is not authorized to create an entity here.");
 			}
-			nodeDao.changeNodeParent(updatedNode.getId(), updatedNode.getParentId());
-			nodeInheritanceManager.nodeParentChanged(updatedNode.getId(), updatedNode.getParentId(), skipSelfBenefactor);
+			nodeDao.changeNodeParent(nodeInUpdate, parentInUpdate);
+			// Update the ACL accordingly
+			if (skipBenefactor) {
+				nodeInheritanceManager.nodeParentChanged(nodeInUpdate, parentInUpdate);
+			} else {
+				// If the node is being moved to right under the root, we need to create a new ACL
+				// The root cannot be the benefactor
+				boolean newAcl = nodeDao.isNodeRoot(parentInUpdate);
+				EntityType type = EntityType.valueOf(updatedNode.getNodeType());
+				String defaultPath = type.getDefaultParentPath();
+				ACL_SCHEME aclSchem = entityBootstrapper.getChildAclSchemeForPath(defaultPath);
+				newAcl = newAcl && (ACL_SCHEME.GRANT_CREATOR_ALL == aclSchem);
+				if (newAcl) {
+					AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeInUpdate, userInfo);
+					aclDAO.create(acl);
+					nodeInheritanceManager.setNodeToInheritFromItself(nodeInUpdate, false);
+				} else {
+					// Remove the ACLs of all the benefactors
+					removeBenefactorAcl(nodeInUpdate);
+					// Set the new parent as the benefactor
+					nodeInheritanceManager.nodeParentChanged(nodeInUpdate, parentInUpdate, false);
+				}
+			}
 		}
 
 		// Now make the actual update.
@@ -687,6 +709,32 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		// They must have permission to dowload the file to get the handle.
 		if (!authorizationManager.canAccess(userInfo, id, ACCESS_TYPE.DOWNLOAD)) {
 			throw new UnauthorizedException(userInfo.getUser().getUserId() +" lacks download access to the specified object.");
+		}
+	}
+
+	/**
+	 * Recursively remove the ACLs of all the descendants who are benefactors.
+	 */
+	private void removeBenefactorAcl(String nodeId)  {
+		String benefactor = null;
+		try {
+			benefactor = nodeInheritanceManager.getBenefactor(nodeId);
+		} catch (NotFoundException e) {
+			benefactor = null;
+		}
+		if (nodeId.equals(benefactor)) {
+			try {
+				aclDAO.delete(nodeId);
+			} catch (NotFoundException e) {
+				throw new DatastoreException("ACL for benefactor " + nodeId + " is not found");
+			}
+		}
+		List<String> children = nodeDao.getChildrenIdsAsList(nodeId);
+		if (children == null || children.size() == 0) {
+			return;
+		}
+		for (String child : children) {
+			removeBenefactorAcl(child);
 		}
 	}
 }

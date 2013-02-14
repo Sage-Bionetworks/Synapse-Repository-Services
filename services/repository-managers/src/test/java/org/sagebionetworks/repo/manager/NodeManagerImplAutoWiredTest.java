@@ -547,7 +547,7 @@ public class NodeManagerImplAutoWiredTest {
 		fetchedChild.setParentId(newProjectId);
 		nodeManagerWMocks.update(testUser, fetchedChild);
 		verify(mockNodeDao, times(1)).changeNodeParent(childId, newProjectId);
-		verify(mockNodeInheritanceManager, times(1)).nodeParentChanged(childId, newProjectId, true);
+		verify(mockNodeInheritanceManager, times(1)).nodeParentChanged(childId, newProjectId);
 	}
 	
 	/**
