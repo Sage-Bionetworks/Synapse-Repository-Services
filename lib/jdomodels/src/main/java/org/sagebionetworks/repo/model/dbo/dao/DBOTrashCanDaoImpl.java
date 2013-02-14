@@ -20,7 +20,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
-import org.springframework.jdbc.core.simple.ParameterizedSingleColumnRowMapper;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,13 +35,12 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY
 			+ " LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 
-	private static final String SELECT_TRASH_BY_NODE_ID =
-			"SELECT " + COL_TRASH_CAN_NODE_ID + " FROM " + TABLE_TRASH_CAN
+	private static final String SELECT_TRASH_BY_NODE_ID_FOR_USER =
+			"SELECT * FROM " + TABLE_TRASH_CAN
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY
 			+ " AND " + COL_TRASH_CAN_NODE_ID + " = :" + COL_TRASH_CAN_NODE_ID;
 
 	private static final RowMapper<DBOTrashedEntity> rowMapper = (new DBOTrashedEntity()).getTableMapping();
-	private static final RowMapper<Long> idRowMapper = ParameterizedSingleColumnRowMapper.newInstance(Long.class);
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -99,8 +97,26 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 			throw new IllegalArgumentException("nodeId cannot be null.");
 		}
 
-		List<Long> idList = getNodeList(KeyFactory.stringToKey(userGroupId), KeyFactory.stringToKey(nodeId));
-		return (idList != null && idList.size() > 0);
+		List<TrashedEntity> trashList = getNodeList(KeyFactory.stringToKey(userGroupId), KeyFactory.stringToKey(nodeId));
+		return (trashList != null && trashList.size() > 0);
+	}
+
+	@Override
+	public TrashedEntity getTrashedEntity(String userGroupId, String nodeId)
+			throws DatastoreException {
+
+		if (userGroupId == null) {
+			throw new IllegalArgumentException("userGroupId cannot be null.");
+		}
+		if (nodeId == null) {
+			throw new IllegalArgumentException("nodeId cannot be null.");
+		}
+
+		List<TrashedEntity> trashList = getNodeList(KeyFactory.stringToKey(userGroupId), KeyFactory.stringToKey(nodeId));
+		if (trashList == null || trashList.size() == 0) {
+			return null;
+		}
+		return trashList.get(0);
 	}
 
 	@Override
@@ -137,21 +153,24 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 			throw new IllegalArgumentException("nodeId cannot be null.");
 		}
 
-		// SELECT then DELETE avoid deadlocks caused by gap locks
-		List<Long> idList = getNodeList(KeyFactory.stringToKey(userGroupId), KeyFactory.stringToKey(nodeId));
-		for (Long id : idList) {
+		// SELECT then DELETE to avoid deadlocks caused by gap locks
+		List<TrashedEntity> trashList = getNodeList(KeyFactory.stringToKey(userGroupId), KeyFactory.stringToKey(nodeId));
+		for (TrashedEntity trash : trashList) {
 			MapSqlParameterSource params = new MapSqlParameterSource();
-			params.addValue("nodeId", id);
+			params.addValue("nodeId", KeyFactory.stringToKey(trash.getEntityId()));
 			basicDao.deleteObjectById(DBOTrashedEntity.class, params);
 		}
 	}
 
-	private List<Long> getNodeList(Long userGroupId, Long nodeId) {
+	private List<TrashedEntity> getNodeList(Long userGroupId, Long nodeId) {
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
 		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, userGroupId);
 		paramMap.addValue(COL_TRASH_CAN_NODE_ID, nodeId);
-		List<Long> idList = simpleJdbcTemplate.query(SELECT_TRASH_BY_NODE_ID, idRowMapper, paramMap);
-		return idList;
+		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH_BY_NODE_ID_FOR_USER, rowMapper, paramMap);
+		if (trashList.size() > 1) {
+			throw new DatastoreException("User " + userGroupId + ", node " + nodeId + " has more than 1 trash entry.");
+		}
+		return convertDboToDto(trashList);
 	}
 
 	private List<TrashedEntity> convertDboToDto(List<DBOTrashedEntity> dboList) {

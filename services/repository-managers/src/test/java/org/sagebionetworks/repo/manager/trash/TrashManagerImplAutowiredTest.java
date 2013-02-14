@@ -15,6 +15,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
+import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -23,6 +25,7 @@ import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDao;
+import org.sagebionetworks.repo.model.util.AccessControlListUtil;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -35,6 +38,7 @@ public class TrashManagerImplAutowiredTest {
 	@Autowired private TrashManager trashManager;
 	@Autowired private NodeManager nodeManager;
 	@Autowired private NodeInheritanceManager nodeInheritanceManager;
+	@Autowired private PermissionsManager permissionsManager;
 	@Autowired private DBOTrashCanDao trashCanDao;
 	@Autowired private NodeDAO nodeDAO;
 	@Autowired private UserProvider userProvider;
@@ -71,6 +75,12 @@ public class TrashManagerImplAutowiredTest {
 		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userGroupId, 0, count);
 		for (TrashedEntity trash : trashList) {
 			trashCanDao.delete(userGroupId, trash.getEntityId());
+		}
+
+		// Clear the trash can folder
+		List<String> children = nodeDAO.getChildrenIdsAsList(trashCanId);
+		for (String child : children) {
+			nodeDAO.delete(child);
 		}
 
 		toClearList = new ArrayList<String>();
@@ -143,6 +153,7 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(nodeChildRetrieved);
 		assertEquals(nodeChildId, nodeChildRetrieved.getId());
 		assertEquals(nodeParentId, nodeChildRetrieved.getParentId());
+		assertEquals(nodeParentId, nodeInheritanceManager.getBenefactor(nodeChildRetrieved.getId()));
 	}
 
 	@Test
@@ -189,16 +200,10 @@ public class TrashManagerImplAutowiredTest {
 		assertEquals(0L, results.getTotalNumberOfResults());
 		assertEquals(0, results.getResults().size());
 
-		try {
-			// This is a rather strange scenario
-			// Where the node is restored to the root (or any node that the
-			// user has the CREATE privilege, the node's benefactor is set
-			// the root. The user does not have READ access on the node however
-			nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
-			fail();
-		} catch (UnauthorizedException e) {
-			assertTrue(true);
-		}
+		nodeRetrieved = nodeManager.get(testUserInfo, nodeId);
+		assertNotNull(nodeRetrieved);
+		assertEquals(nodeId, nodeRetrieved.getId());
+		assertEquals(nodeId, nodeInheritanceManager.getBenefactor(nodeRetrieved.getId()));
 	}
 
 	@Test
@@ -213,15 +218,15 @@ public class TrashManagerImplAutowiredTest {
 		//
 		//            root
 		//             |
-		//            node
+		//           [node]
 		//             |
 		//           node00
-		//           /    \
-		//        node11 node12
-		//          |
-		//        node21
+		//           /     \
+		//        node11 [node12]
+		//          |       |
+		//        node21  node22
 		//
-		// In this test, we will move node00 to trash can
+		// [] indicates benefactors. In this test, we will move node00 to trash can
 		//
 		Node node = new Node();
 		node.setName("TrashManagerImplAutowiredTesttestMultipleNodeRoundTrip()");
@@ -243,6 +248,11 @@ public class TrashManagerImplAutowiredTest {
 		node21.setName("TrashManagerImplAutowiredTesttestMultipleNodeRoundTrip() 21");
 		node21.setNodeType(EntityType.dataset.name());
 
+		Node node22 = new Node();
+		node22.setName("TrashManagerImplAutowiredTesttestMultipleNodeRoundTrip() 22");
+		node22.setNodeType(EntityType.dataset.name());
+
+		// Create the nodes
 		final String nodeId = nodeManager.createNewNode(node, testUserInfo);
 		assertNotNull(nodeId);
 		toClearList.add(nodeId);
@@ -267,24 +277,46 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(nodeId21);
 		toClearList.add(nodeId21);
 
+		node22.setParentId(nodeId12);
+		final String nodeId22 = nodeManager.createNewNode(node22, testUserInfo);
+		assertNotNull(nodeId22);
+		toClearList.add(nodeId22);
+
+		// Modify nodeId12 to be its own benefactor
+		AccessControlList acl = AccessControlListUtil.createACLToGrantAll(nodeId12, testUserInfo);
+		permissionsManager.overrideInheritance(acl, testUserInfo);
+		assertEquals(nodeId12, nodeInheritanceManager.getBenefactor(nodeId12));
+		assertEquals(nodeId12, nodeInheritanceManager.getBenefactor(nodeId22));
+
+		// Make sure we can read the nodes before moving the trash can
 		Node nodeBack00 = nodeManager.get(testUserInfo, nodeId00);
 		assertNotNull(nodeBack00);
 		final String parentId00 = nodeBack00.getParentId();
+		assertEquals(nodeId, parentId00);
 
 		Node nodeBack11 = nodeManager.get(testUserInfo, nodeId11);
 		assertNotNull(nodeBack11);
 		final String parentId11 = nodeBack11.getParentId();
+		assertEquals(nodeId00, parentId11);
 
 		Node nodeBack12 = nodeManager.get(testUserInfo, nodeId12);
 		assertNotNull(nodeBack12);
 		final String parentId12 = nodeBack12.getParentId();
+		assertEquals(nodeId00, parentId12);
 
 		Node nodeBack21 = nodeManager.get(testUserInfo, nodeId21);
 		assertNotNull(nodeBack21);
 		final String parentId21 = nodeBack21.getParentId();
+		assertEquals(nodeId11, parentId21);
+
+		Node nodeBack22 = nodeManager.get(testUserInfo, nodeId22);
+		assertNotNull(nodeBack22);
+		final String parentId22 = nodeBack22.getParentId();
+		assertEquals(nodeId12, parentId22);
 
 		trashManager.moveToTrash(testUserInfo, nodeId00);
 
+		// After moved to trash, the nodes are not accessible any more
 		try {
 			nodeBack00 = nodeManager.get(testUserInfo, nodeId00);
 			fail();
@@ -317,9 +349,18 @@ public class TrashManagerImplAutowiredTest {
 			assertTrue(true);
 		}
 
+		try {
+			nodeBack22 = nodeManager.get(testUserInfo, nodeId22);
+			fail();
+		} catch (UnauthorizedException e) {
+			// TODO: We should throw NotFoundException for items in trash can.
+			assertTrue(true);
+		}
+
+		// But we can see them in the trash can
 		results = trashManager.viewTrash(testUserInfo, 0, 1000);
-		assertEquals(4L, results.getTotalNumberOfResults());
-		assertEquals(4, results.getResults().size());
+		assertEquals(5L, results.getTotalNumberOfResults());
+		assertEquals(5, results.getResults().size());
 
 		trashManager.restoreFromTrash(testUserInfo, nodeId00, parentId00);
 
@@ -346,5 +387,10 @@ public class TrashManagerImplAutowiredTest {
 		assertNotNull(nodeBack21);
 		assertEquals(nodeId21, nodeBack21.getId());
 		assertEquals(parentId21, nodeBack21.getParentId());
+
+		nodeBack22 = nodeManager.get(testUserInfo, nodeId22);
+		assertNotNull(nodeBack22);
+		assertEquals(nodeId22, nodeBack22.getId());
+		assertEquals(parentId22, nodeBack22.getParentId());
 	}
 }
