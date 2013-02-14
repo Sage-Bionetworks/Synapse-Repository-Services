@@ -35,7 +35,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void nodeParentChanged(String nodeId, String parentNodeId, boolean skipSelfBenefactor) 
+	public void nodeParentChanged(String nodeId, String parentNodeId, boolean skipBenefactor) 
 			throws NotFoundException, DatastoreException {
 
 		if (nodeId == null) {
@@ -47,14 +47,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 
 		// First determine who this node is inheriting from
 		String oldBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);	
-
-		if (skipSelfBenefactor && oldBenefactorId.equals(nodeId)) {
-			return;
-		}
-
-		if (nodeDao.isNodeRoot(parentNodeId)) {
-			// The benefactor cannot be the root
-			setNodeToInheritFromItself(nodeId);
+		if (skipBenefactor && oldBenefactorId.equals(nodeId)) {
 			return;
 		}
 
@@ -62,21 +55,40 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 		// need to be adjusted accordingly. Nearest benefactor will be 
 		// set to what the parent node has as benefactor
 		String changeToId = nodeInheritanceDao.getBenefactor(parentNodeId);
-		changeAllChildrenTo(oldBenefactorId, nodeId, changeToId);
+		if (skipBenefactor) {
+			changeAllChildrenTo(oldBenefactorId, nodeId, changeToId);
+		} else {
+			changeAllChildrenTo(null, nodeId, changeToId);
+		}
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void setNodeToInheritFromItself(String nodeId) throws NotFoundException, DatastoreException {
-		// Find all children of this node that are currently inheriting from the same 
-		// benefactor.
-		String currentBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);
-		// There is nothing to do if a node already inherits from itself
-		if(nodeId.equals(currentBenefactorId)) return;
-		// Change all the required children
-		changeAllChildrenTo(currentBenefactorId, nodeId, nodeId);
+		setNodeToInheritFromItself(nodeId, true);
 	}
-	
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void setNodeToInheritFromItself(String nodeId, boolean skipBenefactor)
+			throws NotFoundException, DatastoreException {
+
+		if (nodeId == null) {
+			throw new IllegalArgumentException("nodeId cannot be null.");
+		}
+
+		if (skipBenefactor) {
+			// Find all children of this node that are currently inheriting from the same 
+			// benefactor.
+			String currentBenefactorId = nodeInheritanceDao.getBenefactor(nodeId);
+			// There is nothing to do if a node already inherits from itself
+			if(nodeId.equals(currentBenefactorId)) return;
+			// Change all the required children
+			changeAllChildrenTo(currentBenefactorId, nodeId, nodeId);
+		} else {
+			changeAllChildrenTo(null, nodeId, nodeId);
+		}
+	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -135,7 +147,7 @@ public class NodeInheritanceManagerImpl implements NodeInheritanceManager {
 	private void addChildrenToChange(String currentBenefactorId, String parentId, Set<String> toChange) throws NotFoundException, DatastoreException{
 		// Find find the parent's benefactor
 		String parentCurrentBenefactorId = nodeInheritanceDao.getBenefactor(parentId);
-		if(parentCurrentBenefactorId.equals(currentBenefactorId)){
+		if (currentBenefactorId == null || parentCurrentBenefactorId.equals(currentBenefactorId)){
 			toChange.add(parentId);
 			// Now check this node's children
 			Iterator<String> it = nodeDao.getChildrenIds(parentId).iterator();
