@@ -49,6 +49,15 @@ public interface WikiPageDao {
 	public WikiPage get(WikiPageKey key) throws NotFoundException;
 	
 	/**
+	 * Get the ID of the root wiki page for a given Object.
+	 * @param ownerId
+	 * @param ownerType
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public Long getRootWiki(String ownerId, ObjectType ownerType) throws NotFoundException;
+	
+	/**
 	 * Delete a wiki page.
 	 * @param id
 	 */
