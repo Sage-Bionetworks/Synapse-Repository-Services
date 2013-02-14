@@ -4,6 +4,7 @@ import java.net.URL;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -105,5 +106,16 @@ public interface WikiService {
 	 * @throws NotFoundException
 	 */
 	URL getAttachmentPreviewRedirectURL(String userId, WikiPageKey wikiPageKey, String fileName) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the root wiki page.
+	 * @param userId
+	 * @param ownerId
+	 * @param entity
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws UnauthorizedException 
+	 */
+	WikiPage getRootWikiPage(String userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException;
 
 }

@@ -7,11 +7,10 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.wiki.WikiManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -82,6 +81,12 @@ public class WikiServiceImpl implements WikiService {
 		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		// Get the URL of the preview.
 		return fileHandleManager.getRedirectURLForFileHandle(previewId);
+	}
+
+	@Override
+	public WikiPage getRootWikiPage(String userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException {
+		UserInfo user = userManager.getUserInfo(userId);
+		return wikiManager.getRootWikiPage(user, ownerId, type);
 	}
 
 }

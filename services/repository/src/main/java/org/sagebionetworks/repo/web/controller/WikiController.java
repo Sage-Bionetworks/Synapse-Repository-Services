@@ -56,6 +56,27 @@ public class WikiController extends BaseController {
 		return serviceProvider.getWikiService().createWikiPage(userId, ownerId, ObjectType.EVALUATION, toCreate);
 	}
 	
+	// Create methods.
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.ENTITY_WIKI, method = RequestMethod.GET)
+	public @ResponseBody
+	WikiPage getEntityRootWikiPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String ownerId
+			) throws DatastoreException, NotFoundException{
+		return serviceProvider.getWikiService().getRootWikiPage(userId, ownerId, ObjectType.ENTITY);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI, method = RequestMethod.GET)
+	public @ResponseBody
+	WikiPage getCompetitionRootWikiPage(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String ownerId
+			) throws DatastoreException, NotFoundException{
+		return serviceProvider.getWikiService().getRootWikiPage(userId, ownerId, ObjectType.EVALUATION);
+	}
+	
 	// Get methods
 	
 	@ResponseStatus(HttpStatus.OK)

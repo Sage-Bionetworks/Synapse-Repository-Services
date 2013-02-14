@@ -213,6 +213,14 @@ public class WikiManagerTest {
 		wikiManager.getWikiPage(new UserInfo(false), new WikiPageKey("123", ObjectType.EVALUATION, "345"));
 	}
 	
+	@Test (expected=UnauthorizedException.class)
+	public void testGetRootUnauthorized() throws DatastoreException, NotFoundException{
+		// setup deny
+		when(mockAuthManager.canAccess(any(UserInfo.class), any(String.class), any(ObjectType.class), any(ACCESS_TYPE.class))).thenReturn(false);
+		when(mockWikiDao.getRootWiki("123",  ObjectType.EVALUATION)).thenReturn(345l);
+		wikiManager.getRootWikiPage(new UserInfo(false), "123",ObjectType.EVALUATION);
+	}
+	
 	@Test
 	public void testGetAuthorized() throws DatastoreException, NotFoundException{
 		// setup allow

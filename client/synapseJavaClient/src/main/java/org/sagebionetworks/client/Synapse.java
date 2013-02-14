@@ -1531,6 +1531,23 @@ public class Synapse {
 		return getJSONEntity(getRepoEndpoint(), uri, WikiPage.class);
 	}
 	
+
+	/**
+	 * Get a the root WikiPage for a given owner.
+	 * 
+	 * @param ownerId
+	 * @param ownerType
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	public WikiPage getRootWikiPage(String ownerId, ObjectType ownerType) throws JSONObjectAdapterException, SynapseException{
+		if(ownerId == null) throw new IllegalArgumentException("ownerId cannot be null");
+		if(ownerType == null) throw new IllegalArgumentException("ownerType cannot be null");
+		String uri = createWikiURL(ownerId, ownerType);
+		return getJSONEntity(getRepoEndpoint(), uri, WikiPage.class);
+	}
+	
 	/**
 	 * Get all of the FileHandles associated with a WikiPage, including any PreviewHandles.
 	 * @param key

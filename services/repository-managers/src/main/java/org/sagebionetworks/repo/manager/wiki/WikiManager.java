@@ -40,6 +40,15 @@ public interface WikiManager {
 	 * @throws NotFoundException 
 	 */
 	WikiPage getWikiPage(UserInfo user, WikiPageKey key) throws NotFoundException, UnauthorizedException;
+	
+	/**
+	 * Get the root wiki page for an object.
+	 * @param user
+	 * @param objectId
+	 * @param objectType
+	 * @return
+	 */
+	WikiPage getRootWikiPage(UserInfo user, String objectId, ObjectType objectType) throws NotFoundException, UnauthorizedException;
 
 	/**
 	 * Delete a wiki page.

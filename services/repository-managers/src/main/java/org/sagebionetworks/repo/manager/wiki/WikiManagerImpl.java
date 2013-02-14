@@ -136,6 +136,15 @@ public class WikiManagerImpl implements WikiManager {
 		}
 		return results;
 	}
+	
+	@Override
+	public WikiPage getRootWikiPage(UserInfo user, String objectId,	ObjectType objectType) throws NotFoundException, UnauthorizedException {
+		// Look up the root wiki
+		Long rootWikiId = wikiPageDao.getRootWiki(objectId, objectType);
+		WikiPageKey key = new WikiPageKey(objectId, objectType, rootWikiId.toString());
+		// The security check is done in the default method.
+		return getWikiPage(user, key);
+	}
 
 	@Override
 	public WikiPage getWikiPage(UserInfo user, WikiPageKey key) throws NotFoundException, UnauthorizedException {
@@ -262,5 +271,7 @@ public class WikiManagerImpl implements WikiManager {
 		// Look-up the fileHandle ID
 		return wikiPageDao.getWikiAttachmentFileHandleForFileName(wikiPageKey, fileName);
 	}
+
+
 
 }
