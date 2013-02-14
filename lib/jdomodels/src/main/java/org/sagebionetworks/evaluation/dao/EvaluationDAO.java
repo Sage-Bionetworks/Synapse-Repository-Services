@@ -33,6 +33,17 @@ public interface EvaluationDAO extends MigratableDAO {
 			InvalidModelException;
 
 	/**
+	 * Creates a Evaluation from backup. The passed eTag is persisted.
+	 * 
+	 * @param dto
+	 * @param ownerId
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public String createFromBackup(Evaluation dto, Long ownerId)
+			throws DatastoreException;
+
+	/**
 	 * Retrieve the object given its id
 	 * 
 	 * @param id
