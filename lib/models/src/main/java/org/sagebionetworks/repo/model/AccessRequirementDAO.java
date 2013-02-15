@@ -72,9 +72,9 @@ public interface AccessRequirementDAO extends MigratableDAO {
 	/**
 	 * 
 	 * @param nodeId
-	 * @param principalId
+	 * @param principalIds the principalIds (user and groups) to which a user belongs
 	 * @param accessType
-	 * @return the AccessRequirement IDs for the given node and given access type which are unmet for the given principal
+	 * @return the AccessRequirement IDs for the given node and given access type which are unmet for ANY of the given principals
 	 * @throws DatastoreException
 	 */
 	List<Long> unmetAccessRequirements(String nodeId, Collection<Long> principalIds,
