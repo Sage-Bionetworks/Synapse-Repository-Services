@@ -183,7 +183,14 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 		}
 	}
 	
-	private Long getRootWiki(String ownerId, ObjectType ownerType) throws NotFoundException {
+	/**
+	 * Get the root wiki page ID.
+	 * @param ownerId
+	 * @param ownerType
+	 * @return
+	 * @throws NotFoundException
+	 */
+	public Long getRootWiki(String ownerId, ObjectType ownerType) throws NotFoundException {
 		return getRootWiki(KeyFactory.stringToKey(ownerId), ownerType);
 	}
 	/**

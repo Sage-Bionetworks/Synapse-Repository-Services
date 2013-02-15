@@ -58,6 +58,15 @@ public interface FileHandleManager {
 	FileHandle getRawFileHandle(UserInfo userInfo, String handleId) throws DatastoreException, NotFoundException;
 	
 	/**
+	 * Get the FileHandle ID of a preview associated with a file handle.
+	 * @param handleId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	String getPreviewFileHandleId(String handleId) throws DatastoreException, NotFoundException;
+	
+	/**
 	 * Delete a file handle
 	 * @param userInfo
 	 * @param handleId

@@ -34,11 +34,11 @@ public interface NodeInheritanceManager {
 	 *
 	 * @param nodeId The node whose parentId has changed
 	 * @param parentNodeId The new parent node
-	 * @param skipSelfBenefactor Whether self-benefactors will be exempted from the change
+	 * @param skipBenefactor Whether exiting benefactors and its beneficiaries will be exempted from the change
 	 *
 	 * @see org.sagebionetworks.repo.model.NodeDAO#changeNodeParent(String, String)
 	 */
-	void nodeParentChanged(String nodeId, String parentNodeId, boolean skipSelfBenefactor) throws NotFoundException, DatastoreException;
+	void nodeParentChanged(String nodeId, String parentNodeId, boolean skipBenefactor) throws NotFoundException, DatastoreException;
 
 	/**
 	 * This method is called when an Access Control List (ACL) is added to a node. When 
@@ -49,6 +49,17 @@ public interface NodeInheritanceManager {
 	 * @throws DatastoreException 
 	 */
 	void setNodeToInheritFromItself(String nodeId) throws NotFoundException, DatastoreException;
+
+	/**
+	 * This method is called when an Access Control List (ACL) is added to a node. When 
+	 * this occurs a node no longer inherits its permission from a parent, instead it 
+	 * inherits from itself.
+	 * @param nodeId
+	 * @param skipBenefactor Whether existing benefactors and its beneficiaries will be exempted from the change
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	void setNodeToInheritFromItself(String nodeId, boolean skipBenefactor) throws NotFoundException, DatastoreException;
 
 	/**
 	 * This method is called when an Access Control List (ACL) is removed from the given node.

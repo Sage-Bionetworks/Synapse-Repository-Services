@@ -214,7 +214,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				return true;
 			}else{
 				// All other actions require admin access
-				return evaluationManager.isEvalAdmin(userInfo.getIndividualGroup().getId(), objectId);
+				return evaluationManager.isEvalAdmin(userInfo, objectId);
 			}
 		}else{
 			throw new IllegalArgumentException("Unknown ObjectType: "+objectType);

@@ -53,7 +53,11 @@
 
 	<!-- The StorageUsage Service -->
 	<bean id="storageUsageService" class="org.sagebionetworks.repo.web.service.StorageUsageServiceImpl" />
-	
+
+	<!-- The TrashService -->
+	<bean id="trashService"
+		class="org.sagebionetworks.repo.web.service.TrashServiceImpl" />
+
 	<!-- The StorageUsage Service -->
 	<bean id="wikiService" class="org.sagebionetworks.repo.web.service.WikiServiceImpl" />
 

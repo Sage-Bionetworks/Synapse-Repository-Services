@@ -62,6 +62,17 @@ public class SubmissionBackupDriverTest {
 							}
 							statuses.put(status.getId(), status);
 							return status.getId();
+						} else if (method.equals(SubmissionStatusDAO.class.getMethod("createFromBackup", SubmissionStatus.class))) {
+							SubmissionStatus status = (SubmissionStatus) args[0];
+							if (status.getId()==null) {
+								if (statuses.containsKey(""+nextKey)) throw new IllegalStateException();
+								status.setId("" + (nextKey++));
+							} else {
+								if (statuses.containsKey(status.getId())) throw new  RuntimeException("already exists");
+								nextKey = Long.parseLong(status.getId())+1;
+							}
+							statuses.put(status.getId(), status);
+							return status.getId();
 						} else if (method.equals(SubmissionStatusDAO.class.getMethod("updateFromBackup", SubmissionStatus.class))) {
 							SubmissionStatus status = (SubmissionStatus) args[0];
 							if (status.getId()==null || !statuses.containsKey(status.getId())) throw new RuntimeException("doesn't exist");

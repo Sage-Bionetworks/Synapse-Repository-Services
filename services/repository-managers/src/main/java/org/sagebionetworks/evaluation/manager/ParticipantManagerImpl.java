@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.manager;
 
+import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.dao.ParticipantDAO;
@@ -45,8 +46,12 @@ public class ParticipantManagerImpl implements ParticipantManager {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public Participant addParticipant(UserInfo userInfo, String evalId) throws NotFoundException {
 		EvaluationUtils.ensureNotNull(evalId, "Evaluation ID");
-		Evaluation eval = EvaluationManager.getEvaluation(evalId);		
-		EvaluationUtils.ensureEvaluationIsOpen(eval);
+		Evaluation eval = EvaluationManager.getEvaluation(evalId);
+		try {
+			EvaluationUtils.ensureEvaluationIsOpen(eval);
+		} catch (IllegalStateException e) {
+			throw new UnauthorizedException("Cannot join Evaluation ID " + evalId + " which is not currently OPEN.");
+		}
 		UserInfo.validateUserInfo(userInfo);
 		String principalIdToAdd = userInfo.getIndividualGroup().getId();
 		
@@ -54,6 +59,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		Participant part = new Participant();
 		part.setEvaluationId(evalId);
 		part.setUserId(principalIdToAdd);
+		part.setCreatedOn(new Date());
 		participantDAO.create(part);
 		
 		// trigger etag update of the parent Evaluation
@@ -75,7 +81,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		Evaluation eval = EvaluationManager.getEvaluation(evalId);
 
 		// add other user (requires admin rights)
-		if (!EvaluationManager.isEvalAdmin(principalId, evalId)) {
+		if (!EvaluationManager.isEvalAdmin(userInfo, evalId)) {
 			EvaluationUtils.ensureEvaluationIsOpen(eval);
 			throw new UnauthorizedException("User Principal ID: " + principalId + " is not authorized to add other users to Evaluation ID: " + evalId);
 		}
@@ -84,6 +90,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		Participant part = new Participant();
 		part.setEvaluationId(evalId);
 		part.setUserId(principalIdToAdd);
+		part.setCreatedOn(new Date());
 		participantDAO.create(part);
 		
 		// trigger etag update of the parent Evaluation
@@ -102,7 +109,7 @@ public class ParticipantManagerImpl implements ParticipantManager {
 		String principalId = userInfo.getIndividualGroup().getId();
 		
 		// verify permissions
-		if (!EvaluationManager.isEvalAdmin(principalId, evalId)) {
+		if (!EvaluationManager.isEvalAdmin(userInfo, evalId)) {
 			// user is not an admin; only authorized to cancel their own participation
 			EvaluationUtils.ensureEvaluationIsOpen(EvaluationManager.getEvaluation(evalId));
 			if (!principalId.equals(idToRemove))

@@ -5,6 +5,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
@@ -53,6 +54,7 @@ public class DBOAccessRequirementDAOImplTest {
 	private Node node2 = null;
 	private TermsOfUseAccessRequirement accessRequirement = null;
 	private TermsOfUseAccessRequirement accessRequirement2 = null;
+	List<AccessRequirement> ars = null;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -84,6 +86,10 @@ public class DBOAccessRequirementDAOImplTest {
 		if (accessRequirement2!=null && accessRequirement2.getId()!=null) {
 			accessRequirementDAO.delete(accessRequirement2.getId().toString());
 		}
+		if (ars!=null) {
+			for (AccessRequirement ar : ars) accessRequirementDAO.delete(ar.getId().toString());
+			ars.clear();
+		}
 		if (node!=null && nodeDAO!=null) {
 			nodeDAO.delete(node.getId());
 			node = null;
@@ -98,7 +104,7 @@ public class DBOAccessRequirementDAOImplTest {
 		}
 	}
 	
-	public static TermsOfUseAccessRequirement newAccessRequirement(UserGroup principal, Node node) throws DatastoreException {
+	public static TermsOfUseAccessRequirement newAccessRequirement(UserGroup principal, Node node, String text) throws DatastoreException {
 		TermsOfUseAccessRequirement accessRequirement = new TermsOfUseAccessRequirement();
 		accessRequirement.setCreatedBy(principal.getId());
 		accessRequirement.setCreatedOn(new Date());
@@ -108,17 +114,37 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
 		accessRequirement.setEntityIds(Arrays.asList(new String[]{node.getId(), node.getId()})); // test that repeated IDs doesn't break anything
 		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
+		accessRequirement.setTermsOfUse(text);
 		return accessRequirement;
 	}
+	
+	// for PLFM-1730 test that if we create a number of access requirements, they come back in the creation order
+	@Test
+	public void testRetrievalOrder() throws Exception{
+		this.ars = new ArrayList<AccessRequirement>();
+		for (int i=0; i<10; i++) {
+			TermsOfUseAccessRequirement accessRequirement = newAccessRequirement(individualGroup, node, "foo_"+i);			
+			ars.add(accessRequirementDAO.create(accessRequirement));
+		}
+		List<AccessRequirement> ars2 = accessRequirementDAO.getForNode(node.getId());
+		assertEquals(ars, ars2);
+		
+		List<Long> principalIds = new ArrayList<Long>();
+		principalIds.add(Long.parseLong(individualGroup.getId()));
+		List<Long> arIds = accessRequirementDAO.unmetAccessRequirements(node.getId(), principalIds, ACCESS_TYPE.DOWNLOAD);
+		for (int i=0; i<ars.size(); i++) {
+			assertEquals(ars.get(i).getId(), arIds.get(i));
+		}
+	}	
 	
 
 	
 	@Test
 	public void testCRUD() throws Exception{
 		// Create a new object
-		accessRequirement = newAccessRequirement(individualGroup, node);
+		accessRequirement = newAccessRequirement(individualGroup, node, "foo");
 		// PLFM-1477, we have to check that retrieval works when there is another access requirement
-		accessRequirement2 = newAccessRequirement(individualGroup, node2);
+		accessRequirement2 = newAccessRequirement(individualGroup, node2, "bar");
 		
 		long initialCount = accessRequirementDAO.getCount();
 		

@@ -2,9 +2,6 @@ package org.sagebionetworks.repo.manager;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,8 +10,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
@@ -137,17 +132,59 @@ public class NodeInheritanceManagerImplAutowireTest {
 			}
 		}
 	}
+
+	@Test
+	public void testNodeParentChanged() throws Exception {
+		// Validate the starting conditions
+		String benefactorId = nodeInheritanceDao.getBenefactor(rootId);
+		assertEquals(rootId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		assertEquals(aOverrideId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		assertEquals(aOverrideId, benefactorId);
+		// Move aOverride to under A
+		nodeInheritanceManager.nodeParentChanged(aOverrideId, aId);
+		// Since aOverride is a benefactor, this shouldn't change anything
+		benefactorId = nodeInheritanceDao.getBenefactor(aId);
+		assertEquals(rootId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		assertEquals(aOverrideId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		assertEquals(aOverrideId, benefactorId);
+	}
 	
+	@Test
+	public void testNodeParentChangedDoNotSkipBenefactor() throws Exception {
+		// Validate the starting conditions
+		String benefactorId = nodeInheritanceDao.getBenefactor(rootId);
+		assertEquals(rootId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aId);
+		assertEquals(rootId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		assertEquals(aOverrideId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		assertEquals(aOverrideId, benefactorId);
+		// Move aOverride to under A
+		nodeInheritanceManager.nodeParentChanged(aOverrideId, aId, false);
+		// aOverride's benefactor should be changed
+		benefactorId = nodeInheritanceDao.getBenefactor(aId);
+		assertEquals(rootId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		assertEquals(rootId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		assertEquals(rootId, benefactorId);
+	}
+
 	@Test
 	public void testSetNodeToInheritFromItself() throws Exception{
 		// Validate the starting conditions
 		String benefacrorId = nodeInheritanceDao.getBenefactor(rootId);
-		assertEquals(rootId, rootId);
+		assertEquals(rootId, benefacrorId);
 		// Since the root already inherits from itself calling this should be
 		// a no-opp.
 		nodeInheritanceManager.setNodeToInheritFromItself(rootId);
 		benefacrorId = nodeInheritanceDao.getBenefactor(rootId);
-		assertEquals(rootId, rootId);
+		assertEquals(rootId, benefacrorId);
 		
 		// Make sure the rest of the nodes are as we expect
 		benefacrorId = nodeInheritanceDao.getBenefactor(aId);
@@ -190,7 +227,36 @@ public class NodeInheritanceManagerImplAutowireTest {
 		benefacrorId = nodeInheritanceDao.getBenefactor(bId);
 		assertEquals("B should not have been affected by the change to a sibling.", rootId , benefacrorId);
 	}
-	
+
+	@Test
+	public void testSetNodeToInheritFromItselfDoNotSkipBenefactor() throws Exception{
+
+		// Validate the starting conditions
+		String benefactorId = nodeInheritanceDao.getBenefactor(rootId);
+		assertEquals(rootId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		assertEquals(aOverrideId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		assertEquals(aOverrideId, benefactorId);
+
+		// This should set the benefactor for all the descendants
+		nodeInheritanceManager.setNodeToInheritFromItself(rootId, false);
+		benefactorId = nodeInheritanceDao.getBenefactor(rootId);
+		assertEquals(rootId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aId);
+		assertEquals(rootId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aInheritsId);
+		assertEquals(rootId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aInheritsChildId);
+		assertEquals(rootId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideId);
+		assertEquals(rootId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(aOverrideChildId);
+		assertEquals(rootId, benefactorId);
+		benefactorId = nodeInheritanceDao.getBenefactor(bId);
+		assertEquals(rootId, benefactorId);
+	}
+
 	@Test
 	public void testSetNodeToInheritFromNearestParent() throws Exception{
 		// First make sure we can change the root which has a null parent
