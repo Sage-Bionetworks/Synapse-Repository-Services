@@ -91,10 +91,10 @@ public class AccessRequirementManagerImpl implements AccessRequirementManager {
 	
 	@Override
 	public QueryResults<AccessRequirement> getUnmetAccessRequirements(UserInfo userInfo, String entityId) throws DatastoreException, NotFoundException {
-		List<Long> principalIds = new ArrayList<Long>();
-		principalIds.add(Long.parseLong(userInfo.getIndividualGroup().getId()));
 		// first check if there *are* any unmet requirements.  (If not, no further queries will be executed.)
-		List<Long> unmetIds = accessRequirementDAO.unmetAccessRequirements(entityId, principalIds, ACCESS_TYPE.DOWNLOAD); // TODO make access type a param
+		List<Long> unmetIds = AccessRequirementUtil.unmetAccessRequirementIds(
+				userInfo, entityId, ACCESS_TYPE.DOWNLOAD, nodeDAO, accessRequirementDAO); // TODO make access type a param
+		
 		List<AccessRequirement> unmetRequirements = new ArrayList<AccessRequirement>();
 		// if there are any unmet requirements, retrieve the object(s)
 		if (!unmetIds.isEmpty()) {
