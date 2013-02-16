@@ -7,7 +7,6 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
 
 import java.sql.Timestamp;
-import java.util.ArrayList;
 import java.util.List;
 
 import org.joda.time.DateTime;
@@ -138,7 +137,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
 		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, KeyFactory.stringToKey(userGroupId));
 		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH_FOR_USER, rowMapper, paramMap);
-		return convertDboToDto(trashList);
+		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -170,23 +169,6 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		if (trashList.size() > 1) {
 			throw new DatastoreException("User " + userGroupId + ", node " + nodeId + " has more than 1 trash entry.");
 		}
-		return convertDboToDto(trashList);
-	}
-
-	private List<TrashedEntity> convertDboToDto(List<DBOTrashedEntity> dboList) {
-		List<TrashedEntity> trashList = new ArrayList<TrashedEntity>(dboList.size());
-		for (DBOTrashedEntity dbo : dboList) {
-			trashList.add(convertDboToDto(dbo));
-		}
-		return trashList;
-	}
-
-	private TrashedEntity convertDboToDto(DBOTrashedEntity dbo) {
-		TrashedEntity trash = new TrashedEntity();
-		trash.setEntityId(KeyFactory.keyToString(dbo.getId()));
-		trash.setOriginalParentId(KeyFactory.keyToString(dbo.getParentId()));
-		trash.setDeletedByPrincipalId(dbo.getDeletedBy().toString());
-		trash.setDeletedOn(dbo.getDeletedOn());
-		return trash;
+		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
 }
