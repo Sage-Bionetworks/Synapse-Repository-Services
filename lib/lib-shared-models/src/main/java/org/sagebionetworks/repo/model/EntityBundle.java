@@ -5,6 +5,7 @@ import java.util.List;
 
 
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -32,6 +33,7 @@ public class EntityBundle implements JSONEntity {
 	public static int ACL						= 0x40;
 	public static int ACCESS_REQUIREMENTS		= 0x200;
 	public static int UNMET_ACCESS_REQUIREMENTS	= 0x400;
+	public static int FILE_HANDLES				= 0x800;
 	
 	private static AutoGenFactory autoGenFactory = new AutoGenFactory();
 	
@@ -46,7 +48,7 @@ public class EntityBundle implements JSONEntity {
 	public static final String JSON_ACL = "accessControlList";
 	public static final String JSON_ACCESS_REQUIREMENTS = "accessRequirements";
 	public static final String JSON_UNMET_ACCESS_REQUIREMENTS = "unmetAccessRequirements";
-	
+	public static final String JSON_FILE_HANDLES = "fileHandles";
 	private Entity entity;
 	private String entityType;
 	private Annotations annotations;
@@ -57,6 +59,7 @@ public class EntityBundle implements JSONEntity {
 	private AccessControlList acl;
 	private List<AccessRequirement> accessRequirements;
 	private List<AccessRequirement> unmetAccessRequirements;
+	private FileHandleResults fileHandles;
 	
 	/**
 	 * Create a new EntityBundle
@@ -329,6 +332,14 @@ public class EntityBundle implements JSONEntity {
 		this.unmetAccessRequirements = unmetAccessRequirements;
 	}
 
+	public FileHandleResults getFileHandles() {
+		return fileHandles;
+	}
+
+	public void setFileHandles(FileHandleResults fileHandles) {
+		this.fileHandles = fileHandles;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -338,14 +349,24 @@ public class EntityBundle implements JSONEntity {
 				+ ((accessRequirements == null) ? 0 : accessRequirements
 						.hashCode());
 		result = prime * result + ((acl == null) ? 0 : acl.hashCode());
-		result = prime * result	+ ((annotations == null) ? 0 : annotations.hashCode());
+		result = prime * result
+				+ ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result + ((entity == null) ? 0 : entity.hashCode());
-		result = prime * result	+ ((entityType == null) ? 0 : entityType.hashCode());
-		result = prime * result	+ ((hasChildren == null) ? 0 : hasChildren.hashCode());
+		result = prime * result
+				+ ((entityType == null) ? 0 : entityType.hashCode());
+		result = prime * result
+				+ ((fileHandles == null) ? 0 : fileHandles.hashCode());
+		result = prime * result
+				+ ((hasChildren == null) ? 0 : hasChildren.hashCode());
 		result = prime * result + ((path == null) ? 0 : path.hashCode());
-		result = prime * result	+ ((permissions == null) ? 0 : permissions.hashCode());
-		result = prime * result	+ ((referencedBy == null) ? 0 : referencedBy.hashCode());
-		result = prime * result	+ ((unmetAccessRequirements == null) ? 0 : unmetAccessRequirements.hashCode());
+		result = prime * result
+				+ ((permissions == null) ? 0 : permissions.hashCode());
+		result = prime * result
+				+ ((referencedBy == null) ? 0 : referencedBy.hashCode());
+		result = prime
+				* result
+				+ ((unmetAccessRequirements == null) ? 0
+						: unmetAccessRequirements.hashCode());
 		return result;
 	}
 
@@ -382,6 +403,11 @@ public class EntityBundle implements JSONEntity {
 			if (other.entityType != null)
 				return false;
 		} else if (!entityType.equals(other.entityType))
+			return false;
+		if (fileHandles == null) {
+			if (other.fileHandles != null)
+				return false;
+		} else if (!fileHandles.equals(other.fileHandles))
 			return false;
 		if (hasChildren == null) {
 			if (other.hasChildren != null)

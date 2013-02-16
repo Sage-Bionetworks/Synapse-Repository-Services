@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.service;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -34,6 +35,7 @@ import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.query.BasicQuery;
@@ -736,6 +738,31 @@ public class EntityServiceImpl implements EntityService {
 		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
 		// Use the FileHandle ID to get the URL
 		return fileHandleManager.getRedirectURLForFileHandle(previewId);
+	}
+
+	@Override
+	public FileHandleResults getEntityFileHandlesForCurrentVersion(String userId, String entityId) throws DatastoreException, NotFoundException {
+		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		// Get the file handle.
+		String fileHandleId =  entityManager.getFileHandleIdForCurrentVersion(userInfo, entityId);
+		List<String> idsList = new LinkedList<String>();
+		idsList.add(fileHandleId);
+		return fileHandleManager.getAllFileHandles(idsList, true);
+	}
+
+	@Override
+	public FileHandleResults getEntityFileHandlesForVersion(String userId, String entityId, Long versionNumber) throws DatastoreException, NotFoundException {
+		if(entityId == null) throw new IllegalArgumentException("Entity Id cannot be null");
+		if(userId == null) throw new IllegalArgumentException("UserId cannot be null");
+		if(versionNumber == null) throw new IllegalArgumentException("versionNumber cannot be null");
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		// Get the file handle.
+		String fileHandleId =  entityManager.getFileHandleIdForVersion(userInfo, entityId, versionNumber);
+		List<String> idsList = new LinkedList<String>();
+		idsList.add(fileHandleId);
+		return fileHandleManager.getAllFileHandles(idsList, true);
 	}
 
 }

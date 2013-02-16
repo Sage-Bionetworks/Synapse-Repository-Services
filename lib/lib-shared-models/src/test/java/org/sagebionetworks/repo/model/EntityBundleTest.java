@@ -6,10 +6,14 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
@@ -22,11 +26,11 @@ public class EntityBundleTest {
 	
 	private static final int NUM_PAGINATED_RESULTS = 5;
 	
-	private EntityBundle entityBundle;
+	private EntityBundle2 entityBundle;
 	
 	@Before
 	public void setUp() {
-		entityBundle = new EntityBundle();
+		entityBundle = new EntityBundle2();
 	}
 	
 	@Test
@@ -71,7 +75,7 @@ public class EntityBundleTest {
 		String json = joa.toJSONString();
 		assertNotNull(json);
 		
-		EntityBundle clone = new EntityBundle();
+		EntityBundle2 clone = new EntityBundle2();
 		clone.initializeFromJSONObject(joa.createNew(json));
 		assertEquals(entityBundle, clone);		
 	}
@@ -79,7 +83,7 @@ public class EntityBundleTest {
 	/**
 	 * Create an EntityBundle filled with dummy data
 	 */
-	public static EntityBundle createDummyEntityBundle() {
+	public static EntityBundle2 createDummyEntityBundle() {
 		AutoGenFactory autoGenFactory = new AutoGenFactory();
 		
 		// Entities
@@ -151,8 +155,16 @@ public class EntityBundleTest {
 		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
 		ar.setTermsOfUse("foo");
 		accessRequirements.add(ar);
+		
+		// File handles
+		S3FileHandle fileHandle = new S3FileHandle();
+		fileHandle.setBucketName("bucket");
+		fileHandle.setKey("key");
+		FileHandleResults fhr = new FileHandleResults();
+		fhr.setList(new LinkedList<FileHandle>());
+		fhr.getList().add(fileHandle);
 
-		EntityBundle entityBundle = new EntityBundle();
+		EntityBundle2 entityBundle = new EntityBundle2();
 		entityBundle.setEntity(project);
 		entityBundle.setPermissions(permissions);
 		entityBundle.setPath(path);
@@ -161,6 +173,7 @@ public class EntityBundleTest {
 		entityBundle.setAccessControlList(acl);
 		entityBundle.setAccessRequirements(accessRequirements);
 		entityBundle.setUnmetAccessRequirements(accessRequirements);
+		entityBundle.setFileHandles(fhr);
 		
 		return entityBundle;
 	}
