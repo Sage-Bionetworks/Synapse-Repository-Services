@@ -42,6 +42,7 @@ public class ParticipantDAOImplTest {
     public void setUp() {    	
     	// create and persist Evaluations
         Evaluation evaluation = new Evaluation();
+        evaluation.setId("1234");
         evaluation.setEtag("etag");
         evaluation.setName("name");
         evaluation.setCreatedOn(new Date());
@@ -49,20 +50,23 @@ public class ParticipantDAOImplTest {
         evaluation.setStatus(EvaluationStatus.PLANNED);
         evalId1 = evaluationDAO.create(evaluation, principalId);
         evaluation.setName("name2");
+        evaluation.setId("5678");
         evaluation.setStatus(EvaluationStatus.CLOSED);
         evalId2 = evaluationDAO.create(evaluation, principalId);        
         
         // initialize Participants
         part1 = new Participant();
         part1.setUserId(principalId_str);
-        part1.setEvaluationId(evalId1);        
+        part1.setEvaluationId(evalId1);
+        part1.setCreatedOn(new Date());
         part2 = new Participant();
         part2.setUserId(principalId_str);
         part2.setEvaluationId(evalId2);
+        part2.setCreatedOn(new Date());
     }
     
     @After
-    public void after() throws DatastoreException {
+    public void tearDown() throws DatastoreException {
 		try {
 			participantDAO.delete(principalId_str, evalId1);
 		} catch (NotFoundException e)  {};

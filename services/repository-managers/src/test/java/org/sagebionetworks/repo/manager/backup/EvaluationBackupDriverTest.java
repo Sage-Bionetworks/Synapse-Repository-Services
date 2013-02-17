@@ -66,6 +66,17 @@ public class EvaluationBackupDriverTest {
 							}
 							comps.put(comp.getId(), comp);
 							return comp.getId();
+						} else if (method.equals(EvaluationDAO.class.getMethod("createFromBackup", Evaluation.class, Long.class))) {
+							Evaluation comp = (Evaluation)args[0];
+							if (comp.getId()==null) {
+								if (comps.containsKey(""+nextKey)) throw new IllegalStateException();
+								comp.setId("" + (nextKey++));
+							} else {
+								if (comps.containsKey(comp.getId())) throw new  RuntimeException("already exists");
+								nextKey = Long.parseLong(comp.getId())+1;
+							}
+							comps.put(comp.getId(), comp);
+							return comp.getId();
 						} else if (method.equals(EvaluationDAO.class.getMethod("updateFromBackup", Evaluation.class))) {
 							Evaluation comp = (Evaluation)args[0];
 							if (comp.getId()==null || !comps.containsKey(comp.getId())) throw new RuntimeException("doesn't exist");

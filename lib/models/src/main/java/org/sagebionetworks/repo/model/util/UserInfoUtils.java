@@ -13,7 +13,7 @@ import org.sagebionetworks.repo.model.UserInfo;
  */
 public class UserInfoUtils {
 	
-	public static UserInfo createValidUserInfo(){
+	public static UserInfo createValidUserInfo(boolean isAdmin){
 		User user = new User();
 		user.setId("23");
 		user.setUserId("someTestUser@gmail.com");
@@ -21,7 +21,7 @@ public class UserInfoUtils {
 		group.setId("3");
 		group.setName("foo@bar.com");
 		group.setIsIndividual(true);
-		UserInfo info = new UserInfo(true);
+		UserInfo info = new UserInfo(isAdmin);
 		info.setUser(user);
 		info.setIndividualGroup(group);
 		info.setGroups(new ArrayList<UserGroup>());

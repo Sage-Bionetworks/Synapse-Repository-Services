@@ -7,11 +7,10 @@ import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.manager.wiki.WikiManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
-import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
-import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -79,20 +78,15 @@ public class WikiServiceImpl implements WikiService {
 		// First lookup the FileHandle
 		String fileHandleId = wikiManager.getFileHandleIdForFileName(user, wikiPageKey, fileName);
 		// Get FileHandle
-		FileHandle handle = fileHandleManager.getRawFileHandle(user, fileHandleId);
-		if(handle instanceof HasPreviewId){
-			// Use the FileHandle ID to get the URL
-			String previewId = ((HasPreviewId)handle).getPreviewId();
-			if(previewId == null){
-				new NotFoundException("A preview does not exist for FileHandle: "+handle);
-			}
-			// Get the URL of the preview.
-			return fileHandleManager.getRedirectURLForFileHandle(previewId);
-		}else{
-			throw new IllegalArgumentException("The FileHandle class does not support previews: "+handle.getClass().getName());
-		}
-
+		String previewId = fileHandleManager.getPreviewFileHandleId(fileHandleId);
+		// Get the URL of the preview.
+		return fileHandleManager.getRedirectURLForFileHandle(previewId);
 	}
 
+	@Override
+	public WikiPage getRootWikiPage(String userId, String ownerId, ObjectType type) throws UnauthorizedException, NotFoundException {
+		UserInfo user = userManager.getUserInfo(userId);
+		return wikiManager.getRootWikiPage(user, ownerId, type);
+	}
 
 }

@@ -151,6 +151,10 @@ public class WikiControllerTest {
 		assertNotNull(clone);
 		System.out.println(clone);
 		assertEquals(wiki, clone);
+		// Get the root wiki
+		WikiPage root = entityServletHelper.getRootWikiPage(ownerId, ownerType, userName);
+		// The root should match the clone
+		assertEquals(clone, root);
 		// Update the wiki
 		clone.setTitle("updated title");
 		String currentEtag = clone.getEtag();

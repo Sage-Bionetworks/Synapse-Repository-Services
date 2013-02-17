@@ -112,9 +112,6 @@ public class TrashManagerImpl implements TrashManager {
 		if (nodeId == null) {
 			throw new IllegalArgumentException("nodeId cannot be null");
 		}
-		if (newParentId == null) {
-			throw new IllegalArgumentException("newParentId cannot be null");
-		}
 
 		// Make sure the node was indeed deleted by the user
 		UserInfo.validateUserInfo(userInfo);
@@ -122,6 +119,16 @@ public class TrashManagerImpl implements TrashManager {
 		boolean exists = this.trashCanDao.exists(userId, nodeId);
 		if (!exists) {
 			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
+		}
+
+		// Restore to its original parent if a new parent is not given
+		if (newParentId == null) {
+			TrashedEntity trash = this.trashCanDao.getTrashedEntity(userId, nodeId);
+			if (trash == null) {
+				throw new DatastoreException("Cannot find node " + nodeId
+						+ " in the trash can for user " + userId);
+			}
+			newParentId = trash.getOriginalParentId();
 		}
 
 		// Authorize on the new parent

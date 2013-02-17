@@ -80,12 +80,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private boolean canDownload(UserInfo userInfo, final String nodeId) throws DatastoreException, NotFoundException {
 		if (userInfo.isAdmin()) return true;
 		if (!agreesToTermsOfUse(userInfo)) return false;
+		
 		// if there are any unmet access requirements for Download, return false;
-		Set<Long> principalIds = new HashSet<Long>();
-		for (UserGroup ug : userInfo.getGroups()) {
-			principalIds.add(Long.parseLong(ug.getId()));
-		}
-		List<Long> accessRequirementIds = accessRequirementDAO.unmetAccessRequirements(nodeId, principalIds, ACCESS_TYPE.DOWNLOAD);
+		List<Long> accessRequirementIds = 
+			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, nodeId, ACCESS_TYPE.DOWNLOAD, nodeDAO, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();
 	}
 	
@@ -214,7 +212,7 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 				return true;
 			}else{
 				// All other actions require admin access
-				return evaluationManager.isEvalAdmin(userInfo.getIndividualGroup().getId(), objectId);
+				return evaluationManager.isEvalAdmin(userInfo, objectId);
 			}
 		}else{
 			throw new IllegalArgumentException("Unknown ObjectType: "+objectType);

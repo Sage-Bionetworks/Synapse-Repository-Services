@@ -20,7 +20,8 @@ public interface TrashManager {
 	void moveToTrash(UserInfo userInfo, String nodeId) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
-	 * Moves an entity and its descendants out of the trash can.
+	 * Moves an entity and its descendants out of the trash can. If the new parent is not given (null),
+	 * will restore to the original parent before the delete.
 	 */
 	void restoreFromTrash(UserInfo userInfo, String nodeId, String newParentId) throws NotFoundException, DatastoreException, UnauthorizedException;
 

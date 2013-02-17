@@ -35,7 +35,8 @@ public class EvaluationDAOImplTest {
 	
 	@Autowired
 	private EvaluationDAO evaluationDAO;
-		
+	
+	private Evaluation eval;	
 	List<String> toDelete;
 	
 	private static final String EVALUATION_NAME = "test-evaluation";
@@ -46,6 +47,13 @@ public class EvaluationDAOImplTest {
 	@Before
 	public void setUp() throws Exception {
 		toDelete = new ArrayList<String>();
+		// Initialize Evaluation
+		eval = new Evaluation();
+		eval.setCreatedOn(new Date());
+		eval.setId("123");
+		eval.setName(EVALUATION_NAME);
+        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
+        eval.setStatus(EvaluationStatus.PLANNED);
 	}
 
 	@After
@@ -62,13 +70,7 @@ public class EvaluationDAOImplTest {
 	}
 	
 	@Test
-	public void testCRUD() throws Exception {	
-		// Initialize Evaluation
-		Evaluation eval = new Evaluation();
-		eval.setName(EVALUATION_NAME);
-        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
-        eval.setStatus(EvaluationStatus.PLANNED);
-        
+	public void testCRUD() throws Exception {        
         // Create it
 		long initialCount = evaluationDAO.getCount();
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
@@ -108,13 +110,7 @@ public class EvaluationDAOImplTest {
 	}
 
 	@Test
-	public void testFind() throws Exception {
-		// Initialize Evaluation
-		Evaluation eval = new Evaluation();
-		eval.setName(EVALUATION_NAME);
-        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
-        eval.setStatus(EvaluationStatus.PLANNED);
-        
+	public void testFind() throws Exception {        
         // Create it
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
 		assertNotNull(evalId);
@@ -126,13 +122,7 @@ public class EvaluationDAOImplTest {
 	}
 	
     @Test
-    public void testSameName() throws Exception{
-        // Initialize a new Evaluation
-		Evaluation eval = new Evaluation();
-		eval.setName(EVALUATION_NAME);
-        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
-        eval.setStatus(EvaluationStatus.PLANNED);
- 
+    public void testSameName() throws Exception{ 
         // Create it
 		long initialCount = evaluationDAO.getCount();
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
@@ -161,13 +151,7 @@ public class EvaluationDAOImplTest {
     }
     
     @Test
-    public void testGetInRange() throws DatastoreException, NotFoundException {
-    	// Initialize Evaluation
-		Evaluation eval = new Evaluation();
-		eval.setName(EVALUATION_NAME);
-        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
-        eval.setStatus(EvaluationStatus.PLANNED);
-        
+    public void testGetInRange() throws DatastoreException, NotFoundException {        
         // Create it
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
 		assertNotNull(evalId);
@@ -181,13 +165,7 @@ public class EvaluationDAOImplTest {
     }
     
     @Test
-    public void testGetInRangeByStatus() throws DatastoreException, NotFoundException {
-    	// Initialize Evaluation
-		Evaluation eval = new Evaluation();
-		eval.setName(EVALUATION_NAME);
-        eval.setContentSource(EVALUATION_CONTENT_SOURCE);
-        eval.setStatus(EvaluationStatus.PLANNED);
-        
+    public void testGetInRangeByStatus() throws DatastoreException, NotFoundException {        
         // Create it
 		String evalId = evaluationDAO.create(eval, EVALUATION_OWNER_ID);
 		assertNotNull(evalId);
@@ -203,6 +181,20 @@ public class EvaluationDAOImplTest {
 		evalList = evaluationDAO.getInRange(10, 0, EvaluationStatus.OPEN);
 		assertEquals(0, evalList.size());
     }
+    
+	@Test
+	public void testCreateFromBackup() throws Exception {        
+        // Create it
+		eval.setOwnerId(EVALUATION_OWNER_ID.toString());
+		eval.setEtag("original-etag");
+		String evalId = evaluationDAO.createFromBackup(eval, EVALUATION_OWNER_ID);
+		assertNotNull(evalId);
+		toDelete.add(evalId);
+		
+		// Get it
+		Evaluation created = evaluationDAO.get(evalId);
+		assertEquals(eval, created);
+	}
     
     @Test
     public void testDtoToDbo() {

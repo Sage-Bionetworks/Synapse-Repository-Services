@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.net.MalformedURLException;
 import java.util.Arrays;
@@ -141,7 +142,12 @@ public class DBOFileHandleDaoImplTest {
 		// Use an invalid file handle id.
 		String lookupCreator = fileHandleDao.getHandleCreator("99999");
 	}
-
+	
+	@Test (expected=NotFoundException.class)
+	public void testGetPreviewFileHandleNotFound() throws NotFoundException{
+		// Use an invalid file handle id.
+		String prewviewId = fileHandleDao.getPreviewFileHandleId("9999");
+	}
 	
 	@Test
 	public void testExternalFileCRUD() throws DatastoreException, NotFoundException{
@@ -218,6 +224,13 @@ public class DBOFileHandleDaoImplTest {
 		String fileId = meta.getId();
 		assertNotNull(fileId);
 		toDelete.add(fileId);
+		// Currently there is no preview for this object
+		try{
+			fileHandleDao.getPreviewFileHandleId(fileId);
+			fail("A preview does not exist for this file so a NotFoundException should be thrown.");
+		}catch(NotFoundException e){
+			// expected
+		}
 		// Now create a preview for this file.
 		PreviewFileHandle preview = new PreviewFileHandle();
 		preview.setBucketName("bucketName");
@@ -241,6 +254,9 @@ public class DBOFileHandleDaoImplTest {
 		S3FileHandle s3Clone = (S3FileHandle) clone;
 		// The preview ID should be set
 		assertEquals(previewId, s3Clone.getPreviewId());
+		// Lookup the preview id
+		String previewIdLookup = fileHandleDao.getPreviewFileHandleId(fileId);
+		assertEquals(previewId, previewIdLookup);
 	}
 	
 	@Test

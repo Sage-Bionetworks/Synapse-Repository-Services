@@ -26,7 +26,7 @@ import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.File;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestResourceList;
@@ -389,13 +389,13 @@ public class EntityControllerTest {
 		String parentId = parentClone.getId();
 		toDelete.add(parentId);
 		// Create a file entity
-		File file = new File();
+		FileEntity file = new FileEntity();
 		file.setName("FileName");
-		file.setEntityType(File.class.getName());
+		file.setEntityType(FileEntity.class.getName());
 		file.setParentId(parentId);
 		file.setDataFileHandleId(handleOne.getId());
 		// Save it
-		file = (File) entityServletHelper.createEntity(file, userName, null);
+		file = (FileEntity) entityServletHelper.createEntity(file, userName, null);
 		assertNotNull(file);
 		assertNotNull(file.getId());
 		toDelete.add(file.getId());
@@ -407,7 +407,7 @@ public class EntityControllerTest {
 		file.setDataFileHandleId(handleTwo.getId());
 		file.setVersionComment("V2 comment");
 		file.setVersionLabel("V2");
-		file = (File) entityServletHelper.createNewVersion(userName, file);
+		file = (FileEntity) entityServletHelper.createNewVersion(userName, file);
 		// Validate we are on V3
 		assertEquals(new Long(2), file.getVersionNumber());
 		// First get the URL for the current version
@@ -416,66 +416,28 @@ public class EntityControllerTest {
 		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleTwo.getKey()) > 0);
 		URL urlNoRedirect = entityServletHelper.getEntityFileURLForCurrentVersion(userName, file.getId(), Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
-//		assertEquals("The same URL should be returned for both redirects and non-redirects", url, urlNoRedirect);
+		assertTrue("Url did not contain the expected key", urlNoRedirect.toString().indexOf(handleTwo.getKey()) > 0);
 		// Now the first version
 		url = entityServletHelper.getEntityFileURLForVersion(userName, file.getId(), 1l, null);
 		assertNotNull(url);
 		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleOne.getKey()) > 0);
 		urlNoRedirect = entityServletHelper.getEntityFileURLForVersion(userName, file.getId(), 1l, Boolean.FALSE);
 		assertNotNull(urlNoRedirect);
-//		assertEquals("The same URL should be returned for both redirects and non-redirects", url, urlNoRedirect);
-		// Validate that we can get the URL of the file
-//		Boolean redirect = null;
-//		Boolean preview = null;
-//		Long versionNumber = null;
-//		URL url = entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
-//		assertNotNull(url);
-//		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleOne.getKey()) > 0);
-//		System.out.println(url);
-//		// Validate the other parameters
-//		redirect = Boolean.FALSE;
-//		preview = null;
-//		versionNumber = null;
-//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
-//		assertNotNull(url);
-//		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleOne.getKey()) > 0);
-//		// with version number, redirect
-//		redirect = null;
-//		preview = null;
-//		versionNumber = new Long(1);
-//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
-//		assertNotNull(url);
-//		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleOne.getKey()) > 0);
-//		// with version number, no redirect
-//		redirect = Boolean.FALSE;
-//		preview = null;
-//		versionNumber = new Long(1);
-//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
-//		assertNotNull(url);
-//		assertTrue("Url did not contain the expected key", url.toString().indexOf(handleOne.getKey()) > 0);
-//		// preview - redirect
-//		redirect = null;
-//		preview = Boolean.TRUE;
-//		versionNumber = null;
-//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
-//		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewOne.getKey()) > 0);
-//		// preview - no redirect
-//		redirect = Boolean.FALSE;
-//		preview = Boolean.TRUE;
-//		versionNumber = null;
-//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
-//		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewOne.getKey()) > 0);
-//		// preview, with version number, redirect
-//		redirect = null;
-//		preview = Boolean.TRUE;
-//		versionNumber = new Long(1);
-//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
-//		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewOne.getKey()) > 0);
-//		// preview, with version number, no redirect
-//		redirect = Boolean.FALSE;
-//		preview = Boolean.TRUE;
-//		versionNumber = new Long(1);
-//		url =  entityServletHelper.getEntityFileURL(userName, fileClone.getId(), redirect, preview, versionNumber);
-//		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewOne.getKey()) > 0);
+		assertTrue("Url did not contain the expected key", urlNoRedirect.toString().indexOf(handleOne.getKey()) > 0);
+		// Get the preview of the current version
+		url = entityServletHelper.getEntityFilePreviewURLForCurrentVersion(userName, file.getId(), null);
+		assertNotNull(url);
+		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewTwo.getKey()) > 0);
+		urlNoRedirect = entityServletHelper.getEntityFilePreviewURLForCurrentVersion(userName, file.getId(), Boolean.FALSE);
+		assertNotNull(urlNoRedirect);
+		assertTrue("Url did not contain the expected key", urlNoRedirect.toString().indexOf(previewTwo.getKey()) > 0);
+		// Get the preview of the first version
+		url = entityServletHelper.getEntityFilePreviewURLForVersion(userName, file.getId(), 1l, null);
+		assertNotNull(url);
+		assertTrue("Url did not contain the expected key", url.toString().indexOf(previewOne.getKey()) > 0);
+		urlNoRedirect = entityServletHelper.getEntityFilePreviewURLForVersion(userName, file.getId(), 1l, Boolean.FALSE);
+		assertNotNull(urlNoRedirect);
+		assertTrue("Url did not contain the expected key", urlNoRedirect.toString().indexOf(previewOne.getKey()) > 0);
+		
 	}
 }

@@ -14,7 +14,6 @@ import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
-import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -39,9 +38,6 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	
 	@Autowired
 	private DBOBasicDao basicDao;
-
-	@Autowired
-	private IdGenerator idGenerator;
 	
 	@Autowired
 	private TagMessenger tagMessenger;
@@ -87,24 +83,31 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	public String create(Evaluation dto, Long ownerId) throws DatastoreException {
+		return create(dto, ownerId, false);
+	}
+	
+	@Override
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	public String createFromBackup(Evaluation dto, Long ownerId) throws DatastoreException {
+		return create(dto, ownerId, true);
+	}
+		
+	private String create(Evaluation dto, Long ownerId, boolean fromBackup) {
 		EvaluationUtils.ensureNotNull(dto, "Evaluation object");
 		EvaluationUtils.ensureNotNull(ownerId, "Owner ID");
+		EvaluationUtils.ensureNotNull(dto.getId(), "Evaluation ID");
 		
 		// convert to DBO
 		EvaluationDBO dbo = new EvaluationDBO();
 		copyDtoToDbo(dto, dbo);
 		
-		// generate unique ID
-		dbo.setId(idGenerator.generateNewId());
-		
 		// set Owner ID
 		dbo.setOwnerId(ownerId);
 		
-		// set creation date
-		dbo.setCreatedOn(System.currentTimeMillis());
-		
-		// generate eTag
-		tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
+		// generate a new eTag, unless restoring from backup
+		if (!fromBackup) {			
+			tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
+		}
 		
 		// ensure DBO has required information
 		verifyEvaluationDBO(dbo);
@@ -120,7 +123,7 @@ public class EvaluationDAOImpl implements EvaluationDAO {
 			if (e.getClass() == IllegalArgumentException.class) {
 				IllegalArgumentException e2 = (IllegalArgumentException) e;
 				if (e2.getCause().getClass() == DuplicateKeyException.class)
-					message = "A Evaluation already exists with the name '" +
+					message = "An Evaluation already exists with the name '" +
 							dto.getName() + "'";
 			}
 			
