@@ -27,7 +27,9 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOActivity;
@@ -70,13 +72,11 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	private static final String SQL_OFFSET_AND_LIMIT =	" LIMIT :" + LIMIT_PARAM_NAME +
 														" OFFSET :" + OFFSET_PARAM_NAME;
 	private static final String SQL_GET_NODES_FOR_ACTIVITY_FROMWHERE =
- 															 " FROM " + TABLE_NODE + " n, " + TABLE_REVISION + " r" +
- 															 " WHERE r." + COL_REVISION_NUMBER + " = n." + COL_CURRENT_REV + 
- 															 " AND r." + COL_REVISION_ACTIVITY_ID + " = :" + COL_REVISION_ACTIVITY_ID; 															
-	private static final String SQL_GET_NODES_FOR_ACTIVITY = "SELECT DISTINCT r." + COL_REVISION_OWNER_NODE + 
-																SQL_GET_NODES_FOR_ACTIVITY_FROMWHERE +
-																" ORDER BY n." + COL_NODE_ID + SQL_OFFSET_AND_LIMIT; 
-	private static final String SQL_GET_NODES_FOR_ACTIVITY_COUNT = "SELECT COUNT(DISTINCT r." + COL_REVISION_OWNER_NODE + ")" + SQL_GET_NODES_FOR_ACTIVITY_FROMWHERE;
+ 															 " FROM " + TABLE_REVISION + " r" +
+ 															 " WHERE r." + COL_REVISION_ACTIVITY_ID + " = :" + COL_REVISION_ACTIVITY_ID; 															
+	private static final String SQL_GET_NODES_FOR_ACTIVITY = "SELECT DISTINCT r." + COL_REVISION_OWNER_NODE + ", r." + COL_REVISION_NUMBER + 
+																SQL_GET_NODES_FOR_ACTIVITY_FROMWHERE + SQL_OFFSET_AND_LIMIT; 
+	private static final String SQL_GET_NODES_FOR_ACTIVITY_COUNT = "SELECT COUNT(r." + COL_REVISION_OWNER_NODE + ")" + SQL_GET_NODES_FOR_ACTIVITY_FROMWHERE;
 
 		
 	private static final String ACTIVITY_NOT_FOUND = "Activity with id '%1$s' could not be found."; 
@@ -187,7 +187,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		
 		// Activity has no dependencies
 		
-		// return the 'page' of objects, along with the total result count
+		// return the 'page' of objects, along with the total result count		
 		QueryResults<MigratableObjectData> queryResults = new QueryResults<MigratableObjectData>();
 		queryResults.setResults(ods);
 		queryResults.setTotalNumberOfResults((int)getCount());
@@ -234,7 +234,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	}
 
 	@Override
-	public QueryResults<String> getEntitiesGeneratedBy(String activityId, int limit, int offset) {
+	public PaginatedResults<Reference> getEntitiesGeneratedBy(String activityId, int limit, int offset) {
 		if(activityId == null) throw new IllegalArgumentException("Activity id can not be null");
 		if(limit < 0 || offset < 0) throw new IllegalArgumentException("limit and offset must be greater than 0");
 		// get one page of node ids
@@ -243,17 +243,23 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		params.addValue(OFFSET_PARAM_NAME, offset);
 		params.addValue(LIMIT_PARAM_NAME, limit);
 
-		List<String> generatedBy = null;
-		generatedBy = simpleJdbcTemplate.query(SQL_GET_NODES_FOR_ACTIVITY, new RowMapper<String>() {
+		List<Reference> generatedBy = null;
+		generatedBy = simpleJdbcTemplate.query(SQL_GET_NODES_FOR_ACTIVITY, new RowMapper<Reference>() {
 			@Override
-			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+			public Reference mapRow(ResultSet rs, int rowNum) throws SQLException {
+				Reference ref = new Reference();
 				Long targetId = rs.getLong(COL_REVISION_OWNER_NODE);
-				return KeyFactory.keyToString(targetId);
+				if(rs.wasNull()) targetId = null;
+				Long versionNumber = rs.getLong(COL_REVISION_NUMBER);
+				if(rs.wasNull()) versionNumber = null;				
+				ref.setTargetId(KeyFactory.keyToString(targetId));
+				ref.setTargetVersionNumber(versionNumber);
+				return ref;
 			}		
 		}, params);
 			
 		// return the page of objects, along with the total result count
-		QueryResults<String> queryResults = new QueryResults<String>();
+		PaginatedResults<Reference> queryResults = new PaginatedResults<Reference>();
 		queryResults.setResults(generatedBy);
 		long totalCount = 0;
 		try {

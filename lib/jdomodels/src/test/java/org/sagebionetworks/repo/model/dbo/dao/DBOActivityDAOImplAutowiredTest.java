@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -237,32 +238,45 @@ public class DBOActivityDAOImplAutowiredTest {
 		String node2Id = nodeDao.createNew(node2);
 		nodesToDelete.add(node2Id);
 
+		// create verify References
+		Reference refNode1v1 = new Reference();
+		refNode1v1.setTargetId(node1Id);
+		refNode1v1.setTargetVersionNumber(1L);		
+		Reference refNode1v2 = new Reference();
+		refNode1v2.setTargetId(node1Id);
+		refNode1v2.setTargetVersionNumber(2L);		
+		Reference refNode2v1 = new Reference();
+		refNode2v1.setTargetId(node2Id);
+		refNode2v1.setTargetVersionNumber(1L);		
+		
 		// get all at once		
 		int limit = 10;
 		int offset = 0;
-		QueryResults<String> results = activityDao.getEntitiesGeneratedBy(act1.getId().toString(), limit, offset);
-		assertEquals(2, results.getResults().size());		
-		assertTrue(node1Id.equals(results.getResults().get(0)) || node1Id.equals(results.getResults().get(1))); 
-		assertEquals(2, results.getTotalNumberOfResults());
+		PaginatedResults<Reference> results = activityDao.getEntitiesGeneratedBy(act1.getId().toString(), limit, offset);
+		assertEquals(3, results.getResults().size());		
+		assertEquals(3, results.getTotalNumberOfResults());
+		assertTrue(results.getResults().contains(refNode1v1));
+		assertTrue(results.getResults().contains(refNode1v2));
+		assertTrue(results.getResults().contains(refNode2v1));
 		
 		// test two pages
 		limit = 1;
 		offset = 0;
 		results = activityDao.getEntitiesGeneratedBy(act1.getId().toString(), limit, offset);
 		assertEquals(1, results.getResults().size());		
-		assertEquals(2, results.getTotalNumberOfResults());
+		assertEquals(3, results.getTotalNumberOfResults());
 		limit = 1;
 		offset = 1;
 		results = activityDao.getEntitiesGeneratedBy(act1.getId().toString(), limit, offset);
 		assertEquals(1, results.getResults().size());		
-		assertEquals(2, results.getTotalNumberOfResults());
+		assertEquals(3, results.getTotalNumberOfResults());
 		
 		// empty result
 		limit = 0;
 		offset = 0;
 		results = activityDao.getEntitiesGeneratedBy(act1.getId().toString(), limit, offset);
 		assertEquals(0, results.getResults().size());		
-		assertEquals(2, results.getTotalNumberOfResults());				
+		assertEquals(3, results.getTotalNumberOfResults());				
 	}
 		
 	@Test

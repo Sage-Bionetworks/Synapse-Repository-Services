@@ -249,6 +249,46 @@ public class ActivityManagerImplTest {
 		assertTrue(beforePopulateDate.before(act.getModifiedOn()));
 	}
 	
+	@Test
+	public void testGetEntitiesGeneratedBy() throws Exception {
+		String id = "123";
+		String firstDesc = "firstDesc";
+		Activity act = newTestActivity(id);
+		act.setCreatedBy(normalUserInfo.getIndividualGroup().getId());
+		act.setModifiedBy(normalUserInfo.getIndividualGroup().getId());
+		act.setDescription(firstDesc);
+		when(mockActivityDAO.get(anyString())).thenReturn(act);
+		when(mockAuthorizationManager.canAccessActivity(normalUserInfo, id)).thenReturn(true);
+
+		activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);
+		
+		verify(mockActivityDAO).getEntitiesGeneratedBy(id, Integer.MAX_VALUE, 0);
+	}
+	
+	@Test(expected=NotFoundException.class)
+	public void testGetEntitiesGeneratedByNotFound() throws Exception {
+		String id = "123";
+		when(mockActivityDAO.get(anyString())).thenThrow(new NotFoundException());
+
+		activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testGetEntitiesGeneratedByUnauthorized() throws Exception {
+		String id = "123";
+		String firstDesc = "firstDesc";
+		Activity act = newTestActivity(id);
+		act.setCreatedBy(normalUserInfo.getIndividualGroup().getId());
+		act.setModifiedBy(normalUserInfo.getIndividualGroup().getId());
+		act.setDescription(firstDesc);
+		when(mockActivityDAO.get(anyString())).thenReturn(act);
+		when(mockAuthorizationManager.canAccessActivity(normalUserInfo, id)).thenReturn(false);
+
+		activityManager.getEntitiesGeneratedBy(normalUserInfo, id, Integer.MAX_VALUE, 0);
+	}
+
+	
+	
 	/*
 	 * Private Methods
 	 */

@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -174,9 +176,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		int offset = 0;
 		long remaining = 1; // just to get things started
 		while(remaining > 0) {			
-			QueryResults<String> generatedBy = activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
+			PaginatedResults<Reference> generatedBy = activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
 			remaining = generatedBy.getTotalNumberOfResults() - (offset+limit);
-			for(String nodeId : generatedBy.getResults()) {
+			for(Reference ref : generatedBy.getResults()) {
+				String nodeId = ref.getTargetId();
 				try {
 					if(canAccess(userInfo, nodeId, ACCESS_TYPE.READ)) {
 						return true;
