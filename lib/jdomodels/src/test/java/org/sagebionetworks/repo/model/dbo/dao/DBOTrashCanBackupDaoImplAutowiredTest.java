@@ -12,6 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MigratableObjectData;
@@ -162,7 +163,7 @@ public class DBOTrashCanBackupDaoImplAutowiredTest {
 		MigratableObjectData obj = results.getResults().get(0);
 		assertEquals(KeyFactory.stringToKey(entityId).toString(), obj.getId().getId());
 		assertEquals(MigratableObjectType.TRASHED_ENTITY, obj.getId().getType());
-		assertNull(obj.getEtag());
+		assertEquals(UuidETagGenerator.ZERO_E_TAG, obj.getEtag());
 
 		trashCanDao.create(userId, KeyFactory.keyToString(777L), KeyFactory.keyToString(333L));
 		results =  trashCanBackupDao.getMigrationObjectData(0, Long.MAX_VALUE, true);

@@ -11,6 +11,7 @@ import java.sql.Timestamp;
 import java.util.HashSet;
 import java.util.List;
 
+import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
@@ -130,7 +131,7 @@ public class DBOTrashCanBackupDaoImpl implements DBOTrashCanBackupDao {
 						od.setId(id);
 						od.setType(MigratableObjectType.TRASHED_ENTITY);
 						objectData.setId(od);
-						// ? objectData.setEtag(UuidETagGenerator.ZERO_E_TAG);
+						objectData.setEtag(UuidETagGenerator.ZERO_E_TAG);
 						objectData.setDependencies(new HashSet<MigratableObjectDescriptor>(0));
 						return objectData;
 					}
