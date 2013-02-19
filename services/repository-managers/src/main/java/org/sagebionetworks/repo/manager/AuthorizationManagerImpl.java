@@ -16,6 +16,8 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -80,12 +82,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 	private boolean canDownload(UserInfo userInfo, final String nodeId) throws DatastoreException, NotFoundException {
 		if (userInfo.isAdmin()) return true;
 		if (!agreesToTermsOfUse(userInfo)) return false;
+		
 		// if there are any unmet access requirements for Download, return false;
-		Set<Long> principalIds = new HashSet<Long>();
-		for (UserGroup ug : userInfo.getGroups()) {
-			principalIds.add(Long.parseLong(ug.getId()));
-		}
-		List<Long> accessRequirementIds = accessRequirementDAO.unmetAccessRequirements(nodeId, principalIds, ACCESS_TYPE.DOWNLOAD);
+		List<Long> accessRequirementIds = 
+			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, nodeId, ACCESS_TYPE.DOWNLOAD, nodeDAO, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();
 	}
 	
@@ -176,9 +176,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		int offset = 0;
 		long remaining = 1; // just to get things started
 		while(remaining > 0) {			
-			QueryResults<String> generatedBy = activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
+			PaginatedResults<Reference> generatedBy = activityDAO.getEntitiesGeneratedBy(activityId, limit, offset);
 			remaining = generatedBy.getTotalNumberOfResults() - (offset+limit);
-			for(String nodeId : generatedBy.getResults()) {
+			for(Reference ref : generatedBy.getResults()) {
+				String nodeId = ref.getTargetId();
 				try {
 					if(canAccess(userInfo, nodeId, ACCESS_TYPE.READ)) {
 						return true;

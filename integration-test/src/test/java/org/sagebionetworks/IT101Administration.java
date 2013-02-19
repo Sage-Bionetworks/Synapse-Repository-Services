@@ -145,7 +145,7 @@ public class IT101Administration {
 		assertNotNull(rs);
 		assertNotNull(rs.getResults());
 		assertNotNull(rs.getTotalNumberOfResults());
-		assertEquals(6, rs.getTotalNumberOfResults());
+		assertEquals(7, rs.getTotalNumberOfResults());
 		
 	}
 

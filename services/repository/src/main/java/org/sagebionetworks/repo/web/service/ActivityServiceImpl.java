@@ -5,6 +5,8 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -47,6 +49,14 @@ public class ActivityServiceImpl implements ActivityService {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		activityManager.deleteActivity(userInfo, activityId);		
+	}
+
+	@Override
+	public PaginatedResults<Reference> getEntitiesGeneratedBy(String userId,
+			String activityId, int limit, int offset) throws NotFoundException,
+			DatastoreException, UnauthorizedException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return activityManager.getEntitiesGeneratedBy(userInfo, activityId, limit, offset);
 	}
 	
 }

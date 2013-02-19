@@ -35,6 +35,7 @@ import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
 import org.sagebionetworks.repo.model.UserGroup;
@@ -2091,6 +2092,39 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
 			throw new ServletTestHelperException(response);
 		}
+	}
+
+
+	@SuppressWarnings("unchecked")
+	public static PaginatedResults<Reference> getEntitiesGeneratedBy(
+			HttpServlet dispatchServlet, Activity activity, String userId,
+			Map<String, String> extraParams) throws ServletException,
+			IOException, JSONException {
+		if (dispatchServlet == null)
+			throw new IllegalArgumentException("Servlet cannot be null");
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.ACTIVITY + "/" + activity.getId() + UrlHelpers.GENERATED);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		if (null != extraParams) {
+			for (Map.Entry<String, String> param : extraParams.entrySet()) {
+				request.setParameter(param.getKey(), param.getValue());
+			}
+		}
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		StringWriter out = new StringWriter();
+		objectMapper.writeValue(out, activity);
+		String body = out.toString();
+		request.setContent(body.getBytes("UTF-8"));
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return createPaginatedResultsFromJSON(response.getContentAsString(),
+				Reference.class);
 	}
 
 }

@@ -52,6 +52,8 @@ public class UrlHelpers {
 	public static final String BUNDLE				= "/bundle";
 	
 	public static final String GENERATED_BY			= "/generatedBy";
+	
+	public static final String GENERATED			= "/generated";
 
 	/**
 	 * URL prefix for all objects that are referenced by their ID.
@@ -180,6 +182,8 @@ public class UrlHelpers {
 	 * Activity URLs
 	 */
 	public static final String ACTIVITY_ID = ACTIVITY+ID;
+	public static final String ACTIVITY_GENERATED = ACTIVITY_ID+GENERATED;
+	
 	
 	/**
 	 * Used to get an entity attachment token

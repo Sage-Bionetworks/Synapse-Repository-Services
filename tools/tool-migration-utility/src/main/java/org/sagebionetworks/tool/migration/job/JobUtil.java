@@ -4,6 +4,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
@@ -54,10 +55,13 @@ public class JobUtil {
 	 */
 	public static boolean dependenciesFulfilled(MigratableObjectData objectToMigrate, Collection<MigratableObjectDescriptor> destContents) {
 		boolean result = true;
-		for (MigratableObjectDescriptor dependency : objectToMigrate.getDependencies()) {
-			if (!destContents.contains(dependency)) {
-				result = false;
-				break;
+		Set<MigratableObjectDescriptor> dependencies = objectToMigrate.getDependencies();
+		if (null != dependencies) {
+			for (MigratableObjectDescriptor dependency : dependencies) {
+				if (!destContents.contains(dependency)) {
+					result = false;
+					break;
+				}
 			}
 		}
 		return result;

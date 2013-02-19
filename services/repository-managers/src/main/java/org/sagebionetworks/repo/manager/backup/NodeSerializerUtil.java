@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.SubmissionBackup;
+import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -39,6 +40,7 @@ public class NodeSerializerUtil  {
 	private static final String ALIAS_ACTIVITY = "activity";
 	private static final String ALIAS_COMPETITION = "competition";
 	private static final String ALIAS_SUBMISSION = "submission";
+	private static final String ALIAS_TRASHED_ENTITY = "trashed-entity";
 
 
 	/**
@@ -172,6 +174,18 @@ public class NodeSerializerUtil  {
 		return (SubmissionBackup) xstream.fromXML(reader);
 	}
 
+	public static void writeTrashedEntityBackup(TrashedEntity trash, OutputStream out) {
+		OutputStreamWriter writer = new OutputStreamWriter(out);
+		XStream xstream = createXStream();
+		xstream.toXML(trash, writer);
+	}
+
+	public static TrashedEntity readTrashedEntityBackup(InputStream in) {
+		InputStreamReader reader = new InputStreamReader(in);
+		XStream xstream = createXStream();
+		return (TrashedEntity) xstream.fromXML(reader);
+	}
+
 	private static XStream createXStream(){
 		XStream xstream = new XStream();
 		xstream.alias(ALIAS_NODE_BACKUP, NodeBackup.class);
@@ -183,6 +197,7 @@ public class NodeSerializerUtil  {
 		xstream.alias(ALIAS_ACTIVITY, Activity.class);
 		xstream.alias(ALIAS_COMPETITION, EvaluationBackup.class);
 		xstream.alias(ALIAS_SUBMISSION, SubmissionBackup.class);
+		xstream.alias(ALIAS_TRASHED_ENTITY, TrashedEntity.class);
 		return xstream;
 	}
 
