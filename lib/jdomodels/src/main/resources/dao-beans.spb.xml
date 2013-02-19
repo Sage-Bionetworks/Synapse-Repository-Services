@@ -83,7 +83,12 @@
 			class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanDaoImpl"
 			scope="singleton">
 	</bean>
-	
+
+	<bean id="trashCanBackupDao"
+			class="org.sagebionetworks.repo.model.dbo.dao.DBOTrashCanBackupDaoImpl"
+			scope="singleton">
+	</bean>
+
 	<bean id="wikiPageDAO"
 			class="org.sagebionetworks.repo.model.dbo.dao.DBOWikiPageDaoImpl"
 			scope="singleton">
