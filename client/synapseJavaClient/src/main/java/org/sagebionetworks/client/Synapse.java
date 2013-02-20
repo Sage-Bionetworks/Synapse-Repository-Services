@@ -193,6 +193,8 @@ public class Synapse {
 	private static final String FILE = "/file";
 	private static final String FILE_PREVIEW = "/filepreview";
 	
+	private static final String FILE_HANDLES = "/filehandles";
+	
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
 	protected static final String OFFSET = "offset";
@@ -1562,6 +1564,7 @@ public class Synapse {
 		return getJSONEntity(getRepoEndpoint(), uri, FileHandleResults.class);
 	}
 	
+
 	/**
 	 * 
 	 * @param key - Identifies a wiki page.
@@ -1802,6 +1805,33 @@ public class Synapse {
 		return paginated;
 	}
 
+	/**
+	 * Get the file handles for the current version of an entity.
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	public FileHandleResults getEntityFileHandlesForCurrentVersion(String entityId) throws JSONObjectAdapterException, SynapseException {
+		if(entityId == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = ENTITY_URI_PATH+entityId+FILE_HANDLES;
+		return getJSONEntity(getRepoEndpoint(), uri, FileHandleResults.class);
+	}
+	
+	/**
+	 * Get the file hanldes for a given version of an entity.
+	 * @param entityId
+	 * @param versionNumber
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	public FileHandleResults getEntityFileHandlesForVersion(String entityId, Long versionNumber) throws JSONObjectAdapterException, SynapseException {
+		if(entityId == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = ENTITY_URI_PATH+entityId+"version/"+versionNumber+FILE_HANDLES;
+		return getJSONEntity(getRepoEndpoint(), uri, FileHandleResults.class);
+	}
 	
 	
 	/**
@@ -3439,4 +3469,5 @@ public class Synapse {
 		PaginatedResults<Submission> res = getAllSubmissions(evalId, 0, 0);
 		return res.getTotalNumberOfResults();
 	}
+
 }

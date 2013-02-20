@@ -120,6 +120,13 @@ public class IT054FileEntityTest {
 		// Create it
 		file = synapse.createEntity(file);
 		assertNotNull(file);
+		// Get the file handles
+		FileHandleResults fhr = synapse.getEntityFileHandlesForCurrentVersion(file.getId());
+		assertNotNull(fhr);
+		assertNotNull(fhr.getList());
+		assertEquals(2, fhr.getList().size());
+		assertEquals(fileHandle, fhr.getList().get(0));
+		assertEquals(previewFileHandle, fhr.getList().get(1));
 		// Make sure we can get the URLs for this file
 		String expectedKey = URLEncoder.encode(fileHandle.getKey(), "UTF-8");
 		URL tempUrl = synapse.getFileEntityTemporaryUrlForCurrentVersion(file.getId());

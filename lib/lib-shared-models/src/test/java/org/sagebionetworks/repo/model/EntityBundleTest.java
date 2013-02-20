@@ -8,11 +8,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.file.FileHandle;
-import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -26,11 +26,11 @@ public class EntityBundleTest {
 	
 	private static final int NUM_PAGINATED_RESULTS = 5;
 	
-	private EntityBundle2 entityBundle;
+	private EntityBundle entityBundle;
 	
 	@Before
 	public void setUp() {
-		entityBundle = new EntityBundle2();
+		entityBundle = new EntityBundle();
 	}
 	
 	@Test
@@ -75,7 +75,7 @@ public class EntityBundleTest {
 		String json = joa.toJSONString();
 		assertNotNull(json);
 		
-		EntityBundle2 clone = new EntityBundle2();
+		EntityBundle clone = new EntityBundle();
 		clone.initializeFromJSONObject(joa.createNew(json));
 		assertEquals(entityBundle, clone);		
 	}
@@ -83,7 +83,7 @@ public class EntityBundleTest {
 	/**
 	 * Create an EntityBundle filled with dummy data
 	 */
-	public static EntityBundle2 createDummyEntityBundle() {
+	public static EntityBundle createDummyEntityBundle() {
 		AutoGenFactory autoGenFactory = new AutoGenFactory();
 		
 		// Entities
@@ -138,16 +138,7 @@ public class EntityBundleTest {
 			eh.setType("Folder");
 			rb.add(eh);
 		}
-		PaginatedResults<EntityHeader> referencedBy = 
-			new PaginatedResults<EntityHeader>(
-				"dummy_uri",
-				rb,
-				101,
-				4,
-				14,
-				"name",
-				true);
-		
+
 		List<AccessRequirement> accessRequirements = new ArrayList<AccessRequirement>();
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
@@ -160,20 +151,20 @@ public class EntityBundleTest {
 		S3FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setBucketName("bucket");
 		fileHandle.setKey("key");
-		FileHandleResults fhr = new FileHandleResults();
-		fhr.setList(new LinkedList<FileHandle>());
-		fhr.getList().add(fileHandle);
+		fileHandle.setId("00000");
+		List<FileHandle> fileHandleList = new LinkedList<FileHandle>();
+		fileHandleList.add(fileHandle);
 
-		EntityBundle2 entityBundle = new EntityBundle2();
+		EntityBundle entityBundle = new EntityBundle();
 		entityBundle.setEntity(project);
 		entityBundle.setPermissions(permissions);
 		entityBundle.setPath(path);
-		entityBundle.setReferencedBy(referencedBy);
+		entityBundle.setReferencedBy(rb);
 		entityBundle.setHasChildren(hasChildren);
 		entityBundle.setAccessControlList(acl);
 		entityBundle.setAccessRequirements(accessRequirements);
 		entityBundle.setUnmetAccessRequirements(accessRequirements);
-		entityBundle.setFileHandles(fhr);
+		entityBundle.setFileHandles(fileHandleList);
 		
 		return entityBundle;
 	}
