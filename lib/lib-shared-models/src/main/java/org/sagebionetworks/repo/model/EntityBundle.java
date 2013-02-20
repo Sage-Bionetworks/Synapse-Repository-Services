@@ -5,6 +5,8 @@ import java.util.List;
 
 
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.schema.adapter.JSONArrayAdapter;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -32,6 +34,7 @@ public class EntityBundle implements JSONEntity {
 	public static int ACL						= 0x40;
 	public static int ACCESS_REQUIREMENTS		= 0x200;
 	public static int UNMET_ACCESS_REQUIREMENTS	= 0x400;
+	public static int FILE_HANDLES				= 0x800;
 	
 	private static AutoGenFactory autoGenFactory = new AutoGenFactory();
 	
@@ -46,17 +49,18 @@ public class EntityBundle implements JSONEntity {
 	public static final String JSON_ACL = "accessControlList";
 	public static final String JSON_ACCESS_REQUIREMENTS = "accessRequirements";
 	public static final String JSON_UNMET_ACCESS_REQUIREMENTS = "unmetAccessRequirements";
-	
+	public static final String JSON_FILE_HANDLES = "fileHandles";
 	private Entity entity;
 	private String entityType;
 	private Annotations annotations;
 	private UserEntityPermissions permissions;
 	private EntityPath path;
-	private PaginatedResults<EntityHeader> referencedBy;
+	private List<EntityHeader> referencedBy;
 	private Boolean hasChildren;
 	private AccessControlList acl;
 	private List<AccessRequirement> accessRequirements;
 	private List<AccessRequirement> unmetAccessRequirements;
+	private List<FileHandle> fileHandles;
 	
 	/**
 	 * Create a new EntityBundle
@@ -105,10 +109,14 @@ public class EntityBundle implements JSONEntity {
 			path.initializeFromJSONObject(joa);
 		}
 		if (toInitFrom.has(JSON_REFERENCED_BY)) {
-			JSONObjectAdapter joa = (JSONObjectAdapter) toInitFrom.getJSONObject(JSON_REFERENCED_BY);
-			if (referencedBy == null)
-				referencedBy = new PaginatedResults<EntityHeader>(EntityHeader.class);
-			referencedBy.initializeFromJSONObject(joa);
+			JSONArrayAdapter a = (JSONArrayAdapter) toInitFrom.getJSONArray(JSON_REFERENCED_BY);
+			referencedBy = new ArrayList<EntityHeader>();
+			for (int i=0; i<a.length(); i++) {
+				JSONObjectAdapter joa = (JSONObjectAdapter)a.getJSONObject(i);
+				EntityHeader header  = new EntityHeader();
+				header.initializeFromJSONObject(joa);
+				referencedBy.add(header);
+			}
 		}
 		if (toInitFrom.has(JSON_HAS_CHILDREN)) {
 			hasChildren = toInitFrom.getBoolean(JSON_HAS_CHILDREN);
@@ -133,6 +141,17 @@ public class EntityBundle implements JSONEntity {
 			for (int i=0; i<a.length(); i++) {
 				JSONObjectAdapter joa = (JSONObjectAdapter)a.getJSONObject(i);
 				unmetAccessRequirements.add((AccessRequirement)EntityClassHelper.deserialize(joa));
+			}
+		}
+		if (toInitFrom.has(JSON_FILE_HANDLES)) {
+			JSONArrayAdapter a = (JSONArrayAdapter) toInitFrom.getJSONArray(JSON_FILE_HANDLES);
+			fileHandles = new ArrayList<FileHandle>();
+			for (int i=0; i<a.length(); i++) {
+				JSONObjectAdapter joa = (JSONObjectAdapter)a.getJSONObject(i);
+				String type = joa.getString("concreteType");
+				FileHandle handle = (FileHandle) autoGenFactory.newInstance(type);
+				handle.initializeFromJSONObject(joa);
+				fileHandles.add(handle);
 			}
 		}
 		return toInitFrom;
@@ -166,9 +185,13 @@ public class EntityBundle implements JSONEntity {
 			writeTo.put(JSON_PATH, joa);
 		}
 		if (referencedBy != null) {
-			JSONObjectAdapter joa = writeTo.createNew();
-			referencedBy.writeToJSONObject(joa);
-			writeTo.put(JSON_REFERENCED_BY, joa);
+			JSONArrayAdapter arArray = writeTo.createNewArray();
+			for (int i=0; i<referencedBy.size(); i++) {
+				JSONObjectAdapter joa = arArray.createNew();
+				referencedBy.get(i).writeToJSONObject(joa);
+				arArray.put(i, joa);	
+			}
+			writeTo.put(JSON_REFERENCED_BY, arArray);
 		}
 		if (hasChildren != null) {
 			writeTo.put(JSON_HAS_CHILDREN, hasChildren);
@@ -195,6 +218,15 @@ public class EntityBundle implements JSONEntity {
 				arArray.put(i, joa);	
 			}
 			writeTo.put(JSON_UNMET_ACCESS_REQUIREMENTS, arArray);
+		}
+		if (fileHandles != null) {
+			JSONArrayAdapter arArray = writeTo.createNewArray();
+			for (int i=0; i<fileHandles.size(); i++) {
+				JSONObjectAdapter joa = arArray.createNew();
+				fileHandles.get(i).writeToJSONObject(joa);
+				arArray.put(i, joa);	
+			}
+			writeTo.put(JSON_FILE_HANDLES, arArray);
 		}
 		return writeTo;
 	}
@@ -270,7 +302,7 @@ public class EntityBundle implements JSONEntity {
 	 * Get the collection of names of Entities which reference the Entity in 
 	 * this bundle.
 	 */
-	public PaginatedResults<EntityHeader> getReferencedBy() {
+	public List<EntityHeader> getReferencedBy() {
 		return referencedBy;
 	}
 
@@ -278,7 +310,7 @@ public class EntityBundle implements JSONEntity {
 	 * Set the collection of names of referencing Entities in this bundle. 
 	 * Should contain all Entities which reference the Entity in this bundle.
 	 */
-	public void setReferencedBy(PaginatedResults<EntityHeader> referencedBy) {
+	public void setReferencedBy(List<EntityHeader> referencedBy) {
 		this.referencedBy = referencedBy;
 	}
 
@@ -329,6 +361,14 @@ public class EntityBundle implements JSONEntity {
 		this.unmetAccessRequirements = unmetAccessRequirements;
 	}
 
+	public List<FileHandle> getFileHandles() {
+		return fileHandles;
+	}
+
+	public void setFileHandles(List<FileHandle> fileHandles) {
+		this.fileHandles = fileHandles;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -338,14 +378,24 @@ public class EntityBundle implements JSONEntity {
 				+ ((accessRequirements == null) ? 0 : accessRequirements
 						.hashCode());
 		result = prime * result + ((acl == null) ? 0 : acl.hashCode());
-		result = prime * result	+ ((annotations == null) ? 0 : annotations.hashCode());
+		result = prime * result
+				+ ((annotations == null) ? 0 : annotations.hashCode());
 		result = prime * result + ((entity == null) ? 0 : entity.hashCode());
-		result = prime * result	+ ((entityType == null) ? 0 : entityType.hashCode());
-		result = prime * result	+ ((hasChildren == null) ? 0 : hasChildren.hashCode());
+		result = prime * result
+				+ ((entityType == null) ? 0 : entityType.hashCode());
+		result = prime * result
+				+ ((fileHandles == null) ? 0 : fileHandles.hashCode());
+		result = prime * result
+				+ ((hasChildren == null) ? 0 : hasChildren.hashCode());
 		result = prime * result + ((path == null) ? 0 : path.hashCode());
-		result = prime * result	+ ((permissions == null) ? 0 : permissions.hashCode());
-		result = prime * result	+ ((referencedBy == null) ? 0 : referencedBy.hashCode());
-		result = prime * result	+ ((unmetAccessRequirements == null) ? 0 : unmetAccessRequirements.hashCode());
+		result = prime * result
+				+ ((permissions == null) ? 0 : permissions.hashCode());
+		result = prime * result
+				+ ((referencedBy == null) ? 0 : referencedBy.hashCode());
+		result = prime
+				* result
+				+ ((unmetAccessRequirements == null) ? 0
+						: unmetAccessRequirements.hashCode());
 		return result;
 	}
 
@@ -382,6 +432,11 @@ public class EntityBundle implements JSONEntity {
 			if (other.entityType != null)
 				return false;
 		} else if (!entityType.equals(other.entityType))
+			return false;
+		if (fileHandles == null) {
+			if (other.fileHandles != null)
+				return false;
+		} else if (!fileHandles.equals(other.fileHandles))
 			return false;
 		if (hasChildren == null) {
 			if (other.hasChildren != null)

@@ -170,10 +170,14 @@ public class UrlHelpers {
 	
 	public static final String FILE= "/file";
 	public static final String FILE_PREVIEW = "/filepreview";
+	public static final String FILE_HANDLE = "/filehandles";
 	public static final String ENTITY_FILE = ENTITY_ID+FILE;
 	public static final String ENTITY_FILE_PREVIEW = ENTITY_ID+FILE_PREVIEW;
+	public static final String ENTITY_FILE_HANDLES = ENTITY_ID+FILE_HANDLE;
+	// version
 	public static final String ENTITY_VERSION_FILE = ENTITY_ID+VERSION+VERSION_NUMBER+FILE;
 	public static final String ENTITY_VERSION_FILE_PREVIEW = ENTITY_ID+VERSION+VERSION_NUMBER+FILE_PREVIEW;
+	public static final String ENTITY_VERSION_FILE_HANDLES = ENTITY_ID+VERSION+VERSION_NUMBER+FILE_HANDLE;
 	/**
 	 * Activity URLs
 	 */
