@@ -1815,7 +1815,7 @@ public class Synapse {
 	 */
 	public FileHandleResults getEntityFileHandlesForCurrentVersion(String entityId) throws JSONObjectAdapterException, SynapseException {
 		if(entityId == null) throw new IllegalArgumentException("Key cannot be null");
-		String uri = ENTITY_URI_PATH+entityId+FILE_HANDLES;
+		String uri = ENTITY_URI_PATH+"/"+entityId+FILE_HANDLES;
 		return getJSONEntity(getRepoEndpoint(), uri, FileHandleResults.class);
 	}
 	
@@ -1829,7 +1829,7 @@ public class Synapse {
 	 */
 	public FileHandleResults getEntityFileHandlesForVersion(String entityId, Long versionNumber) throws JSONObjectAdapterException, SynapseException {
 		if(entityId == null) throw new IllegalArgumentException("Key cannot be null");
-		String uri = ENTITY_URI_PATH+entityId+"version/"+versionNumber+FILE_HANDLES;
+		String uri = ENTITY_URI_PATH+"/"+entityId+"/version/"+versionNumber+FILE_HANDLES;
 		return getJSONEntity(getRepoEndpoint(), uri, FileHandleResults.class);
 	}
 	

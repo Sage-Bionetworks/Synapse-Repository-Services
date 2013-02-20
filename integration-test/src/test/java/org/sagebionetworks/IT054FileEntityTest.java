@@ -125,8 +125,15 @@ public class IT054FileEntityTest {
 		assertNotNull(fhr);
 		assertNotNull(fhr.getList());
 		assertEquals(2, fhr.getList().size());
-		assertEquals(fileHandle, fhr.getList().get(0));
-		assertEquals(previewFileHandle, fhr.getList().get(1));
+		assertEquals(fileHandle.getId(), fhr.getList().get(0).getId());
+		assertEquals(previewFileHandle.getId(), fhr.getList().get(1).getId());
+		// Repeat the test for version
+		fhr = synapse.getEntityFileHandlesForVersion(file.getId(), file.getVersionNumber());
+		assertNotNull(fhr);
+		assertNotNull(fhr.getList());
+		assertEquals(2, fhr.getList().size());
+		assertEquals(fileHandle.getId(), fhr.getList().get(0).getId());
+		assertEquals(previewFileHandle.getId(), fhr.getList().get(1).getId());
 		// Make sure we can get the URLs for this file
 		String expectedKey = URLEncoder.encode(fileHandle.getKey(), "UTF-8");
 		URL tempUrl = synapse.getFileEntityTemporaryUrlForCurrentVersion(file.getId());
