@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -754,5 +755,27 @@ public interface EntityService {
 	 * @throws DatastoreException 
 	 */
 	public URL getFilePreviewRedirectURLForVersion(String userId, String id, Long versionNumber) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the entity file handles for the current version of an entity.
+	 * 
+	 * @param userId
+	 * @param id
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public FileHandleResults getEntityFileHandlesForCurrentVersion(String userId, String entityId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the entity file handles for a given version of an entity.
+	 * @param userId
+	 * @param id
+	 * @param versionNumber
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public FileHandleResults getEntityFileHandlesForVersion(String userId, String entityId, Long versionNumber) throws DatastoreException, NotFoundException;
 
 }

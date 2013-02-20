@@ -6,10 +6,14 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.LinkedList;
 import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
@@ -134,16 +138,7 @@ public class EntityBundleTest {
 			eh.setType("Folder");
 			rb.add(eh);
 		}
-		PaginatedResults<EntityHeader> referencedBy = 
-			new PaginatedResults<EntityHeader>(
-				"dummy_uri",
-				rb,
-				101,
-				4,
-				14,
-				"name",
-				true);
-		
+
 		List<AccessRequirement> accessRequirements = new ArrayList<AccessRequirement>();
 		TermsOfUseAccessRequirement ar = new TermsOfUseAccessRequirement();
 		ar.setAccessType(ACCESS_TYPE.DOWNLOAD);
@@ -151,16 +146,25 @@ public class EntityBundleTest {
 		ar.setEntityType(TermsOfUseAccessRequirement.class.getName());
 		ar.setTermsOfUse("foo");
 		accessRequirements.add(ar);
+		
+		// File handles
+		S3FileHandle fileHandle = new S3FileHandle();
+		fileHandle.setBucketName("bucket");
+		fileHandle.setKey("key");
+		fileHandle.setId("00000");
+		List<FileHandle> fileHandleList = new LinkedList<FileHandle>();
+		fileHandleList.add(fileHandle);
 
 		EntityBundle entityBundle = new EntityBundle();
 		entityBundle.setEntity(project);
 		entityBundle.setPermissions(permissions);
 		entityBundle.setPath(path);
-		entityBundle.setReferencedBy(referencedBy);
+		entityBundle.setReferencedBy(rb);
 		entityBundle.setHasChildren(hasChildren);
 		entityBundle.setAccessControlList(acl);
 		entityBundle.setAccessRequirements(accessRequirements);
 		entityBundle.setUnmetAccessRequirements(accessRequirements);
+		entityBundle.setFileHandles(fileHandleList);
 		
 		return entityBundle;
 	}

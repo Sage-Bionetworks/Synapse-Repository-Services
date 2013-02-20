@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -129,6 +130,15 @@ public class PaginatedResults<T extends JSONEntity> implements JSONEntity {
 					+ nextOffset + "&"
 					+ ServiceConstants.PAGINATION_LIMIT_PARAM + "=" + limit
 					+ sortUrlSuffix);
+		}
+	}
+
+	public PaginatedResults(JSONObjectAdapter jsonObject) {
+		this.results = new LinkedList();
+		try {
+			initializeFromJSONObject(jsonObject);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e.getMessage());
 		}
 	}
 

@@ -243,25 +243,7 @@ public class WikiManagerImpl implements WikiManager {
 		// Validate that the user has read access
 		validateReadAccess(user, key);
 		List<String> handleIds = wikiPageDao.getWikiFileHandleIds(key);
-		List<FileHandle> handles = new LinkedList<FileHandle>();
-		if(handleIds != null){
-			for(String handleId: handleIds){
-				// Look up each handle
-				FileHandle handle = fileMetadataDao.get(handleId);
-				handles.add(handle);
-				// If this handle has a preview then we fetch that as well.
-				if(handle instanceof HasPreviewId){
-					String previewId = ((HasPreviewId)handle).getPreviewId();
-					if(previewId != null){
-						FileHandle preview = fileMetadataDao.get(previewId);
-						handles.add(preview);
-					}
-				}
-			}
-		}
-		FileHandleResults results = new FileHandleResults();
-		results.setList(handles);
-		return results;
+		return fileMetadataDao.getAllFileHandles(handleIds, true);
 	}
 
 	@Override
@@ -271,7 +253,5 @@ public class WikiManagerImpl implements WikiManager {
 		// Look-up the fileHandle ID
 		return wikiPageDao.getWikiAttachmentFileHandleForFileName(wikiPageKey, fileName);
 	}
-
-
 
 }

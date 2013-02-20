@@ -77,6 +77,9 @@
 			"description": "The full class name of this entiy.",
 			"transient": true
 		},
+        "concreteType":{
+            "type":"string"
+        },
 		"attachments": {
 			"type": "array",
 			"description": "The list of attachment data.",

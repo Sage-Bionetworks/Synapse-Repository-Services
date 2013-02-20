@@ -31,11 +31,11 @@ import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.request.ReferenceList;
 import org.sagebionetworks.repo.web.NotFoundException;
-import static org.sagebionetworks.repo.web.UrlHelpers.*;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.ObjectSchema;
@@ -1113,5 +1113,39 @@ public class EntityController extends BaseController{
 		// Get the redirect url
 		URL redirectUrl = serviceProvider.getEntityService().getFilePreviewRedirectURLForVersion(userId,  id, versionNumber);
 		RedirectUtils.handleRedirect(redirect, redirectUrl, response);
+	}
+	
+	/**
+	 * Get the FileHandles for the current version of an entity.
+	 * @return
+	 */
+	@RequestMapping(value = UrlHelpers.ENTITY_FILE_HANDLES, method = RequestMethod.GET)
+	public @ResponseBody
+	FileHandleResults getEntityFileHandlesForCurrentVersion(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id
+			) throws DatastoreException, NotFoundException, IOException{
+		// pass it!
+		return serviceProvider.getEntityService().getEntityFileHandlesForCurrentVersion(userId,  id);
+	}
+	
+	/**
+	 * Get the FileHandles for a given version of an entity.
+	 * @param userId
+	 * @param id
+	 * @param versionNumber
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@RequestMapping(value = UrlHelpers.ENTITY_VERSION_FILE_HANDLES, method = RequestMethod.GET)
+	public @ResponseBody
+	FileHandleResults getEntityFileHandlesForVersion(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id,
+			@PathVariable Long versionNumber) throws DatastoreException, NotFoundException, IOException{
+		// pass it!
+		return serviceProvider.getEntityService().getEntityFileHandlesForVersion(userId, id, versionNumber);
 	}
 }

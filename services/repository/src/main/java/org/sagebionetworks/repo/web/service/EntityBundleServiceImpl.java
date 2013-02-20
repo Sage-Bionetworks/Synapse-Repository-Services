@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.util.LinkedList;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -15,7 +16,10 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,7 +79,8 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			eb.setPath(ep);
 		}
 		if ((mask & EntityBundle.ENTITY_REFERENCEDBY) > 0) {
-			eb.setReferencedBy(serviceProvider.getEntityService().getEntityReferences(userId, entityId, null, null, null, request));
+			PaginatedResults<EntityHeader> paginatedResuls = serviceProvider.getEntityService().getEntityReferences(userId, entityId, null, null, null, request);
+			eb.setReferencedBy(paginatedResuls.getResults());
 		}
 		if ((mask & EntityBundle.HAS_CHILDREN) > 0) {
 			eb.setHasChildren(serviceProvider.getEntityService().doesEntityHaveChildren(userId, entityId, request));
@@ -93,6 +98,15 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}		
 		if ((mask & EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
 			eb.setUnmetAccessRequirements(serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, entityId, request).getResults());
+		}
+		if((mask & EntityBundle.FILE_HANDLES) > 0 ){
+			try{
+				FileHandleResults fhr = serviceProvider.getEntityService().getEntityFileHandlesForCurrentVersion(userId, entityId);
+				eb.setFileHandles(fhr.getList());
+			}catch( UnauthorizedException e){
+				// If the user does not have permission to see the handles then set them to be an empty list.
+				eb.setFileHandles(new LinkedList<FileHandle>());
+			}
 		}
 		return eb;
 	}	

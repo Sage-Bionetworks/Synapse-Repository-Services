@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.wiki;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -291,16 +292,22 @@ public class WikiManagerTest {
 		S3FileHandle s3NullPrivew = new S3FileHandle();
 		s3NullPrivew.setId("1");
 		s3NullPrivew.setPreviewId(null);
-		when(mockFileDao.get("1")).thenReturn(s3NullPrivew);
 		// with preview
 		S3FileHandle s3WithPrivew = new S3FileHandle();
 		s3WithPrivew.setId("2");
 		s3WithPrivew.setPreviewId("3");
-		when(mockFileDao.get("2")).thenReturn(s3WithPrivew);
 		// The preview
 		PreviewFileHandle preview = new PreviewFileHandle();
 		preview.setId("3");
-		when(mockFileDao.get("3")).thenReturn(preview);
+		List<String> ids = new ArrayList<String>();
+		ids.add("2");
+		ids.add("1");
+		FileHandleResults expectedResults = new FileHandleResults();
+		expectedResults.setList(new LinkedList<FileHandle>());
+		expectedResults.getList().add(s3WithPrivew);
+		expectedResults.getList().add(preview);
+		expectedResults.getList().add(s3NullPrivew);
+		when(mockFileDao.getAllFileHandles(ids, true)).thenReturn(expectedResults);
 		// Setup the wiki
 		WikiPageKey key = new WikiPageKey("syn123", ObjectType.WIKI, "456");
 		List<String> wikiHandleIds = new LinkedList<String>();
