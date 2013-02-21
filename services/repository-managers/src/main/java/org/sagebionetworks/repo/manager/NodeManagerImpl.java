@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ReferenceDao;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -683,7 +684,17 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 		String fileHandleId = nodeDao.getFileHandleIdForVersion(id, versionNumber);
 		checkFileHandleId(id, fileHandleId);
 		return fileHandleId;
+	}	
+
+	@Override
+	public List<Reference> getCurrentRevisionNumbers(List<String> nodeIds) {
+		return nodeDao.getCurrentRevisionNumbers(nodeIds);
 	}
+
+	
+	/*
+	 * Private Methods
+	 */
 	
 	/**
 	 * Throws a NotFoundException when a file handle is null
