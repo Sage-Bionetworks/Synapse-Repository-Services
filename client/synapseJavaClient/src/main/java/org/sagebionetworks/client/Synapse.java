@@ -150,6 +150,7 @@ public class Synapse {
 	protected static final String BUNDLE = "/bundle";
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 	protected static final String ACTIVITY_URI_PATH = "/activity";
+	protected static final String GENERATED_PATH = "/generated";
 	
 	protected static final String WIKI_URI_TEMPLATE = "/%1$s/%2$s/wiki";
 	protected static final String WIKI_ID_URI_TEMPLATE = "/%1$s/%2$s/wiki/%3$s";
@@ -191,6 +192,8 @@ public class Synapse {
 	protected static final String FILE_HANDLE = "/fileHandle";
 	private static final String FILE = "/file";
 	private static final String FILE_PREVIEW = "/filepreview";
+	
+	private static final String FILE_HANDLES = "/filehandles";
 	
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
@@ -1561,6 +1564,7 @@ public class Synapse {
 		return getJSONEntity(getRepoEndpoint(), uri, FileHandleResults.class);
 	}
 	
+
 	/**
 	 * 
 	 * @param key - Identifies a wiki page.
@@ -1801,6 +1805,33 @@ public class Synapse {
 		return paginated;
 	}
 
+	/**
+	 * Get the file handles for the current version of an entity.
+	 * 
+	 * @param entityId
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	public FileHandleResults getEntityFileHandlesForCurrentVersion(String entityId) throws JSONObjectAdapterException, SynapseException {
+		if(entityId == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = ENTITY_URI_PATH+"/"+entityId+FILE_HANDLES;
+		return getJSONEntity(getRepoEndpoint(), uri, FileHandleResults.class);
+	}
+	
+	/**
+	 * Get the file hanldes for a given version of an entity.
+	 * @param entityId
+	 * @param versionNumber
+	 * @return
+	 * @throws JSONObjectAdapterException
+	 * @throws SynapseException
+	 */
+	public FileHandleResults getEntityFileHandlesForVersion(String entityId, Long versionNumber) throws JSONObjectAdapterException, SynapseException {
+		if(entityId == null) throw new IllegalArgumentException("Key cannot be null");
+		String uri = ENTITY_URI_PATH+"/"+entityId+"/version/"+versionNumber+FILE_HANDLES;
+		return getJSONEntity(getRepoEndpoint(), uri, FileHandleResults.class);
+	}
 	
 	
 	/**
@@ -2999,6 +3030,23 @@ public class Synapse {
 		deleteUri(uri);
 	}
 	
+	public PaginatedResults<Reference> getEntitiesGeneratedBy(String activityId, Integer limit, Integer offset) throws SynapseException {
+		if (activityId == null) throw new IllegalArgumentException("Activity id cannot be null");
+		String url = createEntityUri(ACTIVITY_URI_PATH, activityId + GENERATED_PATH +
+				"?" + OFFSET + "=" + offset + "&limit=" + limit);
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Reference> results = new PaginatedResults<Reference>(Reference.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+		
+	}
+	
 	/**
 	 * 
 	 * @param entityId
@@ -3421,4 +3469,5 @@ public class Synapse {
 		PaginatedResults<Submission> res = getAllSubmissions(evalId, 0, 0);
 		return res.getTotalNumberOfResults();
 	}
+
 }

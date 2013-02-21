@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.manager.file;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.fileupload.FileItemIterator;
@@ -11,6 +12,7 @@ import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -84,5 +86,15 @@ public interface FileHandleManager {
 	 * @throws MalformedURLException 
 	 */
 	URL getRedirectURLForFileHandle(String handleId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get all file handles on the list.
+	 * @param idsList
+	 * @param includePreviews - When true, preview file handles will be included in the resutls.
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	FileHandleResults getAllFileHandles(List<String> idsList, boolean includePreviews) throws DatastoreException, NotFoundException;
 
 }

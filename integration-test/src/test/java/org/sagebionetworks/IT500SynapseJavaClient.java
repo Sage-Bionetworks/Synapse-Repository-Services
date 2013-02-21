@@ -471,7 +471,7 @@ public class IT500SynapseJavaClient {
 		assertEquals("Invalid fetched EntityPath in the EntityBundle", 
 				synapse.getEntityPath(project.getId()), entityBundle.getPath());
 		assertEquals("Invalid fetched ReferencedBy in the EntityBundle", 
-				synapse.getEntityReferencedBy(project), entityBundle.getReferencedBy());
+				synapse.getEntityReferencedBy(project).getResults(), entityBundle.getReferencedBy());
 		assertEquals("Invalid fetched ChildCount in the EntityBundle", 
 				synapse.getChildCount(project.getId()) > 0, entityBundle.getHasChildren());
 		assertEquals("Invalid fetched ACL in the EntityBundle", 

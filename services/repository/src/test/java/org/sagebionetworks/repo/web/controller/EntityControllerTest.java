@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
@@ -439,5 +440,19 @@ public class EntityControllerTest {
 		assertNotNull(urlNoRedirect);
 		assertTrue("Url did not contain the expected key", urlNoRedirect.toString().indexOf(previewOne.getKey()) > 0);
 		
+		// Validate that we can get the files handles
+		FileHandleResults fhr = entityServletHelper.geEntityFileHandlesForCurrentVersion(userName, file.getId());
+		assertNotNull(fhr);
+		assertNotNull(fhr.getList());
+		assertEquals(2, fhr.getList().size());
+		assertEquals(handleTwo.getId(), fhr.getList().get(0).getId());
+		assertEquals(previewTwo.getId(), fhr.getList().get(1).getId());
+		// Get the previous version as well
+		fhr = entityServletHelper.geEntityFileHandlesForVersion(userName, file.getId(), 1l);
+		assertNotNull(fhr);
+		assertNotNull(fhr.getList());
+		assertEquals(2, fhr.getList().size());
+		assertEquals(handleOne.getId(), fhr.getList().get(0).getId());
+		assertEquals(previewOne.getId(), fhr.getList().get(1).getId());
 	}
 }

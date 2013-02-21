@@ -5,6 +5,8 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
+import java.util.LinkedList;
+import java.util.List;
 import java.util.UUID;
 
 import org.sagebionetworks.ids.IdGenerator;
@@ -17,6 +19,8 @@ import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -181,5 +185,28 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 			// This occurs when the file handle does not exist
 			throw new NotFoundException("The FileHandle does not exist: "+fileHandleId);
 		}
+	}
+
+	@Override
+	public FileHandleResults getAllFileHandles(List<String> ids, boolean includePreviews) throws DatastoreException, NotFoundException {
+		List<FileHandle> handles = new LinkedList<FileHandle>();
+		if(ids != null){
+			for(String handleId: ids){
+				// Look up each handle
+				FileHandle handle = get(handleId);
+				handles.add(handle);
+				// If this handle has a preview then we fetch that as well.
+				if(includePreviews && handle instanceof HasPreviewId){
+					String previewId = ((HasPreviewId)handle).getPreviewId();
+					if(previewId != null){
+						FileHandle preview = get(previewId);
+						handles.add(preview);
+					}
+				}
+			}
+		}
+		FileHandleResults results = new FileHandleResults();
+		results.setList(handles);
+		return results;
 	}
 }

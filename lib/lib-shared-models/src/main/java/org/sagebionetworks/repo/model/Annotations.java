@@ -24,7 +24,7 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
  * 
  */
 @SuppressWarnings("rawtypes")
-public class Annotations implements JSONEntity, Base {
+public class Annotations implements JSONEntity {
 	private static final String JSON_BLOB_ANNOTATIONS = "blobAnnotations";
 	private static final String JSON_DATE_ANNOTATIONS = "dateAnnotations";
 	private static final String JSON_LONG_ANNOTATIONS = "longAnnotations";
@@ -46,6 +46,15 @@ public class Annotations implements JSONEntity, Base {
 	
 	public Annotations(){
 		initailzeMaps();
+	}
+
+	public Annotations(JSONObjectAdapter jsonObject) {
+		super();
+		try {
+			initializeFromJSONObject(jsonObject);
+		} catch (JSONObjectAdapterException e) {
+			throw new RuntimeException(e.getMessage());
+		}
 	}
 
 	/**
