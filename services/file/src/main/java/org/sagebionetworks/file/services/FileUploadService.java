@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -48,5 +49,15 @@ public interface FileUploadService {
 	 * @throws DatastoreException 
 	 */
 	void deleteFileHandle(String handleId, String userId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Create an external file Handle.
+	 * @param userId
+	 * @param fileHandle
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	ExternalFileHandle createExternalFileHandle(String userId,	ExternalFileHandle fileHandle) throws DatastoreException, NotFoundException;
 
 }

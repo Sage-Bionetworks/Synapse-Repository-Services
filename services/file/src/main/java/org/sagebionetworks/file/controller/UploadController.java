@@ -13,6 +13,7 @@ import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -24,6 +25,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -94,6 +96,11 @@ public class UploadController extends BaseController {
 		fileService.deleteFileHandle(handleId, userId);
 	}
 	
+	public ExternalFileHandle createExternalFileHandle(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestBody ExternalFileHandle fileHandle) throws DatastoreException, NotFoundException{
+		// Pass it along
+		return fileService.createExternalFileHandle(userId, fileHandle);
+	}
 	
 	
 }
