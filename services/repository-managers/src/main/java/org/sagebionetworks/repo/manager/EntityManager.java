@@ -5,6 +5,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -12,6 +13,7 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
@@ -381,4 +383,12 @@ public interface EntityManager {
 	 * @throws UnauthorizedException 
 	 */
 	public String getFileHandleIdForVersion(UserInfo userInfo, String id, Long versionNumber) throws UnauthorizedException, NotFoundException;
+
+	/**
+	 * Get a reference for the current version of the given entity ids
+	 * @param entityIds entities ids to lookup
+	 * @return list of References with the current version filled in
+	 */
+	public List<Reference> getCurrentRevisionNumbers(List<String> entityIds);
+	
 }
