@@ -96,7 +96,9 @@ public class UploadController extends BaseController {
 		fileService.deleteFileHandle(handleId, userId);
 	}
 	
-	public ExternalFileHandle createExternalFileHandle(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value ="/externalFileHandle" , method = RequestMethod.POST)
+	public @ResponseBody ExternalFileHandle createExternalFileHandle(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
 			@RequestBody ExternalFileHandle fileHandle) throws DatastoreException, NotFoundException{
 		// Pass it along
 		return fileService.createExternalFileHandle(userId, fileHandle);

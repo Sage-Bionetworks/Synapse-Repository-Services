@@ -287,6 +287,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public ExternalFileHandle createExternalFileHandle(UserInfo userInfo,ExternalFileHandle fileHandle) {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(fileHandle == null) throw new IllegalArgumentException("FileHandle cannot be null");
+		if(fileHandle.getExternalURL() == null) throw new IllegalArgumentException("ExternalURL cannot be null");
+		if(fileHandle.getFileName() == null) throw new IllegalArgumentException("FileName cannot be null");
+		if(fileHandle.getContentType() == null) throw new IllegalArgumentException("ContentType cannot be null");
+		// The URL must be a URL
+		try{
+			URL url = new URL(fileHandle.getExternalURL());
+		}catch(MalformedURLException e){
+			throw new IllegalArgumentException("The ExternalURL is malformed: "+e.getMessage());
+		}
 		// set this user as the creator of the file
 		fileHandle.setCreatedBy(getUserId(userInfo));
 		// Save the file metadata to the DB.
