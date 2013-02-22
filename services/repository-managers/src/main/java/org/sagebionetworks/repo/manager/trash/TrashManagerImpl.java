@@ -81,6 +81,9 @@ public class TrashManagerImpl implements TrashManager {
 		Node node = this.nodeDao.getNode(nodeId);
 		final String oldParentId = node.getParentId(); // Save it before we reset it!
 		final String trashCanId = this.nodeDao.getNodeIdForPath(TrashConstants.TRASH_FOLDER_PATH);
+		if (trashCanId == null) {
+			throw new DatastoreException("Trash can folder does not exist.");
+		}
 		node.setParentId(trashCanId);
 		this.nodeManager.updateForTrashCan(userInfo, node, ChangeType.DELETE);
 
@@ -161,7 +164,7 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Override
 	public QueryResults<TrashedEntity> viewTrash(UserInfo userInfo,
-			Integer offset, Integer limit) {
+			Long offset, Long limit) {
 
 		if (userInfo == null) {
 			throw new IllegalArgumentException("userInfo cannot be null");
