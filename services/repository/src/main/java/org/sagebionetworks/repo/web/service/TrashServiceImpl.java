@@ -37,14 +37,14 @@ public class TrashServiceImpl implements TrashService {
 	}
 
 	@Override
-	public PaginatedResults<TrashedEntity> viewTrash(String userId, Integer offset, Integer limit,
+	public PaginatedResults<TrashedEntity> viewTrash(String userId, Long offset, Long limit,
 			HttpServletRequest request) throws DatastoreException, NotFoundException {
 
-		if(offset == null){
-			offset = 0;
+		if (offset == null){
+			offset = Long.valueOf(0L);
 		}
-		if(limit == null){
-			limit = 10;
+		if (limit == null){
+			limit = Long.valueOf(10L);
 		}
 		if (offset < 0) {
 			throw new IllegalArgumentException(
