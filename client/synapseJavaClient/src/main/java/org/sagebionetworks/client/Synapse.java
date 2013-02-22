@@ -31,9 +31,9 @@ import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.util.EntityUtils;
 import org.apache.http.entity.mime.MultipartEntity;
 import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
 import org.json.JSONException;
@@ -49,9 +49,9 @@ import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
-import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -60,7 +60,6 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.AutoGenFactory;
 import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityBundleCreate;
@@ -74,8 +73,8 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.S3Token;
 import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.ServiceConstants.AttachmentType;
+import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
@@ -192,9 +191,12 @@ public class Synapse {
 	protected static final String FILE_HANDLE = "/fileHandle";
 	private static final String FILE = "/file";
 	private static final String FILE_PREVIEW = "/filepreview";
-	
 	private static final String FILE_HANDLES = "/filehandles";
-	
+
+	private static final String TRASHCAN_TRASH = "/trashcan/trash";
+	private static final String TRASHCAN_RESTORE = "/trashcan/restore";
+	private static final String TRASHCAN_VIEW = "/trashcan/view";
+
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
 	protected static final String OFFSET = "offset";
@@ -3100,7 +3102,7 @@ public class Synapse {
 	 * @throws SynapseException 
 	 */
 	public EntityIdList getDescendants(String nodeId, int pageSize, String lastDescIdExcl)
-			throws UnauthorizedException, DatastoreException, SynapseException {
+			throws SynapseException {
 		StringBuilder url = new StringBuilder()
 				.append(ENTITY_URI_PATH)
 				.append("/")
@@ -3114,7 +3116,7 @@ public class Synapse {
 			url.append("&").append("lastEntityId")
 				.append("=").append(lastDescIdExcl);
 		}
-		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, url.toString(), "GET", null, defaultPOSTPUTHeaders);
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, url.toString(), "GET", null, defaultGETDELETEHeaders);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		EntityIdList idList = new EntityIdList();
 		try {
@@ -3135,7 +3137,7 @@ public class Synapse {
 	 * @throws SynapseException 
 	 */
 	public EntityIdList getDescendants(String nodeId, int generation, int pageSize, String lastDescIdExcl)
-			throws UnauthorizedException, DatastoreException, SynapseException {
+			throws SynapseException {
 		StringBuilder url = new StringBuilder()
 				.append(ENTITY_URI_PATH)
 				.append("/")
@@ -3151,7 +3153,7 @@ public class Synapse {
 			url.append("&").append("lastEntityId")
 				.append("=").append(lastDescIdExcl);
 		}
-		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, url.toString(), "GET", null, defaultPOSTPUTHeaders);
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, url.toString(), "GET", null, defaultGETDELETEHeaders);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		EntityIdList idList = new EntityIdList();
 		try {
@@ -3470,4 +3472,49 @@ public class Synapse {
 		return res.getTotalNumberOfResults();
 	}
 
+	/**
+	 * Moves an entity and its descendants to the trash can.
+	 *
+	 * @param entityId The ID of the entity to be moved to the trash can
+	 */
+	public void moveToTrash(String entityId) throws SynapseException {
+		if (entityId == null || entityId.isEmpty()) {
+			throw new IllegalArgumentException("Must provide an Entity ID.");
+		}
+		String url = TRASHCAN_TRASH + "/" +entityId;
+		signAndDispatchSynapseRequest(repoEndpoint, url, "PUT", null, defaultPOSTPUTHeaders);
+	}
+
+	/**
+	 * Moves an entity and its descendants out of the trash can. The entity will be restored
+	 * to the specified parent. If the parent is not specified, it will be restored to the
+	 * original parent.
+	 */
+	public void restoreFromTrash(String entityId, String newParentId) throws SynapseException {
+		if (entityId == null || entityId.isEmpty()) {
+			throw new IllegalArgumentException("Must provide an Entity ID.");
+		}
+		String url = TRASHCAN_RESTORE + "/" +entityId;
+		if (newParentId != null && !newParentId.isEmpty()) {
+			url = url + "/" + newParentId;
+		}
+		signAndDispatchSynapseRequest(repoEndpoint, url, "PUT", null, defaultPOSTPUTHeaders);
+	}
+
+	/**
+	 * Retrieves entities (in the trash can) deleted by the user.
+	 */
+	public PaginatedResults<TrashedEntity> viewTrash(long offset, long limit) throws SynapseException {
+		String url = TRASHCAN_VIEW + "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
+		JSONObject jsonObj = signAndDispatchSynapseRequest(
+				repoEndpoint, url, "GET", null, defaultGETDELETEHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<TrashedEntity> results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
 }
