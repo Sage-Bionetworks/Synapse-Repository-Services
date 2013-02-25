@@ -43,6 +43,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
@@ -294,7 +295,70 @@ public class IT100BackupRestoration {
 		myUserProfile = synapse.getMyProfile();
 		assertEquals(myCompany, myUserProfile.getCompany());
 	}
-	
+
+	// TODO: PLFM-1753 The trash can folder does not exist as the out-of-date
+	// backup file is loaded in this test case and overwrites the bootstrap folders
+	@Ignore
+	public void testTrashedEntityRoundTrip() throws Exception {
+
+		// Create two entities
+		Entity entity1 = new Project();
+		entity1.setName("IT100BackupRestoration.testUserProfileRoundTrip.1");
+		entity1 = synapse.createEntity(entity1);
+		assertNotNull(entity1);
+		Entity entity2 = new Project();
+		entity2.setName("IT100BackupRestoration.testUserProfileRoundTrip.2");
+		entity2 = synapse.createEntity(entity2);
+		assertNotNull(entity2);
+
+		// Move entity1 to the trash can
+		synapse.moveToTrash(entity1.getId());
+		PaginatedResults<TrashedEntity> page = synapse.viewTrash(0L, Long.MAX_VALUE);
+		assertEquals(1, page.getResults().size());
+		assertEquals(entity1.getId(), page.getResults().get(0).getEntityId());
+
+		// Back up the trash can
+		Set<String> idSet = new HashSet<String>();
+		idSet.add(entity1.getId());
+		BackupSubmission submission = new BackupSubmission();
+		submission.setEntityIdsToBackup(idSet);
+		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.TRASHED_ENTITY);
+		assertNotNull(status);
+		assertNotNull(status.getStatus());
+		assertFalse(status.getErrorMessage(),DaemonStatus.FAILED == status.getStatus());
+		assertTrue(DaemonType.BACKUP == status.getType());
+		String restoreId = status.getId();
+		assertNotNull(restoreId);
+		// Wait for it to finish
+		status = waitForDaemon(status.getId());
+		assertNotNull(status.getBackupUrl());
+		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+
+		// Move entity2 to the trash can
+		synapse.moveToTrash(entity2.getId());
+		page = synapse.viewTrash(0L, Long.MAX_VALUE);
+		assertEquals(2, page.getResults().size());
+
+		// Now restore the trash can from this backup file
+		RestoreSubmission restoreSub = new RestoreSubmission();
+		String backupFileName = getFileNameFromUrl(status.getBackupUrl());
+		restoreSub.setFileName(backupFileName);
+		status = synapse.startRestoreDaemon(restoreSub, MigratableObjectType.PRINCIPAL);
+		// Wait for it to finish
+		status = waitForDaemon(status.getId());
+		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
+
+		// After restoration, the trash can should be restored to having only entity1
+		page = synapse.viewTrash(0L, Long.MAX_VALUE);
+		assertEquals(1, page.getResults().size());
+		assertEquals(entity1.getId(), page.getResults().get(0).getEntityId());
+
+		// Clean up
+		synapse.restoreFromTrash(entity1.getId(), null);
+		synapse.deleteEntityById(entity1.getId());
+		synapse.deleteEntityById(entity2.getId());
+	}
+
 	/**
 	 * Test the complete round trip of Access Requirement/Approval migration.
 	 * @throws SynapseException 
