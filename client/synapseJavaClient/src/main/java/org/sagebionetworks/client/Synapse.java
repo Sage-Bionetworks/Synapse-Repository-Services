@@ -88,6 +88,7 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -191,6 +192,7 @@ public class Synapse {
 	protected static final String FILE_HANDLE = "/fileHandle";
 	private static final String FILE = "/file";
 	private static final String FILE_PREVIEW = "/filepreview";
+	private static final String EXTERNAL_FILE_HANDLE = "/externalFileHandle";
 	private static final String FILE_HANDLES = "/filehandles";
 
 	private static final String TRASHCAN_TRASH = "/trashcan/trash";
@@ -1441,6 +1443,17 @@ public class Synapse {
 		}		
 	}
 	
+	/**
+	 * Create an External File Handle.  This is used to references a file that is not stored in Synpase.
+	 * @param efh
+	 * @return
+	 * @throws SynapseException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public ExternalFileHandle createExternalFileHandle(ExternalFileHandle efh) throws JSONObjectAdapterException, SynapseException{
+		String uri = EXTERNAL_FILE_HANDLE;
+		return createJSONEntity(getFileEndpoint(), uri, efh);
+	}
 	/**
 	 * Get the raw file handle.
 	 * Note: Only the creator of a the file handle can get the raw file handle.

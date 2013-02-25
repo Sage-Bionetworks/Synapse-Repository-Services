@@ -69,6 +69,7 @@ public class FileMetadataUtils {
 			dbo.setCreatedOn(new Timestamp(dto.getCreatedOn().getTime()));
 		}
 		dbo.setName(dto.getFileName());
+		dbo.setContentType(dto.getContentType());
 		return dbo;
 	}
 	
@@ -142,6 +143,7 @@ public class FileMetadataUtils {
 			external.setEtag(dbo.getEtag());
 			external.setExternalURL(dbo.getKey());
 			external.setFileName(dbo.getName());
+			external.setContentType(dbo.getContentType());
 			return external;
 		}else if(MetadataType.S3 == dbo.getMetadataTypeEnum() || MetadataType.PREVIEW == dbo.getMetadataTypeEnum()){
 			S3FileHandleInterface metaInterface = null;

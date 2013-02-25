@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.manager.file.FileUploadResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -66,6 +67,16 @@ public class FileUploadServiceImpl implements FileUploadService {
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		fileUploadManager.deleteFileHandle(userInfo, handleId);
+	}
+
+	@Override
+	public ExternalFileHandle createExternalFileHandle(String userId,
+			ExternalFileHandle fileHandle) throws DatastoreException, NotFoundException {
+		if(userId == null) throw new UnauthorizedException("The user must be authenticated");
+		if(fileHandle == null) throw new IllegalArgumentException("FileHandleId cannot be null");
+		// resolve the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.createExternalFileHandle(userInfo, fileHandle);
 	}
 
 }
