@@ -11,6 +11,7 @@ import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -96,5 +97,13 @@ public interface FileHandleManager {
 	 * @throws DatastoreException 
 	 */
 	FileHandleResults getAllFileHandles(List<String> idsList, boolean includePreviews) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Create an external file handle.
+	 * @param userInfo
+	 * @param fileHandle
+	 * @return
+	 */
+	ExternalFileHandle createExternalFileHandle(UserInfo userInfo,	ExternalFileHandle fileHandle);
 
 }

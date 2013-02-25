@@ -119,7 +119,7 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void deleteAllChanges() {
-		simpleJdbcTemplate.update("TRUNCATE TABLE "+TABLE_CHANGES);
+		simpleJdbcTemplate.update("DELETE FROM  "+TABLE_CHANGES+" WHERE "+COL_CHANGES_CHANGE_NUM+" > -1");
 	}
 
 	@Override

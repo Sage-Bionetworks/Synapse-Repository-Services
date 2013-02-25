@@ -22,9 +22,12 @@ import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class IT049FileHandleTest {
@@ -33,7 +36,7 @@ public class IT049FileHandleTest {
 	
 	private static String FILE_NAME = "LittleImage.png";
 
-	private List<S3FileHandle> toDelete = null;
+	private List<FileHandle> toDelete = null;
 
 	private static Synapse synapse = null;
 	File imageFile;
@@ -63,7 +66,7 @@ public class IT049FileHandleTest {
 	
 	@Before
 	public void before() throws SynapseException {
-		toDelete = new ArrayList<S3FileHandle>();
+		toDelete = new ArrayList<FileHandle>();
 		// Get the image file from the classpath.
 		URL url = IT049FileHandleTest.class.getClassLoader().getResource("images/"+FILE_NAME);
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
@@ -81,7 +84,7 @@ public class IT049FileHandleTest {
 	@After
 	public void after() throws Exception {
 		if (toDelete != null) {
-			for (S3FileHandle handle: toDelete) {
+			for (FileHandle handle: toDelete) {
 				try {
 					synapse.deleteFileHandle(handle.getId());
 				} catch (Exception e) {}
@@ -137,5 +140,24 @@ public class IT049FileHandleTest {
 		}catch(SynapseException e){
 			// expected.
 		}
+	}
+	
+	@Test
+	public void testExternalRoundTrip() throws JSONObjectAdapterException, SynapseException{
+		ExternalFileHandle efh = new ExternalFileHandle();
+		efh.setContentType("text/plain");
+		efh.setFileName("foo.bar");
+		efh.setExternalURL("http://google.com");
+		// Save it
+		ExternalFileHandle clone = synapse.createExternalFileHandle(efh);
+		assertNotNull(clone);
+		toDelete.add(clone);
+		assertNotNull(clone.getId());
+		assertNotNull(clone.getCreatedBy());
+		assertNotNull(clone.getCreatedOn());
+		assertNotNull(clone.getEtag());
+		assertEquals(efh.getFileName(), clone.getFileName());
+		assertEquals(efh.getExternalURL(), clone.getExternalURL());
+		assertEquals(efh.getContentType(), clone.getContentType());
 	}
 }
