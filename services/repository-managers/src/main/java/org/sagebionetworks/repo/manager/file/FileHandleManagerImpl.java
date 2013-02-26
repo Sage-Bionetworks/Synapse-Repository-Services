@@ -53,6 +53,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s"; // userid/UUID
 	
+	public static final String NOT_SET = "NOT_SET";
+	
 	@Autowired
 	FileHandleDao fileHandleDao;
 	
@@ -288,8 +290,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
 		if(fileHandle == null) throw new IllegalArgumentException("FileHandle cannot be null");
 		if(fileHandle.getExternalURL() == null) throw new IllegalArgumentException("ExternalURL cannot be null");
-		if(fileHandle.getFileName() == null) throw new IllegalArgumentException("FileName cannot be null");
-		if(fileHandle.getContentType() == null) throw new IllegalArgumentException("ContentType cannot be null");
+		if(fileHandle.getFileName() == null){
+			fileHandle.setFileName(NOT_SET);
+		}
+		if(fileHandle.getContentType() == null){
+			fileHandle.setContentType(NOT_SET);
+		}
 		// The URL must be a URL
 		try{
 			URL url = new URL(fileHandle.getExternalURL());
