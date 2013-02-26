@@ -376,17 +376,17 @@ public class FileHandleManagerImplTest {
 		manager.createExternalFileHandle(mockUser, null);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
 	public void testCreateExternalFileHandleNullFileName(){
 		ExternalFileHandle efh = createFileHandle();
 		efh.setFileName(null);
+		// This should not fail.
 		manager.createExternalFileHandle(mockUser, efh);
 	}
 	
-	@Test (expected=IllegalArgumentException.class)
 	public void testCreateExternalFileHandleNullContentType(){
 		ExternalFileHandle efh = createFileHandle();
 		efh.setContentType(null);
+		// This should not fail.
 		manager.createExternalFileHandle(mockUser, efh);
 	}
 	

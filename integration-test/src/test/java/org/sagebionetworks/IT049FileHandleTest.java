@@ -160,4 +160,24 @@ public class IT049FileHandleTest {
 		assertEquals(efh.getExternalURL(), clone.getExternalURL());
 		assertEquals(efh.getContentType(), clone.getContentType());
 	}
+	
+	@Test
+	public void testExternalRoundTripWithNulls() throws JSONObjectAdapterException, SynapseException{
+		// Us a null name and content type
+		ExternalFileHandle efh = new ExternalFileHandle();
+		efh.setContentType(null);
+		efh.setFileName(null);
+		efh.setExternalURL("http://google.com");
+		// Save it
+		ExternalFileHandle clone = synapse.createExternalFileHandle(efh);
+		assertNotNull(clone);
+		toDelete.add(clone);
+		assertNotNull(clone.getId());
+		assertNotNull(clone.getCreatedBy());
+		assertNotNull(clone.getCreatedOn());
+		assertNotNull(clone.getEtag());
+		assertEquals("NOT_SET", clone.getFileName());
+		assertEquals(efh.getExternalURL(), clone.getExternalURL());
+		assertEquals("NOT_SET", clone.getContentType());
+	}
 }
