@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao;
+package org.sagebionetworks.dynamo.dao.nodetree;
 
 import java.util.Date;
 

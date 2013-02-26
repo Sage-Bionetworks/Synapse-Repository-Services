@@ -6,9 +6,9 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.dynamo.dao.IncompletePathException;
-import org.sagebionetworks.dynamo.dao.NodeTreeDao;
-import org.sagebionetworks.dynamo.dao.ObsoleteChangeException;
+import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.nodetree.ObsoleteChangeException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NodeDAO;
