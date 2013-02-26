@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao;
+package org.sagebionetworks.dynamo.dao.tree;
 
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -8,6 +8,9 @@ import static org.mockito.Mockito.when;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.InOrder;
+import org.sagebionetworks.dynamo.dao.tree.DboNodeLineage;
+import org.sagebionetworks.dynamo.dao.tree.LineagePairPut;
+import org.sagebionetworks.dynamo.dao.tree.NodeLineagePair;
 
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 

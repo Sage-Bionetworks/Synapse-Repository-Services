@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao;
+package org.sagebionetworks.dynamo.dao.tree;
 
 /**
  * When the hierarchical change is out-of-date.

@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao;
+package org.sagebionetworks.dynamo.dao.tree;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,6 +13,12 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.dynamo.DynamoTestUtil;
 import org.sagebionetworks.dynamo.DynamoWriteExecution;
 import org.sagebionetworks.dynamo.DynamoWriteOperation;
+import org.sagebionetworks.dynamo.dao.tree.DboNodeLineage;
+import org.sagebionetworks.dynamo.dao.tree.LineagePairDelete;
+import org.sagebionetworks.dynamo.dao.tree.LineagePairPut;
+import org.sagebionetworks.dynamo.dao.tree.NodeLineageMapperConfig;
+import org.sagebionetworks.dynamo.dao.tree.NodeLineagePair;
+import org.sagebionetworks.dynamo.dao.tree.NodeLineageWriteExecutor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;

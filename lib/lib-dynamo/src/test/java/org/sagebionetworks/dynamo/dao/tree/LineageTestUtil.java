@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao;
+package org.sagebionetworks.dynamo.dao.tree;
 
 import java.util.Date;
 import java.util.Map;
@@ -6,6 +6,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.sagebionetworks.dynamo.KeyValueSplitter;
+import org.sagebionetworks.dynamo.dao.tree.DboNodeLineage;
+import org.sagebionetworks.dynamo.dao.tree.LineageType;
+import org.sagebionetworks.dynamo.dao.tree.NodeLineage;
+import org.sagebionetworks.dynamo.dao.tree.NodeLineagePair;
 
 /**
  * Test utils.

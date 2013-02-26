@@ -1,10 +1,12 @@
-package org.sagebionetworks.dynamo.dao;
+package org.sagebionetworks.dynamo.dao.tree;
 
 import java.util.Date;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.sagebionetworks.dynamo.dao.tree.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.tree.NodeTreeDaoNodeLineageImpl;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 

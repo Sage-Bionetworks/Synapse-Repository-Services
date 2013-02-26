@@ -1,10 +1,14 @@
-package org.sagebionetworks.dynamo.dao;
+package org.sagebionetworks.dynamo.dao.tree;
 
 import java.util.Date;
 
 import junit.framework.Assert;
 
 import org.junit.Test;
+import org.sagebionetworks.dynamo.dao.tree.DboNodeLineage;
+import org.sagebionetworks.dynamo.dao.tree.LineageType;
+import org.sagebionetworks.dynamo.dao.tree.NodeLineage;
+import org.sagebionetworks.dynamo.dao.tree.NodeLineagePair;
 
 public class NodeLineagePairTest {
 

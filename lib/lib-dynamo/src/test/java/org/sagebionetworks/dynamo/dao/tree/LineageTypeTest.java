@@ -1,7 +1,8 @@
-package org.sagebionetworks.dynamo.dao;
+package org.sagebionetworks.dynamo.dao.tree;
 
 import org.junit.Assert;
 import org.junit.Test;
+import org.sagebionetworks.dynamo.dao.tree.LineageType;
 
 public class LineageTypeTest {
 

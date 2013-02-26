@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao;
+package org.sagebionetworks.dynamo.dao.tree;
 
 import org.apache.log4j.Logger;
 
@@ -6,20 +6,20 @@ import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 import com.amazonaws.services.dynamodb.model.ConditionalCheckFailedException;
 
 /**
- * Puts a pair of node lineage.
+ * Deletes a pair of node lineage.
  *
  * @author Eric Wu
  */
-class LineagePairPut extends LineagePairWriteOperation {
+class LineagePairDelete extends LineagePairWriteOperation {
 
-	private final Logger logger = Logger.getLogger(LineagePairPut.class);
+	private final Logger logger = Logger.getLogger(LineagePairDelete.class);
 
 	private final DynamoDBMapper dynamoMapper;
-	private final NodeLineagePair toPut;
+	private final NodeLineagePair toDelete;
 
-	LineagePairPut(NodeLineagePair toPut, DynamoDBMapper dynamoMapper) {
+	LineagePairDelete(NodeLineagePair toDelete, DynamoDBMapper dynamoMapper) {
 
-		if (toPut == null) {
+		if (toDelete == null) {
 			throw new NullPointerException();
 		}
 		if (dynamoMapper == null) {
@@ -27,44 +27,44 @@ class LineagePairPut extends LineagePairWriteOperation {
 		}
 
 		this.dynamoMapper = dynamoMapper;
-		this.toPut = toPut;
+		this.toDelete = toDelete;
 	}
 
 	@Override
 	int getAncestorDepth() {
-		return this.toPut.getAncestorDepth();
+		return this.toDelete.getAncestorDepth();
 	}
 
 	@Override
 	int getDistance() {
-		return this.toPut.getDistance();
+		return this.toDelete.getDistance();
 	}
 
 	@Override
 	String getAncestorId() {
-		return this.toPut.getAncestorId();
+		return this.toDelete.getAncestorId();
 	}
 
 	@Override
 	String getDescendantId() {
-		return this.toPut.getDescendantId();
+		return this.toDelete.getDescendantId();
 	}
 
 	@Override
 	public boolean write(final int step) {
 		// Both the integrity check of the tree (complete path to the root) and the pairing
 		// of the node pointers rely on the upward ancestor pointers. Hence we are enforcing
-		// a write order here such that the upward pointer d2a is always written before
-		// the downward pointer a2d. This ensures the higher priority of the upward ancestor
+		// a write order here such that the downward pointer a2d is always deleted before
+		// the upward pointer d2a. This ensures the higher priority of the upward ancestor
 		// pointers. In case of failures, either the upward ancestor pointer is there or both
 		// the upward and the downward pointer do not exist at all.
-		DboNodeLineage d2a = this.toPut.getDescendant2Ancestor();
-		boolean success = this.putNodeLineage(d2a);
+		DboNodeLineage a2d = this.toDelete.getAncestor2Descendant();
+		boolean success = this.deleteNodeLineage(a2d);
 		if (!success) {
 			return false;
 		}
-		DboNodeLineage a2d = this.toPut.getAncestor2Descendant();
-		success = this.putNodeLineage(a2d);
+		DboNodeLineage d2a = this.toDelete.getDescendant2Ancestor();
+		success = this.deleteNodeLineage(d2a);
 		return success;
 	}
 
@@ -73,28 +73,30 @@ class LineagePairPut extends LineagePairWriteOperation {
 		//
 		// No restore until we are sure:
 		// 1) Restore does not write incorrect data
-		// 2) Restore does end up with race conditions or deadlocks
+		// 2) Restore does cause race conditions or deadlocks
 		//
 		// This restore shouldn't be triggered with the following measures in place:
 		// 1) Writes are executed in predetermined order from the root
 		// 2) Writing a child-to-parent pair requires a complete path from the root to the parent
 		// We are logging it in case it happens
 		//
-		logger.info("Restoring at step " + step + " for node lineage pair " + this.toPut);
+		logger.info("Restoring at step " + step + " for node lineage pair " + this.toDelete);
 	}
 
-	private boolean putNodeLineage(final DboNodeLineage toPut) {
-		assert toPut != null;
-		// As we are putting a new item, the put item's version number is null
-		// Once put is done, the item's version is updated by 1.
-		// If another thread has already put the item and the item exists with
-		// some version number, this put will fail with ConditionalCheckFailedException.
-		// That is the exception we catch and attempt a rolling back.
+	private boolean deleteNodeLineage(final DboNodeLineage toDelete) {
+		assert toDelete != null;
 		try {
-			this.dynamoMapper.save(toPut);
+			this.dynamoMapper.delete(toDelete);
 			return true;
 		} catch (ConditionalCheckFailedException e) {
-			logger.error("PUT failed for NodeLineage " + toPut
+			DboNodeLineage dbo = this.dynamoMapper.load(DboNodeLineage.class,
+					toDelete.getHashKey(), toDelete.getRangeKey());
+			if (dbo == null) {
+				// Note: If the record is already deleted, it also throws
+				// ConditionalCheckFailedException, in which case we should ignore it
+				return true;
+			}
+			logger.error("DELETE failed for NodeLineage " + toDelete
 					+ ". Got error: " + e.getMessage());
 			return false;
 		}

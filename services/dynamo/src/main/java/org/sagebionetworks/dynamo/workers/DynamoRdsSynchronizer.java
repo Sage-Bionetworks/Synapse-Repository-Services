@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
-import org.sagebionetworks.dynamo.dao.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.tree.NodeTreeDao;
 import org.sagebionetworks.dynamo.manager.NodeTreeUpdateManager;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;

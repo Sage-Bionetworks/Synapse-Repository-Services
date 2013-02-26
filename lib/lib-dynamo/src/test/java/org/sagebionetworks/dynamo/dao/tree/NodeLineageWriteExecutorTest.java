@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao;
+package org.sagebionetworks.dynamo.dao.tree;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -9,6 +9,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.dynamo.DynamoWriteExecution;
 import org.sagebionetworks.dynamo.DynamoWriteOperation;
+import org.sagebionetworks.dynamo.dao.tree.LineagePairWriteOperation;
+import org.sagebionetworks.dynamo.dao.tree.NodeLineageWriteExecutor;
 
 public class NodeLineageWriteExecutorTest {
 
