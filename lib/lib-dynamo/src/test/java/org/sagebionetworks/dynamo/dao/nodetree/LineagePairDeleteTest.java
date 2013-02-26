@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao.tree;
+package org.sagebionetworks.dynamo.dao.nodetree;
 
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;

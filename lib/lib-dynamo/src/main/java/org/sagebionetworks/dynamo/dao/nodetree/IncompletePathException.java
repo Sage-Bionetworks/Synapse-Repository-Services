@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao.tree;
+package org.sagebionetworks.dynamo.dao.nodetree;
 
 /**
  * When the path to the root is incomplete.

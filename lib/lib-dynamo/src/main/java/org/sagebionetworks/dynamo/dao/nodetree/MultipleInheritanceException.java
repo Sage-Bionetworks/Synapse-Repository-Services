@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao.tree;
+package org.sagebionetworks.dynamo.dao.nodetree;
 
 /**
  * When a node has more than one ancestor of a particular generation. One special

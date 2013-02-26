@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao.tree;
+package org.sagebionetworks.dynamo.dao.nodetree;
 
 import org.junit.Assert;
 import org.junit.Test;

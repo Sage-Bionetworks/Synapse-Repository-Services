@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao.tree;
+package org.sagebionetworks.dynamo.dao.nodetree;
 
 import java.util.ArrayList;
 import java.util.Collections;

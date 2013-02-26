@@ -8,7 +8,7 @@ import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKey;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoKeySchema;
 import org.sagebionetworks.dynamo.config.DynamoTableConfig.DynamoThroughput;
-import org.sagebionetworks.dynamo.dao.tree.DboNodeLineage;
+import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 
 import com.amazonaws.services.dynamodb.model.ScalarAttributeType;
 

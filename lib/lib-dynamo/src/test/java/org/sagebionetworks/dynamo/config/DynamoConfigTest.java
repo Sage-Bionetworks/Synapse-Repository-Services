@@ -5,7 +5,7 @@ import java.util.Iterator;
 import org.junit.Assert;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.dynamo.dao.tree.DboNodeLineage;
+import org.sagebionetworks.dynamo.dao.nodetree.DboNodeLineage;
 
 import com.amazonaws.services.dynamodb.model.ScalarAttributeType;
 

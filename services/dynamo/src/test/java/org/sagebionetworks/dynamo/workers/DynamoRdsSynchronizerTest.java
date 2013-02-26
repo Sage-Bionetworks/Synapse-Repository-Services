@@ -14,7 +14,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.dynamo.dao.tree.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDao;
 import org.sagebionetworks.dynamo.manager.NodeTreeUpdateManager;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;

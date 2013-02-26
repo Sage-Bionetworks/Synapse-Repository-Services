@@ -5,7 +5,7 @@ import static org.mockito.Mockito.mock;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.dynamo.dao.tree.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
