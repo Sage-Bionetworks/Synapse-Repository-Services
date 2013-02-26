@@ -4,9 +4,6 @@ import java.util.Date;
 
 import org.junit.Assert;
 import org.junit.Test;
-import org.sagebionetworks.dynamo.dao.tree.DboNodeLineage;
-import org.sagebionetworks.dynamo.dao.tree.LineageType;
-import org.sagebionetworks.dynamo.dao.tree.NodeLineage;
 
 public class NodeLineageTest {
 

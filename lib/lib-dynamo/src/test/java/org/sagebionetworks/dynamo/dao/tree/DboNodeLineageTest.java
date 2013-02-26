@@ -6,8 +6,6 @@ import junit.framework.Assert;
 
 import org.junit.Test;
 import org.sagebionetworks.dynamo.KeyValueSplitter;
-import org.sagebionetworks.dynamo.dao.tree.DboNodeLineage;
-import org.sagebionetworks.dynamo.dao.tree.LineageType;
 
 public class DboNodeLineageTest {
 

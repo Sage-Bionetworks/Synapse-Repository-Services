@@ -8,9 +8,6 @@ import static org.mockito.Mockito.when;
 import org.junit.Assert;
 import org.junit.Test;
 import org.mockito.InOrder;
-import org.sagebionetworks.dynamo.dao.tree.DboNodeLineage;
-import org.sagebionetworks.dynamo.dao.tree.LineagePairDelete;
-import org.sagebionetworks.dynamo.dao.tree.NodeLineagePair;
 
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 
