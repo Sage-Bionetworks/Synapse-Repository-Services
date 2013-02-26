@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.IncompletePathException;
 import org.sagebionetworks.dynamo.dao.NodeTreeDao;
 import org.sagebionetworks.dynamo.dao.ObsoleteChangeException;
@@ -45,13 +46,13 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		if (childId == null) {
 			throw new NullPointerException("childId cannot be null");
 		}
+		// Verify with RDS. This is mainly to skip fake messages created by other tests
+		if (!isProd() && !this.nodeExists(childId)) {
+			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
+			this.nodeTreeDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
+			return;
+		}
 		if (parentId == null) {
-			// Verify with RDS. This is mainly to skip fake messages
-			// created by other tests
-			if (!this.nodeExists(childId)) {
-				this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
-				return;
-			}
 			// The root
 			parentId = childId;
 		}
@@ -89,13 +90,13 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		if (childId == null) {
 			throw new NullPointerException("childId cannot be null");
 		}
+		// Verify with RDS. This is mainly to skip fake messages created by other tests
+		if (!isProd() && !this.nodeExists(childId)) {
+			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
+			this.nodeTreeDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
+			return;
+		}
 		if (parentId == null) {
-			// Verify with RDS. This is mainly to skip fake messages
-			// created by other tests
-			if (!this.nodeExists(childId)) {
-				this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
-				return;
-			}
 			// The root
 			parentId = childId;
 		}
@@ -212,5 +213,16 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 	private boolean nodeExists(String node) {
 		Long nodeId = KeyFactory.stringToKey(node);
 		return this.nodeDao.doesNodeExist(nodeId);
+	}
+
+	/**
+	 * Is this production?
+	 */
+	private boolean isProd() {
+		String stack = StackConfiguration.getStack();
+		if ("prod".equalsIgnoreCase(stack)) {
+			return true;
+		}
+		return false;
 	}
 }
