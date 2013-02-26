@@ -14,7 +14,7 @@ import org.sagebionetworks.repo.model.Study;
 
 public class IT050SynapseJavaClientDynamo {
 
-	public static final long MAX_WAIT_TIME_MS = 15 * 60 * 1000; // 15 min
+	public static final long MAX_WAIT_TIME_MS = 5 * 60 * 1000; // 5 min
 
 	private static Synapse synapse = null;
 
