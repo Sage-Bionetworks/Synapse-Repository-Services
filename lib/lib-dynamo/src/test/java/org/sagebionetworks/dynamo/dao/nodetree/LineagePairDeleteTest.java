@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao;
+package org.sagebionetworks.dynamo.dao.nodetree;
 
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -11,10 +11,10 @@ import org.mockito.InOrder;
 
 import com.amazonaws.services.dynamodb.datamodeling.DynamoDBMapper;
 
-public class LineagePairPutTest {
+public class LineagePairDeleteTest {
 
 	@Test
-	public void testPutOrder() {
+	public void testDeleteOrder() {
 
 		DboNodeLineage d2a = mock(DboNodeLineage.class);
 		DboNodeLineage a2d = mock(DboNodeLineage.class);
@@ -25,9 +25,9 @@ public class LineagePairPutTest {
 		DynamoDBMapper mapper = mock(DynamoDBMapper.class);
 		InOrder inOrder = inOrder(mapper);
 
-		LineagePairPut put = new LineagePairPut(pair, mapper);
-		Assert.assertTrue(put.write(0));
-		inOrder.verify(mapper, times(1)).save(d2a);
-		inOrder.verify(mapper, times(1)).save(a2d);
+		LineagePairDelete delete = new LineagePairDelete(pair, mapper);
+		Assert.assertTrue(delete.write(0));
+		inOrder.verify(mapper, times(1)).delete(a2d);
+		inOrder.verify(mapper, times(1)).delete(d2a);
 	}
 }

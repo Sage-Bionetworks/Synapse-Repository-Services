@@ -1,4 +1,4 @@
-package org.sagebionetworks.dynamo.dao;
+package org.sagebionetworks.dynamo.dao.nodetree;
 
 /**
  * When no ancestor exists for the node. Every node has at least one ancestor.
