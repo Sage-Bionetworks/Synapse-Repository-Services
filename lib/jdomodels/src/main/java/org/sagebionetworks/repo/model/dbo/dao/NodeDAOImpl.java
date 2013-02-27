@@ -588,7 +588,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 		// Create a Select for update query
 		final Long longId = KeyFactory.stringToKey(id);
-		String currentTag = simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, longId);
+		String currentTag = lockNode(longId);
 
 		// Check the e-tags
 		if(!currentTag.equals(eTag)){
@@ -603,6 +603,12 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(updated != 1) throw new ConflictingUpdateException("Failed to lock Node: "+longId);
 		
 		// Return the new tag
+		return currentTag;
+	}
+
+	@Override
+	public String lockNode(final Long longId) {
+		String currentTag = simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, longId);
 		return currentTag;
 	}
 

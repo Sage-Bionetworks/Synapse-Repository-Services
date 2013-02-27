@@ -98,6 +98,8 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	void replaceAll(String id) throws NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		Long nodeId = KeyFactory.stringToKey(id);
+		// First lock the node
+		nodeDao.lockNodeAndIncrementEtag(id, eTag)
 		// When an entity is created we need to update all daos.
 		Map<String, Set<Reference>> references = nodeDao.getNodeReferences(id);
 		if(references != null){

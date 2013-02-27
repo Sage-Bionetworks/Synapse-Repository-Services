@@ -395,4 +395,11 @@ public interface NodeDAO extends MigratableDAO {
 	 */
 	public String getFileHandleIdForVersion(String id, Long versionNumber);
 
+	/**
+	 * Lock the node and get the current Etag.
+	 * @param longId
+	 * @return
+	 */
+	public String lockNode(Long longId);
+
 }

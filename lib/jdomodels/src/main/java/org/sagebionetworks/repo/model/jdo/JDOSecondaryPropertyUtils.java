@@ -77,6 +77,26 @@ public class JDOSecondaryPropertyUtils {
 	}
 	
 	/**
+	 * Build a set of annotations where all of the key-value-pairs are distinct.
+	 * @param annos
+	 */
+	public static Annotations buildDistinctAnnotations(Annotations annos){
+		// The resulting annotations will have no duplicates.
+		Annotations distinct = new Annotations();
+		distinct.setStringAnnotations(buildDistinctMap(annos.getStringAnnotations()));
+		distinct.setDoubleAnnotations(buildDistinctMap(annos.getDoubleAnnotations()));
+		distinct.setLongAnnotations(buildDistinctMap(annos.getLongAnnotations()));
+		distinct.setDateAnnotations(buildDistinctMap(annos.getDateAnnotations()));
+		distinct.setBlobAnnotations(buildDistinctMap(annos.getBlobAnnotations()));
+		return distinct;
+	}
+	
+	public static <T> Map<String, List<T>> buildDistinctMap(Map<String, List<T>> original){
+		 Map<String, List<T>> distinct = new HashMap<String, List<T>>();
+		 return distinct;
+	}
+	
+	/**
 	 * Add all annotaions to strings.
 	 * @param annos
 	 * @return
