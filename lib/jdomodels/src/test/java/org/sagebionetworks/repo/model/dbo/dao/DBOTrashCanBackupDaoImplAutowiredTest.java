@@ -69,12 +69,14 @@ public class DBOTrashCanBackupDaoImplAutowiredTest {
 		assertNull(entity);
 
 		final String parentId = KeyFactory.keyToString(333L);
-		trashCanDao.create(userId, entityId, parentId);
+		final String nodeName = "DBOTrashCanBackupDaoImplAutowiredTest.testGetAndDelete()";
+		trashCanDao.create(userId, entityId, nodeName, parentId);
 		assertEquals(1L, trashCanBackupDao.getCount());
 		entity = trashCanBackupDao.get(entityId);
 		assertNotNull(entity);
 		assertEquals(entityId, entity.getEntityId());
 		assertEquals(userId, entity.getDeletedByPrincipalId());
+		assertEquals(nodeName, entity.getEntityName());
 		assertEquals(parentId, entity.getOriginalParentId());
 		assertNotNull(entity.getDeletedOn());
 
@@ -91,6 +93,7 @@ public class DBOTrashCanBackupDaoImplAutowiredTest {
 
 		// Before update(), there should be nothing there
 		final String entityId = KeyFactory.keyToString(555L);
+		final String entityName = "DBOTrashCanBackupDaoImplAutowiredTest.testUpdate()";
 		final String parentId = KeyFactory.keyToString(333L);
 		assertEquals(0L, trashCanBackupDao.getCount());
 		TrashedEntity trashBack = trashCanBackupDao.get(entityId);
@@ -99,6 +102,7 @@ public class DBOTrashCanBackupDaoImplAutowiredTest {
 		// Since nothing is there, update() should create
 		TrashedEntity trash = new TrashedEntity();
 		trash.setEntityId(entityId);
+		trash.setEntityName(entityName);
 		trash.setDeletedByPrincipalId(userId);
 		trash.setOriginalParentId(parentId);
 		trash.setDeletedOn(new Date());
@@ -107,6 +111,7 @@ public class DBOTrashCanBackupDaoImplAutowiredTest {
 		trashBack = trashCanBackupDao.get(entityId);
 		assertNotNull(trashBack);
 		assertEquals(entityId, trashBack.getEntityId());
+		assertEquals(entityName, trashBack.getEntityName());
 		assertEquals(userId, trashBack.getDeletedByPrincipalId());
 		assertEquals(parentId, trashBack.getOriginalParentId());
 		assertNotNull(trashBack.getDeletedOn());
@@ -119,6 +124,7 @@ public class DBOTrashCanBackupDaoImplAutowiredTest {
 		trashBack = trashCanBackupDao.get(entityId);
 		assertNotNull(trashBack);
 		assertEquals(entityId, trashBack.getEntityId());
+		assertEquals(entityName, trashBack.getEntityName());
 		assertEquals(userId, trashBack.getDeletedByPrincipalId());
 		assertEquals(newParentId, trashBack.getOriginalParentId());
 		assertNotNull(trashBack.getDeletedOn());
@@ -131,6 +137,7 @@ public class DBOTrashCanBackupDaoImplAutowiredTest {
 		trashBack = trashCanBackupDao.get(entityId);
 		assertNotNull(trashBack);
 		assertEquals(entityId, trashBack.getEntityId());
+		assertEquals(entityName, trashBack.getEntityName());
 		assertEquals(userId, trashBack.getDeletedByPrincipalId());
 		assertEquals(newParentId, trashBack.getOriginalParentId());
 		assertNotNull(trashBack.getDeletedOn());
@@ -138,6 +145,7 @@ public class DBOTrashCanBackupDaoImplAutowiredTest {
 		assertNotNull(trashBack);
 		assertEquals(newEntityId, trashBack.getEntityId());
 		assertEquals(userId, trashBack.getDeletedByPrincipalId());
+		assertEquals(entityName, trashBack.getEntityName());
 		assertEquals(newParentId, trashBack.getOriginalParentId());
 		assertNotNull(trashBack.getDeletedOn());
 	}
@@ -153,8 +161,9 @@ public class DBOTrashCanBackupDaoImplAutowiredTest {
 		assertEquals(0, results.getResults().size());
 
 		final String entityId = KeyFactory.keyToString(555L);
+		final String entityName = "DBOTrashCanBackupDaoImplAutowiredTest.testGetMigrationObjectData()";
 		final String parentId = KeyFactory.keyToString(333L);
-		trashCanDao.create(userId, entityId, parentId);
+		trashCanDao.create(userId, entityId, entityName, parentId);
 
 		results =  trashCanBackupDao.getMigrationObjectData(0, Long.MAX_VALUE, true);
 		assertNotNull(results);
@@ -165,7 +174,7 @@ public class DBOTrashCanBackupDaoImplAutowiredTest {
 		assertEquals(MigratableObjectType.TRASHED_ENTITY, obj.getId().getType());
 		assertEquals(UuidETagGenerator.ZERO_E_TAG, obj.getEtag());
 
-		trashCanDao.create(userId, KeyFactory.keyToString(777L), KeyFactory.keyToString(333L));
+		trashCanDao.create(userId, KeyFactory.keyToString(777L), entityName, KeyFactory.keyToString(333L));
 		results =  trashCanBackupDao.getMigrationObjectData(0, Long.MAX_VALUE, true);
 		assertNotNull(results);
 		assertEquals(2, results.getTotalNumberOfResults());

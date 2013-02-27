@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -51,7 +52,7 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void moveToTrash(UserInfo userInfo, String nodeId)
+	public void moveToTrash(final UserInfo userInfo, final String nodeId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
 		if (userInfo == null) {
@@ -77,9 +78,13 @@ public class TrashManagerImpl implements TrashManager {
 					+ " has more than " + TrashConstants.MAX_TRASHABLE + " descendants.");
 		}
 
-		// Move the node the trash can folder
+		// Move the node to the trash can folder
 		Node node = this.nodeDao.getNode(nodeId);
-		final String oldParentId = node.getParentId(); // Save it before we reset it!
+		// Save before we reset the name and the parent
+		final String oldNodeName = node.getName();
+		final String oldParentId = node.getParentId();
+		// Set the name to its ID to guarantee the entities in the trash folder all have unique names (PLFM-1760)
+		node.setName(node.getId());
 		final String trashCanId = this.nodeDao.getNodeIdForPath(TrashConstants.TRASH_FOLDER_PATH);
 		if (trashCanId == null) {
 			throw new DatastoreException("Trash can folder does not exist.");
@@ -89,15 +94,17 @@ public class TrashManagerImpl implements TrashManager {
 
 		// Update the trash can table
 		String userGroupId = userInfo.getIndividualGroup().getId();
-		this.trashCanDao.create(userGroupId, nodeId, oldParentId);
+		this.trashCanDao.create(userGroupId, nodeId, oldNodeName, oldParentId);
 
 		// For all the descendants, we need to add them to the trash can table
 		// and send delete messages to 2nd indices
 		Collection<String> descendants = new ArrayList<String>();
 		this.getDescendants(nodeId, descendants);
 		for (String descendantId : descendants) {
-			String parentId = this.nodeDao.getParentId(descendantId);
-			this.trashCanDao.create(userGroupId, descendantId, parentId);
+			final EntityHeader entityHeader =  this.nodeDao.getEntityHeader(descendantId, null);
+			final String nodeName = entityHeader.getName();
+			final String parentId = this.nodeDao.getParentId(descendantId);
+			this.trashCanDao.create(userGroupId, descendantId, nodeName, parentId);
 			String etag = this.nodeDao.peekCurrentEtag(descendantId);
 			this.tagMessenger.sendMessage(descendantId, parentId, etag,
 					ObjectType.ENTITY, ChangeType.DELETE);
@@ -125,8 +132,8 @@ public class TrashManagerImpl implements TrashManager {
 		}
 
 		// Restore to its original parent if a new parent is not given
+		final TrashedEntity trash = this.trashCanDao.getTrashedEntity(userId, nodeId);
 		if (newParentId == null) {
-			TrashedEntity trash = this.trashCanDao.getTrashedEntity(userId, nodeId);
 			if (trash == null) {
 				throw new DatastoreException("Cannot find node " + nodeId
 						+ " in the trash can for user " + userId);
@@ -142,9 +149,10 @@ public class TrashManagerImpl implements TrashManager {
 
 		// Now restore
 		Node node = this.nodeDao.getNode(nodeId);
+		node.setName(trash.getEntityName());
 		node.setParentId(newParentId);
 		this.nodeManager.updateForTrashCan(userInfo, node, ChangeType.CREATE);
-		
+
 		// Update the trash can table
 		String userGroupId = userInfo.getIndividualGroup().getId();
 		this.trashCanDao.delete(userGroupId, nodeId);
@@ -154,7 +162,9 @@ public class TrashManagerImpl implements TrashManager {
 		Collection<String> descendants = new ArrayList<String>();
 		this.getDescendants(nodeId, descendants);
 		for (String descendantId : descendants) {
+			// Remove from the trash can table
 			this.trashCanDao.delete(userGroupId, descendantId);
+			// Send CREATE message
 			String parentId = this.nodeDao.getParentId(descendantId);
 			String etag = this.nodeDao.peekCurrentEtag(descendantId);
 			this.tagMessenger.sendMessage(descendantId, parentId, etag,

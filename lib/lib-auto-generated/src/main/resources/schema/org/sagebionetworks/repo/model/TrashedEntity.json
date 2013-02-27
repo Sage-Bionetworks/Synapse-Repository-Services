@@ -5,6 +5,11 @@
 			"type":"string",
 			"description":"The id of the entity."			
 		},
+		"entityName": {
+			"type": "string",
+			"description": "The name of this entity",
+			"title": "Entity Name"
+		},
 		"deletedByPrincipalId":{
 			"type":"string",
 			"title": "Deleted By",
