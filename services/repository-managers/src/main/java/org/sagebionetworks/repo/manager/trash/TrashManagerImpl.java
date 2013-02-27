@@ -83,7 +83,7 @@ public class TrashManagerImpl implements TrashManager {
 		// Save before we reset the name and the parent
 		final String oldNodeName = node.getName();
 		final String oldParentId = node.getParentId();
-		// Set the name to its ID to guarantee the entities in the trash folder all have unique names
+		// Set the name to its ID to guarantee the entities in the trash folder all have unique names (PLFM-1760)
 		node.setName(node.getId());
 		final String trashCanId = this.nodeDao.getNodeIdForPath(TrashConstants.TRASH_FOLDER_PATH);
 		if (trashCanId == null) {
@@ -162,11 +162,6 @@ public class TrashManagerImpl implements TrashManager {
 		Collection<String> descendants = new ArrayList<String>();
 		this.getDescendants(nodeId, descendants);
 		for (String descendantId : descendants) {
-			// Restore name
-			TrashedEntity descTrash = this.trashCanDao.getTrashedEntity(userGroupId, descendantId);
-			Node descNode = this.nodeDao.getNode(descendantId);
-			descNode.setName(descTrash.getEntityName());
-			this.nodeDao.updateNode(descNode);
 			// Remove from the trash can table
 			this.trashCanDao.delete(userGroupId, descendantId);
 			// Send CREATE message
