@@ -18,9 +18,10 @@ public interface DBOTrashCanDao {
 	 *
 	 * @param userGroupId  The user who is deleting the item
 	 * @param nodeId       The node being deleted
+	 * @param nodeName     The name of the node being deleted
 	 * @param parentId     The original parent
 	 */
-	void create(String userGroupId, String nodeId, String parentId) throws DatastoreException;
+	void create(String userGroupId, String nodeId, String nodeName, String parentId) throws DatastoreException;
 
 	/**
 	 * How many entities are in this user's trash can.
