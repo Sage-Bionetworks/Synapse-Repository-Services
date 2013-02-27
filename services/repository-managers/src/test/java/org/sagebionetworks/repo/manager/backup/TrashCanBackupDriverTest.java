@@ -55,8 +55,9 @@ public class TrashCanBackupDriverTest {
 	@Test
 	public void testRoundTrip() throws Exception {
 		final String entityId = KeyFactory.keyToString(123L);
+		final String entityName = "TrashCanBackupDriverTest.testRoundTrip()";
 		final String parentId = KeyFactory.keyToString(321L);
-		trashCanDao.create(userId, entityId, parentId);
+		trashCanDao.create(userId, entityId, entityName, parentId);
 		File file = new File("TrashCanBackupDriverTest");
 		assertFalse(file.exists());
 		assertTrue(file.createNewFile());

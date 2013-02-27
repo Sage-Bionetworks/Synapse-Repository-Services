@@ -91,6 +91,7 @@ public class DBOTrashCanBackupDaoImpl implements DBOTrashCanBackupDao {
 
 		DBOTrashedEntity dbo = new DBOTrashedEntity();
 		dbo.setNodeId(KeyFactory.stringToKey(entity.getEntityId()));
+		dbo.setNodeName(entity.getEntityName());
 		dbo.setDeletedBy(KeyFactory.stringToKey(entity.getDeletedByPrincipalId()));
 		dbo.setDeletedOn(new Timestamp(entity.getDeletedOn().getTime()));
 		dbo.setParentId(KeyFactory.stringToKey(entity.getOriginalParentId()));

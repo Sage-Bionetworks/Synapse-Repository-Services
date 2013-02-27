@@ -30,6 +30,7 @@ public final class TrashedEntityUtils {
 
 		TrashedEntity trash = new TrashedEntity();
 		trash.setEntityId(KeyFactory.keyToString(dbo.getId()));
+		trash.setEntityName(dbo.getNodeName());
 		trash.setOriginalParentId(KeyFactory.keyToString(dbo.getParentId()));
 		trash.setDeletedByPrincipalId(dbo.getDeletedBy().toString());
 		trash.setDeletedOn(dbo.getDeletedOn());

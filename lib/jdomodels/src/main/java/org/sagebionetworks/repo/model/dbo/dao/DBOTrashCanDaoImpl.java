@@ -49,7 +49,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void create(String userGroupId, String nodeId, String parentId) throws DatastoreException {
+	public void create(String userGroupId, String nodeId, String nodeName, String parentId) throws DatastoreException {
 
 		if (userGroupId == null) {
 			throw new IllegalArgumentException("userGroupId cannot be null.");
@@ -57,12 +57,16 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		if (nodeId == null) {
 			throw new IllegalArgumentException("nodeId cannot be null.");
 		}
+		if (nodeName == null || nodeName.isEmpty()) {
+			throw new IllegalArgumentException("nodeName cannot be null or empty.");
+		}
 		if (parentId == null) {
 			throw new IllegalArgumentException("parentId cannot be null.");
 		}
 
 		DBOTrashedEntity dbo = new DBOTrashedEntity();
 		dbo.setNodeId(KeyFactory.stringToKey(nodeId));
+		dbo.setNodeName(nodeName);
 		dbo.setDeletedBy(KeyFactory.stringToKey(userGroupId));
 		DateTime dt = DateTime.now();
 		// MySQL TIMESTAMP only keeps seconds (not ms) so for consistency we only write seconds
