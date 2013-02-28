@@ -83,7 +83,8 @@ public class MessageSyndicationImpl implements MessageSyndication {
 		long count = 0;
 		long lastNumber = startChangeNumber;
 		do{
-			list = changeDAO.listChanges(lastNumber, type, 10);
+			long localLimit = Math.min(10, limit);
+			list = changeDAO.listChanges(lastNumber, type, localLimit);
 			log.info("Sending "+list.size()+" change messages to the queue: "+queueName);
 			if(list.size() > 0){
 				log.info("First change number on the list: "+list.get(0).getChangeNumber());

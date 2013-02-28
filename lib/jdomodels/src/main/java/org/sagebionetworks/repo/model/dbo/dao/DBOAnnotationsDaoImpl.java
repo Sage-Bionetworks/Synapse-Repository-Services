@@ -3,6 +3,8 @@ package org.sagebionetworks.repo.model.dbo.dao;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_ATTRIBUTE_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_OWNER_ID_COLUMN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.ANNOTATION_VALUE_COLUMN;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_ANNOTATION_OWNER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ANNOTATIONS_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DATE_ANNOTATIONS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOUBLE_ANNOTATIONS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_LONG_ANNOTATIONS;
@@ -17,6 +19,7 @@ import java.util.Map;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOAnnotationOwner;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODateAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoubleAnnotation;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOLongAnnotation;
@@ -24,19 +27,13 @@ import org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
-import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 	
-	private static String[] ANNOTATION_TABLES = new String[]{
-		TABLE_STRING_ANNOTATIONS,
-		TABLE_LONG_ANNOTATIONS,
-		TABLE_DOUBLE_ANNOTATIONS,
-		TABLE_DATE_ANNOTATIONS,
-	};
+	private static final String SQL_DELETE_ANNOTATIONS_OWNER = "DELETE FROM "+TABLE_ANNOTATIONS_OWNER+" WHERE "+COL_ANNOTATION_OWNER+" = ?";
 	
 	private static String SELECT_FORMAT = "SELECT "+ANNOTATION_ATTRIBUTE_COLUMN+", "+ANNOTATION_VALUE_COLUMN+" FROM `%1$s` WHERE "+ANNOTATION_OWNER_ID_COLUMN+" = ?";
 	
@@ -112,9 +109,14 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 		if(annotations == null) throw new IllegalArgumentException("Annotations cannot be null");
 		if(annotations.getId() == null) throw new IllegalArgumentException("Annotations owner id cannot be null");
 		Long ownerId = KeyFactory.stringToKey(annotations.getId());
-
+		
 		// First we must delete all annotations for this node.
 		deleteAnnotationsByOwnerId(ownerId);
+		// Create an owner for this node.
+		DBOAnnotationOwner onwer = new DBOAnnotationOwner();
+		onwer.setOwnerId(ownerId);
+		// If another thread is attempting to update the same annotations, then this will trigger a primary key constraint violation.
+		dboBasicDao.createNew(onwer);
 
 		// Create the string.
 		Map<String, List<String>> stringAnnos = annotations.getStringAnnotations();
@@ -147,31 +149,8 @@ public class DBOAnnotationsDaoImpl implements DBOAnnotationsDao {
 	@Override
 	public void deleteAnnotationsByOwnerId(Long ownerId) {
 		if (ownerId == null) throw new IllegalArgumentException("Owner id cannot be null");
-		for(String tableName: ANNOTATION_TABLES){
-			deleteWithoutGapLockFromTable(tableName, ownerId);
-		}
-	}
-
-	/**
-	 * In order to avoid MySQL gap locks which cause deadlock, we need to delete by a unique key.
-	 * This means we need to first for row IDs that match the owner.  We then use the ids to
-	 * delete the rows.  
-	 * @param tableName
-	 * @param ownerId
-	 */
-	private void deleteWithoutGapLockFromTable(String tableName, Long ownerId){
-		// First get all IDs for rows that belong to the passed owner.
-		List<Long> idsToDelete = simpleJdbcTemplate.query("SELECT ID FROM "+tableName+" WHERE "+ANNOTATION_OWNER_ID_COLUMN+" = ? ORDER BY ID ASC", new RowMapper<Long>(){
-			@Override
-			public Long mapRow(ResultSet rs, int rowNum) throws SQLException {
-				return rs.getLong("ID");
-			}}, ownerId);
-		// Prepare to batch delete the rows by their primary key.
-		MapSqlParameterSource[] params = new MapSqlParameterSource[idsToDelete.size()];
-		for(int i=0; i<idsToDelete.size(); i++){
-			params[i] = new MapSqlParameterSource("idParam", idsToDelete.get(i));
-		}
-		simpleJdbcTemplate.batchUpdate("DELETE FROM "+tableName+" WHERE ID = :idParam", params);
+		// Delete the annotation's owner which will trigger the cascade delete of all annotations.
+		simpleJdbcTemplate.update(SQL_DELETE_ANNOTATIONS_OWNER, ownerId);
 	}
 
 }

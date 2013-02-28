@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.manager.message;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -33,6 +33,8 @@ import com.amazonaws.services.sqs.model.ReceiveMessageResult;
 @ContextConfiguration(locations = { "classpath:aws-topic-publisher.spb.xml" })
 public class MessageSyndicationImplTest {
 	
+	public static final long MAX_WAIT = 10*1000; //ten seconds
+	
 	@Autowired
 	MessageSyndication messageSyndication;
 	
@@ -56,7 +58,7 @@ public class MessageSyndicationImplTest {
 	}
 	
 	@Test
-	public void testRebroadcastAllChangeMessagesToQueue(){
+	public void testRebroadcastAllChangeMessagesToQueue() throws InterruptedException{
 		// Make sure the queue starts empty.
 		emptyQueue();
 		assertEquals(0, getQueueMessageCount());
@@ -68,7 +70,7 @@ public class MessageSyndicationImplTest {
 		// Now push all of these to the queue
 		long result = messageSyndication.rebroadcastChangeMessagesToQueue(queueName, ObjectType.ENTITY, 0l, Long.MAX_VALUE);
 		assertEquals(toCreate, result);
-		assertEquals(toCreate, getQueueMessageCount());
+		waitForMessageCount(toCreate);
 	}
 	
 	@After
@@ -94,6 +96,22 @@ public class MessageSyndicationImplTest {
 			message.setObjectEtag("etag"+i);
 			changeDAO.replaceChange(message);
 		}
+	}
+	
+	/**
+	 * Wait for a given message count;
+	 * @param expectedCount
+	 * @throws InterruptedException
+	 */
+	public void waitForMessageCount(long expectedCount) throws InterruptedException{
+		long start = System.currentTimeMillis();
+		long count;
+		do{
+			count = getQueueMessageCount();
+			System.out.println("Waiting for expected message count...");
+			Thread.sleep(1000);
+			assertTrue("Timed out waiting for the expected message count", System.currentTimeMillis()-start < MAX_WAIT);
+		}while(count != expectedCount);
 	}
 	
 	public long getQueueMessageCount(){

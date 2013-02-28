@@ -85,6 +85,7 @@ public class JDOSecondaryPropertyUtils {
 	public static Annotations buildDistinctAnnotations(Annotations annos){
 		// The resulting annotations will have no duplicates.
 		Annotations distinct = new Annotations();
+		distinct.setId(annos.getId());
 		distinct.setStringAnnotations(buildDistinctMap(annos.getStringAnnotations()));
 		distinct.setDoubleAnnotations(buildDistinctMap(annos.getDoubleAnnotations()));
 		distinct.setLongAnnotations(buildDistinctMap(annos.getLongAnnotations()));

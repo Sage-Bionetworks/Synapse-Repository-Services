@@ -54,11 +54,16 @@ public class SqlConstants {
 	public static final String DDL_FILE_REFERENCE					= "schema/Reference-ddl.sql";
 	
 	// Annotations tables
+	public static final String TABLE_ANNOTATIONS_OWNER	= "ANNOTATIONS_OWNER";
 	public static final String TABLE_STRING_ANNOTATIONS	= "JDOSTRINGANNOTATION";
 	public static final String TABLE_DOUBLE_ANNOTATIONS	= "JDODOUBLEANNOTATION";
 	public static final String TABLE_LONG_ANNOTATIONS	= "JDOLONGANNOTATION";
 	public static final String TABLE_DATE_ANNOTATIONS	= "JDODATEANNOTATION";
 	public static final String TABLE_STACK_STATUS		= "JDOSTACKSTATUS";
+	
+	// The one column of the annotations owner table
+	public static final String COL_ANNOTATION_OWNER				= "OWNER_ID";
+	public static final String DDL_ANNOTATIONS_OWNER			= "schema/AnnotationsOwner-ddl.sql";
 	
 	// The User Profile table
 	public static final String TABLE_USER_PROFILE				= "JDOUSERPROFILE";
