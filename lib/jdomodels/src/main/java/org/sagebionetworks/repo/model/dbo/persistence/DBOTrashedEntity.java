@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_DELETED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_NODE_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_TRASH_CAN_PARENT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_TRASH_CAN;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_CAN;
@@ -24,6 +25,7 @@ public class DBOTrashedEntity implements AutoIncrementDatabaseObject<DBOTrashedE
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("nodeId", COL_TRASH_CAN_NODE_ID, true),
+		new FieldColumn("nodeName", COL_TRASH_CAN_NODE_NAME),
 		new FieldColumn("deletedBy", COL_TRASH_CAN_DELETED_BY),
 		new FieldColumn("deletedOn", COL_TRASH_CAN_DELETED_ON),
 		new FieldColumn("parentId", COL_TRASH_CAN_PARENT_ID)
@@ -38,6 +40,7 @@ public class DBOTrashedEntity implements AutoIncrementDatabaseObject<DBOTrashedE
 			public DBOTrashedEntity mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOTrashedEntity trash = new DBOTrashedEntity();
 				trash.setNodeId(rs.getLong(COL_TRASH_CAN_NODE_ID));
+				trash.setNodeName(rs.getString(COL_TRASH_CAN_NODE_NAME));
 				trash.setDeletedBy(rs.getLong(COL_TRASH_CAN_DELETED_BY));
 				trash.setDeletedOn(rs.getTimestamp(COL_TRASH_CAN_DELETED_ON));
 				trash.setParentId(rs.getLong(COL_TRASH_CAN_PARENT_ID));
@@ -96,6 +99,20 @@ public class DBOTrashedEntity implements AutoIncrementDatabaseObject<DBOTrashedE
 	}
 
 	/**
+	 * The name of the node.
+	 */
+	public String getNodeName() {
+		return nodeName;
+	}
+
+	/**
+	 * The name of the node.
+	 */
+	public void setNodeName(String name) {
+		this.nodeName = name;
+	}
+
+	/**
 	 * The ID of the user who deleted the entity.
 	 */
 	public Long getDeletedBy() {
@@ -145,6 +162,7 @@ public class DBOTrashedEntity implements AutoIncrementDatabaseObject<DBOTrashedE
 				+ ((deletedBy == null) ? 0 : deletedBy.hashCode());
 		result = prime * result
 				+ ((deletedOn == null) ? 0 : deletedOn.hashCode());
+		result = prime * result + ((nodeName == null) ? 0 : nodeName.hashCode());
 		result = prime * result + ((nodeId == null) ? 0 : nodeId.hashCode());
 		result = prime * result
 				+ ((parentId == null) ? 0 : parentId.hashCode());
@@ -153,48 +171,43 @@ public class DBOTrashedEntity implements AutoIncrementDatabaseObject<DBOTrashedE
 
 	@Override
 	public boolean equals(Object obj) {
-		if (this == obj) {
+		if (this == obj)
 			return true;
-		}
-		if (obj == null) {
+		if (obj == null)
 			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (getClass() != obj.getClass())
 			return false;
-		}
 		DBOTrashedEntity other = (DBOTrashedEntity) obj;
 		if (deletedBy == null) {
-			if (other.deletedBy != null) {
+			if (other.deletedBy != null)
 				return false;
-			}
-		} else if (!deletedBy.equals(other.deletedBy)) {
+		} else if (!deletedBy.equals(other.deletedBy))
 			return false;
-		}
 		if (deletedOn == null) {
-			if (other.deletedOn != null) {
+			if (other.deletedOn != null)
 				return false;
-			}
-		} else if (!deletedOn.equals(other.deletedOn)) {
+		} else if (!deletedOn.equals(other.deletedOn))
 			return false;
-		}
+		if (nodeName == null) {
+			if (other.nodeName != null)
+				return false;
+		} else if (!nodeName.equals(other.nodeName))
+			return false;
 		if (nodeId == null) {
-			if (other.nodeId != null) {
+			if (other.nodeId != null)
 				return false;
-			}
-		} else if (!nodeId.equals(other.nodeId)) {
+		} else if (!nodeId.equals(other.nodeId))
 			return false;
-		}
 		if (parentId == null) {
-			if (other.parentId != null) {
+			if (other.parentId != null)
 				return false;
-			}
-		} else if (!parentId.equals(other.parentId)) {
+		} else if (!parentId.equals(other.parentId))
 			return false;
-		}
 		return true;
 	}
 
 	private Long nodeId;
+	private String nodeName;
 	private Long deletedBy;
 	private Timestamp deletedOn;
 	private Long parentId;

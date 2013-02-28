@@ -25,6 +25,7 @@ public class FileMetadataUtilsTest {
 		meta.setPreviewId("456");
 		meta.setEtag("etag");
 		meta.setFileName("fileName");
+		meta.setContentType("text/plain");
 		System.out.println(meta);
 		// Convert to dbo
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromDTO(meta);

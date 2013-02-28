@@ -18,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -36,6 +37,13 @@ public class DBOChangeDAOImplAutowiredTest {
 	
 	@Autowired
 	DBOChangeDAO changeDAO;
+	
+	@Before
+	public void before(){
+		if(changeDAO != null){
+			changeDAO.deleteAllChanges();
+		}
+	}
 	
 	@After
 	public void after(){
@@ -239,7 +247,7 @@ public class DBOChangeDAOImplAutowiredTest {
 	public void testReplaceBatch(){
 		// Get the current change number
 		int numChangesInBatch = 5;
-		long startChangeNumber = changeDAO.getCurrentChangeNumber();
+		long startChangeNumber = startChangeNumber();
 		List<ChangeMessage> batch = createList(5, ObjectType.PRINCIPAL);
 		// We want to start with an unordered list of changes
 		// because the batch replace must sort the list by object id
@@ -311,6 +319,16 @@ public class DBOChangeDAOImplAutowiredTest {
 			cm.setChangeNumber(null);
 		}
 		assertEquals(expectedFiltered, list);
+	}
+	
+	/**
+	 * Will add a row to start the a test.
+	 * @return
+	 */
+	public Long startChangeNumber(){
+		List<ChangeMessage> starting = createList(1, ObjectType.PRINCIPAL);
+		starting = changeDAO.replaceChange(starting);
+		return starting.get(0).getChangeNumber();
 	}
 
 	// TODO: PLFM-1631 for a load test framework outside this package

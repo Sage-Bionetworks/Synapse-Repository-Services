@@ -28,5 +28,5 @@ public interface TrashManager {
 	/**
 	 * Retrieves entities (in the trash can) deleted by the specified user.
 	 */
-	QueryResults<TrashedEntity> viewTrash(UserInfo userInfo, Integer offset, Integer limit);
+	QueryResults<TrashedEntity> viewTrash(UserInfo userInfo, Long offset, Long limit);
 }

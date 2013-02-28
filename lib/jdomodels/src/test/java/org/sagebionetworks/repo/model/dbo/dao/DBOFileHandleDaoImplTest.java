@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.net.MalformedURLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
@@ -20,6 +21,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -95,15 +97,7 @@ public class DBOFileHandleDaoImplTest {
 	
 	@Test
 	public void testS3FileCURD() throws DatastoreException, NotFoundException{
-		// Create the metadata
-		S3FileHandle meta = new S3FileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("foobar.txt");
+		S3FileHandle meta = createS3FileHandle();
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta.getId());
@@ -118,14 +112,7 @@ public class DBOFileHandleDaoImplTest {
 	@Test
 	public void testGetCreator() throws NotFoundException{
 		// Create the metadata
-		S3FileHandle meta = new S3FileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("foobar.txt");
+		S3FileHandle meta = createS3FileHandle();
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta.getId());
@@ -136,6 +123,8 @@ public class DBOFileHandleDaoImplTest {
 		String lookupCreator = fileHandleDao.getHandleCreator(id);
 		assertEquals(creatorUserGroupId, lookupCreator);
 	}
+
+
 
 	@Test (expected=NotFoundException.class)
 	public void testGetCreatorNotFound() throws NotFoundException{
@@ -168,14 +157,7 @@ public class DBOFileHandleDaoImplTest {
 	
 	@Test
 	public void testPreviewFileCRUD() throws DatastoreException, NotFoundException{
-		PreviewFileHandle meta = new PreviewFileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("preview.jpg");
+		PreviewFileHandle meta = createPreviewFileHandle();
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta);
@@ -186,6 +168,8 @@ public class DBOFileHandleDaoImplTest {
 		// Does the clone match the expected.
 		assertEquals(meta, clone);
 	}
+
+
 	
 	@Test
 	public void testLongURL() throws DatastoreException, NotFoundException{
@@ -396,5 +380,83 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(new Long(Long.parseLong(file2Id) + 1).toString(), file3Id);
 		
 	}
+	
+	@Test
+	public void testgetAllFileHandles() throws Exception{
+		// Create one without a preview
+		S3FileHandle noPreviewHandle = createS3FileHandle();
+		noPreviewHandle.setFileName("newPreview.txt");
+		noPreviewHandle = fileHandleDao.createFile(noPreviewHandle);
+		assertNotNull(noPreviewHandle);
+		toDelete.add(noPreviewHandle.getId());
+		// The one will have a preview
+		S3FileHandle withPreview = createS3FileHandle();
+		withPreview.setFileName("withPreview.txt");
+		withPreview = fileHandleDao.createFile(withPreview);
+		assertNotNull(withPreview);
+		toDelete.add(withPreview.getId());
+		// The Preview
+		PreviewFileHandle preview = createPreviewFileHandle();
+		preview.setFileName("preview.txt");
+		preview = fileHandleDao.createFile(preview);
+		assertNotNull(preview);
+		toDelete.add(preview.getId());
+		// Assign it as a preview
+		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
+		// The etag should have changed
+		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
+		
+		// Now get all file handles without previews
+		List<String> toFetch = new ArrayList<String>();
+		toFetch.add(noPreviewHandle.getId());
+		toFetch.add(withPreview.getId());
+		FileHandleResults results = fileHandleDao.getAllFileHandles(toFetch, false);
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		assertEquals("With previews false, only two should be returned", 2, results.getList().size());
+		assertEquals(noPreviewHandle, results.getList().get(0));
+		assertEquals(withPreview, results.getList().get(1));
+		
+		// Same call but with previews included
+		results = fileHandleDao.getAllFileHandles(toFetch, true);
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		assertEquals("With previews true, three should be returned", 3, results.getList().size());
+		assertEquals(noPreviewHandle, results.getList().get(0));
+		assertEquals(withPreview, results.getList().get(1));
+		assertEquals(preview, results.getList().get(2));
+	}
+	
+	/**
+	 * Helper to create a S3FileHandle
+	 * 
+	 * @return
+	 */
+	public S3FileHandle createS3FileHandle() {
+		S3FileHandle meta = new S3FileHandle();
+		meta.setBucketName("bucketName");
+		meta.setKey("key");
+		meta.setContentType("content type");
+		meta.setContentSize(123l);
+		meta.setContentMd5("md5");
+		meta.setCreatedBy(creatorUserGroupId);
+		meta.setFileName("foobar.txt");
+		return meta;
+	}
 
+	/**
+	 * Helper to create a PreviewFileHandle
+	 * @return
+	 */
+	public PreviewFileHandle createPreviewFileHandle() {
+		PreviewFileHandle meta = new PreviewFileHandle();
+		meta.setBucketName("bucketName");
+		meta.setKey("key");
+		meta.setContentType("content type");
+		meta.setContentSize(123l);
+		meta.setContentMd5("md5");
+		meta.setCreatedBy(creatorUserGroupId);
+		meta.setFileName("preview.jpg");
+		return meta;
+	}
 }

@@ -1,9 +1,11 @@
 package org.sagebionetworks.repo.model.dao;
 
 import java.net.MalformedURLException;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -40,6 +42,16 @@ public interface FileHandleDao {
 	 * @throws DatastoreException 
 	 */
 	public FileHandle get(String id) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Get all of the file handles for a given list of IDs.
+	 * @param ids - The list of FileHandle ids to fetch.
+	 * @param includePreviews - When true, any preview handles will associated with each handle will also be returned.
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public FileHandleResults getAllFileHandles(List<String> ids, boolean includePreviews) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Delete the file metadata.

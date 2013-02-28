@@ -1176,6 +1176,56 @@ public class EntityServletTestHelper {
 	}
 	
 	/**
+	 * Get the file handles for the current version.
+	 * @param userName
+	 * @param entityId
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public FileHandleResults geEntityFileHandlesForCurrentVersion(String userName, String entityId) throws ServletException, IOException, JSONObjectAdapterException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = "/entity/"+entityId+"/filehandles";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), FileHandleResults.class);
+	}
+	
+	/**
+	 * Get the file handles for a given version.
+	 * @param userName
+	 * @param entityId
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public FileHandleResults geEntityFileHandlesForVersion(String userName, String entityId, Long versionNumber) throws ServletException, IOException, JSONObjectAdapterException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = "/entity/"+entityId+"/version/"+versionNumber+"/filehandles";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return EntityFactory.createEntityFromJSONString(response.getContentAsString(), FileHandleResults.class);
+	}
+	
+	/**
 	 * Get the temporary Redirect URL for a Wiki File.
 	 * @param userName
 	 * @param key

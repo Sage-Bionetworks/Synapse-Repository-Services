@@ -52,8 +52,8 @@
 			depends-on="awsSQSClient">
 		<property name="messageQueue" ref="dynamoMessageQueue" />
 		<property name="workerFactory" ref="dynamoQueueWorkerFactory" />
-		<property name="maxNumberOfWorkerThreads" value="1" />
-		<property name="maxMessagePerWorker" value="10" />
+		<property name="maxNumberOfWorkerThreads" value="2" />
+		<property name="maxMessagePerWorker" value="5" />
 		<property name="visibilityTimeoutSec" value="60" />
 	</bean>
 
@@ -67,7 +67,7 @@
 			</bean>
 		</property>
 		<property name="startDelay" value="0" />
-		<property name="repeatInterval" value="1000" />
+		<property name="repeatInterval" value="500" />
 	</bean>
 
 	<bean id="dynamoRdsSynchronizer"

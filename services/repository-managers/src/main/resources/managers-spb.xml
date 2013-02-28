@@ -180,6 +180,10 @@
 		class="org.sagebionetworks.repo.manager.backup.SubmissionBackupDriver"
 		scope="singleton" />
 
+	<bean id="trashCanBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.TrashCanBackupDriver"
+		scope="singleton" />
+
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />
 
@@ -269,6 +273,9 @@
 				<entry key="SUBMISSION">
 					<ref bean="submissionBackupDriver" />
 				</entry>
+				<entry key="TRASHED_ENTITY">
+					<ref bean="trashCanBackupDriver" />
+				</entry>
 			</map>
 		</property>
 	</bean>
@@ -283,6 +290,7 @@
 				<ref bean="accessRequirementDAO"/>
 				<ref bean="evaluationDAO"/>
 				<ref bean="submissionStatusDAO"/>
+				<ref bean="trashCanBackupDao"/>
 			</list>
 		</property>
 	</bean>

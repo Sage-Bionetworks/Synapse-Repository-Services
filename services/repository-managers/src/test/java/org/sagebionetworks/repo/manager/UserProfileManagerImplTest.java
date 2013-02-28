@@ -11,6 +11,7 @@ import java.util.Random;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -35,6 +36,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:manager-test-context.xml" })
+@Ignore // This test is unstable and has been removed https://sagebionetworks.jira.com/browse/PLFM-1750.
 public class UserProfileManagerImplTest {
 	
 	@Autowired

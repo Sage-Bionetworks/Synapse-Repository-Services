@@ -8,6 +8,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 import javax.servlet.ServletException;
 
@@ -16,6 +17,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Data;
@@ -23,6 +25,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.NameConflictException;
@@ -30,6 +33,8 @@ import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,16 +53,25 @@ public class EntityBundleControllerTest {
 	@Autowired
 	private EntityServletTestHelper entityServletHelper;
 	
+	@Autowired
+	FileHandleDao fileMetadataDao;
+	@Autowired
+	UserManager userManager;
 	private static final String TEST_USER1 = TestUserDAO.TEST_USER_NAME;
 	
 	private List<String> toDelete = null;
-
+	S3FileHandle handleOne;
+	private String userName;
+	private String ownerId;
 	/**
 	 * @throws java.lang.Exception
 	 */
 	@Before
 	public void setUp() throws Exception {
 		toDelete = new ArrayList<String>();
+		userName = TestUserDAO.TEST_USER_NAME;
+		ownerId = userManager.getUserInfo(userName).getIndividualGroup().getId();
+
 	}
 	
 	@After
@@ -70,6 +84,11 @@ public class EntityBundleControllerTest {
 					// Try even if it fails.
 				}
 			}
+		}
+		if(handleOne != null && fileMetadataDao != null){
+			try{
+				fileMetadataDao.delete(handleOne.getId());
+			}catch(Exception e){}
 		}
 	}
 	
@@ -130,7 +149,7 @@ public class EntityBundleControllerTest {
 		assertNotNull("Path was requested, but null in bundle", path);
 		assertNotNull("Invalid path", path.getPath());
 		
-		PaginatedResults<EntityHeader> rb = eb.getReferencedBy();
+		List<EntityHeader> rb = eb.getReferencedBy();
 		assertNotNull("ReferencedBy was requested, but null in bundle", rb);
 		
 		Boolean hasChildren = eb.getHasChildren();
@@ -278,7 +297,7 @@ public class EntityBundleControllerTest {
 		EntityPath path = eb.getPath();
 		assertNull("Path was not requested, but were returned in bundle", path);
 		
-		PaginatedResults<EntityHeader> rb = eb.getReferencedBy();
+		List<EntityHeader> rb = eb.getReferencedBy();
 		assertNull("ReferencedBy was not requested, but were returned in bundle", rb);
 		
 		Boolean hasChildren = eb.getHasChildren();
@@ -286,6 +305,39 @@ public class EntityBundleControllerTest {
 		
 		AccessControlList acl = eb.getAccessControlList();
 		assertNull("AccessControlList was not requested, but were returned in bundle", acl);
+	}
+	
+	@Test
+	public void testGetFileHandle() throws NameConflictException, DatastoreException, JSONObjectAdapterException, ServletException, IOException, NotFoundException{
+		// Create a file handle
+		handleOne = new S3FileHandle();
+		handleOne.setCreatedBy(ownerId);
+		handleOne.setCreatedOn(new Date());
+		handleOne.setBucketName("bucket");
+		handleOne.setKey("EntityControllerTest.mainFileKey");
+		handleOne.setEtag("etag");
+		handleOne.setFileName("foo.bar");
+		handleOne = fileMetadataDao.createFile(handleOne);
+		// Create an entity
+		Project p = new Project();
+		p.setName(DUMMY_PROJECT);
+		p.setEntityType(p.getClass().getName());
+		Project p2 = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
+		String id = p2.getId();
+		toDelete.add(id);
+		
+		FileEntity file = new FileEntity();
+		file.setParentId(p.getId());
+		file.setDataFileHandleId(handleOne.getId());
+		file.setEntityType(FileEntity.class.getName());
+		file = (FileEntity) entityServletHelper.createEntity(file, TEST_USER1, null);
+		// Get the file handle in the bundle
+		EntityBundle bundle = entityServletHelper.getEntityBundle(file.getId(), EntityBundle.FILE_HANDLES, TEST_USER1);
+		assertNotNull(bundle);
+		assertNotNull(bundle.getFileHandles());
+		assertTrue(bundle.getFileHandles().size() > 0);
+		assertNotNull(bundle.getFileHandles().get(0));
+		assertEquals(handleOne.getId(), bundle.getFileHandles().get(0).getId());
 	}
 
 }
