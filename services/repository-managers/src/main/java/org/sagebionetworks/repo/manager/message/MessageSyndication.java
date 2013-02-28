@@ -24,4 +24,12 @@ public interface MessageSyndication {
 	 * Rebroadcast all change messages.
 	 */
 	public void rebroadcastAllChangeMessages();
+	
+	/**
+	 * Rebroadcast all change messages to a given topic.
+	 * 
+	 * @param queName
+	 * @return
+	 */
+	public long rebroadcastAllChangeMessagesToQueue(String queName);
 }
