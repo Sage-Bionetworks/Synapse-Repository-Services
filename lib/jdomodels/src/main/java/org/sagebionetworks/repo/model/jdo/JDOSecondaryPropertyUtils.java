@@ -11,7 +11,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -87,12 +89,37 @@ public class JDOSecondaryPropertyUtils {
 		distinct.setDoubleAnnotations(buildDistinctMap(annos.getDoubleAnnotations()));
 		distinct.setLongAnnotations(buildDistinctMap(annos.getLongAnnotations()));
 		distinct.setDateAnnotations(buildDistinctMap(annos.getDateAnnotations()));
-		distinct.setBlobAnnotations(buildDistinctMap(annos.getBlobAnnotations()));
+		// Do not include blobs.
+//		distinct.setBlobAnnotations(buildDistinctMap(annos.getBlobAnnotations()));
 		return distinct;
 	}
 	
+	/**
+	 * Build a copy of the passed map that contains only distinct key-value pairs
+	 * @param original
+	 * @return
+	 */
 	public static <T> Map<String, List<T>> buildDistinctMap(Map<String, List<T>> original){
 		 Map<String, List<T>> distinct = new HashMap<String, List<T>>();
+		 Set<String> set = new HashSet<String>();
+		 for(String key: original.keySet()){
+			 List<T> values = original.get(key);
+			 if(values != null){
+				 for(T value: values){
+					 if(value != null){
+						 String compoundKey = key+"+"+value;
+						 if(set.add(compoundKey)){
+							 List<T> list = distinct.get(key);
+							 if(list == null){
+								 list = new LinkedList<T>();
+								 distinct.put(key, list);
+							 }
+							 list.add(value);
+						 }						 
+					 }
+				 }
+			 }
+		 }
 		 return distinct;
 	}
 	

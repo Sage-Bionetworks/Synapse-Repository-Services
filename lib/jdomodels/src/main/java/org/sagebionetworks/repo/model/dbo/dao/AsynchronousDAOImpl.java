@@ -98,8 +98,8 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	void replaceAll(String id) throws NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		Long nodeId = KeyFactory.stringToKey(id);
-		// First lock the node
-		nodeDao.lockNodeAndIncrementEtag(id, eTag)
+		// First lock the node to prevent multiple workers from updating the same node at the same time.
+		nodeDao.lockNode(nodeId);
 		// When an entity is created we need to update all daos.
 		Map<String, Set<Reference>> references = nodeDao.getNodeReferences(id);
 		if(references != null){
@@ -112,6 +112,8 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 			storageLocationDao.replaceLocationData(sl);
 			// Annotations
 			Annotations forDb = JDOSecondaryPropertyUtils.prepareAnnotationsForDBReplacement(namedAnnos, id);
+			// Only save distinct values in the DB.
+			forDb = JDOSecondaryPropertyUtils.buildDistinctAnnotations(forDb);
 			dboAnnotationsDao.replaceAnnotations(forDb);
 		} catch (UnsupportedEncodingException e) {
 			throw new DatastoreException(e);
