@@ -110,6 +110,8 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 			storageLocationDao.replaceLocationData(sl);
 			// Annotations
 			Annotations forDb = JDOSecondaryPropertyUtils.prepareAnnotationsForDBReplacement(namedAnnos, id);
+			// Only save distinct values in the DB.
+			forDb = JDOSecondaryPropertyUtils.buildDistinctAnnotations(forDb);
 			dboAnnotationsDao.replaceAnnotations(forDb);
 		} catch (UnsupportedEncodingException e) {
 			throw new DatastoreException(e);
