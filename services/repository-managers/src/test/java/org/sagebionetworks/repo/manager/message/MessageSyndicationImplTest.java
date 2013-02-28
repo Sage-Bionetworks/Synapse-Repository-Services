@@ -66,7 +66,7 @@ public class MessageSyndicationImplTest {
 		long toCreate = 15l;
 		createChangeMessages(toCreate, ObjectType.ENTITY);
 		// Now push all of these to the queue
-		long result = messageSyndication.rebroadcastChangeMessagesToQueue(queueName, ObjectType.ENTITY, 0l);
+		long result = messageSyndication.rebroadcastChangeMessagesToQueue(queueName, ObjectType.ENTITY, 0l, Long.MAX_VALUE);
 		assertEquals(toCreate, result);
 		assertEquals(toCreate, getQueueMessageCount());
 	}
