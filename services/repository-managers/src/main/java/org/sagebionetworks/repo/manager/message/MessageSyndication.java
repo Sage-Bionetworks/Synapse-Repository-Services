@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
+import org.sagebionetworks.repo.model.message.ObjectType;
+
 /**
  * What happens when a change messages does not make it from the repository to a listener?
  * In most cases there will be data loss if nothing else is done to detect and recover from
@@ -26,10 +28,11 @@ public interface MessageSyndication {
 	public void rebroadcastAllChangeMessages();
 	
 	/**
-	 * Rebroadcast all change messages to a given topic.
-	 * 
-	 * @param queName
-	 * @return
+	 * Rebroadcast change messages to a queue starting from a given change number (inclusive).
+	 * @param queueName - The name of the target queue.
+	 * @param type - Only messages of this ObjectType will be rebroadcast.
+	 * @param startChangeNumber - The change number to start from (inclusive).  To rebroadcast all messages set this to zero.
+	 * @return - The total number of messages sent
 	 */
-	public long rebroadcastAllChangeMessagesToQueue(String queName);
+	long rebroadcastChangeMessagesToQueue(String queueName, ObjectType type, Long startChangeNumber, Long limit);
 }

@@ -75,61 +75,80 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	}
 
 	@Override
-	public long rebroadcastAllChangeMessagesToQueue(String queueName) {
+	public long rebroadcastChangeMessagesToQueue(String queueName, ObjectType type, Long startChangeNumber, Long limit) {
 		// Look up the URL fo the Queue
 		String queUrl = lookupQueueURL(queueName);
 		// List all change messages
 		List<ChangeMessage> list = null;
 		long count = 0;
-		long lastNumber = 0;
+		long lastNumber = startChangeNumber;
 		do{
-			list = changeDAO.listChanges(lastNumber, ObjectType.ENTITY, 100);
+			list = changeDAO.listChanges(lastNumber, type, 10);
 			log.info("Sending "+list.size()+" change messages to the queue: "+queueName);
 			if(list.size() > 0){
 				log.info("First change number on the list: "+list.get(0).getChangeNumber());
-			}
-			// Add each message
-			List<SendMessageBatchRequestEntry> batch = new LinkedList<SendMessageBatchRequestEntry>();
-			for(int i=0; i<list.size(); i++){
-				ChangeMessage change = list.get(i);
-				SendMessageBatchRequestEntry entry = createEntry(change, i);
-				if(entry != null){
-					batch.add(entry);
-				}
-			}
-			// Send this batch
-			SendMessageBatchResult results = awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(queUrl, batch));
-			// If we failed to send any messages then try again
-			List<BatchResultErrorEntry> failed = results.getFailed();
-			if(failed!= null && failed.size() > 0){
-				log.info("Failed to send "+failed.size()+" messages, these will be sent again");
-				// Prepare a new batch.
-				batch = new LinkedList<SendMessageBatchRequestEntry>();
-				for(BatchResultErrorEntry error: failed){
-					int index = Integer.parseInt(error.getId());
-					ChangeMessage change = list.get(index);
-					SendMessageBatchRequestEntry entry = createEntry(change, index);
+				// Add each message
+				List<SendMessageBatchRequestEntry> batch = new LinkedList<SendMessageBatchRequestEntry>();
+				for(int i=0; i<list.size(); i++){
+					ChangeMessage change = list.get(i);
+					lastNumber = change.getChangeNumber()+1;
+					SendMessageBatchRequestEntry entry = createEntry(change, i);
 					if(entry != null){
 						batch.add(entry);
 					}
 				}
-				// Send the second results
-				results = awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(queUrl, batch));
+				// Send this batch
+				SendMessageBatchResult results = awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(queUrl, batch));
+				// If we failed to send any messages then try again
+				List<BatchResultErrorEntry> failed = results.getFailed();
 				if(failed!= null && failed.size() > 0){
-					log.error("Failed to send "+failed.size()+" messages after a second try.  The failed messages will not be sent again");
-					for(BatchResultErrorEntry error: failed){
-						int index = Integer.parseInt(error.getId());
-						ChangeMessage change = list.get(index);
-						log.error("Failed to send change message: "+change.getChangeNumber()+" after two attempts.");
+					log.info("Failed to send "+failed.size()+" messages, these will be sent again");
+					// Prepare a new batch.
+					batch = prepareFailedBatch(list, failed);
+					// Send the second results
+					results = awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(queUrl, batch));
+					if(failed!= null && failed.size() > 0){
+						log.error("Failed to send "+failed.size()+" messages after a second try.  The failed messages will not be sent again");
+						for(BatchResultErrorEntry error: failed){
+							int index = Integer.parseInt(error.getId());
+							ChangeMessage change = list.get(index);
+							log.error("Failed to send change message: "+change.getChangeNumber()+" after two attempts.");
+						}
 					}
 				}
 			}
 			count += list.size();
-		}while(list.size() > 0);
-		
+		}while(list.size() > 0 && count <= limit);
+		// return the count
 		return count;
 	}
+
+	/**
+	 * Prepare a batch of failed messages to be resent.
+	 * @param list
+	 * @param failed
+	 * @return
+	 */
+	private List<SendMessageBatchRequestEntry> prepareFailedBatch(List<ChangeMessage> list, List<BatchResultErrorEntry> failed) {
+		List<SendMessageBatchRequestEntry> batch;
+		batch = new LinkedList<SendMessageBatchRequestEntry>();
+		for(BatchResultErrorEntry error: failed){
+			int index = Integer.parseInt(error.getId());
+			ChangeMessage change = list.get(index);
+			SendMessageBatchRequestEntry entry = createEntry(change, index);
+			if(entry != null){
+				batch.add(entry);
+			}
+		}
+		return batch;
+	}
 	
+	/**
+	 * Create an entry from a message.
+	 * @param change
+	 * @param index
+	 * @return
+	 */
 	private SendMessageBatchRequestEntry createEntry(ChangeMessage change, int index){
 		try {
 			String messageBody = EntityFactory.createJSONStringForEntity(change);
