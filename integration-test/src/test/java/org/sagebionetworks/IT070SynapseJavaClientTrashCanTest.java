@@ -11,6 +11,7 @@ import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseForbiddenException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -105,5 +106,62 @@ public class IT070SynapseJavaClientTrashCanTest {
 		results = synapse.viewTrash(0L, Long.MAX_VALUE);
 		assertNotNull(results);
 		assertEquals(0, results.getResults().size());
+	}
+
+	@Test
+	public void testPurge() throws SynapseException {
+		synapse.moveToTrash(parent.getId());
+		synapse.purge(child.getId());
+		try {
+			synapse.getEntityById(child.getId());
+		} catch (SynapseNotFoundException e) {
+			assertTrue(true);
+		} catch (Throwable e) {
+			fail();
+		}
+		PaginatedResults<TrashedEntity> results = synapse.viewTrash(0L, Long.MAX_VALUE);
+		assertNotNull(results);
+		assertEquals(1, results.getResults().size());
+		assertEquals(parent.getId(), results.getResults().get(0).getEntityId());
+		synapse.purge(parent.getId());
+		try {
+			synapse.getEntityById(parent.getId());
+		} catch (SynapseNotFoundException e) {
+			assertTrue(true);
+		} catch (Throwable e) {
+			fail();
+		}
+		results = synapse.viewTrash(0L, Long.MAX_VALUE);
+		assertNotNull(results);
+		assertEquals(0, results.getResults().size());
+		// Already purged, no need to clean
+		child = null;
+		parent = null;
+	}
+
+	@Test
+	public void testPurgeAll() throws SynapseException {
+		synapse.moveToTrash(parent.getId());
+		synapse.purge();
+		try {
+			synapse.getEntityById(child.getId());
+		} catch (SynapseNotFoundException e) {
+			assertTrue(true);
+		} catch (Throwable e) {
+			fail();
+		}
+		try {
+			synapse.getEntityById(parent.getId());
+		} catch (SynapseNotFoundException e) {
+			assertTrue(true);
+		} catch (Throwable e) {
+			fail();
+		}
+		PaginatedResults<TrashedEntity> results = synapse.viewTrash(0L, Long.MAX_VALUE);
+		assertNotNull(results);
+		assertEquals(0, results.getResults().size());
+		// Already purged, no need to clean
+		child = null;
+		parent = null;
 	}
 }
