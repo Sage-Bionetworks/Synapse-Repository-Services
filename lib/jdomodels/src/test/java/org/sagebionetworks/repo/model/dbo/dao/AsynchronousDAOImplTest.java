@@ -64,6 +64,8 @@ public class AsynchronousDAOImplTest {
 		annos.setCreationDate(new Date(123));
 		sl = JDOSecondaryPropertyUtils.getStorageLocations(annos, nodeId, annos.getCreatedBy());
 		forDb = JDOSecondaryPropertyUtils.prepareAnnotationsForDBReplacement(annos, nodeIdString);
+		// Only save distinct values in the DB.
+		forDb = JDOSecondaryPropertyUtils.buildDistinctAnnotations(forDb);
 		// Mock the node dao.
 		when(mockNodeDao.getNodeReferences(nodeIdString)).thenReturn(references);
 		when(mockNodeDao.getAnnotations(nodeIdString)).thenReturn(annos);
