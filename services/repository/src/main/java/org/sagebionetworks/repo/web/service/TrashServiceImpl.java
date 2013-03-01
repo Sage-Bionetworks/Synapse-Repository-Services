@@ -7,7 +7,6 @@ import org.sagebionetworks.repo.manager.trash.TrashManager;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -60,5 +59,19 @@ public class TrashServiceImpl implements TrashService {
 		String url = request.getRequestURL() == null ? "" : request.getRequestURL().toString();
 		return new PaginatedResults<TrashedEntity>(url, trashEntities.getResults(),
 				trashEntities.getTotalNumberOfResults(), offset, limit, null, false);
+	}
+
+	@Override
+	public void purge(String userId, String nodeId) throws DatastoreException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		trashManager.purge(userInfo, nodeId);
+	}
+
+	@Override
+	public void purge(String userId) throws DatastoreException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		trashManager.purge(userInfo);
 	}
 }

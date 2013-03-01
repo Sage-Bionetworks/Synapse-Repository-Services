@@ -69,4 +69,21 @@ public class TrashController extends BaseController {
 			HttpServletRequest request) throws DatastoreException, NotFoundException {
 		return serviceProvider.getTrashService().viewTrash(userId, offset, limit, request);
 	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = {UrlHelpers.TRASHCAN_PURGE_ENTITY}, method = RequestMethod.PUT)
+	public void purge(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@PathVariable String id)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		this.serviceProvider.getTrashService().purge(userId, id);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = {UrlHelpers.TRASHCAN_PURGE}, method = RequestMethod.PUT)
+	public void purge(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		this.serviceProvider.getTrashService().purge(userId);
+	}
 }
