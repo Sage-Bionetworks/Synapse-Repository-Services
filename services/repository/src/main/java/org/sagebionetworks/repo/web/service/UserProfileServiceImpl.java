@@ -9,6 +9,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.log4j.Logger;
@@ -16,15 +17,17 @@ import org.ardverk.collection.PatriciaTrie;
 import org.ardverk.collection.StringKeyAnalyzer;
 import org.ardverk.collection.Trie;
 import org.ardverk.collection.Tries;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
@@ -53,6 +56,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 	PermissionsManager permissionsManager;	
 	@Autowired
 	ObjectTypeSerializer objectTypeSerializer;
+	@Autowired
+	EntityManager entityManager;
 
 	/**
 	 * These member variables are declared volatile to enforce thread-safe
@@ -243,10 +248,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 	
 	@Override
-	public Favorite addFavorite(String userId, String entityId)
+	public EntityHeader addFavorite(String userId, String entityId)
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.addFavorite(userInfo, entityId);
+		Favorite favorite = userProfileManager.addFavorite(userInfo, entityId);
+		return entityManager.getEntityHeader(userInfo, favorite.getEntityId(), null); // current version
 	}
 
 	@Override
@@ -257,7 +263,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	@Override
-	public PaginatedResults<Favorite> getFavorites(String userId, int limit,
+	public PaginatedResults<EntityHeader> getFavorites(String userId, int limit,
 			int offset) throws DatastoreException, InvalidModelException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);

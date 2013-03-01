@@ -30,7 +30,6 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -2128,7 +2127,7 @@ public class ServletTestHelper {
 				Reference.class);
 	}
 
-	public static Favorite addFavorite(
+	public static EntityHeader addFavorite(
 			HttpServlet dispatchServlet, String entityId, String userId,
 			Map<String, String> extraParams) throws ServletException,
 			IOException {
@@ -2152,10 +2151,7 @@ public class ServletTestHelper {
 		if (response.getStatus() != HttpStatus.CREATED.value()) {
 			throw new ServletTestHelperException(response);
 		}
-		@SuppressWarnings("unchecked")
-		Favorite favorite = (Favorite) objectMapper.readValue(
-				response.getContentAsString(), Favorite.class);
-		return favorite;
+		return (EntityHeader) objectMapper.readValue(response.getContentAsString(), EntityHeader.class);
 	}
 	
 	public static void removeFavorite(
@@ -2182,7 +2178,7 @@ public class ServletTestHelper {
 
 
 	@SuppressWarnings("unchecked")
-	public static PaginatedResults<Favorite> getFavorites(
+	public static PaginatedResults<EntityHeader> getFavorites(
 			HttpServlet dispatchServlet, String userId,
 			Map<String, String> extraParams) throws ServletException,
 			IOException, JSONException {
@@ -2206,7 +2202,7 @@ public class ServletTestHelper {
 			throw new ServletTestHelperException(response);
 		}
 		return createPaginatedResultsFromJSON(response.getContentAsString(),
-				Favorite.class);
+				EntityHeader.class);
 	}
 
 }

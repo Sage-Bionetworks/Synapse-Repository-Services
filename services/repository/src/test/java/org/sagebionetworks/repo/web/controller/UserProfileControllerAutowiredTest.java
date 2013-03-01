@@ -26,17 +26,15 @@ import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.repo.web.service.UserProfileService;
@@ -65,7 +63,7 @@ public class UserProfileControllerAutowiredTest {
 	private String userId = TestUserDAO.ADMIN_USER_NAME;
 	private UserInfo testUser;
 
-	private List<Favorite> favoritesToDelete;
+	private List<String> favoritesToDelete;
 	private List<String> entityIdsToDelete;
 
 	HttpServletRequest mockRequest;
@@ -79,7 +77,7 @@ public class UserProfileControllerAutowiredTest {
 	public void before() throws Exception{
 		testHelper.setUp();
 		assertNotNull(userProfileService);
-		favoritesToDelete = new ArrayList<Favorite>();
+		favoritesToDelete = new ArrayList<String>();
 		entityIdsToDelete = new ArrayList<String>();
 		// Map test objects to their urls
 		// Make sure we have a valid user.
@@ -93,9 +91,9 @@ public class UserProfileControllerAutowiredTest {
 	@After
 	public void after() throws UnauthorizedException {
 		if (userProfileService != null && favoritesToDelete != null) {
-			for (Favorite fav : favoritesToDelete) {
+			for (String entityId : favoritesToDelete) {
 				try {
-					userProfileService.removeFavorite(fav.getPrincipalId(), fav.getEntityId());
+					userProfileService.removeFavorite(userId, entityId);
 				} catch (NotFoundException e) {
 					// nothing to do here
 				} catch (DatastoreException e) {
@@ -169,19 +167,19 @@ public class UserProfileControllerAutowiredTest {
 		
 		// add favorite
 		Map<String, String> extraParams = new HashMap<String, String>();
-		Favorite fav = ServletTestHelper.addFavorite(dispatchServlet, proj.getId(), userId, extraParams);
-		favoritesToDelete.add(fav);
+		EntityHeader fav = ServletTestHelper.addFavorite(dispatchServlet, proj.getId(), userId, extraParams);
+		favoritesToDelete.add(fav.getId());
 		assertNotNull(fav);
 
 		// retrieve
 		extraParams = new HashMap<String, String>();
 		extraParams.put("offset", "0");
 		extraParams.put("limit", Integer.toString(Integer.MAX_VALUE));
-		PaginatedResults<Favorite> favs = ServletTestHelper.getFavorites(dispatchServlet, userId, extraParams);
+		PaginatedResults<EntityHeader> favs = ServletTestHelper.getFavorites(dispatchServlet, userId, extraParams);
 		assertNotNull(favs);
 		assertEquals(1, favs.getTotalNumberOfResults());
 		assertEquals(1, favs.getResults().size());
-		assertEquals(fav, favs.getResults().get(0));
+		assertEquals(fav.getId(), favs.getResults().get(0).getId());
 		
 		// test removal
 		extraParams = new HashMap<String, String>();

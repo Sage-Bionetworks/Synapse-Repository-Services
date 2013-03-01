@@ -33,6 +33,15 @@ public interface FavoriteDAO extends MigratableDAO {
 	public PaginatedResults<Favorite> getFavorites(String principalId, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
 
 	/**
+	 * Retrieve users list of favorites, paginated
+	 * @param principalId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 */
+	public PaginatedResults<EntityHeader> getFavoritesEntityHeader(String principalId, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
+
+	/**
 	 * For backup purposes
 	 * @param principalId
 	 * @param entityId

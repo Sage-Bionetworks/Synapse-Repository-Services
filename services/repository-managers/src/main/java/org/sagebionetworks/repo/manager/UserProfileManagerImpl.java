@@ -8,9 +8,11 @@ import java.util.List;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.SchemaCache;
@@ -46,6 +48,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	AttachmentManager attachmentManager;
 	@Autowired
 	private FavoriteDAO favoriteDAO;
+	@Autowired 
+	private NodeDAO nodeDAO;
 	
 	public UserProfileManagerImpl() {
 	}
@@ -180,9 +184,9 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	}
 
 	@Override
-	public PaginatedResults<Favorite> getFavorites(UserInfo userInfo,
+	public PaginatedResults<EntityHeader> getFavorites(UserInfo userInfo,
 			int limit, int offset) throws DatastoreException,
 			InvalidModelException, NotFoundException {
-		return favoriteDAO.getFavorites(userInfo.getIndividualGroup().getId(), limit, offset);
+		return favoriteDAO.getFavoritesEntityHeader(userInfo.getIndividualGroup().getId(), limit, offset);
 	}
 }

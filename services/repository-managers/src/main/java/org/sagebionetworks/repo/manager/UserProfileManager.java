@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -124,6 +125,6 @@ public interface UserProfileManager {
 	 * @throws InvalidModelException
 	 * @throws NotFoundException
 	 */
-	public PaginatedResults<Favorite> getFavorites(UserInfo userInfo, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
+	public PaginatedResults<EntityHeader> getFavorites(UserInfo userInfo, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
 
 }

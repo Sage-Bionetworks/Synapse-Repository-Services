@@ -1,11 +1,20 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FAVORITE_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FAVORITE_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FAVORITE_PRINCIPAL_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_NUMBER;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_OWNER_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FAVORITE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -14,6 +23,8 @@ import java.util.HashSet;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -22,7 +33,6 @@ import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite;
@@ -67,6 +77,14 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 														+ " FROM " + TABLE_FAVORITE 
 														+ " WHERE " + COL_FAVORITE_PRINCIPAL_ID +"= :"+ COL_FAVORITE_PRINCIPAL_ID
 														+ " AND " + COL_FAVORITE_NODE_ID + "= :" + COL_FAVORITE_NODE_ID;
+	private static final String SELECT_FAVORITES_HEADERS_SQL = "SELECT n."+ COL_NODE_ID +", n."+ COL_NODE_NAME 
+																+", n."+ COL_NODE_TYPE +", r."+ COL_REVISION_NUMBER +", r."+ COL_REVISION_LABEL +" " +
+																"FROM "+ TABLE_FAVORITE +" f, "+ TABLE_NODE +" n, "+ TABLE_REVISION +" r " +
+																"WHERE f."+ COL_FAVORITE_PRINCIPAL_ID +" = :"+ COL_FAVORITE_PRINCIPAL_ID +" " +
+																"AND f."+ COL_FAVORITE_NODE_ID +" = n."+ COL_NODE_ID +" " +
+																"AND n."+ COL_NODE_ID +" = r."+ COL_REVISION_OWNER_NODE +" " +
+																"AND n."+ COL_CURRENT_REV +" = r."+ COL_REVISION_NUMBER;
+
 	
 	public DBOFavoriteDAOImpl() { }
 	
@@ -82,6 +100,11 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		this.tagMessenger = tagMessenger;
 		this.basicDao = basicDao;
 		this.simpleJdbcTemplate = simpleJdbcTemplate;
+	}
+	
+	@Override
+	public MigratableObjectType getMigratableObjectType() {
+		return MigratableObjectType.FAVORITE;
 	}
 
 	@Override
@@ -213,9 +236,42 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 	}
 
 	@Override
-	public MigratableObjectType getMigratableObjectType() {
-		return MigratableObjectType.FAVORITE;
-	}
+	public PaginatedResults<EntityHeader> getFavoritesEntityHeader(
+			String principalId, int limit, int offset)
+			throws DatastoreException, InvalidModelException, NotFoundException {
+		if(principalId == null) throw new IllegalArgumentException("Principal id can not be null");
+		if(limit < 0 || offset < 0) throw new IllegalArgumentException("limit and offset must be greater than 0");
+		// get one page of favorites
+		MapSqlParameterSource params = new MapSqlParameterSource();
+		params.addValue(COL_FAVORITE_PRINCIPAL_ID, principalId);
+		params.addValue(OFFSET_PARAM_NAME, offset);
+		params.addValue(LIMIT_PARAM_NAME, limit);
 
+		List<EntityHeader> favoritesHeaders = null;
+		favoritesHeaders = simpleJdbcTemplate.query(SELECT_FAVORITES_HEADERS_SQL, new RowMapper<EntityHeader>() {
+			@Override
+			public EntityHeader mapRow(ResultSet rs, int rowNum) throws SQLException {
+				EntityHeader header = new EntityHeader();
+				header.setId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+				header.setName(rs.getString(COL_NODE_NAME));
+				header.setType(EntityType.getTypeForId(rs.getShort(COL_NODE_TYPE)).getEntityType());
+				header.setVersionNumber(rs.getLong(COL_REVISION_NUMBER));
+				header.setVersionLabel(rs.getString(COL_REVISION_LABEL));
+				return header;
+			}		
+		}, params);
+			
+		// return the page of objects, along with the total result count
+		PaginatedResults<EntityHeader> queryResults = new PaginatedResults<EntityHeader>();
+		queryResults.setResults(favoritesHeaders);
+		long totalCount = 0;
+		try {
+			totalCount = simpleJdbcTemplate.queryForLong(COUNT_FAVORITES_SQL, params);		
+		} catch (EmptyResultDataAccessException e) {
+			// count = 0
+		}
+		queryResults.setTotalNumberOfResults(totalCount);
+		return queryResults;	
+	}
 
 }
