@@ -39,28 +39,25 @@ public class TrashCanBackupDriverTest {
 
 	@Before
 	public void before() throws Exception {
+		assertNotNull(trashCanDao);
+		assertNotNull(trashCanBackupDriver);
+		assertNotNull(userGroupDAO);
 		userId = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
 		assertNotNull(userId);
-		assertNotNull(trashCanDao);
-		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
-		for (TrashedEntity trash : trashList) {
-			trashCanDao.delete(userId, trash.getEntityId());
-		}
+		cleanUp(); // For leftovers from other test cases
 	}
 
 	@After
 	public void after() throws Exception {
-		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
-		for (TrashedEntity trash : trashList) {
-			trashCanDao.delete(userId, trash.getEntityId());
-		}
+		cleanUp();
 	}
 
 	@Test
 	public void testRoundTrip() throws Exception {
 		final String entityId = KeyFactory.keyToString(123L);
+		final String entityName = "TrashCanBackupDriverTest.testRoundTrip()";
 		final String parentId = KeyFactory.keyToString(321L);
-		trashCanDao.create(userId, entityId, parentId);
+		trashCanDao.create(userId, entityId, entityName, parentId);
 		File file = new File("TrashCanBackupDriverTest");
 		assertFalse(file.exists());
 		assertTrue(file.createNewFile());
@@ -78,5 +75,12 @@ public class TrashCanBackupDriverTest {
 		assertTrue(restore);
 		assertTrue(trashCanDao.exists(userId, entityId));
 		assertTrue(file.delete());
+	}
+
+	private void cleanUp() throws Exception {
+		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
+		for (TrashedEntity trash : trashList) {
+			trashCanDao.delete(userId, trash.getEntityId());
+		}
 	}
 }

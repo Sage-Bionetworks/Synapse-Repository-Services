@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
@@ -14,6 +14,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_OWNER_TY
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
@@ -109,6 +110,8 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private static final String SQL_SELECT_PARENT_TYPE_NAME = "SELECT "+COL_NODE_PARENT_ID+", "+COL_NODE_TYPE+", "+COL_NODE_NAME+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" = ?";
 	private static final String SQL_GET_ALL_CHILDREN_IDS = "SELECT "+COL_NODE_ID+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_PARENT_ID+" = ? ORDER BY "+COL_NODE_ID;
 	private static final String SQL_SELECT_VERSION_LABEL = "SELECT "+COL_REVISION_LABEL+" FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ? AND "+ COL_REVISION_NUMBER +" = ?";
+	private static final String NODE_IDS_LIST_PARAM_NAME = "NODE_IDS";
+	private static final String SQL_GET_CURRENT_VERSIONS = "SELECT "+COL_NODE_ID+","+COL_CURRENT_REV+" FROM "+TABLE_NODE+" WHERE "+COL_NODE_ID+" IN ( :"+NODE_IDS_LIST_PARAM_NAME + " )";
 	private static final String OWNER_ID_PARAM_NAME = "OWNER_ID";
 	private static final String OLD_REV_PARAM_NAME = "OLD_REVISION";
 	private static final String NEW_REV_PARAM_NAME = "NEW_REVISION";
@@ -588,7 +591,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 
 		// Create a Select for update query
 		final Long longId = KeyFactory.stringToKey(id);
-		String currentTag = simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, longId);
+		String currentTag = lockNode(longId);
 
 		// Check the e-tags
 		if(!currentTag.equals(eTag)){
@@ -603,6 +606,12 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(updated != 1) throw new ConflictingUpdateException("Failed to lock Node: "+longId);
 		
 		// Return the new tag
+		return currentTag;
+	}
+
+	@Override
+	public String lockNode(final Long longId) {
+		String currentTag = simpleJdbcTemplate.queryForObject(SQL_ETAG_FOR_UPDATE, String.class, longId);
 		return currentTag;
 	}
 
@@ -1338,5 +1347,26 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		}
 	}
 
+	@Override
+	public List<Reference> getCurrentRevisionNumbers(List<String> nodeIds) {
+		List<Long> longIds = new ArrayList<Long>();
+		for(String nodeId : nodeIds) {
+			longIds.add(KeyFactory.stringToKey(nodeId));
+		}
+		MapSqlParameterSource parameters = new MapSqlParameterSource();
+		parameters.addValue(NODE_IDS_LIST_PARAM_NAME, longIds);
+		List<Reference> refs = this.simpleJdbcTemplate.query(SQL_GET_CURRENT_VERSIONS, new RowMapper<Reference>() {
+			@Override
+			public Reference mapRow(ResultSet rs, int rowNum)
+					throws SQLException {
+				Reference ref = new Reference(); 
+				ref.setTargetId(KeyFactory.keyToString(rs.getLong(COL_NODE_ID)));
+				ref.setTargetVersionNumber(rs.getLong(COL_CURRENT_REV));
+				if(rs.wasNull()) ref.setTargetVersionNumber(null);
+				return ref;
+			}		
+		}, parameters);
+		return refs;
+	}
 
 }

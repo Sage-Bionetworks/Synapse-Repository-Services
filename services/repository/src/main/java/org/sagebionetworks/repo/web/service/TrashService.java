@@ -30,6 +30,16 @@ public interface TrashService {
 	/**
 	 * Retrieves entities (in the trash can) deleted by the specified user.
 	 */
-	PaginatedResults<TrashedEntity> viewTrash(String userId, Integer offset, Integer limit,
+	PaginatedResults<TrashedEntity> viewTrash(String userId, Long offset, Long limit,
 			HttpServletRequest request) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Purges the specified entity from the trash can. After purging, the entity will be permanently deleted.
+	 */
+	void purge(String userId, String nodeId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Purges the trash can for the user. All the entities in the trash will be permanently deleted.
+	 */
+	void purge(String userId) throws DatastoreException, NotFoundException;
 }

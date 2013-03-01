@@ -3,6 +3,10 @@ package org.sagebionetworks.repo.manager.file;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -20,12 +24,9 @@ import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.junit.Before;
 import org.junit.Test;
-import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
-import org.sagebionetworks.repo.manager.file.FileHandleManagerImpl;
-import org.sagebionetworks.repo.manager.file.FileUploadResults;
 import org.sagebionetworks.repo.manager.file.transfer.FileTransferStrategy;
 import org.sagebionetworks.repo.manager.file.transfer.TransferRequest;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -40,6 +41,7 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 import com.amazonaws.HttpMethod;
 import com.amazonaws.services.s3.AmazonS3Client;
@@ -350,6 +352,68 @@ public class FileHandleManagerImplTest {
 		URL redirect = manager.getRedirectURLForFileHandle(s3FileHandle.getId());
 		assertNotNull(redirect);
 		assertEquals(expecedURL, redirect.toString());
+	}
+	
+	
+	@Test
+	public void testCreateExternalFileHappyCase() throws Exception{
+		ExternalFileHandle efh = createFileHandle();
+		when(mockfileMetadataDao.createFile(efh)).thenReturn(efh);
+		// This should work
+		ExternalFileHandle result = manager.createExternalFileHandle(mockUser, efh);
+		assertNotNull(result);
+		assertEquals(mockUser.getIndividualGroup().getId(), result.getCreatedBy());
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateExternalFileHandleNullUser(){
+		ExternalFileHandle efh = createFileHandle();
+		manager.createExternalFileHandle(null, efh);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateExternalFileHandleNullHandle(){
+		manager.createExternalFileHandle(mockUser, null);
+	}
+	
+	public void testCreateExternalFileHandleNullFileName(){
+		ExternalFileHandle efh = createFileHandle();
+		efh.setFileName(null);
+		// This should not fail.
+		manager.createExternalFileHandle(mockUser, efh);
+	}
+	
+	public void testCreateExternalFileHandleNullContentType(){
+		ExternalFileHandle efh = createFileHandle();
+		efh.setContentType(null);
+		// This should not fail.
+		manager.createExternalFileHandle(mockUser, efh);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateExternalFileHandleNullURL(){
+		ExternalFileHandle efh = createFileHandle();
+		efh.setExternalURL(null);
+		manager.createExternalFileHandle(mockUser, efh);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testCreateExternalFileHandleMalformedURL(){
+		ExternalFileHandle efh = createFileHandle();
+		efh.setExternalURL("local");
+		manager.createExternalFileHandle(mockUser, efh);
+	}
+	
+	/**
+	 * This a file handle that has all of the required fields filled in.
+	 * @return
+	 */
+	private ExternalFileHandle createFileHandle(){
+		ExternalFileHandle efh = new ExternalFileHandle();
+		efh.setContentType("application/json");
+		efh.setFileName("foo.bar");
+		efh.setExternalURL("http://www.googl.com");
+		return efh;
 	}
 
 }

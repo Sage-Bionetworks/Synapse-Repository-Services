@@ -12,9 +12,9 @@ import java.util.Date;
 import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
-import org.sagebionetworks.dynamo.dao.IncompletePathException;
-import org.sagebionetworks.dynamo.dao.NodeTreeDao;
-import org.sagebionetworks.dynamo.dao.ObsoleteChangeException;
+import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.nodetree.ObsoleteChangeException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -46,24 +46,26 @@ public class NodeTreeUpdateManagerImplTest {
 	private String pObsolete;
 	private Date tObsolete;
 
+	private String cNotExistInRds;
+
 	private String root;
-	
+
 	private void initIds() {
 		Date date = new Date(System.currentTimeMillis() - 1000);
-		String prefix = "syn";
-		this.cSuccess = prefix + "1";
-		this.pSuccess = prefix + "2";
+		this.cSuccess = KeyFactory.keyToString(1L);
+		this.pSuccess = KeyFactory.keyToString(2L);
 		this.tSuccess = date;
-		this.cFailure = prefix + "3";
-		this.pFailure = prefix + "4";
+		this.cFailure = KeyFactory.keyToString(3L);
+		this.pFailure = KeyFactory.keyToString(4L);
 		this.tFailure = date;
-		this.cIncompletePath = prefix + "5";
-		this.pIncompletePath = prefix + "6";
+		this.cIncompletePath = KeyFactory.keyToString(5L);
+		this.pIncompletePath = KeyFactory.keyToString(6L);
 		this.tIncompletePath = date;
-		this.cObsolete = prefix + "7";
-		this.pObsolete = prefix + "8";
+		this.cObsolete = KeyFactory.keyToString(7L);
+		this.pObsolete = KeyFactory.keyToString(8L);
 		this.tObsolete = date;
-		this.root = prefix + "9";
+		this.cNotExistInRds = KeyFactory.keyToString(9L);
+		this.root = KeyFactory.keyToString(11L);
 	}
 
 	private void mockNodeTreeDao() {
@@ -152,10 +154,13 @@ public class NodeTreeUpdateManagerImplTest {
 		path.add(eh);
 		when(this.nodeDaoMock.getEntityPath(this.cObsolete)).thenReturn(path);
 
-		when(this.nodeDaoMock.doesNodeExist(
-				KeyFactory.stringToKey(this.cSuccess))).thenReturn(true);
-
 		when(this.nodeDaoMock.getNode(this.cObsolete)).thenThrow(new NotFoundException());
+		
+		when(this.nodeDaoMock.doesNodeExist(KeyFactory.stringToKey(this.cSuccess))).thenReturn(true);
+		when(this.nodeDaoMock.doesNodeExist(KeyFactory.stringToKey(this.cFailure))).thenReturn(true);
+		when(this.nodeDaoMock.doesNodeExist(KeyFactory.stringToKey(this.cIncompletePath))).thenReturn(true);
+		when(this.nodeDaoMock.doesNodeExist(KeyFactory.stringToKey(this.cObsolete))).thenReturn(true);
+		when(this.nodeDaoMock.doesNodeExist(KeyFactory.stringToKey(this.cNotExistInRds))).thenReturn(false);
 	}
 	
 	@Before
@@ -329,13 +334,25 @@ public class NodeTreeUpdateManagerImplTest {
 				KeyFactory.stringToKey(this.cSuccess).toString(),
 				this.tSuccess);
 	}
-	
+
 	@Test
 	public void testUpdateRoot() {
 		this.man.update(this.cSuccess, null, this.tSuccess);
 		verify(this.nodeTreeDaoMock, times(1)).update(
 				KeyFactory.stringToKey(this.cSuccess).toString(),
 				KeyFactory.stringToKey(this.cSuccess).toString(),
+				this.tSuccess);
+	}
+
+	@Test
+	public void testNodeNotExitInRds() {
+		this.man.create(this.cNotExistInRds, this.pSuccess, this.tSuccess);
+		verify(this.nodeTreeDaoMock, times(1)).delete(
+				KeyFactory.stringToKey(this.cNotExistInRds).toString(),
+				this.tSuccess);
+		this.man.update(this.cNotExistInRds, this.pSuccess, this.tSuccess);
+		verify(this.nodeTreeDaoMock, times(2)).delete(
+				KeyFactory.stringToKey(this.cNotExistInRds).toString(),
 				this.tSuccess);
 	}
 }

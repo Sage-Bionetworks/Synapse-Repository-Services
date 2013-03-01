@@ -2172,6 +2172,34 @@ public class NodeDAOImplTest {
 		fileHandleDao.delete(fileHandle.getId());
 		fileHandleDao.delete(fileHandle2.getId());
 	}
+	
+	@Test
+	public void testGetCurrentVersions() throws Exception {
+		Node n1 = NodeTestUtils.createNew("testGetCurrentVersions.name1", creatorUserGroupId);
+		String id1 = this.nodeDao.createNew(n1);
+		toDelete.add(id1);
+		n1 = nodeDao.getNode(id1);
+		n1.setVersionLabel("2nd");
+		// create 2nd version
+		nodeDao.createNewVersion(n1);
+		n1 = nodeDao.getNode(id1);
+		Node n2 = NodeTestUtils.createNew("testGetCurrentVersions.name2", creatorUserGroupId);
+		String id2 = this.nodeDao.createNew(n2);
+		toDelete.add(id2);
+		n2 = nodeDao.getNode(id2);
+		
+		List<Reference> refs = nodeDao.getCurrentRevisionNumbers(Arrays.asList(new String[] { n1.getId(), n2.getId() }));
+		
+		Reference refN1 = new Reference();
+		refN1.setTargetId(n1.getId());		
+		refN1.setTargetVersionNumber(n1.getVersionNumber());
+		Reference refN2 = new Reference();
+		refN2.setTargetId(n2.getId());				
+		refN2.setTargetVersionNumber(n2.getVersionNumber());
+
+		assertTrue(refs.contains(refN1));
+		assertTrue(refs.contains(refN2));
+	}
 
 	/*
 	 * Private Methods

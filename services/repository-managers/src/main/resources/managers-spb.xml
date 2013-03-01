@@ -273,7 +273,7 @@
 				<entry key="SUBMISSION">
 					<ref bean="submissionBackupDriver" />
 				</entry>
-				<entry key="TRASHCAN">
+				<entry key="TRASHED_ENTITY">
 					<ref bean="trashCanBackupDriver" />
 				</entry>
 			</map>

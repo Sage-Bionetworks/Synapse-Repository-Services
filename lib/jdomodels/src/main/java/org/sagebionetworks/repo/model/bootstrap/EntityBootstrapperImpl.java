@@ -101,6 +101,11 @@ public class EntityBootstrapperImpl implements EntityBootstrapper {
 				accessControlListDAO.create(acl);
 				nodeInheritanceDao.addBeneficiary(nodeId, nodeId);
 			}
+			// Verify the bootstrap entity has indeed been created
+			id = nodeDao.getNodeIdForPath(entityBoot.getEntityPath());
+			if (id == null) {
+				throw new DatastoreException("Bootstrapping failed for entity path " + entityBoot.getEntityPath() );
+			}
 		}
 	}
 

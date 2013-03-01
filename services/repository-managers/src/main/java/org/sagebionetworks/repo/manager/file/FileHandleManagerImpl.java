@@ -53,6 +53,8 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s"; // userid/UUID
 	
+	public static final String NOT_SET = "NOT_SET";
+	
 	@Autowired
 	FileHandleDao fileHandleDao;
 	
@@ -121,7 +123,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		if(primaryStrategy == null) throw new IllegalStateException("The primaryStrategy has not been set.");
 		if(fallbackStrategy == null) throw new IllegalStateException("The fallbackStrategy has not been set.");
 		FileUploadResults results = new FileUploadResults();
-		String userId =  userInfo.getIndividualGroup().getId();
+		String userId =  getUserId(userInfo);
 		// Upload all of the files
 		// Before we try to read any files make sure we have all of the expected parameters.
 		Set<String> expectedCopy = new HashSet<String>(expectedParams);
@@ -148,6 +150,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 			log.debug(results);
 		}
 		return results;
+	}
+	
+	/**
+	 * Get the User's ID
+	 * @param userInfo
+	 * @return
+	 */
+	public String getUserId(UserInfo userInfo) {
+		return userInfo.getIndividualGroup().getId();
 	}
 	
 	/**
@@ -271,6 +282,30 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	@Override
 	public FileHandleResults getAllFileHandles(List<String> idList, boolean includePreviews) throws DatastoreException, NotFoundException {
 		return fileHandleDao.getAllFileHandles(idList, includePreviews);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public ExternalFileHandle createExternalFileHandle(UserInfo userInfo,ExternalFileHandle fileHandle) {
+		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(fileHandle == null) throw new IllegalArgumentException("FileHandle cannot be null");
+		if(fileHandle.getExternalURL() == null) throw new IllegalArgumentException("ExternalURL cannot be null");
+		if(fileHandle.getFileName() == null){
+			fileHandle.setFileName(NOT_SET);
+		}
+		if(fileHandle.getContentType() == null){
+			fileHandle.setContentType(NOT_SET);
+		}
+		// The URL must be a URL
+		try{
+			URL url = new URL(fileHandle.getExternalURL());
+		}catch(MalformedURLException e){
+			throw new IllegalArgumentException("The ExternalURL is malformed: "+e.getMessage());
+		}
+		// set this user as the creator of the file
+		fileHandle.setCreatedBy(getUserId(userInfo));
+		// Save the file metadata to the DB.
+		return fileHandleDao.createFile(fileHandle);
 	}
 
 }

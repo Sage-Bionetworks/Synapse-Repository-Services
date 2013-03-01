@@ -24,6 +24,7 @@ public class TrashedEntityUtilsTest {
 		// Test an non-empty list
 		DBOTrashedEntity dbo = new DBOTrashedEntity();
 		dbo.setId(111L);
+		dbo.setNodeName("name");
 		dbo.setParentId(222L);
 		dbo.setDeletedBy(333L);
 		dbo.setDeletedOn(new Timestamp(123456789L));
@@ -35,6 +36,7 @@ public class TrashedEntityUtilsTest {
 		assertEquals(1, listBack.size());
 		TrashedEntity trash = listBack.get(0);
 		assertEquals(KeyFactory.keyToString(111L), trash.getEntityId());
+		assertEquals("name", trash.getEntityName());
 		assertEquals(KeyFactory.keyToString(222L), trash.getOriginalParentId());
 		assertEquals("333", trash.getDeletedByPrincipalId());
 		assertEquals(new Timestamp(123456789L), trash.getDeletedOn());
@@ -49,12 +51,14 @@ public class TrashedEntityUtilsTest {
 	public void testConvertDboToDto() {
 		DBOTrashedEntity dbo = new DBOTrashedEntity();
 		dbo.setId(111L);
+		dbo.setNodeName("a name");
 		dbo.setParentId(222L);
 		dbo.setDeletedBy(333L);
 		dbo.setDeletedOn(new Timestamp(123456789L));
 		assertEquals(Long.valueOf(111L), dbo.getNodeId());
 		TrashedEntity trash = TrashedEntityUtils.convertDboToDto(dbo);
 		assertEquals(KeyFactory.keyToString(111L), trash.getEntityId());
+		assertEquals("a name", trash.getEntityName());
 		assertEquals(KeyFactory.keyToString(222L), trash.getOriginalParentId());
 		assertEquals("333", trash.getDeletedByPrincipalId());
 		assertEquals(new Timestamp(123456789L), trash.getDeletedOn());

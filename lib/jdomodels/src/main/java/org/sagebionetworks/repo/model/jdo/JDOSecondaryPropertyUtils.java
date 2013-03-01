@@ -11,7 +11,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -74,6 +76,52 @@ public class JDOSecondaryPropertyUtils {
 		// We need to add all data types to the strings, to support mixed query
 		merged = JDOSecondaryPropertyUtils.addAllToStrings(merged);
 		return merged;
+	}
+	
+	/**
+	 * Build a set of annotations where all of the key-value-pairs are distinct.
+	 * @param annos
+	 */
+	public static Annotations buildDistinctAnnotations(Annotations annos){
+		// The resulting annotations will have no duplicates.
+		Annotations distinct = new Annotations();
+		distinct.setId(annos.getId());
+		distinct.setStringAnnotations(buildDistinctMap(annos.getStringAnnotations()));
+		distinct.setDoubleAnnotations(buildDistinctMap(annos.getDoubleAnnotations()));
+		distinct.setLongAnnotations(buildDistinctMap(annos.getLongAnnotations()));
+		distinct.setDateAnnotations(buildDistinctMap(annos.getDateAnnotations()));
+		// Do not include blobs.
+//		distinct.setBlobAnnotations(buildDistinctMap(annos.getBlobAnnotations()));
+		return distinct;
+	}
+	
+	/**
+	 * Build a copy of the passed map that contains only distinct key-value pairs
+	 * @param original
+	 * @return
+	 */
+	public static <T> Map<String, List<T>> buildDistinctMap(Map<String, List<T>> original){
+		 Map<String, List<T>> distinct = new HashMap<String, List<T>>();
+		 Set<String> set = new HashSet<String>();
+		 for(String key: original.keySet()){
+			 List<T> values = original.get(key);
+			 if(values != null){
+				 for(T value: values){
+					 if(value != null){
+						 String compoundKey = key+"+"+value;
+						 if(set.add(compoundKey)){
+							 List<T> list = distinct.get(key);
+							 if(list == null){
+								 list = new LinkedList<T>();
+								 distinct.put(key, list);
+							 }
+							 list.add(value);
+						 }						 
+					 }
+				 }
+			 }
+		 }
+		 return distinct;
 	}
 	
 	/**

@@ -1,13 +1,22 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
+import static org.junit.Assert.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.UnsupportedEncodingException;
+import java.sql.BatchUpdateException;
+import java.util.Collection;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.junit.After;
 import org.junit.Before;
@@ -264,6 +273,91 @@ public class DBOAnnotationsDaoImplTest {
 		assertNull(clone.getSingleValue("longKey"));
 		assertNull(clone.getSingleValue("doubleKey"));
 		assertNull(clone.getSingleValue("dateKey"));
+	}
+	
+	@Test
+	public void testDistict(){
+		final Annotations annos = new Annotations();
+		// Apply these annos to this node.
+		annos.setId(KeyFactory.keyToString(node.getId()));
+		annos.addAnnotation("stringKey", "one");
+		annos.addAnnotation("stringKey", "one");
+		try{
+			// This should fail due to a uniqueness constraint violation.
+			dboAnnotationsDao.replaceAnnotations(annos);
+			fail("should have failed");
+		}catch(Exception e){
+			assertTrue(e.getMessage().indexOf("Duplicate entry") > 0);
+			assertTrue(e.getMessage().indexOf("for key 'STRING_ANNO_UNIQUE'") > 0);
+		}
+	}
+	
+	/**
+	 * This test was added as part of the fix for PLFM-1696
+	 * @throws InterruptedException
+	 * @throws ExecutionException
+	 */
+	@Test
+	public void testConcurentUpdate() throws InterruptedException, ExecutionException{
+		final Annotations annos = new Annotations();
+		// Apply these annos to this node.
+		annos.setId(KeyFactory.keyToString(node.getId()));
+		annos.addAnnotation("stringKey", "String");
+		
+		LoopingAnnotaionsWoker workerOne = new LoopingAnnotaionsWoker(dboAnnotationsDao, 10, annos);
+		LoopingAnnotaionsWoker workerTwo = new LoopingAnnotaionsWoker(dboAnnotationsDao, 10, annos);
+		// Start both workers
+		ExecutorService pool = Executors.newFixedThreadPool(2);
+		Future<Boolean> furtureOne = pool.submit(workerOne);
+		Future<Boolean> furtureTwo = pool.submit(workerTwo);
+		// Wait for the threads to finish.
+		try{
+			assertTrue(furtureOne.get());
+			assertTrue(furtureTwo.get());
+		}catch(ExecutionException e){
+			System.out.println(e.getLocalizedMessage());
+			// Deadlock is an acceptable out for this test.
+			assertTrue("Deadlock is the only acceptable exception for this test.",e.getMessage().indexOf("Deadlock found when trying to get lock" )> -1);
+		}	
+		// There should be no duplication.
+		Annotations clone = dboAnnotationsDao.getAnnotations(node.getId());
+		// There should be no duplication.
+		assertNotNull(clone);
+		Collection list = clone.getAllValues("stringKey");
+		assertNotNull(list);
+		assertEquals("There should only be one value for this annotations. That means multiple threads caused duplication!", 1, list.size());
+		assertEquals("String", list.iterator().next() );
+	}
+	
+	/**
+	 * This is a simple worker that will attempt to update the same annotations over and over 
+	 * again in a loop.
+	 * @author John
+	 *
+	 */
+	private static class LoopingAnnotaionsWoker implements Callable<Boolean>{
+		DBOAnnotationsDao dboAnnotationsDao;
+		int count;
+		Annotations annos;
+		
+		public LoopingAnnotaionsWoker(DBOAnnotationsDao dboAnnotationsDao,
+				int count, Annotations annos) {
+			super();
+			this.dboAnnotationsDao = dboAnnotationsDao;
+			this.count = count;
+			this.annos = annos;
+		}
+
+		@Override
+		public Boolean call() throws Exception {
+			// Attempt to update the annotations 10 times
+			for(int i=0; i<count; i++){
+				// Replace the annotations
+				dboAnnotationsDao.replaceAnnotations(annos);
+			}
+			return true;
+		}
+		
 	}
 	
 }
