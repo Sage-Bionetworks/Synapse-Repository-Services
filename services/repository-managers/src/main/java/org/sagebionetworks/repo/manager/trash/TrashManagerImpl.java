@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager.trash;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
@@ -56,10 +58,10 @@ public class TrashManagerImpl implements TrashManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
 		if (userInfo == null) {
-			throw new IllegalArgumentException("userInfo cannot be null");
+			throw new IllegalArgumentException("User info cannot be null");
 		}
 		if (nodeId == null) {
-			throw new IllegalArgumentException("nodeId cannot be null");
+			throw new IllegalArgumentException("Node ID cannot be null");
 		}
 
 		// Authorize
@@ -117,10 +119,10 @@ public class TrashManagerImpl implements TrashManager {
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
 		if (userInfo == null) {
-			throw new IllegalArgumentException("userInfo cannot be null");
+			throw new IllegalArgumentException("User info cannot be null");
 		}
 		if (nodeId == null) {
-			throw new IllegalArgumentException("nodeId cannot be null");
+			throw new IllegalArgumentException("Node ID cannot be null");
 		}
 
 		// Make sure the node was indeed deleted by the user
@@ -177,13 +179,13 @@ public class TrashManagerImpl implements TrashManager {
 			Long offset, Long limit) {
 
 		if (userInfo == null) {
-			throw new IllegalArgumentException("userInfo cannot be null");
+			throw new IllegalArgumentException("User info cannot be null");
 		}
 		if (offset == null) {
-			throw new IllegalArgumentException("offset cannot be null");
+			throw new IllegalArgumentException("Offset cannot be null");
 		}
 		if (limit == null) {
-			throw new IllegalArgumentException("limit cannot be null");
+			throw new IllegalArgumentException("Limit cannot be null");
 		}
 
 		UserInfo.validateUserInfo(userInfo);
@@ -192,6 +194,58 @@ public class TrashManagerImpl implements TrashManager {
 		int count = this.trashCanDao.getCount(userGroupId);
 		QueryResults<TrashedEntity> results = new QueryResults<TrashedEntity>(list, count);
 		return results;
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void purge(UserInfo userInfo, String nodeId)
+			throws DatastoreException, NotFoundException {
+
+		if (userInfo == null) {
+			throw new IllegalArgumentException("User info cannot be null.");
+		}
+		if (nodeId == null) {
+			throw new IllegalArgumentException("Node ID cannot be null.");
+		}
+
+		// Make sure the node was indeed deleted by the user
+		UserInfo.validateUserInfo(userInfo);
+		String userGroupId = userInfo.getIndividualGroup().getId();
+		boolean exists = this.trashCanDao.exists(userGroupId, nodeId);
+		if (!exists) {
+			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
+		}
+
+		nodeDao.delete(nodeId);
+		trashCanDao.delete(userGroupId, nodeId);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public void purge(UserInfo userInfo) throws DatastoreException, NotFoundException {
+
+		if (userInfo == null) {
+			throw new IllegalArgumentException("User info cannot be null.");
+		}
+
+		UserInfo.validateUserInfo(userInfo);
+		String userGroupId = userInfo.getIndividualGroup().getId();
+
+		// For subtrees moved entirely into the trash can, we want to find the roots
+		// of these subtrees. Deleting the roots should delete the subtrees. We use
+		// a set of the trashed items to help find the roots.
+		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userGroupId, 0, Long.MAX_VALUE);
+		Set<String> trashIdSet = new HashSet<String>();
+		for (TrashedEntity trash : trashList) {
+			trashIdSet.add(trash.getEntityId());
+		}
+		for (TrashedEntity trash : trashList) {
+			String nodeId = trash.getEntityId();
+			if (!trashIdSet.contains(trash.getOriginalParentId())) {
+				nodeDao.delete(nodeId);
+			}
+			trashCanDao.delete(userGroupId, nodeId);
+		}
 	}
 
 	/**
