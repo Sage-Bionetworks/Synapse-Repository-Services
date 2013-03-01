@@ -316,6 +316,16 @@ public class UrlHelpers {
 	public static final String TRASHCAN_VIEW = TRASHCAN + "/view";
 
 	/**
+	 * Purges the trash can for the current user.
+	 */
+	public static final String TRASHCAN_PURGE = TRASHCAN + "/purge";
+
+	/**
+	 * Views the current trash can.
+	 */
+	public static final String TRASHCAN_PURGE_ENTITY = TRASHCAN_PURGE + ID;
+
+	/**
 	 * URL path for query controller
 	 * 
 	 */
