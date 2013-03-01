@@ -198,6 +198,7 @@ public class Synapse {
 	private static final String TRASHCAN_TRASH = "/trashcan/trash";
 	private static final String TRASHCAN_RESTORE = "/trashcan/restore";
 	private static final String TRASHCAN_VIEW = "/trashcan/view";
+	private static final String TRASHCAN_PURGE = "/trashcan/purge";
 
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
@@ -3507,7 +3508,7 @@ public class Synapse {
 		if (entityId == null || entityId.isEmpty()) {
 			throw new IllegalArgumentException("Must provide an Entity ID.");
 		}
-		String url = TRASHCAN_RESTORE + "/" +entityId;
+		String url = TRASHCAN_RESTORE + "/" + entityId;
 		if (newParentId != null && !newParentId.isEmpty()) {
 			url = url + "/" + newParentId;
 		}
@@ -3529,5 +3530,23 @@ public class Synapse {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
+	}
+
+	/**
+	 * Purges the specified entity from the trash can. After purging, the entity will be permanently deleted.
+	 */
+	public void purge(String entityId) throws SynapseException {
+		if (entityId == null || entityId.isEmpty()) {
+			throw new IllegalArgumentException("Must provide an Entity ID.");
+		}
+		String url = TRASHCAN_PURGE + "/" + entityId;
+		signAndDispatchSynapseRequest(repoEndpoint, url, "PUT", null, defaultPOSTPUTHeaders);
+	}
+
+	/**
+	 * Purges the trash can for the user. All the entities in the trash will be permanently deleted.
+	 */
+	public void purge() throws SynapseException {
+		signAndDispatchSynapseRequest(repoEndpoint, TRASHCAN_PURGE, "PUT", null, defaultPOSTPUTHeaders);
 	}
 }
