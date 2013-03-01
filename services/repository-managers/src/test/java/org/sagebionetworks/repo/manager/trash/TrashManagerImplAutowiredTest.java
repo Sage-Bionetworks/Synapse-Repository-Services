@@ -520,10 +520,22 @@ public class TrashManagerImplAutowiredTest {
 		String testUserId = testUserInfo.getIndividualGroup().getId();
 		assertFalse(trashCanDao.exists(testUserId, nodeIdB2));
 
-		// Purge A1 (a root with 3 descendants)
-		
-		// Purge A2 (a root with no children)
+		// Purge A1 (a root with 2 descendants)
+		trashManager.purge(testUserInfo, nodeIdA1);
+		results = trashManager.viewTrash(testUserInfo, 0L, 1000L);
+		assertEquals(1L, results.getTotalNumberOfResults());
+		assertEquals(1, results.getResults().size());
+		assertEquals(nodeIdA2, results.getResults().get(0).getEntityId());
+		assertFalse(trashCanDao.exists(testUserId, nodeIdA1));
+		assertFalse(trashCanDao.exists(testUserId, nodeIdB1));
+		assertFalse(trashCanDao.exists(testUserId, nodeIdC1));
 
+		// Purge A2 (a root with no children)
+		trashManager.purge(testUserInfo, nodeIdA2);
+		results = trashManager.viewTrash(testUserInfo, 0L, 1000L);
+		assertEquals(0L, results.getTotalNumberOfResults());
+		assertEquals(0, results.getResults().size());
+		assertFalse(trashCanDao.exists(testUserId, nodeIdA2));
 	}
 
 	@Test

@@ -216,8 +216,13 @@ public class TrashManagerImpl implements TrashManager {
 			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
 		}
 
+		Collection<String> descendants = new ArrayList<String>();
+		this.getDescendants(nodeId, descendants);
 		nodeDao.delete(nodeId);
 		trashCanDao.delete(userGroupId, nodeId);
+		for (String desc : descendants) {
+			trashCanDao.delete(userGroupId, desc);
+		}
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
