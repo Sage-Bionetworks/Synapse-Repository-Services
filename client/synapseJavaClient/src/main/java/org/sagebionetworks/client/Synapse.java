@@ -3574,6 +3574,7 @@ public class Synapse {
 	 */
 	public void purge() throws SynapseException {
 		signAndDispatchSynapseRequest(repoEndpoint, TRASHCAN_PURGE, "PUT", null, defaultPOSTPUTHeaders);
+	}
 	
 	/**
 	 * Add the entity to this user's Favorites list
