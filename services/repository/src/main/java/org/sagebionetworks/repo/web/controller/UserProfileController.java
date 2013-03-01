@@ -11,17 +11,21 @@ import org.json.JSONException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -214,4 +218,46 @@ public class UserProfileController extends BaseController {
 		return serviceProvider.getUserProfileService().getUserGroupHeadersByPrefix(prefixFilter, offset, limit, header, request);
 	}
 	
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value = { 
+			UrlHelpers.FAVORITE_ID
+			}, method = RequestMethod.POST)
+	public @ResponseBody
+	Favorite addFavorite(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException, JSONObjectAdapterException {
+		return serviceProvider.getUserProfileService().addFavorite(userId, id);
+	}
+
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = { 
+			UrlHelpers.FAVORITE_ID
+			}, method = RequestMethod.DELETE)
+	public @ResponseBody
+	void removeFavorite(
+			@PathVariable String id,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request)
+			throws DatastoreException, InvalidModelException,
+			UnauthorizedException, NotFoundException, IOException, JSONObjectAdapterException {
+		serviceProvider.getUserProfileService().removeFavorite(userId, id);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = {
+			UrlHelpers.FAVORITE
+	}, method = RequestMethod.GET) 
+	public @ResponseBody
+	PaginatedResults<Favorite> getFavorites(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required=false) String userId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Integer offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Integer limit) 
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		return serviceProvider.getUserProfileService().getFavorites(userId, limit, offset);
+	}
+
 }

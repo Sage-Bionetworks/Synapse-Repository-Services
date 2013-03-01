@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -240,6 +241,33 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public void setUserProfileManager(UserProfileManager userProfileManager) {
 		this.userProfileManager = userProfileManager;
 	}
+	
+	@Override
+	public Favorite addFavorite(String userId, String entityId)
+			throws DatastoreException, InvalidModelException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return userProfileManager.addFavorite(userInfo, entityId);
+	}
+
+	@Override
+	public void removeFavorite(String userId, String entityId)
+			throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);	
+		userProfileManager.removeFavorite(userInfo, entityId);
+	}
+
+	@Override
+	public PaginatedResults<Favorite> getFavorites(String userId, int limit,
+			int offset) throws DatastoreException, InvalidModelException,
+			NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return userProfileManager.getFavorites(userInfo, limit, offset);
+	}
+	
+	
+	/*
+	 * Private Methods
+	 */
 
 	/**
 	 * Fetches a UserProfile for a specified Synapse ID. Note that this does not

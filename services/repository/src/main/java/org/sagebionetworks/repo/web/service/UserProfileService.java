@@ -10,10 +10,12 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -158,5 +160,35 @@ public interface UserProfileService {
 	public void setUserManager(UserManager userManager);
 
 	public void setUserProfileManager(UserProfileManager userProfileManager);	
+	
+	/**
+	 * Adds the entity id to the users's favorites list
+	 * @param userId
+	 * @param entityId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 */
+	public Favorite addFavorite(String userId, String entityId) throws DatastoreException, InvalidModelException, NotFoundException;
+	
+	/**
+	 * Removes the specified entity id from the users's favorites list, if exists
+	 * @param userId
+	 * @param entityId
+	 * @throws DatastoreException
+	 */
+	public void removeFavorite(String userId, String entityId) throws DatastoreException, NotFoundException;
 
+	/**
+	 * Retrieve users list of favorites, paginated
+	 * @param userId
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<Favorite> getFavorites(String userId, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
+	
 }

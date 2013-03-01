@@ -62,6 +62,8 @@ public class DBOActivityTest {
 		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 		activity.setCreatedBy(createdById);
 		activity.setCreatedOn(System.currentTimeMillis());
+		activity.setModifiedBy(createdById);
+		activity.setModifiedOn(System.currentTimeMillis());
 		activity.seteTag("1");
 		// Make sure we can create it
 		DBOActivity clone = dboBasicDao.createNew(activity);

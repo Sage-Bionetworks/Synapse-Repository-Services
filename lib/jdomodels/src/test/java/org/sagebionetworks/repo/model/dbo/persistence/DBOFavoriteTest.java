@@ -15,6 +15,9 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Favorite;
+import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -34,18 +37,34 @@ public class DBOFavoriteTest {
 	private UserGroupDAO userGroupDAO;
 	
 	@Autowired
+	private NodeDAO nodeDAO;
+	
+	@Autowired
 	private IdGenerator idGenerator;
 	
-	List<Long> toDelete = null;
+	List<DBOFavorite> favoritesToDelete = null;
+	List<Long> nodeIdsToDelete = null;
 	
 	@After
 	public void after() throws DatastoreException {
-		if(dboBasicDao != null && toDelete != null){
-			for(Long id: toDelete){
+		if(dboBasicDao != null && favoritesToDelete != null){
+			for(DBOFavorite fav : favoritesToDelete){
 				MapSqlParameterSource params = new MapSqlParameterSource();
-				params.addValue("principalId", id);
+				params.addValue(DBOFavorite.FIELD_COLUMN_ID_PRINCIPAL_ID, fav.getPrincipalId());
+				params.addValue(DBOFavorite.FIELD_COLUMN_ID_NODE_ID, fav.getNodeId());
 				try {
 				dboBasicDao.deleteObjectById(DBOFavorite.class, params);
+				} catch (DatastoreException e) {
+					// next
+				}
+			}
+		}
+		if(dboBasicDao != null && nodeIdsToDelete != null){
+			for(Long id: nodeIdsToDelete){
+				MapSqlParameterSource params = new MapSqlParameterSource();
+				params.addValue("id", id);
+				try {
+				dboBasicDao.deleteObjectById(DBONode.class, params);
 				} catch (DatastoreException e) {
 					// next
 				}
@@ -55,13 +74,16 @@ public class DBOFavoriteTest {
 	
 	@Before
 	public void before(){
-		toDelete = new LinkedList<Long>();
+		favoritesToDelete = new LinkedList<DBOFavorite>();
+		nodeIdsToDelete = new LinkedList<Long>();
 	}
 	
 	@Test
 	public void testRoundTrip() throws DatastoreException, NotFoundException, UnsupportedEncodingException{
+		DBONode node = createNode();
+		
 		DBOFavorite favorite = new DBOFavorite();
-		favorite.setNodeId(idGenerator.generateNewId());
+		favorite.setNodeId(node.getId());
 		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 		favorite.setPrincipalId(createdById);
 		favorite.setCreatedOn(System.currentTimeMillis());
@@ -69,11 +91,12 @@ public class DBOFavoriteTest {
 		// Make sure we can create it
 		DBOFavorite clone = dboBasicDao.createNew(favorite);
 		assertNotNull(clone);
-		toDelete.add(favorite.getPrincipalId());
+		favoritesToDelete.add(favorite);
 		assertEquals(favorite, clone);
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();
-		params.addValue("principalId", favorite.getPrincipalId());
+		params.addValue(DBOFavorite.FIELD_COLUMN_ID_PRINCIPAL_ID, favorite.getPrincipalId());
+		params.addValue(DBOFavorite.FIELD_COLUMN_ID_NODE_ID, favorite.getNodeId());
 		clone = dboBasicDao.getObjectById(DBOFavorite.class, params);
 		assertNotNull(clone);
 		assertEquals(favorite, clone);
@@ -86,9 +109,28 @@ public class DBOFavoriteTest {
 		
 		// Get the clone back again
 		params = new MapSqlParameterSource();
-		params.addValue("principalId", clone.getPrincipalId());
+		params.addValue(DBOFavorite.FIELD_COLUMN_ID_PRINCIPAL_ID, clone.getPrincipalId());
+		params.addValue(DBOFavorite.FIELD_COLUMN_ID_NODE_ID, clone.getNodeId());
 		DBOFavorite clone2 = dboBasicDao.getObjectById(DBOFavorite.class, params);
 		assertEquals(clone, clone2);
+	}
+
+	private DBONode createNode() {
+		DBONode node = new DBONode();
+		node.setId(idGenerator.generateNewId());
+		node.setName("SomeName");
+		node.setBenefactorId(node.getId());
+		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		node.setCreatedBy(createdById);
+		node.setCreatedOn(System.currentTimeMillis());
+		node.setCurrentRevNumber(null);
+		node.seteTag("1");
+		node.setNodeType(EntityType.project.getId());
+		// Make sure we can create it
+		DBONode clone = dboBasicDao.createNew(node);
+		assertNotNull(clone);
+		nodeIdsToDelete.add(node.getId());
+		return node;
 	}
 
 }

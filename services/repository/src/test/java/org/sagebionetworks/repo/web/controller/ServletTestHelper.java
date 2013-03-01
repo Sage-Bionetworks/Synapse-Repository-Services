@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectType;
@@ -2125,6 +2126,87 @@ public class ServletTestHelper {
 		}
 		return createPaginatedResultsFromJSON(response.getContentAsString(),
 				Reference.class);
+	}
+
+	public static Favorite addFavorite(
+			HttpServlet dispatchServlet, String entityId, String userId,
+			Map<String, String> extraParams) throws ServletException,
+			IOException {
+		if (dispatchServlet == null)
+			throw new IllegalArgumentException("Servlet cannot be null");
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("POST");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.FAVORITE + "/" + entityId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		if (null != extraParams) {
+			for (Map.Entry<String, String> param : extraParams.entrySet()) {
+				request.setParameter(param.getKey(), param.getValue());
+			}
+		}
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.CREATED.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		@SuppressWarnings("unchecked")
+		Favorite favorite = (Favorite) objectMapper.readValue(
+				response.getContentAsString(), Favorite.class);
+		return favorite;
+	}
+	
+	public static void removeFavorite(
+			HttpServlet dispatchServlet, String entityId,
+			String userId, Map<String, String> extraParams)
+			throws ServletException, IOException {
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("DELETE");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.FAVORITE + "/" + entityId);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		if (null != extraParams) {
+			for (Map.Entry<String, String> param : extraParams.entrySet()) {
+				request.setParameter(param.getKey(), param.getValue());
+			}
+		}
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.NO_CONTENT.value()) {
+			throw new ServletTestHelperException(response);
+		}
+	}
+
+
+	@SuppressWarnings("unchecked")
+	public static PaginatedResults<Favorite> getFavorites(
+			HttpServlet dispatchServlet, String userId,
+			Map<String, String> extraParams) throws ServletException,
+			IOException, JSONException {
+		if (dispatchServlet == null)
+			throw new IllegalArgumentException("Servlet cannot be null");
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(UrlHelpers.FAVORITE);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		if (null != extraParams) {
+			for (Map.Entry<String, String> param : extraParams.entrySet()) {
+				request.setParameter(param.getKey(), param.getValue());
+			}
+		}
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		dispatchServlet.service(request, response);
+		log.debug("Results: " + response.getContentAsString());
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		return createPaginatedResultsFromJSON(response.getContentAsString(),
+				Favorite.class);
 	}
 
 }

@@ -2,7 +2,9 @@ package org.sagebionetworks.repo.manager;
 
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -94,4 +96,34 @@ public interface UserProfileManager {
 	public PresignedUrl getUserProfileAttachmentUrl(UserInfo userInfo,
 			String profileId, String tokenID) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException;
 	
+	/**
+	 * Adds the entity id to the users's favorites list
+	 * @param userInfo
+	 * @param entityId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 */
+	public Favorite addFavorite(UserInfo userInfo, String entityId) throws DatastoreException, InvalidModelException;
+	
+	/**
+	 * Removes the specified entity id from the users's favorites list, if exists
+	 * @param userInfo
+	 * @param entityId
+	 * @throws DatastoreException
+	 */
+	public void removeFavorite(UserInfo userInfo, String entityId) throws DatastoreException;
+
+	/**
+	 * Retrieve users list of favorites, paginated
+	 * @param userInfo
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws NotFoundException
+	 */
+	public PaginatedResults<Favorite> getFavorites(UserInfo userInfo, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
+
 }
