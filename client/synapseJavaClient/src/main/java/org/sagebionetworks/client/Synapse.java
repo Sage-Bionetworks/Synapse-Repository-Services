@@ -66,6 +66,7 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
@@ -151,6 +152,7 @@ public class Synapse {
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 	protected static final String ACTIVITY_URI_PATH = "/activity";
 	protected static final String GENERATED_PATH = "/generated";
+	protected static final String FAVORITE_URI_PATH = "/favorite";
 	
 	protected static final String WIKI_URI_TEMPLATE = "/%1$s/%2$s/wiki";
 	protected static final String WIKI_ID_URI_TEMPLATE = "/%1$s/%2$s/wiki/%3$s";
@@ -2995,6 +2997,30 @@ public class Synapse {
 	}
 
 	/**
+	 * Create an activity
+	 * @param activity
+	 * @return
+	 * @throws SynapseException
+	 */
+	public Activity createActivity(Activity activity) throws SynapseException {
+		if (activity == null) throw new IllegalArgumentException("Activity can not be null");
+		String url = ACTIVITY_URI_PATH;		
+		JSONObjectAdapter toCreateAdapter = new JSONObjectAdapterImpl();
+		JSONObject obj;
+		try {
+			obj = new JSONObject(activity.writeToJSONObject(toCreateAdapter).toJSONString());
+			JSONObject jsonObj = createJSONObject(url, obj);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			return new Activity(adapter);
+		} catch (JSONException e1) {
+			throw new RuntimeException(e1);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+
+	
+	/**
 	 * Get activity by id
 	 * @param activityId
 	 * @return
@@ -3548,5 +3574,56 @@ public class Synapse {
 	 */
 	public void purge() throws SynapseException {
 		signAndDispatchSynapseRequest(repoEndpoint, TRASHCAN_PURGE, "PUT", null, defaultPOSTPUTHeaders);
+	}
+	
+	/**
+	 * Add the entity to this user's Favorites list
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public Favorite addFavorite(String entityId) throws SynapseException {
+		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
+		String url = createEntityUri(FAVORITE_URI_PATH, entityId);		
+		JSONObject jsonObj = postUri(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			return new Favorite(adapter);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+
+	/**
+	 * Remove the entity from this user's Favorites list
+	 * @param entityId
+	 * @throws SynapseException
+	 */
+	public void removeFavorite(String entityId) throws SynapseException {
+		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
+		String uri = createEntityUri(FAVORITE_URI_PATH, entityId);		
+		deleteUri(uri);
+	}
+	
+	/**
+	 * Retrieve this user's Favorites list
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	public PaginatedResults<Favorite> getFavorites(Integer limit, Integer offset) throws SynapseException {
+		String url = FAVORITE_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<Favorite> results = new PaginatedResults<Favorite>(Favorite.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+		
 	}
 }
