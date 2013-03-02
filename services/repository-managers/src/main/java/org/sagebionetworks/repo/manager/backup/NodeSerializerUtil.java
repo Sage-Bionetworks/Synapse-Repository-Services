@@ -12,6 +12,7 @@ import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementBackup;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.EvaluationBackup;
+import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
@@ -41,6 +42,7 @@ public class NodeSerializerUtil  {
 	private static final String ALIAS_COMPETITION = "competition";
 	private static final String ALIAS_SUBMISSION = "submission";
 	private static final String ALIAS_TRASHED_ENTITY = "trashed-entity";
+	private static final String ALIAS_FAVORITE = "favorite";
 
 
 	/**
@@ -186,6 +188,18 @@ public class NodeSerializerUtil  {
 		return (TrashedEntity) xstream.fromXML(reader);
 	}
 
+	public static void writeFavoriteBackup(Favorite favorite, OutputStream out) {
+		OutputStreamWriter writer = new OutputStreamWriter(out);
+		XStream xstream = createXStream();
+		xstream.toXML(favorite, writer);
+	}
+	
+	public static Favorite readFavoriteBackup(InputStream in) {
+		InputStreamReader reader = new InputStreamReader(in);
+		XStream xstream = createXStream();
+		return (Favorite)xstream.fromXML(reader);
+	}
+	
 	private static XStream createXStream(){
 		XStream xstream = new XStream();
 		xstream.alias(ALIAS_NODE_BACKUP, NodeBackup.class);
@@ -198,6 +212,7 @@ public class NodeSerializerUtil  {
 		xstream.alias(ALIAS_COMPETITION, EvaluationBackup.class);
 		xstream.alias(ALIAS_SUBMISSION, SubmissionBackup.class);
 		xstream.alias(ALIAS_TRASHED_ENTITY, TrashedEntity.class);
+		xstream.alias(ALIAS_FAVORITE, Favorite.class);
 		return xstream;
 	}
 

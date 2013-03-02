@@ -8,6 +8,7 @@
         "ACTIVITY",
         "EVALUATION",
         "SUBMISSION",
-        "TRASHED_ENTITY"
+        "TRASHED_ENTITY",
+        "FAVORITE"
     ]
 }

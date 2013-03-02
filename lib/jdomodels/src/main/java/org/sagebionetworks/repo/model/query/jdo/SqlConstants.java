@@ -298,6 +298,14 @@ public class SqlConstants {
 	public static final String SORT_ALIAS					= "srt";
 	public static final String EXPRESSION_ALIAS_PREFIX		= "exp";
 	
+	// The FAVORITE table
+	public static final String TABLE_FAVORITE 					= "FAVORITE";
+	public static final String COL_FAVORITE_PRINCIPAL_ID 		= "PRINCIPAL_ID";
+	public static final String COL_FAVORITE_NODE_ID 			= "NODE_ID";
+	public static final String COL_FAVORITE_CREATED_ON			= "CREATED_ON";
+	public static final String DDL_FILE_FAVORITE = "schema/Favorite-ddl.sql";
+	
+	
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

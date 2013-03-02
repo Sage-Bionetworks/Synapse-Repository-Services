@@ -1,0 +1,21 @@
+{
+	"title": "Favorite",
+	"description": "JSON schema for a Favorite POJO",
+	"name": "Favorite",
+	"properties": {
+		"entityId": {
+			"type": "string"
+		},
+		"principalId": {
+			"type": "string",
+			"description": "The id of the principal who is granted access"
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date this entity was created.",
+			"title": "Created On",
+			"transient": true
+		}
+	}
+}

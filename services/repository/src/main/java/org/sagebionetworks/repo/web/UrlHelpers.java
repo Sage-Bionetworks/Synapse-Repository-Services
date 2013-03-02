@@ -133,7 +133,8 @@ public class UrlHelpers {
 	public static final String ATTACHMENT_URL = "/attachmentUrl";
 	
 	public static final String MIGRATION_OBJECT_ID_PARAM = "id";
-
+	
+	
 	/**
 	 * parameter used by migration services to describe the type of migration 
 	 * to be performed
@@ -148,6 +149,7 @@ public class UrlHelpers {
 	public static final String HEALTHCHECK = PrefixConst.HEALTHCHECK;
 	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;
 	public static final String ACTIVITY    = PrefixConst.ACTIVITY;
+	public static final String FAVORITE    = PrefixConst.FAVORITE;
 	
 	/**
 	 * All of the base URLs for Synapse object batch requests
@@ -183,7 +185,10 @@ public class UrlHelpers {
 	 */
 	public static final String ACTIVITY_ID = ACTIVITY+ID;
 	public static final String ACTIVITY_GENERATED = ACTIVITY_ID+GENERATED;
-	
+	/*  
+	 * Favorite URLs
+	 */
+	public static final String FAVORITE_ID = FAVORITE+ID;
 	
 	/**
 	 * Used to get an entity attachment token
