@@ -263,20 +263,23 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		return FileMetadataUtils.createBackupFromDBO(dbo);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public boolean createOrUpdateFromBackup(FileHandleBackup backup) {
 		if(backup == null) throw new IllegalArgumentException("Backup cannot be null");
 		// Convert to a DBO
 		DBOFileHandle dbo = FileMetadataUtils.createDBOFromBackup(backup);
+		ChangeType changeType = null;
 		// Does this already exist?
 		if(doesExist(dbo.getId().toString())){
 			basicDao.update(dbo);
-			// this was an update so return false
-			return false;
+			changeType = ChangeType.UPDATE;
 		}else{
 			basicDao.createNew(dbo);
-			// This was a create so return true
-			return true;
+			changeType = ChangeType.CREATE;
 		}
+		// Send a message
+		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.FILE, changeType);
+		return changeType == ChangeType.CREATE;
 	}
 }

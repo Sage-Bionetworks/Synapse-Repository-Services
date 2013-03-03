@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.manager.backup;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -11,11 +13,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.backup.migration.DependencyManager;
 import org.sagebionetworks.repo.manager.trash.TrashConstants;
+import org.sagebionetworks.repo.manager.wiki.WikiManager;
 import org.sagebionetworks.repo.model.DaemonStatusUtil;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.NodeConstants;
@@ -26,8 +32,12 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.WikiPageDao;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -59,6 +69,15 @@ public class MigrationIntegrationTest {
 	FileHandleDao fileHandleDao;
 	
 	@Autowired
+	EntityManager entityManager;
+	
+	@Autowired
+	WikiManager wikiManager;
+	
+	@Autowired
+	WikiPageDao wikiPageDao;
+	
+	@Autowired
 	UserProvider testUserProvider;
 	UserInfo adminUser;
 	String adminUserId;
@@ -67,6 +86,11 @@ public class MigrationIntegrationTest {
 	
 	S3FileHandle s3handle;
 	PreviewFileHandle preview;
+	FileEntity fileEntity;
+	WikiPage rootWiki;
+	WikiPageKey rootWikiKey;
+	WikiPage childWiki;
+	WikiPageKey childWikiKey;
 	
 	@Before
 	public void before() throws Exception{
@@ -80,9 +104,6 @@ public class MigrationIntegrationTest {
 		bootstrapNodes.add(rootId);
 		// Start with a clean database
 		deleteAllNonBootStrapData();
-		
-		// Add in all of the data to migrate
-		createFileHandleData();
 	}
 	
 	@After
@@ -91,25 +112,101 @@ public class MigrationIntegrationTest {
 		deleteAllNonBootStrapData();
 	}
 	
+	/**
+	 * This test will do the following:
+	 * 1. Created examples of all object types (FileHandles, Entites, WikiPages, Activity...)
+	 * 2. Simulate migration by backing up all objects to S3.
+	 * 3. Delete all objects from the database.
+	 * 4. Validate the database is empty.
+	 * 5. Restore all Objects from their S3 Backup files.
+	 * 6. Validate each object from step 1 are restored to their original state.
+	 * 
+	 * @throws Exception
+	 */
 	@Test
 	public void testMigration() throws Exception{
-		// Initial state
-		// Before we start there should be file handles
-		assertEquals(2l, fileHandleDao.getCount());
-		
+		// Create all objects to Migrate.
+		createFileHandleData();
+		createFileEntity();
+		createWikiPage();
 		// Migrate and clear
 		// Now move all of the data to S3 and clear the database
 		List<MigrationData> migrationData = backupToS3AndClearDatabase();
 		
 		// The database should now be empty
 		// There should be no file handles
-		assertEquals(0l, fileHandleDao.getCount());
+		validateDatabaseIsEmpty();
 		
 		// Restore from S3
 		restoreAllData(migrationData);
 		
 		// Validate everything is back
+		validateFileHandlesRestored();
+		validateFileEntityRestored();
+		validateWikiPagesRestored();
+	}
+
+	/**
+	 * Validate that the database is empty.
+	 */
+	private void validateDatabaseIsEmpty() {
+		assertEquals(0l, fileHandleDao.getCount());
+		assertEquals(0l, nodeDao.getCount());
+		assertEquals(0l, wikiPageDao.getCount());
+	}
+	
+	/**
+	 * Validate that the wikiPages are restored.
+	 * @throws NotFoundException 
+	 * @throws Exception 
+	 */
+	private void validateWikiPagesRestored() throws Exception {
+		WikiPage clone = wikiManager.getWikiPage(adminUser, rootWikiKey);
+		assertEquals(rootWiki, clone);
+		clone = wikiManager.getWikiPage(adminUser, childWikiKey);
+		assertEquals(childWiki, clone);
+	}
+
+	/**
+	 * Create a small wiki page hierarchy.
+	 * @throws Exception
+	 */
+	private void createWikiPage() throws Exception {
+		// Create a wiki page using the file entity as the owner
+		rootWiki = new WikiPage();
+		rootWiki.setTitle("MigrationIntegrationTest.RootWiki");
+		rootWiki.setMarkdown("root markdown");
+		rootWiki.setAttachmentFileHandleIds(new LinkedList<String>());
+		rootWiki.getAttachmentFileHandleIds().add(s3handle.getId());
+		rootWiki = wikiManager.createWikiPage(adminUser, fileEntity.getId(), ObjectType.ENTITY, rootWiki);
+		rootWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, rootWiki.getId());
+		// Create a child wiki
+		childWiki = new WikiPage();
+		childWiki.setTitle("MigrationIntegrationTest.ChildWiki");
+		childWiki.setMarkdown("child markdown");
+		childWiki.setParentWikiId(rootWiki.getId());
+		childWiki = wikiManager.createWikiPage(adminUser, fileEntity.getId(), ObjectType.ENTITY, childWiki);
+		childWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, childWiki.getId());
+	}
+
+	/**
+	 * Validate all of the FileHandles are restored.
+	 * 
+	 * @throws Exception
+	 */
+	private void validateFileHandlesRestored() throws Exception {
 		assertEquals(2l, fileHandleDao.getCount());
+		S3FileHandle s3Clone = (S3FileHandle) fileHandleDao.get(s3handle.getId());
+		assertEquals(s3handle, s3Clone);
+	}
+
+	/**
+	 * Validate the FileEntity is restored.
+	 * @throws NotFoundException
+	 */
+	private void validateFileEntityRestored() throws NotFoundException {
+		FileEntity restoredFile = entityManager.getEntity(adminUser, fileEntity.getId(), FileEntity.class);
+		assertEquals(fileEntity, restoredFile);
 	}
 	
 	/**
@@ -125,6 +222,15 @@ public class MigrationIntegrationTest {
 		s3handle = (S3FileHandle) fileHandleDao.get(s3handle.getId());
 	}
 	
+	public void createFileEntity() throws DatastoreException, InvalidModelException, UnauthorizedException, NotFoundException{
+		fileEntity = new FileEntity();
+		fileEntity.setEntityType(FileEntity.class.getName());
+		fileEntity.setName("MigrationIntegrationTest.fileEntity");
+		fileEntity.setDataFileHandleId(s3handle.getId());
+		String id = entityManager.createEntity(adminUser, fileEntity, null);
+		fileEntity = entityManager.getEntity(adminUser, id, FileEntity.class);
+	}
+	
 	
 	/**
 	 * Delete all non-boostrap data in the database.
@@ -136,7 +242,9 @@ public class MigrationIntegrationTest {
 	public void deleteAllNonBootStrapData() throws UnauthorizedException, DatastoreException, NotFoundException{
 		// First get the full list of all of the data in the database.
 		QueryResults<MigratableObjectData> allData = dependencyManager.getAllObjects(0, Long.MAX_VALUE, true);
-		for(MigratableObjectData mod: allData.getResults()){
+		// Delete in reverse order.
+		for(int i=allData.getResults().size()-1 ; i>-1; i--){
+			MigratableObjectData mod = allData.getResults().get(i);
 			// Skip principals
 			if(mod.getId().getType() == MigratableObjectType.PRINCIPAL){
 				System.out.println("Skipping principal: "+mod.getId());
@@ -212,8 +320,10 @@ public class MigrationIntegrationTest {
 				assertTrue("Timed out waiting for a backup.",System.currentTimeMillis() - start < MAX_WAIT);
 			}
 		}
-		// Now delete all objects in the database
-		for(MigratableObjectData mod: allData.getResults()){
+		// delete everything in reverse order to so dependencies are deleted first.
+		for(int i=allData.getResults().size()-1 ; i>-1; i--){
+			MigratableObjectData mod = allData.getResults().get(i);
+			if(mod.getId().getType() == MigratableObjectType.PRINCIPAL) continue;
 			backupDaemonLauncher.delete(adminUser, mod.getId());
 		}
 		return finished;

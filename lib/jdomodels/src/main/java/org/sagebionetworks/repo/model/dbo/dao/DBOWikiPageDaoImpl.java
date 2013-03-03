@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TagMessenger;
+import org.sagebionetworks.repo.model.backup.WikiPageBackup;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -60,7 +61,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOWikiPageDaoImpl implements WikiPageDao {
 	
-	private static final String SQL_MIGRATEABLE_WIKIPAGE = "SELECT "+COL_WIKI_ID+", "+COL_WIKI_ETAG+" FROM "+TABLE_WIKI_PAGE+" ORDER BY "+COL_WIKI_ID+" LIMIT ? OFFSET ?";
+	private static final String SQL_MIGRATEABLE_WIKIPAGE = "SELECT O."+COL_WIKI_ONWERS_OWNER_ID+", O."+COL_WIKI_ONWERS_OBJECT_TYPE+", W."+COL_WIKI_ID+", W."+COL_WIKI_ETAG+" FROM "+TABLE_WIKI_PAGE+" W, "+TABLE_WIKI_OWNERS+" O WHERE W."+COL_WIKI_ROOT_ID+" = O."+COL_WIKI_ONWERS_ROOT_WIKI_ID+" ORDER BY W."+COL_WIKI_ID+" LIMIT ? OFFSET ?";
 	private static final String SQL_COUNT_ALL_WIKIPAGES = "SELECT COUNT(*) FROM "+TABLE_WIKI_PAGE;
 	private static final String SQL_FIND_WIKI_ATTACHMENT_BY_NAME = "SELECT WA."+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID+" FROM "+TABLE_WIKI_OWNERS+" WO, "+TABLE_WIKI_PAGE+" WP, "+TABLE_WIKI_ATTACHMENT+" WA WHERE WO."+COL_WIKI_ONWERS_OWNER_ID+" = ? AND WO."+COL_WIKI_ONWERS_OBJECT_TYPE+" = ? AND WO."+COL_WIKI_ONWERS_ROOT_WIKI_ID+" = WP."+COL_WIKI_ROOT_ID+" AND WP."+COL_WIKI_ID+" = ? AND WP."+COL_WIKI_ID+" = WA."+COL_WIKI_ATTACHMENT_ID+" AND WA."+COL_WIKI_ATTACHMENT_FILE_NAME+"= ?";
 	private static final String SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE = "SELECT "+COL_WIKI_ONWERS_ROOT_WIKI_ID+" FROM "+TABLE_WIKI_OWNERS+" WHERE "+COL_WIKI_ONWERS_OWNER_ID+" = ? AND "+COL_WIKI_ONWERS_OBJECT_TYPE+" = ?";
@@ -130,15 +131,7 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 			dbo.setEtag(UUID.randomUUID().toString());
 		}
 		Long ownerIdLong = KeyFactory.stringToKey(ownerId);
-		// If the parentID is null then this is a root wiki
-		setRoot(ownerIdLong, ownerType, dbo);
-		// Save it to the DB
-		dbo = basicDao.createNew(dbo);
-		// If the parentID is null then this must be a root.
-		if(dbo.getParentId() == null){
-			// Set the root entry.
-			createRootOwnerEntry(ownerIdLong, ownerType, dbo.getId());
-		}
+		dbo = create(ownerType, dbo, ownerIdLong);
 		// Create the attachments
 		List<DBOWikiAttachment> attachments = WikiTranslationUtils.createDBOAttachmentsFromDTO(fileNameToFileHandleMap, dbo.getId());
 		// Save them to the DB
@@ -153,6 +146,20 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 			// This should not occur.
 			throw new RuntimeException(e);
 		}
+	}
+
+	private DBOWikiPage create(ObjectType ownerType, DBOWikiPage dbo,
+			Long ownerIdLong) throws NotFoundException {
+		// If the parentID is null then this is a root wiki
+		setRoot(ownerIdLong, ownerType, dbo);
+		// Save it to the DB
+		dbo = basicDao.createNew(dbo);
+		// If the parentID is null then this must be a root.
+		if(dbo.getParentId() == null){
+			// Set the root entry.
+			createRootOwnerEntry(ownerIdLong, ownerType, dbo.getId());
+		}
+		return dbo;
 	}
 
 	/**
@@ -255,18 +262,37 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 		}
 		// Set the modified on to current.
 		newDBO.setModifiedOn(System.currentTimeMillis());
-		// Set the root
-		setRoot(ownerIdLong, ownerType, newDBO);
-		// Update
-		basicDao.update(newDBO);
+		update(ownerType, ownerIdLong, newDBO);
 		// Send the change message
 		tagMessenger.sendMessage(newDBO.getId().toString(), newDBO.getEtag(), ObjectType.WIKI, ChangeType.UPDATE);
 		// Return the results.
 		return get(new WikiPageKey(ownerId, ownerType, wikiPage.getId().toString()));
 	}
 
+	private void update(ObjectType ownerType, Long ownerIdLong,
+			DBOWikiPage newDBO) throws NotFoundException {
+		// Set the root
+		setRoot(ownerIdLong, ownerType, newDBO);
+		// Update
+		basicDao.update(newDBO);
+	}
+
 	@Override
 	public WikiPage get(WikiPageKey key) throws NotFoundException{
+		// Get the DBO.
+		DBOWikiPage dbo = getWikiPageDBO(key);
+		// Now get the attachments
+		List<DBOWikiAttachment> attachments = getAttachments(dbo.getId());
+		return WikiTranslationUtils.createDTOfromDBO(dbo, attachments);
+	}
+
+	/**
+	 * Get the DBOWikiPage using its key.
+	 * @param key
+	 * @return
+	 * @throws NotFoundException
+	 */
+	private DBOWikiPage getWikiPageDBO(WikiPageKey key) throws NotFoundException{
 		if(key == null) throw new IllegalArgumentException("Key cannot be null");
 		// In order to access a wiki you must know its owner.
 		// If the root does not exist then the wiki does not exist.
@@ -275,12 +301,9 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 		List<DBOWikiPage> list = simpleJdbcTemplate.query(SQL_SELECT_WIKI_USING_ID_AND_ROOT, WIKI_PAGE_ROW_MAPPER, new Long(key.getWikiPageId()), root);
 		if(list.size() > 1) throw new DatastoreException("More than one Wiki page found with the id: "+key.getWikiPageId());
 		if(list.size() < 1) throw new NotFoundException("No wiki page found with id: "+key.getWikiPageId());
-		DBOWikiPage dbo = list.get(0);
-		// Now get the attachments
-		List<DBOWikiAttachment> attachments = getAttachments(dbo.getId());
-		return WikiTranslationUtils.createDTOfromDBO(dbo, attachments);
+		return list.get(0);
 	}
-
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public void delete(WikiPageKey key) {
@@ -377,7 +400,11 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 			public MigratableObjectData mapRow(ResultSet rs, int rowNum)throws SQLException {
 				MigratableObjectData mod = new MigratableObjectData();
 				MigratableObjectDescriptor des = new MigratableObjectDescriptor();
-				des.setId(""+rs.getLong(COL_WIKI_ID));
+				String ownerId = rs.getString(COL_WIKI_ONWERS_OWNER_ID);
+				ObjectType ownerType = ObjectType.valueOf(rs.getString(COL_WIKI_ONWERS_OBJECT_TYPE));
+				Long wikiPageId = rs.getLong(COL_WIKI_ID);
+				WikiPageKey key = new WikiPageKey(ownerId, ownerType, wikiPageId.toString());
+				des.setId(key.getKeyString());
 				des.setType(MigratableObjectType.WIKIPAGE);
 				mod.setId(des);
 				if(includeDependencies){
@@ -393,6 +420,47 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 	@Override
 	public MigratableObjectType getMigratableObjectType() {
 		return MigratableObjectType.WIKIPAGE;
+	}
+
+	@Override
+	public WikiPageBackup getWikiPageBackup(WikiPageKey key) throws NotFoundException {
+		if(key == null) throw new IllegalArgumentException("Key cannot be null");
+		// Get the DBO.
+		DBOWikiPage dbo = getWikiPageDBO(key);
+		// Now get the attachments
+		List<DBOWikiAttachment> attachments = getAttachments(dbo.getId());
+		return WikiTranslationUtils.createWikiBackupFromDBO(key, dbo, attachments);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public WikiPageKey createOrUpdateFromBackup(WikiPageBackup backup) throws DatastoreException, NotFoundException {
+		if(backup == null) throw new IllegalArgumentException("WikiPageBackup cannot be null");
+		// Create the three parts from the backup
+		WikiPageKey key = WikiTranslationUtils.createWikiPageKeyFromBackup(backup);
+		DBOWikiPage dbo = WikiTranslationUtils.createWikiPageDBOFromBackup(backup);
+		List<DBOWikiAttachment> attachments = WikiTranslationUtils.createWikiPageDBOAttachmentsFromBackup(backup);
+		ObjectType ownerType = key.getOwnerObjectType();
+		Long ownerIdLong = KeyFactory.stringToKey(key.getOwnerObjectId());
+		Long wikiPageIdLong = new Long(key.getWikiPageId());
+		ChangeType changeType = null;
+		// does this wiki exist
+		if(doesExist(key.getWikiPageId())){
+			// Update
+			update(ownerType, ownerIdLong, dbo);
+			replaceAttachments(wikiPageIdLong, attachments);
+			changeType = ChangeType.UPDATE;
+		}else{
+			// Create
+			dbo = create(ownerType, dbo, ownerIdLong);
+			if(attachments.size() >0){
+				basicDao.createBatch(attachments);
+			}
+			changeType = ChangeType.CREATE;
+		}
+		// Send a message
+		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.WIKI, changeType);
+		return key;
 	}
 
 }

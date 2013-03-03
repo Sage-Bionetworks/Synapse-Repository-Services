@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MigratableDAO;
+import org.sagebionetworks.repo.model.backup.WikiPageBackup;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
@@ -97,5 +98,22 @@ public interface WikiPageDao extends MigratableDAO {
 	 * @return
 	 */
 	String getWikiAttachmentFileHandleForFileName(WikiPageKey key, String fileName) throws NotFoundException;
+
+	/**
+	 * Create a backup copy of a wikipage.
+	 * @param key
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public WikiPageBackup getWikiPageBackup(WikiPageKey key) throws NotFoundException;
+
+	/**
+	 * Restore a wikipage from a backup copy.
+	 * @param backup
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public WikiPageKey createOrUpdateFromBackup(WikiPageBackup backup) throws DatastoreException, NotFoundException;
 
 }

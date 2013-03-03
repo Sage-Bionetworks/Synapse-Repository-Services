@@ -21,6 +21,8 @@ import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.SubmissionBackup;
 import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
+import org.sagebionetworks.repo.model.backup.WikiPageAttachmentBackup;
+import org.sagebionetworks.repo.model.backup.WikiPageBackup;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -45,6 +47,8 @@ public class NodeSerializerUtil  {
 	private static final String ALIAS_TRASHED_ENTITY = "trashed-entity";
 	private static final String ALIAS_FAVORITE = "favorite";
 	private static final String ALIAS_FILEHANDLE = "file-handle";
+	private static final String ALIAS_WIKI_PAGE = "wiki-page";
+	private static final String ALIAS_WIKI_ATTACHMENT = "wiki-attachment";
 
 
 	/**
@@ -240,6 +244,8 @@ public class NodeSerializerUtil  {
 		xstream.alias(ALIAS_TRASHED_ENTITY, TrashedEntity.class);
 		xstream.alias(ALIAS_FAVORITE, Favorite.class);
 		xstream.alias(ALIAS_FILEHANDLE, FileHandleBackup.class);
+		xstream.alias(ALIAS_WIKI_PAGE, WikiPageBackup.class);
+		xstream.alias(ALIAS_WIKI_ATTACHMENT, WikiPageAttachmentBackup.class);
 		return xstream;
 	}
 

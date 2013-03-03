@@ -164,26 +164,32 @@
 		class="org.sagebionetworks.repo.manager.backup.PrincipalBackupDriver"
 		scope="singleton" />
 
+	<!-- This needs to be converted to GenericBackupDriverImpl.  Do not copy this pattern. -->
 	<bean id="accessRequirementBackupDriver"
 		class="org.sagebionetworks.repo.manager.backup.AccessRequirementBackupDriver"
 		scope="singleton" />
-
+		
+	<!-- This needs to be converted to GenericBackupDriverImpl.  Do not copy this pattern. -->
 	<bean id="activityBackupDriver"
 		class="org.sagebionetworks.repo.manager.backup.ActivityBackupDriver"
 		scope="singleton" />
 
+	<!-- This needs to be converted to GenericBackupDriverImpl.  Do not copy this pattern. -->
 	<bean id="evaluationBackupDriver"
 		class="org.sagebionetworks.repo.manager.backup.EvaluationBackupDriver"
 		scope="singleton" />
-		
+	
+	<!-- This needs to be converted to GenericBackupDriverImpl.  Do not copy this pattern. -->
 	<bean id="submissionBackupDriver"
 		class="org.sagebionetworks.repo.manager.backup.SubmissionBackupDriver"
 		scope="singleton" />
 
+	<!-- This needs to be converted to GenericBackupDriverImpl.  Do not copy this pattern. -->
 	<bean id="trashCanBackupDriver"
 		class="org.sagebionetworks.repo.manager.backup.TrashCanBackupDriver"
 		scope="singleton" />
-
+	
+	<!-- This needs to be converted to GenericBackupDriverImpl.  Do not copy this pattern. -->
 	<bean id="favoriteBackupDriver"
 		class="org.sagebionetworks.repo.manager.backup.FavoriteBackupDriver"
 		scope="singleton" />
@@ -195,6 +201,13 @@
 		</constructor-arg>
 	</bean>
 
+	<bean id="wikiPageBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.GenericBackupDriverImpl">
+		<constructor-arg>
+			<bean id="wikiPageMigratableManager" class="org.sagebionetworks.repo.manager.backup.WikiPageMigratableManager" />
+		</constructor-arg>
+	</bean>
+	
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />
 
@@ -263,7 +276,7 @@
 	<bean id="backupDaemonLauncher"
 		class="org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncherImpl"
 		scope="singleton" >
-		<!--  the keys in this map  match the enum MigratableObjectType -->
+		<!--  the keys in this map  match the enum MigratableObjectType.  The order of this map is not imporant. -->
 		<property name="backupDriverMap">
 			<map>
 				<entry key="PRINCIPAL">
@@ -272,6 +285,9 @@
 				<entry key="FILEHANDLE">
 					<ref bean="fileHandleBackupDriver" />
 				</entry>
+				<entry key="WIKIPAGE">
+					<ref bean="wikiPageBackupDriver" />
+				</entry>				
 				<entry key="ENTITY">
 					<ref bean="entityBackupDriver" />
 				</entry>
@@ -300,6 +316,8 @@
 	<!-- A manager that returns all system objects and their dependencies. -->
 	<bean id="dependencyManager" class="org.sagebionetworks.repo.manager.backup.migration.DependencyManagerImpl" init-method="init">
 		<property name="migratableDaos">
+		<!-- Note: The order of this list determines the order of data migration. 
+		     The order must also match the order of the types in the MigratableObjectType enum.  -->
 			<list>
 				<ref bean="userGroupDAO"/>
 				<ref bean="fileHandleDao"/>

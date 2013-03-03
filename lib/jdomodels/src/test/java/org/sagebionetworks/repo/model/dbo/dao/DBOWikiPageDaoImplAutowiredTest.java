@@ -20,11 +20,13 @@ import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.backup.WikiPageBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -320,7 +322,7 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		fileNameMap.put(fileTwo.getFileName(), fileTwo);
 		root = wikiPageDao.create(root, fileNameMap, ownerId, ownerType);
 		assertNotNull(root);
-		WikiPageKey rootKey = new WikiPageKey(ownerId, ownerType, root.getId());
+		WikiPageKey rootKey = new WikiPageKey(KeyFactory.stringToKey(ownerId).toString(), ownerType, root.getId());
 		toDelete.add(rootKey);
 		// Add a child
 		WikiPage child = new WikiPage();
@@ -330,7 +332,7 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		child.setParentWikiId(root.getId());
 		child = wikiPageDao.create(child,  new HashMap<String, FileHandle>(), ownerId, ownerType);
 		assertNotNull(root);
-		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
+		WikiPageKey childKey = new WikiPageKey(KeyFactory.stringToKey(ownerId).toString(), ownerType, child.getId());
 		toDelete.add(childKey);
 		
 		// the current count
@@ -344,10 +346,10 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		assertEquals(currentCount, results.getTotalNumberOfResults());
 		assertEquals(2l, results.getResults().size());
 		// the results must be sorted by ID.
-		assertEquals(root.getId(),  results.getResults().get(0).getId().getId());
+		assertEquals(rootKey.getKeyString(),  results.getResults().get(0).getId().getId());
 		assertEquals(root.getEtag(),  results.getResults().get(0).getEtag());
 		// next item
-		assertEquals(child.getId(),  results.getResults().get(1).getId().getId());
+		assertEquals(childKey.getKeyString(),  results.getResults().get(1).getId().getId());
 		assertEquals(child.getEtag(),  results.getResults().get(1).getEtag());
 		// Test paging
 		// Only select the second to last.
@@ -357,11 +359,70 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		assertNotNull(results.getResults());
 		assertEquals(currentCount, results.getTotalNumberOfResults());
 		assertEquals(1l, results.getResults().size());
-		assertEquals(child.getId(),  results.getResults().get(0).getId().getId());
+		assertEquals(childKey.getKeyString(),  results.getResults().get(0).getId().getId());
 		assertEquals(child.getEtag(),  results.getResults().get(0).getEtag());
 		
 		// Check the type
 		assertEquals(MigratableObjectType.WIKIPAGE, wikiPageDao.getMigratableObjectType());
+		
+	}
+	
+	@Test
+	public void testGetWikiPageBackupRoundTrip() throws NotFoundException{
+		// Add some wiki hierarchy
+		String ownerId = "syn123";
+		ObjectType ownerType = ObjectType.ENTITY;
+		WikiPage root = new WikiPage();
+		root.setTitle("Root");
+		root.setCreatedBy(creatorUserGroupId);
+		root.setModifiedBy(creatorUserGroupId);
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		fileNameMap.put(fileOne.getFileName(), fileOne);
+		fileNameMap.put(fileTwo.getFileName(), fileTwo);
+		root = wikiPageDao.create(root, fileNameMap, ownerId, ownerType);
+		assertNotNull(root);
+		WikiPageKey rootKey = new WikiPageKey(KeyFactory.stringToKey(ownerId).toString(), ownerType, root.getId());
+		toDelete.add(rootKey);
+		// Add a child
+		WikiPage child = new WikiPage();
+		child.setTitle("child");
+		child.setCreatedBy(creatorUserGroupId);
+		child.setModifiedBy(creatorUserGroupId);
+		child.setParentWikiId(root.getId());
+		child = wikiPageDao.create(child,  new HashMap<String, FileHandle>(), ownerId, ownerType);
+		assertNotNull(root);
+		WikiPageKey childKey = new WikiPageKey(KeyFactory.stringToKey(ownerId).toString(), ownerType, child.getId());
+		toDelete.add(childKey);
+		
+		// Capture the backup of each object.
+		WikiPageBackup rootBackup = wikiPageDao.getWikiPageBackup(rootKey);
+		assertNotNull(rootBackup);
+		WikiPageBackup childBackup = wikiPageDao.getWikiPageBackup(childKey);
+		assertNotNull(childBackup);
+		// Now delete both
+		wikiPageDao.delete(rootKey);
+		wikiPageDao.delete(childKey);
+		
+		// restore both from a backup
+		WikiPageKey rootCloneKey = wikiPageDao.createOrUpdateFromBackup(rootBackup);
+		assertEquals(rootKey, rootCloneKey);
+		WikiPageKey childCloneKey = wikiPageDao.createOrUpdateFromBackup(childBackup);
+		assertEquals(childKey, childCloneKey);
+		// Get clones and make sure they match
+		WikiPage rootClone = wikiPageDao.get(rootCloneKey);
+		assertEquals(root, rootClone);
+		WikiPage childClone = wikiPageDao.get(childCloneKey);
+		assertEquals(child, childClone);
+		
+		// We should be able to update using the backups
+		rootCloneKey = wikiPageDao.createOrUpdateFromBackup(rootBackup);
+		rootClone = wikiPageDao.get(rootCloneKey);
+		assertEquals(root, rootClone);
+		
+		//update the child
+		childCloneKey = wikiPageDao.createOrUpdateFromBackup(childBackup);
+		childClone = wikiPageDao.get(childCloneKey);
+		assertEquals(child, childClone);
 		
 	}
 }
