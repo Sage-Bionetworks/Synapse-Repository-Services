@@ -99,7 +99,7 @@ public class MigrationIntegrationTest {
 		
 		// Migrate and clear
 		// Now move all of the data to S3 and clear the database
-		MigrationData migrationData = backupToS3AndClearDatabase();
+		List<MigrationData> migrationData = backupToS3AndClearDatabase();
 		
 		// The database should now be empty
 		// There should be no file handles
@@ -161,12 +161,12 @@ public class MigrationIntegrationTest {
 	 * @throws NotFoundException
 	 * @throws InterruptedException
 	 */
-	private void restoreAllData(MigrationData migrationData) throws UnauthorizedException, DatastoreException, NotFoundException, InterruptedException{		
+	private void restoreAllData(List<MigrationData> list) throws UnauthorizedException, DatastoreException, NotFoundException, InterruptedException{		
 		// Now restore all data one at a time
-		for(int i=0; i<migrationData.getFinished().size(); i++){
-			BackupRestoreStatus status = migrationData.getFinished().get(i);
-			MigratableObjectData mod = migrationData.getAllData().getResults().get(i);
-			BackupRestoreStatus restoreStatus = backupDaemonLauncher.startRestore(adminUser, status.getBackupUrl(), mod.getId().getType());
+		for(MigrationData md: list){
+			MigratableObjectData mod = md.getMigratableObject();
+			String fileName = getFileNameFromUrl(md.getStatus().getBackupUrl());
+			BackupRestoreStatus restoreStatus = backupDaemonLauncher.startRestore(adminUser, fileName, mod.getId().getType());
 			waitForStatus(DaemonStatus.COMPLETED, restoreStatus.getId());
 		}
 	}
@@ -176,32 +176,35 @@ public class MigrationIntegrationTest {
 	 * @return
 	 * @throws Exception
 	 */
-	private MigrationData backupToS3AndClearDatabase() throws Exception{
+	private List<MigrationData> backupToS3AndClearDatabase() throws Exception{
 		// First get the full list of all of the data in the database.
 		QueryResults<MigratableObjectData> allData = dependencyManager.getAllObjects(0, Long.MAX_VALUE, true);
 		// Note: In the real world it is possible for a child entity to have a parent ID that is larger than itself 
 		// (i.e. create the child, then create a container, then move the child to the container).  So normally we cannot
 		// simply depend on the order of list.  However, all objects used in this test were created in order. 
 		// Create a backup of each object.
-		List<BackupRestoreStatus> statusList = new LinkedList<BackupRestoreStatus>();
+		List<MigrationData> statusList = new LinkedList<MigrationData>();
 		for(MigratableObjectData mod: allData.getResults()){
+			// skip principals
+			if(mod.getId().getType() == MigratableObjectType.PRINCIPAL) continue;
 			Set<String> set = new HashSet<String>(1);
 			set.add(mod.getId().getId());
 			BackupRestoreStatus status = backupDaemonLauncher.startBackup(adminUser, set, mod.getId().getType());
-			statusList.add(status);
+			statusList.add(new MigrationData(status, mod));
 		}
 		// Wait for everything to finish
-		List<BackupRestoreStatus> finished = new LinkedList<BackupRestoreStatus>();
+		List<MigrationData> finished = new LinkedList<MigrationData>();
 		long start = System.currentTimeMillis();
 		while(statusList.size() > 0){
-			BackupRestoreStatus status = statusList.get(0);
+			MigrationData md = statusList.get(0);
+			BackupRestoreStatus status = md.getStatus();
 			status = backupDaemonLauncher.getStatus(adminUser, status.getId());
 			if(status.getStatus() == DaemonStatus.FAILED){
 				fail(status.getErrorDetails());
 			}else if( DaemonStatus.COMPLETED == status.getStatus()){
 				// Done
 				statusList.remove(0);
-				finished.add(status);
+				finished.add(new MigrationData(status, md.getMigratableObject()));
 			}else{
 				// Wait
 				System.out.println(status.getProgresssMessage());
@@ -213,7 +216,7 @@ public class MigrationIntegrationTest {
 		for(MigratableObjectData mod: allData.getResults()){
 			backupDaemonLauncher.delete(adminUser, mod.getId());
 		}
-		return new MigrationData(allData, finished);
+		return finished;
 	}
 	
 	/**
@@ -222,20 +225,19 @@ public class MigrationIntegrationTest {
 	 *
 	 */
 	private static class MigrationData{
-		QueryResults<MigratableObjectData> allData;
-		List<BackupRestoreStatus> finished;
-		
-		public MigrationData(QueryResults<MigratableObjectData> allData,
-				List<BackupRestoreStatus> finished) {
+		BackupRestoreStatus status;
+		MigratableObjectData migratableObject;
+		public MigrationData(BackupRestoreStatus status,
+				MigratableObjectData migratableObject) {
 			super();
-			this.allData = allData;
-			this.finished = finished;
+			this.status = status;
+			this.migratableObject = migratableObject;
 		}
-		public QueryResults<MigratableObjectData> getAllData() {
-			return allData;
+		public BackupRestoreStatus getStatus() {
+			return status;
 		}
-		public List<BackupRestoreStatus> getFinished() {
-			return finished;
+		public MigratableObjectData getMigratableObject() {
+			return migratableObject;
 		}
 		
 	}
@@ -299,4 +301,10 @@ public class MigrationIntegrationTest {
 		meta.setFileName("preview.jpg");
 		return meta;
 	}
+
+	public static String getFileNameFromUrl(String fullUrl) {
+		int index = fullUrl.lastIndexOf("/");
+		return fullUrl.substring(index + 1, fullUrl.length());
+	}
+	
 }
