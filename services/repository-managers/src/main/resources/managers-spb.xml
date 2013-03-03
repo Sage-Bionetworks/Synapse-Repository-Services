@@ -187,6 +187,13 @@
 	<bean id="favoriteBackupDriver"
 		class="org.sagebionetworks.repo.manager.backup.FavoriteBackupDriver"
 		scope="singleton" />
+		
+	<bean id="fileHandleBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.GenericBackupDriverImpl">
+		<constructor-arg>
+			<bean id="fileHandleMigratableManager" class="org.sagebionetworks.repo.manager.backup.FileHandleMigratableManager" />
+		</constructor-arg>
+	</bean>
 
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />
@@ -262,6 +269,9 @@
 				<entry key="PRINCIPAL">
 					<ref bean="principalBackupDriver" />
 				</entry>
+				<entry key="FILEHANDLE">
+					<ref bean="fileHandleBackupDriver" />
+				</entry>
 				<entry key="ENTITY">
 					<ref bean="entityBackupDriver" />
 				</entry>
@@ -288,10 +298,12 @@
 	</bean>
 
 	<!-- A manager that returns all system objects and their dependencies. -->
-	<bean id="dependencyManager" class="org.sagebionetworks.repo.manager.backup.migration.DependencyManagerImpl">
+	<bean id="dependencyManager" class="org.sagebionetworks.repo.manager.backup.migration.DependencyManagerImpl" init-method="init">
 		<property name="migratableDaos">
 			<list>
 				<ref bean="userGroupDAO"/>
+				<ref bean="fileHandleDao"/>
+				<ref bean="wikiPageDAO"/>
 				<ref bean="activityDao"/>
 				<ref bean="nodeDao"/>
 				<ref bean="accessRequirementDAO"/>

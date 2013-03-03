@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.manager.backup.migration;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.eq;
@@ -10,10 +9,8 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.MigratableDAO;
 import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;

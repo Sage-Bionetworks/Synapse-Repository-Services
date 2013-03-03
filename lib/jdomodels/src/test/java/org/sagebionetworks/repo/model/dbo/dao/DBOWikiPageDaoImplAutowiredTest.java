@@ -16,6 +16,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectType;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
@@ -300,5 +303,65 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		}catch(NotFoundException e){
 			// expected
 		}
+	}
+	
+	@Test
+	public void testGetMigrationObjectData() throws NotFoundException{
+		long startCount = wikiPageDao.getCount();
+		// Add some wiki hierarchy
+		String ownerId = "syn123";
+		ObjectType ownerType = ObjectType.ENTITY;
+		WikiPage root = new WikiPage();
+		root.setTitle("Root");
+		root.setCreatedBy(creatorUserGroupId);
+		root.setModifiedBy(creatorUserGroupId);
+		Map<String, FileHandle> fileNameMap = new HashMap<String, FileHandle>();
+		fileNameMap.put(fileOne.getFileName(), fileOne);
+		fileNameMap.put(fileTwo.getFileName(), fileTwo);
+		root = wikiPageDao.create(root, fileNameMap, ownerId, ownerType);
+		assertNotNull(root);
+		WikiPageKey rootKey = new WikiPageKey(ownerId, ownerType, root.getId());
+		toDelete.add(rootKey);
+		// Add a child
+		WikiPage child = new WikiPage();
+		child.setTitle("child");
+		child.setCreatedBy(creatorUserGroupId);
+		child.setModifiedBy(creatorUserGroupId);
+		child.setParentWikiId(root.getId());
+		child = wikiPageDao.create(child,  new HashMap<String, FileHandle>(), ownerId, ownerType);
+		assertNotNull(root);
+		WikiPageKey childKey = new WikiPageKey(ownerId, ownerType, child.getId());
+		toDelete.add(childKey);
+		
+		// the current count
+		long currentCount = wikiPageDao.getCount();
+		assertTrue(startCount +2l == currentCount);
+		// Now get all pages
+		QueryResults<MigratableObjectData> results = wikiPageDao.getMigrationObjectData(startCount, Long.MAX_VALUE, true);
+		System.out.println(results);
+		assertNotNull(results);
+		assertNotNull(results.getResults());
+		assertEquals(currentCount, results.getTotalNumberOfResults());
+		assertEquals(2l, results.getResults().size());
+		// the results must be sorted by ID.
+		assertEquals(root.getId(),  results.getResults().get(0).getId().getId());
+		assertEquals(root.getEtag(),  results.getResults().get(0).getEtag());
+		// next item
+		assertEquals(child.getId(),  results.getResults().get(1).getId().getId());
+		assertEquals(child.getEtag(),  results.getResults().get(1).getEtag());
+		// Test paging
+		// Only select the second to last.
+		results = wikiPageDao.getMigrationObjectData(startCount+1, 1, true);
+		System.out.println(results);
+		assertNotNull(results);
+		assertNotNull(results.getResults());
+		assertEquals(currentCount, results.getTotalNumberOfResults());
+		assertEquals(1l, results.getResults().size());
+		assertEquals(child.getId(),  results.getResults().get(0).getId().getId());
+		assertEquals(child.getEtag(),  results.getResults().get(0).getEtag());
+		
+		// Check the type
+		assertEquals(MigratableObjectType.WIKIPAGE, wikiPageDao.getMigratableObjectType());
+		
 	}
 }

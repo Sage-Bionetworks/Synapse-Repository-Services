@@ -16,6 +16,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WIKI_P
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,6 +24,10 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TagMessenger;
 import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -55,6 +60,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOWikiPageDaoImpl implements WikiPageDao {
 	
+	private static final String SQL_MIGRATEABLE_WIKIPAGE = "SELECT "+COL_WIKI_ID+", "+COL_WIKI_ETAG+" FROM "+TABLE_WIKI_PAGE+" ORDER BY "+COL_WIKI_ID+" LIMIT ? OFFSET ?";
+	private static final String SQL_COUNT_ALL_WIKIPAGES = "SELECT COUNT(*) FROM "+TABLE_WIKI_PAGE;
 	private static final String SQL_FIND_WIKI_ATTACHMENT_BY_NAME = "SELECT WA."+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID+" FROM "+TABLE_WIKI_OWNERS+" WO, "+TABLE_WIKI_PAGE+" WP, "+TABLE_WIKI_ATTACHMENT+" WA WHERE WO."+COL_WIKI_ONWERS_OWNER_ID+" = ? AND WO."+COL_WIKI_ONWERS_OBJECT_TYPE+" = ? AND WO."+COL_WIKI_ONWERS_ROOT_WIKI_ID+" = WP."+COL_WIKI_ROOT_ID+" AND WP."+COL_WIKI_ID+" = ? AND WP."+COL_WIKI_ID+" = WA."+COL_WIKI_ATTACHMENT_ID+" AND WA."+COL_WIKI_ATTACHMENT_FILE_NAME+"= ?";
 	private static final String SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE = "SELECT "+COL_WIKI_ONWERS_ROOT_WIKI_ID+" FROM "+TABLE_WIKI_OWNERS+" WHERE "+COL_WIKI_ONWERS_OWNER_ID+" = ? AND "+COL_WIKI_ONWERS_OBJECT_TYPE+" = ?";
 	private static final String SQL_SELECT_ATTACHMENT_IDS_USING_ROOT_AND_ID = "SELECT ATT."+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID+" FROM "+TABLE_WIKI_PAGE+" PAG, "+TABLE_WIKI_ATTACHMENT+" ATT WHERE PAG."+COL_WIKI_ID+" = ATT."+COL_WIKI_ATTACHMENT_ID+" AND PAG."+COL_WIKI_ROOT_ID+" = ? AND PAG."+COL_WIKI_ID+" = ? ORDER BY ATT."+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID;
@@ -354,6 +361,38 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 		}catch(EmptyResultDataAccessException e){
 			throw new NotFoundException("Cannot find a wiki attachment for OwnerID: "+key.getOwnerObjectId()+", ObjectType: "+key.getOwnerObjectType()+", WikiPageId: "+key.getWikiPageId()+", fileName: "+fileName);
 		}
+	}
+
+	@Override
+	public long getCount() throws DatastoreException {
+		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL_WIKIPAGES);
+	}
+
+	@Override
+	public QueryResults<MigratableObjectData> getMigrationObjectData(
+			long offset, long limit, final boolean includeDependencies)
+			throws DatastoreException {
+		List<MigratableObjectData> page = simpleJdbcTemplate.query(SQL_MIGRATEABLE_WIKIPAGE, new RowMapper<MigratableObjectData>() {
+			@Override
+			public MigratableObjectData mapRow(ResultSet rs, int rowNum)throws SQLException {
+				MigratableObjectData mod = new MigratableObjectData();
+				MigratableObjectDescriptor des = new MigratableObjectDescriptor();
+				des.setId(""+rs.getLong(COL_WIKI_ID));
+				des.setType(MigratableObjectType.WIKIPAGE);
+				mod.setId(des);
+				if(includeDependencies){
+					mod.setDependencies(new HashSet<MigratableObjectDescriptor>(0));
+				}
+				mod.setEtag(rs.getString(COL_WIKI_ETAG));
+				return mod;
+			}
+		}, limit, offset);
+		return new QueryResults<MigratableObjectData>(page, getCount());
+	}
+
+	@Override
+	public MigratableObjectType getMigratableObjectType() {
+		return MigratableObjectType.WIKIPAGE;
 	}
 
 }

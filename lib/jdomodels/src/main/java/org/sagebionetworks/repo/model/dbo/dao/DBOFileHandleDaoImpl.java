@@ -1,10 +1,14 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
@@ -12,8 +16,12 @@ import java.util.UUID;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
+import org.sagebionetworks.repo.model.MigratableObjectType;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.TagMessenger;
+import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
@@ -27,6 +35,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
@@ -40,6 +49,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
+	private static final String SQL_GET_MIGRATION_OBJECT_DATA_PAGE = "SELECT "+COL_FILES_ID+", "+COL_FILES_ETAG+" FROM "+TABLE_FILES+" ORDER BY "+COL_FILES_ID+" DESC LIMIT ? OFFSET ?";
+	private static final String SQL_COUNT_ALL_FILES = "SELECT COUNT(*) FROM "+TABLE_FILES;
 	private static final String SQL_SELECT_CREATOR = "SELECT "+COL_FILES_CREATED_BY+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String SQL_SELECT_PREVIEW_ID = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String UPDATE_PREVIEW_AND_ETAG = "UPDATE "+TABLE_FILES+" SET "+COL_FILES_PREVIEW_ID+" = ? ,"+COL_FILES_ETAG+" = ? WHERE "+COL_FILES_ID+" = ?";
@@ -62,11 +73,16 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 
 	@Override
 	public FileHandle get(String id) throws DatastoreException, NotFoundException {
+		DBOFileHandle dbo = getDBO(id);
+		return FileMetadataUtils.createDTOFromDBO(dbo);
+	}
+
+	private DBOFileHandle getDBO(String id) throws NotFoundException {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_FILES_ID.toLowerCase(), id);
 		DBOFileHandle dbo = basicDao.getObjectById(DBOFileHandle.class, param);
-		return FileMetadataUtils.createDTOFromDBO(dbo);
+		return dbo;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -208,5 +224,59 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		FileHandleResults results = new FileHandleResults();
 		results.setList(handles);
 		return results;
+	}
+
+	@Override
+	public long getCount() throws DatastoreException {
+		return simpleJdbcTemplate.queryForLong(SQL_COUNT_ALL_FILES);
+	}
+
+	@Override
+	public QueryResults<MigratableObjectData> getMigrationObjectData(final long offset, final long limit, final boolean includeDependencies)
+			throws DatastoreException {
+		List<MigratableObjectData> page = simpleJdbcTemplate.query(SQL_GET_MIGRATION_OBJECT_DATA_PAGE, new RowMapper<MigratableObjectData>() {
+			@Override
+			public MigratableObjectData mapRow(ResultSet rs, int rowNum)throws SQLException {
+				MigratableObjectData mod = new MigratableObjectData();
+				MigratableObjectDescriptor des = new MigratableObjectDescriptor();
+				des.setId(""+rs.getLong(COL_FILES_ID));
+				des.setType(MigratableObjectType.FILEHANDLE);
+				mod.setId(des);
+				if(includeDependencies){
+					mod.setDependencies(new HashSet<MigratableObjectDescriptor>(0));
+				}
+				mod.setEtag(rs.getString(COL_FILES_ETAG));
+				return mod;
+			}
+		}, limit, offset);
+		return new QueryResults<MigratableObjectData>(page, getCount());
+	}
+
+	@Override
+	public MigratableObjectType getMigratableObjectType() {
+		return MigratableObjectType.FILEHANDLE;
+	}
+
+	@Override
+	public FileHandleBackup getFileHandleBackup(String id) throws NotFoundException {
+		DBOFileHandle dbo = getDBO(id);
+		return FileMetadataUtils.createBackupFromDBO(dbo);
+	}
+
+	@Override
+	public boolean createOrUpdateFromBackup(FileHandleBackup backup) {
+		if(backup == null) throw new IllegalArgumentException("Backup cannot be null");
+		// Convert to a DBO
+		DBOFileHandle dbo = FileMetadataUtils.createDBOFromBackup(backup);
+		// Does this already exist?
+		if(doesExist(dbo.getId().toString())){
+			basicDao.update(dbo);
+			// this was an update so return false
+			return false;
+		}else{
+			basicDao.createNew(dbo);
+			// This was a create so return true
+			return true;
+		}
 	}
 }

@@ -20,13 +20,14 @@ import org.sagebionetworks.repo.model.PrincipalBackup;
 import org.sagebionetworks.repo.model.ResourceAccess;
 import org.sagebionetworks.repo.model.SubmissionBackup;
 import org.sagebionetworks.repo.model.TrashedEntity;
+import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.thoughtworks.xstream.XStream;
 
 /**
- * A utility to read and write node backup data.
+ * A utility to read and write backup data.
  * @author jmhill
  *
  */
@@ -43,6 +44,7 @@ public class NodeSerializerUtil  {
 	private static final String ALIAS_SUBMISSION = "submission";
 	private static final String ALIAS_TRASHED_ENTITY = "trashed-entity";
 	private static final String ALIAS_FAVORITE = "favorite";
+	private static final String ALIAS_FILEHANDLE = "file-handle";
 
 
 	/**
@@ -200,6 +202,30 @@ public class NodeSerializerUtil  {
 		return (Favorite)xstream.fromXML(reader);
 	}
 	
+	/**
+	 * Write and object to a Stream
+	 * @param object
+	 * @param out
+	 */
+	public static <T> void writeToStream(T object, OutputStream out){
+		OutputStreamWriter writer = new OutputStreamWriter(out);
+		XStream xstream = createXStream();
+		xstream.toXML(object, writer);
+	}
+	
+	/**
+	 * Read an object from a stream.
+	 * @param in
+	 * @param clazz
+	 * @return
+	 */
+	@SuppressWarnings("unchecked")
+	public static <T> T readFromStream(InputStream in, Class<? extends T> clazz){
+		InputStreamReader reader = new InputStreamReader(in);
+		XStream xstream = createXStream();
+		return (T)xstream.fromXML(reader);
+	}
+	
 	private static XStream createXStream(){
 		XStream xstream = new XStream();
 		xstream.alias(ALIAS_NODE_BACKUP, NodeBackup.class);
@@ -213,6 +239,7 @@ public class NodeSerializerUtil  {
 		xstream.alias(ALIAS_SUBMISSION, SubmissionBackup.class);
 		xstream.alias(ALIAS_TRASHED_ENTITY, TrashedEntity.class);
 		xstream.alias(ALIAS_FAVORITE, Favorite.class);
+		xstream.alias(ALIAS_FILEHANDLE, FileHandleBackup.class);
 		return xstream;
 	}
 

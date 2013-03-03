@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+@Deprecated // This needs to be replaced with GenericBackupDriverImpl and should not be copied.
 public class ActivityBackupDriver implements GenericBackupDriver {
 	
 	@Autowired
