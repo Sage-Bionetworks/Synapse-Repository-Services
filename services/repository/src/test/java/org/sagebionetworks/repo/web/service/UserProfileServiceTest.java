@@ -4,7 +4,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Mockito.*;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,10 +26,15 @@ import javax.servlet.ServletException;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
+import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupHeader;
 import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
@@ -33,16 +45,23 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public class UserProfileServiceTest {
 	
 	private static final String EXTRA_USER_ID = "foo";
-
+	private static UserProfile extraProfile;
+	private static UserInfo userInfo;
+	
 	private UserProfileService userProfileService = new UserProfileServiceImpl();
 	
 	private PermissionsManager mockPermissionsManager;
 	private UserProfileManager mockUserProfileManager;
+	private UserManager mockUserManager;
+	private EntityManager mockEntityManager;
 	
 	@Before
 	public void before() throws Exception {
 		mockPermissionsManager = mock(PermissionsManager.class);
 		mockUserProfileManager = mock(UserProfileManager.class);
+		mockUserManager = mock(UserManager.class);
+		mockEntityManager = mock(EntityManager.class);
+		
 		
 		// Create UserGroups
 		Collection<UserGroup> groups = new HashSet<UserGroup>();
@@ -69,17 +88,23 @@ public class UserProfileServiceTest {
 		list.add(p);
 		QueryResults<UserProfile> profiles = new QueryResults<UserProfile>(list, list.size());
 		
-		UserProfile extraProfile = new UserProfile();
+		extraProfile = new UserProfile();
 		extraProfile.setOwnerId(EXTRA_USER_ID);
 		extraProfile.setDisplayName("This UserProfile was created after the cache was last refreshed.");
+		userInfo = new UserInfo(false);
+		userInfo.setIndividualGroup(new UserGroup());
+		userInfo.getIndividualGroup().setId(EXTRA_USER_ID);
 		
 		when(mockPermissionsManager.getGroups()).thenReturn(groups);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong())).thenReturn(profiles);
 		when(mockUserProfileManager.getInRange(any(UserInfo.class), anyLong(), anyLong(), eq(true))).thenReturn(profiles);
 		when(mockUserProfileManager.getUserProfile(any(UserInfo.class), eq(EXTRA_USER_ID))).thenReturn(extraProfile);
-		
+		when(mockUserManager.getUserInfo(EXTRA_USER_ID)).thenReturn(userInfo);
+
 		userProfileService.setPermissionsManager(mockPermissionsManager);
 		userProfileService.setUserProfileManager(mockUserProfileManager);
+		userProfileService.setUserManager(mockUserManager);
+		userProfileService.setEntityManager(mockEntityManager);
 	}
 	
 	@Test
@@ -232,5 +257,33 @@ public class UserProfileServiceTest {
 		assertTrue("Expected principal was not returned", ids.contains("p0"));
 		assertTrue("Expected principal was not returned", ids.contains("p0_duplicate"));
 	}
-	
+
+	@Test
+	public void testAddFavorite() throws Exception {
+		String entityId = "syn123";
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(true);		
+		Favorite fav = new Favorite();
+		fav.setEntityId(entityId);
+		fav.setPrincipalId(EXTRA_USER_ID);
+		when(mockUserProfileManager.addFavorite(any(UserInfo.class), anyString())).thenReturn(fav);
+
+		userProfileService.addFavorite(EXTRA_USER_ID, entityId);
+		
+		verify(mockUserProfileManager).addFavorite(userInfo, entityId);
+		verify(mockEntityManager).getEntityHeader(userInfo, entityId, null);
+	}
+
+	@Test(expected=UnauthorizedException.class)
+	public void testAddFavoriteUnauthorized() throws Exception {
+		String entityId = "syn123";
+		when(mockPermissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)).thenReturn(false);		
+		Favorite fav = new Favorite();
+		fav.setEntityId(entityId);
+		fav.setPrincipalId(EXTRA_USER_ID);
+		when(mockUserProfileManager.addFavorite(any(UserInfo.class), anyString())).thenReturn(fav);
+
+		userProfileService.addFavorite(EXTRA_USER_ID, entityId);		
+		fail();
+	}
+
 }

@@ -3582,13 +3582,13 @@ public class Synapse {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public Favorite addFavorite(String entityId) throws SynapseException {
+	public EntityHeader addFavorite(String entityId) throws SynapseException {
 		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
 		String url = createEntityUri(FAVORITE_URI_PATH, entityId);		
 		JSONObject jsonObj = postUri(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		try {
-			return new Favorite(adapter);
+			return new EntityHeader(adapter);
 		} catch (JSONObjectAdapterException e1) {
 			throw new RuntimeException(e1);
 		}
@@ -3612,11 +3612,11 @@ public class Synapse {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public PaginatedResults<Favorite> getFavorites(Integer limit, Integer offset) throws SynapseException {
+	public PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset) throws SynapseException {
 		String url = FAVORITE_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<Favorite> results = new PaginatedResults<Favorite>(Favorite.class);
+		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(EntityHeader.class);
 
 		try {
 			results.initializeFromJSONObject(adapter);
