@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
@@ -161,6 +162,8 @@ public interface UserProfileService {
 
 	public void setUserProfileManager(UserProfileManager userProfileManager);	
 	
+	public void setEntityManager(EntityManager entityManager);
+
 	/**
 	 * Adds the entity id to the users's favorites list
 	 * @param userId
@@ -169,7 +172,7 @@ public interface UserProfileService {
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
 	 */
-	public EntityHeader addFavorite(String userId, String entityId) throws DatastoreException, InvalidModelException, NotFoundException;
+	public EntityHeader addFavorite(String userId, String entityId) throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException;
 	
 	/**
 	 * Removes the specified entity id from the users's favorites list, if exists
@@ -190,5 +193,6 @@ public interface UserProfileService {
 	 * @throws NotFoundException
 	 */
 	public PaginatedResults<EntityHeader> getFavorites(String userId, int limit, int offset) throws DatastoreException, InvalidModelException, NotFoundException;
+
 	
 }
