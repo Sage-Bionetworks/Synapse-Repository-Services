@@ -67,8 +67,8 @@ public class DBOActivityTest {
 		activity.seteTag("1");
 		// Make sure we can create it
 		DBOActivity clone = dboBasicDao.createNew(activity);
-		assertNotNull(clone);
 		toDelete.add(activity.getId());
+		assertNotNull(clone);
 		assertEquals(activity, clone);
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();

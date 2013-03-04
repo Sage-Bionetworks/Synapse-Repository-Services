@@ -122,12 +122,15 @@ public class DBOFavoriteDAOImplAutowiredTest {
 		
 		Favorite fav1created = favoriteDao.add(fav1);
 		favoritesToDelete.add(fav1created);
-		assertEquals(fav1, fav1created);
+		assertEquals(fav1.getPrincipalId(), fav1created.getPrincipalId());
+		assertEquals(fav1.getEntityId(), fav1created.getEntityId());
 		assertEquals(initialCount + 1, favoriteDao.getCount());
+		assertTrue(fav1created.getCreatedOn().getTime() > 0);
 
 		Favorite fav2created = favoriteDao.add(fav2);
 		favoritesToDelete.add(fav2created);
-		assertEquals(fav2, fav2created);
+		assertEquals(fav2.getPrincipalId(), fav2created.getPrincipalId());
+		assertEquals(fav2.getEntityId(), fav2created.getEntityId());
 		assertEquals(initialCount + 2, favoriteDao.getCount());		
 	}
 	
@@ -276,6 +279,7 @@ public class DBOFavoriteDAOImplAutowiredTest {
 		}
 		assertNotNull(eh1);
 		assertNotNull(eh2);
+		assertEquals(node1Id, eh1.getId());
 		assertEquals(Project.class.getName(), eh1.getType());
 		assertEquals(new Long(1), eh1.getVersionNumber());
 		assertEquals("1", eh1.getVersionLabel());

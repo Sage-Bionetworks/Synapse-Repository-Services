@@ -21,6 +21,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -246,11 +247,19 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public void setUserProfileManager(UserProfileManager userProfileManager) {
 		this.userProfileManager = userProfileManager;
 	}
+
+	@Override
+	public void setEntityManager(EntityManager entityManager) {
+		this.entityManager = entityManager;
+	}
+
 	
 	@Override
 	public EntityHeader addFavorite(String userId, String entityId)
-			throws DatastoreException, InvalidModelException, NotFoundException {
+			throws DatastoreException, InvalidModelException, NotFoundException, UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
+		if(!permissionsManager.hasAccess(entityId, ACCESS_TYPE.READ, userInfo)) 
+			throw new UnauthorizedException("READ access denied to id: "+ entityId +". Favorite not added.");
 		Favorite favorite = userProfileManager.addFavorite(userInfo, entityId);
 		return entityManager.getEntityHeader(userInfo, favorite.getEntityId(), null); // current version
 	}
@@ -339,4 +348,5 @@ public class UserProfileServiceImpl implements UserProfileService {
 		}
 		return list;
 	}
+
 }

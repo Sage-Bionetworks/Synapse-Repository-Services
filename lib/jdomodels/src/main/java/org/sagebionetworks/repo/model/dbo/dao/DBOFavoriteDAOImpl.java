@@ -67,7 +67,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 	private static final String SELECT_GET_FAVORITES_SQL = "SELECT " + COL_FAVORITE_PRINCIPAL_ID +", "+ COL_FAVORITE_NODE_ID +", "+ COL_FAVORITE_CREATED_ON
 															+ " FROM " + TABLE_FAVORITE 
 															+ " WHERE " + COL_FAVORITE_PRINCIPAL_ID +"= :"+ COL_FAVORITE_PRINCIPAL_ID
-															+ " ORDER BY " + COL_FAVORITE_PRINCIPAL_ID + ", "+ COL_FAVORITE_NODE_ID 
+															+ " ORDER BY " + COL_FAVORITE_NODE_ID 
 															+ " LIMIT :" + LIMIT_PARAM_NAME 
 															+ " OFFSET :" + OFFSET_PARAM_NAME;
 	private static final String COUNT_FAVORITES_SQL = "SELECT COUNT(" + COL_FAVORITE_PRINCIPAL_ID +")"
@@ -85,6 +85,17 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 																"AND n."+ COL_NODE_ID +" = r."+ COL_REVISION_OWNER_NODE +" " +
 																"AND n."+ COL_CURRENT_REV +" = r."+ COL_REVISION_NUMBER;
 
+	
+	private static final RowMapper<Favorite> favoriteRowMapper = new RowMapper<Favorite>() {
+		@Override
+		public Favorite mapRow(ResultSet rs, int rowNum) throws SQLException {
+			Favorite favorite = new Favorite();
+			favorite.setPrincipalId(String.valueOf(rs.getLong(COL_FAVORITE_PRINCIPAL_ID)));
+			favorite.setEntityId(KeyFactory.keyToString(rs.getLong(COL_FAVORITE_NODE_ID)));
+			favorite.setCreatedOn(new Date(rs.getLong(COL_FAVORITE_CREATED_ON)));
+			return favorite;
+		}
+	};
 	
 	public DBOFavoriteDAOImpl() { }
 	
@@ -110,8 +121,11 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 	@Override
 	public Favorite add(Favorite dto) throws DatastoreException,
 			InvalidModelException {
-		dto.setCreatedOn(new Date());
+		if(dto == null) throw new IllegalArgumentException("Favotire dto can not be null");
+		if(dto.getPrincipalId() == null) throw new IllegalArgumentException("Principal id can not be null");
+		if(dto.getEntityId() == null) throw new IllegalArgumentException("Entity Id can not be null");
 		DBOFavorite dbo = new DBOFavorite(); 
+		dbo.setCreatedOn(new Date().getTime());
 		UserProfileUtils.copyDtoToDbo(dto, dbo);
 		basicDao.createNew(dbo);
 		try {
@@ -123,6 +137,8 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 
 	@Override
 	public void remove(String principalId, String entityId) throws DatastoreException {
+		if(principalId == null) throw new IllegalArgumentException("Principal id can not be null");
+		if(entityId == null) throw new IllegalArgumentException("Entity Id can not be null");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOFavorite.FIELD_COLUMN_ID_PRINCIPAL_ID, principalId);
 		param.addValue(DBOFavorite.FIELD_COLUMN_ID_NODE_ID, KeyFactory.stringToKey(entityId));
@@ -142,16 +158,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		params.addValue(LIMIT_PARAM_NAME, limit);
 
 		List<Favorite> favorites = null;
-		favorites = simpleJdbcTemplate.query(SELECT_GET_FAVORITES_SQL, new RowMapper<Favorite>() {
-			@Override
-			public Favorite mapRow(ResultSet rs, int rowNum) throws SQLException {
-				Favorite favorite = new Favorite();
-				favorite.setPrincipalId(String.valueOf(rs.getLong(COL_FAVORITE_PRINCIPAL_ID)));
-				favorite.setEntityId(KeyFactory.keyToString(rs.getLong(COL_FAVORITE_NODE_ID)));
-				favorite.setCreatedOn(new Date(rs.getLong(COL_FAVORITE_CREATED_ON)));
-				return favorite;
-			}		
-		}, params);
+		favorites = simpleJdbcTemplate.query(SELECT_GET_FAVORITES_SQL, favoriteRowMapper, params);
 			
 		// return the page of objects, along with the total result count
 		PaginatedResults<Favorite> queryResults = new PaginatedResults<Favorite>();
@@ -177,17 +184,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		params.addValue(COL_FAVORITE_NODE_ID, KeyFactory.stringToKey(entityId));		
 		Favorite favorite = null;
 		try {
-			favorite = simpleJdbcTemplate.queryForObject(SELECT_FAVORITE_SQL, new RowMapper<Favorite>() {
-				@Override
-				public Favorite mapRow(ResultSet rs, int rowNum)
-						throws SQLException {
-					Favorite fav = new Favorite();
-					fav.setPrincipalId(String.valueOf(rs.getLong(COL_FAVORITE_PRINCIPAL_ID)));
-					fav.setEntityId(KeyFactory.keyToString(rs.getLong(COL_FAVORITE_NODE_ID)));
-					fav.setCreatedOn(new Date(rs.getLong(COL_FAVORITE_CREATED_ON)));
-					return fav;
-				}
-			}, params); 
+			favorite = simpleJdbcTemplate.queryForObject(SELECT_FAVORITE_SQL, favoriteRowMapper, params); 
 			return favorite;
 		} catch (EmptyResultDataAccessException e) {
 			throw new NotFoundException("No favorite found with: principalId="+principalId+", entityId="+entityId);

@@ -16,6 +16,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -80,12 +81,12 @@ public class IT970UserProfileController {
 		entitiesToDelete.add(entity.getId());
 		
 		// add
-		Favorite fav = synapse.addFavorite(entity.getId());
+		EntityHeader fav = synapse.addFavorite(entity.getId());
 		assertNotNull(fav);
-		assertEquals(entity.getId(), fav.getEntityId());
+		assertEquals(entity.getId(), fav.getId());
 		
 		// retrieve
-		PaginatedResults<Favorite> favs = synapse.getFavorites(Integer.MAX_VALUE, 0);
+		PaginatedResults<EntityHeader> favs = synapse.getFavorites(Integer.MAX_VALUE, 0);
 		assertEquals(1, favs.getTotalNumberOfResults());
 		assertEquals(1, favs.getResults().size());
 		
