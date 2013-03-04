@@ -64,6 +64,9 @@ public class JDORevisionUtils {
 		} catch (IOException e) {
 			throw new DatastoreException(e);
 		}
+		if(jdo.getFileHandleId() != null){
+			rev.setDataFileHandleId(jdo.getFileHandleId().toString());
+		}
 		return rev;
 	}
 	/**
@@ -89,6 +92,9 @@ public class JDORevisionUtils {
 			jdo.setReferences(JDOSecondaryPropertyUtils.compressReferences(dto.getReferences()));
 		} catch (IOException e) {
 			throw new DatastoreException(e);
+		}
+		if(dto.getDataFileHandleId() != null){
+			jdo.setFileHandleId(Long.parseLong(dto.getDataFileHandleId()));
 		}
 	}
 

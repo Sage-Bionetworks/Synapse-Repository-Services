@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+@Deprecated // This needs to be replaced with GenericBackupDriverImpl and should not be copied.
 public class AccessRequirementBackupDriver implements GenericBackupDriver {
 	
 	@Autowired
