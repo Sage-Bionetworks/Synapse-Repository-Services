@@ -114,7 +114,7 @@ public class FavoriteBackupDriver implements GenericBackupDriver {
 				
 				// This is a backup file.
 				Favorite backup = NodeSerializerUtil.readFavoriteBackup(zin);				
-				createOrUpdateFavorite(backup);
+				createFavorite(backup);
 				
 				// Append this id to the log.
 				progress.appendLog(UserProfileUtils.getFavoriteId(backup));
@@ -135,7 +135,7 @@ public class FavoriteBackupDriver implements GenericBackupDriver {
 		return true;
 	}
 	
-	private void createOrUpdateFavorite(Favorite favorite) throws DatastoreException, NotFoundException, InvalidModelException, ConflictingUpdateException {
+	private void createFavorite(Favorite favorite) throws DatastoreException, NotFoundException, InvalidModelException, ConflictingUpdateException {
 		// create the Favorite		
 		Favorite existingFavorite = null;
 		try {
