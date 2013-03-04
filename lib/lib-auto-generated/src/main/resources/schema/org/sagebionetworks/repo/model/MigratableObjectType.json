@@ -1,11 +1,13 @@
 {
-    "description":"JSON enum for the types of objects which can be migrated.",
+    "description":"JSON enum for the types of objects which can be migrated. NOTE: The order of this enumeration determines the migration order.",
     "type":"string",
     "enum":[
-        "ENTITY",
         "PRINCIPAL",
-        "ACCESSREQUIREMENT",
+        "FILEHANDLE",
+        "WIKIPAGE",
         "ACTIVITY",
+        "ENTITY",
+        "ACCESSREQUIREMENT",
         "EVALUATION",
         "SUBMISSION",
         "TRASHED_ENTITY",
