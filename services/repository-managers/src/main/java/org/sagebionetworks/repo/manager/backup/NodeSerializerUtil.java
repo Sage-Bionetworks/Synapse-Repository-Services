@@ -10,6 +10,7 @@ import java.util.Collection;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirementBackup;
+import org.sagebionetworks.repo.model.ActivityBackup;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.EvaluationBackup;
 import org.sagebionetworks.repo.model.Favorite;
@@ -146,10 +147,10 @@ public class NodeSerializerUtil  {
 		return (AccessRequirementBackup)xstream.fromXML(reader);
 	}
 
-	public static void writeActivityBackup(Activity act, OutputStream out) {
+	public static void writeActivityBackup(ActivityBackup actBackup, OutputStream out) {
 		OutputStreamWriter writer = new OutputStreamWriter(out);
 		XStream xstream = createXStream();
-		xstream.toXML(act, writer);
+		xstream.toXML(actBackup, writer);
 	}
 	
 	public static Activity readActivityBackup(InputStream in) {
