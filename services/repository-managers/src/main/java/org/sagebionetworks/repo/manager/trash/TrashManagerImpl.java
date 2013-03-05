@@ -54,20 +54,20 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void moveToTrash(final UserInfo userInfo, final String nodeId)
+	public void moveToTrash(final UserInfo currentUser, final String nodeId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		if (userInfo == null) {
-			throw new IllegalArgumentException("User info cannot be null");
+		if (currentUser == null) {
+			throw new IllegalArgumentException("Current user cannot be null");
 		}
 		if (nodeId == null) {
 			throw new IllegalArgumentException("Node ID cannot be null");
 		}
 
 		// Authorize
-		UserInfo.validateUserInfo(userInfo);
-		String userName = userInfo.getUser().getUserId();
-		if (!this.authorizationManager.canAccess(userInfo, nodeId, ACCESS_TYPE.DELETE)) {
+		UserInfo.validateUserInfo(currentUser);
+		String userName = currentUser.getUser().getUserId();
+		if (!this.authorizationManager.canAccess(currentUser, nodeId, ACCESS_TYPE.DELETE)) {
 			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
 		}
 
@@ -92,10 +92,10 @@ public class TrashManagerImpl implements TrashManager {
 			throw new DatastoreException("Trash can folder does not exist.");
 		}
 		node.setParentId(trashCanId);
-		this.nodeManager.updateForTrashCan(userInfo, node, ChangeType.DELETE);
+		this.nodeManager.updateForTrashCan(currentUser, node, ChangeType.DELETE);
 
 		// Update the trash can table
-		String userGroupId = userInfo.getIndividualGroup().getId();
+		String userGroupId = currentUser.getIndividualGroup().getId();
 		this.trashCanDao.create(userGroupId, nodeId, oldNodeName, oldParentId);
 
 		// For all the descendants, we need to add them to the trash can table
@@ -115,19 +115,19 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void restoreFromTrash(UserInfo userInfo, String nodeId, String newParentId)
+	public void restoreFromTrash(UserInfo currentUser, String nodeId, String newParentId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 
-		if (userInfo == null) {
-			throw new IllegalArgumentException("User info cannot be null");
+		if (currentUser == null) {
+			throw new IllegalArgumentException("Current user cannot be null");
 		}
 		if (nodeId == null) {
 			throw new IllegalArgumentException("Node ID cannot be null");
 		}
 
 		// Make sure the node was indeed deleted by the user
-		UserInfo.validateUserInfo(userInfo);
-		String userId = userInfo.getIndividualGroup().getId();
+		UserInfo.validateUserInfo(currentUser);
+		String userId = currentUser.getIndividualGroup().getId();
 		boolean exists = this.trashCanDao.exists(userId, nodeId);
 		if (!exists) {
 			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
@@ -144,8 +144,8 @@ public class TrashManagerImpl implements TrashManager {
 		}
 
 		// Authorize on the new parent
-		String userName = userInfo.getUser().getUserId();
-		if (!this.authorizationManager.canAccess(userInfo, newParentId, ACCESS_TYPE.CREATE)) {
+		String userName = currentUser.getUser().getUserId();
+		if (!this.authorizationManager.canAccess(currentUser, newParentId, ACCESS_TYPE.CREATE)) {
 			throw new UnauthorizedException(userName + " lacks change access to the requested object.");
 		}
 
@@ -153,10 +153,10 @@ public class TrashManagerImpl implements TrashManager {
 		Node node = this.nodeDao.getNode(nodeId);
 		node.setName(trash.getEntityName());
 		node.setParentId(newParentId);
-		this.nodeManager.updateForTrashCan(userInfo, node, ChangeType.CREATE);
+		this.nodeManager.updateForTrashCan(currentUser, node, ChangeType.CREATE);
 
 		// Update the trash can table
-		String userGroupId = userInfo.getIndividualGroup().getId();
+		String userGroupId = currentUser.getIndividualGroup().getId();
 		this.trashCanDao.delete(userGroupId, nodeId);
 
 		// For all the descendants, we need to remove them from the trash can table
@@ -175,11 +175,14 @@ public class TrashManagerImpl implements TrashManager {
 	}
 
 	@Override
-	public QueryResults<TrashedEntity> viewTrash(UserInfo userInfo,
-			Long offset, Long limit) {
+	public QueryResults<TrashedEntity> viewTrashForUser(
+			UserInfo currentUser, UserInfo user, Long offset, Long limit) {
 
-		if (userInfo == null) {
-			throw new IllegalArgumentException("User info cannot be null");
+		if (currentUser == null) {
+			throw new IllegalArgumentException("Current user cannot be null");
+		}
+		if (user == null) {
+			throw new IllegalArgumentException("User cannot be null");
 		}
 		if (offset == null) {
 			throw new IllegalArgumentException("Offset cannot be null");
@@ -188,29 +191,46 @@ public class TrashManagerImpl implements TrashManager {
 			throw new IllegalArgumentException("Limit cannot be null");
 		}
 
-		UserInfo.validateUserInfo(userInfo);
-		String userGroupId = userInfo.getIndividualGroup().getId();
-		List<TrashedEntity> list = this.trashCanDao.getInRangeForUser(userGroupId, offset, limit);
-		int count = this.trashCanDao.getCount(userGroupId);
+		UserInfo.validateUserInfo(currentUser);
+		UserInfo.validateUserInfo(user);
+		final String currUserId = currentUser.getIndividualGroup().getId();
+		final String userId = user.getIndividualGroup().getId();
+		if (!currentUser.isAdmin()) {
+			if (currUserId == null || !currUserId.equals(userId)) {
+				throw new UnauthorizedException("Current user " + currUserId
+						+ " does not have the permission.");
+			}
+		}
+
+		List<TrashedEntity> list = this.trashCanDao.getInRangeForUser(userId, offset, limit);
+		int count = this.trashCanDao.getCount(userId);
 		QueryResults<TrashedEntity> results = new QueryResults<TrashedEntity>(list, count);
 		return results;
 	}
 
+	@Override
+	public QueryResults<TrashedEntity> viewAll(UserInfo currentUser,
+			Long offset, Long limit) throws DatastoreException,
+			UnauthorizedException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void purge(UserInfo userInfo, String nodeId)
+	public void purgeNodeForUser(UserInfo currentUser, String nodeId)
 			throws DatastoreException, NotFoundException {
 
-		if (userInfo == null) {
-			throw new IllegalArgumentException("User info cannot be null.");
+		if (currentUser == null) {
+			throw new IllegalArgumentException("Current user cannot be null.");
 		}
 		if (nodeId == null) {
 			throw new IllegalArgumentException("Node ID cannot be null.");
 		}
 
 		// Make sure the node was indeed deleted by the user
-		UserInfo.validateUserInfo(userInfo);
-		String userGroupId = userInfo.getIndividualGroup().getId();
+		UserInfo.validateUserInfo(currentUser);
+		String userGroupId = currentUser.getIndividualGroup().getId();
 		boolean exists = this.trashCanDao.exists(userGroupId, nodeId);
 		if (!exists) {
 			throw new NotFoundException("The node " + nodeId + " is not in the trash can.");
@@ -227,14 +247,15 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void purge(UserInfo userInfo) throws DatastoreException, NotFoundException {
+	public void purgeAllForUser(UserInfo currentUser)
+			throws DatastoreException, NotFoundException {
 
-		if (userInfo == null) {
-			throw new IllegalArgumentException("User info cannot be null.");
+		if (currentUser == null) {
+			throw new IllegalArgumentException("Current user cannot be null.");
 		}
 
-		UserInfo.validateUserInfo(userInfo);
-		String userGroupId = userInfo.getIndividualGroup().getId();
+		UserInfo.validateUserInfo(currentUser);
+		String userGroupId = currentUser.getIndividualGroup().getId();
 
 		// For subtrees moved entirely into the trash can, we want to find the roots
 		// of these subtrees. Deleting the roots should delete the subtrees. We use
@@ -251,6 +272,13 @@ public class TrashManagerImpl implements TrashManager {
 			}
 			trashCanDao.delete(userGroupId, nodeId);
 		}
+	}
+
+	@Override
+	public void purgeAll(UserInfo currentUser) throws DatastoreException,
+			NotFoundException {
+		// TODO Auto-generated method stub
+		
 	}
 
 	/**

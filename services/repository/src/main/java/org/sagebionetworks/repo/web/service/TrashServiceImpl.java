@@ -55,7 +55,7 @@ public class TrashServiceImpl implements TrashService {
 		}
 
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		QueryResults<TrashedEntity> trashEntities = trashManager.viewTrash(userInfo, offset, limit);
+		QueryResults<TrashedEntity> trashEntities = trashManager.viewTrashForUser(userInfo, userInfo, offset, limit);
 		String url = request.getRequestURL() == null ? "" : request.getRequestURL().toString();
 		return new PaginatedResults<TrashedEntity>(url, trashEntities.getResults(),
 				trashEntities.getTotalNumberOfResults(), offset, limit, null, false);
@@ -65,13 +65,13 @@ public class TrashServiceImpl implements TrashService {
 	public void purge(String userId, String nodeId) throws DatastoreException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		trashManager.purge(userInfo, nodeId);
+		trashManager.purgeNodeForUser(userInfo, nodeId);
 	}
 
 	@Override
 	public void purge(String userId) throws DatastoreException,
 			NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		trashManager.purge(userInfo);
+		trashManager.purgeAllForUser(userInfo);
 	}
 }
