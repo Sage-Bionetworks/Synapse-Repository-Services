@@ -68,5 +68,6 @@ public interface TrashManager {
 	 * Purges the trash can for the user. All the entities in the trash will be
 	 * permanently deleted.
 	 */
-	void purgeAll(UserInfo currentUser) throws DatastoreException, NotFoundException;
+	void purgeAll(UserInfo currentUser)
+			throws DatastoreException, NotFoundException, UnauthorizedException;
 }

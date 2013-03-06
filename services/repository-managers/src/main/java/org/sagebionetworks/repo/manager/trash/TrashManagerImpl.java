@@ -212,8 +212,28 @@ public class TrashManagerImpl implements TrashManager {
 	public QueryResults<TrashedEntity> viewAll(UserInfo currentUser,
 			Long offset, Long limit) throws DatastoreException,
 			UnauthorizedException {
-		// TODO Auto-generated method stub
-		return null;
+
+		if (currentUser == null) {
+			throw new IllegalArgumentException("Current user cannot be null");
+		}
+		if (offset == null) {
+			throw new IllegalArgumentException("Offset cannot be null");
+		}
+		if (limit == null) {
+			throw new IllegalArgumentException("Limit cannot be null");
+		}
+
+		UserInfo.validateUserInfo(currentUser);
+		if (!currentUser.isAdmin()) {
+			String currUserId = currentUser.getIndividualGroup().getId();
+			throw new UnauthorizedException("Current user " + currUserId
+					+ " does not have the permission.");
+		}
+
+		List<TrashedEntity> list = this.trashCanDao.getInRange(offset, limit);
+		int count = this.trashCanDao.getCount();
+		QueryResults<TrashedEntity> results = new QueryResults<TrashedEntity>(list, count);
+		return results;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -261,24 +281,27 @@ public class TrashManagerImpl implements TrashManager {
 		// of these subtrees. Deleting the roots should delete the subtrees. We use
 		// a set of the trashed items to help find the roots.
 		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userGroupId, 0, Long.MAX_VALUE);
-		Set<String> trashIdSet = new HashSet<String>();
-		for (TrashedEntity trash : trashList) {
-			trashIdSet.add(trash.getEntityId());
-		}
-		for (TrashedEntity trash : trashList) {
-			String nodeId = trash.getEntityId();
-			if (!trashIdSet.contains(trash.getOriginalParentId())) {
-				nodeDao.delete(nodeId);
-			}
-			trashCanDao.delete(userGroupId, nodeId);
-		}
+		purge(trashList);
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void purgeAll(UserInfo currentUser) throws DatastoreException,
-			NotFoundException {
-		// TODO Auto-generated method stub
-		
+	public void purgeAll(UserInfo currentUser)
+			throws DatastoreException, NotFoundException, UnauthorizedException {
+
+		if (currentUser == null) {
+			throw new IllegalArgumentException("Current user cannot be null");
+		}
+
+		UserInfo.validateUserInfo(currentUser);
+		if (!currentUser.isAdmin()) {
+			String currUserId = currentUser.getIndividualGroup().getId();
+			throw new UnauthorizedException("Current user " + currUserId
+					+ " does not have the permission.");
+		}
+
+		List<TrashedEntity> trashList = trashCanDao.getInRange(0, Long.MAX_VALUE);
+		purge(trashList);
 	}
 
 	/**
@@ -291,8 +314,25 @@ public class TrashManagerImpl implements TrashManager {
 			return;
 		}
 		for (String child : children) {
-			// Recursion
-			getDescendants(child, descendants);
+			getDescendants(child, descendants); // Recursion
+		}
+	}
+
+	private void purge(List<TrashedEntity> trashList)
+			throws DatastoreException, NotFoundException {
+		// For subtrees moved entirely into the trash can, we want to find the roots
+		// of these subtrees. Deleting the roots should delete the subtrees. We use
+		// a set of the trashed items to help find the roots.
+		Set<String> trashIdSet = new HashSet<String>();
+		for (TrashedEntity trash : trashList) {
+			trashIdSet.add(trash.getEntityId());
+		}
+		for (TrashedEntity trash : trashList) {
+			String nodeId = trash.getEntityId();
+			if (!trashIdSet.contains(trash.getOriginalParentId())) {
+				nodeDao.delete(nodeId);
+			}
+			trashCanDao.delete(trash.getDeletedByPrincipalId(), nodeId);
 		}
 	}
 }
