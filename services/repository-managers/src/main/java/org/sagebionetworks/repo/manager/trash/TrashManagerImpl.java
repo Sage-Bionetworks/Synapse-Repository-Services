@@ -209,7 +209,7 @@ public class TrashManagerImpl implements TrashManager {
 	}
 
 	@Override
-	public QueryResults<TrashedEntity> viewAll(UserInfo currentUser,
+	public QueryResults<TrashedEntity> viewTrash(UserInfo currentUser,
 			Long offset, Long limit) throws DatastoreException,
 			UnauthorizedException {
 
@@ -238,7 +238,7 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void purgeNodeForUser(UserInfo currentUser, String nodeId)
+	public void purgeTrashForUser(UserInfo currentUser, String nodeId)
 			throws DatastoreException, NotFoundException {
 
 		if (currentUser == null) {
@@ -267,7 +267,7 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void purgeAllForUser(UserInfo currentUser)
+	public void purgeTrashForUser(UserInfo currentUser)
 			throws DatastoreException, NotFoundException {
 
 		if (currentUser == null) {
@@ -286,7 +286,7 @@ public class TrashManagerImpl implements TrashManager {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public void purgeAll(UserInfo currentUser)
+	public void purgeTrash(UserInfo currentUser)
 			throws DatastoreException, NotFoundException, UnauthorizedException {
 
 		if (currentUser == null) {

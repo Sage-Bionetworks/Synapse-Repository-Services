@@ -35,29 +35,29 @@ public class TrashController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_TRASH}, method = RequestMethod.PUT)
 	public void moveToTrash(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currentUserId,
 			@PathVariable String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		this.serviceProvider.getTrashService().moveToTrash(userId, id);
+		this.serviceProvider.getTrashService().moveToTrash(currentUserId, id);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_RESTORE}, method = RequestMethod.PUT)
 	public void restoreFromTrash(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currentUserId,
 			@PathVariable String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		this.serviceProvider.getTrashService().restoreFromTrash(userId, id, null);
+		this.serviceProvider.getTrashService().restoreFromTrash(currentUserId, id, null);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_RESTORE_TO_PARENT}, method = RequestMethod.PUT)
 	public void restoreFromTrash(
-			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String currentUserId,
 			@PathVariable String id,
 			@PathVariable String parentId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		this.serviceProvider.getTrashService().restoreFromTrash(userId, id, parentId);
+		this.serviceProvider.getTrashService().restoreFromTrash(currentUserId, id, parentId);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -67,7 +67,7 @@ public class TrashController extends BaseController {
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit,
 			HttpServletRequest request) throws DatastoreException, NotFoundException {
-		return serviceProvider.getTrashService().viewTrash(userId, offset, limit, request);
+		return serviceProvider.getTrashService().viewTrashForUser(userId, userId, offset, limit, request);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -76,7 +76,7 @@ public class TrashController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		this.serviceProvider.getTrashService().purge(userId, id);
+		this.serviceProvider.getTrashService().purgeTrashForUser(userId, id);
 	}
 
 	@ResponseStatus(HttpStatus.OK)
@@ -84,6 +84,6 @@ public class TrashController extends BaseController {
 	public void purge(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
-		this.serviceProvider.getTrashService().purge(userId);
+		this.serviceProvider.getTrashService().purgeTrashForUser(userId);
 	}
 }

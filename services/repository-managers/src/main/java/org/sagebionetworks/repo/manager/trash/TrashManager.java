@@ -49,25 +49,24 @@ public interface TrashManager {
 	 * @throws UnauthorizedException
 	 *             When the current user is not an administrator.
 	 */
-	QueryResults<TrashedEntity> viewAll(UserInfo currentUser,
+	QueryResults<TrashedEntity> viewTrash(UserInfo currentUser,
 			Long offset, Long limit) throws DatastoreException, UnauthorizedException;
 
 	/**
 	 * Purges the specified entity from the trash can. After purging, the entity
 	 * will be permanently deleted.
 	 */
-	void purgeNodeForUser(UserInfo currentUser, String nodeId) throws DatastoreException, NotFoundException;
+	void purgeTrashForUser(UserInfo currentUser, String nodeId) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Purges the trash can for the user. All the entities in the trash will be
 	 * permanently deleted.
 	 */
-	void purgeAllForUser(UserInfo currentUser) throws DatastoreException, NotFoundException;
+	void purgeTrashForUser(UserInfo currentUser) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Purges the trash can for the user. All the entities in the trash will be
 	 * permanently deleted.
 	 */
-	void purgeAll(UserInfo currentUser)
-			throws DatastoreException, NotFoundException, UnauthorizedException;
+	void purgeTrash(UserInfo currentUser) throws DatastoreException, NotFoundException, UnauthorizedException;
 }
