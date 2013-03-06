@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MigratableDAO;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectCount;
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 
 /**
@@ -72,6 +73,23 @@ public class DependencyManagerImpl implements DependencyManager {
 		queryResults.setResults(ods);
 		queryResults.setTotalNumberOfResults((int)total);
 		return queryResults;
+	}
+	
+	/**
+	 * Validation is done here.
+	 */
+	public void init(){
+		if(migratableDaos == null) throw new IllegalArgumentException("The list of migratableDaos cannot be null");
+		if(migratableDaos.size() != MigratableObjectType.values().length) throw new IllegalArgumentException("The size of migratableDaos: "+migratableDaos.size()+" does not match the number of MigratableObjectTypes: "+MigratableObjectType.values().length);
+		// the order must match
+		for(int i=0; i<MigratableObjectType.values().length; i++){
+			MigratableDAO dao = migratableDaos.get(i);
+			if(dao.getMigratableObjectType() == null) throw new IllegalArgumentException(dao.getClass().getName()+" returned null for getMigratableObjectType()");
+			// the order must match
+			if(dao.getMigratableObjectType() != MigratableObjectType.values()[i]){
+				throw new IllegalArgumentException("The order of the MigratableObjectType enum must match the order of migratableDaos in DependencyManagerImpl.  Expected: "+MigratableObjectType.values()[i].name()+" but found: "+dao.getMigratableObjectType()+" at index: "+i);
+			}
+		}
 	}
 
 

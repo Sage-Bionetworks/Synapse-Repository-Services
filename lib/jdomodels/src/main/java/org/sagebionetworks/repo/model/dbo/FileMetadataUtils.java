@@ -4,6 +4,7 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.sql.Timestamp;
 
+import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle.MetadataType;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
@@ -179,6 +180,98 @@ public class FileMetadataUtils {
 		}else{
 			throw new IllegalArgumentException("Unknown metadata type: "+dbo.getMetadataTypeEnum());
 		}
+	}
+	
+	/**
+	 * Create a backup copy of a DBO object
+	 * @param dbo
+	 * @return
+	 */
+	public static FileHandleBackup createBackupFromDBO(DBOFileHandle in){
+		FileHandleBackup out = new FileHandleBackup();
+		if(in.getBucketName() != null){
+			out.setBucketName(in.getBucketName());
+		}
+		if(in.getContentMD5() != null){
+			out.setContentMD5(in.getContentMD5());
+		}
+		if(in.getContentSize() != null){
+			out.setContentSize(in.getContentSize());
+		}
+		if(in.getContentType() != null){
+			out.setContentType(in.getContentType());
+		}
+		if(in.getCreatedBy() != null){
+			out.setCreatedBy(in.getCreatedBy());
+		}
+		if(in.getCreatedOn() != null){
+			out.setCreatedOn(in.getCreatedOn().getTime());
+		}
+		if(in.getEtag() != null){
+			out.setEtag(in.getEtag());
+		}
+		if(in.getId() != null){
+			out.setId(in.getId());
+		}
+		if(in.getKey() != null){
+			out.setKey(in.getKey());
+		}
+		if(in.getMetadataTypeEnum() != null){
+			out.setMetadataType(in.getMetadataType());
+		}
+		if(in.getName() != null){
+			out.setName(in.getName());
+		}
+		if(in.getPreviewId() != null){
+			out.setPreviewId(in.getPreviewId());
+		}
+		return out;
+	}
+	
+	/**
+	 * Create a DTO from a backup object.
+	 * @param backup
+	 * @return
+	 */
+	public static DBOFileHandle createDBOFromBackup(FileHandleBackup in){
+		DBOFileHandle out = new DBOFileHandle();
+		if(in.getBucketName() != null){
+			out.setBucketName(in.getBucketName());
+		}
+		if(in.getContentMD5() != null){
+			out.setContentMD5(in.getContentMD5());
+		}
+		if(in.getContentSize() != null){
+			out.setContentSize(in.getContentSize());
+		}
+		if(in.getContentType() != null){
+			out.setContentType(in.getContentType());
+		}
+		if(in.getCreatedBy() != null){
+			out.setCreatedBy(in.getCreatedBy());
+		}
+		if(in.getCreatedOn() != null){
+			out.setCreatedOn(new Timestamp(in.getCreatedOn()));
+		}
+		if(in.getEtag() != null){
+			out.setEtag(in.getEtag());
+		}
+		if(in.getId() != null){
+			out.setId(in.getId());
+		}
+		if(in.getKey() != null){
+			out.setKey(in.getKey());
+		}
+		if(in.getMetadataType() != null){
+			out.setMetadataType(MetadataType.valueOf(in.getMetadataType()));
+		}
+		if(in.getName() != null){
+			out.setName(in.getName());
+		}
+		if(in.getPreviewId() != null){
+			out.setPreviewId(in.getPreviewId());
+		}
+		return out;
 	}
 
 }

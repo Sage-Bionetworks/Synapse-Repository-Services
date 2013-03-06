@@ -26,6 +26,7 @@ public class NodeRevisionBackup {
 	private Long modifiedByPrincipalId;
 	private Date modifiedOn;	
 	private String xmlVersion;	
+	private String dataFileHandleId;
 	/**
 	 * Annotations now belong to a name-space so use namespaceAnnos.
 	 * @deprecated since xml version 1.0
@@ -55,6 +56,14 @@ public class NodeRevisionBackup {
 		this.xmlVersion = xmlVersion;
 	}
 	
+	public String getDataFileHandleId() {
+		return dataFileHandleId;
+	}
+
+	public void setDataFileHandleId(String dataFileHandleId) {
+		this.dataFileHandleId = dataFileHandleId;
+	}
+
 	public String getNodeId() {
 		return nodeId;
 	}
@@ -152,17 +161,18 @@ public class NodeRevisionBackup {
 		this.activityId = activityId;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#hashCode()
-	 */
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
+				+ ((activityId == null) ? 0 : activityId.hashCode());
+		result = prime * result
 				+ ((annotations == null) ? 0 : annotations.hashCode());
-		result = prime * result + ((activityId == null) ? 0 : activityId.hashCode());
 		result = prime * result + ((comment == null) ? 0 : comment.hashCode());
+		result = prime
+				* result
+				+ ((dataFileHandleId == null) ? 0 : dataFileHandleId.hashCode());
 		result = prime * result + ((label == null) ? 0 : label.hashCode());
 		result = prime * result
 				+ ((modifiedBy == null) ? 0 : modifiedBy.hashCode());
@@ -185,9 +195,6 @@ public class NodeRevisionBackup {
 		return result;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -197,6 +204,11 @@ public class NodeRevisionBackup {
 		if (getClass() != obj.getClass())
 			return false;
 		NodeRevisionBackup other = (NodeRevisionBackup) obj;
+		if (activityId == null) {
+			if (other.activityId != null)
+				return false;
+		} else if (!activityId.equals(other.activityId))
+			return false;
 		if (annotations == null) {
 			if (other.annotations != null)
 				return false;
@@ -206,6 +218,11 @@ public class NodeRevisionBackup {
 			if (other.comment != null)
 				return false;
 		} else if (!comment.equals(other.comment))
+			return false;
+		if (dataFileHandleId == null) {
+			if (other.dataFileHandleId != null)
+				return false;
+		} else if (!dataFileHandleId.equals(other.dataFileHandleId))
 			return false;
 		if (label == null) {
 			if (other.label != null)
@@ -247,11 +264,6 @@ public class NodeRevisionBackup {
 				return false;
 		} else if (!revisionNumber.equals(other.revisionNumber))
 			return false;
-		if (activityId == null) {
-			if (other.activityId != null)
-				return false;
-		} else if (!activityId.equals(other.activityId))
-			return false;
 		if (xmlVersion == null) {
 			if (other.xmlVersion != null)
 				return false;
@@ -260,17 +272,16 @@ public class NodeRevisionBackup {
 		return true;
 	}
 
-	/* (non-Javadoc)
-	 * @see java.lang.Object#toString()
-	 */
 	@Override
 	public String toString() {
-		return "NodeRevisionBackup [annotations=" + annotations + ", comment="
-				+ comment + ", label=" + label + ", modifiedBy=" + modifiedBy
-				+ ", modifiedOn=" + modifiedOn + ", namedAnnotations="
-				+ namedAnnotations + ", nodeId=" + nodeId + ", references="
-				+ references + ", revisionNumber=" + revisionNumber + ", activityId=" + activityId
-				+ ", xmlVersion=" + xmlVersion + "]";
+		return "NodeRevisionBackup [nodeId=" + nodeId + ", revisionNumber="
+				+ revisionNumber + ", activityId=" + activityId + ", label="
+				+ label + ", comment=" + comment + ", modifiedBy=" + modifiedBy
+				+ ", modifiedByPrincipalId=" + modifiedByPrincipalId
+				+ ", modifiedOn=" + modifiedOn + ", xmlVersion=" + xmlVersion
+				+ ", dataFileHandleId=" + dataFileHandleId + ", annotations="
+				+ annotations + ", namedAnnotations=" + namedAnnotations
+				+ ", references=" + references + "]";
 	}
 	
 	

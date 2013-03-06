@@ -13,30 +13,24 @@ import java.util.Random;
 import java.util.Set;
 
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Reference;
-import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBONode;
 import org.sagebionetworks.repo.model.dbo.persistence.DBORevision;
 import org.sagebionetworks.repo.model.util.RandomAnnotationsUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@ContextConfiguration(locations = { "classpath:bootstrap-entites-spb.xml","classpath:jdomodels-test-context.xml" })
+/**
+ * A unit test for JDORevisionUtils
+ * 
+ *
+ */
 public class JDORevisionUtilsTest {
 	
-	@Autowired
-	private UserGroupDAO userGroupDAO;
-
 	@Test
 	public void testMakeCopyForNewVersion() throws Exception {
-		String createdById = userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId();
+		String createdById = new Long(77777).toString();
 		// Create a random blob for this revision's annotatoins
 		Random rand = new Random(565);
 		int size = rand.nextInt(100);
@@ -54,6 +48,7 @@ public class JDORevisionUtilsTest {
 		original.setLabel("0.3.9");
 		original.setModifiedBy(Long.parseLong(createdById));
 		original.setModifiedOn(3123l);
+		original.setFileHandleId(999999l);
 		// Now make a copy
 		DBORevision copy = JDORevisionUtils.makeCopyForNewVersion(original);
 		assertNotNull(copy);
@@ -68,12 +63,13 @@ public class JDORevisionUtilsTest {
 		// but it should be a copy and not the original
 		assertTrue(original.getAnnotations() != copy.getAnnotations());
 		assertTrue(Arrays.equals(original.getAnnotations(), copy.getAnnotations()));
-		
+		// the file handle should be copied.
+		assertEquals(original.getFileHandleId(), copy.getFileHandleId());
 	}
 	
 	@Test
 	public void testRoundTrip() throws IOException, DatastoreException{
-		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
+		Long createdById = new Long(77777);
 		NodeRevisionBackup dto = new NodeRevisionBackup();
 		dto.setNodeId(KeyFactory.keyToString(123L));
 		dto.setRevisionNumber(new Long(3));
@@ -84,6 +80,7 @@ public class JDORevisionUtilsTest {
 		dto.setNamedAnnotations(new NamedAnnotations());
 		dto.getNamedAnnotations().put("someRandomName-space", RandomAnnotationsUtil.generateRandom(123, 4));
 		dto.setReferences(new HashMap<String, Set<Reference>>());
+		dto.setDataFileHandleId("123");
 		// Now create the JDO object
 		DBORevision jdo = new DBORevision();
 		DBONode owner = new DBONode();

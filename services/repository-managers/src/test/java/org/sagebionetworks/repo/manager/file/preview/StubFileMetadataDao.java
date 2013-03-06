@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectType;
+import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -22,6 +26,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public class StubFileMetadataDao implements FileHandleDao {
 
 	Map<String, FileHandle> map = new HashMap<String, FileHandle>();
+	Map<String, FileHandleBackup> backupMap = new HashMap<String, FileHandleBackup>();
 
 	@Override
 	public <T extends FileHandle> T createFile(T metadata) {
@@ -76,6 +81,37 @@ public class StubFileMetadataDao implements FileHandleDao {
 	public FileHandleResults getAllFileHandles(List<String> ids,
 			boolean includePreviews) {
 		throw new UnsupportedOperationException("Not supported");
+	}
+
+	@Override
+	public long getCount() throws DatastoreException {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
+	@Override
+	public QueryResults<MigratableObjectData> getMigrationObjectData(
+			long offset, long limit, boolean includeDependencies)
+			throws DatastoreException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public MigratableObjectType getMigratableObjectType() {
+		return MigratableObjectType.FILEHANDLE;
+	}
+
+	@Override
+	public FileHandleBackup getFileHandleBackup(String idToBackup)
+			throws NotFoundException {
+		return backupMap.get(idToBackup);
+	}
+
+	@Override
+	public boolean createOrUpdateFromBackup(FileHandleBackup backup) {
+		FileHandleBackup old = backupMap.put(backup.getId().toString(), backup);
+		return old != null;
 	}
 
 }
