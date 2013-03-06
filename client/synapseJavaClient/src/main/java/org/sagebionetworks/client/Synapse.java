@@ -3544,7 +3544,7 @@ public class Synapse {
 	/**
 	 * Retrieves entities (in the trash can) deleted by the user.
 	 */
-	public PaginatedResults<TrashedEntity> viewTrash(long offset, long limit) throws SynapseException {
+	public PaginatedResults<TrashedEntity> viewTrashForUser(long offset, long limit) throws SynapseException {
 		String url = TRASHCAN_VIEW + "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
 		JSONObject jsonObj = signAndDispatchSynapseRequest(
 				repoEndpoint, url, "GET", null, defaultGETDELETEHeaders);
@@ -3561,7 +3561,7 @@ public class Synapse {
 	/**
 	 * Purges the specified entity from the trash can. After purging, the entity will be permanently deleted.
 	 */
-	public void purge(String entityId) throws SynapseException {
+	public void purgeTrashForUser(String entityId) throws SynapseException {
 		if (entityId == null || entityId.isEmpty()) {
 			throw new IllegalArgumentException("Must provide an Entity ID.");
 		}
@@ -3572,7 +3572,7 @@ public class Synapse {
 	/**
 	 * Purges the trash can for the user. All the entities in the trash will be permanently deleted.
 	 */
-	public void purge() throws SynapseException {
+	public void purgeTrashForUser() throws SynapseException {
 		signAndDispatchSynapseRequest(repoEndpoint, TRASHCAN_PURGE, "PUT", null, defaultPOSTPUTHeaders);
 	}
 	

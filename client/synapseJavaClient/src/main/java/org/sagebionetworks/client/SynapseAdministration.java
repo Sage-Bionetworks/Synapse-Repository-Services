@@ -3,7 +3,6 @@ package org.sagebionetworks.client;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
 import org.json.JSONObject;
 import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
@@ -13,7 +12,7 @@ import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
-import org.sagebionetworks.repo.model.UserProfile;
+import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
@@ -28,8 +27,6 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
  */
 public class SynapseAdministration extends Synapse {
 
-	private static final Logger log = Logger.getLogger(SynapseAdministration.class.getName());
-
 	public static final String DAEMON = ADMIN + "/daemon";
 	public static final String BACKUP = "/backup";
 	public static final String RESTORE = "/restore";
@@ -39,7 +36,9 @@ public class SynapseAdministration extends Synapse {
 	public static final String GET_ALL_BACKUP_OBJECTS = "/backupObjects";
 	public static final String INCLUDE_DEPENDENCIES_PARAM = "includeDependencies";
 	public static final String GET_ALL_BACKUP_COUNTS = "/backupObjectsCounts";
-	
+	private static final String ADMIN_TRASHCAN_VIEW = ADMIN + "/trashcan/view";
+	private static final String ADMIN_TRASHCAN_PURGE = ADMIN + "/trashcan/purge";
+
 	public SynapseAdministration() {
 		super();
 	}
@@ -138,5 +137,29 @@ public class SynapseAdministration extends Synapse {
 	public BackupRestoreStatus getDaemonStatus(String daemonId)
 			throws SynapseException, JSONObjectAdapterException {
 		return getJSONEntity(DAEMON + "/" + daemonId, BackupRestoreStatus.class);
+	}
+
+	/**
+	 * Gets everything in the trash can.
+	 */
+	public PaginatedResults<TrashedEntity> viewTrash(long offset, long limit) throws SynapseException {
+		String url = ADMIN_TRASHCAN_VIEW + "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
+		JSONObject jsonObj = signAndDispatchSynapseRequest(
+				repoEndpoint, url, "GET", null, defaultGETDELETEHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<TrashedEntity> results = new PaginatedResults<TrashedEntity>(TrashedEntity.class);
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+
+	/**
+	 * Purges everything in the trash can. All the entities in the trash will be permanently deleted.
+	 */
+	public void purgeTrash() throws SynapseException {
+		signAndDispatchSynapseRequest(repoEndpoint, ADMIN_TRASHCAN_PURGE, "PUT", null, defaultPOSTPUTHeaders);
 	}
 }
