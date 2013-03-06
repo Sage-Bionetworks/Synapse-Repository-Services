@@ -62,7 +62,7 @@ public class TrashController extends BaseController {
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_VIEW}, method = RequestMethod.GET)
-	public @ResponseBody PaginatedResults<TrashedEntity> viewTrash(
+	public @ResponseBody PaginatedResults<TrashedEntity> viewTrashForUser(
 	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Long offset,
 			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit,
@@ -72,7 +72,7 @@ public class TrashController extends BaseController {
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_PURGE_ENTITY}, method = RequestMethod.PUT)
-	public void purge(
+	public void purgeTrashForUser(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
@@ -81,9 +81,29 @@ public class TrashController extends BaseController {
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = {UrlHelpers.TRASHCAN_PURGE}, method = RequestMethod.PUT)
-	public void purge(
+	public void purgeTrashForUser(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId)
 			throws NotFoundException, DatastoreException, UnauthorizedException {
 		this.serviceProvider.getTrashService().purgeTrashForUser(userId);
+	}
+
+	// For administrators //
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = {UrlHelpers.ADMIN_TRASHCAN_VIEW}, method = RequestMethod.GET)
+	public @ResponseBody PaginatedResults<TrashedEntity> viewTrash(
+	        @RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String adminUserId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) Long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) Long limit,
+			HttpServletRequest request) throws DatastoreException, NotFoundException {
+		return serviceProvider.getTrashService().viewTrash(adminUserId, offset, limit, request);
+	}
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = {UrlHelpers.ADMIN_TRASHCAN_PURGE}, method = RequestMethod.PUT)
+	public void purge(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String adminUserId)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		this.serviceProvider.getTrashService().purgeTrash(adminUserId);
 	}
 }
