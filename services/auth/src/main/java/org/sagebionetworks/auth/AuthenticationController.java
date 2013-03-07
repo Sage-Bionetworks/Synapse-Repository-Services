@@ -189,30 +189,14 @@ public class AuthenticationController extends BaseController {
 	public static String encryptString(String s, String stackEncryptionKey) throws UnsupportedEncodingException
 	{
 		StringEncrypter se = new StringEncrypter(stackEncryptionKey);
-		return URLEncoder.encode(base64ToURLSafe(se.encrypt(s)), "UTF-8");
+		return URLEncoder.encode(se.encrypt(s), "UTF-8");
 	}
 
 	public static String decryptedString(String encryptedS, String stackEncryptionKey) throws UnsupportedEncodingException
 	{
 		StringEncrypter se = new StringEncrypter(stackEncryptionKey);
-		return se.decrypt(urlSafeToBase64(URLDecoder.decode(encryptedS, "UTF-8")));
+		return se.decrypt(URLDecoder.decode(encryptedS, "UTF-8"));
 	}	
-	
-	// base64 encoding can have +,/,= 
-	// URLs may have $-_.+!*'(),
-	// but URLEncoder encodes all but ".", "-", "*", and "_"
-	// so we change / to ( and = to ) so that these character are URL encoded
-	public static String base64ToURLSafe(String s) {
-		s = s.replace('/', '(');
-		s = s.replace('=', ')');
-		return s;
-	}
-	
-	public static String urlSafeToBase64(String s) {
-		s = s.replace('(', '/');
-		s = s.replace(')', '=');
-		return s;
-	}
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
