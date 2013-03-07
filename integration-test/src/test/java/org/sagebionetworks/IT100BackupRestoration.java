@@ -838,8 +838,9 @@ public class IT100BackupRestoration {
 		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
 		
 		// Verify restoration
-		PaginatedResults<Submission> subsPaginated = synapse.getAllSubmissions(eval.getId(), 10, 0);
+		PaginatedResults<Submission> subsPaginated = synapse.getAllSubmissions(eval.getId(), 0, 10);
 		assertEquals(1L, subsPaginated.getTotalNumberOfResults());
+		assertEquals(1, subsPaginated.getResults().size());
 		Submission submissionRestored = subsPaginated.getResults().get(0);
 		assertEquals(submission, submissionRestored);
 		SubmissionStatus submissionStatusRestored = synapse.getSubmissionStatus(submission.getId());
