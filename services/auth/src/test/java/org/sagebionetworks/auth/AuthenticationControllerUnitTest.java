@@ -24,6 +24,8 @@ public class AuthenticationControllerUnitTest {
 		String sessionToken = "zfcN5W9ZM0NknT2NvPUPBg00";
 		String encryptionKey = "20c832f5c262b9d228c721c190567ae0";
 		String encryptedSessionToken = AuthenticationController.encryptString(sessionToken, encryptionKey);
+		assertTrue(encryptedSessionToken.contains("%2F"));	//url encoded '/'
+		assertTrue(encryptedSessionToken.contains("%3D"));	//url encoded '='
 		String decryptedSessionToken = AuthenticationController.decryptedString(encryptedSessionToken, encryptionKey);
 		//verify session token was changed
 		assertTrue(!sessionToken.equals(encryptedSessionToken));
