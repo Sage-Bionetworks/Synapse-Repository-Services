@@ -25,9 +25,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 
+	private static final String SELECT_COUNT =
+			"SELECT COUNT("+ COL_TRASH_CAN_NODE_ID + ") FROM " + TABLE_TRASH_CAN;
+
 	private static final String SELECT_COUNT_FOR_USER =
 			"SELECT COUNT("+ COL_TRASH_CAN_NODE_ID + ") FROM " + TABLE_TRASH_CAN
 			+ " WHERE " + COL_TRASH_CAN_DELETED_BY + " = :" + COL_TRASH_CAN_DELETED_BY;
+
+	private static final String SELECT_TRASH =
+			"SELECT * FROM " + TABLE_TRASH_CAN
+			+ " LIMIT :" + LIMIT_PARAM_NAME + " OFFSET :" + OFFSET_PARAM_NAME;
 
 	private static final String SELECT_TRASH_FOR_USER =
 			"SELECT * FROM " + TABLE_TRASH_CAN
@@ -91,6 +98,12 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 	}
 
 	@Override
+	public int getCount() throws DatastoreException {
+		Long count = simpleJdbcTemplate.queryForLong(SELECT_COUNT);
+		return count.intValue();
+	}
+
+	@Override
 	public boolean exists(String userGroupId, String nodeId) throws DatastoreException {
 
 		if (userGroupId == null) {
@@ -141,6 +154,23 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		paramMap.addValue(LIMIT_PARAM_NAME, limit);
 		paramMap.addValue(COL_TRASH_CAN_DELETED_BY, KeyFactory.stringToKey(userGroupId));
 		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH_FOR_USER, rowMapper, paramMap);
+		return TrashedEntityUtils.convertDboToDto(trashList);
+	}
+
+	@Override
+	public List<TrashedEntity> getInRange(long offset, long limit) throws DatastoreException {
+
+		if (offset < 0) {
+			throw new IllegalArgumentException("offset " + offset + " is < 0.");
+		}
+		if (limit < 0) {
+			throw new IllegalArgumentException("limit " + limit + " is < 0.");
+		}
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue(OFFSET_PARAM_NAME, offset);
+		paramMap.addValue(LIMIT_PARAM_NAME, limit);
+		List<DBOTrashedEntity> trashList = simpleJdbcTemplate.query(SELECT_TRASH, rowMapper, paramMap);
 		return TrashedEntityUtils.convertDboToDto(trashList);
 	}
 
