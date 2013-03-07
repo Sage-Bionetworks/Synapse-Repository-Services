@@ -313,7 +313,7 @@ public class IT100BackupRestoration {
 
 		// Move entity1 to the trash can
 		synapse.moveToTrash(entity1.getId());
-		PaginatedResults<TrashedEntity> page = synapse.viewTrash(0L, Long.MAX_VALUE);
+		PaginatedResults<TrashedEntity> page = synapse.viewTrashForUser(0L, Long.MAX_VALUE);
 		assertEquals(1, page.getResults().size());
 		assertEquals(entity1.getId(), page.getResults().get(0).getEntityId());
 
@@ -336,7 +336,7 @@ public class IT100BackupRestoration {
 
 		// Move entity2 to the trash can
 		synapse.moveToTrash(entity2.getId());
-		page = synapse.viewTrash(0L, Long.MAX_VALUE);
+		page = synapse.viewTrashForUser(0L, Long.MAX_VALUE);
 		assertEquals(2, page.getResults().size());
 
 		// Now restore the trash can from this backup file
@@ -349,7 +349,7 @@ public class IT100BackupRestoration {
 		assertEquals(DaemonStatus.COMPLETED, status.getStatus());
 
 		// After restoration, the trash can should be restored to having only entity1
-		page = synapse.viewTrash(0L, Long.MAX_VALUE);
+		page = synapse.viewTrashForUser(0L, Long.MAX_VALUE);
 		assertEquals(1, page.getResults().size());
 		assertEquals(entity1.getId(), page.getResults().get(0).getEntityId());
 

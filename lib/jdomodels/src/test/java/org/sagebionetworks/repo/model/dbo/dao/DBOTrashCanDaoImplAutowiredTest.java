@@ -42,30 +42,45 @@ public class DBOTrashCanDaoImplAutowiredTest {
 
 		clear();
 
-		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
+		List<TrashedEntity> trashList = trashCanDao.getInRange(0L, Long.MAX_VALUE);
 		assertTrue(trashList.size() == 0);
 	}
 
 	@After
 	public void after() throws Exception {
 		clear();
-		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, Long.MAX_VALUE);
+		List<TrashedEntity> trashList = trashCanDao.getInRange(0L, Long.MAX_VALUE);
 		assertTrue(trashList.size() == 0);
 	}
 
 	@Test
 	public void testRoundTrip() throws DatastoreException, NotFoundException {
 
+		int count = trashCanDao.getCount();
+		assertEquals(0, count);
+		count = trashCanDao.getCount(userId);
+		assertEquals(0, count);
+		List<TrashedEntity> trashList = trashCanDao.getInRange(0L, 100L);
+		assertNotNull(trashList);
+		assertEquals(0, trashList.size());
+		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
+		assertNotNull(trashList);
+		assertEquals(0, trashList.size());
+
 		final String nodeName = "DBOTrashCanDaoImplAutowiredTest.testRoundTrip()";
 		final String nodeId1 = KeyFactory.keyToString(555L);
 		final String parentId1 = KeyFactory.keyToString(5L);
-		List<TrashedEntity> trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
-		assertNotNull(trashList);
-		assertEquals(0, trashList.size());
 		TrashedEntity trash = trashCanDao.getTrashedEntity(userId, nodeId1);
 		assertNull(trash);
 
 		trashCanDao.create(userId, nodeId1, nodeName, parentId1);
+		count = trashCanDao.getCount();
+		assertEquals(1, count);
+		count = trashCanDao.getCount(userId);
+		assertEquals(1, count);
+		trashList = trashCanDao.getInRange(0L, 100L);
+		assertNotNull(trashList);
+		assertEquals(1, trashList.size());
 		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
@@ -83,7 +98,7 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(parentId1, trash.getOriginalParentId());
 		assertNotNull(trash.getDeletedOn());
 
-		int count = trashCanDao.getCount(userId);
+		count = trashCanDao.getCount(userId);
 		assertEquals(1, count);
 		count = trashCanDao.getCount(KeyFactory.keyToString(837948837783838309L)); //a random, non-existing user
 		assertEquals(0, count);
@@ -101,12 +116,20 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(2, trashList.size());
+		trashList = trashCanDao.getInRange(0L, 100L);
+		assertNotNull(trashList);
+		assertEquals(2, trashList.size());
 		count = trashCanDao.getCount(userId);
+		assertEquals(2, count);
+		count = trashCanDao.getCount();
 		assertEquals(2, count);
 		exists = trashCanDao.exists(userId, nodeId2);
 		assertTrue(exists);
 
 		trashCanDao.delete(userId, nodeId1);
+		trashList = trashCanDao.getInRange(0L, 100L);
+		assertNotNull(trashList);
+		assertEquals(1, trashList.size());
 		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(1, trashList.size());
@@ -124,6 +147,8 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertEquals(userId, trash.getDeletedByPrincipalId());
 		assertEquals(parentId2, trash.getOriginalParentId());
 		assertNotNull(trash.getDeletedOn());
+		count = trashCanDao.getCount();
+		assertEquals(1, count);
 		count = trashCanDao.getCount(userId);
 		assertEquals(1, count);
 		exists = trashCanDao.exists(userId, nodeId2);
@@ -132,9 +157,14 @@ public class DBOTrashCanDaoImplAutowiredTest {
 		assertFalse(exists);
 
 		trashCanDao.delete(userId, nodeId2);
+		trashList = trashCanDao.getInRange(0L, 100L);
+		assertNotNull(trashList);
+		assertEquals(0, trashList.size());
 		trashList = trashCanDao.getInRangeForUser(userId, 0L, 100L);
 		assertNotNull(trashList);
 		assertEquals(0, trashList.size());
+		count = trashCanDao.getCount();
+		assertEquals(0, count);
 		count = trashCanDao.getCount(userId);
 		assertEquals(0, count);
 		exists = trashCanDao.exists(userId, nodeId1);
