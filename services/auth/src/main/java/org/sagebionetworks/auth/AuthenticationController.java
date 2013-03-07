@@ -1,10 +1,9 @@
 package org.sagebionetworks.auth;
 
-import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCEPTS_TERMS_OF_USE_ATTRIBUTE;
-
-import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.Arrays;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -28,7 +27,6 @@ import org.sagebionetworks.repo.model.ChangeUserPassword;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
-import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.securitytools.HMACUtils;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
@@ -176,29 +174,45 @@ public class AuthenticationController extends BaseController {
 		if (!isITU) {
 			//encrypt user session
 			Session session = CrowdAuthUtil.authenticate(user, false);
-			sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW, REGISTRATION_TOKEN_PREFIX+encryptString(session.getSessionToken()));
+			sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW, REGISTRATION_TOKEN_PREFIX+encryptString(session.getSessionToken(), getStackEncryptionKey()));
 		}
 	}
 	
-	private String encryptString(String s)
-	{
+	private String getStackEncryptionKey() {
 		String stackEncryptionKey = StackConfiguration.getEncryptionKey();
 		if (stackEncryptionKey == null || stackEncryptionKey.length() == 0)
 			throw new RuntimeException(
 					"Expected system property org.sagebionetworks.stackEncryptionKey");
+		return stackEncryptionKey;
+	}
+	
+	public static String encryptString(String s, String stackEncryptionKey) throws UnsupportedEncodingException
+	{
 		StringEncrypter se = new StringEncrypter(stackEncryptionKey);
-		return se.encrypt(s);
+		return URLEncoder.encode(base64ToURLSafe(se.encrypt(s)), "UTF-8");
 	}
 
-	private String decryptedString(String encryptedS)
+	public static String decryptedString(String encryptedS, String stackEncryptionKey) throws UnsupportedEncodingException
 	{
-		String stackEncryptionKey = StackConfiguration.getEncryptionKey();
-		if (stackEncryptionKey == null || stackEncryptionKey.length() == 0)
-			throw new RuntimeException(
-					"Expected system property org.sagebionetworks.stackEncryptionKey");
 		StringEncrypter se = new StringEncrypter(stackEncryptionKey);
-		return se.decrypt(encryptedS);
+		return se.decrypt(urlSafeToBase64(URLDecoder.decode(encryptedS, "UTF-8")));
 	}	
+	
+	// base64 encoding can have +,/,= 
+	// URLs may have $-_.+!*'(),
+	// but URLEncoder encodes all but ".", "-", "*", and "_"
+	// so we change / to ( and = to ) so that these character are URL encoded
+	public static String base64ToURLSafe(String s) {
+		s = s.replace('/', '(');
+		s = s.replace('=', ')');
+		return s;
+	}
+	
+	public static String urlSafeToBase64(String s) {
+		s = s.replace('(', '/');
+		s = s.replace(')', '=');
+		return s;
+	}
 
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
@@ -298,7 +312,7 @@ public class AuthenticationController extends BaseController {
 		if (registrationToken==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Missing registration token.", null);
 		
-		String sessionToken  = decryptedString(registrationToken.substring(REGISTRATION_TOKEN_PREFIX.length()));
+		String sessionToken  = decryptedString(registrationToken.substring(REGISTRATION_TOKEN_PREFIX.length()), getStackEncryptionKey());
 		String realUserId = CrowdAuthUtil.revalidate(sessionToken);
 		if (realUserId==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
