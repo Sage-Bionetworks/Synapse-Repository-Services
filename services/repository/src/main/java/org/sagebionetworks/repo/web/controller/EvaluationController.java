@@ -285,7 +285,7 @@ public class EvaluationController extends BaseController {
 		if (statusString.length() > 0) {
 			status = SubmissionStatusEnum.valueOf(statusString.toUpperCase().trim());
 		}		
-		return serviceProvider.getEvaluationService().getAllSubmissions(userId, evalId, status, offset, limit, request);
+		return serviceProvider.getEvaluationService().getAllSubmissions(userId, evalId, status, limit, offset, request);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -304,7 +304,7 @@ public class EvaluationController extends BaseController {
 		if (statusString.length() > 0) {
 			status = SubmissionStatusEnum.valueOf(statusString.toUpperCase().trim());
 		}		
-		return serviceProvider.getEvaluationService().getAllSubmissionBundles(userId, evalId, status, offset, limit, request);
+		return serviceProvider.getEvaluationService().getAllSubmissionBundles(userId, evalId, status, limit, offset, request);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)

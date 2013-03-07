@@ -360,9 +360,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		subBundles = synapseOne.getAllSubmissionBundles(eval1.getId(), 0, 10);		
 		assertEquals(2, subs.getTotalNumberOfResults());
 		assertEquals(2, subBundles.getTotalNumberOfResults());
+		assertEquals(2, subs.getResults().size());
 		for (Submission s : subs.getResults()) {
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
 		}
+		assertEquals(2, subBundles.getResults().size());
 		for (SubmissionBundle bundle : subBundles.getResults()) {
 			Submission sub = bundle.getSubmission();
 			SubmissionStatus status = bundle.getSubmissionStatus();
@@ -374,9 +376,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		subBundles = synapseOne.getAllSubmissionBundlesByStatus(eval1.getId(), SubmissionStatusEnum.OPEN, 0, 10);
 		assertEquals(2, subs.getTotalNumberOfResults());
 		assertEquals(2, subBundles.getTotalNumberOfResults());
+		assertEquals(2, subs.getResults().size());
 		for (Submission s : subs.getResults()) {
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
 		}
+		assertEquals(2, subBundles.getResults().size());
 		for (SubmissionBundle bundle : subBundles.getResults()) {
 			Submission sub = bundle.getSubmission();
 			SubmissionStatus status = bundle.getSubmissionStatus();
