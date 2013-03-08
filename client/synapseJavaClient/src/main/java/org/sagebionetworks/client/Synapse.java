@@ -1413,10 +1413,7 @@ public class Synapse {
 	 */
 	public FileHandleResults createFileHandles(List<File> files) throws SynapseException{
 		if(files == null) throw new IllegalArgumentException("File list cannot be null");
-		String url = getFileEndpoint()+FILE_HANDLE;
-		// This call requires a multi-part request.
 		try {
-			HttpPost httppost = new HttpPost(url);
 			MultipartEntity reqEntity = new MultipartEntity();
 			for(File file: files){
 				// We need to determine the content type of the file
@@ -1424,26 +1421,11 @@ public class Synapse {
 				FileBody bin = new FileBody(file, contentType);
 				reqEntity.addPart("file", bin);
 			}
-			// Add the headers
-			for(String key: this.defaultPOSTPUTHeaders.keySet()){
-				String value = this.defaultPOSTPUTHeaders.get(key);
-				httppost.setHeader(key, value);
-			}
-			// Add the header that sets the content type and the boundary
-			httppost.setHeader(reqEntity.getContentType());
-			httppost.setHeader(reqEntity.getContentEncoding());
-			httppost.setEntity(reqEntity);
-			HttpResponse response = clientProvider.execute(httppost);
-			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
-			return EntityFactory.createEntityFromJSONString(responseBody, FileHandleResults.class);
-			// Get the response.
-		} catch (ClientProtocolException e) {
+			return createFileHandles(reqEntity);
+		} 
+		catch (IOException e) {
 			throw new SynapseException(e);
-		} catch (IOException e) {
-			throw new SynapseException(e);
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}		
+		}	
 	}
 	
 	/**
@@ -1456,13 +1438,20 @@ public class Synapse {
 	 */
 	public FileHandle createFileHandle(File file, String contentType) throws SynapseException{
 		if(file == null) throw new IllegalArgumentException("File cannot be null");
+		MultipartEntity reqEntity = new MultipartEntity();
+		FileBody bin = new FileBody(file, contentType);
+		reqEntity.addPart("file", bin);
+		FileHandleResults results =  createFileHandles(reqEntity);
+		if (results.getList() != null && results.getList().size() > 0)
+			return results.getList().get(0);
+		return null;
+	}
+	
+	private FileHandleResults createFileHandles(MultipartEntity reqEntity) throws SynapseException{
 		String url = getFileEndpoint()+FILE_HANDLE;
 		// This call requires a multi-part request.
 		try {
 			HttpPost httppost = new HttpPost(url);
-			MultipartEntity reqEntity = new MultipartEntity();
-			FileBody bin = new FileBody(file, contentType);
-			reqEntity.addPart("file", bin);
 			// Add the headers
 			for(String key: this.defaultPOSTPUTHeaders.keySet()){
 				String value = this.defaultPOSTPUTHeaders.get(key);
@@ -1474,10 +1463,7 @@ public class Synapse {
 			httppost.setEntity(reqEntity);
 			HttpResponse response = clientProvider.execute(httppost);
 			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
-			FileHandleResults results =  EntityFactory.createEntityFromJSONString(responseBody, FileHandleResults.class);
-			if (results.getList() != null && results.getList().size() > 0)
-				return results.getList().get(0);
-			return null;
+			return EntityFactory.createEntityFromJSONString(responseBody, FileHandleResults.class);
 			// Get the response.
 		} catch (ClientProtocolException e) {
 			throw new SynapseException(e);

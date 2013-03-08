@@ -170,12 +170,6 @@ public class IT049FileHandleTest {
 		}catch(SynapseException e){
 			// expected.
 		}
-		try{
-			synapse.getRawFileHandle(handle.getPreviewId());
-			fail("The handle should be deleted.");
-		}catch(SynapseException e){
-			// expected.
-		}
 	}
 	
 	
