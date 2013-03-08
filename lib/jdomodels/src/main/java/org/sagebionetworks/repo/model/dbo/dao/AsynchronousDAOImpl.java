@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -8,12 +9,18 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.AsynchronousDAO;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.NamedAnnotations;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.StorageLocations;
+import org.sagebionetworks.repo.model.attachment.AttachmentData;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.WikiPageDao;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.model.storage.StorageUsage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +43,11 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	private DBOAnnotationsDao dboAnnotationsDao;
 	@Autowired
 	private StorageLocationDAO storageLocationDao;
+	@Autowired
+	FileHandleDao fileMetadataDao;
+	@Autowired
+	WikiPageDao wikiPageDao;
+	
 	
 	/**
 	 * This constructor is used by unit tests.
@@ -118,5 +130,30 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 		} catch (JSONObjectAdapterException e) {
 			throw new DatastoreException(e);
 		}
+	}
+	
+	/**
+	 * Create a wikipage for an old node type.
+	 * @param id
+	 * @param sl
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	private void mirrorOldData(String id) throws DatastoreException, NotFoundException{
+		Node node = nodeDao.getNode(id);
+		List<StorageUsage> storage = storageLocationDao.getUsageInRangeForNode(id, 0, Long.MAX_VALUE);
+		// Create a file handle for each attachment
+		if(storage != null){
+			for(StorageUsage su: storage){
+				S3FileHandle handle = StorageLocationUtils.createFileHandle(su);
+				// Does this handle already exist?
+				List<String> handleIds = fileMetadataDao.findFileHandleWithKeyAndMD5(handle.getKey(), handle.getContentMd5());
+				if(handleIds.size() < 1){
+					// We need to create the handle.
+					handle = fileMetadataDao.createFile(handle);
+				}
+			}
+		}
+
 	}
 }
