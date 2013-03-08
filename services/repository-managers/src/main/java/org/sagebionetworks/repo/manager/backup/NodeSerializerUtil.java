@@ -24,8 +24,6 @@ import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.backup.WikiPageAttachmentBackup;
 import org.sagebionetworks.repo.model.backup.WikiPageBackup;
-import org.sagebionetworks.repo.model.provenance.Activity;
-import org.sagebionetworks.repo.model.provenance.UsedEntity;
 import org.sagebionetworks.repo.model.provenance.Used;
 import org.sagebionetworks.repo.model.provenance.UsedEntity;
 import org.sagebionetworks.repo.model.provenance.UsedURL;
