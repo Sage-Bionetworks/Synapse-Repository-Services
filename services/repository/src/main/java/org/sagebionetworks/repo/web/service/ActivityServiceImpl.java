@@ -8,7 +8,6 @@ import java.util.Map;
 import org.sagebionetworks.repo.manager.ActivityManager;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -17,6 +16,7 @@ import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.provenance.Used;
 import org.sagebionetworks.repo.model.provenance.UsedEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -95,13 +95,16 @@ public class ActivityServiceImpl implements ActivityService {
 		Map<String,List<UsedEntity>> entityIdToUsedEntity = new HashMap<String, List<UsedEntity>>();
 		List<String> lookupCurrentVersion = new ArrayList<String>();
 		if(activity.getUsed() != null) {
-			for(UsedEntity ue : activity.getUsed()) {
-				Reference ref = ue.getReference();
-				if(ref != null && ref.getTargetId() != null && ref.getTargetVersionNumber() == null) {
-					lookupCurrentVersion.add(ref.getTargetId());
-					if(!entityIdToUsedEntity.containsKey(ref.getTargetId())) 
-						entityIdToUsedEntity.put(ref.getTargetId(), new ArrayList<UsedEntity>());
-					entityIdToUsedEntity.get(ref.getTargetId()).add(ue);
+			for(Used used : activity.getUsed()) {
+				if(used instanceof UsedEntity) {
+					UsedEntity ue = (UsedEntity)used;
+					Reference ref = ue.getReference();
+					if(ref != null && ref.getTargetId() != null && ref.getTargetVersionNumber() == null) {
+						lookupCurrentVersion.add(ref.getTargetId());
+						if(!entityIdToUsedEntity.containsKey(ref.getTargetId())) 
+							entityIdToUsedEntity.put(ref.getTargetId(), new ArrayList<UsedEntity>());
+						entityIdToUsedEntity.get(ref.getTargetId()).add(ue);
+					}
 				}
 			}
 		}

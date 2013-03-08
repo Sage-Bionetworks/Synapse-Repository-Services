@@ -28,7 +28,9 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.provenance.Used;
 import org.sagebionetworks.repo.model.provenance.UsedEntity;
+import org.sagebionetworks.repo.model.provenance.UsedURL;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.AdapterFactory;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -306,8 +308,11 @@ public class ActivityManagerImplTest {
 		ref.setTargetVersionNumber((long)1);
 		usedEnt.setReference(ref);
 		usedEnt.setWasExecuted(true);
-		Set<UsedEntity> used = new HashSet<UsedEntity>();
+		Set<Used> used = new HashSet<Used>();
 		used.add(usedEnt);
+		UsedURL ux = new UsedURL();
+		ux.setUrl("http://url.com");
+		used.add(ux);
 		act.setUsed(used);
 		return act;
 	}

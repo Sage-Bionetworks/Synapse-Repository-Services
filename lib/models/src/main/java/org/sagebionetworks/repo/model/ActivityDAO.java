@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model;
 
-import java.util.List;
-
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -16,6 +14,16 @@ public interface ActivityDAO extends MigratableDAO {
 	 * @throws InvalidModelException
 	 */
 	public String create(Activity dto) throws DatastoreException, InvalidModelException;
+
+	/**
+	 * Create an Activity from Back (for migration only)
+	 * @param dto
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 */
+	public String createFromBackup(Activity dto) throws DatastoreException, InvalidModelException;
+
 
 	/**
 	 * Updates the object.

@@ -17,13 +17,11 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.ids.ETagGenerator;
 import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MigratableObjectData;
-import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -34,7 +32,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.provenance.Used;
 import org.sagebionetworks.repo.model.provenance.UsedEntity;
+import org.sagebionetworks.repo.model.provenance.UsedURL;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -333,21 +333,25 @@ public class DBOActivityDAOImplAutowiredTest {
 		verifyResultSize(offset, limit, expectedSize, numActs);
 	}
 
-	private void generateActivities(int numActs) {
-		// add 3 entities
-		for(int i=0; i<numActs; i++) {
-			Activity act = newTestActivity(idGenerator.generateNewId().toString());
-			activityDao.create(act);
-			toDelete.add(act.getId());			
-		}
+	
+	
+	@Test
+	public void testCreateFromBackup() throws Exception {
+		long initialCount = activityDao.getCount();
+		Activity toCreate = newTestActivity(idGenerator.generateNewId().toString());
+		String startEtag = "real";
+		toCreate.setEtag(startEtag);
+		String id = activityDao.createFromBackup(toCreate);				
+		assertEquals(1+initialCount, activityDao.getCount()); 
+		toDelete.add(id);
+		assertNotNull(id);
+		
+		// This activity should exist & make sure we can fetch it		
+		Activity loaded = activityDao.get(id);
+		assertEquals(id, loaded.getId().toString());
+		assertEquals(startEtag, loaded.getEtag());				
 	}
 
-	private void verifyResultSize(long offset, long limit, int expectedSize, int totalResults) {
-		QueryResults<MigratableObjectData> results = activityDao.getMigrationObjectData(offset, limit, false);
-		List<MigratableObjectData> ods = results.getResults();
-		assertEquals(expectedSize, ods.size());
-		assertEquals(totalResults, results.getTotalNumberOfResults());
-	}	
 	
 	/*
 	 * Private Methods
@@ -367,10 +371,29 @@ public class DBOActivityDAOImplAutowiredTest {
 		ref.setTargetVersionNumber((long)1);
 		usedEnt.setReference(ref);
 		usedEnt.setWasExecuted(true);
-		Set<UsedEntity> used = new HashSet<UsedEntity>();
+		Set<Used> used = new HashSet<Used>();
 		used.add(usedEnt);
+		UsedURL ux = new UsedURL();
+		ux.setUrl("http://url.com");
+		used.add(ux);
 		act.setUsed(used);
 		return act;
 	}
+
+	private void generateActivities(int numActs) {
+		// add 3 entities
+		for(int i=0; i<numActs; i++) {
+			Activity act = newTestActivity(idGenerator.generateNewId().toString());
+			activityDao.create(act);
+			toDelete.add(act.getId());			
+		}
+	}
+
+	private void verifyResultSize(long offset, long limit, int expectedSize, int totalResults) {
+		QueryResults<MigratableObjectData> results = activityDao.getMigrationObjectData(offset, limit, false);
+		List<MigratableObjectData> ods = results.getResults();
+		assertEquals(expectedSize, ods.size());
+		assertEquals(totalResults, results.getTotalNumberOfResults());
+	}	
 
 }
