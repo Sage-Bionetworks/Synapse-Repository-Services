@@ -1,20 +1,27 @@
 package org.sagebionetworks.repo.manager.file.preview;
 
+
+import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Proxy;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -64,7 +71,13 @@ public class PreviewManagerImplTest {
 		when(mockUploadFile.length()).thenReturn(resultPreviewSize);
 		List<PreviewGenerator> genList = new LinkedList<PreviewGenerator>();
 		genList.add(mockPreviewGenerator);
-		previewManager = new PreviewManagerImpl(stubFileMetadataDao, mockS3Client, mockFileProvider, genList, maxPreviewSize);
+		Map<String, String> contentType2FileExtension = new HashMap<String, String>();
+		contentType2FileExtension.put("text/csv", ".csv");	//usually populated via injection (see managers-spb.xml)
+		
+		Set<String> codeFileExtensions = new HashSet<String>();
+		codeFileExtensions.add(".r");
+		codeFileExtensions.add(".java");
+		previewManager = new PreviewManagerImpl(stubFileMetadataDao, mockS3Client, mockFileProvider, genList, maxPreviewSize, contentType2FileExtension, codeFileExtensions);
 		
 		// This is a test file metadata
 		testMetadata = new S3FileHandle();
@@ -175,5 +188,43 @@ public class PreviewManagerImplTest {
 		// Make sure the preview is in the dao
 		PreviewFileHandle fromDao = (PreviewFileHandle) stubFileMetadataDao.get(pfm.getId());
 		assertEquals(pfm, fromDao);
+	}
+	
+	@Test
+	public void testFilenameBasedOnContentType() throws Exception{
+		String testFilename = "myFile.zip";
+		String previewGeneratorOutputContentType = "text/csv";
+		String outputFilename = previewManager.getFilenameBasedOnContentType(testFilename, previewGeneratorOutputContentType);
+		assertTrue(outputFilename.endsWith(".csv"));
+		
+		testFilename = "myFile.txt";
+		previewGeneratorOutputContentType = "text/plain";
+		outputFilename = previewManager.getFilenameBasedOnContentType(testFilename, previewGeneratorOutputContentType);
+		assertTrue(outputFilename.endsWith(".txt"));
+	}
+	
+	@Test
+	public void testFindPreviewGenerator() throws Exception {
+		List<PreviewGenerator> genList = new LinkedList<PreviewGenerator>();
+		PreviewGenerator defaultGenerator = new TextPreviewGenerator();
+		PreviewGenerator imagePreviewGenerator = new ImagePreviewGenerator();
+		genList.add(imagePreviewGenerator);
+		genList.add(defaultGenerator);
+		
+		previewManager.setGeneratorList(genList);
+		//if it doesn't look like a code file, generator should be null
+		PreviewGenerator gen = previewManager.findPreviewGenerator("application/octet-stream", "myBinaryFile.exe");
+		assertNull(gen);
+		//if the content type says that it's an image file, it should pick the image preview (and not use the filename)
+		gen = previewManager.findPreviewGenerator("image/png", "myCodeFile.r");
+		assertEquals(imagePreviewGenerator, gen);
+		
+		//expected standard case
+		gen = previewManager.findPreviewGenerator("application/octet-stream", "myCodeFile.r");
+		assertEquals(defaultGenerator, gen);
+		
+		//case shouldn't matter
+		gen = previewManager.findPreviewGenerator("application/octet-stream", "myCodeFile.R");
+		assertEquals(defaultGenerator, gen);
 	}
 }

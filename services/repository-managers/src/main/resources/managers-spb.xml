@@ -67,10 +67,67 @@
 	    <property name="generatorList">
 	        <list>
 	            <bean id="imagePreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator" />
+	            <bean id="textPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator" />
+	            <bean id="zipPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ZipPreviewGenerator" />
 	        </list>
 	    </property>
 	    <!-- The maximum amount of memory to uses -->
 	   	<property name="maxPreviewMemory" ref="stackConfiguration.maxFilePreviewMemoryPoolBytes"/>
+	   	<property name="contentType2FileExtension">
+	        <map>
+	            <entry key="text/csv" value=".csv" />
+	            <entry key="text/plain" value=".txt" />
+	        </map>
+	    </property>
+	    <property name="codeFileExtensions">
+		    <set>
+			    <value>.awk</value>
+				<value>.bat</value>
+				<value>.btm</value>
+				<value>.c</value>
+				<value>.cmd</value>
+				<value>.cpp</value>
+				<value>.cxx</value>
+				<value>.def</value>
+				<value>.dlg</value>
+				<value>.dpc</value>
+				<value>.dpj</value>
+				<value>.dtd</value>
+				<value>.h</value>
+				<value>.hdl</value>
+				<value>.hpp</value>
+				<value>.hrc</value>
+				<value>.html</value>
+				<value>.hxx</value>
+				<value>.inc</value>
+				<value>.ini</value>
+				<value>.inl</value>
+				<value>.ins</value>
+				<value>.java</value>
+				<value>.js</value>
+				<value>.jsp</value>
+				<value>.l</value>
+				<value>.lgt</value>
+				<value>.ll</value>
+				<value>.par</value>
+				<value>.pl</value>
+				<value>.r</value>
+				<value>.rc</value>
+				<value>.rdb</value>
+				<value>.res</value>
+				<value>.s</value>
+				<value>.sbl</value>
+				<value>.scp</value>
+				<value>.sh</value>
+				<value>.sql</value>
+				<value>.src</value>
+				<value>.srs</value>
+				<value>.xml</value>
+				<value>.xrb</value>
+				<value>.y</value>
+				<value>.yxx</value>
+			</set>
+		</property>
 	</bean>
 	
 	<!-- The Location helper -->

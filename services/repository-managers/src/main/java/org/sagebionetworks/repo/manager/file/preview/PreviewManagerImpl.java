@@ -5,8 +5,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+
+import javax.annotation.Resource;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -44,6 +48,12 @@ public class PreviewManagerImpl implements  PreviewManager {
 	AmazonS3Client s3Client;
 	
 	@Autowired
+	Map<String, String> contentType2FileExtension;
+	
+	@Autowired
+	Set<String> codeFileExtensions;
+	
+	@Autowired
 	TempFileProvider tempFileProvider;
 	
 	ResourceTracker resourceTracker;
@@ -55,6 +65,15 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 */
 	private Long maxPreviewMemory;
 
+	// for use by Spring
+	public void setContentType2FileExtension(Map<String, String> map) {
+		this.contentType2FileExtension = map;
+	}
+	
+	//for use by Spring
+	public void setCodeFileExtensions(Set<String> codeFileExtensions) {
+		this.codeFileExtensions = codeFileExtensions;
+	}
 	/**
 	 * Default used by Spring.
 	 */
@@ -73,13 +92,15 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 */
 	public PreviewManagerImpl(FileHandleDao fileMetadataDao,
 			AmazonS3Client s3Client, TempFileProvider tempFileProvider,
-			List<PreviewGenerator> generatorList, Long maxPreviewMemory) {
+			List<PreviewGenerator> generatorList, Long maxPreviewMemory, Map<String, String> contentType2FileExtension, Set<String> codeFileExtensions) {
 		super();
 		this.fileMetadataDao = fileMetadataDao;
 		this.s3Client = s3Client;
 		this.tempFileProvider = tempFileProvider;
 		this.generatorList = generatorList;
 		this.maxPreviewMemory = maxPreviewMemory;
+		this.contentType2FileExtension = contentType2FileExtension;
+		this.codeFileExtensions = codeFileExtensions;
 		initialize();
 	}
 
@@ -110,7 +131,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 		if(metadata.getContentType() == null) throw new IllegalArgumentException("metadata.getContentType() cannot be null");
 		if(metadata.getContentSize() == null) throw new IllegalArgumentException("metadata.getContentSize() cannot be null");
 		// Try to find a generator for this type
-		final PreviewGenerator generator = findPreviewGenerator(metadata.getContentType());
+		final PreviewGenerator generator = findPreviewGenerator(metadata.getContentType(), metadata.getFileName());
 		// there is nothing to do if we do not have a generator for this type
 		if(generator == null){
 			log.info("No preview generator found for contentType:"+metadata.getContentType());
@@ -144,6 +165,17 @@ public class PreviewManagerImpl implements  PreviewManager {
 		}
 	}
 	
+	public String getFilenameBasedOnContentType(String originalFilename, String contentType) {
+		String filename = originalFilename;
+		//if this content type is mapped to a particular file extension, make sure our filename has that
+		if (contentType2FileExtension.containsKey(contentType)) {
+			String extension = contentType2FileExtension.get(contentType);
+			if (!filename.toLowerCase().endsWith(extension))
+				filename = filename+extension;
+		}
+		return filename;
+	}
+	
 	/**
 	 * This is where we actually attempt to generate the preview.  This method should only be called
 	 * within an allocate resource block.
@@ -173,7 +205,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 			pfm.setBucketName(metadata.getBucketName());
 			pfm.setContentType(contentType);
 			pfm.setCreatedBy(metadata.getCreatedBy());
-			pfm.setFileName(metadata.getFileName());
+			pfm.setFileName(getFilenameBasedOnContentType(metadata.getFileName(), contentType));
 			pfm.setKey(metadata.getCreatedBy()+"/"+UUID.randomUUID().toString());
 			pfm.setContentSize(tempUpload.length());
 			// Upload this to S3
@@ -214,10 +246,23 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * Find
 	 * @param metadta
 	 */
-	private PreviewGenerator findPreviewGenerator(String contentType) {
+	public PreviewGenerator findPreviewGenerator(String contentType, String filename) {
+		PreviewGenerator defaultGenerator = null;
 		for(PreviewGenerator gen: generatorList){
 			if(gen.supportsContentType(contentType)){
 				return gen;
+			}
+			if (gen instanceof TextPreviewGenerator)
+				defaultGenerator = gen;
+		}
+		//no generators found, is does this look like a code file?
+		if (filename != null) {
+			int lastDot = filename.lastIndexOf(".");
+			if (lastDot > -1) {
+				String extension = filename.substring(lastDot).toLowerCase();
+				if (codeFileExtensions.contains(extension)) {
+					return defaultGenerator;
+				}
 			}
 		}
 		return null;
