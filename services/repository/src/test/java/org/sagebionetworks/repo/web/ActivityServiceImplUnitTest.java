@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.web;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Matchers.anyList;
 import static org.mockito.Mockito.mock;
@@ -146,6 +147,9 @@ public class ActivityServiceImplUnitTest {
 				
 			}
 		}
+		assertNotNull(ue2);
+		assertNotNull(uUrl);
+		
 		assertTrue(n1v == ue1.getReference().getTargetVersionNumber());
 		assertTrue(n3v == ue3.getReference().getTargetVersionNumber());
 	}
