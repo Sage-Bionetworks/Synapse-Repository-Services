@@ -1,6 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_PREVIEW_ID;
@@ -282,4 +282,15 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.FILE, changeType);
 		return changeType == ChangeType.CREATE;
 	}
+
+	@Override
+	public List<String> findFileHandleWithKeyAndMD5(String key, String md5) {
+		return simpleJdbcTemplate.query("SELECT "+COL_FILES_ID+" FROM "+TABLE_FILES+" WHERE `"+COL_FILES_KEY+"` = ? AND "+COL_FILES_CONTENT_MD5+" = ?", new RowMapper<String>() {
+			@Override
+			public String mapRow(ResultSet rs, int rowNum) throws SQLException {
+				return ""+rs.getLong(COL_FILES_ID);
+			}
+		}, key, md5);
+	}
+	
 }
