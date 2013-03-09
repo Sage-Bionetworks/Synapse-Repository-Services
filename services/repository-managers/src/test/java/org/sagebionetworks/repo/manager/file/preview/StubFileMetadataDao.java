@@ -114,4 +114,10 @@ public class StubFileMetadataDao implements FileHandleDao {
 		return old != null;
 	}
 
+	@Override
+	public List<String> findFileHandleWithKeyAndMD5(String key, String md5) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

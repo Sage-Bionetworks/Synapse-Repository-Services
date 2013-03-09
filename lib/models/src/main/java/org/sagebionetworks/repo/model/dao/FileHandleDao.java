@@ -97,4 +97,12 @@ public interface FileHandleDao extends MigratableDAO {
 	 * @param backup
 	 */
 	public boolean createOrUpdateFromBackup(FileHandleBackup backup);
+	
+	/**
+	 * Find a FileHandle using the key and MD5
+	 * @param key
+	 * @param md5
+	 * @return
+	 */
+	public List<String> findFileHandleWithKeyAndMD5(String key, String md5);
 }
