@@ -8,7 +8,12 @@ import java.util.List;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.Favorite;
+import org.sagebionetworks.repo.model.FavoriteDAO;
 import org.sagebionetworks.repo.model.InvalidModelException;
+import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -41,6 +46,10 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	private S3TokenManager s3TokenManager;
 	@Autowired
 	AttachmentManager attachmentManager;
+	@Autowired
+	private FavoriteDAO favoriteDAO;
+	@Autowired 
+	private NodeDAO nodeDAO;
 	
 	public UserProfileManagerImpl() {
 	}
@@ -51,10 +60,11 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	 * @param s3TokenManager
 	 */
 	public UserProfileManagerImpl(UserProfileDAO userProfileDAO,
-			S3TokenManager s3TokenManager) {
+			S3TokenManager s3TokenManager, FavoriteDAO favoriteDAO) {
 		super();
 		this.userProfileDAO = userProfileDAO;
 		this.s3TokenManager = s3TokenManager;
+		this.favoriteDAO = favoriteDAO;
 	}
 
 	@Override
@@ -156,5 +166,27 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			String profileId, String tokenID) throws NotFoundException, DatastoreException, UnauthorizedException, InvalidModelException {
 		//anyone can see the public profile pictures
 		return s3TokenManager.getAttachmentUrl(userInfo, profileId, tokenID);
+	}
+
+	@Override
+	public Favorite addFavorite(UserInfo userInfo, String entityId)
+			throws DatastoreException, InvalidModelException {
+		Favorite favorite = new Favorite();
+		favorite.setPrincipalId(userInfo.getIndividualGroup().getId());
+		favorite.setEntityId(entityId);
+		return favoriteDAO.add(favorite);
+	}
+
+	@Override
+	public void removeFavorite(UserInfo userInfo, String entityId)
+			throws DatastoreException {
+		favoriteDAO.remove(userInfo.getIndividualGroup().getId(), entityId);
+	}
+
+	@Override
+	public PaginatedResults<EntityHeader> getFavorites(UserInfo userInfo,
+			int limit, int offset) throws DatastoreException,
+			InvalidModelException, NotFoundException {
+		return favoriteDAO.getFavoritesEntityHeader(userInfo.getIndividualGroup().getId(), limit, offset);
 	}
 }

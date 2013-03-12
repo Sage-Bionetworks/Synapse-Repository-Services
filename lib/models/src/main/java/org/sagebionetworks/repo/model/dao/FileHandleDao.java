@@ -4,6 +4,8 @@ import java.net.MalformedURLException;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.MigratableDAO;
+import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -14,7 +16,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
  * @author John
  *
  */
-public interface FileHandleDao {
+public interface FileHandleDao extends MigratableDAO {
 	
 	/**
 	 * Create S3 file metadata.
@@ -81,4 +83,26 @@ public interface FileHandleDao {
 	 * @return
 	 */
 	public String getPreviewFileHandleId(String handleId) throws NotFoundException;
+
+	/**
+	 * Get the backup representation of a FileHandle
+	 * @param idToBackup
+	 * @return
+	 * @throws NotFoundException 
+	 */
+	public FileHandleBackup getFileHandleBackup(String idToBackup) throws NotFoundException;
+	
+	/**
+	 * 
+	 * @param backup
+	 */
+	public boolean createOrUpdateFromBackup(FileHandleBackup backup);
+	
+	/**
+	 * Find a FileHandle using the key and MD5
+	 * @param key
+	 * @param md5
+	 * @return
+	 */
+	public List<String> findFileHandleWithKeyAndMD5(String key, String md5);
 }

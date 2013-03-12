@@ -9,6 +9,8 @@ import org.sagebionetworks.repo.model.message.ObjectType;
  */
 public class WikiPageKey {
 	
+	public static final String KEY_DELIMITER = "-";
+	
 	private String ownerObjectId;
 	private ObjectType ownerObjectType;
 	private String wikiPageId;
@@ -28,6 +30,20 @@ public class WikiPageKey {
 		this.ownerObjectType = ownerObjectType;
 		this.wikiPageId = wikiPageId;
 	}
+	
+	/**
+	 * Create from a delimted key string.
+	 * 
+	 * @param keyString
+	 */
+	public WikiPageKey(String keyString) {
+		if(keyString == null) throw new IllegalArgumentException("KeyString cannot be null");
+		String[] split = keyString.split(KEY_DELIMITER);
+		if(split == null || split.length != 3) throw new IllegalArgumentException("Unknown key string: "+keyString);
+		this.ownerObjectId = split[0];
+		this.ownerObjectType = ObjectType.valueOf(split[1]);
+		this.wikiPageId = split[2];
+	}
 	public String getOwnerObjectId() {
 		return ownerObjectId;
 	}
@@ -36,6 +52,14 @@ public class WikiPageKey {
 	}
 	public String getWikiPageId() {
 		return wikiPageId;
+	}
+	
+	/**
+	 * Create a delimited string that represents this key.
+	 * @return
+	 */
+	public String getKeyString(){
+		return ownerObjectId+KEY_DELIMITER+ownerObjectType.name()+KEY_DELIMITER+wikiPageId;
 	}
 
 	@Override

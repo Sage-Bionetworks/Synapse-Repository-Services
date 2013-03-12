@@ -143,6 +143,37 @@ public class IT049FileHandleTest {
 	}
 	
 	@Test
+	public void testSingleFileRoundTrip() throws SynapseException, IOException, InterruptedException{
+		assertNotNull(imageFile);
+		assertTrue(imageFile.exists());
+		String expectedMD5 = MD5ChecksumHelper.getMD5Checksum(imageFile);
+		// Create the image
+		String myContentType = "test/content-type";
+		FileHandle result = synapse.createFileHandle(imageFile, myContentType);
+		assertNotNull(result);
+		S3FileHandle handle = (S3FileHandle) result;
+		toDelete.add(handle);
+		System.out.println(handle);
+		assertEquals(myContentType, handle.getContentType());
+		assertEquals(FILE_NAME, handle.getFileName());
+		assertEquals(new Long(imageFile.length()), handle.getContentSize());
+		assertEquals(expectedMD5, handle.getContentMd5());
+		
+		//preview will not be created for our test content type
+
+		// Now delete the root file handle.
+		synapse.deleteFileHandle(handle.getId());
+		// The main handle and the preview should get deleted.
+		try{
+			synapse.getRawFileHandle(handle.getId());
+			fail("The handle should be deleted.");
+		}catch(SynapseException e){
+			// expected.
+		}
+	}
+	
+	
+	@Test
 	public void testExternalRoundTrip() throws JSONObjectAdapterException, SynapseException{
 		ExternalFileHandle efh = new ExternalFileHandle();
 		efh.setContentType("text/plain");

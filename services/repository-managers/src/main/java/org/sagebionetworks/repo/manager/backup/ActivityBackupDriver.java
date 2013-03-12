@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Date;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -13,6 +14,7 @@ import java.util.zip.ZipOutputStream;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.repo.model.ActivityBackup;
 import org.sagebionetworks.repo.model.ActivityDAO;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -21,6 +23,7 @@ import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
+@Deprecated // This needs to be replaced with GenericBackupDriverImpl and should not be copied.
 public class ActivityBackupDriver implements GenericBackupDriver {
 	
 	@Autowired
@@ -63,12 +66,11 @@ public class ActivityBackupDriver implements GenericBackupDriver {
 			for(String idToBackup: activityIdsToBackup){
 				Thread.yield();
 				progress.appendLog(idToBackup);
-				progress.setMessage(idToBackup);
-				
-				Activity activity = activityDAO.get(idToBackup);												
+				progress.setMessage(idToBackup);								
+				ActivityBackup backup = createActivityBackup(activityDAO.get(idToBackup));
 				ZipEntry entry = new ZipEntry(idToBackup+ZIP_ENTRY_SUFFIX);
 				zos.putNextEntry(entry);
-				NodeSerializerUtil.writeActivityBackup(activity, zos);
+				NodeSerializerUtil.writeActivityBackup(backup, zos);
 				progress.incrementProgress();
 				if(progress.shouldTerminate()){
 					throw new InterruptedException("Activities Backup terminated by the user.");
@@ -156,4 +158,35 @@ public class ActivityBackupDriver implements GenericBackupDriver {
 		activityDAO.delete(id);
 	}
 
+	public static ActivityBackup createActivityBackup(Activity activity) {
+		ActivityBackup backup = new ActivityBackup(
+				activity.getId(), 
+				activity.getName(), 
+				activity.getDescription(),
+				activity.getEtag(),
+				null,
+				null,
+				activity.getCreatedBy(),
+				activity.getModifiedBy(),
+				activity.getUsed());
+		
+		if(activity.getCreatedOn() != null) backup.setCreatedOn(activity.getCreatedOn().getTime());
+		if(activity.getModifiedOn() != null) backup.setModifiedOn(activity.getModifiedOn().getTime());
+		return backup;
+	}
+	
+	public static Activity createActivity(ActivityBackup backup) {
+		Activity act = new Activity();
+		act.setId(backup.getId());
+		act.setName(backup.getName());
+		act.setDescription(backup.getDescription());
+		act.setEtag(backup.getEtag());
+		if(backup.getCreatedOn() != null) act.setCreatedOn(new Date(backup.getCreatedOn()));
+		if(backup.getModifiedOn() != null) act.setModifiedOn(new Date(backup.getModifiedOn()));
+		act.setCreatedBy(backup.getCreatedBy());
+		act.setModifiedBy(backup.getModifiedBy());
+		act.setUsed(backup.getUsed());
+		return act;
+	}
+	
 }

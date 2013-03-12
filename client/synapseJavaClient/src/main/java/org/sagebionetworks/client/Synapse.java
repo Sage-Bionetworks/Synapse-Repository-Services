@@ -66,6 +66,7 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
+import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
@@ -121,9 +122,9 @@ public class Synapse {
 	protected static final Logger log = Logger.getLogger(Synapse.class.getName());
 
 	protected static final int JSON_INDENT = 2;
-	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.sagebase.org/repo/v1";
-	protected static final String DEFAULT_AUTH_ENDPOINT = "https://auth-prod.sagebase.org/auth/v1";
-	protected static final String DEFAULT_FILE_ENDPOINT = "https://file-prod.sagebase.org/file/v1";
+	protected static final String DEFAULT_REPO_ENDPOINT = "https://repo-prod.prod.sagebase.org/repo/v1";
+	protected static final String DEFAULT_AUTH_ENDPOINT = "https://auth-prod.prod.sagebase.org/auth/v1";
+	protected static final String DEFAULT_FILE_ENDPOINT = "https://file-prod.prod.sagebase.org/file/v1";
 	protected static final String SESSION_TOKEN_HEADER = "sessionToken";
 	protected static final String REQUEST_PROFILE_DATA = "profile_request";
 	protected static final String PROFILE_RESPONSE_OBJECT_HEADER = "profile_response_object";
@@ -151,6 +152,7 @@ public class Synapse {
 	protected static final String BENEFACTOR = "/benefactor"; // from org.sagebionetworks.repo.web.UrlHelpers
 	protected static final String ACTIVITY_URI_PATH = "/activity";
 	protected static final String GENERATED_PATH = "/generated";
+	protected static final String FAVORITE_URI_PATH = "/favorite";
 	
 	protected static final String WIKI_URI_TEMPLATE = "/%1$s/%2$s/wiki";
 	protected static final String WIKI_ID_URI_TEMPLATE = "/%1$s/%2$s/wiki/%3$s";
@@ -198,6 +200,7 @@ public class Synapse {
 	private static final String TRASHCAN_TRASH = "/trashcan/trash";
 	private static final String TRASHCAN_RESTORE = "/trashcan/restore";
 	private static final String TRASHCAN_VIEW = "/trashcan/view";
+	private static final String TRASHCAN_PURGE = "/trashcan/purge";
 
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
@@ -1410,10 +1413,7 @@ public class Synapse {
 	 */
 	public FileHandleResults createFileHandles(List<File> files) throws SynapseException{
 		if(files == null) throw new IllegalArgumentException("File list cannot be null");
-		String url = getFileEndpoint()+FILE_HANDLE;
-		// This call requires a multi-part request.
 		try {
-			HttpPost httppost = new HttpPost(url);
 			MultipartEntity reqEntity = new MultipartEntity();
 			for(File file: files){
 				// We need to determine the content type of the file
@@ -1421,6 +1421,37 @@ public class Synapse {
 				FileBody bin = new FileBody(file, contentType);
 				reqEntity.addPart("file", bin);
 			}
+			return createFileHandles(reqEntity);
+		} 
+		catch (IOException e) {
+			throw new SynapseException(e);
+		}	
+	}
+	
+	/**
+	 * Upload a file to Synapse
+	 * 
+	 * @param file
+	 * @return
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 */
+	public FileHandle createFileHandle(File file, String contentType) throws SynapseException{
+		if(file == null) throw new IllegalArgumentException("File cannot be null");
+		MultipartEntity reqEntity = new MultipartEntity();
+		FileBody bin = new FileBody(file, contentType);
+		reqEntity.addPart("file", bin);
+		FileHandleResults results =  createFileHandles(reqEntity);
+		if (results.getList() != null && results.getList().size() > 0)
+			return results.getList().get(0);
+		return null;
+	}
+	
+	private FileHandleResults createFileHandles(MultipartEntity reqEntity) throws SynapseException{
+		String url = getFileEndpoint()+FILE_HANDLE;
+		// This call requires a multi-part request.
+		try {
+			HttpPost httppost = new HttpPost(url);
 			// Add the headers
 			for(String key: this.defaultPOSTPUTHeaders.keySet()){
 				String value = this.defaultPOSTPUTHeaders.get(key);
@@ -2994,6 +3025,30 @@ public class Synapse {
 	}
 
 	/**
+	 * Create an activity
+	 * @param activity
+	 * @return
+	 * @throws SynapseException
+	 */
+	public Activity createActivity(Activity activity) throws SynapseException {
+		if (activity == null) throw new IllegalArgumentException("Activity can not be null");
+		String url = ACTIVITY_URI_PATH;		
+		JSONObjectAdapter toCreateAdapter = new JSONObjectAdapterImpl();
+		JSONObject obj;
+		try {
+			obj = new JSONObject(activity.writeToJSONObject(toCreateAdapter).toJSONString());
+			JSONObject jsonObj = createJSONObject(url, obj);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			return new Activity(adapter);
+		} catch (JSONException e1) {
+			throw new RuntimeException(e1);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+
+	
+	/**
 	 * Get activity by id
 	 * @param activityId
 	 * @return
@@ -3507,7 +3562,7 @@ public class Synapse {
 		if (entityId == null || entityId.isEmpty()) {
 			throw new IllegalArgumentException("Must provide an Entity ID.");
 		}
-		String url = TRASHCAN_RESTORE + "/" +entityId;
+		String url = TRASHCAN_RESTORE + "/" + entityId;
 		if (newParentId != null && !newParentId.isEmpty()) {
 			url = url + "/" + newParentId;
 		}
@@ -3517,7 +3572,7 @@ public class Synapse {
 	/**
 	 * Retrieves entities (in the trash can) deleted by the user.
 	 */
-	public PaginatedResults<TrashedEntity> viewTrash(long offset, long limit) throws SynapseException {
+	public PaginatedResults<TrashedEntity> viewTrashForUser(long offset, long limit) throws SynapseException {
 		String url = TRASHCAN_VIEW + "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
 		JSONObject jsonObj = signAndDispatchSynapseRequest(
 				repoEndpoint, url, "GET", null, defaultGETDELETEHeaders);
@@ -3529,5 +3584,74 @@ public class Synapse {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
+	}
+
+	/**
+	 * Purges the specified entity from the trash can. After purging, the entity will be permanently deleted.
+	 */
+	public void purgeTrashForUser(String entityId) throws SynapseException {
+		if (entityId == null || entityId.isEmpty()) {
+			throw new IllegalArgumentException("Must provide an Entity ID.");
+		}
+		String url = TRASHCAN_PURGE + "/" + entityId;
+		signAndDispatchSynapseRequest(repoEndpoint, url, "PUT", null, defaultPOSTPUTHeaders);
+	}
+
+	/**
+	 * Purges the trash can for the user. All the entities in the trash will be permanently deleted.
+	 */
+	public void purgeTrashForUser() throws SynapseException {
+		signAndDispatchSynapseRequest(repoEndpoint, TRASHCAN_PURGE, "PUT", null, defaultPOSTPUTHeaders);
+	}
+	
+	/**
+	 * Add the entity to this user's Favorites list
+	 * @param entityId
+	 * @return
+	 * @throws SynapseException
+	 */
+	public EntityHeader addFavorite(String entityId) throws SynapseException {
+		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
+		String url = createEntityUri(FAVORITE_URI_PATH, entityId);		
+		JSONObject jsonObj = postUri(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		try {
+			return new EntityHeader(adapter);
+		} catch (JSONObjectAdapterException e1) {
+			throw new RuntimeException(e1);
+		}
+	}
+
+	/**
+	 * Remove the entity from this user's Favorites list
+	 * @param entityId
+	 * @throws SynapseException
+	 */
+	public void removeFavorite(String entityId) throws SynapseException {
+		if (entityId == null) throw new IllegalArgumentException("Entity id cannot be null");
+		String uri = createEntityUri(FAVORITE_URI_PATH, entityId);		
+		deleteUri(uri);
+	}
+	
+	/**
+	 * Retrieve this user's Favorites list
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws SynapseException
+	 */
+	public PaginatedResults<EntityHeader> getFavorites(Integer limit, Integer offset) throws SynapseException {
+		String url = FAVORITE_URI_PATH + "?" + OFFSET + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<EntityHeader> results = new PaginatedResults<EntityHeader>(EntityHeader.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+		
 	}
 }
