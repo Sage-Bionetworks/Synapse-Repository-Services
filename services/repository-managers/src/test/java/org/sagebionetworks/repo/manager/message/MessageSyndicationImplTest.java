@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.message.PublishResults;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -68,8 +69,10 @@ public class MessageSyndicationImplTest {
 		long toCreate = 15l;
 		createChangeMessages(toCreate, ObjectType.ENTITY);
 		// Now push all of these to the queue
-		long result = messageSyndication.rebroadcastChangeMessagesToQueue(queueName, ObjectType.ENTITY, 0l, Long.MAX_VALUE);
-		assertEquals(toCreate, result);
+		PublishResults results = messageSyndication.rebroadcastChangeMessagesToQueue(queueName, ObjectType.ENTITY, 0l, Long.MAX_VALUE);
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		assertEquals(toCreate, results.getList().size());
 		waitForMessageCount(toCreate);
 	}
 	

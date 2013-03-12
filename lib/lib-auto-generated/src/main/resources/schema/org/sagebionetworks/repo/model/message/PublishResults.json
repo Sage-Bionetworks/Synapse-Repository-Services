@@ -1,0 +1,11 @@
+{
+	"description": "JSON schema for FileHandleResults.",
+	"properties": {
+		"list": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.message.PublishResult"
+			}
+		}
+	}
+}

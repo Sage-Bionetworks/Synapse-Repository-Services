@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.manager.message;
 
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.message.PublishResults;
 
 /**
  * What happens when a change messages does not make it from the repository to a listener?
@@ -34,5 +35,5 @@ public interface MessageSyndication {
 	 * @param startChangeNumber - The change number to start from (inclusive).  To rebroadcast all messages set this to zero.
 	 * @return - The total number of messages sent
 	 */
-	long rebroadcastChangeMessagesToQueue(String queueName, ObjectType type, Long startChangeNumber, Long limit);
+	PublishResults rebroadcastChangeMessagesToQueue(String queueName, ObjectType type, Long startChangeNumber, Long limit);
 }
