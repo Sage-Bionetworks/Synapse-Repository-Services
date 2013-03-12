@@ -1,4 +1,0 @@
-{
-	"description": "This is the base interface that all WidgetDescriptors should implement",
-	"type": "interface"
-}

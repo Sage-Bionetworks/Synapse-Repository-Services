@@ -1413,10 +1413,7 @@ public class Synapse {
 	 */
 	public FileHandleResults createFileHandles(List<File> files) throws SynapseException{
 		if(files == null) throw new IllegalArgumentException("File list cannot be null");
-		String url = getFileEndpoint()+FILE_HANDLE;
-		// This call requires a multi-part request.
 		try {
-			HttpPost httppost = new HttpPost(url);
 			MultipartEntity reqEntity = new MultipartEntity();
 			for(File file: files){
 				// We need to determine the content type of the file
@@ -1424,6 +1421,37 @@ public class Synapse {
 				FileBody bin = new FileBody(file, contentType);
 				reqEntity.addPart("file", bin);
 			}
+			return createFileHandles(reqEntity);
+		} 
+		catch (IOException e) {
+			throw new SynapseException(e);
+		}	
+	}
+	
+	/**
+	 * Upload a file to Synapse
+	 * 
+	 * @param file
+	 * @return
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 */
+	public FileHandle createFileHandle(File file, String contentType) throws SynapseException{
+		if(file == null) throw new IllegalArgumentException("File cannot be null");
+		MultipartEntity reqEntity = new MultipartEntity();
+		FileBody bin = new FileBody(file, contentType);
+		reqEntity.addPart("file", bin);
+		FileHandleResults results =  createFileHandles(reqEntity);
+		if (results.getList() != null && results.getList().size() > 0)
+			return results.getList().get(0);
+		return null;
+	}
+	
+	private FileHandleResults createFileHandles(MultipartEntity reqEntity) throws SynapseException{
+		String url = getFileEndpoint()+FILE_HANDLE;
+		// This call requires a multi-part request.
+		try {
+			HttpPost httppost = new HttpPost(url);
 			// Add the headers
 			for(String key: this.defaultPOSTPUTHeaders.keySet()){
 				String value = this.defaultPOSTPUTHeaders.get(key);
@@ -3544,7 +3572,7 @@ public class Synapse {
 	/**
 	 * Retrieves entities (in the trash can) deleted by the user.
 	 */
-	public PaginatedResults<TrashedEntity> viewTrash(long offset, long limit) throws SynapseException {
+	public PaginatedResults<TrashedEntity> viewTrashForUser(long offset, long limit) throws SynapseException {
 		String url = TRASHCAN_VIEW + "?" + OFFSET + "=" + offset + "&" + LIMIT + "=" + limit;
 		JSONObject jsonObj = signAndDispatchSynapseRequest(
 				repoEndpoint, url, "GET", null, defaultGETDELETEHeaders);
@@ -3561,7 +3589,7 @@ public class Synapse {
 	/**
 	 * Purges the specified entity from the trash can. After purging, the entity will be permanently deleted.
 	 */
-	public void purge(String entityId) throws SynapseException {
+	public void purgeTrashForUser(String entityId) throws SynapseException {
 		if (entityId == null || entityId.isEmpty()) {
 			throw new IllegalArgumentException("Must provide an Entity ID.");
 		}
@@ -3572,7 +3600,7 @@ public class Synapse {
 	/**
 	 * Purges the trash can for the user. All the entities in the trash will be permanently deleted.
 	 */
-	public void purge() throws SynapseException {
+	public void purgeTrashForUser() throws SynapseException {
 		signAndDispatchSynapseRequest(repoEndpoint, TRASHCAN_PURGE, "PUT", null, defaultPOSTPUTHeaders);
 	}
 	
