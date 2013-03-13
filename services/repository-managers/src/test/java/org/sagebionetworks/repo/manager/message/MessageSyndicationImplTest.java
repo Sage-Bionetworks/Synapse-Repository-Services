@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.manager.message;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -12,8 +13,10 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.message.PublishResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -67,14 +70,44 @@ public class MessageSyndicationImplTest {
 		changeDAO.deleteAllChanges();
 		// Create a bunch of messages
 		long toCreate = 15l;
-		createChangeMessages(toCreate, ObjectType.ENTITY);
+		List<ChangeMessage> created = createChangeMessages(toCreate, ObjectType.ENTITY);
+		ChangeMessages allMessages = messageSyndication.listChanges(0l,  ObjectType.ENTITY,  Long.MAX_VALUE);
+		assertNotNull(allMessages);
+		assertNotNull(allMessages.getList());
+		assertEquals(toCreate, allMessages.getList().size());
 		// Now push all of these to the queue
 		PublishResults results = messageSyndication.rebroadcastChangeMessagesToQueue(queueName, ObjectType.ENTITY, 0l, Long.MAX_VALUE);
 		assertNotNull(results);
 		assertNotNull(results.getList());
 		assertEquals(toCreate, results.getList().size());
 		waitForMessageCount(toCreate);
+		
+		// Now send a single message.
+		ChangeMessage toTest = created.get(13);
+		// Now push all of these to the queue
+		results = messageSyndication.rebroadcastChangeMessagesToQueue(queueName, ObjectType.ENTITY, toTest.getChangeNumber(), 1l);
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		assertEquals(1, results.getList().size());
+		// Validate that the correct message was sent
+		PublishResult pr = results.getList().get(0);
+		assertNotNull(pr);
+		assertEquals(toTest.getChangeNumber(), pr.getChangeNumber());
+		
+		// Test a page
+		ChangeMessage start = created.get(2);
+		Long limit = 11l;
+		// Now push all of these to the queue
+		results = messageSyndication.rebroadcastChangeMessagesToQueue(queueName, ObjectType.ENTITY, start.getChangeNumber(), limit);
+		
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		assertEquals(limit.intValue(), results.getList().size());
+		// validate the results
+		assertEquals(start.getChangeNumber(), results.getList().get(0).getChangeNumber());
+		assertEquals(created.get(2+11-1).getChangeNumber(), results.getList().get(limit.intValue()-1).getChangeNumber());
 	}
+	
 	
 	@After
 	public void after(){
@@ -89,7 +122,8 @@ public class MessageSyndicationImplTest {
 	 * @param count
 	 * @param type
 	 */
-	public void createChangeMessages(long count, ObjectType type){
+	public List<ChangeMessage> createChangeMessages(long count, ObjectType type){
+		List<ChangeMessage> results = new ArrayList<ChangeMessage>();
 		for(int i=0; i<count; i++){
 			ChangeMessage message = new ChangeMessage();
 			message.setObjectType(type);
@@ -97,8 +131,9 @@ public class MessageSyndicationImplTest {
 			// Use all types
 			message.setChangeType(ChangeType.values()[i%ChangeType.values().length]);
 			message.setObjectEtag("etag"+i);
-			changeDAO.replaceChange(message);
+			results.add(changeDAO.replaceChange(message));
 		}
+		return results;
 	}
 	
 	/**

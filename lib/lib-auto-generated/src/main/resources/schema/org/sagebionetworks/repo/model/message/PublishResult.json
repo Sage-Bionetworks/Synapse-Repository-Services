@@ -9,6 +9,6 @@
 		"success": {
 			"type": "boolean",
 			"description":"True when published successfully."
-		},
+		}
 	}
 }

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.message;
 
+import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
 
@@ -36,4 +37,13 @@ public interface MessageSyndication {
 	 * @return - The total number of messages sent
 	 */
 	PublishResults rebroadcastChangeMessagesToQueue(String queueName, ObjectType type, Long startChangeNumber, Long limit);
+	
+	/**
+	 * List changes messages.
+	 * @param startChangeNumber
+	 * @param type - This is an optional filter, when set, only messages of this type will be returned.
+	 * @param limit
+	 * @return
+	 */
+	ChangeMessages listChanges(Long startChangeNumber, ObjectType type, Long limit);
 }

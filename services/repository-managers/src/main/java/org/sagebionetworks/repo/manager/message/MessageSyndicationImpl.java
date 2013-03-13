@@ -7,6 +7,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResult;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -33,6 +34,8 @@ import com.amazonaws.services.sqs.model.SendMessageBatchResultEntry;
 public class MessageSyndicationImpl implements MessageSyndication {
 	
 	static private Log log = LogFactory.getLog(RepositoryMessagePublisherImpl.class);
+	
+	public static final Long DEFAULT_LIMIT = new Long(10);
 	
 	@Autowired
 	RepositoryMessagePublisher messagePublisher;
@@ -79,15 +82,21 @@ public class MessageSyndicationImpl implements MessageSyndication {
 
 	@Override
 	public PublishResults rebroadcastChangeMessagesToQueue(String queueName, ObjectType type, Long startChangeNumber, Long limit) {
+		if(queueName == null) throw new IllegalArgumentException("queueName cannot be null");
+		if(startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
+		// If the limit is null then default to 10
+		if(limit == null){
+			limit = DEFAULT_LIMIT;
+		}
 		// Look up the URL fo the Queue
 		String queUrl = lookupQueueURL(queueName);
 		// List all change messages
 		List<PublishResult> resultList = new LinkedList<PublishResult>();
 		List<ChangeMessage> list = null;
-		long count = 0;
+		long remaining = limit;
 		long lastNumber = startChangeNumber;
 		do{
-			long localLimit = Math.min(10, limit);
+			long localLimit = Math.min(10, remaining);
 			// Query for a sub-set of the messages.
 			list = changeDAO.listChanges(lastNumber, type, localLimit);
 			log.info("Sending "+list.size()+" change messages to the queue: "+queueName);
@@ -107,15 +116,20 @@ public class MessageSyndicationImpl implements MessageSyndication {
 				SendMessageBatchResult batchResults = awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(queUrl, batch));
 				resultList.addAll(prepareResults(list, batchResults));
 			}
-			count += list.size();
-		}while(list.size() > 0 && count <= limit);
+			remaining -= list.size();
+		}while(list.size() > 0 && remaining > 0);
 		// return the count
 		PublishResults prs = new PublishResults();
 		prs.setList(resultList);
 		return prs;
 	}
 
-	
+	/**
+	 * Convert the AWS results into simple results.
+	 * @param list
+	 * @param results
+	 * @return
+	 */
 	public List<PublishResult> prepareResults(List<ChangeMessage> list, SendMessageBatchResult results){
 		// Convert the results
 		List<PublishResult> prList = new LinkedList<PublishResult>();
@@ -169,5 +183,21 @@ public class MessageSyndicationImpl implements MessageSyndication {
 		ListQueuesResult lqr = this.awsSQSClient.listQueues(new ListQueuesRequest(queueName));
 		if(lqr.getQueueUrls() == null || lqr.getQueueUrls().size() != 1) throw new IllegalArgumentException("Failed to find one and only one queue named: "+queueName);
 		return lqr.getQueueUrls().get(0);
+	}
+
+	/**
+	 * List change messages.
+	 */
+	@Override
+	public ChangeMessages listChanges(Long startChangeNumber, ObjectType type,	Long limit) {
+		if(startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
+		// If the limit is null then default to 10
+		if(limit == null){
+			limit = DEFAULT_LIMIT;
+		}
+		List<ChangeMessage> list = changeDAO.listChanges(startChangeNumber, type, limit);
+		ChangeMessages results = new ChangeMessages();
+		results.setList(list);
+		return results;
 	}
 }

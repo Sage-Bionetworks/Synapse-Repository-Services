@@ -475,6 +475,16 @@ public class UrlHelpers {
 	public static final String STACK_STATUS					= ADMIN+"/synapse/status";
 	
 	/**
+	 * List change messages.
+	 */
+	public static final String CHANGE_MESSAGES			= ADMIN+"/messages";
+	
+	/**
+	 * Rebroadcast changes messages to a Queue
+	 */
+	public static final String REBROADCAST_MESSAGES 		= CHANGE_MESSAGES+"/rebroadcast";
+	
+	/**
 	 * Mapping of dependent property classes to their URL suffixes
 	 */
 	private static final Map<Class, String> PROPERTY2URLSUFFIX;

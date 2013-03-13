@@ -1,5 +1,5 @@
 {
-	"description": "JSON schema for FileHandleResults.",
+	"description": "JSON schema for list of PublishResult.",
 	"properties": {
 		"list": {
 			"type": "array",
