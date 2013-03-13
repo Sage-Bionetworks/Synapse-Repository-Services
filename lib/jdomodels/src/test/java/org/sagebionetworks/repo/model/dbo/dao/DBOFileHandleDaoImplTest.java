@@ -6,13 +6,17 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.junit.After;
 import org.junit.Before;
@@ -35,6 +39,8 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+
+import com.amazonaws.util.BinaryUtils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -546,6 +552,25 @@ public class DBOFileHandleDaoImplTest {
 		
 	}
 	
+	
+	@Test
+	public void testFindFileHandleWithKeyAndMD5(){
+		S3FileHandle handle = createS3FileHandle();
+		// Use a random UUID for the key
+		handle.setKey(UUID.randomUUID().toString());
+		// Calculate an MD5 from the key.
+		String md5 = calculateMD5(handle.getKey());
+		handle.setContentMd5(md5);
+		// Create the handle
+		handle = fileHandleDao.createFile(handle);
+		System.out.println(handle);
+		toDelete.add(handle.getId());
+		// Make sure we can find it
+		List<String> list = fileHandleDao.findFileHandleWithKeyAndMD5(handle.getKey(), handle.getContentMd5());
+		assertNotNull(list);
+		assertEquals(1, list.size());
+		assertEquals(handle.getId(), list.get(0));
+	}
 	/**
 	 * Helper to create a S3FileHandle
 	 * 
@@ -577,5 +602,23 @@ public class DBOFileHandleDaoImplTest {
 		meta.setCreatedBy(creatorUserGroupId);
 		meta.setFileName("preview.jpg");
 		return meta;
+	}
+	
+	/**
+	 * Calcualte the MD5 digest of a given string.
+	 * @param tocalculate
+	 * @return
+	 */
+	public String calculateMD5(String tocalculate){
+		try {
+			MessageDigest digetst = MessageDigest.getInstance("MD5");
+			byte[] bytes = digetst.digest(tocalculate.getBytes("UTF-8"));
+			return  BinaryUtils.toHex(bytes);	
+		} catch (NoSuchAlgorithmException e) {
+			throw new RuntimeException(e);
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e);
+		}
+
 	}
 }
