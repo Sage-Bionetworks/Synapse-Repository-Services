@@ -746,4 +746,12 @@ public class StackConfiguration {
 		// Get the max
 		return (long) (Runtime.getRuntime().maxMemory() * previewPercent);
 	}
+	
+	/**
+	 * Should messages be published to the AWS topic?
+	 * @return
+	 */
+	public boolean getShouldMessagesBePublishedToTopic(){
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.repo.manage.shouldMessagesBePublishedToTopic"));
+	}
 }

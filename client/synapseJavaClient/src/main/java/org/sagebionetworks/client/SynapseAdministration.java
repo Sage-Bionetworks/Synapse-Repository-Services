@@ -16,6 +16,9 @@ import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -38,7 +41,9 @@ public class SynapseAdministration extends Synapse {
 	public static final String GET_ALL_BACKUP_COUNTS = "/backupObjectsCounts";
 	private static final String ADMIN_TRASHCAN_VIEW = ADMIN + "/trashcan/view";
 	private static final String ADMIN_TRASHCAN_PURGE = ADMIN + "/trashcan/purge";
-
+	private static final String ADMIN_CHANGE_MESSAGES = ADMIN + "/messages";
+	private static final String ADMIN_PUBLISH_MESSAGES = ADMIN_CHANGE_MESSAGES+"/rebroadcast";
+	
 	public SynapseAdministration() {
 		super();
 	}
@@ -161,5 +166,83 @@ public class SynapseAdministration extends Synapse {
 	 */
 	public void purgeTrash() throws SynapseException {
 		signAndDispatchSynapseRequest(repoEndpoint, ADMIN_TRASHCAN_PURGE, "PUT", null, defaultPOSTPUTHeaders);
+	}
+	
+	/**
+	 * List change messages.
+	 * @param startChangeNumber - The change number to start from.
+	 * @param type - (optional) when included, only messages of this type will be listed.
+	 * @param limit - (optional) limit the number of messages to fetch.
+	 * @return
+	 * @throws JSONObjectAdapterException 
+	 * @throws SynapseException 
+	 */
+	public ChangeMessages listMessages(Long startChangeNumber, ObjectType type, Long limit) throws SynapseException, JSONObjectAdapterException{
+		// Build up the URL
+		String url = buildListMessagesURL(startChangeNumber, type, limit);
+		return getJSONEntity(url, ChangeMessages.class);
+	}
+	
+	/**
+	 * Build up the URL for the list change message call.
+	 * @param startChangeNumber
+	 * @param type
+	 * @param limit
+	 * @return
+	 */
+	static String buildListMessagesURL(Long startChangeNumber, ObjectType type, Long limit){
+		if(startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append(ADMIN_CHANGE_MESSAGES);
+		builder.append("?");
+		builder.append("startChangeNumber=").append(startChangeNumber);
+		if(type != null){
+			builder.append("&type=").append(type.name());
+		}
+		if(limit != null){
+			builder.append("&limit=").append(limit);
+		}
+		return builder.toString();
+	}
+	
+	/**
+	 * List change messages.
+	 * @param queueName - The name of the queue to publishe the messages to.
+	 * @param startChangeNumber - The change number to start from.
+	 * @param type - (optional) when included, only messages of this type will be listed.
+	 * @param limit - (optional) limit the number of messages to fetch.
+	 * @return
+	 * @throws JSONObjectAdapterException 
+	 * @throws SynapseException 
+	 */
+	public PublishResults publishChangeMessages(String queueName, Long startChangeNumber, ObjectType type, Long limit) throws SynapseException, JSONObjectAdapterException{
+		// Build up the URL
+		String url = buildPublishMessagesURL(queueName, startChangeNumber, type, limit);
+		JSONObject json = signAndDispatchSynapseRequest(repoEndpoint, url, "POST", null, defaultPOSTPUTHeaders);
+		return EntityFactory.createEntityFromJSONObject(json, PublishResults.class);
+	}
+	
+	/**
+	 * Build up the URL for publishing messages.
+	 * @param startChangeNumber
+	 * @param type
+	 * @param limit
+	 * @return
+	 */
+	static String buildPublishMessagesURL(String queueName, Long startChangeNumber, ObjectType type, Long limit){
+		if(queueName == null) throw new IllegalArgumentException("queueName cannot be null");
+		if(startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append(ADMIN_PUBLISH_MESSAGES);
+		builder.append("?");
+		builder.append("queueName=").append(queueName);
+		builder.append("&startChangeNumber=").append(startChangeNumber);
+		if(type != null){
+			builder.append("&type=").append(type.name());
+		}
+		if(limit != null){
+			builder.append("&limit=").append(limit);
+		}
+		return builder.toString();
 	}
 }
