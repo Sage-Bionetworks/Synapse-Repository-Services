@@ -20,7 +20,7 @@ public class ZipPreviewGenerator implements PreviewGenerator {
 	public static final String APPLICATION_ZIP 	= "application/zip";
 	public static final String TEXT_CSV 	= "text/csv";
 	@Override
-	public String generatePreview(InputStream from, OutputStream to) throws IOException {
+	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {
 		ZipInputStream zip = new ZipInputStream(from);
 		ZipEntry zipEntry;
 		StringBuilder sb = new StringBuilder();
@@ -42,7 +42,7 @@ public class ZipPreviewGenerator implements PreviewGenerator {
 		}
 		IOUtils.write(sb.toString(), to, "UTF-8");
 		
-		return TEXT_CSV;
+		return new PreviewOutputMetadata(TEXT_CSV, ".csv");
 	}
 
 	@Override

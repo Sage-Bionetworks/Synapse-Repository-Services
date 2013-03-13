@@ -22,14 +22,14 @@ public class TextPreviewGenerator implements PreviewGenerator {
 	public static final String TEXT_PLAIN 	= "text/plain";
 	public static final int MAX_CHARACTER_COUNT = 1500;
 	@Override
-	public String generatePreview(InputStream from, OutputStream to) throws IOException {
+	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {
 		// load the text
 		//LineIterator works great until we run into a big file with a single line of text (that's when the memory requirements could be > 8x filesize)
 		//LineIterator iterator = IOUtils.lineIterator(from, "UTF-8");
 		String output = read(from);
 		//and abbreviate
 		IOUtils.write(StringUtils.abbreviate(output, MAX_CHARACTER_COUNT), to, "UTF-8");
-		return TEXT_PLAIN;
+		return new PreviewOutputMetadata(TEXT_PLAIN, ".txt");
 	}
 	
 	public String read(InputStream from) throws IOException{

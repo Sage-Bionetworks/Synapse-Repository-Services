@@ -44,8 +44,9 @@ public class ZipPreviewTest {
 			out.close();
 			ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			InputStream from = new FileInputStream(f);
-			String type = zipPreviewGenerator.generatePreview(from, baos);
-			assertEquals(ZipPreviewGenerator.TEXT_CSV, type);
+			PreviewOutputMetadata metadata = zipPreviewGenerator.generatePreview(from, baos);
+			assertEquals(ZipPreviewGenerator.TEXT_CSV, metadata.getContentType());
+			assertEquals(".csv", metadata.getExtension());
 			String actual = baos.toString();
 			String expected = "textFile0.txt\ntextFile1.txt\ntextFile2.txt\ntextFile3.txt\ntextFile4.txt\ntextFile5.txt\ntextFile6.txt\ntextFile7.txt\ntextFile8.txt\ntextFile9.txt\n";
 			assertEquals(expected, actual);

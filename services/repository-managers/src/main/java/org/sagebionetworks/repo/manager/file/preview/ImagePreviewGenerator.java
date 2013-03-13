@@ -45,7 +45,7 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 
 
 	@Override
-	public String generatePreview(InputStream from, OutputStream to) throws IOException {
+	public PreviewOutputMetadata generatePreview(InputStream from, OutputStream to) throws IOException {
 		// First load the image
 		BufferedImage image = ImageIO.read(from);
 		if(image == null){
@@ -55,7 +55,7 @@ public class ImagePreviewGenerator implements PreviewGenerator {
 		BufferedImage thumbnail = Scalr.resize(image, StackConfiguration.getMaximumPreivewPixels());
 		ImageIO.write(thumbnail, "png", to);
 		// the resulting image is a png
-		return IMAGE_PNG;
+		return new PreviewOutputMetadata(IMAGE_PNG, ".png");
 	}
 
 	@Override

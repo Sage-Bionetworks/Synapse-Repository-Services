@@ -24,8 +24,8 @@ public class TextPreviewTest {
 	@Test
 	public void testGeneratePreview() throws IOException {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		String type = textPreviewGenerator.generatePreview(from, baos);
-		assertEquals(TextPreviewGenerator.TEXT_PLAIN, type);
+		PreviewOutputMetadata type = textPreviewGenerator.generatePreview(from, baos);
+		assertEquals(TextPreviewGenerator.TEXT_PLAIN, type.getContentType());
 		String output = baos.toString();
 		assertTrue(output.length()<testInputString.length());
 	}
