@@ -35,6 +35,18 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 	@Autowired
 	AmazonSNSClient awsSNSClient;
 	
+	private boolean shouldMessagesBePublishedToTopic;
+	
+	/**
+	 * This is injected from spring.
+	 * 
+	 * @param shouldMessagesBePublishedToTopic
+	 */
+	public void setShouldMessagesBePublishedToTopic(
+			boolean shouldMessagesBePublishedToTopic) {
+		this.shouldMessagesBePublishedToTopic = shouldMessagesBePublishedToTopic;
+	}
+
 	/**
 	 * Default.
 	 */
@@ -131,6 +143,13 @@ public class RepositoryMessagePublisherImpl implements RepositoryMessagePublishe
 		// Swap the current queue as an atomic action. Any messages that arrive while processing will get
 		// processed the next time the timer fires.
 		List<ChangeMessage> currentQueue = messageQueue.getAndSet(new LinkedList<ChangeMessage>());
+		if(!shouldMessagesBePublishedToTopic){
+			// The messages should not be broadcast
+			if(log.isDebugEnabled() && currentQueue.size() > 0){
+				log.debug("RepositoryMessagePublisherImpl.shouldBroadcast = false.  So "+currentQueue.size()+" messages will be thrown away.");
+			}
+			return;
+		}
 		// Publish each message to the topic
 		for(ChangeMessage message: currentQueue){
 			try {

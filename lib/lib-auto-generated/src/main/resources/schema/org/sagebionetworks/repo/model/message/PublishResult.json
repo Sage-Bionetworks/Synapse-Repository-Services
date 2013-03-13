@@ -1,0 +1,14 @@
+{
+	"title": "PublishResult",
+	"description": "JSON schema for a change message",
+	"properties": {
+		"changeNumber": {
+			"type": "integer",
+			"description":"The application change number created as a result of this change."
+		},
+		"success": {
+			"type": "boolean",
+			"description":"True when published successfully."
+		}
+	}
+}

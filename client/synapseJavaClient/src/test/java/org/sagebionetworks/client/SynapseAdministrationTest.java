@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Study;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 
 
@@ -62,5 +63,68 @@ public class SynapseAdministrationTest {
 		PaginatedResults<MigratableObjectCount> oc = synapse.getMigratableObjectCounts();
 		assertNotNull(oc);
 		assertEquals(p, oc);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBuildListMessagesURLNullStartNumber(){
+		SynapseAdministration.buildListMessagesURL(null, ObjectType.EVALUATION, new Long(1));
+	}
+	@Test
+	public void testBuildListMessagesURL(){
+		String expected = "/admin/messages?startChangeNumber=345&type=EVALUATION&limit=987";
+		String url = SynapseAdministration.buildListMessagesURL(new Long(345), ObjectType.EVALUATION, new Long(987));
+		assertEquals(expected, url);
+	}
+	
+	@Test
+	public void testBuildListMessagesURLNullType(){
+		String expected = "/admin/messages?startChangeNumber=345&limit=987";
+		String url = SynapseAdministration.buildListMessagesURL(new Long(345),null, new Long(987));
+		assertEquals(expected, url);
+	}
+	
+	@Test
+	public void testBuildListMessagesURLNullLimit(){
+		String expected = "/admin/messages?startChangeNumber=345&type=EVALUATION";
+		String url = SynapseAdministration.buildListMessagesURL(new Long(345), ObjectType.EVALUATION, null);
+		assertEquals(expected, url);
+	}
+	
+	@Test
+	public void testBuildListMessagesURLAllNonRequiredNull(){
+		String expected = "/admin/messages?startChangeNumber=345";
+		String url = SynapseAdministration.buildListMessagesURL(new Long(345), null, null);
+		assertEquals(expected, url);
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBuildPublishMessagesURLQueueNameNull(){
+		SynapseAdministration.buildPublishMessagesURL(null, new Long(345), ObjectType.ACTIVITY, new Long(888));
+	}
+	
+	@Test (expected=IllegalArgumentException.class)
+	public void testBuildPublishMessagesURLStartNumberNull(){
+		SynapseAdministration.buildPublishMessagesURL("some-queue", null, ObjectType.ACTIVITY, new Long(888));
+	}
+	
+	@Test
+	public void testBuildPublishMessagesURL(){
+		String expected = "/admin/messages/rebroadcast?queueName=some-queue&startChangeNumber=345&type=ACTIVITY&limit=888";
+		String url = SynapseAdministration.buildPublishMessagesURL("some-queue", new Long(345), ObjectType.ACTIVITY, new Long(888));
+		assertEquals(expected, url);
+	}
+	
+	@Test
+	public void testBuildPublishMessagesURLTypeNull(){
+		String expected = "/admin/messages/rebroadcast?queueName=some-queue&startChangeNumber=345&limit=888";
+		String url = SynapseAdministration.buildPublishMessagesURL("some-queue", new Long(345), null, new Long(888));
+		assertEquals(expected, url);
+	}
+	
+	@Test
+	public void testBuildPublishMessagesURLLimitNull(){
+		String expected = "/admin/messages/rebroadcast?queueName=some-queue&startChangeNumber=345&type=ACTIVITY";
+		String url = SynapseAdministration.buildPublishMessagesURL("some-queue", new Long(345), ObjectType.ACTIVITY, null);
+		assertEquals(expected, url);
 	}
 }

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.web.controller;
 
 import java.io.IOException;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -14,6 +15,9 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -269,5 +273,39 @@ public class AdministrationController extends BaseController {
 
 		return serviceProvider.getAdministrationService().updateStatusStackStatus(userId, header, request);
 	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.CHANGE_MESSAGES }, method = RequestMethod.GET)
+	public @ResponseBody
+	ChangeMessages listChangeMessages(String userId,
+			@RequestParam Long startChangeNumber, @RequestParam String type,
+			@RequestParam Long limit) throws DatastoreException,
+			NotFoundException {
+		// The type can be null
+		ObjectType typeEnum = null;
+		if (type != null) {
+			typeEnum = ObjectType.valueOf(type);
+		}
+		// Pass it along
+		return serviceProvider.getAdministrationService().listChangeMessages(userId, startChangeNumber, typeEnum, limit);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.REBROADCAST_MESSAGES }, method = RequestMethod.POST)
+	public @ResponseBody
+	PublishResults rebroadcastChangeMessagesToQueue(String userId,
+			@RequestParam String queueName,
+			@RequestParam Long startChangeNumber, @RequestParam String type,
+			@RequestParam Long limit) throws DatastoreException,
+			NotFoundException {
+		// The type can be null
+		ObjectType typeEnum = null;
+		if (type != null) {
+			typeEnum = ObjectType.valueOf(type);
+		}
+		// Pass it along
+		return serviceProvider.getAdministrationService().rebroadcastChangeMessagesToQueue(userId, queueName, startChangeNumber, typeEnum, limit);
+	}
+
 
 }
