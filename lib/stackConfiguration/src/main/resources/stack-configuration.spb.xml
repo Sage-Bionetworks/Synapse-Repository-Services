@@ -51,4 +51,7 @@
 	<bean id="stackConfiguration.maxFileTransferMemoryPoolBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.maxFilePreviewMemoryPoolBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
 	<bean id="stackConfiguration.fileTransferBufferSizeBytes" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
+	<bean id="stackConfiguration.shouldMessagesBePublishedToTopic" class="org.springframework.beans.factory.config.PropertyPathFactoryBean" />
+	
 </beans>
