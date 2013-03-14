@@ -35,6 +35,7 @@
 		<constructor-arg type="java.lang.String">
 			<ref bean="stackConfiguration.repositoryChangeTopicName" />
 		</constructor-arg>
+		<property name="shouldMessagesBePublishedToTopic" ref="stackConfiguration.shouldMessagesBePublishedToTopic"></property>
 	</bean>
 	
 	<!-- This is how messages get rebroadcast -->
