@@ -7,7 +7,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.model.dbo.dao.DBOChangeDAO;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.message.PublishResult;
+import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +23,7 @@ import com.amazonaws.services.sqs.model.ListQueuesResult;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequest;
 import com.amazonaws.services.sqs.model.SendMessageBatchRequestEntry;
 import com.amazonaws.services.sqs.model.SendMessageBatchResult;
+import com.amazonaws.services.sqs.model.SendMessageBatchResultEntry;
 
 /**
  * Basic implementation of the message syndication.
@@ -30,6 +34,8 @@ import com.amazonaws.services.sqs.model.SendMessageBatchResult;
 public class MessageSyndicationImpl implements MessageSyndication {
 	
 	static private Log log = LogFactory.getLog(RepositoryMessagePublisherImpl.class);
+	
+	public static final Long DEFAULT_LIMIT = new Long(10);
 	
 	@Autowired
 	RepositoryMessagePublisher messagePublisher;
@@ -75,15 +81,23 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	}
 
 	@Override
-	public long rebroadcastChangeMessagesToQueue(String queueName, ObjectType type, Long startChangeNumber, Long limit) {
+	public PublishResults rebroadcastChangeMessagesToQueue(String queueName, ObjectType type, Long startChangeNumber, Long limit) {
+		if(queueName == null) throw new IllegalArgumentException("queueName cannot be null");
+		if(startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
+		// If the limit is null then default to 10
+		if(limit == null){
+			limit = DEFAULT_LIMIT;
+		}
 		// Look up the URL fo the Queue
 		String queUrl = lookupQueueURL(queueName);
 		// List all change messages
+		List<PublishResult> resultList = new LinkedList<PublishResult>();
 		List<ChangeMessage> list = null;
-		long count = 0;
+		long remaining = limit;
 		long lastNumber = startChangeNumber;
 		do{
-			long localLimit = Math.min(10, limit);
+			long localLimit = Math.min(10, remaining);
+			// Query for a sub-set of the messages.
 			list = changeDAO.listChanges(lastNumber, type, localLimit);
 			log.info("Sending "+list.size()+" change messages to the queue: "+queueName);
 			if(list.size() > 0){
@@ -99,49 +113,49 @@ public class MessageSyndicationImpl implements MessageSyndication {
 					}
 				}
 				// Send this batch
-				SendMessageBatchResult results = awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(queUrl, batch));
-				// If we failed to send any messages then try again
-				List<BatchResultErrorEntry> failed = results.getFailed();
-				if(failed!= null && failed.size() > 0){
-					log.info("Failed to send "+failed.size()+" messages, these will be sent again");
-					// Prepare a new batch.
-					batch = prepareFailedBatch(list, failed);
-					// Send the second results
-					results = awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(queUrl, batch));
-					if(failed!= null && failed.size() > 0){
-						log.error("Failed to send "+failed.size()+" messages after a second try.  The failed messages will not be sent again");
-						for(BatchResultErrorEntry error: failed){
-							int index = Integer.parseInt(error.getId());
-							ChangeMessage change = list.get(index);
-							log.error("Failed to send change message: "+change.getChangeNumber()+" after two attempts.");
-						}
-					}
-				}
+				SendMessageBatchResult batchResults = awsSQSClient.sendMessageBatch(new SendMessageBatchRequest(queUrl, batch));
+				resultList.addAll(prepareResults(list, batchResults));
 			}
-			count += list.size();
-		}while(list.size() > 0 && count <= limit);
+			remaining -= list.size();
+		}while(list.size() > 0 && remaining > 0);
 		// return the count
-		return count;
+		PublishResults prs = new PublishResults();
+		prs.setList(resultList);
+		return prs;
 	}
 
 	/**
-	 * Prepare a batch of failed messages to be resent.
+	 * Convert the AWS results into simple results.
 	 * @param list
-	 * @param failed
+	 * @param results
 	 * @return
 	 */
-	private List<SendMessageBatchRequestEntry> prepareFailedBatch(List<ChangeMessage> list, List<BatchResultErrorEntry> failed) {
-		List<SendMessageBatchRequestEntry> batch;
-		batch = new LinkedList<SendMessageBatchRequestEntry>();
-		for(BatchResultErrorEntry error: failed){
-			int index = Integer.parseInt(error.getId());
-			ChangeMessage change = list.get(index);
-			SendMessageBatchRequestEntry entry = createEntry(change, index);
-			if(entry != null){
-				batch.add(entry);
+	public List<PublishResult> prepareResults(List<ChangeMessage> list, SendMessageBatchResult results){
+		// Convert the results
+		List<PublishResult> prList = new LinkedList<PublishResult>();
+		// record success
+		if(results.getSuccessful() != null){
+			for(SendMessageBatchResultEntry smbre: results.getSuccessful()){
+				PublishResult pr = new PublishResult();
+				int index = Integer.parseInt(smbre.getId());
+				ChangeMessage cm = list.get(index);
+				pr.setChangeNumber(cm.getChangeNumber());
+				pr.setSuccess(true);
+				prList.add(pr);
 			}
 		}
-		return batch;
+		// record failures
+		if(results.getFailed() != null){
+			for(BatchResultErrorEntry bree: results.getFailed()){
+				PublishResult pr = new PublishResult();
+				int index = Integer.parseInt(bree.getId());
+				ChangeMessage cm = list.get(index);
+				pr.setChangeNumber(cm.getChangeNumber());
+				pr.setSuccess(false);
+				prList.add(pr);
+			}
+		}
+		return prList;
 	}
 	
 	/**
@@ -169,5 +183,21 @@ public class MessageSyndicationImpl implements MessageSyndication {
 		ListQueuesResult lqr = this.awsSQSClient.listQueues(new ListQueuesRequest(queueName));
 		if(lqr.getQueueUrls() == null || lqr.getQueueUrls().size() != 1) throw new IllegalArgumentException("Failed to find one and only one queue named: "+queueName);
 		return lqr.getQueueUrls().get(0);
+	}
+
+	/**
+	 * List change messages.
+	 */
+	@Override
+	public ChangeMessages listChanges(Long startChangeNumber, ObjectType type,	Long limit) {
+		if(startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
+		// If the limit is null then default to 10
+		if(limit == null){
+			limit = DEFAULT_LIMIT;
+		}
+		List<ChangeMessage> list = changeDAO.listChanges(startChangeNumber, type, limit);
+		ChangeMessages results = new ChangeMessages();
+		results.setList(list);
+		return results;
 	}
 }

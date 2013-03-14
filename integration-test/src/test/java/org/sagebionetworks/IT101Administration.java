@@ -14,13 +14,18 @@ import org.junit.BeforeClass;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.SynapseAdministration;
+import org.sagebionetworks.client.exceptions.SynapseException;
 import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
@@ -146,6 +151,25 @@ public class IT101Administration {
 		assertNotNull(rs.getResults());
 		assertNotNull(rs.getTotalNumberOfResults());
 		assertTrue(rs.getTotalNumberOfResults()  > 9);
+	}
+	
+	@Test
+	public void testListChangeMessages() throws SynapseException, JSONObjectAdapterException{
+		ChangeMessages results = synapse.listMessages(0l, ObjectType.ENTITY, 1l);
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		assertEquals(1, results.getList().size());
+		System.out.println(results);
+	}
+	
+	@Test
+	public void testPublishMessages() throws SynapseException, JSONObjectAdapterException{
+		StackConfiguration config = new StackConfiguration();
+		PublishResults results = synapse.publishChangeMessages(config.getRdsUpdateQueueName(), 0L,  ObjectType.ENTITY, 1l);
+		assertNotNull(results);
+		assertNotNull(results.getList());
+		assertEquals(1, results.getList().size());
+		System.out.println(results);
 	}
 
 }
