@@ -56,6 +56,12 @@ public class UrlHelpers {
 	public static final String GENERATED			= "/generated";
 
 	/**
+	 * All administration URLs must start with this URL or calls will be
+	 * blocked when Synapse enters READ_ONLY or DOWN modes for maintenance.
+	 */
+	public static final String ADMIN = "/admin";
+
+	/**
 	 * URL prefix for all objects that are referenced by their ID.
 	 * 
 	 */
@@ -133,7 +139,8 @@ public class UrlHelpers {
 	public static final String ATTACHMENT_URL = "/attachmentUrl";
 	
 	public static final String MIGRATION_OBJECT_ID_PARAM = "id";
-
+	
+	
 	/**
 	 * parameter used by migration services to describe the type of migration 
 	 * to be performed
@@ -148,6 +155,7 @@ public class UrlHelpers {
 	public static final String HEALTHCHECK = PrefixConst.HEALTHCHECK;
 	public static final String VERSIONINFO = PrefixConst.VERSIONINFO;
 	public static final String ACTIVITY    = PrefixConst.ACTIVITY;
+	public static final String FAVORITE    = PrefixConst.FAVORITE;
 	
 	/**
 	 * All of the base URLs for Synapse object batch requests
@@ -183,7 +191,10 @@ public class UrlHelpers {
 	 */
 	public static final String ACTIVITY_ID = ACTIVITY+ID;
 	public static final String ACTIVITY_GENERATED = ACTIVITY_ID+GENERATED;
-	
+	/*  
+	 * Favorite URLs
+	 */
+	public static final String FAVORITE_ID = FAVORITE+ID;
 	
 	/**
 	 * Used to get an entity attachment token
@@ -316,6 +327,26 @@ public class UrlHelpers {
 	public static final String TRASHCAN_VIEW = TRASHCAN + "/view";
 
 	/**
+	 * Purges the trash can for the current user.
+	 */
+	public static final String TRASHCAN_PURGE = TRASHCAN + "/purge";
+
+	/**
+	 * Views the current trash can.
+	 */
+	public static final String TRASHCAN_PURGE_ENTITY = TRASHCAN_PURGE + ID;
+
+	/**
+	 * Views everything in the trash can.
+	 */
+	public static final String ADMIN_TRASHCAN_VIEW = ADMIN + TRASHCAN_VIEW;
+
+	/**
+	 * Purges everything in the trash can.
+	 */
+	public static final String ADMIN_TRASHCAN_PURGE = ADMIN + TRASHCAN_PURGE;
+
+	/**
 	 * URL path for query controller
 	 * 
 	 */
@@ -355,12 +386,7 @@ public class UrlHelpers {
 	 * 
 	 */
 	public static final String USER_MIRROR = "/userMirror";
-	
-	/**
-	 * All administration URLs must start with this URL or calls will be
-	 * blocked when Synapse enters READ_ONLY or DOWN modes for maintenance.
-	 */
-	public static final String ADMIN = "/admin";
+
 	/**
 	 * These are the new more RESTful backup/restore URLS.
 	 */

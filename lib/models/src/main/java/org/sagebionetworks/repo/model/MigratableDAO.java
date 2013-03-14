@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model;
 
+
 /**
  * 
  * Interface for DAOs of objects which can be migrated
@@ -26,5 +27,10 @@ public interface MigratableDAO {
 	 */
 	QueryResults<MigratableObjectData> getMigrationObjectData(long offset, long limit, boolean includeDependencies) throws DatastoreException;
 	
-	MigratableObjectType getMigratableObjectType();	
+	/**
+	 * The type of object that is being migrated.
+	 * @return
+	 */
+	MigratableObjectType getMigratableObjectType();
+
 }

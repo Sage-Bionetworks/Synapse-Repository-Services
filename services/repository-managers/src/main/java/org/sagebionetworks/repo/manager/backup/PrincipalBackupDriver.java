@@ -33,6 +33,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 
+@Deprecated // This needs to be replaced with GenericBackupDriverImpl and should not be copied.
 public class PrincipalBackupDriver implements GenericBackupDriver {
 	public static final String PRINCIPAL_XML_FILE = "principals.xml";
 	

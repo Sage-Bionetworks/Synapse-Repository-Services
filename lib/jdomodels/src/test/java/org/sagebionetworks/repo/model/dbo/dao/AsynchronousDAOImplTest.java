@@ -17,10 +17,13 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.StorageLocationDAO;
 import org.sagebionetworks.repo.model.StorageLocations;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.springframework.beans.factory.annotation.Autowired;
 /**
  * A unit test for AsynchronousDAOImpl.
  * @author John
@@ -35,6 +38,8 @@ public class AsynchronousDAOImplTest {
 	DBOReferenceDao mockReferenceDao;
 	DBOAnnotationsDao mockAnnotationsDao;
 	StorageLocationDAO mockStorageLocationDao;
+	FileHandleDao mockFileMetadataDao;
+	WikiPageDao mockWikiPageDao;
 	AsynchronousDAOImpl testDao;
 	NamedAnnotations annos;
 	StorageLocations sl;
@@ -48,6 +53,9 @@ public class AsynchronousDAOImplTest {
 		mockReferenceDao = Mockito.mock(DBOReferenceDao.class);
 		mockAnnotationsDao = Mockito.mock(DBOAnnotationsDao.class);
 		mockStorageLocationDao = Mockito.mock(StorageLocationDAO.class);
+		mockFileMetadataDao = Mockito.mock(FileHandleDao.class);
+		mockWikiPageDao = Mockito.mock(WikiPageDao.class);
+		
 		// Setup the references
 		references = new HashMap<String, Set<Reference>>();
 		Set<Reference> set = new HashSet<Reference>();
@@ -64,11 +72,13 @@ public class AsynchronousDAOImplTest {
 		annos.setCreationDate(new Date(123));
 		sl = JDOSecondaryPropertyUtils.getStorageLocations(annos, nodeId, annos.getCreatedBy());
 		forDb = JDOSecondaryPropertyUtils.prepareAnnotationsForDBReplacement(annos, nodeIdString);
+		// Only save distinct values in the DB.
+		forDb = JDOSecondaryPropertyUtils.buildDistinctAnnotations(forDb);
 		// Mock the node dao.
 		when(mockNodeDao.getNodeReferences(nodeIdString)).thenReturn(references);
 		when(mockNodeDao.getAnnotations(nodeIdString)).thenReturn(annos);
 		
-		testDao = new AsynchronousDAOImpl(mockNodeDao, mockReferenceDao, mockAnnotationsDao, mockStorageLocationDao);
+		testDao = new AsynchronousDAOImpl(mockNodeDao, mockReferenceDao, mockAnnotationsDao, mockStorageLocationDao,mockFileMetadataDao, mockWikiPageDao );
 	}
 	
 	@Test (expected=IllegalArgumentException.class)

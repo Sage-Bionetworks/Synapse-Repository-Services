@@ -29,6 +29,11 @@ public interface DBOTrashCanDao {
 	int getCount(String userGroupId) throws DatastoreException;
 
 	/**
+	 * How many entities are in the trash can.
+	 */
+	int getCount() throws DatastoreException;
+
+	/**
 	 * Whether the user deleted the entity in the trash can.
 	 */
 	boolean exists(String userGroupId, String nodeId) throws DatastoreException;
@@ -43,6 +48,12 @@ public interface DBOTrashCanDao {
 	 * specified by offset (inclusive; staring from 0) and limit (the max number of items retrieved).
 	 */
 	List<TrashedEntity> getInRangeForUser(String userGroupId, long offset, long limit) throws DatastoreException;
+
+	/**
+	 * Gets all the trash items. Results are paged as specified by offset (inclusive; staring from 0)
+	 * and limit (the max number of items retrieved).
+	 */
+	List<TrashedEntity> getInRange(long offset, long limit) throws DatastoreException;
 
 	/**
 	 * Removes a trash item from the trash can table. This happens when the trash item is either restored or purged.

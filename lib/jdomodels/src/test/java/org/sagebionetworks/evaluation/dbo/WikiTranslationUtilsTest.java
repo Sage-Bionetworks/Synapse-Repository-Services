@@ -10,11 +10,15 @@ import java.util.List;
 import java.util.Map;
 
 import org.junit.Test;
+import org.sagebionetworks.repo.model.backup.WikiPageAttachmentBackup;
+import org.sagebionetworks.repo.model.backup.WikiPageBackup;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.dbo.WikiTranslationUtils;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOWikiAttachment;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 
 /**
@@ -60,6 +64,64 @@ public class WikiTranslationUtilsTest {
 		Collections.sort(clone.getAttachmentFileHandleIds());
 		assertNotNull(clone);
 		assertEquals(dto, clone);
+	}
+	
+	/**
+	 * Round trip of a WikiPageBackup.
+	 */
+	@Test
+	public void testBackupRoundTrip(){
+		WikiPageBackup backup = new WikiPageBackup();
+		backup.setOwnerId(123l);
+		backup.setOwnerType(ObjectType.EVALUATION.name());
+		backup.setId(456l);
+		backup.setAttachmentFileHandles(new LinkedList<WikiPageAttachmentBackup>());
+		backup.getAttachmentFileHandles().add(new WikiPageAttachmentBackup(9999l, "foo.bar"));
+		backup.getAttachmentFileHandles().add(new WikiPageAttachmentBackup(8888l, "bar.foo"));
+		backup.setCreatedBy(3333l);
+		backup.setCreatedOn(1l);
+		backup.setEtag("etag");
+		backup.setMarkdown("markdown");
+		backup.setModifiedBy(6l);
+		backup.setModifiedOn(2l);
+		backup.setParentWikiId(7654l);
+		backup.setTitle("title");
+		
+		// Create a clone of the backup
+		WikiPageKey key = WikiTranslationUtils.createWikiPageKeyFromBackup(backup);
+		DBOWikiPage dbo = WikiTranslationUtils.createWikiPageDBOFromBackup(backup);
+		List<DBOWikiAttachment> attachments = WikiTranslationUtils.createWikiPageDBOAttachmentsFromBackup(backup);
+		// Create a clone from the parts.
+		WikiPageBackup clone = WikiTranslationUtils.createWikiBackupFromDBO(key, dbo, attachments);
+		assertEquals(backup, clone);
+	}
+	
+	/**
+	 * Round trip of a WikiPageBackup with all all optional fields set null.
+	 */
+	@Test
+	public void testBackupRoundTripWithNulls(){
+		WikiPageBackup backup = new WikiPageBackup();
+		backup.setOwnerId(123l);
+		backup.setOwnerType(ObjectType.EVALUATION.name());
+		backup.setId(456l);
+		backup.setAttachmentFileHandles(new LinkedList<WikiPageAttachmentBackup>());
+		backup.setCreatedBy(3333l);
+		backup.setCreatedOn(1l);
+		backup.setEtag("etag");
+		backup.setMarkdown(null);
+		backup.setModifiedBy(6l);
+		backup.setModifiedOn(2l);
+		backup.setParentWikiId(null);
+		backup.setTitle(null);
+		
+		// Create a clone of the backup
+		WikiPageKey key = WikiTranslationUtils.createWikiPageKeyFromBackup(backup);
+		DBOWikiPage dbo = WikiTranslationUtils.createWikiPageDBOFromBackup(backup);
+		List<DBOWikiAttachment> attachments = WikiTranslationUtils.createWikiPageDBOAttachmentsFromBackup(backup);
+		// Create a clone from the parts.
+		WikiPageBackup clone = WikiTranslationUtils.createWikiBackupFromDBO(key, dbo, attachments);
+		assertEquals(backup, clone);
 	}
 
 }

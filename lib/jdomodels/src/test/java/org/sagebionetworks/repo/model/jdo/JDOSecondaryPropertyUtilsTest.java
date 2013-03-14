@@ -14,7 +14,9 @@ import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -302,6 +304,64 @@ public class JDOSecondaryPropertyUtilsTest {
 		assertEquals("123", strings.get(0));
 		assertEquals("456", strings.get(1));
 
+	}
+	
+	@Test
+	public void testBuildDistinctMap(){
+		// The input list
+		Map<String, List<Long>> start = new HashMap<String, List<Long>>();
+		start.put("nullList", null);
+		start.put("emptyList", new LinkedList<Long>());
+		List<Long> list = new LinkedList<Long>();
+		list.add(1l);
+		start.put("single", list);
+		list = new LinkedList<Long>();
+		list.add(1l);
+		list.add(2l);
+		start.put("multiple", list);
+		list = new LinkedList<Long>();
+		list.add(333l);
+		list.add(333l);
+		start.put("duplicates", list);
+		
+		// This is the expected results
+		Map<String, List<Long>> expected = new HashMap<String, List<Long>>();
+		list = new LinkedList<Long>();
+		list.add(1l);
+		expected.put("single", list);
+		list = new LinkedList<Long>();
+		list.add(1l);
+		list.add(2l);
+		expected.put("multiple", list);
+		list = new LinkedList<Long>();
+		list.add(333l);
+		expected.put("duplicates", list);
+		
+		Map<String, List<Long>> distinct = JDOSecondaryPropertyUtils.buildDistinctMap(start);
+		assertEquals(expected, distinct);
+	}
+	
+	@Test
+	public void testBuildDistinctAnnotations(){
+		// Add a duplicate of each type
+		Annotations start = new Annotations();
+		start.addAnnotation("string", "one");
+		start.addAnnotation("string", "one");
+		start.addAnnotation("date", new Date(1l));
+		start.addAnnotation("date", new Date(1l));
+		start.addAnnotation("long", 123l);
+		start.addAnnotation("long", 123l);
+		start.addAnnotation("double", 123.0);
+		start.addAnnotation("double", 123.0);
+		
+		Annotations expected = new Annotations();
+		expected.addAnnotation("string", "one");
+		expected.addAnnotation("date", new Date(1l));
+		expected.addAnnotation("long", 123l);
+		expected.addAnnotation("double", 123.0);
+		
+		Annotations distinct = JDOSecondaryPropertyUtils.buildDistinctAnnotations(start);
+		assertEquals(expected, distinct);
 	}
 	
 	/**

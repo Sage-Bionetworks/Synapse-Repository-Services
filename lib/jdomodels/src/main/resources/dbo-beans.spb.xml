@@ -27,6 +27,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBORevision" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOAnnotationOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOStringAnnotation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOLongAnnotation" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoubleAnnotation" />
@@ -48,6 +49,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiAttachment" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite" />
 				<!-- Competition beans -->
 				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.ParticipantDBO" />
