@@ -207,7 +207,7 @@ public class AuthorizationManagerImplTest {
 	}
 	
 	@Test 
-	public void testAnonymousCantAccessPublicGroup() throws Exception {
+	public void testAnonymousCanAccessPublicGroup() throws Exception {
 		AccessControlList acl = permissionsManager.getACL(node.getId(), userInfo);
 		assertNotNull(acl);
 		UserGroup pg = userManager.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
@@ -216,6 +216,43 @@ public class AuthorizationManagerImplTest {
 		UserInfo anonInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 		boolean b = authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.READ);
 		assertTrue(b);
+	}
+	
+	// test that even if someone tries to give create, write, etc. access to anonymous,
+	// anonymous can only READ
+	@Test
+	public void testAnonymousCanOnlyReadPublicEntity() throws Exception {
+		AccessControlList acl = permissionsManager.getACL(node.getId(), userInfo);
+		assertNotNull(acl);
+		UserGroup pg = userManager.findGroup(AuthorizationConstants.PUBLIC_GROUP_NAME, false);
+		acl = AuthorizationHelper.addToACL(acl, pg, ACCESS_TYPE.READ);
+		acl = AuthorizationHelper.addToACL(acl, pg, ACCESS_TYPE.CHANGE_PERMISSIONS);
+		acl = AuthorizationHelper.addToACL(acl, pg, ACCESS_TYPE.CREATE);
+		acl = AuthorizationHelper.addToACL(acl, pg, ACCESS_TYPE.DELETE);
+		acl = AuthorizationHelper.addToACL(acl, pg, ACCESS_TYPE.DOWNLOAD);
+		acl = AuthorizationHelper.addToACL(acl, pg, ACCESS_TYPE.UPDATE);
+		acl = permissionsManager.updateACL(acl, adminUser);
+		UserInfo anonInfo = userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
+		assertTrue(authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.READ));
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.CHANGE_PERMISSIONS));
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.CREATE));
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.DELETE));
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.DOWNLOAD));
+		assertFalse(authorizationManager.canAccess(anonInfo, node.getId(), ACCESS_TYPE.UPDATE));
+		
+		Node childNode = new Node();
+		childNode.setParentId(node.getId());
+		assertFalse(authorizationManager.canCreate(anonInfo, childNode));
+		
+		UserEntityPermissions uep = authorizationManager.getUserPermissionsForEntity(anonInfo,  node.getId());
+		assertTrue(uep.getCanView());
+		assertTrue(uep.getCanPublicRead());
+		assertFalse(uep.getCanAddChild());
+		assertFalse(uep.getCanChangePermissions());
+		assertFalse(uep.getCanDelete());
+		assertFalse(uep.getCanDownload());
+		assertFalse(uep.getCanEdit());
+		assertFalse(uep.getCanEnableInheritance());
 	}
 	
 	@Test
