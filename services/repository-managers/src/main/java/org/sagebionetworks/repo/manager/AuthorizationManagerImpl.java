@@ -1,8 +1,6 @@
 package org.sagebionetworks.repo.manager;
 
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -15,11 +13,9 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.User;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -94,6 +90,10 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		throws NotFoundException, DatastoreException {
 		// if is an administrator, return true
 		if (userInfo.isAdmin()) return true;
+		// anonymous can only READ (if that!)
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
+			if (ACCESS_TYPE.READ!=accessType) return false;
+		}
 		if (accessType.equals(ACCESS_TYPE.DOWNLOAD)) {
 			return canDownload(userInfo, nodeId);
 		}
@@ -107,6 +107,8 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		throws NotFoundException, DatastoreException {
 		// if is an administrator, return true
 		if (userInfo.isAdmin()) return true;
+		// if anonymous, cannot do it
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) return false;
 		// must look-up access
 		String parentId = node.getParentId();
 		if (parentId==null) return false; // if not an admin, can't do it!
@@ -146,14 +148,23 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 			permission.setCanEnableInheritance(!parentIsRoot);
 			return permission;
 		}
-		// Child can be added if this entity is not null
-		permission.setCanAddChild(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CREATE));
-		permission.setCanChangePermissions(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CHANGE_PERMISSIONS));
-		permission.setCanDelete(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.DELETE));
-		permission.setCanEdit(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.UPDATE));
 		permission.setCanView(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.READ));
-		permission.setCanDownload(this.canDownload(userInfo, entityId));
-		permission.setCanEnableInheritance(!parentIsRoot && permission.getCanChangePermissions());
+		if (AuthorizationConstants.ANONYMOUS_USER_ID.equals(userInfo.getUser().getUserId())) {
+			permission.setCanAddChild(false);
+			permission.setCanChangePermissions(false);
+			permission.setCanDelete(false);
+			permission.setCanEdit(false);
+			permission.setCanDownload(false);
+			permission.setCanEnableInheritance(false);
+		} else {
+			// Child can be added if this entity is not null
+			permission.setCanAddChild(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CREATE));
+			permission.setCanChangePermissions(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.CHANGE_PERMISSIONS));
+			permission.setCanDelete(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.DELETE));
+			permission.setCanEdit(this.accessControlListDAO.canAccess(userInfo.getGroups(), permissionsBenefactor, ACCESS_TYPE.UPDATE));
+			permission.setCanDownload(this.canDownload(userInfo, entityId));
+			permission.setCanEnableInheritance(!parentIsRoot && permission.getCanChangePermissions());
+		}
 		return permission;
 	}
 

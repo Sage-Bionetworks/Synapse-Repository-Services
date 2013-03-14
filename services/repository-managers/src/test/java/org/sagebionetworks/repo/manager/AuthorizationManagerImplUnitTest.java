@@ -10,10 +10,10 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
-
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlListDAO;
 import org.sagebionetworks.repo.model.AccessRequirementDAO;
@@ -24,9 +24,9 @@ import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
@@ -71,6 +71,7 @@ public class AuthorizationManagerImplUnitTest {
 		UserGroup userInfoGroup = new UserGroup();
 		userInfoGroup.setId("123");
 		userInfo.setIndividualGroup(userInfoGroup);
+		userInfo.setUser(new User());
 		adminUser = new UserInfo(true);
 		UserGroup adminInfoGroup = new UserGroup();
 		adminInfoGroup.setId("456");
