@@ -8,9 +8,9 @@ import org.mockito.Mockito;
 
 import com.amazonaws.services.dynamodb.AmazonDynamoDB;
 
-public class NodeTreeDaoPreconditionTest {
+public class NodeTreeDaoNodeLineageImplPreconditionTest {
 
-	private NodeTreeDao nodeTreeDao;
+	private NodeTreeDaoNodeLineageImpl nodeTreeDao;
 
 	@Before
 	public void before() {
@@ -86,35 +86,5 @@ public class NodeTreeDaoPreconditionTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testGetDescendantsIllegalArgumentException2() {
 		nodeTreeDao.getDescendants("child", 0, 3, null);
-	}
-
-	@Test(expected=NullPointerException.class)
-	public void testGetChildrenNullPointerException() {
-		nodeTreeDao.getChildren(null, 1, null);
-	}
-
-	@Test(expected=IllegalArgumentException.class)
-	public void testGetChildrenIllegalArgumentException() {
-		nodeTreeDao.getChildren("child", 0, null);
-	}
-
-	@Test(expected=NullPointerException.class)
-	public void testGetPathNullPointerException1() {
-		nodeTreeDao.getPath(null, "y");
-	}
-
-	@Test(expected=NullPointerException.class)
-	public void testGetPathNullPointerException2() {
-		nodeTreeDao.getPath("x", null);
-	}
-
-	@Test(expected=NullPointerException.class)
-	public void testGetLowestCommonAncestorNullPointerException1() {
-		nodeTreeDao.getLowestCommonAncestor(null, "y");
-	}
-
-	@Test(expected=NullPointerException.class)
-	public void testGetLowestCommonAncestorNullPointerException2() {
-		nodeTreeDao.getLowestCommonAncestor("x", null);
 	}
 }

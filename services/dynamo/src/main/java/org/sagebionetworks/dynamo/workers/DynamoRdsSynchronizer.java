@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Random;
 
 import org.apache.log4j.Logger;
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.dynamo.manager.NodeTreeUpdateManager;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
@@ -23,27 +23,27 @@ public class DynamoRdsSynchronizer {
 	private final Logger logger = Logger.getLogger(DynamoRdsSynchronizer.class);
 
 	private final NodeDAO nodeDao;
-	private final NodeTreeDao nodeTreeDao;
+	private final NodeTreeQueryDao nodeTreeQueryDao;
 	private final NodeTreeUpdateManager nodeTreeUpdateManager;
 
 	private final Random random;
 	private int count = 1;
 
-	public DynamoRdsSynchronizer(NodeDAO nodeDao, NodeTreeDao nodeTreeDao,
+	public DynamoRdsSynchronizer(NodeDAO nodeDao, NodeTreeQueryDao nodeTreeQueryDao,
 			NodeTreeUpdateManager nodeTreeUpdateManager) {
 
 		if (nodeDao == null) {
 			throw new NullPointerException("nodeDao cannot be null");
 		}
-		if (nodeTreeDao == null) {
-			throw new NullPointerException("nodeTreeDao cannot be null");
+		if (nodeTreeQueryDao == null) {
+			throw new NullPointerException("nodeTreeQueryDao cannot be null");
 		}
 		if (nodeTreeUpdateManager == null) {
 			throw new NullPointerException("nodeTreeUpdateManager cannot be null");
 		}
 
 		this.nodeDao = nodeDao;
-		this.nodeTreeDao = nodeTreeDao;
+		this.nodeTreeQueryDao = nodeTreeQueryDao;
 		this.nodeTreeUpdateManager = nodeTreeUpdateManager;
 		this.random = new SecureRandom();
 	}
@@ -73,7 +73,7 @@ public class DynamoRdsSynchronizer {
 			String childInRds = childParent.getId();
 			String parentInRds = childParent.getParentId();
 			String childKeyInRds = KeyFactory.stringToKey(childInRds).toString();
-			String parentKeyInDynamo = this.nodeTreeDao.getParent(childKeyInRds);
+			String parentKeyInDynamo = this.nodeTreeQueryDao.getParent(childKeyInRds);
 			if (parentKeyInDynamo == null) {
 				// The child does not exist in DynamoDB yet
 				this.logger.info("Dynamo is missing " + childInRds);
@@ -83,7 +83,7 @@ public class DynamoRdsSynchronizer {
 
 			if (parentInRds == null) {
 				// Check against the root
-				String rootKeyInDynamo = this.nodeTreeDao.getRoot();
+				String rootKeyInDynamo = this.nodeTreeQueryDao.getRoot();
 				if (!childKeyInRds.equals(rootKeyInDynamo)) {
 					this.logger.info("Dynamo has the incorrect root. Dynamo's root node is "
 							+ rootKeyInDynamo + ". RDS's root node is " + childKeyInRds);

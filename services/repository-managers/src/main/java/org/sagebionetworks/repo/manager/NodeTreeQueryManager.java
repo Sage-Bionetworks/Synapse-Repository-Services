@@ -60,6 +60,6 @@ public interface NodeTreeQueryManager {
 	 *
 	 * @return The ID of the lowest common ancestor
 	 */
-	EntityId getLowestCommonAncestor(String currUserName, String nodeX, String nodeY)
-			throws UnauthorizedException, DatastoreException;
+	//EntityId getLowestCommonAncestor(String currUserName, String nodeX, String nodeY)
+	//		throws UnauthorizedException, DatastoreException;
 }

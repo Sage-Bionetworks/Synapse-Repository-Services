@@ -26,11 +26,9 @@ import com.amazonaws.services.dynamodb.model.AttributeValue;
 @ContextConfiguration(locations = {"classpath:dynamo-dao-spb.xml" })
 public class NodeTreeDaoWriteAutowireTest {
 
-	@Autowired
-	private AmazonDynamoDB dynamoClient;
-
-	@Autowired
-	private NodeTreeDao nodeTreeDao;
+	@Autowired private AmazonDynamoDB dynamoClient;
+	@Autowired private NodeTreeUpdateDao nodeTreeUpdateDao;
+	@Autowired private NodeTreeQueryDao nodeTreeQueryDao;
 
 	private DynamoDBMapper dynamoMapper;
 
@@ -41,9 +39,9 @@ public class NodeTreeDaoWriteAutowireTest {
 	public void before() {
 
 		// Clear dynamo
-		String root = this.nodeTreeDao.getRoot();
+		String root = this.nodeTreeQueryDao.getRoot();
 		if (root != null) {
-			this.nodeTreeDao.delete(root, new Date());
+			this.nodeTreeUpdateDao.delete(root, new Date());
 		}
 
 		this.dynamoMapper = new DynamoDBMapper(this.dynamoClient,
@@ -80,7 +78,7 @@ public class NodeTreeDaoWriteAutowireTest {
 
 		String root = this.idMap.get("a");
 		Date timestamp = new Date();
-		this.nodeTreeDao.create(root, root, timestamp);
+		this.nodeTreeUpdateDao.create(root, root, timestamp);
 		String hashKey = DboNodeLineage.ROOT_HASH_KEY;
 		String rangeKey = DboNodeLineage.createRangeKey(1, root);
 		DboNodeLineage dbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
@@ -103,12 +101,12 @@ public class NodeTreeDaoWriteAutowireTest {
 		Assert.assertEquals(1L, lineage.getVersion().longValue());
 
 		// We can "recreate" the same root
-		this.nodeTreeDao.create(root, root, new Date());
+		this.nodeTreeUpdateDao.create(root, root, new Date());
 
 		// If we try to create anther root "b", we should get an exception
 		try {
 			String r = this.idMap.get("b");
-			this.nodeTreeDao.create(r, r, new Date());
+			this.nodeTreeUpdateDao.create(r, r, new Date());
 		} catch (RuntimeException e) {
 			Assert.assertNotNull(e.getMessage());
 		} catch (Throwable t) {
@@ -135,7 +133,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		// The root does not exist yet
 		// If we try to add a child, we will get back an IncompletePathException
 		try {
-			this.nodeTreeDao.create(b, a, new Date());
+			this.nodeTreeUpdateDao.create(b, a, new Date());
 		} catch (NoAncestorException e) {
 			Assert.assertNotNull(e.getMessage());
 		} catch (Throwable t) {
@@ -144,10 +142,10 @@ public class NodeTreeDaoWriteAutowireTest {
 
 		// Now create the root
 		Date timestamp = new Date();
-		this.nodeTreeDao.create(a, a, timestamp);
+		this.nodeTreeUpdateDao.create(a, a, timestamp);
 
 		// We should be able to add a new child under a
-		this.nodeTreeDao.create(b, a, timestamp);
+		this.nodeTreeUpdateDao.create(b, a, timestamp);
 		String hashKey = DboNodeLineage.createHashKey(b, LineageType.ANCESTOR);
 		AttributeValue hashKeyAttr = new AttributeValue().withS(hashKey);
 		DynamoDBQueryExpression queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
@@ -166,7 +164,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		Assert.assertEquals(1, lineage.getDistance());
 
 		// Now add c under b
-		this.nodeTreeDao.create(c, b, timestamp);
+		this.nodeTreeUpdateDao.create(c, b, timestamp);
 		hashKey = DboNodeLineage.createHashKey(c, LineageType.ANCESTOR);
 		hashKeyAttr = new AttributeValue().withS(hashKey);
 		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
@@ -199,7 +197,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		Assert.assertEquals(1, lineage.getDistance());
 		
 		// Repeat adding c should have no effect
-		this.nodeTreeDao.create(c, b, timestamp);
+		this.nodeTreeUpdateDao.create(c, b, timestamp);
 		hashKey = DboNodeLineage.createHashKey(c, LineageType.ANCESTOR);
 		hashKeyAttr = new AttributeValue().withS(hashKey);
 		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
@@ -238,7 +236,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		DboNodeLineage d2aDbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
 		this.dynamoMapper.delete(d2aDbo);
 		try {
-			this.nodeTreeDao.create(d, b, new Date());
+			this.nodeTreeUpdateDao.create(d, b, new Date());
 		} catch (IncompletePathException e) {
 			Assert.assertNotNull(e.getMessage());
 		} catch (Throwable t) {
@@ -248,7 +246,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		// Add back b->a and we should be able to add d->b
 		d2aDbo.setVersion(null);
 		this.dynamoMapper.save(d2aDbo);
-		this.nodeTreeDao.create(d, b, new Date());
+		this.nodeTreeUpdateDao.create(d, b, new Date());
 		hashKey = DboNodeLineage.createHashKey(d, LineageType.ANCESTOR);
 		hashKeyAttr = new AttributeValue().withS(hashKey);
 		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
@@ -281,7 +279,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		// When the root does not exist, this should call create() to create the root
 		String root = this.idMap.get("a");
 		Date timestamp = new Date();
-		this.nodeTreeDao.update(root, root, timestamp);
+		this.nodeTreeUpdateDao.update(root, root, timestamp);
 		String hashKey = DboNodeLineage.ROOT_HASH_KEY;
 		String rangeKey = DboNodeLineage.createRangeKey(1, root);
 		DboNodeLineage dbo = this.dynamoMapper.load(DboNodeLineage.class, hashKey, rangeKey);
@@ -296,7 +294,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		// If we try to update with a different root, we should get an exception
 		try {
 			String b = this.idMap.get("b");
-			this.nodeTreeDao.update(b, b, new Date());
+			this.nodeTreeUpdateDao.update(b, b, new Date());
  		} catch (RuntimeException e) {
 			Assert.assertNotNull(e.getMessage());
 		} catch (Throwable t) {
@@ -324,12 +322,12 @@ public class NodeTreeDaoWriteAutowireTest {
 		String e = this.idMap.get("e");
 		String f = this.idMap.get("f");
 		Date timestamp = new Date();
-		this.nodeTreeDao.create(a, a, timestamp);
-		this.nodeTreeDao.create(b, a, timestamp);
-		this.nodeTreeDao.create(c, b, timestamp);
-		this.nodeTreeDao.create(d, b, timestamp);
-		this.nodeTreeDao.create(e, d, timestamp);
-		this.nodeTreeDao.create(f, d, timestamp);
+		this.nodeTreeUpdateDao.create(a, a, timestamp);
+		this.nodeTreeUpdateDao.create(b, a, timestamp);
+		this.nodeTreeUpdateDao.create(c, b, timestamp);
+		this.nodeTreeUpdateDao.create(d, b, timestamp);
+		this.nodeTreeUpdateDao.create(e, d, timestamp);
+		this.nodeTreeUpdateDao.create(f, d, timestamp);
 
 		// Verify d first
 		String hashKey = DboNodeLineage.createHashKey(d, LineageType.ANCESTOR);
@@ -354,7 +352,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		Assert.assertTrue(descSet.contains(f));
 
 		// Now update(d, b) should have no effect
-		this.nodeTreeDao.update(d, b, new Date());
+		this.nodeTreeUpdateDao.update(d, b, new Date());
 		hashKey = DboNodeLineage.createHashKey(d, LineageType.ANCESTOR);
 		hashKeyAttr = new AttributeValue().withS(hashKey);
 		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
@@ -377,7 +375,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		Assert.assertTrue(descSet.contains(f));
 
 		// Move d under a
-		this.nodeTreeDao.update(d, a, new Date());
+		this.nodeTreeUpdateDao.update(d, a, new Date());
 		// Test d
 		hashKey = DboNodeLineage.createHashKey(d, LineageType.ANCESTOR);
 		hashKeyAttr = new AttributeValue().withS(hashKey);
@@ -423,7 +421,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		Assert.assertEquals(a, (new NodeLineage(dboList.get(1))).getAncestorOrDescendantId());
 
 		// Move c under d
-		this.nodeTreeDao.update(c, d, new Date());
+		this.nodeTreeUpdateDao.update(c, d, new Date());
 		// Test d
 		hashKey = DboNodeLineage.createHashKey(d, LineageType.ANCESTOR);
 		hashKeyAttr = new AttributeValue().withS(hashKey);
@@ -515,18 +513,18 @@ public class NodeTreeDaoWriteAutowireTest {
 		String e = this.idMap.get("e");
 		String f = this.idMap.get("f");
 		Date timestamp = new Date();
-		this.nodeTreeDao.create(a, a, timestamp);
-		this.nodeTreeDao.create(b, a, timestamp);
-		this.nodeTreeDao.create(c, b, timestamp);
-		this.nodeTreeDao.create(d, b, timestamp);
-		this.nodeTreeDao.create(e, d, timestamp);
-		this.nodeTreeDao.create(f, d, timestamp);
+		this.nodeTreeUpdateDao.create(a, a, timestamp);
+		this.nodeTreeUpdateDao.create(b, a, timestamp);
+		this.nodeTreeUpdateDao.create(c, b, timestamp);
+		this.nodeTreeUpdateDao.create(d, b, timestamp);
+		this.nodeTreeUpdateDao.create(e, d, timestamp);
+		this.nodeTreeUpdateDao.create(f, d, timestamp);
 
 		// Now if the time is too old, we should get back an exception and nothing happens
 		try {
 			Date oldTimestamp = new Date();
 			oldTimestamp.setTime(timestamp.getTime() - 10000L);
-			this.nodeTreeDao.delete(e, oldTimestamp);
+			this.nodeTreeUpdateDao.delete(e, oldTimestamp);
 		} catch (RuntimeException ex) {
 			Assert.assertNotNull(ex.getMessage());
 		} catch (Throwable t) {
@@ -539,7 +537,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		Assert.assertEquals(3, dboList.size());
 
 		// Now delete with a newer time stamp
-		this.nodeTreeDao.delete(e, new Date());
+		this.nodeTreeUpdateDao.delete(e, new Date());
 		hashKey = DboNodeLineage.createHashKey(e, LineageType.ANCESTOR);
 		hashKeyAttr = new AttributeValue().withS(hashKey);
 		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
@@ -556,7 +554,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		Assert.assertFalse(idSet.contains(e));
 
 		// Delete an internal node d
-		this.nodeTreeDao.delete(d, new Date());
+		this.nodeTreeUpdateDao.delete(d, new Date());
 		hashKey = DboNodeLineage.createHashKey(d, LineageType.ANCESTOR);
 		hashKeyAttr = new AttributeValue().withS(hashKey);
 		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);
@@ -590,7 +588,7 @@ public class NodeTreeDaoWriteAutowireTest {
 		Assert.assertFalse(idSet.contains(f));
 
 		// Now delete the root
-		this.nodeTreeDao.delete(a, new Date());
+		this.nodeTreeUpdateDao.delete(a, new Date());
 		hashKey = DboNodeLineage.createHashKey(c, LineageType.ANCESTOR);
 		hashKeyAttr = new AttributeValue().withS(hashKey);
 		queryExpression = new DynamoDBQueryExpression(hashKeyAttr);

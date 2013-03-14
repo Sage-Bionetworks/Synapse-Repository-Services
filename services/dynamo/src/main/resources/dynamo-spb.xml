@@ -17,7 +17,7 @@
 	<import resource="classpath:dao-beans.spb.xml" />
 
 	<bean id="nodeTreeUpdateManager" class="org.sagebionetworks.dynamo.manager.NodeTreeUpdateManagerImpl">
-		<constructor-arg index="0" ref="nodeTreeDao" />
+		<constructor-arg index="0" ref="nodeTreeUpdateDao" />
 		<constructor-arg index="1" ref="nodeDao" />
 	</bean>
 
@@ -74,7 +74,7 @@
 			class="org.sagebionetworks.dynamo.workers.DynamoRdsSynchronizer"
 			scope="singleton">
 		<constructor-arg index="0" ref="nodeDao" />
-		<constructor-arg index="1" ref="nodeTreeDao" />
+		<constructor-arg index="1" ref="nodeTreeQueryDao" />
 		<constructor-arg index="2" ref="nodeTreeUpdateManager" />
 	</bean>
 

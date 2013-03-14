@@ -5,7 +5,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityId;
@@ -27,7 +27,7 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 	private AuthorizationManager authorizationManager;
 
 	@Autowired
-	private NodeTreeDao nodeTreeDao;
+	private NodeTreeQueryDao nodeTreeQueryDao;
 
 	@Override
 	public EntityId getRoot(String currUserName) throws UnauthorizedException,
@@ -37,7 +37,7 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 			throw new NullPointerException("Current user cannot be null.");
 		}
 
-		EntityId root = this.toEntityId(this.nodeTreeDao.getRoot());
+		EntityId root = this.toEntityId(this.nodeTreeQueryDao.getRoot());
 		this.checkAuthorization(currUserName, root.getId()); // throws UnauthorizedException
 		return root;
 	}
@@ -55,7 +55,7 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
 		try {
-			List<String> keys = this.nodeTreeDao.getAncestors(this.stringToKey(nodeId));
+			List<String> keys = this.nodeTreeQueryDao.getAncestors(this.stringToKey(nodeId));
 			return this.toEntityIdList(keys);
 		} catch (IncompletePathException e) {
 			this.logger.warn("getAncestors() for node " + nodeId, e);
@@ -79,7 +79,7 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
 		try {
-			String parent = this.nodeTreeDao.getParent(this.stringToKey(nodeId));
+			String parent = this.nodeTreeQueryDao.getParent(this.stringToKey(nodeId));
 			return this.toEntityId(parent);
 		} catch (IncompletePathException e) {
 			this.logger.warn("getParent() for node " + nodeId, e);
@@ -102,7 +102,7 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
 		try {
-			List<String> descList = this.nodeTreeDao.getDescendants(
+			List<String> descList = this.nodeTreeQueryDao.getDescendants(
 					this.stringToKey(nodeId), pageSize, this.stringToKey(lastDescIdExcl));
 			return this.toEntityIdList(descList);
 		} catch (IncompletePathException e) {
@@ -128,7 +128,7 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
 		try {
-			List<String> descList = this.nodeTreeDao.getDescendants(
+			List<String> descList = this.nodeTreeQueryDao.getDescendants(
 					this.stringToKey(nodeId), generation, pageSize, this.stringToKey(lastDescIdExcl));
 			return this.toEntityIdList(descList);
 		} catch (IncompletePathException e) {
@@ -154,8 +154,8 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 
 		this.checkAuthorization(currUserName, nodeId); // throws UnauthorizedException
 		try {
-			List<String> children = this.nodeTreeDao.getChildren(
-					this.stringToKey(nodeId), pageSize, this.stringToKey(lastDescIdExcl));
+			List<String> children = this.nodeTreeQueryDao.getDescendants(
+					this.stringToKey(nodeId), 1, pageSize, this.stringToKey(lastDescIdExcl));
 			return this.toEntityIdList(children);
 		} catch (IncompletePathException e) {
 			this.logger.warn("getChildren() for node " + nodeId, e);
@@ -166,6 +166,7 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 		}
 	}
 
+	/*
 	@Override
 	public EntityId getLowestCommonAncestor(String currUserName, String nodeX,
 			String nodeY) throws UnauthorizedException, DatastoreException {
@@ -183,7 +184,7 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 		this.checkAuthorization(currUserName, nodeX); // throws UnauthorizedException
 		this.checkAuthorization(currUserName, nodeY); // throws UnauthorizedException
 		try {
-			String ancestor = this.nodeTreeDao.getLowestCommonAncestor(
+			String ancestor = this.nodeTreeQueryDao.getLowestCommonAncestor(
 					this.stringToKey(nodeX), this.stringToKey(nodeY));
 			return this.toEntityId(ancestor);
 		} catch (IncompletePathException e) {
@@ -192,6 +193,7 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 			return new EntityId();
 		}
 	}
+	*/
 
 	private String stringToKey(String nodeId) {
 		if (nodeId == null) {
