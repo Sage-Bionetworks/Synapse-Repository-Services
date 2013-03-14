@@ -24,9 +24,6 @@ public class ZipPreviewGenerator implements PreviewGenerator {
 		ZipInputStream zip = new ZipInputStream(from);
 		ZipEntry zipEntry;
 		StringBuilder sb = new StringBuilder();
-		//header?
-//		sb.append("Name,Size,Packed\n");
-
 		while((zipEntry = zip.getNextEntry()) != null) {
 			String name = zipEntry.getName();
 			//ignore these special entries
@@ -34,10 +31,6 @@ public class ZipPreviewGenerator implements PreviewGenerator {
 				continue;
 			}
 			sb.append(zipEntry.getName());
-//			sb.append(",");
-//			sb.append(zipEntry.getSize());
-//			sb.append(",");
-//			sb.append(zipEntry.getCompressedSize());
 			sb.append("\n");
 		}
 		IOUtils.write(sb.toString(), to, "UTF-8");

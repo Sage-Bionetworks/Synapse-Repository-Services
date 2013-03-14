@@ -28,6 +28,7 @@ public class TextPreviewTest {
 		assertEquals(TextPreviewGenerator.TEXT_PLAIN, type.getContentType());
 		String output = baos.toString();
 		assertTrue(output.length()<testInputString.length());
+		assertTrue(output.indexOf("...") > -1);
 	}
 
 }

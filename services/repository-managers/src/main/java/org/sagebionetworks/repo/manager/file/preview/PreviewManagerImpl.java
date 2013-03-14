@@ -110,7 +110,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 		if(metadata.getContentType() == null) throw new IllegalArgumentException("metadata.getContentType() cannot be null");
 		if(metadata.getContentSize() == null) throw new IllegalArgumentException("metadata.getContentSize() cannot be null");
 		// Try to find a generator for this type
-		final PreviewGenerator generator = findPreviewGenerator(metadata.getContentType(), metadata.getFileName());
+		final PreviewGenerator generator = findPreviewGenerator(metadata.getContentType());
 		// there is nothing to do if we do not have a generator for this type
 		if(generator == null){
 			log.info("No preview generator found for contentType:"+metadata.getContentType());
@@ -214,7 +214,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 	 * Find
 	 * @param metadta
 	 */
-	private PreviewGenerator findPreviewGenerator(String contentType, String filename) {
+	private PreviewGenerator findPreviewGenerator(String contentType) {
 		for(PreviewGenerator gen: generatorList){
 			if(gen.supportsContentType(contentType)){
 				return gen;
