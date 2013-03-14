@@ -1,20 +1,25 @@
 package org.sagebionetworks.repo.manager.file.preview;
 
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.atLeast;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Proxy;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.Callable;
 
 import org.junit.Before;
 import org.junit.Test;
-
-import static org.junit.Assert.*;
-import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -41,7 +46,7 @@ public class PreviewManagerImplTest {
 	Long maxPreviewSize = 100l;
 	float multiplerForContentType = 1.5f;
 	String testContentType = "text/plain";
-	String previewContentType = "application/zip";
+	PreviewOutputMetadata previewContentType = new PreviewOutputMetadata("application/zip", ".zip");
 	S3FileHandle testMetadata;
 	Long resultPreviewSize = 15l;
 	
@@ -64,6 +69,7 @@ public class PreviewManagerImplTest {
 		when(mockUploadFile.length()).thenReturn(resultPreviewSize);
 		List<PreviewGenerator> genList = new LinkedList<PreviewGenerator>();
 		genList.add(mockPreviewGenerator);
+		
 		previewManager = new PreviewManagerImpl(stubFileMetadataDao, mockS3Client, mockFileProvider, genList, maxPreviewSize);
 		
 		// This is a test file metadata
@@ -167,10 +173,10 @@ public class PreviewManagerImplTest {
 		PreviewFileHandle pfm = previewManager.generatePreview(testMetadata);
 		assertNotNull(pfm);
 		assertNotNull(pfm.getId());
-		assertEquals(previewContentType, pfm.getContentType());
+		assertEquals(previewContentType.getContentType(), pfm.getContentType());
 		assertEquals(testMetadata.getCreatedBy(), pfm.getCreatedBy());
 		assertNotNull(pfm.getCreatedOn());
-		assertEquals(testMetadata.getFileName(), pfm.getFileName());
+		assertEquals("preview"+previewContentType.getExtension(), pfm.getFileName());
 		assertEquals(resultPreviewSize, pfm.getContentSize());
 		// Make sure the preview is in the dao
 		PreviewFileHandle fromDao = (PreviewFileHandle) stubFileMetadataDao.get(pfm.getId());

@@ -143,7 +143,7 @@ public class PreviewManagerImpl implements  PreviewManager {
 			return null;
 		}
 	}
-	
+		
 	/**
 	 * This is where we actually attempt to generate the preview.  This method should only be called
 	 * within an allocate resource block.
@@ -166,14 +166,14 @@ public class PreviewManagerImpl implements  PreviewManager {
 			in = tempFileProvider.createFileInputStream(tempDownload);
 			out = tempFileProvider.createFileOutputStream(tempUpload);
 			// Let the preview generator do all of the work.
-			String contentType = generator.generatePreview(in, out);
+			PreviewOutputMetadata previewMetadata = generator.generatePreview(in, out);
 			// Close the file
 			out.close();
 			PreviewFileHandle pfm = new PreviewFileHandle();
 			pfm.setBucketName(metadata.getBucketName());
-			pfm.setContentType(contentType);
+			pfm.setContentType(previewMetadata.getContentType());
 			pfm.setCreatedBy(metadata.getCreatedBy());
-			pfm.setFileName(metadata.getFileName());
+			pfm.setFileName("preview"+previewMetadata.getExtension());
 			pfm.setKey(metadata.getCreatedBy()+"/"+UUID.randomUUID().toString());
 			pfm.setContentSize(tempUpload.length());
 			// Upload this to S3
