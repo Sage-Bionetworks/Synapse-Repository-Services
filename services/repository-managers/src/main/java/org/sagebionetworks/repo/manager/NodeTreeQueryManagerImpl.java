@@ -166,35 +166,6 @@ public class NodeTreeQueryManagerImpl implements NodeTreeQueryManager {
 		}
 	}
 
-	/*
-	@Override
-	public EntityId getLowestCommonAncestor(String currUserName, String nodeX,
-			String nodeY) throws UnauthorizedException, DatastoreException {
-
-		if (currUserName == null) {
-			throw new NullPointerException("Current user cannot be null.");
-		}
-		if (nodeX == null) {
-			throw new NullPointerException("Node cannot be null.");
-		}
-		if (nodeY == null) {
-			throw new NullPointerException("Node cannot be null.");
-		}
-
-		this.checkAuthorization(currUserName, nodeX); // throws UnauthorizedException
-		this.checkAuthorization(currUserName, nodeY); // throws UnauthorizedException
-		try {
-			String ancestor = this.nodeTreeQueryDao.getLowestCommonAncestor(
-					this.stringToKey(nodeX), this.stringToKey(nodeY));
-			return this.toEntityId(ancestor);
-		} catch (IncompletePathException e) {
-			this.logger.warn("getLowestCommonAncestor() for nodes " + nodeX + ", " + nodeY, e);
-			// Return a null ID
-			return new EntityId();
-		}
-	}
-	*/
-
 	private String stringToKey(String nodeId) {
 		if (nodeId == null) {
 			return null;

@@ -185,24 +185,6 @@ public class NodeTreeQueryManagerImplTest {
 		this.manager.getChildren(this.userId, this.nodeCannotAccess, 1, null);
 	}
 
-	/*
-	@Test
-	public void testGetLowestCommonAncestor() {
-		EntityId lca = this.manager.getLowestCommonAncestor(this.userId, this.nodeCanAccessX, this.nodeCanAccessY);
-		Assert.assertEquals(this.nodeCanAccessX, lca.getId());
-	}
-
-	@Test(expected = UnauthorizedException.class)
-	public void testGetLowestCommonAncestorUnauthorizedException1() {
-		this.manager.getLowestCommonAncestor(this.userId, this.nodeCannotAccess, this.nodeCanAccessX);
-	}
-
-	@Test(expected = UnauthorizedException.class)
-	public void testGetLowestCommonAncestorUnauthorizedException2() {
-		this.manager.getLowestCommonAncestor(this.userId, this.nodeCanAccessX, this.nodeCannotAccess);
-	}
-	*/
-
 	@Test
 	public void testHandlingIncompletePathException() {
 		EntityIdList idList = this.manager.getAncestors(this.adminUserId, this.nodeIpe);
@@ -224,8 +206,5 @@ public class NodeTreeQueryManagerImplTest {
 		Assert.assertNotNull(idList);
 		Assert.assertNotNull(idList.getIdList());
 		Assert.assertEquals(0, idList.getIdList().size());
-		//id = this.manager.getLowestCommonAncestor(this.adminUserId, this.nodeIpe, this.nodeCanAccessY);
-		//Assert.assertNotNull(id);
-		//Assert.assertNull(id.getId());
 	}
 }
