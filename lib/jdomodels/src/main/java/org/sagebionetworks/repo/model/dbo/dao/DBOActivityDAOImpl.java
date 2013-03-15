@@ -94,13 +94,43 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public String create(Activity dto) throws DatastoreException, InvalidModelException {	
+	public String create(Activity dto) throws DatastoreException, InvalidModelException {
+		return createPrivate(dto, false);
+	}
+	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public String createFromBackup(Activity dto) throws DatastoreException, InvalidModelException {		
+		if(dto == null) throw new IllegalArgumentException("Activity cannot be null");
+		if(dto.getEtag() == null) throw new IllegalArgumentException("The backup Activity must have an etag");
+		if(dto.getId() == null) throw new IllegalArgumentException("The backup Activity must have an id");
+		// The ID must not change
+		Long startingId = KeyFactory.stringToKey(dto.getId());
+		// Create the node.
+		// We want to force the use of the current eTag. See PLFM-845
+		boolean forceUseEtag = true;
+		String id = createPrivate(dto, true);
+		// validate that the ID is unchanged.
+		if(!startingId.equals(KeyFactory.stringToKey(id))) throw new DatastoreException("Creating an activity from a backup changed the ID.");
+		return id;
+	}
+	
+	private String createPrivate(Activity dto, boolean forceEtag) throws DatastoreException, InvalidModelException {
 		DBOActivity dbo = new DBOActivity();
 		ActivityUtils.copyDtoToDbo(dto, dbo);
-		// add eTag
-		tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
+
+		if(forceEtag){
+			if(dto.getEtag() == null) throw new IllegalArgumentException("Cannot force the use of an ETag when the ETag is null");
+			dbo.seteTag(KeyFactory.urlDecode(dto.getEtag()));
+			// Send a message without changing the etag;
+			tagMessenger.sendMessage(dbo, ChangeType.CREATE);
+		}else{
+			// add eTag
+			tagMessenger.generateEtagAndSendMessage(dbo, ChangeType.CREATE);
+		}
+
 		basicDao.createNew(dbo);				
-		return dbo.getIdString();
+		return dbo.getIdString();		
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
