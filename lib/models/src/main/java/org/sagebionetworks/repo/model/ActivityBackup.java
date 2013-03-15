@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Set;
 
-import org.sagebionetworks.repo.model.provenance.UsedEntity;
+import org.sagebionetworks.repo.model.provenance.Used;
 
 public class ActivityBackup {
 
@@ -14,11 +14,11 @@ public class ActivityBackup {
     private Long modifiedOn;
     private String createdBy;
     private String modifiedBy;
-    private Set<UsedEntity> used;
+    private Set<Used> used;
     
 	public ActivityBackup(String id, String name, String description,
 			String etag, Long createdOn, Long modifiedOn, String createdBy,
-			String modifiedBy, Set<UsedEntity> used) {
+			String modifiedBy, Set<Used> used) {
 		super();
 		this.id = id;
 		this.name = name;
@@ -95,11 +95,11 @@ public class ActivityBackup {
 		this.modifiedBy = modifiedBy;
 	}
 
-	public Set<UsedEntity> getUsed() {
+	public Set<Used> getUsed() {
 		return used;
 	}
 
-	public void setUsed(Set<UsedEntity> used) {
+	public void setUsed(Set<Used> used) {
 		this.used = used;
 	}
 
