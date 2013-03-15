@@ -10,10 +10,10 @@ import junit.framework.Assert;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Entity;
@@ -37,11 +37,10 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class NodeTreeQueryControllerAutowireTest {
 
-	@Autowired
-	private EntityService entityService;
+	@Autowired private EntityService entityService;
 
-	@Autowired
-	private NodeTreeDao nodeTreeDao;
+	@Autowired private NodeTreeQueryDao nodeTreeQueryDao;
+	@Autowired private NodeTreeUpdateDao nodeTreeUpdateDao;
 
 	private final String testUser = TestUserDAO.ADMIN_USER_NAME;
 	private Entity parent;
@@ -52,7 +51,8 @@ public class NodeTreeQueryControllerAutowireTest {
 	public void before() throws Exception {
 
 		Assert.assertNotNull(this.entityService);
-		Assert.assertNotNull(this.nodeTreeDao);
+		Assert.assertNotNull(this.nodeTreeQueryDao);
+		Assert.assertNotNull(this.nodeTreeUpdateDao);
 
 		// Create the entities in RDS
 		parent = new Project();
@@ -70,24 +70,24 @@ public class NodeTreeQueryControllerAutowireTest {
 		rootToChild = this.entityService.getEntityPath(testUser, child.getId());
 
 		// Clear dynamo first
-		String root = this.nodeTreeDao.getRoot();
+		String root = this.nodeTreeQueryDao.getRoot();
 		if (root != null) {
-			this.nodeTreeDao.delete(root, new Date());
+			this.nodeTreeUpdateDao.delete(root, new Date());
 		}
 
 		// Create the entities in dynamo
-		this.nodeTreeDao.create(
+		this.nodeTreeUpdateDao.create(
 				KeyFactory.stringToKey(rootToChild.get(0).getId()).toString(),
 				KeyFactory.stringToKey(rootToChild.get(0).getId()).toString(),
 				new Date());
 		for (int i = 1; i < rootToChild.size(); i++) {
 			EntityHeader p = rootToChild.get(i - 1);
 			EntityHeader c = rootToChild.get(i);
-			this.nodeTreeDao.create(
+			this.nodeTreeUpdateDao.create(
 					KeyFactory.stringToKey(c.getId()).toString(),
 					KeyFactory.stringToKey(p.getId()).toString(),
 					new Date());
-		}		
+		}
 	}
 
 	@After
@@ -100,9 +100,9 @@ public class NodeTreeQueryControllerAutowireTest {
 			entityService.deleteEntity(testUser, parent.getId());
 		}
 		// Clear dynamo
-		String root = this.nodeTreeDao.getRoot();
+		String root = this.nodeTreeQueryDao.getRoot();
 		if (root != null) {
-			this.nodeTreeDao.delete(root, new Date());
+			this.nodeTreeUpdateDao.delete(root, new Date());
 		}
 	}
 

@@ -1,9 +1,9 @@
 package org.sagebionetworks.dynamo.workers;
 
-import static org.mockito.Mockito.anyLong;
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.anyString;
-import static org.mockito.Mockito.eq;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyLong;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -14,7 +14,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.junit.Test;
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.dynamo.manager.NodeTreeUpdateManager;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.NodeParentRelation;
@@ -38,7 +38,7 @@ public class DynamoRdsSynchronizerTest {
 		NodeDAO nodeDao = mock(NodeDAO.class);
 		when(nodeDao.getParentRelations(anyLong(), eq(1L))).thenReturn(queryResults);
 
-		NodeTreeDao nodeTreeDao = mock(NodeTreeDao.class);
+		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		when(nodeTreeDao.getParent("1")).thenReturn("11");
 
 		NodeTreeUpdateManager nodeTreeUpdateManager = mock(NodeTreeUpdateManager.class);
@@ -67,7 +67,7 @@ public class DynamoRdsSynchronizerTest {
 		NodeDAO nodeDao = mock(NodeDAO.class);
 		when(nodeDao.getParentRelations(anyLong(), eq(1L))).thenReturn(queryResults);
 
-		NodeTreeDao nodeTreeDao = mock(NodeTreeDao.class);
+		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		when(nodeTreeDao.getParent("1")).thenReturn(null);
 
 		NodeTreeUpdateManager nodeTreeUpdateManager = mock(NodeTreeUpdateManager.class);
@@ -96,7 +96,7 @@ public class DynamoRdsSynchronizerTest {
 		NodeDAO nodeDao = mock(NodeDAO.class);
 		when(nodeDao.getParentRelations(anyLong(), eq(1L))).thenReturn(queryResults);
 
-		NodeTreeDao nodeTreeDao = mock(NodeTreeDao.class);
+		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		when(nodeTreeDao.getParent("1")).thenReturn("21");
 
 		NodeTreeUpdateManager nodeTreeUpdateManager = mock(NodeTreeUpdateManager.class);
@@ -125,7 +125,7 @@ public class DynamoRdsSynchronizerTest {
 		NodeDAO nodeDao = mock(NodeDAO.class);
 		when(nodeDao.getParentRelations(anyLong(), eq(1L))).thenReturn(queryResults);
 
-		NodeTreeDao nodeTreeDao = mock(NodeTreeDao.class);
+		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		when(nodeTreeDao.getParent("1")).thenReturn("11");
 		when(nodeTreeDao.getRoot()).thenReturn("1");
 
@@ -148,7 +148,7 @@ public class DynamoRdsSynchronizerTest {
 		NodeDAO nodeDao = mock(NodeDAO.class);
 		when(nodeDao.getParentRelations(anyLong(), eq(1L))).thenReturn(queryResults);
 
-		NodeTreeDao nodeTreeDao = mock(NodeTreeDao.class);
+		NodeTreeQueryDao nodeTreeDao = mock(NodeTreeQueryDao.class);
 		NodeTreeUpdateManager nodeTreeUpdateManager = mock(NodeTreeUpdateManager.class);
 		DynamoRdsSynchronizer sync = new DynamoRdsSynchronizer(
 				nodeDao, nodeTreeDao, nodeTreeUpdateManager);

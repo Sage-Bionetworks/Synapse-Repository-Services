@@ -96,21 +96,4 @@ public class NodeTreeQueryServiceImpl implements NodeTreeQueryService {
 
 		return this.nodeTreeQueryManager.getChildren(currUserName, nodeId, pageSize, lastDescIdExcl);
 	}
-
-	@Override
-	public EntityId getLowestCommonAncestor(String currUserName, String nodeX,
-			String nodeY) throws UnauthorizedException, DatastoreException {
-
-		if (currUserName == null) {
-			throw new IllegalArgumentException("Current user cannot be null.");
-		}
-		if (nodeX == null) {
-			throw new IllegalArgumentException("Node cannot be null.");
-		}
-		if (nodeY == null) {
-			throw new IllegalArgumentException("Node cannot be null.");
-		}
-
-		return this.nodeTreeQueryManager.getLowestCommonAncestor(currUserName, nodeX, nodeY);
-	}
 }

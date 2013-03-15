@@ -72,22 +72,4 @@ public class NodeTreeQueryServiceImplTest {
 		this.service.getChildren("user", null, 2, null);
 		Assert.fail();
 	}
-
-	@Test(expected=IllegalArgumentException.class)
-	public void testGetLowestCommonAncestorWithException1() {
-		this.service.getLowestCommonAncestor(null, "nodeX", "nodeY");
-		Assert.fail();
-	}
-
-	@Test(expected=IllegalArgumentException.class)
-	public void testGetLowestCommonAncestorWithException2() {
-		this.service.getLowestCommonAncestor("user", null, "nodeY");
-		Assert.fail();
-	}
-
-	@Test(expected=IllegalArgumentException.class)
-	public void testGetLowestCommonAncestorWithException3() {
-		this.service.getLowestCommonAncestor("user", "nodeX", null);
-		Assert.fail();
-	}
 }
