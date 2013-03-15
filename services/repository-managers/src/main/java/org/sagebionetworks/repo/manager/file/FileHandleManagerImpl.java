@@ -30,6 +30,7 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.HasPreviewId;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandleInterface;
+import org.sagebionetworks.repo.model.util.ContentTypeUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -51,7 +52,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	
 	static private Log log = LogFactory.getLog(FileHandleManagerImpl.class);
 	
-	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s"; // userid/UUID
+	private static String FILE_TOKEN_TEMPLATE = "%1$s/%2$s/%3$s"; // userid/UUID/filename
 	
 	public static final String NOT_SET = "NOT_SET";
 	
@@ -198,9 +199,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	public static TransferRequest createRequest(String contentType, String userId, String fileName, InputStream inputStream){
 		// Create a token for this file
 		TransferRequest request = new TransferRequest();
-		request.setContentType(contentType);
+		request.setContentType(ContentTypeUtils.getContentType(contentType, fileName));
 		request.setS3bucketName(StackConfiguration.getS3Bucket());
-		request.setS3key(String.format(FILE_TOKEN_TEMPLATE, userId, UUID.randomUUID().toString()));
+		request.setS3key(String.format(FILE_TOKEN_TEMPLATE, userId, UUID.randomUUID().toString(), fileName));
 		request.setFileName(fileName);
 		request.setInputStream(inputStream);
 		return request;
