@@ -1,5 +1,7 @@
 package org.sagebionetworks.repo.web.service;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +20,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.provenance.Used;
 import org.sagebionetworks.repo.model.provenance.UsedEntity;
+import org.sagebionetworks.repo.model.provenance.UsedURL;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -50,7 +53,7 @@ public class ActivityServiceImpl implements ActivityService {
 	public Activity createActivity(String userId, Activity activity)
 			throws DatastoreException, InvalidModelException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		fillCurrentVersions(activity);
+		verifyUsedEntries(activity);
 		String id = activityManager.createActivity(userInfo, activity);
 		return getActivity(userId, id);
 	}
@@ -68,7 +71,7 @@ public class ActivityServiceImpl implements ActivityService {
 			ConflictingUpdateException, DatastoreException,
 			UnauthorizedException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		fillCurrentVersions(activity);
+		verifyUsedEntries(activity);
 		return activityManager.updateActivity(userInfo, activity);
 	}
 	
@@ -90,22 +93,20 @@ public class ActivityServiceImpl implements ActivityService {
 	/*
 	 * Private Methods
 	 */
-	private void fillCurrentVersions(Activity activity) {
-		// fina any used entities where version is not specified
+	private void verifyUsedEntries(Activity activity) throws InvalidModelException {
+		// Validate Used Entires
+		// For UsedEntity: identify UsedEntities where version is not specified
+		// For UsedURL: validate that URL is properly formed
 		Map<String,List<UsedEntity>> entityIdToUsedEntity = new HashMap<String, List<UsedEntity>>();
 		List<String> lookupCurrentVersion = new ArrayList<String>();
 		if(activity.getUsed() != null) {
 			for(Used used : activity.getUsed()) {
 				if(used instanceof UsedEntity) {
-					UsedEntity ue = (UsedEntity)used;
-					Reference ref = ue.getReference();
-					if(ref != null && ref.getTargetId() != null && ref.getTargetVersionNumber() == null) {
-						lookupCurrentVersion.add(ref.getTargetId());
-						if(!entityIdToUsedEntity.containsKey(ref.getTargetId())) 
-							entityIdToUsedEntity.put(ref.getTargetId(), new ArrayList<UsedEntity>());
-						entityIdToUsedEntity.get(ref.getTargetId()).add(ue);
-					}
+					processUsedEntity(entityIdToUsedEntity, lookupCurrentVersion, (UsedEntity)used);
+				} else if(used instanceof UsedURL) {
+					processUsedURL((UsedURL) used);
 				}
+				
 			}
 		}
 		// look up current versions and set into UsedEntity
@@ -121,6 +122,26 @@ public class ActivityServiceImpl implements ActivityService {
 					}
 				}
 			}
+		}
+	}
+
+	private void processUsedURL(UsedURL used) throws InvalidModelException {
+		try {
+			new URL(used.getUrl());
+		} catch (MalformedURLException e) {
+			throw new InvalidModelException("UsedURL url field is malformed: "+ used.getUrl());
+		}
+	}
+
+	private void processUsedEntity(
+			Map<String, List<UsedEntity>> entityIdToUsedEntity,
+			List<String> lookupCurrentVersion, UsedEntity ue) {
+		Reference ref = ue.getReference();
+		if(ref != null && ref.getTargetId() != null && ref.getTargetVersionNumber() == null) {
+			lookupCurrentVersion.add(ref.getTargetId());
+			if(!entityIdToUsedEntity.containsKey(ref.getTargetId())) 
+				entityIdToUsedEntity.put(ref.getTargetId(), new ArrayList<UsedEntity>());
+			entityIdToUsedEntity.get(ref.getTargetId()).add(ue);
 		}
 	}	
 }
