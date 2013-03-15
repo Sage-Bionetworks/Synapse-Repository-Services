@@ -1,7 +1,7 @@
 package org.sagebionetworks.dynamo.manager;
 
-import static org.mockito.Mockito.any;
-import static org.mockito.Mockito.eq;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -10,10 +10,11 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
 import org.sagebionetworks.dynamo.dao.nodetree.ObsoleteChangeException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -27,7 +28,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 public class NodeTreeUpdateManagerImplTest {
 
 	private NodeTreeUpdateManager man;
-	private NodeTreeDao nodeTreeDaoMock;
+	private NodeTreeUpdateDao nodeTreeDaoMock;
 	private NodeDAO nodeDaoMock;
 
 	private String cSuccess;
@@ -70,7 +71,7 @@ public class NodeTreeUpdateManagerImplTest {
 
 	private void mockNodeTreeDao() {
 
-		this.nodeTreeDaoMock = mock(NodeTreeDao.class);
+		this.nodeTreeDaoMock = mock(NodeTreeUpdateDao.class);
 
 		when(this.nodeTreeDaoMock.create(
 				KeyFactory.stringToKey(this.cSuccess).toString(),
@@ -174,7 +175,7 @@ public class NodeTreeUpdateManagerImplTest {
 		if(AopUtils.isAopProxy(man) && man instanceof Advised) {
 			man = (NodeTreeUpdateManagerImpl)((Advised)man).getTargetSource().getTarget();
 		}
-		ReflectionTestUtils.setField(man, "nodeTreeDao", this.nodeTreeDaoMock);
+		ReflectionTestUtils.setField(man, "nodeTreeUpdateDao", this.nodeTreeDaoMock);
 		ReflectionTestUtils.setField(man, "nodeDao", this.nodeDaoMock);
 	}
 

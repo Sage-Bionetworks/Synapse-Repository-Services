@@ -7,7 +7,7 @@ import java.util.List;
 import org.apache.log4j.Logger;
 import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.dynamo.dao.nodetree.IncompletePathException;
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
 import org.sagebionetworks.dynamo.dao.nodetree.ObsoleteChangeException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -24,19 +24,19 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 
 	private final Logger logger = Logger.getLogger(NodeTreeUpdateManagerImpl.class);
 
-	private final NodeTreeDao nodeTreeDao;
+	private final NodeTreeUpdateDao nodeTreeUpdateDao;
 	private final NodeDAO nodeDao;
 
-	public NodeTreeUpdateManagerImpl(NodeTreeDao nodeTreeDao, NodeDAO nodeDao) {
+	public NodeTreeUpdateManagerImpl(NodeTreeUpdateDao nodeTreeUpdateDao, NodeDAO nodeDao) {
 
-		if (nodeTreeDao == null) {
-			throw new NullPointerException("nodeTreeDao cannot be null");
+		if (nodeTreeUpdateDao == null) {
+			throw new NullPointerException("nodeTreeUpdateDao cannot be null");
 		}
 		if (nodeDao == null) {
 			throw new NullPointerException("nodeDao cannot be null");
 		}
 
-		this.nodeTreeDao = nodeTreeDao;
+		this.nodeTreeUpdateDao = nodeTreeUpdateDao;
 		this.nodeDao = nodeDao;
 	}
 
@@ -49,7 +49,7 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		// Verify with RDS. This is mainly to skip fake messages created by other tests
 		if (!isProd() && !this.nodeExists(childId)) {
 			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
-			this.nodeTreeDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
+			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
 			return;
 		}
 		if (parentId == null) {
@@ -63,13 +63,13 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		try {
 			String cId = KeyFactory.stringToKey(childId).toString();
 			String pId = KeyFactory.stringToKey(parentId).toString();
-			boolean success = this.nodeTreeDao.create(cId, pId, timestamp);
+			boolean success = this.nodeTreeUpdateDao.create(cId, pId, timestamp);
 			if (!success) {
 				String childParent = "("+ childId + ", " + parentId + ")";
 				// This is due to optimistic locking which should rarely happen
 				// Retry just once
 				this.logger.info("Locking detected. Retry creating child-parent pair " + childParent);
-				success = this.nodeTreeDao.create(cId, pId, timestamp);
+				success = this.nodeTreeUpdateDao.create(cId, pId, timestamp);
 				if (!success) {
 					throw new RuntimeException("Create failed for child-parent pair " + childParent);
 				}
@@ -93,7 +93,7 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		// Verify with RDS. This is mainly to skip fake messages created by other tests
 		if (!isProd() && !this.nodeExists(childId)) {
 			this.logger.info("The child " + childId + " does not exist in RDS. Message to be dropped.");
-			this.nodeTreeDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
+			this.nodeTreeUpdateDao.delete(KeyFactory.stringToKey(childId).toString(), timestamp);
 			return;
 		}
 		if (parentId == null) {
@@ -107,13 +107,13 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 		try {
 			String cId = KeyFactory.stringToKey(childId).toString();
 			String pId = KeyFactory.stringToKey(parentId).toString();
-			boolean success = this.nodeTreeDao.update(cId, pId, timestamp);
+			boolean success = this.nodeTreeUpdateDao.update(cId, pId, timestamp);
 			if (!success) {
 				String childParent = "("+ childId + ", " + parentId + ")";
 				// This is due to optimistic locking which should rarely happen
 				// Retry just once
 				this.logger.info("Locking detected. Retry updating child-parent pair " + childParent);
-				success = this.nodeTreeDao.update(cId, pId, timestamp);
+				success = this.nodeTreeUpdateDao.update(cId, pId, timestamp);
 				if (!success) {
 					throw new RuntimeException("Update failed for child-parent pair " + childParent);
 				}
@@ -140,12 +140,12 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 
 		try {
 			String id = KeyFactory.stringToKey(nodeId).toString();
-			boolean success = this.nodeTreeDao.delete(id, timestamp);
+			boolean success = this.nodeTreeUpdateDao.delete(id, timestamp);
 			if (!success) {
 				// This is due to optimistic locking which should rarely happen
 				// Retry just once
 				this.logger.info("Locking detected. Retry deleting node" + nodeId);
-				success = this.nodeTreeDao.delete(id, timestamp);
+				success = this.nodeTreeUpdateDao.delete(id, timestamp);
 				if (!success) {
 					throw new RuntimeException("DELETE failed for node " + nodeId);
 				}
@@ -176,11 +176,11 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 					// Handling the root
 					String rootId = path.get(i);
 					String rId = KeyFactory.stringToKey(rootId).toString();
-					this.nodeTreeDao.create(rId, rId, new Date());
+					this.nodeTreeUpdateDao.create(rId, rId, new Date());
 				} else {
 					String cId = KeyFactory.stringToKey(path.get(i)).toString();
 					String pId = KeyFactory.stringToKey(path.get(i - 1)).toString();
-					this.nodeTreeDao.create(cId, pId, new Date());
+					this.nodeTreeUpdateDao.create(cId, pId, new Date());
 				}
 			}
 		} catch (NotFoundException e) {
@@ -202,7 +202,7 @@ public class NodeTreeUpdateManagerImpl implements NodeTreeUpdateManager {
 			String cId = KeyFactory.stringToKey(nodeId).toString();
 			Date timestamp = new Date();
 			this.logger.info("Node " + nodeId + " does not exist. Deleting it again with timestamp [" + timestamp + "].");
-			this.nodeTreeDao.delete(cId, timestamp);
+			this.nodeTreeUpdateDao.delete(cId, timestamp);
 			this.logger.info("Node " + nodeId + " successfully deleted.");
 		}
 	}

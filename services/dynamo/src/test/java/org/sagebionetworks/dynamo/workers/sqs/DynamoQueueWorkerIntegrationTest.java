@@ -9,7 +9,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageReceiver;
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeUpdateDao;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -25,20 +26,12 @@ public class DynamoQueueWorkerIntegrationTest {
 
 	public static final long MAX_WAIT = 60 * 1000; // one minute
 
-	@Autowired
-	private EntityManager entityManager;
-
-	@Autowired
-	private UserProvider userProvider;
-
-	@Autowired
-	private NodeTreeDao nodeTreeDao;
-
-	@Autowired
-	private MessageReceiver dynamoQueueMessageRetriever;
-
-	@Autowired
-	private MessageReceiver dynamoQueueMessageRemover;
+	@Autowired private EntityManager entityManager;
+	@Autowired private UserProvider userProvider;
+	@Autowired private NodeTreeQueryDao nodeTreeQueryDao;
+	@Autowired private NodeTreeUpdateDao nodeTreeUpdateDao;
+	@Autowired private MessageReceiver dynamoQueueMessageRetriever;
+	@Autowired private MessageReceiver dynamoQueueMessageRemover;
 
 	private Project project;
 
@@ -47,7 +40,8 @@ public class DynamoQueueWorkerIntegrationTest {
 
 		Assert.assertNotNull(this.entityManager);
 		Assert.assertNotNull(this.userProvider);
-		Assert.assertNotNull(this.nodeTreeDao);
+		Assert.assertNotNull(this.nodeTreeQueryDao);
+		Assert.assertNotNull(this.nodeTreeUpdateDao);
 		Assert.assertNotNull(this.dynamoQueueMessageRetriever);
 
 		// Empty the dynamo queue
@@ -57,9 +51,9 @@ public class DynamoQueueWorkerIntegrationTest {
 		}
 
 		// Clear dynamo by removing the root
-		String root = this.nodeTreeDao.getRoot();
+		String root = this.nodeTreeQueryDao.getRoot();
 		if (root != null) {
-			this.nodeTreeDao.delete(root, new Date());
+			this.nodeTreeUpdateDao.delete(root, new Date());
 		}
 
 		// Create a project
@@ -85,9 +79,9 @@ public class DynamoQueueWorkerIntegrationTest {
 			count = this.dynamoQueueMessageRemover.triggerFired();
 		}
 		// Clear Dynamo
-		String root = this.nodeTreeDao.getRoot();
+		String root = this.nodeTreeQueryDao.getRoot();
 		if (root != null) {
-			this.nodeTreeDao.delete(root, new Date());
+			this.nodeTreeUpdateDao.delete(root, new Date());
 		}
 	}
 
@@ -97,12 +91,12 @@ public class DynamoQueueWorkerIntegrationTest {
 			// Pause 1 second for eventual consistency
 			// Wait at most 9 seconds
 			Thread.sleep(1500);
-			List<String> results = this.nodeTreeDao.getAncestors(
+			List<String> results = this.nodeTreeQueryDao.getAncestors(
 					KeyFactory.stringToKey(this.project.getId()).toString());
 			Assert.assertNotNull(results);
 			if (results.size() > 0) {
 				// At least the root as the ancestor
-				String root = this.nodeTreeDao.getRoot();
+				String root = this.nodeTreeQueryDao.getRoot();
 				Assert.assertNotNull(root);
 				Assert.assertEquals(root, results.get(0));
 				break;

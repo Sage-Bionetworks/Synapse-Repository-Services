@@ -26,9 +26,12 @@ import com.amazonaws.services.dynamodb.model.QueryResult;
  *
  * @author Eric Wu
  */
-public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
+public class NodeTreeDaoNodeLineageImpl implements NodeTreeUpdateDao, NodeTreeQueryDao {
 
 	private final Logger logger = Logger.getLogger(NodeTreeDaoNodeLineageImpl.class);
+
+	/** The maximum number of items to retrieve per page. */
+	private static final int MAX_PAGE_SIZE = 2000;
 
 	private final AmazonDynamoDB dynamoClient;
 	private final DynamoDBMapper writeMapper;
@@ -347,8 +350,9 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 			throw new IllegalArgumentException("Page size must be greater than 0.");
 		}
 
-		Key lastKeyEvaluated = this.createKey(nodeId, lastDescIdExcl);
-		List<NodeLineage> descList = this.getDescendants(nodeId, pageSize, lastKeyEvaluated, false);
+		final boolean consistRead = false;
+		Key lastKeyEvaluated = this.createPagingKey(nodeId, lastDescIdExcl, consistRead);
+		List<NodeLineage> descList = this.getDescendants(nodeId, pageSize, lastKeyEvaluated, consistRead);
 		List<String> results = new ArrayList<String>(descList.size());
 		for (NodeLineage desc : descList) {
 			results.add(desc.getAncestorOrDescendantId());
@@ -369,103 +373,14 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 			throw new IllegalArgumentException("Page size must be greater than 0.");
 		}
 
-		Key lastKeyEvaluated = this.createKey(nodeId, lastDescIdExcl);
-		List<NodeLineage> descList = this.getDescendants(nodeId, generation, pageSize, lastKeyEvaluated, false);
+		final boolean consistRead = false;
+		Key lastKeyEvaluated = this.createPagingKey(nodeId, lastDescIdExcl, consistRead);
+		List<NodeLineage> descList = this.getDescendants(nodeId, generation, pageSize, lastKeyEvaluated, consistRead);
 		List<String> results = new ArrayList<String>(descList.size());
 		for (NodeLineage desc : descList) {
 			results.add(desc.getAncestorOrDescendantId());
 		}
 		return results;
-	}
-
-	@Override
-	public List<String> getChildren(String nodeId, int pageSize, String lastDescIdExcl) {
-		// Children are exactly one generation away
-		return this.getDescendants(nodeId, 1, pageSize, lastDescIdExcl);
-	}
-
-	@Override
-	public List<String> getPath(String nodeX, String nodeY)
-			throws IncompletePathException {
-
-		if (nodeX == null) {
-			throw new NullPointerException();
-		}
-		if (nodeY == null) {
-			throw new NullPointerException();
-		}
-		if (nodeX.equals(nodeY)) {
-			List<String> path = new ArrayList<String>(1);
-			path.add(nodeX);
-			return path;
-		}
-
-		List<NodeLineage> pathX = this.getCompletePathFromRoot(nodeX, this.readMapper);
-		List<NodeLineage> pathY = this.getCompletePathFromRoot(nodeY, this.readMapper);
-
-		// X and Y are not on the same lineage if their depth are the same
-		int depthX = pathX.size();
-		int depthY = pathY.size();
-		if (depthX == depthY) {
-			return null;
-		}
-		// Which is deeper?
-		// If X and Y are on the same lineage, the deeper node is the descendant
-		// We walk the deeper path to find the ancestor
-		List<NodeLineage> path = depthX > depthY ? pathX : pathY;
-		String descendant = depthX > depthY ? nodeX : nodeY;
-		String ancestor = depthX > depthY ? nodeY : nodeX;
-
-		List<NodeLineage> pathInBetween = null;
-		for (int i = 0; i < path.size(); i++) {
-			NodeLineage lineage = path.get(i);
-			if (lineage.getAncestorOrDescendantId().equals(ancestor)) {
-				pathInBetween = new ArrayList<NodeLineage>(path.subList(i, path.size()));
-				break;
-			}
-		}
-
-		if (pathInBetween == null) {
-			return null;
-		}
-
-		List<String> results = new ArrayList<String>(pathInBetween.size() + 1);
-		for (int i = 0; i < pathInBetween.size(); i++) {
-			results.add(pathInBetween.get(i).getAncestorOrDescendantId());
-		}
-		results.add(descendant);
-		return results;
-	}
-
-	@Override
-	public String getLowestCommonAncestor(String nodeX, String nodeY)
-			throws IncompletePathException {
-
-		if (nodeX == null) {
-			throw new NullPointerException();
-		}
-		if (nodeY == null) {
-			throw new NullPointerException();
-		}
-
-		// A special situation where one is the ancestor of another
-		List<String> path = this.getPath(nodeX, nodeY);
-		if (path != null) {
-			return path.get(0);
-		}
-
-		List<NodeLineage> pathX = this.getCompletePathFromRoot(nodeX, this.readMapper);
-		List<NodeLineage> pathY = this.getCompletePathFromRoot(nodeY, this.readMapper);
-		String node = null;
-		for (int i = 0; i < pathX.size() && i < pathY.size(); i++) {
-			String nX = pathX.get(i).getAncestorOrDescendantId();
-			String nY = pathY.get(i).getAncestorOrDescendantId();
-			if (!nX.equals(nY)) {
-				break;
-			}
-			node = nX;
-		}
-		return node;
 	}
 
 	/////////////////////////////////////////////////////////////////////////////////////
@@ -616,7 +531,7 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 			// call for the next page if needed. Iterating over the list fetches the whole
 			// collection page by page.
 			descList.add(new NodeLineage(dbo));
-			if (descList.size() == NodeTreeDao.MAX_PAGE_SIZE) {
+			if (descList.size() == MAX_PAGE_SIZE) {
 				// Are we querying the root for its descendants?
 				logger.error("Max page size reached for the descendants of node " + nodeId);
 				break;
@@ -667,8 +582,8 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 		assert hashKey != null;
 		assert pageSize > 0;
 
-		if (pageSize > NodeTreeDao.MAX_PAGE_SIZE) {
-			pageSize = NodeTreeDao.MAX_PAGE_SIZE;
+		if (pageSize > MAX_PAGE_SIZE) {
+			pageSize = MAX_PAGE_SIZE;
 		}
 
 		String tableName = NodeLineageMapperConfig
@@ -704,20 +619,30 @@ public class NodeTreeDaoNodeLineageImpl implements NodeTreeDao {
 	/**
 	 * Creates the key of the last item to get the next page.
 	 */
-	private Key createKey(String nodeId, String descId) throws IncompletePathException {
+	private Key createPagingKey(String nodeId, String descId, boolean consistRead) throws IncompletePathException {
 
 		if (descId == null) {
-			return null; // Null key fetches first page
+			return null; // Null key fetches the first page
 		}
 
 		assert nodeId != null;
 
-		List<String> path = this.getPath(nodeId, descId);
-		if (path == null) {
-			throw new IncompletePathException("Path does not exist between nodes " + nodeId + " and " + descId);
+		DynamoDBMapper mapper = consistRead ? this.writeMapper : this.readMapper;
+
+		int distance = -1;
+		List<NodeLineage> path = this.getCompletePathFromRoot(descId, mapper);
+		for (int i = 0; i < path.size(); i++) {
+			NodeLineage lineage = path.get(i);
+			String ancId = lineage.getAncestorOrDescendantId();
+			if (nodeId.equals(ancId)) {
+				distance = path.size() - i;
+				break;
+			}
+		}
+		if (distance < 0) {
+			throw new IncompletePathException("Node " + nodeId + " is not on the ancestor path of " + descId);
 		}
 
-		int distance = path.size() - 1;
 		String hashKey = DboNodeLineage.createHashKey(nodeId, LineageType.DESCENDANT);
 		AttributeValue hashKeyValue = new AttributeValue().withS(hashKey);
 		String rangeKey = DboNodeLineage.createRangeKey(distance, descId);
