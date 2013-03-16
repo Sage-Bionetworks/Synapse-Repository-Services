@@ -16,6 +16,8 @@ public class ActivityBackup {
     private String modifiedBy;
     private Set<Used> used;
     
+    public ActivityBackup() { }
+    
 	public ActivityBackup(String id, String name, String description,
 			String etag, Long createdOn, Long modifiedOn, String createdBy,
 			String modifiedBy, Set<Used> used) {
