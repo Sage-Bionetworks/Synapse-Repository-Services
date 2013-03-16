@@ -187,7 +187,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 		UserInfo userInfo = userManager.getUserInfo(userName);
 		QueryResults<Submission> res = submissionManager.getAllSubmissions(userInfo, evalId, status, limit, offset);
 		return new PaginatedResults<Submission>(
-				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_EVAL_ID_ADMIN,
+				request.getServletPath() + makeEvalIdUrl(UrlHelpers.SUBMISSION_WITH_EVAL_ID_ADMIN, evalId),
 				res.getResults(),
 				res.getTotalNumberOfResults(),
 				offset,
@@ -204,7 +204,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 		UserInfo userInfo = userManager.getUserInfo(userName);
 		QueryResults<SubmissionBundle> res = submissionManager.getAllSubmissionBundles(userInfo, evalId, status, limit, offset);
 		return new PaginatedResults<SubmissionBundle>(
-				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_EVAL_ID_ADMIN_BUNDLE,
+				request.getServletPath() + makeEvalIdUrl(UrlHelpers.SUBMISSION_WITH_EVAL_ID_ADMIN_BUNDLE, evalId),
 				res.getResults(),
 				res.getTotalNumberOfResults(),
 				offset,
@@ -219,7 +219,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, NotFoundException {
 		QueryResults<Submission> res = submissionManager.getAllSubmissionsByUser(princpalId, limit, offset);
 		return new PaginatedResults<Submission>(
-				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_EVAL_ID,
+				request.getServletPath(),
 				res.getResults(),
 				res.getTotalNumberOfResults(),
 				offset,
@@ -235,7 +235,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 			throws DatastoreException, NotFoundException {
 		QueryResults<SubmissionBundle> res = submissionManager.getAllSubmissionBundlesByUser(princpalId, limit, offset);
 		return new PaginatedResults<SubmissionBundle>(
-				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_EVAL_ID_ADMIN,
+				request.getServletPath(),
 				res.getResults(),
 				res.getTotalNumberOfResults(),
 				offset,
@@ -252,7 +252,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 		UserInfo userInfo = userManager.getUserInfo(userName);
 		QueryResults<Submission> res = submissionManager.getAllSubmissionsByEvaluationAndUser(userInfo, evalId, limit, offset);
 		return new PaginatedResults<Submission>(
-				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_EVAL_ID,
+				request.getServletPath() + makeEvalIdUrl(UrlHelpers.SUBMISSION_WITH_EVAL_ID, evalId),
 				res.getResults(),
 				res.getTotalNumberOfResults(),
 				offset,
@@ -269,7 +269,7 @@ public class EvaluationServiceImpl implements EvaluationService {
 		UserInfo userInfo = userManager.getUserInfo(userName);
 		QueryResults<SubmissionBundle> res = submissionManager.getAllSubmissionBundlesByEvaluationAndUser(userInfo, evalId, limit, offset);
 		return new PaginatedResults<SubmissionBundle>(
-				request.getServletPath() + UrlHelpers.SUBMISSION_WITH_EVAL_ID_BUNDLE,
+				request.getServletPath() + makeEvalIdUrl(UrlHelpers.SUBMISSION_WITH_EVAL_ID_BUNDLE, evalId),
 				res.getResults(),
 				res.getTotalNumberOfResults(),
 				offset,
@@ -283,6 +283,18 @@ public class EvaluationServiceImpl implements EvaluationService {
 	public long getSubmissionCount(String evalId) throws DatastoreException,
 			NotFoundException {
 		return submissionManager.getSubmissionCount(evalId);
+	}
+	
+	/**
+	 * Inserts an evaluation ID into a provided URL anywhere the
+	 * EVALUATION_ID_PATH_VAR is found.
+	 * 
+	 * @param evalId
+	 * @param url
+	 * @return
+	 */
+	private String makeEvalIdUrl(String evalId, String url) {
+		return url.replace(UrlHelpers.EVALUATION_ID_PATH_VAR, evalId);
 	}
 	
 }
