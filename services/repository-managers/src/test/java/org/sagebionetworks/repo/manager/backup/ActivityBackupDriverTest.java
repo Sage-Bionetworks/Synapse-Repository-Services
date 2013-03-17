@@ -27,6 +27,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.provenance.Used;
 import org.sagebionetworks.repo.model.provenance.UsedEntity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -57,6 +58,17 @@ public class ActivityBackupDriverTest {
 							if (act==null) throw new NotFoundException();
 							return act;
 						} else if (method.equals(ActivityDAO.class.getMethod("create", Activity.class))) {
+							Activity act = (Activity)args[0];
+							if (act.getId()==null) {
+								if (acts.containsKey(""+nextKey)) throw new IllegalStateException();
+								act.setId(String.valueOf(nextKey++));
+							} else {
+								if (acts.containsKey(act.getId())) throw new  RuntimeException("already exists");
+								nextKey = Long.parseLong(act.getId())+1;
+							}
+							acts.put(act.getId(), act);
+							return act.getId();
+						} else if (method.equals(ActivityDAO.class.getMethod("createFromBackup", Activity.class))) {
 							Activity act = (Activity)args[0];
 							if (act.getId()==null) {
 								if (acts.containsKey(""+nextKey)) throw new IllegalStateException();
@@ -106,8 +118,7 @@ public class ActivityBackupDriverTest {
 		sourceDriver = new ActivityBackupDriver(srcActivityDAO);
 		destinationDriver = new ActivityBackupDriver(dstActivityDAO);
 	}
-	
-	@Ignore
+		
 	@Test
 	public void testRoundTrip() throws IOException, DatastoreException, NotFoundException, InterruptedException, InvalidModelException, ConflictingUpdateException{
 		// Create a temp file
@@ -144,7 +155,7 @@ public class ActivityBackupDriverTest {
 		act.setModifiedOn(new Date());
 		act.setCreatedBy("1");
 		act.setModifiedBy("2");
-		Set<UsedEntity> used = new HashSet<UsedEntity>();
+		Set<Used> used = new HashSet<Used>();
 		UsedEntity ue = new UsedEntity();
 		ue.setWasExecuted(true);
 		used.add(ue);

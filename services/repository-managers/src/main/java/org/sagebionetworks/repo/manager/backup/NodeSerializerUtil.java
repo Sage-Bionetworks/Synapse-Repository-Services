@@ -24,8 +24,9 @@ import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.backup.WikiPageAttachmentBackup;
 import org.sagebionetworks.repo.model.backup.WikiPageBackup;
-import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.provenance.Used;
 import org.sagebionetworks.repo.model.provenance.UsedEntity;
+import org.sagebionetworks.repo.model.provenance.UsedURL;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 import com.thoughtworks.xstream.XStream;
@@ -43,9 +44,10 @@ public class NodeSerializerUtil  {
 	private static final String ALIAS_NODE_REVISION = "node-revision";
 	private static final String ALIAS_ANNOTATIONS = "annotations";
 	private static final String ALIAS_NAME_SPACE = "name-space";
-	private static final String ALIAS_ACTIVITY = "activity";
-	private static final String ALIAS_ACTIVITY_BACKUP = "activity-backup";
+	private static final String ALIAS_ACTIVITY_BACKUP = "activity-backup";	
+	private static final String ALIAS_USED_INTERFACE = "used-interface";
 	private static final String ALIAS_USED_ENTITY = "used-entity";
+	private static final String ALIAS_USED_URL = "used-url";
 	private static final String ALIAS_COMPETITION = "competition";
 	private static final String ALIAS_SUBMISSION = "submission";
 	private static final String ALIAS_TRASHED_ENTITY = "trashed-entity";
@@ -156,10 +158,10 @@ public class NodeSerializerUtil  {
 		xstream.toXML(actBackup, writer);
 	}
 	
-	public static Activity readActivityBackup(InputStream in) {
+	public static ActivityBackup readActivityBackup(InputStream in) {
 		InputStreamReader reader = new InputStreamReader(in);
 		XStream xstream = createXStream();
-		return (Activity)xstream.fromXML(reader);
+		return (ActivityBackup)xstream.fromXML(reader);
 	}
 	
 	public static void writeCompetitionBackup(EvaluationBackup cb, OutputStream out) {
@@ -242,9 +244,10 @@ public class NodeSerializerUtil  {
 		xstream.alias(ALIAS_NODE_REVISION, NodeRevisionBackup.class);
 		xstream.alias(ALIAS_ANNOTATIONS, Annotations.class);
 		xstream.alias(ALIAS_NAME_SPACE, NamedAnnotations.class);
-		xstream.alias(ALIAS_ACTIVITY, Activity.class);
 		xstream.alias(ALIAS_ACTIVITY_BACKUP, ActivityBackup.class);
+		xstream.alias(ALIAS_USED_INTERFACE, Used.class);
 		xstream.alias(ALIAS_USED_ENTITY, UsedEntity.class);
+		xstream.alias(ALIAS_USED_URL, UsedURL.class);
 		xstream.alias(ALIAS_COMPETITION, EvaluationBackup.class);
 		xstream.alias(ALIAS_SUBMISSION, SubmissionBackup.class);
 		xstream.alias(ALIAS_TRASHED_ENTITY, TrashedEntity.class);

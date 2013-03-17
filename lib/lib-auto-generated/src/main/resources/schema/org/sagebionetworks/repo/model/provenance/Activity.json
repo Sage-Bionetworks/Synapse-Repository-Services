@@ -44,11 +44,11 @@
 		},
 		"used": {
 			"type": "array",
-			"description": "The entity references used by this Activity.",
+			"description": "The entities used by this Activity.",
 			"uniqueItems": true,
 			"contentEncoding": "binary",
 			"items": {
-				"$ref": "org.sagebionetworks.repo.model.provenance.UsedEntity"
+				"$ref": "org.sagebionetworks.repo.model.provenance.Used"
 			}
 		}
 	}

@@ -20,6 +20,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.provenance.Used;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -112,8 +113,8 @@ public class ActivityBackupDriver implements GenericBackupDriver {
 				}
 				
 				// This is a backup file.
-				Activity backup = NodeSerializerUtil.readActivityBackup(zin);				
-				createOrUpdateActivity(backup);
+				ActivityBackup backup = NodeSerializerUtil.readActivityBackup(zin);				
+				createOrUpdateActivity(createActivity(backup));
 				
 				// Append this id to the log.
 				progress.appendLog(backup.getId().toString());
@@ -144,7 +145,7 @@ public class ActivityBackupDriver implements GenericBackupDriver {
 		}
 		if (null==existingActivity) {
 			// create
-			activityDAO.create(act);
+			activityDAO.createFromBackup(act);
 		} else {
 			// Update only when backup is different from the current system
 			if (!existingActivity.getEtag().equals(act.getEtag())) {
@@ -185,7 +186,8 @@ public class ActivityBackupDriver implements GenericBackupDriver {
 		if(backup.getModifiedOn() != null) act.setModifiedOn(new Date(backup.getModifiedOn()));
 		act.setCreatedBy(backup.getCreatedBy());
 		act.setModifiedBy(backup.getModifiedBy());
-		act.setUsed(backup.getUsed());
+		Set<Used> usedEntityList = backup.getUsed();
+		act.setUsed(usedEntityList);
 		return act;
 	}
 	

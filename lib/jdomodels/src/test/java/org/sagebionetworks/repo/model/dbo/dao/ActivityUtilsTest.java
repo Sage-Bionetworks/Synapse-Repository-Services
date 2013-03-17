@@ -11,7 +11,9 @@ import org.junit.Test;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOActivity;
 import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.provenance.Used;
 import org.sagebionetworks.repo.model.provenance.UsedEntity;
+import org.sagebionetworks.repo.model.provenance.UsedURL;
 
 public class ActivityUtilsTest {
 
@@ -29,7 +31,10 @@ public class ActivityUtilsTest {
 		ref.setTargetVersionNumber((long)1);
 		usedEnt.setReference(ref);
 		usedEnt.setWasExecuted(true);
-		Set<UsedEntity> used = new HashSet<UsedEntity>();
+		Set<Used> used = new HashSet<Used>();
+		UsedURL ux = new UsedURL();
+		ux.setUrl("http://url.com");
+		used.add(ux);
 		used.add(usedEnt);
 		dto.setUsed(used);
 		return dto;

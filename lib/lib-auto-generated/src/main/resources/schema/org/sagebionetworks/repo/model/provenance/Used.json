@@ -1,0 +1,15 @@
+{
+	"title": "Used Record",
+	"description": "Interface for JSON schema for a Used record in Provenance",
+	"type": "interface",
+	"properties": {
+		"wasExecuted": {
+			"type": "boolean",
+			"name": "WasExecuted",
+			"description": "The enclosed entity was used and also executed in the Activity"
+		},			
+        "concreteType":{
+            "type":"string"
+        }
+	}
+}

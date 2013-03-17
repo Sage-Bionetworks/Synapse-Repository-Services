@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.backup.migration.DependencyManager;
+import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -23,6 +24,9 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
@@ -46,7 +50,39 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	StackStatusManager stackStatusManager;	
 	@Autowired
 	DependencyManager dependencyManager;
+	@Autowired
+	MessageSyndication messageSyndication;
 	
+	/**
+	 * Spring will use this constructor
+	 */
+	public AdministrationServiceImpl(){
+		
+	}
+	/**
+	 * IoC constructor
+	 * 
+	 * @param backupDaemonLauncher
+	 * @param objectTypeSerializer
+	 * @param userManager
+	 * @param stackStatusManager
+	 * @param dependencyManager
+	 * @param messageSyndication
+	 */
+	public AdministrationServiceImpl(BackupDaemonLauncher backupDaemonLauncher,
+			ObjectTypeSerializer objectTypeSerializer, UserManager userManager,
+			StackStatusManager stackStatusManager,
+			DependencyManager dependencyManager,
+			MessageSyndication messageSyndication) {
+		super();
+		this.backupDaemonLauncher = backupDaemonLauncher;
+		this.objectTypeSerializer = objectTypeSerializer;
+		this.userManager = userManager;
+		this.stackStatusManager = stackStatusManager;
+		this.dependencyManager = dependencyManager;
+		this.messageSyndication = messageSyndication;
+	}
+
 	@Override
 	public PaginatedResults<MigratableObjectData> getAllBackupObjects(
 			String userId, Integer offset, Integer limit, Boolean  includeDependencies)
@@ -188,6 +224,21 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		// Get the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return stackStatusManager.updateStatus(userInfo, updatedValue);
+	}
+
+	@Override
+	public ChangeMessages listChangeMessages(String userId, Long startChangeNumber, ObjectType type, Long limit) throws DatastoreException, NotFoundException {
+		// Get the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
+		return messageSyndication.listChanges(startChangeNumber, type, limit);
+	}
+
+	@Override
+	public PublishResults rebroadcastChangeMessagesToQueue(String userId, String queueName, Long startChangeNumber, ObjectType type, Long limit) throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
+		return messageSyndication.rebroadcastChangeMessagesToQueue(queueName, type, startChangeNumber, limit);
 	}
 
 }
