@@ -5,6 +5,8 @@ import java.util.List;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public interface SubmissionDAO {
@@ -13,10 +15,12 @@ public interface SubmissionDAO {
 	 * Create a new Submission
 	 * 
 	 * @param dto
+	 * @param node
+	 * @param annos
+	 * @return
 	 * @throws DatastoreException
-	 * @return the ID of the newly-created object
 	 */
-	public String create(Submission dto) throws DatastoreException;
+	public String create(Submission dto, EntityWithAnnotations<? extends Entity> ewa) throws DatastoreException;
 
 	/**
 	 * Get a Submission by ID
@@ -120,6 +124,17 @@ public interface SubmissionDAO {
 			throws DatastoreException, NotFoundException;
 
 	public long getCountByEvaluationAndUser(String evalId, String userId)
+			throws DatastoreException, NotFoundException;
+
+	/**
+	 * Get the Entity and Annotations for a specified Submission.
+	 * 
+	 * @param submissionId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	EntityWithAnnotations<? extends Entity> getSubmissionEWA(String submissionId)
 			throws DatastoreException, NotFoundException;
 
 }

@@ -21,6 +21,8 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -87,7 +89,7 @@ public class SubmissionStatusDAOImplTest {
         submission.setUserId(userId);
         submission.setEvaluationId(evalId);
         submission.setCreatedOn(new Date());
-        submissionId = submissionDAO.create(submission);
+        submissionId = submissionDAO.create(submission, new EntityWithAnnotations<Entity>());
     }
     
     @After

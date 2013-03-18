@@ -10,6 +10,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.QueryResults;

@@ -22,9 +22,13 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +49,8 @@ public class SubmissionDAOImplTest {
     EvaluationDAO evaluationDAO;
 	@Autowired
 	NodeDAO nodeDAO;
+	@Autowired
+	FileHandleDao fileHandleDAO;
  
 	private String nodeId = null;
     private String submissionId = "206";
@@ -53,15 +59,29 @@ public class SubmissionDAOImplTest {
     private String evalId;
     private String evalId_does_not_exist = "456";
     private String name = "test submission";
+    private String fileHandleId;
     private Long versionNumber = 1L;
     private Submission submission;
+    private EntityWithAnnotations<? extends Entity> ewa = new EntityWithAnnotations<Entity>();
     
     @Before
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
+    	// create a file handle
+		PreviewFileHandle meta = new PreviewFileHandle();
+		meta.setBucketName("bucketName");
+		meta.setKey("key");
+		meta.setContentType("content type");
+		meta.setContentSize(123l);
+		meta.setContentMd5("md5");
+		meta.setCreatedBy("" + userId);
+		meta.setFileName("preview.jpg");
+		fileHandleId = fileHandleDAO.createFile(meta).getId();
+		
     	// create a node
   		Node toCreate = NodeTestUtils.createNew(name, Long.parseLong(userId));
     	toCreate.setVersionComment("This is the first version of the first node ever!");
     	toCreate.setVersionLabel("0.0.1");
+    	toCreate.setFileHandleId(fileHandleId);
     	nodeId = nodeDAO.createNew(toCreate);
     	
     	// create a Evaluation
@@ -91,13 +111,11 @@ public class SubmissionDAOImplTest {
         submission.setEntityId(nodeId);
         submission.setVersionNumber(versionNumber);
         submission.setUserId(userId);
+        submission.setFileHandleId(fileHandleId);
     }
     
     @After
     public void tearDown() throws DatastoreException {
-    	try {
-    		nodeDAO.delete(nodeId);
-    	} catch (NotFoundException e) {};
 		try {
 			submissionDAO.delete(submissionId);
 		} catch (NotFoundException e)  {};
@@ -107,6 +125,10 @@ public class SubmissionDAOImplTest {
 		try {
 			evaluationDAO.delete(evalId);
 		} catch (NotFoundException e) {};
+    	try {
+    		nodeDAO.delete(nodeId);
+    	} catch (NotFoundException e) {};
+		fileHandleDAO.delete(fileHandleId);
     }
     
     @Test
@@ -114,7 +136,7 @@ public class SubmissionDAOImplTest {
         long initialCount = submissionDAO.getCount();
  
         // create Submission
-        submissionId = submissionDAO.create(submission);
+        submissionId = submissionDAO.create(submission, ewa);
         assertNotNull(submissionId);   
         
         // fetch it
@@ -139,7 +161,7 @@ public class SubmissionDAOImplTest {
     
     @Test
     public void testGetAllByUser() throws DatastoreException, NotFoundException {
-    	submissionId = submissionDAO.create(submission);
+    	submissionId = submissionDAO.create(submission, ewa);
     	
     	// userId should have submissions
     	List<Submission> subs = submissionDAO.getAllByUser(userId, 10, 0);
@@ -156,7 +178,7 @@ public class SubmissionDAOImplTest {
     
     @Test
     public void testGetAllByEvaluation() throws DatastoreException, NotFoundException {
-    	submissionId = submissionDAO.create(submission);
+    	submissionId = submissionDAO.create(submission, ewa);
     	
     	// evalId should have submissions
     	List<Submission> subs = submissionDAO.getAllByEvaluation(evalId, 10, 0);
@@ -174,7 +196,7 @@ public class SubmissionDAOImplTest {
     
     @Test
     public void testGetAllByEvaluationAndStatus() throws DatastoreException, NotFoundException {
-    	submissionId = submissionDAO.create(submission);
+    	submissionId = submissionDAO.create(submission, ewa);
     	
     	// create a SubmissionStatus object
     	SubmissionStatus subStatus = new SubmissionStatus();
@@ -204,7 +226,7 @@ public class SubmissionDAOImplTest {
     
     @Test
     public void testGetAllByEvaluationAndUser() throws DatastoreException, NotFoundException {
-    	submissionId = submissionDAO.create(submission);
+    	submissionId = submissionDAO.create(submission, ewa);
     	
     	// hit evalId and hit user => should find 1 submission
     	List<Submission> subs = submissionDAO.getAllByEvaluationAndUser(evalId, userId, 10, 0);
@@ -251,6 +273,6 @@ public class SubmissionDAOImplTest {
     @Test(expected=IllegalArgumentException.class)
     public void testMissingVersionNumber() {
         submission.setVersionNumber(null);
-        submissionDAO.create(submission);
+        submissionDAO.create(submission, ewa);
     }
 }

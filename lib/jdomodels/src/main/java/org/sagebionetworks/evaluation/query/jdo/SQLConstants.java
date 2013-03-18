@@ -33,7 +33,9 @@ public class SQLConstants {
 	public static final String COL_SUBMISSION_EVAL_ID 			= "EVALUATION_ID";
 	public static final String COL_SUBMISSION_USER_ID 			= "USER_ID";
 	public static final String COL_SUBMISSION_ENTITY_ID 		= "ENTITY_ID";
+	public static final String COL_SUBMISSION_EWA 				= "ENTITY_WITH_ANNOTATIONS";
 	public static final String COL_SUBMISSION_ENTITY_VERSION	= "VERSION";
+	public static final String COL_SUBMISSION_FILE_HANDLE_ID	= "FILE_HANDLE_ID";
 	public static final String COL_SUBMISSION_NAME				= "NAME";
 	public static final String COL_SUBMISSION_CREATED_ON 		= "CREATED_ON";
 	

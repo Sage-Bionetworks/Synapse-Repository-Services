@@ -1,7 +1,5 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Entity;
 
 /**

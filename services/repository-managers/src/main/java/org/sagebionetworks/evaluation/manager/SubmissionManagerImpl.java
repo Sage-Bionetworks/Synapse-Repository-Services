@@ -13,8 +13,12 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -38,6 +42,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Autowired
 	ParticipantManager participantManager;
 	@Autowired
+	EntityManager entityManager;
+	@Autowired
 	NodeManager nodeManager;
 	
 	public SubmissionManagerImpl() {};
@@ -45,12 +51,14 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	// for testing purposes
 	protected SubmissionManagerImpl(IdGenerator idGenerator, SubmissionDAO submissionDAO, 
 			SubmissionStatusDAO submissionStatusDAO, EvaluationManager evaluationManager,
-			ParticipantManager participantManager, NodeManager nodeManager) {
+			ParticipantManager participantManager, EntityManager entityManager,
+			NodeManager nodeManager) {
 		this.idGenerator = idGenerator;
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
 		this.evaluationManager = evaluationManager;
 		this.participantManager = participantManager;
+		this.entityManager = entityManager;
 		this.nodeManager = nodeManager;
 	}
 
@@ -84,8 +92,14 @@ public class SubmissionManagerImpl implements SubmissionManager {
 					" has not joined Evaluation ID: " + evalId);
 		}
 		
-		// ensure entity exists and user has read permissions
-		Node node = nodeManager.get(userInfo, submission.getEntityId());
+		// fetch entity and annotations
+		Node node = nodeManager.getNodeForVersionNumber(
+				userInfo, submission.getEntityId(), submission.getVersionNumber());	
+		Class<? extends Entity> clazz = EntityType.valueOf(node.getNodeType()).getClassForType();
+		EntityWithAnnotations<? extends Entity> ewa = entityManager.getEntityWithAnnotations(
+				userInfo, submission.getEntityId(), clazz);
+		submission.setFileHandleId(node.getFileHandleId());
+		
 		// if no name is provided, use the Entity name
 		if (submission.getName() == null) {
 			submission.setName(node.getName());
@@ -102,7 +116,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setCreatedOn(new Date());
 		
 		// create the Submission	
-		String id = submissionDAO.create(submission);
+		String id = submissionDAO.create(submission, ewa);
 		
 		// create an accompanying SubmissionStatus object
 		SubmissionStatus status = new SubmissionStatus();

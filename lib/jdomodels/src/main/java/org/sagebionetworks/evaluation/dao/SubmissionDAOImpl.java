@@ -1,5 +1,6 @@
 package org.sagebionetworks.evaluation.dao;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -13,7 +14,10 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.query.jdo.SQLConstants;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -90,13 +94,14 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String create(Submission dto) throws DatastoreException {
+	public String create(Submission dto, EntityWithAnnotations<? extends Entity> ewa) throws DatastoreException {
 		EvaluationUtils.ensureNotNull(dto, "Submission");
 		EvaluationUtils.ensureNotNull(dto.getId(), "Submission ID");
 		
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
 		copyDtoToDbo(dto, dbo);
+		copyEWAToSerializedField(ewa, dbo);
 		
 		// Ensure DBO has required information
 		verifySubmissionDBO(dbo);
@@ -106,8 +111,9 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			dbo = basicDao.createNew(dbo);
 			return dbo.getId().toString();
 		} catch (Exception e) {
-			throw new DatastoreException(e.getMessage() + " id=" + dbo.getId() + " userId=" + 
-						dto.getUserId() + " entityId=" + dto.getEntityId(), e);
+			throw new DatastoreException(e.getMessage() + " id=" + dbo.getId() +
+					" userId=" + dto.getUserId() + " entityId=" + dto.getEntityId() +
+					" fileHandleId=" + dto.getFileHandleId(), e);
 		}
 	}
 
@@ -119,6 +125,14 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		Submission dto = new Submission();
 		copyDboToDto(dbo, dto);
 		return dto;
+	}
+	
+	@Override
+	public EntityWithAnnotations<? extends Entity> getSubmissionEWA(String submissionId) throws DatastoreException, NotFoundException {
+		MapSqlParameterSource param = new MapSqlParameterSource();
+		param.addValue(ID, submissionId);
+		SubmissionDBO dbo = basicDao.getObjectById(SubmissionDBO.class, param);
+		return deserializeEntityWithAnnotations(dbo);
 	}
 	
 	@Override
@@ -231,10 +245,11 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	}
 
 	/**
-	 * Copy a SubmissionDBO database object to a Participant data transfer object
+	 * Copy a Submission data transfer object to a SubmissionDBO database object
 	 * 
-	 * @param dto
 	 * @param dbo
+	 * @param dto
+	 * @throws DatastoreException
 	 */
 	protected static void copyDtoToDbo(Submission dto, SubmissionDBO dbo) {	
 		try {
@@ -252,6 +267,14 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		} catch (NumberFormatException e) {
 			throw new NumberFormatException("Invalid Evaluation ID: " + dto.getEvaluationId());
 		}
+		try {
+			if (dto.getFileHandleId() == null || dto.getFileHandleId().equals("0"))
+				dbo.setFileHandleId(null);
+			else
+				dbo.setFileHandleId(Long.parseLong(dto.getFileHandleId()));
+		} catch (NumberFormatException e) {
+			throw new NumberFormatException("Invalid File Handle ID: " + dto.getFileHandleId());
+		}
 		dbo.setEntityId(dto.getEntityId() == null ? null : KeyFactory.stringToKey(dto.getEntityId()));
 		dbo.setVersionNumber(dto.getVersionNumber());
 		dbo.setName(dto.getName());
@@ -259,17 +282,17 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	}
 	
 	/**
-	 * Copy a Submission data transfer object to a SubmissionDBO database object
+	 * Copy a SubmissionDBO database object to a Submission data transfer object
 	 * 
-	 * @param dbo
 	 * @param dto
-	 * @throws DatastoreException
+	 * @param dbo
 	 */
 	protected static void copyDboToDto(SubmissionDBO dbo, Submission dto) throws DatastoreException {
 		dto.setId(dbo.getId() == null ? null : dbo.getId().toString());
 		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
 		dto.setEvaluationId(dbo.getEvalId() == null ? null : dbo.getEvalId().toString());
 		dto.setEntityId(dbo.getEntityId() == null ? null : KeyFactory.keyToString(dbo.getEntityId()));
+		dto.setFileHandleId(dbo.getFileHandleId() == null ? null : dbo.getFileHandleId().toString());
 		dto.setVersionNumber(dbo.getVersionNumber());
 		dto.setName(dbo.getName());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
@@ -285,8 +308,25 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		EvaluationUtils.ensureNotNull(dbo.getUserId(), "User ID");
 		EvaluationUtils.ensureNotNull(dbo.getEntityId(), "Entity ID");
 		EvaluationUtils.ensureNotNull(dbo.getVersionNumber(), "Entity Version");
+		EvaluationUtils.ensureNotNull(dbo.getEntityWithAnnotations(), "Serialized EntityWithAnnotations");
 		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
 		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "Creation date");
+	}
+	
+	protected static void copyEWAToSerializedField(EntityWithAnnotations<? extends Entity> ewa, SubmissionDBO dbo) throws DatastoreException {
+		try {
+			dbo.setEntityWithAnnotations(JDOSecondaryPropertyUtils.compressObject(ewa));
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		}
+	}
+	
+	protected static <T extends Entity> EntityWithAnnotations<T> deserializeEntityWithAnnotations(SubmissionDBO dbo) throws DatastoreException {
+		try {
+			return (EntityWithAnnotations<T>) JDOSecondaryPropertyUtils.decompressedObject(dbo.getEntityWithAnnotations());
+		} catch (IOException e) {
+			throw new DatastoreException(e);
+		}
 	}
 	
 }

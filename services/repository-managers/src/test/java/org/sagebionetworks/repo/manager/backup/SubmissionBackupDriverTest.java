@@ -22,6 +22,9 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityWithAnnotations;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -36,8 +39,10 @@ public class SubmissionBackupDriverTest {
 	
 	Map<String, Submission> srcSubs;
 	Map<String, SubmissionStatus> srcStatuses;
+	Map<String, EntityWithAnnotations<? extends Entity>> srcEWAs;
 	Map<String, Submission> dstSubs;
 	Map<String, SubmissionStatus> dstStatuses;
+	Map<String, EntityWithAnnotations<? extends Entity>> dstEWAs;
 	
 	private SubmissionStatusDAO createSubmissionStatusDAO(final Map<String, SubmissionStatus> statuses) {
 		return (SubmissionStatusDAO)Proxy.newProxyInstance(SubmissionBackupDriverTest.class.getClassLoader(),
@@ -85,22 +90,29 @@ public class SubmissionBackupDriverTest {
 		});
 	}
 	
-	private SubmissionDAO createSubmissionDAO(final Map<String, Submission> subs) {
+	private SubmissionDAO createSubmissionDAO(final Map<String, Submission> subs, final Map<String, EntityWithAnnotations<? extends Entity>> ewas) {
 		return (SubmissionDAO)Proxy.newProxyInstance(SubmissionBackupDriverTest.class.getClassLoader(),
 				new Class<?>[]{SubmissionDAO.class},
                 new InvocationHandler() {
 			@Override
 			public Object invoke(Object synapseClient, Method method, Object[] args)
 					throws Throwable {
-				if (method.equals(SubmissionDAO.class.getMethod("create", Submission.class))) {
+				if (method.equals(SubmissionDAO.class.getMethod("create", Submission.class, new EntityWithAnnotations<Entity>().getClass()))) {
 					Submission sub = (Submission) args[0];
 					subs.put(sub.getId(), sub);
+					EntityWithAnnotations<? extends Entity> ewa = (EntityWithAnnotations<? extends Entity>) args[1];
+					ewas.put(sub.getId(), ewa);
 					return null;
 				} else if (method.equals(SubmissionDAO.class.getMethod("get", String.class))) {
 					Submission sub = subs.get((String) args[0]);
 					if (sub == null)
 						throw new NotFoundException();
 					return sub;
+				} else if (method.equals(SubmissionDAO.class.getMethod("getSubmissionEWA",  String.class))) {
+					EntityWithAnnotations<? extends Entity> ewa = ewas.get(args[0]);
+					if (ewa == null)
+						throw new NotFoundException();
+					return ewa;
 				} else {
 					throw new IllegalArgumentException(method.getName());
 				}
@@ -133,20 +145,26 @@ public class SubmissionBackupDriverTest {
 	@Before
 	public void before() throws Exception {
 		srcSubs = new HashMap<String, Submission>();
-		srcStatuses = new HashMap<String, SubmissionStatus>();
 		dstSubs = new HashMap<String, Submission>();
+		srcStatuses = new HashMap<String, SubmissionStatus>();		
 		dstStatuses = new HashMap<String, SubmissionStatus>();
+		srcEWAs = new HashMap<String, EntityWithAnnotations<? extends Entity>>();
+		dstEWAs = new HashMap<String, EntityWithAnnotations<? extends Entity>>();
 		SubmissionStatusDAO srcSubmissionStatusDAO = createSubmissionStatusDAO(srcStatuses);
-		SubmissionDAO srcSubmissionDAO = createSubmissionDAO(srcSubs);
+		SubmissionDAO srcSubmissionDAO = createSubmissionDAO(srcSubs, srcEWAs);
 		int numSubs = 5;
 		for (int i = 0; i < numSubs; i++) {
-			srcSubmissionDAO.create(createSubmission("" + i));
+			Entity entity = new Folder();
+			entity.setName("foo" + i);
+			EntityWithAnnotations<Entity> ewa = new EntityWithAnnotations<Entity>();
+			ewa.setEntity(entity);
+			srcSubmissionDAO.create(createSubmission("" + i), ewa);
 			srcSubmissionStatusDAO.create(createSubmissionStatus("" + i));
 		}
 		assertEquals(numSubs, srcStatuses.size());
 		assertEquals(numSubs, srcSubs.size());
 		SubmissionStatusDAO dstSubmissionStatusDAO = createSubmissionStatusDAO(dstStatuses);
-		SubmissionDAO dstSubmissionDAO = createSubmissionDAO(dstSubs);
+		SubmissionDAO dstSubmissionDAO = createSubmissionDAO(dstSubs, dstEWAs);
 		sourceDriver = new SubmissionBackupDriver(srcSubmissionDAO, srcSubmissionStatusDAO);
 		destinationDriver = new SubmissionBackupDriver(dstSubmissionDAO, dstSubmissionStatusDAO);
 	}
