@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -79,7 +80,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		try {
 			participantManager.getParticipant(principalId, evalId);
 		} catch (NotFoundException e) {
-			throw new NotFoundException("User Princpal ID: " + principalId + 
+			throw new ForbiddenException("User Princpal ID: " + principalId + 
 					" has not joined Evaluation ID: " + evalId);
 		}
 		
