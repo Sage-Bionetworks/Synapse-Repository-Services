@@ -284,6 +284,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		EvaluationUtils.ensureNotNull(dbo.getEvalId(), "Evaluation ID");
 		EvaluationUtils.ensureNotNull(dbo.getUserId(), "User ID");
 		EvaluationUtils.ensureNotNull(dbo.getEntityId(), "Entity ID");
+		EvaluationUtils.ensureNotNull(dbo.getVersionNumber(), "Entity Version");
 		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
 		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "Creation date");
 	}
