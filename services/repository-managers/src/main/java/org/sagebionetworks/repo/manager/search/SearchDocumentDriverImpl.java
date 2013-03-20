@@ -29,10 +29,14 @@ import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.dao.WikiPageDao;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.query.jdo.NodeAliasCache;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -83,6 +87,9 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	
 	@Autowired
 	NodeManager nodeManager;
+	
+	@Autowired
+	WikiPageDao wikiPageDao;
 		
 	// For now we can just create one of these. We might need to make beans in
 	// the future.
@@ -151,8 +158,17 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		// get the path
 		EntityPath entityPath = getEntityPath(node.getId());
 		
+		WikiPage wikiPage = null;
+		try {
+			Long rootWikiId = wikiPageDao.getRootWiki(node.getId(), ObjectType.ENTITY);
+			WikiPageKey key = new WikiPageKey(node.getId(), ObjectType.ENTITY, rootWikiId.toString());
+			wikiPage = wikiPageDao.get(key);
+		} catch (NotFoundException e) {
+			// no wiki
+		}
+		
 		Document document = formulateSearchDocument(node, rev, benefactorBackup
-				.getAcl(), entityPath);
+				.getAcl(), entityPath, wikiPage);
 		return document;
 	}
 
@@ -187,7 +203,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	@Override
 	public Document formulateSearchDocument(Node node, NodeRevisionBackup rev,
-			AccessControlList acl, EntityPath entityPath) throws DatastoreException, NotFoundException {
+			AccessControlList acl, EntityPath entityPath, WikiPage wikiPage) throws DatastoreException, NotFoundException {
 		DateTime now = DateTime.now();
 		Document document = new Document();
 		DocumentFields fields = new DocumentFields();
@@ -224,6 +240,10 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 		if (null != node.getDescription()) {
 			fields.setDescription(node.getDescription());
 		}
+		if(wikiPage != null && wikiPage.getMarkdown() != null) {
+			fields.setWikiMarkdown(wikiPage.getMarkdown());
+		}		
+		
 		fields.setCreated_by(getDisplayNameForPrincipalId(node.getCreatedByPrincipalId()));
 		fields.setCreated_on(node.getCreatedOn().getTime() / 1000);
 		fields.setModified_by(getDisplayNameForPrincipalId(node.getModifiedByPrincipalId()));

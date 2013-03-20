@@ -11,6 +11,11 @@
 			"description": "The description of this entity.",
 			"title": "Description"
 		},
+		"wikiMarkdown": {
+			"type": "string",
+			"description": "The markdown field of this entity's wiki.",
+			"title": "Wiki Markdown"
+		},
 		"id": {
 			"type": "string",
 			"description": "The unique immutable ID for this entity.  A new ID will be generated for new Entities.  Once issued, this ID is guaranteed to never change or be re-issued"

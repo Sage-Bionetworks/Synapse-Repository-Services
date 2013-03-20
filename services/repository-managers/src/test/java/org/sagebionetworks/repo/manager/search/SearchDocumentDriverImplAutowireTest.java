@@ -39,6 +39,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.org.json.AdapterFactoryImpl;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -152,8 +153,13 @@ public class SearchDocumentDriverImplAutowireTest {
 		JSONObjectAdapter adapter = adapterFactoryImpl.createNew();
 		fakeEntityPath.writeToJSONObject(adapter);		
 		String fakeEntityPathJSONString = adapter.toJSONString();
+		
+		WikiPage wikiPage = new WikiPage();
+		wikiPage.setId("wikiId");
+		wikiPage.setMarkdown("markdown");
+		
 		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				rev, acl, fakeEntityPath);
+				rev, acl, fakeEntityPath, wikiPage);
 		assertEquals(DocumentTypeNames.add, document.getType());
 		assertEquals("en", document.getLang());
 		assertEquals(node.getId(), document.getId());
@@ -169,6 +175,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		
 		assertEquals("study", fields.getNode_type());
 		assertEquals(node.getDescription(), fields.getDescription());
+		assertEquals(wikiPage.getMarkdown(), fields.getWikiMarkdown());
 		// since the Principal doesn't exist, the 'created by' display name defaults to the principal ID
 		assertEquals(""+nonexistantPrincipalId, fields.getCreated_by());
 		assertEquals(new Long(node.getCreatedOn().getTime() / 1000), fields
@@ -251,7 +258,7 @@ public class SearchDocumentDriverImplAutowireTest {
 		Set<ResourceAccess> resourceAccess = new HashSet<ResourceAccess>();
 		acl.setResourceAccess(resourceAccess);
 		Document document = searchDocumentDriver.formulateSearchDocument(node,
-				rev, acl, new EntityPath());
+				rev, acl, new EntityPath(), null);
 		byte[] cloudSearchDocument = SearchDocumentDriverImpl
 				.cleanSearchDocument(document);
 		assertEquals(-1, new String(cloudSearchDocument).indexOf("\\u0019"));
