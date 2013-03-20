@@ -39,11 +39,33 @@ public class EzidClientTest {
 	@Test
 	public void testCreate() throws Exception {
 		final EzidMetadata metadata = new EzidMetadata();
-		// This is an EZID test "domain"
-		// Salt it with a random id
+		// Create a random ID in the EZID test "domain"
 		Random r = new Random();
 		String id = Integer.toHexString(r.nextInt());
 		final String doi = "doi:10.5072/FK2." + id;
+		metadata.setDoi(doi);
+		final String target = "https://synapse.sagebase.org/";
+		metadata.setTarget(target);
+		final String creator = "Test, Something";
+		metadata.setCreator(creator);
+		final String title = "This is a test";
+		metadata.setTitle(title);
+		final String publisher = "Sage Bionetworks";
+		metadata.setPublisher(publisher);
+		final int year = Calendar.getInstance().get(Calendar.YEAR);
+		metadata.setPublicationYear(year);
+		// Create
+		DoiClient client = new EzidClient();
+		client.create(metadata);
+	}
+
+	@Test(expected=RuntimeException.class)
+	public void testCreateWithException() throws Exception {
+		final EzidMetadata metadata = new EzidMetadata();
+		Random r = new Random();
+		String id = Integer.toHexString(r.nextInt());
+		// Invalid doi
+		final String doi = "doi:10.99999/test.invalid." + id;
 		metadata.setDoi(doi);
 		final String target = "https://synapse.sagebase.org/";
 		metadata.setTarget(target);
