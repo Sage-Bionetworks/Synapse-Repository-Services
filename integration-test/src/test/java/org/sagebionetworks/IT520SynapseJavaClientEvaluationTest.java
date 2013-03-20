@@ -388,6 +388,21 @@ public class IT520SynapseJavaClientEvaluationTest {
 			assertTrue("SubmissionBundle contents do not match: " + bundle.toString(), sub.getId().equals(status.getId()));
 		}
 		
+		// verify url in PaginatedResults object contains eval ID (PLFM-1774)
+		subs = synapseOne.getAllSubmissionsByStatus(eval1.getId(), SubmissionStatusEnum.OPEN, 0, 1);
+		assertEquals(2, subs.getTotalNumberOfResults());
+		assertEquals(1, subs.getResults().size());
+		assertTrue(subs.getPaging().get(PaginatedResults.NEXT_PAGE_FIELD).contains(eval1.getId()));
+		
+		subs = synapseOne.getAllSubmissionsByStatus(eval1.getId(), SubmissionStatusEnum.OPEN, 0, 10);
+		subBundles = synapseOne.getAllSubmissionBundlesByStatus(eval1.getId(), SubmissionStatusEnum.OPEN, 0, 10);
+		assertEquals(2, subs.getTotalNumberOfResults());
+		assertEquals(2, subBundles.getTotalNumberOfResults());
+		assertEquals(2, subs.getResults().size());
+		for (Submission s : subs.getResults()) {
+			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
+		}
+		
 		subs = synapseOne.getAllSubmissionsByStatus(eval1.getId(), SubmissionStatusEnum.CLOSED, 0, 10);
 		subBundles = synapseOne.getAllSubmissionBundlesByStatus(eval1.getId(), SubmissionStatusEnum.CLOSED, 0, 10);
 		assertEquals(0, subs.getTotalNumberOfResults());
