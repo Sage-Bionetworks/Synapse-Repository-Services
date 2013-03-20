@@ -27,7 +27,7 @@ public class EzidClientTest {
 		field.setAccessible(true);
 		DefaultHttpClient httpClient = (DefaultHttpClient)field.get(client);
 		assertNotNull(httpClient);
-		assertEquals(Integer.valueOf(6000), httpClient.getParams().getParameter(CoreConnectionPNames.SO_TIMEOUT));
+		assertEquals(Integer.valueOf(9000), httpClient.getParams().getParameter(CoreConnectionPNames.SO_TIMEOUT));
 		assertEquals("Synapse", httpClient.getParams().getParameter(CoreProtocolPNames.USER_AGENT));
 		AuthScope authScope = new AuthScope(AuthScope.ANY_HOST, AuthScope.ANY_PORT, "EZID", AuthPolicy.BASIC);
 		Credentials credentials = httpClient.getCredentialsProvider().getCredentials(authScope);
