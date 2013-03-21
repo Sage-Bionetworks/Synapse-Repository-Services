@@ -1,0 +1,9 @@
+{
+	"description": "Status of DOI creation.",
+	"type": "string",
+	"enum": [
+		"IN_PROCESS",
+		"READY",
+		"ERROR"
+	]
+}
