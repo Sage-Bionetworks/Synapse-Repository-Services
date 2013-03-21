@@ -125,6 +125,9 @@ public class CrowdAuthenticationFilter implements Filter {
 			try {
 				String secretKey = getUsersSecretKey(userId);
 				matchHMACSHA1Signature(req, secretKey);
+				// as part of PLFM-1787 make sure we use the actual email address stored in Crowd, 
+				// not the string passed in by the user, which might have variation in case
+				userId = CrowdAuthUtil.getUser(userId).getEmail();
 			} catch (AuthenticationException e) {
 				reject(req, (HttpServletResponse)servletResponse, e.getMessage());
 				return;

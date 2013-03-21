@@ -195,7 +195,9 @@ public class CrowdAuthUtil {
 				HttpStatus.OK,
 				"Unable to validate session.");
 		
-		return getFromXML("/session/user/@name", sessionXML);
+		// this is a fix for PLFM-1787
+		String userName = getFromXML("/session/user/@name", sessionXML);
+		return getUser(userName).getEmail();
 	}
 	
 	public static void deauthenticate(String token) throws AuthenticationException, IOException {
