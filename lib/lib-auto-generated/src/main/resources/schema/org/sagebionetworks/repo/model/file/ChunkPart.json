@@ -1,0 +1,13 @@
+{
+	"description": "JSON schema for ChunkPart",
+	"properties": {
+		"etag": {
+			"type": "string",
+			"description": "The etag of the part number"
+		},
+		"partNumber": {
+			"description": "The part number",
+			"type": "integer"
+		}
+	}
+}

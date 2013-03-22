@@ -1,0 +1,11 @@
+{
+	"description": "JSON schema for List of ChunkParts.",
+	"properties": {
+		"list": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.file.ChunkPart"
+			}
+		}
+	}
+}

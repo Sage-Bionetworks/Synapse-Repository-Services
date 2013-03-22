@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -16,6 +17,9 @@ import java.util.List;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.methods.HttpPut;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,15 +31,22 @@ import org.sagebionetworks.repo.manager.file.FileUploadResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.ChunkPart;
+import org.sagebionetworks.repo.model.file.ChunkParts;
+import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.repo.web.util.UserProvider;
+import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.s3.AmazonS3Client;
+import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
+import com.amazonaws.services.s3.model.CORSRule;
+import com.amazonaws.services.s3.model.CORSRule.AllowedMethods;
 import com.amazonaws.util.BinaryUtils;
 import com.amazonaws.util.StringInputStream;
 
@@ -148,6 +159,77 @@ public class FileHandleManagerImplAutowireTest {
 			URL presigned = fileUploadManager.getRedirectURLForFileHandle(metaResult.getId());
 			assertNotNull(presigned);
 		}
+	}
+	
+	/**
+	 * The cross-origin resource sharing (CORS) setting are required so the browser javascript code can talk directly to S3.
+	 * 
+	 */
+	@Test
+	public void testCORSSettings(){
+		BucketCrossOriginConfiguration bcoc = fileUploadManager.getBucketCrossOriginConfiguration();
+		assertNotNull(bcoc);
+		assertNotNull(bcoc.getRules());
+		assertEquals(1, bcoc.getRules().size());
+		CORSRule rule = bcoc.getRules().get(0);
+		assertNotNull(rule);
+		assertEquals(FileHandleManager.AUTO_GENERATED_ALLOW_ALL_CORS_RULE_ID, rule.getId());
+		assertNotNull(rule.getAllowedOrigins());
+		assertEquals(1, rule.getAllowedOrigins().size());
+		assertEquals("*", rule.getAllowedOrigins().get(0));
+		assertNotNull(rule.getAllowedMethods());
+		assertTrue(rule.getAllowedMethods().contains(AllowedMethods.GET));
+		assertTrue(rule.getAllowedMethods().contains(AllowedMethods.PUT));
+		assertTrue(rule.getAllowedMethods().contains(AllowedMethods.POST));
+		assertTrue(rule.getAllowedMethods().contains(AllowedMethods.HEAD));
+		assertEquals(300, rule.getMaxAgeSeconds());
+		// the wildcard headers in not working
+//		assertNotNull(rule.getAllowedHeaders());
+//		assertEquals(1, rule.getAllowedHeaders().size());
+//		assertEquals("*", rule.getAllowedHeaders().get(0));
+	}
+	
+	@Test
+	public void testChunckedFileUpload() throws ClientProtocolException, IOException{
+		// First create a chunked file token
+		String fileName = "foo.bar";
+		ChunkedFileToken token = fileUploadManager.createChunkedFileUploadToken(userInfo, fileName, "text/plain");
+		assertNotNull(token);
+		assertNotNull(token.getKey());
+		assertNotNull(token.getUploadId());
+		// the key must start with the user's id
+		assertTrue(token.getKey().startsWith(userInfo.getIndividualGroup().getId()));
+		// Now create a pre-signed URL for the first part
+		URL preSigned = fileUploadManager.createChunkedFileUploadPartURL(userInfo, token, 1);
+		assertNotNull(preSigned);
+		// Now upload the file to the URL
+		// Use the URL to upload a part.
+		HttpPut httppost = new HttpPut(preSigned.toString());
+		String fileBody = "This is the body of the file!!!!!";
+		byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
+		ByteArrayHttpEntity entity = new ByteArrayHttpEntity(fileBodyBytes, fileBodyBytes.length);
+		httppost.setEntity(entity);
+		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(httppost);
+		
+		// Next add the part
+		ChunkPart part = fileUploadManager.addChunkToFile(userInfo, token, 1);
+		
+		// We need a lsit of parts
+		List<ChunkPart> partList = new LinkedList<ChunkPart>();
+		partList.add(part);
+		ChunkParts cp = new ChunkParts();
+		cp.setList(partList);
+		// We are now read to create our file handle from the parts
+		S3FileHandle multiPartHandle = fileUploadManager.completeChunkFileUpload(userInfo, token, cp);
+		assertNotNull(multiPartHandle);
+		System.out.println(multiPartHandle);
+		assertNotNull(multiPartHandle.getBucketName());
+		assertNotNull(multiPartHandle.getKey());
+		assertNotNull(multiPartHandle.getContentSize());
+		assertNotNull(multiPartHandle.getContentType());
+		assertNotNull(multiPartHandle.getCreatedOn());
+		assertNotNull(multiPartHandle.getCreatedBy());
+		
 	}
 	
 }

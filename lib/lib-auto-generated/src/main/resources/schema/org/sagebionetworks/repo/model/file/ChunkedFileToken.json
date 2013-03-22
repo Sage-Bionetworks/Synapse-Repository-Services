@@ -1,0 +1,21 @@
+{
+	"description": "JSON schema for ChunkedFileToken",
+	"properties": {
+		"key": {
+			"type": "string",
+			"description": "The S3 key for this object"
+		},
+		"uploadId": {
+			"description": "The uploadId",
+			"type": "string"
+		},
+		"fileName": {
+			"description": "The name of the file",
+			"type": "string"
+		},
+		"fileContentType": {
+			"description": "The content type of the file",
+			"type": "string"
+		}
+	}
+}

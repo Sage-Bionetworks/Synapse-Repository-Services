@@ -2,6 +2,27 @@
 <head>
 <title>Synapse File Proxy</title>
 </head>
+
+<script>
+	// get a a cookie by name
+	function getCookie(c_name) {
+		var i, x, y, ARRcookies = document.cookie.split(";");
+		for (i = 0; i < ARRcookies.length; i++) {
+			x = ARRcookies[i].substr(0, ARRcookies[i].indexOf("="));
+			y = ARRcookies[i].substr(ARRcookies[i].indexOf("=") + 1);
+			x = x.replace(/^\s+|\s+$/g, "");
+			if (x == c_name) {
+				return unescape(y);
+			}
+		}
+	}
+
+	function myFunction() {
+		x = document.getElementById("tokenShow"); // Find the element
+		x.innerHTML = "org.sagbionetworks.security.user.login.token="+getCookie("org.sagbionetworks.security.user.login.token");
+	}
+</script>
+
 <body>
 	<h1>Upload a file</h1>
 	<ol>
@@ -12,14 +33,19 @@
 				value=<your_session_token>
 				path=/
 			  -->
-			<form name="form" method="post" id="upload" action="/services-file/file/v1/fileHandle" enctype="multipart/form-data">
-				<label for="fileField">Select multiple files to upload. A FileHandle will be created for each file.</label>
-				<input	type="file" name="fileField" required="required" multiple>
-				<br/><br/>
+			<form name="form" method="post" id="upload"
+				action="/services-file/file/v1/fileHandle"
+				enctype="multipart/form-data">
+				<label for="fileField">Select multiple files to upload. A
+					FileHandle will be created for each file.</label> <input type="file"
+					name="fileField" required="required" multiple> <br /> <br />
 				<input type="submit" name="submit" value="Submit">
 			</form>
 		</li>
-</ol> 
-<a href="http://localhost:8080/services-repository-develop-SNAPSHOT/repo/v1/entity/syn22/wiki/attachment?fileName='LittleImage.png'">Link</a> 
+	</ol>
+
+	<button type="button" onclick="myFunction()">View Token</button>
+	<p id="tokenShow"></p>
+
 </body>
 </html>
