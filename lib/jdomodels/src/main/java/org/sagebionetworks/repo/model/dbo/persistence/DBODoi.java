@@ -18,6 +18,7 @@ import java.sql.Timestamp;
 import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.doi.DoiObjectType;
 
 public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 
@@ -52,7 +53,7 @@ public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 					dbo.setId(rs.getLong(COL_DOI_ID));
 					dbo.setDoiStatus(DoiStatus.valueOf(rs.getString(COL_DOI_DOI_STATUS)));
 					dbo.setObjectId(rs.getLong(COL_DOI_OBJECT_ID));
-					dbo.setObjectType(ObjectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
+					dbo.setDoiObjectType(DoiObjectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
 					dbo.setObjectVersion(rs.getLong(COL_DOI_OBJECT_VERSION));
 					dbo.setCreatedBy(rs.getLong(COL_DOI_CREATED_BY));
 					dbo.setCreatedOn(rs.getTimestamp(COL_DOI_CREATED_ON));
@@ -100,11 +101,11 @@ public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 	public void setObjectId(Long objectId) {
 		this.objectId = objectId;
 	}
-	public ObjectType getObjectType() {
-		return objectType;
+	public DoiObjectType getDoibjectType() {
+		return doiObjectType;
 	}
-	public void setObjectType(ObjectType objectType) {
-		this.objectType = objectType;
+	public void setDoiObjectType(DoiObjectType doiObjectType) {
+		this.doiObjectType = doiObjectType;
 	}
 	public Long getObjectVersion() {
 		return objectVersion;
@@ -134,7 +135,7 @@ public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 	private Long id;
 	private DoiStatus doiStatus;
 	private Long objectId;
-	private ObjectType objectType;
+	private DoiObjectType doiObjectType;
 	private Long objectVersion;
 	private Long createdBy;
 	private Timestamp createdOn;

@@ -5,14 +5,14 @@ import java.util.Date;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
-import org.sagebionetworks.repo.model.doi.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 public class DoiServiceImpl implements DoiService {
 
 	@Override
-	public Doi createDoi(String userId, String id, ObjectType type, Long versionNumber)
+	public Doi createDoi(String userId, String id, DoiObjectType type, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 		Doi doi = new Doi();
 		doi.setCreatedBy("createdBy");
@@ -20,14 +20,14 @@ public class DoiServiceImpl implements DoiService {
 		doi.setDoiStatus(DoiStatus.IN_PROCESS);
 		doi.setId("id");
 		doi.setObjectId("objectId");
-		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectType(DoiObjectType.ENTITY);
 		doi.setObjectVersion(1L);
 		doi.setUpdatedOn(new Date());
 		return doi;
 	}
 
 	@Override
-	public Doi getDoi(String userId, String id, ObjectType type, Long versionNumber)
+	public Doi getDoi(String userId, String id, DoiObjectType type, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 		Doi doi = new Doi();
 		doi.setCreatedBy("createdBy");
@@ -35,7 +35,7 @@ public class DoiServiceImpl implements DoiService {
 		doi.setDoiStatus(DoiStatus.READY);
 		doi.setId("id");
 		doi.setObjectId("objectId");
-		doi.setObjectType(ObjectType.ENTITY);
+		doi.setObjectType(DoiObjectType.ENTITY);
 		doi.setObjectVersion(1L);
 		doi.setUpdatedOn(new Date());
 		return doi;
