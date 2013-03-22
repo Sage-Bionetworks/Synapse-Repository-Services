@@ -28,11 +28,6 @@ public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 		ERROR
 	}
 
-	public static enum ObjectType {
-		ENTITY,
-		EVALUATION
-	}
-
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_DOI_ID, true),
 			new FieldColumn("doiStatus", COL_DOI_DOI_STATUS),
