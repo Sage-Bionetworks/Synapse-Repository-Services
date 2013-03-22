@@ -4,7 +4,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.doi.Doi;
-import org.sagebionetworks.repo.model.doi.ObjectType;
+import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -41,7 +41,7 @@ public class DoiController extends BaseController {
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().createDoi(userId, id, ObjectType.ENTITY, null);
+		return serviceProvider.getDoiService().createDoi(userId, id, DoiObjectType.ENTITY, null);
 	}
 
 	/**
@@ -60,7 +60,7 @@ public class DoiController extends BaseController {
 			@PathVariable String id,
 			@PathVariable Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().createDoi(userId, id, ObjectType.ENTITY, versionNumber);
+		return serviceProvider.getDoiService().createDoi(userId, id, DoiObjectType.ENTITY, versionNumber);
 	}
 
 	/**
@@ -75,7 +75,7 @@ public class DoiController extends BaseController {
 	getDoi(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@PathVariable String id)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().getDoi(userId, id, ObjectType.ENTITY, null);
+		return serviceProvider.getDoiService().getDoi(userId, id, DoiObjectType.ENTITY, null);
 	}
 
 	/**
@@ -92,6 +92,6 @@ public class DoiController extends BaseController {
 			@PathVariable String id,
 			@PathVariable Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
-		return serviceProvider.getDoiService().getDoi(userId, id, ObjectType.ENTITY, versionNumber);
+		return serviceProvider.getDoiService().getDoi(userId, id, DoiObjectType.ENTITY, versionNumber);
 	}
 }
