@@ -34,6 +34,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ChunkPart;
 import org.sagebionetworks.repo.model.file.ChunkParts;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.ChunkedPartRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -200,7 +201,10 @@ public class FileHandleManagerImplAutowireTest {
 		// the key must start with the user's id
 		assertTrue(token.getKey().startsWith(userInfo.getIndividualGroup().getId()));
 		// Now create a pre-signed URL for the first part
-		URL preSigned = fileUploadManager.createChunkedFileUploadPartURL(userInfo, token, 1);
+		ChunkedPartRequest cpr = new ChunkedPartRequest();
+		cpr.setChunkedFileToken(token);
+		cpr.setPartNumber(1l);
+		URL preSigned = fileUploadManager.createChunkedFileUploadPartURL(userInfo, cpr);
 		assertNotNull(preSigned);
 		// Now upload the file to the URL
 		// Use the URL to upload a part.
@@ -212,7 +216,7 @@ public class FileHandleManagerImplAutowireTest {
 		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(httppost);
 		
 		// Next add the part
-		ChunkPart part = fileUploadManager.addChunkToFile(userInfo, token, 1);
+		ChunkPart part = fileUploadManager.addChunkToFile(userInfo, cpr);
 		
 		// We need a lsit of parts
 		List<ChunkPart> partList = new LinkedList<ChunkPart>();

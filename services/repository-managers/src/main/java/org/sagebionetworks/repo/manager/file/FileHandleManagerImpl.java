@@ -29,6 +29,7 @@ import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.ChunkPart;
 import org.sagebionetworks.repo.model.file.ChunkParts;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.ChunkedPartRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -413,7 +414,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkedFileToken token, int partNumber) {
+	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkedPartRequest cpr) {
+		if(cpr == null) throw new IllegalArgumentException("ChunkedPartRequest cannot be null");
+		if(cpr.getChunkedFileToken() == null) throw new IllegalArgumentException("ChunkedPartRequest.chunkedFileToken cannot be null");
+		if(cpr.getPartNumber() == null) throw new IllegalArgumentException("ChunkedPartRequest.partNumber cannot be null");
+		ChunkedFileToken token = cpr.getChunkedFileToken();
+		int partNumber = cpr.getPartNumber().intValue();
 		// first validate the token
 		validateChunkedFileToken(userInfo, token);
 		// The part number cannot be less than one
@@ -450,7 +456,12 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public ChunkPart addChunkToFile(UserInfo userInfo, ChunkedFileToken token,	int partNumber) {
+	public ChunkPart addChunkToFile(UserInfo userInfo, ChunkedPartRequest cpr) {
+		if(cpr == null) throw new IllegalArgumentException("ChunkedPartRequest cannot be null");
+		if(cpr.getChunkedFileToken() == null) throw new IllegalArgumentException("ChunkedPartRequest.chunkedFileToken cannot be null");
+		if(cpr.getPartNumber() == null) throw new IllegalArgumentException("ChunkedPartRequest.partNumber cannot be null");
+		ChunkedFileToken token = cpr.getChunkedFileToken();
+		int partNumber = cpr.getPartNumber().intValue();
 		// first validate the token
 		validateChunkedFileToken(userInfo, token);
 		// The part number cannot be less than one
@@ -458,15 +469,15 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String bucket = StackConfiguration.getS3Bucket();
 		String partKey = getChunkPartKey(token, partNumber);
 		// copy this part to the larger file.
-		CopyPartRequest cpr = new CopyPartRequest();
-		cpr.setDestinationBucketName(bucket);
-		cpr.setDestinationKey(token.getKey());
-		cpr.setPartNumber(partNumber);
-		cpr.setSourceBucketName(bucket);
-		cpr.setSourceKey(partKey);
-		cpr.setUploadId(token.getUploadId());
+		CopyPartRequest copyPartRequest = new CopyPartRequest();
+		copyPartRequest.setDestinationBucketName(bucket);
+		copyPartRequest.setDestinationKey(token.getKey());
+		copyPartRequest.setPartNumber(partNumber);
+		copyPartRequest.setSourceBucketName(bucket);
+		copyPartRequest.setSourceKey(partKey);
+		copyPartRequest.setUploadId(token.getUploadId());
 		// copy the part
-		CopyPartResult result = s3Client.copyPart(cpr);
+		CopyPartResult result = s3Client.copyPart(copyPartRequest);
 		// Now delete the original file since we now have a copy
 		s3Client.deleteObject(bucket, partKey);
 		ChunkPart cp = new ChunkPart();

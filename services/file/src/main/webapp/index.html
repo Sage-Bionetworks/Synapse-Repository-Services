@@ -2,9 +2,10 @@
 <head>
 <title>Synapse File Proxy</title>
 </head>
+<script src="chunkedFileUpload.js"></script>
+<script>
 
-<script type="text/javascript">
-	// get a a cookie by name
+	// Get a cookie by name
 	function getCookie(c_name) {
 		var i, x, y, ARRcookies = document.cookie.split(";");
 		for (i = 0; i < ARRcookies.length; i++) {
@@ -17,11 +18,6 @@
 		}
 	}
 
-	function myFunction() {
-		x = document.getElementById("tokenShow"); // Find the element
-		x.innerHTML = "org.sagbionetworks.security.user.login.token="
-				+ getCookie("org.sagbionetworks.security.user.login.token");
-	}
 
 	function myFunction() {
 		x = document.getElementById("tokenShow"); // Find the element
@@ -46,22 +42,34 @@
 	}
 
 
-	function uploadFile() {
-		var file = document.getElementById('fileToUpload').files[0];
-		alert("Uploading file: " + file.name);
-		var xhr = new XMLHttpRequest();
+	function createHTTPRequest() {
+		if (window.XMLHttpRequest) {
+			// code for IE7+, Firefox, Chrome, Opera, Safari
+			return new XMLHttpRequest();
+		} else {// code for IE6, IE5
+			return xmlhttp = new ActiveXObject("Microsoft.XMLHTTP");
+		}
+	}
+	
+	// Get the file from the from
+	function getUploadFileFromFrom(){
+		return document.getElementById('fileToUpload').files[0];
+	}
+
+	function startUpload() {
+		var file = getUploadFileFromFrom();
+		var xhr = createHTTPRequest();
 		xhr.upload.addEventListener("progress", uploadProgress, false);
 		xhr.addEventListener("load", uploadComplete, false);
 		xhr.addEventListener("error", uploadFailed, false);
 		xhr.addEventListener("abort", uploadCanceled, false);
-//		xhr.onreadystatechange = function(e) {
-//			var result;
-//			alert("ReadyState: "+this.readyState+" responseText: "+this.responseText);
-//		};
-		
-		xhr.open('POST', 'http://localhost:8080/services-file/file/v1/chunkedFileUploadToken?fileName='+ file.name+'&contentType='+file.type, true);
+
+		xhr.open('POST',
+				'http://localhost:8080/services-file/file/v1/chunkedFileUploadToken?fileName='
+						+ file.name + '&contentType=' + file.type, true);
 		// Set the session token from the cookie.
-		xhr.setRequestHeader('sessionToken', getCookie("org.sagbionetworks.security.user.login.token"));
+		xhr.setRequestHeader('sessionToken',
+				getCookie("org.sagbionetworks.security.user.login.token"));
 		xhr.setRequestHeader('Accept', 'application/json');
 		xhr.send();
 	}
@@ -81,8 +89,9 @@
 		/* This event is raised when the server send back a response */
 		var result;
 		result = JSON.parse(this.responseText);
-		alert("key="+result.key);
-		document.getElementById('chunkedFileToken').innerHTML = 'key='+result.key+' uploadId='+result.uploadId
+		alert("key=" + result.key);
+		document.getElementById('chunkedFileToken').innerHTML = 'key='
+				+ result.key + ' uploadId=' + result.uploadId
 	}
 
 	function uploadFailed(evt) {

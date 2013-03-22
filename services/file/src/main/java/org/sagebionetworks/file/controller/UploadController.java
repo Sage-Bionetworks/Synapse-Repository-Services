@@ -1,6 +1,7 @@
 package org.sagebionetworks.file.controller;
 
 import java.io.IOException;
+import java.net.URL;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.ChunkedPartRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -110,6 +112,18 @@ public class UploadController extends BaseController {
 	public @ResponseBody ChunkedFileToken createChunkedFileUploadToken(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
 			@RequestParam String fileName, @RequestParam String contentType) throws DatastoreException, NotFoundException{
 		return fileService.createChunkedFileUploadToken(userId, fileName, contentType);
+	}
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value ="/createChunkedFileUploadPartURL" , method = RequestMethod.POST)
+	public void createChunkedPresignedUrl(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestBody ChunkedPartRequest cpr, HttpServletResponse response) throws DatastoreException, NotFoundException, IOException{
+		URL url = fileService.createChunkedFileUploadPartURL(userId, cpr);
+		// Return the redirect url instead of redirecting.
+		response.setStatus(HttpStatus.OK.value());
+		response.setContentType("text/plain");
+		response.getWriter().write(url.toString());
+		response.getWriter().flush();
 	}
 	
 	

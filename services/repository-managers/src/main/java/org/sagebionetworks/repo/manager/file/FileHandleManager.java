@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.ChunkPart;
 import org.sagebionetworks.repo.model.file.ChunkParts;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.ChunkedPartRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -136,7 +137,7 @@ public interface FileHandleManager {
 	 * @param partNumber
 	 * @return
 	 */
-	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkedFileToken token, int partNumber);
+	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkedPartRequest cpr);
 	
 	/**
 	 * After uploading a file chunk to the pre-signed URL add it to the larger file.
@@ -146,7 +147,7 @@ public interface FileHandleManager {
 	 * @param partNumber
 	 * @return
 	 */
-	public ChunkPart addChunkToFile(UserInfo userInfo, ChunkedFileToken token, int partNumber);
+	public ChunkPart addChunkToFile(UserInfo userInfo, ChunkedPartRequest cpr);
 
 	/**
 	 * The final step of a chunked file upload.  This is where an {@link S3FileHandle} is created.

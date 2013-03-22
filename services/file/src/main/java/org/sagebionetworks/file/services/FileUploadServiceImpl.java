@@ -1,6 +1,7 @@
 package org.sagebionetworks.file.services;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.ChunkedPartRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -86,6 +88,13 @@ public class FileUploadServiceImpl implements FileUploadService {
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileUploadManager.createChunkedFileUploadToken(userInfo, fileName, contentType);
+	}
+
+	@Override
+	public URL createChunkedFileUploadPartURL(String userId, ChunkedPartRequest cpr) throws DatastoreException, NotFoundException {
+		// resolve the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.createChunkedFileUploadPartURL(userInfo, cpr);
 	}
 
 }

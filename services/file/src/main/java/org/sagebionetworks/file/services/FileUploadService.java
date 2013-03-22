@@ -1,11 +1,13 @@
 package org.sagebionetworks.file.services;
 
 import java.io.IOException;
+import java.net.URL;
 
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.ChunkedPartRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -72,5 +74,15 @@ public interface FileUploadService {
 	 * @throws DatastoreException 
 	 */
 	ChunkedFileToken createChunkedFileUploadToken(String userId, String fileName, String contentType) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Creates a pre-signed URL that can be used PUT file data to S3.
+	 * @param userId
+	 * @param cpr
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	URL createChunkedFileUploadPartURL(String userId, ChunkedPartRequest cpr) throws DatastoreException, NotFoundException;
 
 }
