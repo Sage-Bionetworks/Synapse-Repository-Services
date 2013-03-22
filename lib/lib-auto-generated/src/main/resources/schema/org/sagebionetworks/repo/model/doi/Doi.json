@@ -16,7 +16,7 @@
 			"type": "string",
 			"required": true
 		},
-		"objectType": {
+		"doiObjectType": {
 			"description": "The type of the digital object.",
 			"$ref": "org.sagebionetworks.repo.model.doi.DoiObjectType",
 			"required": true

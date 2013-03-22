@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.web.NotFoundException;
 public class DoiServiceImpl implements DoiService {
 
 	@Override
-	public Doi createDoi(String userId, String id, DoiObjectType type, Long versionNumber)
+	public Doi createDoi(String userId, String objectId, DoiObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 		Doi doi = new Doi();
 		doi.setCreatedBy("createdBy");
@@ -27,7 +27,7 @@ public class DoiServiceImpl implements DoiService {
 	}
 
 	@Override
-	public Doi getDoi(String userId, String id, DoiObjectType type, Long versionNumber)
+	public Doi getDoi(String userId, String objectId, DoiObjectType objectType, Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
 		Doi doi = new Doi();
 		doi.setCreatedBy("createdBy");

@@ -19,14 +19,9 @@ import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.doi.DoiObjectType;
+import org.sagebionetworks.repo.model.doi.DoiStatus;
 
 public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
-
-	public static enum DoiStatus {
-		IN_PROCESS,
-		READY,
-		ERROR
-	}
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_DOI_ID, true),
@@ -96,7 +91,7 @@ public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 	public void setObjectId(Long objectId) {
 		this.objectId = objectId;
 	}
-	public DoiObjectType getDoibjectType() {
+	public DoiObjectType getDoiObjectType() {
 		return doiObjectType;
 	}
 	public void setDoiObjectType(DoiObjectType doiObjectType) {
