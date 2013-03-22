@@ -13,6 +13,7 @@ import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -102,6 +103,13 @@ public class UploadController extends BaseController {
 			@RequestBody ExternalFileHandle fileHandle) throws DatastoreException, NotFoundException{
 		// Pass it along
 		return fileService.createExternalFileHandle(userId, fileHandle);
+	}
+	
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value ="/chunkedFileUploadToken" , method = RequestMethod.POST)
+	public @ResponseBody ChunkedFileToken createChunkedFileUploadToken(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestParam String fileName, @RequestParam String contentType) throws DatastoreException, NotFoundException{
+		return fileService.createChunkedFileUploadToken(userId, fileName, contentType);
 	}
 	
 	

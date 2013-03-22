@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.file.ChunkedFileToken;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -59,5 +60,17 @@ public interface FileUploadService {
 	 * @throws DatastoreException 
 	 */
 	ExternalFileHandle createExternalFileHandle(String userId,	ExternalFileHandle fileHandle) throws DatastoreException, NotFoundException;
+
+	/**
+	 * Create a chunked file upload token that can be used to upload large files to S3.
+	 * 
+	 * @param userId
+	 * @param fileName
+	 * @param contentType
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	ChunkedFileToken createChunkedFileUploadToken(String userId, String fileName, String contentType) throws DatastoreException, NotFoundException;
 
 }

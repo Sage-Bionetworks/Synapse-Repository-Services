@@ -3,7 +3,7 @@
 <title>Synapse File Proxy</title>
 </head>
 
-<script>
+<script type="text/javascript">
 	// get a a cookie by name
 	function getCookie(c_name) {
 		var i, x, y, ARRcookies = document.cookie.split(";");
@@ -19,7 +19,78 @@
 
 	function myFunction() {
 		x = document.getElementById("tokenShow"); // Find the element
-		x.innerHTML = "org.sagbionetworks.security.user.login.token="+getCookie("org.sagbionetworks.security.user.login.token");
+		x.innerHTML = "org.sagbionetworks.security.user.login.token="
+				+ getCookie("org.sagbionetworks.security.user.login.token");
+	}
+
+	function myFunction() {
+		x = document.getElementById("tokenShow"); // Find the element
+		x.innerHTML = "org.sagbionetworks.security.user.login.token="
+				+ getCookie("org.sagbionetworks.security.user.login.token");
+	}
+
+
+	function fileSelected() {
+		var file = document.getElementById('fileToUpload').files[0];
+		if (file) {
+			var fileSize = 0;
+			if (file.size > 1024 * 1024)
+				fileSize = (Math.round(file.size * 100 / (1024 * 1024)) / 100).toString()+ 'MB';
+			else
+				fileSize = (Math.round(file.size * 100 / 1024) / 100).toString()+ 'KB';
+
+			document.getElementById('fileName').innerHTML = 'Name: '+ file.name;
+			document.getElementById('fileSize').innerHTML = 'Size: '+ fileSize;
+			document.getElementById('fileType').innerHTML = 'Type: '+ file.type;
+		}
+	}
+
+
+	function uploadFile() {
+		var file = document.getElementById('fileToUpload').files[0];
+		alert("Uploading file: " + file.name);
+		var xhr = new XMLHttpRequest();
+		xhr.upload.addEventListener("progress", uploadProgress, false);
+		xhr.addEventListener("load", uploadComplete, false);
+		xhr.addEventListener("error", uploadFailed, false);
+		xhr.addEventListener("abort", uploadCanceled, false);
+//		xhr.onreadystatechange = function(e) {
+//			var result;
+//			alert("ReadyState: "+this.readyState+" responseText: "+this.responseText);
+//		};
+		
+		xhr.open('POST', 'http://localhost:8080/services-file/file/v1/chunkedFileUploadToken?fileName='+ file.name+'&contentType='+file.type, true);
+		// Set the session token from the cookie.
+		xhr.setRequestHeader('sessionToken', getCookie("org.sagbionetworks.security.user.login.token"));
+		xhr.setRequestHeader('Accept', 'application/json');
+		xhr.send();
+	}
+
+	function uploadProgress(evt) {
+		if (evt.lengthComputable) {
+			var percentComplete = Math.round(evt.loaded * 100 / evt.total);
+			document.getElementById('progressNumber').innerHTML = percentComplete
+					.toString()
+					+ '%';
+		} else {
+			document.getElementById('progressNumber').innerHTML = 'unable to compute';
+		}
+	}
+
+	function uploadComplete(evt) {
+		/* This event is raised when the server send back a response */
+		var result;
+		result = JSON.parse(this.responseText);
+		alert("key="+result.key);
+		document.getElementById('chunkedFileToken').innerHTML = 'key='+result.key+' uploadId='+result.uploadId
+	}
+
+	function uploadFailed(evt) {
+		alert("There was an error attempting to upload the file.");
+	}
+
+	function uploadCanceled(evt) {
+		alert("The upload has been canceled by the user or the browser dropped the connection.");
 	}
 </script>
 
@@ -28,18 +99,21 @@
 	<ol>
 		<li><a href="/services-file/login.html">login</a></li>
 		<li>
-			<!-- The session token must be added as cookie in order for this form submit to work. Expected cookie:
-				name=sessionToken
-				value=<your_session_token>
-				path=/
-			  -->
-			<form name="form" method="post" id="upload"
-				action="/services-file/file/v1/fileHandle"
-				enctype="multipart/form-data">
-				<label for="fileField">Select multiple files to upload. A
-					FileHandle will be created for each file.</label> <input type="file"
-					name="fileField" required="required" multiple> <br /> <br />
-				<input type="submit" name="submit" value="Submit">
+			<form id="form1" enctype="multipart/form-data" method="post"
+				action="Upload.aspx">
+				<div class="row">
+					<label for="fileToUpload">Select a File to Upload</label><br /> <input
+						type="file" name="fileToUpload" id="fileToUpload"
+						onchange="fileSelected();" />
+				</div>
+				<div id="fileName"></div>
+				<div id="fileSize"></div>
+				<div id="fileType"></div>
+				<div class="row">
+					<input type="button" onclick="uploadFile()" value="Upload" />
+				</div>
+				<div id="progressNumber"></div>
+				<div id="chunkedFileToken"></div>
 			</form>
 		</li>
 	</ol>

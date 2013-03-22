@@ -229,6 +229,8 @@ public class FileHandleManagerImplAutowireTest {
 		assertNotNull(multiPartHandle.getContentType());
 		assertNotNull(multiPartHandle.getCreatedOn());
 		assertNotNull(multiPartHandle.getCreatedBy());
+		// Delete the file
+		s3Client.deleteObject(multiPartHandle.getBucketName(), multiPartHandle.getKey());
 		
 	}
 	
