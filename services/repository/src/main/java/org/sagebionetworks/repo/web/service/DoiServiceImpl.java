@@ -20,7 +20,7 @@ public class DoiServiceImpl implements DoiService {
 		doi.setDoiStatus(DoiStatus.IN_PROCESS);
 		doi.setId("id");
 		doi.setObjectId("objectId");
-		doi.setObjectType(DoiObjectType.ENTITY);
+		doi.setDoiObjectType(DoiObjectType.ENTITY);
 		doi.setObjectVersion(1L);
 		doi.setUpdatedOn(new Date());
 		return doi;
@@ -35,7 +35,7 @@ public class DoiServiceImpl implements DoiService {
 		doi.setDoiStatus(DoiStatus.READY);
 		doi.setId("id");
 		doi.setObjectId("objectId");
-		doi.setObjectType(DoiObjectType.ENTITY);
+		doi.setDoiObjectType(DoiObjectType.ENTITY);
 		doi.setObjectVersion(1L);
 		doi.setUpdatedOn(new Date());
 		return doi;
