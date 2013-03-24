@@ -26,10 +26,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.file.ChunkPart;
-import org.sagebionetworks.repo.model.file.ChunkParts;
+import org.sagebionetworks.repo.model.file.ChunkRequest;
+import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.ChunkedPartRequest;
+import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
+import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -57,6 +58,7 @@ import com.amazonaws.services.s3.model.InitiateMultipartUploadRequest;
 import com.amazonaws.services.s3.model.InitiateMultipartUploadResult;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PartETag;
+import com.amazonaws.util.BinaryUtils;
 
 /**
  * Basic implementation of the file upload manager.
@@ -391,35 +393,42 @@ public class FileHandleManagerImpl implements FileHandleManager {
 	}
 
 	@Override
-	public ChunkedFileToken createChunkedFileUploadToken(UserInfo userInfo, String fileName, String contentType) {
+	public ChunkedFileToken createChunkedFileUploadToken(UserInfo userInfo, CreateChunkedFileTokenRequest ccftr) {
 		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
-		if(fileName == null) throw new IllegalArgumentException("FileName cannot be null");
+		if(ccftr == null) throw new IllegalArgumentException("CreateChunkedFileTokenRequest cannot be null");
+		if(ccftr.getFileName() == null) throw new IllegalArgumentException("CreateChunkedFileTokenRequest.fileName cannot be null");
+		String contentType = ccftr.getContentType();
 		if(contentType == null){
 			contentType = "application/octet-stream";
 		}
 		String userId =  getUserId(userInfo);
 		// Start a multi-file upload
-		String key = createNewKey(userId, fileName);
+		String key = createNewKey(userId, ccftr.getFileName());
 		ObjectMetadata objMeta = new ObjectMetadata();
 		objMeta.setContentType(contentType);
-		objMeta.setContentDisposition(TransferUtils.getContentDispositionValue(fileName));
+		objMeta.setContentDisposition(TransferUtils.getContentDispositionValue(ccftr.getFileName()));
+		if(ccftr.getContentMD5() != null){
+			// convert it from hex to base64.
+			objMeta.setContentMD5(BinaryUtils.toBase64(BinaryUtils.fromHex(ccftr.getContentMD5())));
+		}
 		InitiateMultipartUploadResult imur = s3Client.initiateMultipartUpload(new InitiateMultipartUploadRequest(StackConfiguration.getS3Bucket(), key).withObjectMetadata(objMeta));
 		// the token will be the ke
 		ChunkedFileToken cft = new ChunkedFileToken();
 		cft.setKey(key);
 		cft.setUploadId(imur.getUploadId());
-		cft.setFileName(fileName);
-		cft.setFileContentType(contentType);
+		cft.setFileName(ccftr.getFileName());
+		cft.setContentType(contentType);
+		cft.setContentMD5(ccftr.getContentMD5());
 		return cft;
 	}
 
 	@Override
-	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkedPartRequest cpr) {
+	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkRequest cpr) {
 		if(cpr == null) throw new IllegalArgumentException("ChunkedPartRequest cannot be null");
 		if(cpr.getChunkedFileToken() == null) throw new IllegalArgumentException("ChunkedPartRequest.chunkedFileToken cannot be null");
-		if(cpr.getPartNumber() == null) throw new IllegalArgumentException("ChunkedPartRequest.partNumber cannot be null");
+		if(cpr.getChunkNumber() == null) throw new IllegalArgumentException("ChunkedPartRequest.chunkNumber cannot be null");
 		ChunkedFileToken token = cpr.getChunkedFileToken();
-		int partNumber = cpr.getPartNumber().intValue();
+		int partNumber = cpr.getChunkNumber().intValue();
 		// first validate the token
 		validateChunkedFileToken(userInfo, token);
 		// The part number cannot be less than one
@@ -440,28 +449,14 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return token.getKey()+"/"+partNumber;
 	}
 	
-	/**
-	 * Validate that the user owns the token
-	 */
-	void validateChunkedFileToken(UserInfo userInfo, ChunkedFileToken token){
-		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
-		if(token == null) throw new IllegalArgumentException("ChunkedFileToken cannot be null");
-		if(token.getKey() == null) throw new IllegalArgumentException("ChunkedFileToken.key cannot be null");
-		if(token.getUploadId() == null) throw new IllegalArgumentException("ChunkedFileToken.uploadId cannot be null");
-		if(token.getFileName() == null) throw new IllegalArgumentException("ChunkedFileToken.getFileName cannot be null");
-		if(token.getFileContentType() == null) throw new IllegalArgumentException("ChunkedFileToken.getFileContentType cannot be null");
-		// The token key must start with the User's id
-		String userId =  getUserId(userInfo);
-		if(!token.getKey().startsWith(userId)) throw new UnauthorizedException("The ChunkedFileToken: "+token+" does not belong to User: "+userId);
-	}
 
 	@Override
-	public ChunkPart addChunkToFile(UserInfo userInfo, ChunkedPartRequest cpr) {
+	public ChunkResult addChunkToFile(UserInfo userInfo, ChunkRequest cpr) {
 		if(cpr == null) throw new IllegalArgumentException("ChunkedPartRequest cannot be null");
 		if(cpr.getChunkedFileToken() == null) throw new IllegalArgumentException("ChunkedPartRequest.chunkedFileToken cannot be null");
-		if(cpr.getPartNumber() == null) throw new IllegalArgumentException("ChunkedPartRequest.partNumber cannot be null");
+		if(cpr.getChunkNumber() == null) throw new IllegalArgumentException("ChunkedPartRequest.chunkNumber cannot be null");
 		ChunkedFileToken token = cpr.getChunkedFileToken();
-		int partNumber = cpr.getPartNumber().intValue();
+		int partNumber = cpr.getChunkNumber().intValue();
 		// first validate the token
 		validateChunkedFileToken(userInfo, token);
 		// The part number cannot be less than one
@@ -480,28 +475,30 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		CopyPartResult result = s3Client.copyPart(copyPartRequest);
 		// Now delete the original file since we now have a copy
 		s3Client.deleteObject(bucket, partKey);
-		ChunkPart cp = new ChunkPart();
+		ChunkResult cp = new ChunkResult();
 		cp.setEtag(result.getETag());
-		cp.setPartNumber((long) result.getPartNumber());
+		cp.setChunkNumber((long) result.getPartNumber());
 		return cp;
 	}
 
 	@Override
-	public S3FileHandle completeChunkFileUpload(UserInfo userInfo, ChunkedFileToken token, ChunkParts partList) {
+	public S3FileHandle completeChunkFileUpload(UserInfo userInfo, CompleteChunkedFileRequest ccfr) {
+		if(ccfr == null) throw new IllegalArgumentException("CompleteChunkedFileRequest cannot be null");
+		ChunkedFileToken token = ccfr.getChunkedFileToken();
+		List<ChunkResult> chunkParts = ccfr.getChunkResults();
 		// first validate the token
 		validateChunkedFileToken(userInfo, token);
-		if(partList == null) throw new IllegalArgumentException("ChunkParts cannot be null");
-		if(partList.getList() == null) throw new IllegalArgumentException("ChunkParts.getList() cannot be null");
-		if(partList.getList().size() < 1) throw new IllegalArgumentException("ChunkParts.getList() must contain at least one ChunkPart");
+		if(chunkParts == null) throw new IllegalArgumentException("ChunkParts cannot be null");
+		if(chunkParts.size() < 1) throw new IllegalArgumentException("ChunkParts.getList() must contain at least one ChunkPart");
 		String bucket = StackConfiguration.getS3Bucket();
 		String userId =  getUserId(userInfo);
 		// Create the list of PartEtags
 		List<PartETag> ptList = new LinkedList<PartETag>();
-		for(ChunkPart cp: partList.getList()){
+		for(ChunkResult cp: chunkParts){
 			if(cp == null) 	throw new IllegalArgumentException("ChunkPart cannot be null");
 			if(cp.getEtag() == null) throw new IllegalArgumentException("ChunkPart.getEtag() cannot be null");
-			if(cp.getPartNumber() == null) throw new IllegalArgumentException("ChunkPart.getPartNumber() cannot be null");
-			PartETag pe = new PartETag(cp.getPartNumber().intValue(), cp.getEtag());
+			if(cp.getChunkNumber() == null) throw new IllegalArgumentException("ChunkPart.chunkNumber() cannot be null");
+			PartETag pe = new PartETag(cp.getChunkNumber().intValue(), cp.getEtag());
 			ptList.add(pe);
 		}
 		// We are now ready to complete the parts
@@ -510,12 +507,13 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		// The file is now in S3.
 		S3FileHandle fileHandle = new S3FileHandle();
 		fileHandle.setFileName(token.getFileName());
-		fileHandle.setContentType(token.getFileContentType());
+		fileHandle.setContentType(token.getContentType());
 		fileHandle.setBucketName(bucket);
 		fileHandle.setKey(token.getKey());
 		fileHandle.setCreatedBy(userId);
 		fileHandle.setCreatedOn(new Date(System.currentTimeMillis()));
 		fileHandle.setEtag(UUID.randomUUID().toString());
+		fileHandle.setContentMd5(token.getContentMD5());
 		// Lookup the final file size
 		ObjectMetadata current = s3Client.getObjectMetadata(bucket, token.getKey());
 		// Capture the content length
@@ -525,6 +523,19 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return fileHandleDao.createFile(fileHandle);
 	}
 	
-	
+	/**
+	 * Validate that the user owns the token
+	 */
+	void validateChunkedFileToken(UserInfo userInfo, ChunkedFileToken token){
+		if(userInfo == null) throw new IllegalArgumentException("UserInfo cannot be null");
+		if(token == null) throw new IllegalArgumentException("ChunkedFileToken cannot be null");
+		if(token.getKey() == null) throw new IllegalArgumentException("ChunkedFileToken.key cannot be null");
+		if(token.getUploadId() == null) throw new IllegalArgumentException("ChunkedFileToken.uploadId cannot be null");
+		if(token.getFileName() == null) throw new IllegalArgumentException("ChunkedFileToken.getFileName cannot be null");
+		if(token.getContentType() == null) throw new IllegalArgumentException("ChunkedFileToken.getFileContentType cannot be null");
+		// The token key must start with the User's id
+		String userId =  getUserId(userInfo);
+		if(!token.getKey().startsWith(userId)) throw new UnauthorizedException("The ChunkedFileToken: "+token+" does not belong to User: "+userId);
+	}
 
 }

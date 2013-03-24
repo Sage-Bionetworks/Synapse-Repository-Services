@@ -1,12 +1,14 @@
 {
 	"description": "JSON schema for ChunkedPartRequst",
 	"properties": {
-		"partNumber": {
-			"description": "The part number",
-			"type": "integer"
-		},
 		"chunkedFileToken": {
 			"$ref": "org.sagebionetworks.repo.model.file.ChunkedFileToken"
+		},
+		"chunkResults": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.file.ChunkResult"
+			}
 		}
 	}
 }

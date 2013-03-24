@@ -78,6 +78,17 @@ public class TransferUtils {
 			throw new IllegalStateException(e);
 		}
 	}
+	
+	/**
+	 * Create the MD5 from bytes.
+	 * The output is a hex-encoded string;
+	 * @param input
+	 * @return
+	 */
+	public static String createMD5(byte[] input){
+		MessageDigest digts = createMD5Digest();
+		return BinaryUtils.toHex(digts.digest(input));
+	}
 
 	/**
 	 * If an MD5 was provided in the request, validate that it matches the calculated MD5

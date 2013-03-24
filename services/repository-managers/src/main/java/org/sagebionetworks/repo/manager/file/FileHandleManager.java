@@ -11,10 +11,11 @@ import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.file.ChunkPart;
-import org.sagebionetworks.repo.model.file.ChunkParts;
+import org.sagebionetworks.repo.model.file.ChunkRequest;
+import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.ChunkedPartRequest;
+import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
+import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -129,7 +130,7 @@ public interface FileHandleManager {
 	 * @param userInfo
 	 * @return
 	 */
-	public ChunkedFileToken createChunkedFileUploadToken(UserInfo userInfo, String fileName, String contentType);
+	public ChunkedFileToken createChunkedFileUploadToken(UserInfo userInfo, CreateChunkedFileTokenRequest ccftr);
 	
 	/**
 	 * Create a pre-signed URL that can be used to PUT a single chunk of file data to S3.
@@ -137,7 +138,7 @@ public interface FileHandleManager {
 	 * @param partNumber
 	 * @return
 	 */
-	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkedPartRequest cpr);
+	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkRequest cpr);
 	
 	/**
 	 * After uploading a file chunk to the pre-signed URL add it to the larger file.
@@ -147,7 +148,7 @@ public interface FileHandleManager {
 	 * @param partNumber
 	 * @return
 	 */
-	public ChunkPart addChunkToFile(UserInfo userInfo, ChunkedPartRequest cpr);
+	public ChunkResult addChunkToFile(UserInfo userInfo, ChunkRequest cpr);
 
 	/**
 	 * The final step of a chunked file upload.  This is where an {@link S3FileHandle} is created.
@@ -156,6 +157,6 @@ public interface FileHandleManager {
 	 * @param partList
 	 * @return
 	 */
-	public S3FileHandle completeChunkFileUpload(UserInfo userInfo,	ChunkedFileToken token, ChunkParts partList);
+	public S3FileHandle completeChunkFileUpload(UserInfo userInfo,	CompleteChunkedFileRequest ccfr);
 	
 }

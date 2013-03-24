@@ -5,12 +5,17 @@ import java.net.URL;
 
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileUploadException;
+
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.file.ChunkRequest;
+import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.ChunkedPartRequest;
+import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
+import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 
@@ -67,13 +72,12 @@ public interface FileUploadService {
 	 * Create a chunked file upload token that can be used to upload large files to S3.
 	 * 
 	 * @param userId
-	 * @param fileName
-	 * @param contentType
+	 * @param ccftr
 	 * @return
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	ChunkedFileToken createChunkedFileUploadToken(String userId, String fileName, String contentType) throws DatastoreException, NotFoundException;
+	ChunkedFileToken createChunkedFileUploadToken(String userId, CreateChunkedFileTokenRequest ccftr) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * Creates a pre-signed URL that can be used PUT file data to S3.
@@ -83,6 +87,26 @@ public interface FileUploadService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	URL createChunkedFileUploadPartURL(String userId, ChunkedPartRequest cpr) throws DatastoreException, NotFoundException;
+	URL createChunkedFileUploadPartURL(String userId, ChunkRequest cpr) throws DatastoreException, NotFoundException;
+
+	/**
+	 * After upload a file chunk to a pre-signed URL, the part must be added to the final file.
+	 * @param userId
+	 * @param cpr
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	ChunkResult addChunkToFile(String userId, ChunkRequest cpr) throws DatastoreException, NotFoundException;
+
+	/**
+	 * 
+	 * @param userId
+	 * @param ccfr
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	S3FileHandle completeChunkFileUpload(String userId, CompleteChunkedFileRequest ccfr) throws DatastoreException, NotFoundException;
 
 }

@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.net.URL;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -26,15 +25,15 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.manager.file.FileHandleManager;
-import org.sagebionetworks.repo.manager.file.FileUploadResults;
+import org.sagebionetworks.repo.manager.file.transfer.TransferUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.file.ChunkPart;
-import org.sagebionetworks.repo.model.file.ChunkParts;
+import org.sagebionetworks.repo.model.file.ChunkRequest;
+import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
-import org.sagebionetworks.repo.model.file.ChunkedPartRequest;
+import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
+import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
@@ -192,39 +191,46 @@ public class FileHandleManagerImplAutowireTest {
 	
 	@Test
 	public void testChunckedFileUpload() throws ClientProtocolException, IOException{
+		String fileBody = "This is the body of the file!!!!!";
+		byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
+		String md5 = TransferUtils.createMD5(fileBodyBytes);
 		// First create a chunked file token
+		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
 		String fileName = "foo.bar";
-		ChunkedFileToken token = fileUploadManager.createChunkedFileUploadToken(userInfo, fileName, "text/plain");
+		ccftr.setFileName(fileName);
+		ccftr.setContentType("text/plain");
+		ccftr.setContentMD5(md5);
+		ChunkedFileToken token = fileUploadManager.createChunkedFileUploadToken(userInfo, ccftr);
 		assertNotNull(token);
 		assertNotNull(token.getKey());
 		assertNotNull(token.getUploadId());
+		assertNotNull(md5, token.getContentMD5());
 		// the key must start with the user's id
 		assertTrue(token.getKey().startsWith(userInfo.getIndividualGroup().getId()));
 		// Now create a pre-signed URL for the first part
-		ChunkedPartRequest cpr = new ChunkedPartRequest();
+		ChunkRequest cpr = new ChunkRequest();
 		cpr.setChunkedFileToken(token);
-		cpr.setPartNumber(1l);
+		cpr.setChunkNumber(1l);
 		URL preSigned = fileUploadManager.createChunkedFileUploadPartURL(userInfo, cpr);
 		assertNotNull(preSigned);
 		// Now upload the file to the URL
 		// Use the URL to upload a part.
 		HttpPut httppost = new HttpPut(preSigned.toString());
-		String fileBody = "This is the body of the file!!!!!";
-		byte[] fileBodyBytes = fileBody.getBytes("UTF-8");
 		ByteArrayHttpEntity entity = new ByteArrayHttpEntity(fileBodyBytes, fileBodyBytes.length);
 		httppost.setEntity(entity);
 		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(httppost);
 		
 		// Next add the part
-		ChunkPart part = fileUploadManager.addChunkToFile(userInfo, cpr);
+		ChunkResult part = fileUploadManager.addChunkToFile(userInfo, cpr);
 		
 		// We need a lsit of parts
-		List<ChunkPart> partList = new LinkedList<ChunkPart>();
+		List<ChunkResult> partList = new LinkedList<ChunkResult>();
 		partList.add(part);
-		ChunkParts cp = new ChunkParts();
-		cp.setList(partList);
+		CompleteChunkedFileRequest ccfr = new CompleteChunkedFileRequest();
+		ccfr.setChunkedFileToken(token);
+		ccfr.setChunkResults(partList);
 		// We are now read to create our file handle from the parts
-		S3FileHandle multiPartHandle = fileUploadManager.completeChunkFileUpload(userInfo, token, cp);
+		S3FileHandle multiPartHandle = fileUploadManager.completeChunkFileUpload(userInfo, ccfr);
 		assertNotNull(multiPartHandle);
 		System.out.println(multiPartHandle);
 		assertNotNull(multiPartHandle.getBucketName());
@@ -233,6 +239,7 @@ public class FileHandleManagerImplAutowireTest {
 		assertNotNull(multiPartHandle.getContentType());
 		assertNotNull(multiPartHandle.getCreatedOn());
 		assertNotNull(multiPartHandle.getCreatedBy());
+		assertEquals(md5, multiPartHandle.getContentMd5());
 		// Delete the file
 		s3Client.deleteObject(multiPartHandle.getBucketName(), multiPartHandle.getKey());
 		
