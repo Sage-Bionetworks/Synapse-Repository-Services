@@ -27,7 +27,7 @@ public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 			new FieldColumn("id", COL_DOI_ID, true),
 			new FieldColumn("doiStatus", COL_DOI_DOI_STATUS),
 			new FieldColumn("objectId", COL_DOI_OBJECT_ID),
-			new FieldColumn("objectType", COL_DOI_OBJECT_TYPE),
+			new FieldColumn("doiObjectType", COL_DOI_OBJECT_TYPE),
 			new FieldColumn("objectVersion", COL_DOI_OBJECT_VERSION),
 			new FieldColumn("createdBy", COL_DOI_CREATED_BY),
 			new FieldColumn("createdOn", COL_DOI_CREATED_ON),
@@ -79,8 +79,8 @@ public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 	public void setId(Long id) {
 		this.id = id;
 	}
-	public DoiStatus getDoiStatus() {
-		return doiStatus;
+	public String getDoiStatus() {
+		return doiStatus.name();
 	}
 	public void setDoiStatus(DoiStatus doiStatus) {
 		this.doiStatus = doiStatus;
@@ -91,8 +91,8 @@ public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 	public void setObjectId(Long objectId) {
 		this.objectId = objectId;
 	}
-	public DoiObjectType getDoiObjectType() {
-		return doiObjectType;
+	public String getDoiObjectType() {
+		return doiObjectType.name();
 	}
 	public void setDoiObjectType(DoiObjectType doiObjectType) {
 		this.doiObjectType = doiObjectType;

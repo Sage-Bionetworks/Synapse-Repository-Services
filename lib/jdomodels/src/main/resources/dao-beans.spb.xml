@@ -96,6 +96,16 @@
 			scope="singleton">
 	</bean>
 
+	<bean id="doiDao"
+			class="org.sagebionetworks.repo.model.dbo.dao.DBODoiDaoImpl"
+			scope="singleton">
+	</bean>
+
+	<bean id="doiAdminDao"
+			class="org.sagebionetworks.repo.model.dbo.dao.DBODoiAdminDaoImpl"
+			scope="singleton">
+	</bean>
+
 	<bean id="entityBootstrapper"
 		class="org.sagebionetworks.repo.model.bootstrap.EntityBootstrapperImpl">
 		<property name="bootstrapEntities">
