@@ -44,7 +44,12 @@ public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 					dbo.setDoiStatus(DoiStatus.valueOf(rs.getString(COL_DOI_DOI_STATUS)));
 					dbo.setObjectId(rs.getLong(COL_DOI_OBJECT_ID));
 					dbo.setDoiObjectType(DoiObjectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
-					dbo.setObjectVersion(rs.getLong(COL_DOI_OBJECT_VERSION));
+					// Object version is nullable
+					// We can't just use rs.getLong() which returns a primitive long
+					Object obj = rs.getObject(COL_DOI_OBJECT_VERSION);
+					if (obj != null) {
+						dbo.setObjectVersion(rs.getLong(COL_DOI_OBJECT_VERSION));
+					}
 					dbo.setCreatedBy(rs.getLong(COL_DOI_CREATED_BY));
 					dbo.setCreatedOn(rs.getTimestamp(COL_DOI_CREATED_ON));
 					dbo.setUpdatedOn(rs.getTimestamp(COL_DOI_UPDATED_ON));
@@ -120,6 +125,15 @@ public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 	}
 	public void setUpdatedOn(Timestamp updatedOn) {
 		this.updatedOn = updatedOn;
+	}
+
+	@Override
+	public String toString() {
+		return "DBODoi [id=" + id + ", doiStatus=" + doiStatus + ", objectId="
+				+ objectId + ", doiObjectType=" + doiObjectType
+				+ ", objectVersion=" + objectVersion + ", createdBy="
+				+ createdBy + ", createdOn=" + createdOn + ", updatedOn="
+				+ updatedOn + "]";
 	}
 
 	private Long id;

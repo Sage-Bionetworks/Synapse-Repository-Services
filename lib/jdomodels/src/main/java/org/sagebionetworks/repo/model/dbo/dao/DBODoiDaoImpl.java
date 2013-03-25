@@ -1,7 +1,5 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_DOI_STATUS;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_VERSION;
@@ -36,16 +34,11 @@ public class DBODoiDaoImpl implements DoiDao {
 			+ COL_DOI_OBJECT_TYPE + " = :" + COL_DOI_OBJECT_TYPE + " AND "
 			+ COL_DOI_OBJECT_VERSION + " = :" + COL_DOI_OBJECT_VERSION;
 
-	private static final String SELECT_DOI_ID =
-			"SELECT " + COL_DOI_ID + " FROM " + TABLE_DOI + " WHERE "
+	private static final String SELECT_DOI_NULL_OBJECT_VERSION =
+			"SELECT * FROM " + TABLE_DOI + " WHERE "
 			+ COL_DOI_OBJECT_ID + " = :" + COL_DOI_OBJECT_ID + " AND "
 			+ COL_DOI_OBJECT_TYPE + " = :" + COL_DOI_OBJECT_TYPE + " AND "
-			+ COL_DOI_OBJECT_VERSION + " = :" + COL_DOI_OBJECT_VERSION;
-
-	private static final String UPDATE_DOI_STATUS =
-			"UPDATE " + TABLE_DOI
-			+ " SET " + COL_DOI_DOI_STATUS + " = :" + COL_DOI_DOI_STATUS
-			+ " WHERE " + COL_DOI_ID + " = :" + COL_DOI_ID;
+			+ COL_DOI_OBJECT_VERSION + " IS NULL";
 
 	private static final RowMapper<DBODoi> rowMapper = (new DBODoi()).getTableMapping();
 
@@ -103,20 +96,12 @@ public class DBODoiDaoImpl implements DoiDao {
 		if (doiStatus == null) {
 			throw new IllegalArgumentException("DOI status cannot be null.");
 		}
-
-		// Select the primary key first
-		MapSqlParameterSource selectMap = new MapSqlParameterSource();
-		selectMap.addValue(COL_DOI_OBJECT_ID, objectId);
-		selectMap.addValue(COL_DOI_OBJECT_TYPE, objectType);
-		selectMap.addValue(COL_DOI_OBJECT_VERSION, versionNumber);
-		Object id = simpleJdbcTemplate.queryForObject(SELECT_DOI_ID, rowMapper, selectMap);
-
-		// Then update by primary key
-		MapSqlParameterSource updateMap = new MapSqlParameterSource();
-		updateMap.addValue(COL_DOI_ID, id);
-		updateMap.addValue(COL_DOI_DOI_STATUS, doiStatus);
-		simpleJdbcTemplate.update(UPDATE_DOI_STATUS, updateMap);
-
+		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
+		dbo.setDoiStatus(doiStatus);
+		boolean success = basicDao.update(dbo);
+		if (!success) {
+			throw new DatastoreException("Update failed for " + dbo);
+		}
 		return getDoi(objectId, objectType, versionNumber);
 	}
 
@@ -131,25 +116,36 @@ public class DBODoiDaoImpl implements DoiDao {
 		if (objectType == null) {
 			throw new IllegalArgumentException("Object type cannot be null.");
 		}
+		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
+		return convertToDto(dbo);
+	}
 
+	private DBODoi getDbo (String objectId, DoiObjectType objectType, Long versionNumber)
+			throws NotFoundException, UnauthorizedException, DatastoreException {
+
+		String sql = (versionNumber == null ? SELECT_DOI_NULL_OBJECT_VERSION : SELECT_DOI);
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();
-		paramMap.addValue(COL_DOI_OBJECT_ID, objectId);
-		paramMap.addValue(COL_DOI_OBJECT_TYPE, objectType);
-		paramMap.addValue(COL_DOI_OBJECT_VERSION, versionNumber);
-		List<DBODoi> dboList = simpleJdbcTemplate.query(SELECT_DOI, rowMapper, paramMap);
-		if (dboList == null ||dboList.size() == 0) {
+		paramMap.addValue(COL_DOI_OBJECT_ID, KeyFactory.stringToKey(objectId));
+		paramMap.addValue(COL_DOI_OBJECT_TYPE, objectType.name());
+		if (versionNumber != null) {
+			paramMap.addValue(COL_DOI_OBJECT_VERSION, versionNumber);
+		}
+		List<DBODoi> dboList = simpleJdbcTemplate.query(sql, rowMapper, paramMap);
+		if (dboList == null || dboList.size() == 0) {
 			return null;
 		}
-
-		return convertToDto(dboList.get(0));
+		if (dboList.size() > 1) {
+			String error = "Fetched back more than 1 DOI data object where exactly 1 is expected "
+					+ " for " + sql + " and parameters " + paramMap.getValues().toString();
+			throw new DatastoreException(error);
+		}
+		return (dboList.get(0));
 	}
 
 	private Doi convertToDto(DBODoi dbo) {
 		Doi dto = new Doi();
-		dto.setCreatedBy(dbo.getCreatedBy().toString());
-		dto.setCreatedOn(dbo.getCreatedOn());
-		dto.setDoiStatus(DoiStatus.valueOf(dbo.getDoiStatus()));
 		dto.setId(dbo.getId().toString());
+		dto.setDoiStatus(DoiStatus.valueOf(dbo.getDoiStatus()));
 		final DoiObjectType objectType = DoiObjectType.valueOf(dbo.getDoiObjectType());
 		if (DoiObjectType.ENTITY.equals(objectType)) {
 			dto.setObjectId(KeyFactory.keyToString(dbo.getObjectId()));
@@ -158,6 +154,8 @@ public class DBODoiDaoImpl implements DoiDao {
 		}
 		dto.setDoiObjectType(objectType);
 		dto.setObjectVersion(dbo.getObjectVersion());
+		dto.setCreatedBy(dbo.getCreatedBy().toString());
+		dto.setCreatedOn(dbo.getCreatedOn());
 		dto.setUpdatedOn(dbo.getUpdatedOn());
 		return dto;
 	}

@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 
 import org.junit.After;
 import org.junit.Before;
@@ -44,18 +45,77 @@ public class DBODoiDaoImplAutowiredTest {
 
 	@Test
 	public void test() throws Exception {
+		// Create a DOI
 		final String objectId = KeyFactory.keyToString(112233L);
 		final DoiObjectType objectType = DoiObjectType.ENTITY;
 		final Long versionNumber = 1L;
 		final DoiStatus doiStatus = DoiStatus.IN_PROCESS;
 		Doi doi = doiDao.createDoi(userId, objectId, objectType, versionNumber, doiStatus);
-		System.out.println(doi.getId());
+		assertNotNull(doi);
+		assertNotNull(doi.getId());
 		assertEquals(objectId, doi.getObjectId());
 		assertEquals(versionNumber, doi.getObjectVersion());
 		assertEquals(objectType, doi.getDoiObjectType());
 		assertEquals(doiStatus, doi.getDoiStatus());
 		assertEquals(userId, doi.getCreatedBy());
-		System.out.println(doi.getCreatedOn());
-		System.out.println(doi.getUpdatedOn());
+		assertNotNull(doi.getCreatedOn());
+		assertNotNull(doi.getUpdatedOn());
+		// Create another DOI of null object version
+		// This would be treated as a separate DOI
+		doi = doiDao.createDoi(userId, objectId, objectType, null, doiStatus);
+		assertNotNull(doi);
+		assertNotNull(doi.getId());
+		assertEquals(objectId, doi.getObjectId());
+		assertNull(doi.getObjectVersion());
+		assertEquals(objectType, doi.getDoiObjectType());
+		assertEquals(doiStatus, doi.getDoiStatus());
+		assertEquals(userId, doi.getCreatedBy());
+		assertNotNull(doi.getCreatedOn());
+		assertNotNull(doi.getUpdatedOn());
+		// Get the two DOIs back
+		doi = doiDao.getDoi(objectId, objectType, versionNumber);
+		assertNotNull(doi);
+		assertNotNull(doi.getId());
+		assertEquals(objectId, doi.getObjectId());
+		assertEquals(versionNumber, doi.getObjectVersion());
+		assertEquals(objectType, doi.getDoiObjectType());
+		assertEquals(doiStatus, doi.getDoiStatus());
+		assertEquals(userId, doi.getCreatedBy());
+		assertNotNull(doi.getCreatedOn());
+		assertNotNull(doi.getUpdatedOn());
+		doi = doiDao.getDoi(objectId, objectType, null);
+		assertNotNull(doi);
+		assertNotNull(doi.getId());
+		assertEquals(objectId, doi.getObjectId());
+		System.out.println(doi.getObjectVersion());
+		assertNull(doi.getObjectVersion());
+		assertEquals(objectType, doi.getDoiObjectType());
+		assertEquals(doiStatus, doi.getDoiStatus());
+		assertEquals(userId, doi.getCreatedBy());
+		assertNotNull(doi.getCreatedOn());
+		assertNotNull(doi.getUpdatedOn());
+		// Update status
+		doiDao.updateDoiStatus(objectId, objectType, versionNumber, DoiStatus.READY);
+		doi = doiDao.getDoi(objectId, objectType, versionNumber);
+		assertNotNull(doi);
+		assertNotNull(doi.getId());
+		assertEquals(objectId, doi.getObjectId());
+		assertEquals(versionNumber, doi.getObjectVersion());
+		assertEquals(objectType, doi.getDoiObjectType());
+		assertEquals(DoiStatus.READY, doi.getDoiStatus());
+		assertEquals(userId, doi.getCreatedBy());
+		assertNotNull(doi.getCreatedOn());
+		assertNotNull(doi.getUpdatedOn());
+		doiDao.updateDoiStatus(objectId, objectType, null, DoiStatus.ERROR);
+		doi = doiDao.getDoi(objectId, objectType, null);
+		assertNotNull(doi);
+		assertNotNull(doi.getId());
+		assertEquals(objectId, doi.getObjectId());
+		assertNull(doi.getObjectVersion());
+		assertEquals(objectType, doi.getDoiObjectType());
+		assertEquals(DoiStatus.ERROR, doi.getDoiStatus());
+		assertEquals(userId, doi.getCreatedBy());
+		assertNotNull(doi.getCreatedOn());
+		assertNotNull(doi.getUpdatedOn());
 	}
 }
