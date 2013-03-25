@@ -54,7 +54,7 @@
 	<bean id="tempFileTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.TempFileTransferStrategy" />
 	
 	<!-- File Upload manager -->
-	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" >
+	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" init-method="initialize" >
 	    <!-- The memory strategy is the primary -->
 	    <property name="primaryStrategy" ref="memoryTransferStrategy"/>
 	   	<!-- The temp strategy is the fall-back -->
