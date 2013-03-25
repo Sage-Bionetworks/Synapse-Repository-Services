@@ -1,0 +1,14 @@
+{
+	"description": "JSON schema for ChunkedPartRequest",
+	"properties": {
+		"chunkedFileToken": {
+			"$ref": "org.sagebionetworks.repo.model.file.ChunkedFileToken"
+		},
+		"chunkResults": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.file.ChunkResult"
+			}
+		}
+	}
+}

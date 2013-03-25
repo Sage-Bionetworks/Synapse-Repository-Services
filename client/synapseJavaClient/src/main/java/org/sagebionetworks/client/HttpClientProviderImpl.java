@@ -9,6 +9,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpUriRequest;
+import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelper;
 import org.sagebionetworks.utils.HttpClientHelperException;
@@ -60,6 +61,9 @@ public class HttpClientProviderImpl implements HttpClientProvider {
 	@Override
 	public HttpResponse execute(HttpUriRequest request) throws ClientProtocolException, IOException {
 		HttpClient client = DefaultHttpClientSingleton.getInstance();
+		// Used to debug connnection counts
+//		ThreadSafeClientConnManager poolManager = (ThreadSafeClientConnManager) client.getConnectionManager();
+//		System.out.println("Used connections: "+poolManager.getConnectionsInPool());
 		return client.execute(request);
 	}
 

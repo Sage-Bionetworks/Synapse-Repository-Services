@@ -1,6 +1,7 @@
 package org.sagebionetworks.file.controller;
 
 import java.io.IOException;
+import java.net.URL;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -13,9 +14,15 @@ import org.sagebionetworks.file.services.FileUploadService;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.model.file.ChunkRequest;
+import org.sagebionetworks.repo.model.file.ChunkResult;
+import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
+import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -104,5 +111,77 @@ public class UploadController extends BaseController {
 		return fileService.createExternalFileHandle(userId, fileHandle);
 	}
 	
+	/**
+	 * This is the first step in uploading a large file. The resulting {@link ChunkedFileToken} will be required for all remain chunk file requests.
+	 * 
+	 * @param userId
+	 * @param fileName - The short name of the file (ie foo.bar).
+	 * @param contentType - The content type of the file (ie 'text/plain' or 'application/json').
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value ="/createChunkedFileUploadToken" , method = RequestMethod.POST)
+	public @ResponseBody ChunkedFileToken createChunkedFileUploadToken(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestBody CreateChunkedFileTokenRequest ccftr) throws DatastoreException, NotFoundException{
+		return fileService.createChunkedFileUploadToken(userId, ccftr);
+	}
+	
+	/**
+	 * Create a pre-signed URL that will be used to upload a single chunk of a large file. See  {@link #createChunkedFileUploadToken(String, String, String)}.
+	 * This method will return the URL in the body of the HttpServletResponse with a content type of 'text/plain'.
+	 * @param userId
+	 * @param cpr - Includes the {@link ChunkedFileToken} and the chunk number. The chunk number indicates this chunks position in the larger file.
+	 *  If there are 'n' chunks then the first chunk is '1' and the last chunk is 'n'.
+	 * @param response
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value ="/createChunkedFileUploadChunkURL" , method = RequestMethod.POST)
+	public void createChunkedPresignedUrl(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestBody ChunkRequest cpr, HttpServletResponse response) throws DatastoreException, NotFoundException, IOException{
+		URL url = fileService.createChunkedFileUploadPartURL(userId, cpr);
+		// Return the redirect url instead of redirecting.
+		response.setStatus(HttpStatus.CREATED.value());
+		response.setContentType("text/plain");
+		response.getWriter().write(url.toString());
+		response.getWriter().flush();
+	}
+	
+	/**
+	 * After POSTing a chunk to a pre-signed URL see: {@link #createChunkedPresignedUrl(String, ChunkedPartRequest, HttpServletResponse)},
+	 * the chunk must be added to the final file.
+	 * @param userId
+	 * @param cpr - Includes the {@link ChunkedFileToken} and the chunk number. The chunk number indicates this chunks position in the larger file.
+	 *  If there are 'n' chunks then the first chunk is '1' and the last chunk is 'n'.
+	 * @return The returned ChunkPart will be need to complete the file upload.
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value ="/addChunkToFile" , method = RequestMethod.POST)
+	public @ResponseBody ChunkResult addChunkToFile(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestBody ChunkRequest cpr) throws DatastoreException, NotFoundException{
+		return fileService.addChunkToFile(userId, cpr);
+	}
+	
+	/**
+	 * After all of the chunks are added to the file using: {@link #addChunkToFile(String, ChunkedPartRequest)} this method must
+	 * be called to complete the upload process and create an {@link S3FileHandle}
+	 * @param userId
+	 * @param ccfr - This includes the {@link ChunkedFileToken} and the list
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
+	@ResponseStatus(HttpStatus.CREATED)
+	@RequestMapping(value ="/completeChunkFileUpload" , method = RequestMethod.POST)
+	public @ResponseBody S3FileHandle completeChunkFileUpload(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM) String userId,
+			@RequestBody CompleteChunkedFileRequest ccfr) throws DatastoreException, NotFoundException{
+		return fileService.completeChunkFileUpload(userId, ccfr);
+	}
 	
 }
