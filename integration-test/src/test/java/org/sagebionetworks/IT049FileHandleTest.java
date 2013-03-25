@@ -32,6 +32,8 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 
 public class IT049FileHandleTest {
 	
+	private static final String LARGE_FILE_PATH_PROP_KEY = "org.sagebionetworks.test.large.file.path";
+
 	public static final long MAX_WAIT_MS = 1000*10; // 10 sec
 	
 	private static String FILE_NAME = "LittleImage.png";
@@ -210,5 +212,37 @@ public class IT049FileHandleTest {
 		assertEquals("NOT_SET", clone.getFileName());
 		assertEquals(efh.getExternalURL(), clone.getExternalURL());
 		assertEquals("NOT_SET", clone.getContentType());
+	}
+	
+	/**
+	 * This test uploads files that are too large to include in the build.
+	 * To run this test, set the property to point to a large file: org.sagebionetworks.test.large.file.path=<path to large file>
+	 * @throws IOException 
+	 * @throws SynapseException 
+	 */
+	@Test
+	public void testLargeFileUplaod() throws SynapseException, IOException{
+		String largeFileName = System.getProperty(LARGE_FILE_PATH_PROP_KEY);
+		if(largeFileName != null){
+			// Run the test
+			File largeFile = new File(largeFileName);
+			assertTrue(largeFile.exists());
+			System.out.println("Attempting to upload a file of size: "+largeFile.length());
+			float fileSize = largeFile.length();
+			float bytesPerMB = (float) Math.pow(2, 20);
+			float fileSizeMB = fileSize/bytesPerMB;
+			System.out.println(String.format("Attempting to upload file: %1$s of size %2$.2f",  largeFile.getName(), fileSizeMB));
+			String contentType = Synapse.guessContentTypeFromStream(largeFile);
+			long start = System.currentTimeMillis();
+			S3FileHandle handle = synapse.createFileHandle(largeFile, contentType);
+			long elapse = System.currentTimeMillis()-start;
+			float elapseSecs = elapse/1000;
+			float mbPerSec = fileSizeMB/elapseSecs;
+			System.out.println(String.format("Upload file: %1$s of size %2$.2f in %3$.2f secs with rate %4$.2f MB/Sec",  largeFile.getName(), fileSizeMB, elapseSecs, mbPerSec));
+			assertNotNull(handle);
+			toDelete.add(handle);
+		}else{
+			System.out.println("The property: '"+LARGE_FILE_PATH_PROP_KEY+"' was not set.  The testLargeFileUplaod() test was not run");
+		}
 	}
 }
