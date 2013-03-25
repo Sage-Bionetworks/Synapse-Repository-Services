@@ -40,7 +40,6 @@ public class TransferUtils {
 		ObjectMetadata objMeta = new ObjectMetadata();
 		objMeta.setContentType(request.getContentType());
 		objMeta.setContentDisposition(getContentDispositionValue(request.getFileName()));
-		objMeta.setContentDisposition(getContentDispositionValue(request.getFileName()));
 		if(request.getContentMd5() != null){
 			// convert it from hex to base64.
 			objMeta.setContentMD5(BinaryUtils.toBase64(BinaryUtils.fromHex(request.getContentMd5())));

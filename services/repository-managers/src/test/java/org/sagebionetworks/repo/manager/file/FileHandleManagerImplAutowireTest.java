@@ -219,6 +219,9 @@ public class FileHandleManagerImplAutowireTest {
 		ByteArrayHttpEntity entity = new ByteArrayHttpEntity(fileBodyBytes, fileBodyBytes.length);
 		httppost.setEntity(entity);
 		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(httppost);
+		// Make sure we can get the pre-signed url again if we need to.
+		preSigned = fileUploadManager.createChunkedFileUploadPartURL(userInfo, cpr);
+		assertNotNull(preSigned);
 		
 		// Next add the part
 		ChunkResult part = fileUploadManager.addChunkToFile(userInfo, cpr);

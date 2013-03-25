@@ -84,6 +84,32 @@ public class FileUtilsTest {
 	}
 	
 	@Test
+	public void testExactSplit() throws IOException{
+		File temp = File.createTempFile("FileUtilsTest", ".tmp");
+		toDelete.add(temp);
+		// fill it with 5 bytes
+		byte[] data = new byte[]{1,2,3,4,5,6,7,8,9,10};
+		FileOutputStream fos = new FileOutputStream(temp);
+		try{
+			fos.write(data);
+		}finally{
+			fos.close();
+		}
+		// Now chunk this file
+		List<File> chunks = FileUtils.chunkFile(temp, 5);
+		assertNotNull(chunks);
+		assertEquals(2, chunks.size());
+		assertFalse(chunks.contains(temp));
+		toDelete.addAll(chunks);
+		// Validate the expected data
+		byte[][] allExpected = new byte[][]{ 
+				new byte[]{1,2,3,4,5},
+				new byte[]{6,7,8,9,10},
+		};
+		validateFileContents(chunks, allExpected);
+	}
+	
+	@Test
 	public void testSmallerChunkSizeEven() throws IOException{
 		File temp = File.createTempFile("FileUtilsTest", ".tmp");
 		toDelete.add(temp);

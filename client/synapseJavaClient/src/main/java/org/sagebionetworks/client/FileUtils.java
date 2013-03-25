@@ -35,7 +35,8 @@ public class FileUtils {
 			BufferedInputStream fis = new BufferedInputStream(new FileInputStream(file));
 			try{
 				// We need to chunk the file
-				int chunkCount = (int) (file.length()/chunkSize + 1);
+				int plus = file.length()%chunkSize > 0 ? 1 : 0;
+				int chunkCount = (int) (file.length()/chunkSize + plus);
 				for(int i=0; i<chunkCount; i++){
 					// Create a new file
 					File temp = File.createTempFile("FileUtilsChunkFile", ".tmp");

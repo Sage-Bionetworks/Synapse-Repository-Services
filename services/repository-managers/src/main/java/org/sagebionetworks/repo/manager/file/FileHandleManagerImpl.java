@@ -481,6 +481,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		return cp;
 	}
 
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public S3FileHandle completeChunkFileUpload(UserInfo userInfo, CompleteChunkedFileRequest ccfr) {
 		if(ccfr == null) throw new IllegalArgumentException("CompleteChunkedFileRequest cannot be null");
