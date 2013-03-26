@@ -19,6 +19,8 @@ import org.apache.commons.fileupload.FileUploadException;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.util.EntityUtils;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -184,9 +186,9 @@ public class FileHandleManagerImplAutowireTest {
 		assertTrue(rule.getAllowedMethods().contains(AllowedMethods.HEAD));
 		assertEquals(300, rule.getMaxAgeSeconds());
 		// the wildcard headers in not working
-//		assertNotNull(rule.getAllowedHeaders());
-//		assertEquals(1, rule.getAllowedHeaders().size());
-//		assertEquals("*", rule.getAllowedHeaders().get(0));
+		assertNotNull(rule.getAllowedHeaders());
+		assertEquals(1, rule.getAllowedHeaders().size());
+		assertEquals("*", rule.getAllowedHeaders().get(0));
 	}
 	
 	@Test
@@ -216,9 +218,14 @@ public class FileHandleManagerImplAutowireTest {
 		// Now upload the file to the URL
 		// Use the URL to upload a part.
 		HttpPut httppost = new HttpPut(preSigned.toString());
-		ByteArrayHttpEntity entity = new ByteArrayHttpEntity(fileBodyBytes, fileBodyBytes.length);
+		
+		StringEntity entity = new StringEntity(fileBody, "UTF-8");
+		entity.setContentType(ccftr.getContentType());
 		httppost.setEntity(entity);
 		HttpResponse response = DefaultHttpClientSingleton.getInstance().execute(httppost);
+		String text = EntityUtils.toString(response.getEntity());
+		System.out.println(text);
+	
 		// Make sure we can get the pre-signed url again if we need to.
 		preSigned = fileUploadManager.createChunkedFileUploadPartURL(userInfo, cpr);
 		assertNotNull(preSigned);
