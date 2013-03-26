@@ -10,6 +10,7 @@ import java.util.List;
 import org.apache.http.entity.FileEntity;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.wiki.WikiManager;
@@ -101,6 +102,7 @@ public class AsynchronousMigrationAutowireTest {
 		}
 	}
 	
+	@Ignore // This test is currently not needed now that we have mirrored WikiPages for projects and folders
 	@Test
 	public void testPLFM_1709() throws NotFoundException{
 		// Before we start
