@@ -381,6 +381,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		allowAll.setAllowedOrigins("*");
 		allowAll.setAllowedMethods(AllowedMethods.GET, AllowedMethods.PUT, AllowedMethods.POST, AllowedMethods.HEAD);
 		allowAll.setMaxAgeSeconds(300);
+		allowAll.setAllowedHeaders("*");
 		bcoc.withRules(allowAll);
 		s3Client.setBucketCrossOriginConfiguration(StackConfiguration.getS3Bucket(), bcoc);
 		log.info("Set CORSRule on bucket: "+bucketName+" to be: "+allowAll);

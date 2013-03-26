@@ -184,9 +184,9 @@ public class FileHandleManagerImplAutowireTest {
 		assertTrue(rule.getAllowedMethods().contains(AllowedMethods.HEAD));
 		assertEquals(300, rule.getMaxAgeSeconds());
 		// the wildcard headers in not working
-//		assertNotNull(rule.getAllowedHeaders());
-//		assertEquals(1, rule.getAllowedHeaders().size());
-//		assertEquals("*", rule.getAllowedHeaders().get(0));
+		assertNotNull(rule.getAllowedHeaders());
+		assertEquals(1, rule.getAllowedHeaders().size());
+		assertEquals("*", rule.getAllowedHeaders().get(0));
 	}
 	
 	@Test
