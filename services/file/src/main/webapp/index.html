@@ -10,6 +10,7 @@
 
 	var fileToUpload;
 	var chunkToken;
+	var partList = new Array();
 
 	//Get a cookie by name
 	function getCookie(c_name) {
@@ -64,7 +65,7 @@
 		return document.getElementById('fileToUpload').files[0];
 	}
 
-	// Start a chunked file upload
+	// Step One - Create a ChunkToken to start the upload process.
 	function startChunkedFileUploadToken(file) {
 		updateStatus("startChunkedFileUploadToken() file" + file.name
 				+ " contentType: " + file.type);
@@ -100,7 +101,7 @@
 		startCreateURL(chunkToken);
 	}
 
-	// Start a chunked file upload
+	// Step two - Create a pre-signed URL that we will used to upload the chunk.
 	function startCreateURL(token) {
 		updateStatus("startCreateURL() token.key: " + token.key);
 		var xhr = createCORSRequest();
@@ -133,7 +134,7 @@
 		uploadFileToURL(presignedURL);
 	}
 
-	// Start a chunked file upload
+	// Step three - PUT the file's contents to the presigned URL.
 	function uploadFileToURL(url) {
 		updateStatus("uploadFileToURL() url: " + url + " File: "+ fileToUpload.name);
 		var xhr = createCORSRequest();
@@ -145,7 +146,6 @@
 				xhr.addEventListener("error", callbackFailed, false);
 				xhr.addEventListener("abort", callbackCanceled, false);
 				xhr.open('PUT', url, true);
-			    xhr.overrideMimeType(null);
 				xhr.send(fileToUpload);
 			} catch (err) {
 				alert("Error: " + err);
@@ -156,7 +156,75 @@
 	}
 
 	function callbackFileUploadedToURL(evt) {
-		updateStatus("File Upload complete");
+		var text = this.responseText;
+		updateStatus("File Upload complete text: "+text);
+		// Add the file
+		addChunkToFile(chunkToken);
+	}
+	
+	// Step four - Add chunk to the file.
+	function addChunkToFile(token) {
+		updateStatus("addChunkToFile() toke.key: " + token.key);
+		var xhr = createCORSRequest();
+		// only continue if we have a request.
+		if (xhr) {
+			try {
+				var chunckRequest = new Object();
+				chunckRequest.chunkNumber = "1";
+				chunckRequest.chunkedFileToken = token;
+				xhr.addEventListener("load", callbackChunkAdded, false);
+				xhr.addEventListener("error", callbackFailed, false);
+				xhr.addEventListener("abort", callbackCanceled, false);
+				xhr.open('POST', FILE_SERVICE_ENDPOINT+ "/addChunkToFile", true);
+				// Set the session token from the cookie.
+				xhr.setRequestHeader(SESSION_TOKEN_HEADER_NAME,	getCookie(SESSION_TOKEN_COOKIE_NAME));
+				xhr.setRequestHeader("Accept", "application/json");
+				xhr.send(JSON.stringify(chunckRequest));
+			} catch (err) {
+				alert("Error: " + err);
+			}
+		} else {
+			alert("Failed to create CORS Request!");
+		}
+	}
+	
+	function callbackChunkAdded(evt){
+		var result = JSON.parse(this.responseText);
+		partList.push(result);
+		updateStatus("callbackChunkAdded() : "+result.etag);
+		// We can now complete the request.
+		completeChunkUpload();
+	}
+	
+	// Step five - Complete the request and create the S3FileHandle
+	function completeChunkUpload() {
+		updateStatus("completeChunkUpload()");
+		var xhr = createCORSRequest();
+		// only continue if we have a request.
+		if (xhr) {
+			try {
+				var completeRequest = new Object();
+				completeRequest.chunkedFileToken = chunkToken;
+				completeRequest.chunkResults = partList;
+				xhr.addEventListener("load", callbackComplteFileUpload, false);
+				xhr.addEventListener("error", callbackFailed, false);
+				xhr.addEventListener("abort", callbackCanceled, false);
+				xhr.open('POST', FILE_SERVICE_ENDPOINT+ "/completeChunkFileUpload", true);
+				// Set the session token from the cookie.
+				xhr.setRequestHeader(SESSION_TOKEN_HEADER_NAME,	getCookie(SESSION_TOKEN_COOKIE_NAME));
+				xhr.setRequestHeader("Accept", "application/json");
+				xhr.send(JSON.stringify(completeRequest));
+			} catch (err) {
+				alert("Error: " + err);
+			}
+		} else {
+			alert("Failed to create CORS Request!");
+		}
+	}
+	
+	function callbackComplteFileUpload(evt){
+		var s3fileHandle = JSON.parse(this.responseText);
+		updateStatus("Finished upload: S3FileHandle.id: "+s3fileHandle.id);
 	}
 
 	function uploadProgress(evt) {

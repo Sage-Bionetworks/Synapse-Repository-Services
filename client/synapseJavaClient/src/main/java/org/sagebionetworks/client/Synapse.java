@@ -1607,14 +1607,14 @@ public class Synapse {
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
 	 */
-	public String putFileToURL(URL url, File file) throws SynapseException{
+	public String putFileToURL(URL url, File file, String contentType) throws SynapseException{
 		try{
 			if(url == null) throw new IllegalArgumentException("URL cannot be null");
 			if(file == null) throw new IllegalArgumentException("File cannot be null");
 			HttpPut httppost = new HttpPut(url.toString());
 			// There must not be any headers added or Amazon will return a 403.
 			// Therefore, we must clear the content type.
-			org.apache.http.entity.FileEntity fe = new org.apache.http.entity.FileEntity(file, null);
+			org.apache.http.entity.FileEntity fe = new org.apache.http.entity.FileEntity(file, contentType);
 			httppost.setEntity(fe);
 			HttpResponse response = clientProvider.execute(httppost);
 			int code = response.getStatusLine().getStatusCode();

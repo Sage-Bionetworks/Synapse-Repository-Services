@@ -437,6 +437,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String partKey = getChunkPartKey(token, partNumber);
 		// For each block we want to create a pre-signed URL file.
 		GeneratePresignedUrlRequest gpur = new GeneratePresignedUrlRequest(StackConfiguration.getS3Bucket(), partKey).withMethod(HttpMethod.PUT);
+		if(cpr.getChunkedFileToken().getContentType() != null){
+			gpur.setContentType(cpr.getChunkedFileToken().getContentType());
+		}
 		return  s3Client.generatePresignedUrl(gpur);
 	}
 
@@ -481,7 +484,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		cp.setChunkNumber((long) result.getPartNumber());
 		return cp;
 	}
-
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public S3FileHandle completeChunkFileUpload(UserInfo userInfo, CompleteChunkedFileRequest ccfr) {
