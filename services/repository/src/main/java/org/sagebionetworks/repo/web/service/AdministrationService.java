@@ -10,9 +10,14 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectCount;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
+import org.sagebionetworks.repo.model.message.ChangeMessage;
+import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.http.HttpHeaders;
@@ -162,6 +167,29 @@ public interface AdministrationService {
 			HttpHeaders header, HttpServletRequest request)
 			throws DatastoreException, NotFoundException,
 			UnauthorizedException, IOException;
+
+	/**
+	 * List change messages.
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	public ChangeMessages listChangeMessages(String userId, Long startChangeNumber, ObjectType type, Long limit) throws DatastoreException, NotFoundException;
+
+
+	/**
+	 * Rebroadcast messages to a queue.
+	 * @param userId
+	 * @param queueName
+	 * @param startChangeNumber
+	 * @param type
+	 * @param limit
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	PublishResults rebroadcastChangeMessagesToQueue(String userId,	String queueName, Long startChangeNumber, ObjectType type,	Long limit) throws DatastoreException, NotFoundException;
 	
 	
 	

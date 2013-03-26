@@ -247,4 +247,10 @@ public class SubmissionDAOImplTest {
     	assertEquals(subDTO, subDTOclone);
     	assertEquals(subDBO, subDBOclone);
     }
+    
+    @Test(expected=IllegalArgumentException.class)
+    public void testMissingVersionNumber() {
+        submission.setVersionNumber(null);
+        submissionDAO.create(submission);
+    }
 }

@@ -1,17 +1,17 @@
 {
-	"title": "Used Activity",
+	"title": "UsedEntity in Activity Provenance",
 	"description": "Interface for JSON schema for UsedEntity POJO",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.provenance.Used"
+		}
+	],
 	"properties": {
         "reference":{
             "type":"object",
             "$ref":"org.sagebionetworks.repo.model.Reference",
             "description":"The Synapse entity used",
             "title":"Reference"
-        },
-		"wasExecuted": {
-			"type": "boolean",
-			"name": "WasExecuted",
-			"description": "The enclosed entity was used and also executed in the Activity"
-		}			
+        }
 	}
 }

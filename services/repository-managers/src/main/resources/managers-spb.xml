@@ -54,7 +54,7 @@
 	<bean id="tempFileTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.TempFileTransferStrategy" />
 	
 	<!-- File Upload manager -->
-	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" >
+	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" init-method="initialize" >
 	    <!-- The memory strategy is the primary -->
 	    <property name="primaryStrategy" ref="memoryTransferStrategy"/>
 	   	<!-- The temp strategy is the fall-back -->
@@ -67,6 +67,8 @@
 	    <property name="generatorList">
 	        <list>
 	            <bean id="imagePreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ImagePreviewGenerator" />
+	            <bean id="textPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.TextPreviewGenerator" />
+	            <bean id="zipPreviewGenerator" class="org.sagebionetworks.repo.manager.file.preview.ZipPreviewGenerator" />
 	        </list>
 	    </property>
 	    <!-- The maximum amount of memory to uses -->

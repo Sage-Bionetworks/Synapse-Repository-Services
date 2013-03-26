@@ -54,12 +54,4 @@ public interface NodeTreeQueryService {
 	 */
 	EntityIdList getChildren(String currUserName, String nodeId, int pageSize, String lastDescIdExcl)
 			throws UnauthorizedException, DatastoreException;
-
-	/**
-	 * Finds the lowest common ancestor of two nodes X and Y.
-	 *
-	 * @return The ID of the lowest common ancestor
-	 */
-	EntityId getLowestCommonAncestor(String currUserName, String nodeX, String nodeY)
-			throws UnauthorizedException, DatastoreException;
 }

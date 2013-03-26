@@ -1,0 +1,19 @@
+{
+	"title": "UsedURL in Activity Provenance",
+	"description": "Interface for JSON schema for UsedEntity POJO",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.provenance.Used"
+		}
+	],
+	"properties": {
+		"name": {
+			"type": "string",
+			"description": "The external URL of the file that was used."
+		},
+		"url": {
+			"type": "string",
+			"description": "The external URL of the file that was used."
+		}
+	}
+}

@@ -746,4 +746,33 @@ public class StackConfiguration {
 		// Get the max
 		return (long) (Runtime.getRuntime().maxMemory() * previewPercent);
 	}
+	
+	/**
+	 * Should messages be published to the AWS topic?
+	 * @return
+	 */
+	public boolean getShouldMessagesBePublishedToTopic(){
+		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.repo.manage.shouldMessagesBePublishedToTopic"));
+	}
+
+	/**
+	 * EZID REST API URL.
+	 */
+	public static String getEzidUrl() {
+		return configuration.getProperty("org.sagebionetworks.ezid.url");
+	}
+
+	/**
+	 * EZID user name.
+	 */
+	public static String getEzidUsername() {
+		return configuration.getProperty("org.sagebionetworks.ezid.username");
+	}
+
+	/**
+	 * EZID password.
+	 */
+	public static String getEzidPassword() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.ezid.password");
+	}
 }

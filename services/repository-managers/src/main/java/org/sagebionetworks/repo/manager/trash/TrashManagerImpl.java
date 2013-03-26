@@ -6,7 +6,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeDao;
+import org.sagebionetworks.dynamo.dao.nodetree.NodeTreeQueryDao;
 import org.sagebionetworks.repo.manager.AuthorizationManager;
 import org.sagebionetworks.repo.manager.NodeInheritanceManager;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -44,7 +44,7 @@ public class TrashManagerImpl implements TrashManager {
 	private NodeDAO nodeDao;
 
 	@Autowired
-	private NodeTreeDao nodeTreeDao;
+	private NodeTreeQueryDao nodeTreeQueryDao;
 
 	@Autowired
 	private DBOTrashCanDao trashCanDao;
@@ -72,7 +72,7 @@ public class TrashManagerImpl implements TrashManager {
 		}
 
 		// Whether it is too big for the trash can
-		List<String> idList = this.nodeTreeDao.getDescendants(
+		List<String> idList = this.nodeTreeQueryDao.getDescendants(
 				KeyFactory.stringToKey(nodeId).toString(), TrashConstants.MAX_TRASHABLE + 1, null);
 		if (idList != null && idList.size() > TrashConstants.MAX_TRASHABLE) {
 			throw new TooBigForTrashcanException(
