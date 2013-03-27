@@ -249,6 +249,9 @@
 	<bean id="wikiManager" class="org.sagebionetworks.repo.manager.wiki.WikiManagerImpl" 
 		scope="singleton" />
 
+	<bean id="entityDoiManager" class="org.sagebionetworks.repo.manager.doi.EntityDoiManagerImpl" 
+		scope="singleton" />
+
 	<!-- The thread pool used by the backup/restore daemons -->
 	<bean id="backupDaemonThreadPool"
 		class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
