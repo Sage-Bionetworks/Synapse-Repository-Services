@@ -8,7 +8,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
@@ -32,6 +31,7 @@ import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.protocol.HTTP;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class EzidClientTest {
 
@@ -39,10 +39,7 @@ public class EzidClientTest {
 	public void testConstructor() throws Exception {
 		DoiClient client = new EzidClient();
 		assertNotNull(client);
-		Field field = EzidClient.class.getDeclaredField("client");
-		assertNotNull(field);
-		field.setAccessible(true);
-		DefaultHttpClient httpClient = (DefaultHttpClient)field.get(client);
+		DefaultHttpClient httpClient = (DefaultHttpClient)ReflectionTestUtils.getField(client, "client");
 		assertNotNull(httpClient);
 		assertEquals(Integer.valueOf(9000), httpClient.getParams().getParameter(CoreConnectionPNames.SO_TIMEOUT));
 		assertEquals("Synapse", httpClient.getParams().getParameter(CoreProtocolPNames.USER_AGENT));
@@ -134,11 +131,7 @@ public class EzidClientTest {
 
 		// "Inject" the mock client
 		DoiClient doiClient = new EzidClient();
-		assertNotNull(doiClient);
-		Field field = EzidClient.class.getDeclaredField("client");
-		assertNotNull(field);
-		field.setAccessible(true);
-		field.set(doiClient, mockClient);
+		ReflectionTestUtils.setField(doiClient, "client", mockClient);
 		Method method = EzidClient.class.getDeclaredMethod("executeWithRetry", HttpUriRequest.class);
 		method.setAccessible(true);
 

@@ -1,14 +1,12 @@
 package org.sagebionetworks.doi;
 
-import static org.junit.Assert.assertNotNull;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.lang.reflect.Field;
-
 import org.junit.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 public class EzidAsyncClientTest {
 
@@ -18,11 +16,8 @@ public class EzidAsyncClientTest {
 		EzidAsyncCallback callback = mock(EzidAsyncCallback.class);
 		DoiClient asyncClient = new EzidAsyncClient(callback);
 
-		Field field = EzidAsyncClient.class.getDeclaredField("ezidClient");
-		assertNotNull(field);
-		field.setAccessible(true);
 		EzidClient ezidClient = mock(EzidClient.class);
-		field.set(asyncClient, ezidClient);
+		ReflectionTestUtils.setField(asyncClient, "ezidClient", ezidClient);
 
 		EzidMetadata metadata = mock(EzidMetadata.class);
 		asyncClient.create(metadata);
@@ -40,11 +35,7 @@ public class EzidAsyncClientTest {
 		EzidMetadata metadataWithError = mock(EzidMetadata.class);
 		Exception e = new RuntimeException();
 		doThrow(e).when(ezidClient).create(metadataWithError);
-
-		Field field = EzidAsyncClient.class.getDeclaredField("ezidClient");
-		assertNotNull(field);
-		field.setAccessible(true);
-		field.set(asyncClient, ezidClient);
+		ReflectionTestUtils.setField(asyncClient, "ezidClient", ezidClient);
 
 		asyncClient.create(metadataWithError);
 		verify(ezidClient, times(1)).create(metadataWithError);
