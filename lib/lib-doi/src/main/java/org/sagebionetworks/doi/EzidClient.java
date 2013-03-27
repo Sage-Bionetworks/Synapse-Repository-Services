@@ -86,8 +86,8 @@ public class EzidClient implements DoiClient {
 			}
 		}
 
-		HttpResponse response = execute(request);
-		int status = response.getStatusLine().getStatusCode();
+		final HttpResponse response = execute(request);
+		final int status = response.getStatusLine().getStatusCode();
 
 		if (status == HttpStatus.SC_CREATED) {
 			return;
@@ -103,9 +103,14 @@ public class EzidClient implements DoiClient {
 		}
 
 		try {
+			String error = status + " " + response.getStatusLine().getReasonPhrase();
 			HttpEntity responseEntity = response.getEntity();
-			String error = EntityUtils.toString(responseEntity);
-			error = "HTTP Error: " + status + " Details: " + error;
+			error = " " + EntityUtils.toString(responseEntity);
+			if (status == HttpStatus.SC_BAD_REQUEST) {
+				if (error.toLowerCase().contains("identifier already exists")) {
+					return;
+				}
+			}
 			throw new RuntimeException(error);
 		} catch (IOException e) {
 			throw new RuntimeException(e.getMessage(), e);
