@@ -11,7 +11,6 @@ import java.util.List;
 import org.joda.time.DateTime;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiDao;
-import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
 import org.sagebionetworks.repo.model.doi.Doi;
@@ -49,7 +48,7 @@ public class DBODoiDaoImpl implements DoiDao {
 	@Override
 	public Doi createDoi(final String userGroupId, final String objectId,
 			final DoiObjectType objectType, final Long versionNumber, final DoiStatus doiStatus)
-			throws NotFoundException, UnauthorizedException, DatastoreException {
+			throws DatastoreException {
 
 		if (userGroupId == null || userGroupId.isEmpty()) {
 			throw new IllegalArgumentException("User group ID cannot be null nor empty.");
@@ -84,8 +83,8 @@ public class DBODoiDaoImpl implements DoiDao {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Doi updateDoiStatus(final String objectId, final DoiObjectType objectType,
-			final Long versionNumber, final DoiStatus doiStatus) throws NotFoundException,
-			UnauthorizedException, DatastoreException {
+			final Long versionNumber, final DoiStatus doiStatus)
+			throws NotFoundException, DatastoreException {
 
 		if (objectId == null || objectId.isEmpty()) {
 			throw new IllegalArgumentException("Object ID cannot be null nor empty.");
@@ -106,9 +105,8 @@ public class DBODoiDaoImpl implements DoiDao {
 	}
 
 	@Override
-	public Doi getDoi(String objectId, DoiObjectType objectType,
-			Long versionNumber) throws NotFoundException,
-			UnauthorizedException, DatastoreException {
+	public Doi getDoi(final String objectId, final DoiObjectType objectType,
+			final Long versionNumber) throws NotFoundException, DatastoreException {
 
 		if (objectId == null || objectId.isEmpty()) {
 			throw new IllegalArgumentException("Object ID cannot be null nor empty.");
@@ -121,7 +119,7 @@ public class DBODoiDaoImpl implements DoiDao {
 	}
 
 	private DBODoi getDbo (String objectId, DoiObjectType objectType, Long versionNumber)
-			throws NotFoundException, UnauthorizedException, DatastoreException {
+			throws NotFoundException, DatastoreException {
 
 		String sql = (versionNumber == null ? SELECT_DOI_NULL_OBJECT_VERSION : SELECT_DOI);
 		MapSqlParameterSource paramMap = new MapSqlParameterSource();

@@ -14,19 +14,19 @@ public interface DoiDao {
 	 * Creates a DOI for the specified entity version. If the version number is null,
 	 * the DOI will be associated with the most recent version if applicable.
 	 */
-	Doi createDoi(String userGroupId, String objectId, DoiObjectType objectType, Long versionNumber, DoiStatus doiStatus)
-			throws NotFoundException, UnauthorizedException, DatastoreException;
+	Doi createDoi(String userGroupId, String objectId, DoiObjectType objectType,
+			Long versionNumber, DoiStatus doiStatus) throws DatastoreException;
 
 	/**
 	 * Updates a DOI's status.
 	 */
-	Doi updateDoiStatus(String objectId, DoiObjectType objectType, Long versionNumber, DoiStatus doiStatus)
-			throws NotFoundException, UnauthorizedException, DatastoreException;
+	Doi updateDoiStatus(String objectId, DoiObjectType objectType, Long versionNumber,
+			DoiStatus doiStatus) throws NotFoundException, DatastoreException;
 
 	/**
 	 * Gets the DOI for the specified entity version. If version number is null,
 	 * the DOI will be associated with the most recent version will be retrieved.
 	 */
 	Doi getDoi(String objectId, DoiObjectType objectType, Long versionNumber)
-			throws NotFoundException, UnauthorizedException, DatastoreException;
+			throws NotFoundException, DatastoreException;
 }
