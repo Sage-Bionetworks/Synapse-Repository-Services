@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.manager.doi;
 
-import static org.mockito.Mockito.mock;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.mockito.Mockito.mock;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -18,8 +19,8 @@ import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.dao.StorageLocationDAOImpl;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.aop.framework.Advised;
@@ -75,6 +76,7 @@ public class EntityDoiManagerImplAutowiredTest {
 
 	@Test
 	public void testRoundTrip() throws Exception {
+
 		Node node = new Node();
 		final String nodeName = "EntityDoiManagerImplAutowiredTest.testRoundTrip()";
 		node.setName(nodeName);
@@ -82,13 +84,29 @@ public class EntityDoiManagerImplAutowiredTest {
 		final String nodeId = nodeManager.createNewNode(node, testUserInfo);
 		toClearList.add(nodeId);
 		assertNotNull(nodeId);
+
 		Doi doiCreate = entityDoiManager.createDoi(
 				testUserInfo.getIndividualGroup().getName(), nodeId, null);
 		assertNotNull(doiCreate);
+		assertNotNull(doiCreate.getId());
+		assertEquals(nodeId, doiCreate.getObjectId());
+		assertEquals(DoiObjectType.ENTITY, doiCreate.getDoiObjectType());
+		assertNull(doiCreate.getObjectVersion());
+		assertNotNull(doiCreate.getCreatedOn());
+		assertEquals(testUserInfo.getIndividualGroup().getId(), doiCreate.getCreatedBy());
+		assertNotNull(doiCreate.getUpdatedOn());
 		assertEquals(DoiStatus.IN_PROCESS, doiCreate.getDoiStatus());
-		Thread.sleep(1000L);
+
 		Doi doiGet = entityDoiManager.getDoi(
 				testUserInfo.getIndividualGroup().getName(), nodeId, null);
 		assertNotNull(doiGet);
+		assertNotNull(doiGet.getId());
+		assertEquals(nodeId, doiGet.getObjectId());
+		assertEquals(DoiObjectType.ENTITY, doiGet.getDoiObjectType());
+		assertNull(doiGet.getObjectVersion());
+		assertNotNull(doiGet.getCreatedOn());
+		assertEquals(testUserInfo.getIndividualGroup().getId(), doiGet.getCreatedBy());
+		assertNotNull(doiGet.getUpdatedOn());
+		assertEquals(DoiStatus.IN_PROCESS, doiGet.getDoiStatus());
 	}
 }
