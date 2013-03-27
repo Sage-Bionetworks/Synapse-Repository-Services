@@ -20,7 +20,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DoiControllerAutowiredTest {
 
-	private final String adminUser = TestUserDAO.ADMIN_USER_NAME;
 	private final String testUser = TestUserDAO.TEST_USER_NAME;
 
 	@Before
@@ -34,7 +33,7 @@ public class DoiControllerAutowiredTest {
 	@Test
 	public void testPutGet() throws Exception {
 
-		final String uri = UrlHelpers.ENTITY + "/" + 1 + UrlHelpers.DOI;
+		final String uri = UrlHelpers.ENTITY + "/" + "syn324829389481" + UrlHelpers.DOI;
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod("PUT");
@@ -44,7 +43,7 @@ public class DoiControllerAutowiredTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		HttpServlet servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
-		Assert.assertEquals(202, response.getStatus());
+		Assert.assertEquals(404, response.getStatus());
 
 		request = new MockHttpServletRequest();
 		request.setMethod("GET");
@@ -54,13 +53,13 @@ public class DoiControllerAutowiredTest {
 		response = new MockHttpServletResponse();
 		servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
+		Assert.assertEquals(404, response.getStatus());
 	}
 
 	@Test
 	public void testPutGetWithVersion() throws Exception {
 
-		final String uri = UrlHelpers.ENTITY + "/" + 1 + UrlHelpers.VERSION + "/" + 1 + UrlHelpers.DOI;
+		final String uri = UrlHelpers.ENTITY + "/" + "syn324829389481" + UrlHelpers.VERSION + "/" + 1 + UrlHelpers.DOI;
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod("PUT");
@@ -70,7 +69,7 @@ public class DoiControllerAutowiredTest {
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		HttpServlet servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
-		Assert.assertEquals(202, response.getStatus());
+		Assert.assertEquals(404, response.getStatus());
 
 		request = new MockHttpServletRequest();
 		request.setMethod("GET");
@@ -80,6 +79,6 @@ public class DoiControllerAutowiredTest {
 		response = new MockHttpServletResponse();
 		servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
-		Assert.assertEquals(200, response.getStatus());
+		Assert.assertEquals(404, response.getStatus());
 	}
 }
