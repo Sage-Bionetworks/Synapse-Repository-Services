@@ -115,6 +115,9 @@ public class DBODoiDaoImpl implements DoiDao {
 			throw new IllegalArgumentException("Object type cannot be null.");
 		}
 		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
+		if (dbo == null) {
+			return null;
+		}
 		return convertToDto(dbo);
 	}
 
