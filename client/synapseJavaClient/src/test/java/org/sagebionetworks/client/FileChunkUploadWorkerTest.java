@@ -54,7 +54,7 @@ public class FileChunkUploadWorkerTest {
 		when(mockClient.addChunkToFile(request)).thenReturn(expected);
 		URL url = new URL("http://google.com");
 		when(mockClient.createChunkedPresignedUrl(request)).thenReturn(url);
-		when(mockClient.putFileToURL(url, mockChunk)).thenReturn("Result");
+		when(mockClient.putFileToURL(url, mockChunk, token.getContentType())).thenReturn("Result");
 		ChunkResult result = worker.call();
 		assertEquals(expected, result);
 	}
@@ -78,7 +78,7 @@ public class FileChunkUploadWorkerTest {
 		});
 		URL url = new URL("http://google.com");
 		when(mockClient.createChunkedPresignedUrl(request)).thenReturn(url);
-		when(mockClient.putFileToURL(url, mockChunk)).thenReturn("Result");
+		when(mockClient.putFileToURL(url, mockChunk, token.getContentType())).thenReturn("Result");
 		ChunkResult result = worker.call();
 		assertEquals(expected, result);
 	}
@@ -102,7 +102,7 @@ public class FileChunkUploadWorkerTest {
 		});
 		URL url = new URL("http://google.com");
 		when(mockClient.createChunkedPresignedUrl(request)).thenReturn(url);
-		when(mockClient.putFileToURL(url, mockChunk)).thenReturn("Result");
+		when(mockClient.putFileToURL(url, mockChunk, token.getContentType())).thenReturn("Result");
 		ChunkResult result = worker.call();
 		assertEquals(expected, result);
 	}
@@ -127,7 +127,7 @@ public class FileChunkUploadWorkerTest {
 		});
 		URL url = new URL("http://google.com");
 		when(mockClient.createChunkedPresignedUrl(request)).thenReturn(url);
-		when(mockClient.putFileToURL(url, mockChunk)).thenReturn("Result");
+		when(mockClient.putFileToURL(url, mockChunk, token.getContentType())).thenReturn("Result");
 		ChunkResult result = worker.call();
 		assertEquals(expected, result);
 	}
