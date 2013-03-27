@@ -51,16 +51,16 @@ public class EzidClient implements DoiClient {
 	}
 
 	@Override
-	public void create(EzidMetadata metadata) {
+	public void create(EzidDoi doi) {
 
-		if (metadata == null) {
-			throw new IllegalArgumentException("DOI metadata cannot be null.");
+		if (doi == null) {
+			throw new IllegalArgumentException("DOI cannot be null.");
 		}
 
-		URI uri = URI.create(StackConfiguration.getEzidUrl() + "id/" + metadata.getDoi());
+		URI uri = URI.create(StackConfiguration.getEzidUrl() + "id/" + doi.getDoi());
 		HttpPut put = new HttpPut(uri);
 		try {
-			StringEntity requestEntity = new StringEntity(metadata.getMetadataAsString(), HTTP.PLAIN_TEXT_TYPE, "UTF-8");
+			StringEntity requestEntity = new StringEntity(doi.getMetadata().getMetadataAsString(), HTTP.PLAIN_TEXT_TYPE, "UTF-8");
 			put.setEntity(requestEntity);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e);

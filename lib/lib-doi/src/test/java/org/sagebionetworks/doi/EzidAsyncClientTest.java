@@ -19,10 +19,13 @@ public class EzidAsyncClientTest {
 		EzidClient ezidClient = mock(EzidClient.class);
 		ReflectionTestUtils.setField(asyncClient, "ezidClient", ezidClient);
 
-		EzidMetadata metadata = mock(EzidMetadata.class);
-		asyncClient.create(metadata);
-		verify(ezidClient, times(1)).create(metadata);
-		verify(callback, times(1)).onSuccess(metadata);
+		EzidDoi doi = mock(EzidDoi.class);
+		asyncClient.create(doi);
+		// Wait 1s before verifying the call
+		// the execution is on a separate thread
+		Thread.sleep(1000L);
+		verify(ezidClient, times(1)).create(doi);
+		verify(callback, times(1)).onSuccess(doi);
 	}
 
 	@Test
@@ -32,13 +35,16 @@ public class EzidAsyncClientTest {
 		DoiClient asyncClient = new EzidAsyncClient(callback);
 
 		EzidClient ezidClient = mock(EzidClient.class);
-		EzidMetadata metadataWithError = mock(EzidMetadata.class);
-		Exception e = new RuntimeException();
-		doThrow(e).when(ezidClient).create(metadataWithError);
+		EzidDoi doiWithError = mock(EzidDoi.class);
+		Exception e = new RuntimeException("Mocked exception");
+		doThrow(e).when(ezidClient).create(doiWithError);
 		ReflectionTestUtils.setField(asyncClient, "ezidClient", ezidClient);
 
-		asyncClient.create(metadataWithError);
-		verify(ezidClient, times(1)).create(metadataWithError);
-		verify(callback, times(1)).onError(metadataWithError, e);
+		asyncClient.create(doiWithError);
+		// Wait 1s before verifying the call
+		// the execution is on a separate thread
+		Thread.sleep(1000L);
+		verify(ezidClient, times(1)).create(doiWithError);
+		verify(callback, times(1)).onError(doiWithError, e);
 	}
 }

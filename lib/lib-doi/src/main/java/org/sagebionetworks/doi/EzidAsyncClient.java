@@ -14,17 +14,18 @@ public class EzidAsyncClient implements DoiClient {
 	}
 
 	@Override
-	public void create(final EzidMetadata metadata) {
-		executor.submit(new Callable<EzidMetadata> () {
+	public void create(final EzidDoi doi) {
+		executor.submit(new Callable<EzidDoi> () {
 			@Override
-			public EzidMetadata call() {
+			public EzidDoi call() {
 				try {
-					ezidClient.create(metadata);
-					callback.onSuccess(metadata);
+					ezidClient.create(doi);
+					callback.onSuccess(doi);
+					return doi;
 				} catch (Exception e) {
-					callback.onError(metadata, e);
+					callback.onError(doi, e);
+					return doi;
 				}
-				return null;
 			}});
 	}
 

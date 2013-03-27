@@ -12,7 +12,6 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.net.URI;
 import java.util.Calendar;
-import java.util.Random;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -31,6 +30,7 @@ import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.protocol.HTTP;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class EzidClientTest {
@@ -51,70 +51,32 @@ public class EzidClientTest {
 	}
 
 	@Test
-	public void testCreate() throws Exception {
-		final EzidMetadata metadata = new EzidMetadata();
-		// Create a random ID in the EZID test "domain"
-		String id = Integer.toHexString(random.nextInt());
-		final String doi = "doi:10.5072/FK2." + id;
-		metadata.setDoi(doi);
-		final String target = "https://synapse.sagebase.org/";
-		metadata.setTarget(target);
-		final String creator = "Test, Something";
-		metadata.setCreator(creator);
-		final String title = "This is a test";
-		metadata.setTitle(title);
-		final String publisher = "Sage Bionetworks";
-		metadata.setPublisher(publisher);
-		final int year = Calendar.getInstance().get(Calendar.YEAR);
-		metadata.setPublicationYear(year);
-		// Create
-		DoiClient client = new EzidClient();
-		client.create(metadata);
-	}
-
-	@Test(expected=RuntimeException.class)
-	public void testCreateWithException() throws Exception {
-		final EzidMetadata metadata = new EzidMetadata();
-		String id = Integer.toHexString(random.nextInt());
-		// Invalid doi
-		final String doi = "doi:10.99999/test.invalid." + id;
-		metadata.setDoi(doi);
-		final String target = "https://synapse.sagebase.org/";
-		metadata.setTarget(target);
-		final String creator = "Test, Something";
-		metadata.setCreator(creator);
-		final String title = "This is a test";
-		metadata.setTitle(title);
-		final String publisher = "Sage Bionetworks";
-		metadata.setPublisher(publisher);
-		final int year = Calendar.getInstance().get(Calendar.YEAR);
-		metadata.setPublicationYear(year);
-		// Create
-		DoiClient client = new EzidClient();
-		client.create(metadata);
-	}
-
-	@Test
 	public void testCreateRetry() throws Exception {
 
 		// Create test data
+		final EzidDoi ezidDoi = new EzidDoi();
+		String id = "syn123";
+		final String doi = "doi:10.5072/" + id;
+		ezidDoi.setDoi(doi);
+		final DoiObjectType objectType = DoiObjectType.ENTITY;
+		ezidDoi.setDoiObjectType(objectType);
+		final String objectId = id;
+		ezidDoi.setObjectId(objectId);
 		final EzidMetadata metadata = new EzidMetadata();
-		String id = Integer.toHexString(random.nextInt());
-		final String doi = "doi:10.5072/FK2." + id;
-		metadata.setDoi(doi);
-		final String target = "https://synapse.sagebase.org/";
+		final String target = EzidConstants.TARGET_URL_PREFIX;
 		metadata.setTarget(target);
 		final String creator = "Test, Something";
 		metadata.setCreator(creator);
 		final String title = "This is a test";
 		metadata.setTitle(title);
-		final String publisher = "Sage Bionetworks";
+		final String publisher = EzidConstants.PUBLISHER;
 		metadata.setPublisher(publisher);
 		final int year = Calendar.getInstance().get(Calendar.YEAR);
 		metadata.setPublicationYear(year);
+		ezidDoi.setMetadata(metadata);
 
 		// Create request from the test data
-		URI uri = URI.create(StackConfiguration.getEzidUrl() + "id/" + metadata.getDoi());
+		URI uri = URI.create(StackConfiguration.getEzidUrl() + "id/" + ezidDoi.getDoi());
 		HttpPut httpPut = new HttpPut(uri);
 		StringEntity requestEntity = new StringEntity(metadata.getMetadataAsString(), HTTP.PLAIN_TEXT_TYPE, "UTF-8");
 		httpPut.setEntity(requestEntity);
@@ -132,9 +94,9 @@ public class EzidClientTest {
 		// "Inject" the mock client
 		DoiClient doiClient = new EzidClient();
 		ReflectionTestUtils.setField(doiClient, "client", mockClient);
+
 		Method method = EzidClient.class.getDeclaredMethod("executeWithRetry", HttpUriRequest.class);
 		method.setAccessible(true);
-
 		try {
 			method.invoke(doiClient, httpPut);
 		} catch (InvocationTargetException e) {
@@ -143,8 +105,7 @@ public class EzidClientTest {
 			assertTrue(cause.getMessage().contains("503"));
 		}
 
+		// Retried 3 times
 		verify(mockClient.execute(httpPut), times(3));
 	}
-
-	private final Random random = new Random();
 }
