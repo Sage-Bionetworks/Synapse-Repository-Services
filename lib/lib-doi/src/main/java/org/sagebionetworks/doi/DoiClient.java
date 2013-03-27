@@ -6,7 +6,7 @@ package org.sagebionetworks.doi;
 public interface DoiClient {
 
 	/**
-	 * Creates a new DOI from the supplied metadata.
+	 * Creates a new DOI from the supplied data.
 	 */
-	void create(EzidMetadata metadata);
+	void create(EzidDoi doi);
 }

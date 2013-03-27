@@ -39,4 +39,6 @@ public interface ServiceProvider {
 	public WikiService getWikiService();
 
 	public TrashService getTrashService();
+
+	public DoiService getDoiService();
 }

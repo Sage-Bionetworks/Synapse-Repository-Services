@@ -22,8 +22,16 @@
 			<artifactId>lib-stackConfiguration</artifactId>
 		</dependency>
 		<dependency>
+			<groupId>org.sagebionetworks</groupId>
+			<artifactId>lib-auto-generated</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.apache.httpcomponents</groupId>
 			<artifactId>httpclient</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-core</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>junit</groupId>
