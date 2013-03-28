@@ -41,14 +41,13 @@ public class UpdateJobBuilder implements Callable<BuilderResponse> {
 		this.queue = queue;
 		this.batchSize = batchSize;
 	}
-	
-	
+		
 	private static boolean etagsDiffer(String sourceEtag, String destEtag) {
-		if (sourceEtag.equals(destEtag)) return false;
-		// 0 while dest etag is 00000000-0000-0000-0000-000000000000
-		// one-off for release-1.6
-		if (sourceEtag.equals("0") && destEtag.equals("00000000-0000-0000-0000-000000000000")) return false;
-		return true;
+		if (sourceEtag == null) {
+			if (destEtag == null) return false;
+			return true;
+		}
+		return !sourceEtag.equals(destEtag);
 	}
 
 	@Override
