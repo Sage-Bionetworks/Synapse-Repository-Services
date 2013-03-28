@@ -267,6 +267,21 @@ public class UrlHelpers {
 	public static final String ENTITY_VERSION_GENERATED_BY = ENTITY_VERSION_NUMBER+GENERATED_BY;
 
 	/**
+	 * DOI (Digital Object Identifier).
+	 */
+	public static final String DOI = "/doi";
+
+	/**
+	 * The DOI associated with the entity (implies the current version).
+	 */
+	public static final String ENTITY_DOI = ENTITY_ID + DOI;
+
+	/**
+	 * The DOI associated with the entity version.
+	 */
+	public static final String ENTITY_VERSION_DOI = ENTITY_VERSION_NUMBER + DOI;
+
+	/**
 	 * Gets the root node.
 	 */
 	public static final String ENTITY_ROOT = ENTITY + "/root";

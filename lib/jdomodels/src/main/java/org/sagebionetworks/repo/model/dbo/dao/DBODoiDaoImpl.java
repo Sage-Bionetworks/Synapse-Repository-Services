@@ -1,0 +1,163 @@
+package org.sagebionetworks.repo.model.dbo.dao;
+
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_TYPE;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_VERSION;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOI;
+
+import java.sql.Timestamp;
+import java.util.List;
+
+import org.joda.time.DateTime;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.DoiDao;
+import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.dbo.persistence.DBODoi;
+import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.DoiObjectType;
+import org.sagebionetworks.repo.model.doi.DoiStatus;
+import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+
+public class DBODoiDaoImpl implements DoiDao {
+
+	private static final String SELECT_DOI =
+			"SELECT * FROM " + TABLE_DOI + " WHERE "
+			+ COL_DOI_OBJECT_ID + " = :" + COL_DOI_OBJECT_ID + " AND "
+			+ COL_DOI_OBJECT_TYPE + " = :" + COL_DOI_OBJECT_TYPE + " AND "
+			+ COL_DOI_OBJECT_VERSION + " = :" + COL_DOI_OBJECT_VERSION;
+
+	private static final String SELECT_DOI_NULL_OBJECT_VERSION =
+			"SELECT * FROM " + TABLE_DOI + " WHERE "
+			+ COL_DOI_OBJECT_ID + " = :" + COL_DOI_OBJECT_ID + " AND "
+			+ COL_DOI_OBJECT_TYPE + " = :" + COL_DOI_OBJECT_TYPE + " AND "
+			+ COL_DOI_OBJECT_VERSION + " IS NULL";
+
+	private static final RowMapper<DBODoi> rowMapper = (new DBODoi()).getTableMapping();
+
+	@Autowired private DBOBasicDao basicDao;
+	@Autowired private SimpleJdbcTemplate simpleJdbcTemplate;
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public Doi createDoi(final String userGroupId, final String objectId,
+			final DoiObjectType objectType, final Long versionNumber, final DoiStatus doiStatus)
+			throws DatastoreException {
+
+		if (userGroupId == null || userGroupId.isEmpty()) {
+			throw new IllegalArgumentException("User group ID cannot be null nor empty.");
+		}
+		if (objectId == null || objectId.isEmpty()) {
+			throw new IllegalArgumentException("Object ID cannot be null nor empty.");
+		}
+		if (objectType == null) {
+			throw new IllegalArgumentException("Object type cannot be null.");
+		}
+		if (doiStatus == null) {
+			throw new IllegalArgumentException("DOI status cannot be null.");
+		}
+
+		DBODoi dbo = new DBODoi();
+		dbo.setObjectId(KeyFactory.stringToKey(objectId));
+		dbo.setDoiObjectType(objectType);
+		dbo.setObjectVersion(versionNumber);
+		dbo.setDoiStatus(doiStatus);
+		dbo.setCreatedBy(KeyFactory.stringToKey(userGroupId));
+		DateTime dt = DateTime.now();
+		// MySQL TIMESTAMP only keeps seconds (not ms)
+		// so for consistency we only write seconds
+		long nowInSeconds = dt.getMillis() - dt.getMillisOfSecond();
+		Timestamp now = new Timestamp(nowInSeconds);
+		dbo.setCreatedOn(now);
+		dbo.setUpdatedOn(now);
+		dbo = basicDao.createNew(dbo);
+		return convertToDto(dbo);
+	}
+
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public Doi updateDoiStatus(final String objectId, final DoiObjectType objectType,
+			final Long versionNumber, final DoiStatus doiStatus)
+			throws NotFoundException, DatastoreException {
+
+		if (objectId == null || objectId.isEmpty()) {
+			throw new IllegalArgumentException("Object ID cannot be null nor empty.");
+		}
+		if (objectType == null) {
+			throw new IllegalArgumentException("Object type cannot be null.");
+		}
+		if (doiStatus == null) {
+			throw new IllegalArgumentException("DOI status cannot be null.");
+		}
+		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
+		dbo.setDoiStatus(doiStatus);
+		boolean success = basicDao.update(dbo);
+		if (!success) {
+			throw new DatastoreException("Update failed for " + dbo);
+		}
+		return getDoi(objectId, objectType, versionNumber);
+	}
+
+	@Override
+	public Doi getDoi(final String objectId, final DoiObjectType objectType,
+			final Long versionNumber) throws NotFoundException, DatastoreException {
+
+		if (objectId == null || objectId.isEmpty()) {
+			throw new IllegalArgumentException("Object ID cannot be null nor empty.");
+		}
+		if (objectType == null) {
+			throw new IllegalArgumentException("Object type cannot be null.");
+		}
+		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
+		if (dbo == null) {
+			return null;
+		}
+		return convertToDto(dbo);
+	}
+
+	private DBODoi getDbo (String objectId, DoiObjectType objectType, Long versionNumber)
+			throws NotFoundException, DatastoreException {
+
+		String sql = (versionNumber == null ? SELECT_DOI_NULL_OBJECT_VERSION : SELECT_DOI);
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue(COL_DOI_OBJECT_ID, KeyFactory.stringToKey(objectId));
+		paramMap.addValue(COL_DOI_OBJECT_TYPE, objectType.name());
+		if (versionNumber != null) {
+			paramMap.addValue(COL_DOI_OBJECT_VERSION, versionNumber);
+		}
+		List<DBODoi> dboList = simpleJdbcTemplate.query(sql, rowMapper, paramMap);
+		if (dboList == null || dboList.size() == 0) {
+			return null;
+		}
+		if (dboList.size() > 1) {
+			String error = "Fetched back more than 1 DOI data object where exactly 1 is expected "
+					+ " for " + sql + " and parameters " + paramMap.getValues().toString();
+			throw new DatastoreException(error);
+		}
+		return (dboList.get(0));
+	}
+
+	private Doi convertToDto(DBODoi dbo) {
+		Doi dto = new Doi();
+		dto.setId(dbo.getId().toString());
+		dto.setDoiStatus(DoiStatus.valueOf(dbo.getDoiStatus()));
+		final DoiObjectType objectType = DoiObjectType.valueOf(dbo.getDoiObjectType());
+		if (DoiObjectType.ENTITY.equals(objectType)) {
+			dto.setObjectId(KeyFactory.keyToString(dbo.getObjectId()));
+		} else {
+			dto.setObjectId(dbo.getObjectId().toString());
+		}
+		dto.setDoiObjectType(objectType);
+		dto.setObjectVersion(dbo.getObjectVersion());
+		dto.setCreatedBy(dbo.getCreatedBy().toString());
+		dto.setCreatedOn(dbo.getCreatedOn());
+		dto.setUpdatedOn(dbo.getUpdatedOn());
+		return dto;
+	}
+}
