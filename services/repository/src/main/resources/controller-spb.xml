@@ -160,6 +160,9 @@
 				<entry key="locationable">
 					<ref bean="locationableMetadataProvider" />
 				</entry>
+				<entry key="file">
+					<bean class= "org.sagebionetworks.repo.web.controller.metadata.FileEntityMetadataProvider"/> 
+				</entry>
 			</map>
 		</property>
 	</bean>
