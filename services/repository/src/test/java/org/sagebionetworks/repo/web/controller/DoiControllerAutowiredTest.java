@@ -10,7 +10,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.repo.web.service.EntityService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
@@ -20,6 +24,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class DoiControllerAutowiredTest {
 
+	@Autowired private EntityService entityService;
 	private final String testUser = TestUserDAO.TEST_USER_NAME;
 
 	@Before
@@ -33,7 +38,19 @@ public class DoiControllerAutowiredTest {
 	@Test
 	public void testPutGet() throws Exception {
 
-		final String uri = UrlHelpers.ENTITY + "/" + "syn324829389481" + UrlHelpers.DOI;
+		Entity entity = new Project();
+		entity.setName("DoiControllerAutowiredTest");
+		HttpServlet dispatchServlet = DispatchServletSingleton.getInstance();
+		entity = ServletTestHelper.createEntity(dispatchServlet, entity, testUser);
+		Assert.assertNotNull(entity);
+
+		entityService.deleteEntity(testUser, entity.getId());
+	}
+
+	@Test
+	public void testPutGetWithNonExistingNode() throws Exception {
+
+		String uri = UrlHelpers.ENTITY + "/" + "syn324829389481" + UrlHelpers.DOI;
 
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		request.setMethod("PUT");
@@ -54,20 +71,16 @@ public class DoiControllerAutowiredTest {
 		servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
 		Assert.assertEquals(404, response.getStatus());
-	}
 
-	@Test
-	public void testPutGetWithVersion() throws Exception {
+		uri = UrlHelpers.ENTITY + "/" + "syn324829389481" + UrlHelpers.VERSION + "/" + 1 + UrlHelpers.DOI;
 
-		final String uri = UrlHelpers.ENTITY + "/" + "syn324829389481" + UrlHelpers.VERSION + "/" + 1 + UrlHelpers.DOI;
-
-		MockHttpServletRequest request = new MockHttpServletRequest();
+		request = new MockHttpServletRequest();
 		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(uri);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, testUser);
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		HttpServlet servlet = DispatchServletSingleton.getInstance();
+		response = new MockHttpServletResponse();
+		servlet = DispatchServletSingleton.getInstance();
 		servlet.service(request, response);
 		Assert.assertEquals(404, response.getStatus());
 
