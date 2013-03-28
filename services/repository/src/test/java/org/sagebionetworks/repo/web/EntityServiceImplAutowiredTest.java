@@ -41,6 +41,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
+@Deprecated // This test builds up old objects types in the before methods so it will be deleted when the old object types are removed.
 public class EntityServiceImplAutowiredTest {
 	
 	@Autowired
