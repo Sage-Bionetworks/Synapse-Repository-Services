@@ -16,16 +16,13 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiDao;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
-import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -160,10 +157,11 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	}
 
 	/**
-	 * Limits the transaction boundary to within the DOI DAO. DOI client creating the DOI
-	 * is an asynchronous call and must happen outside the transaction to avoid race conditions.
+	 * Limits the transaction boundary to within the DOI DAO and never run me within another transaction.
+	 * DOI client creating the DOI is an asynchronous call and must happen outside the transaction to
+	 * avoid race conditions.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
+	@Transactional(readOnly = false, propagation = Propagation.NEVER)
 	private Doi doCreateTransaction(String userGroupId, String entityId, Long versionNumber) {
 		return doiDao.createDoi(userGroupId, entityId, DoiObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
 	}
