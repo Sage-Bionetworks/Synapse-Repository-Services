@@ -71,6 +71,11 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		});
 	}
 
+	/**
+	 * Limits the transaction boundary to within the DOI DAO and runs with a new transaction.
+	 * DOI client creating the DOI is an asynchronous call and must happen outside the transaction to
+	 * avoid race conditions.
+	 */
 	@Override
 	public Doi createDoi(final String currentUserName, final String entityId, final Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
@@ -156,12 +161,6 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		return doiDao.getDoi(entityId, DoiObjectType.ENTITY, versionNumber);
 	}
 
-	/**
-	 * Limits the transaction boundary to within the DOI DAO and never run me within another transaction.
-	 * DOI client creating the DOI is an asynchronous call and must happen outside the transaction to
-	 * avoid race conditions.
-	 */
-	@Transactional(readOnly = false, propagation = Propagation.NEVER)
 	private Doi doCreateTransaction(String userGroupId, String entityId, Long versionNumber) {
 		return doiDao.createDoi(userGroupId, entityId, DoiObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
 	}

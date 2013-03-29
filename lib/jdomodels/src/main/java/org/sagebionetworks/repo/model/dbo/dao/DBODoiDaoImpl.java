@@ -49,7 +49,12 @@ public class DBODoiDaoImpl implements DoiDao {
 	@Autowired private DBOBasicDao basicDao;
 	@Autowired private SimpleJdbcTemplate simpleJdbcTemplate;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	/**
+	 * Limits the transaction boundary to within the DOI DAO and runs with a new transaction.
+	 * DOI client creating the DOI is an asynchronous call and must happen outside the transaction to
+	 * avoid race conditions.
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public Doi createDoi(final String userGroupId, final String objectId,
 			final DoiObjectType objectType, final Long versionNumber, final DoiStatus doiStatus)
