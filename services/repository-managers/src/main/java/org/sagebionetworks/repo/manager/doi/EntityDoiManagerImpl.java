@@ -74,7 +74,6 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		});
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Doi createDoi(final String currentUserName, final String entityId, final Long versionNumber)
 			throws NotFoundException, UnauthorizedException, DatastoreException {
@@ -100,48 +99,27 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			return doiDto;
 		}
 
-		// Record the attempt
-		String userGroupId = currentUser.getIndividualGroup().getId();
-		doiDto = doiDao.createDoi(userGroupId, entityId, DoiObjectType.ENTITY, versionNumber,
-				DoiStatus.IN_PROCESS);
+		// Find the node. Info will be used in DOI metadata.
+		final Node node = getNode(entityId, versionNumber);
 
-		// Create DOI
+		// Record the attempt. This is where we draw the transaction boundary.
+		String userGroupId = currentUser.getIndividualGroup().getId();
+		doiDto = doCreateTransaction(userGroupId, entityId, versionNumber);
+
+		// Create DOI string
 		EzidDoi ezidDoi = new EzidDoi();
 		ezidDoi.setDto(doiDto);
 		final String doi = EzidConstants.DOI_PREFIX + entityId;
 		ezidDoi.setDoi(doi);
 
-		// Find the node. Info will be used in DOI metadata.
-		Node node = null;
-		if (versionNumber == null) {
-			node = nodeDao.getNode(entityId);
-		} else {
-			node = nodeDao.getNodeForVersion(entityId, versionNumber);
-		}
-		if (node == null) {
-			String error = "Cannot find entity " + entityId;
-			if (versionNumber != null) {
-				error = error + " for version " + versionNumber;
-			}
-			throw new NotFoundException(error);
-		}
-
 		// Create DOI metadata.
 		EzidMetadata metadata = new EzidMetadata();
-		Long createdBy = node.getCreatedByPrincipalId();
-		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
-		UserProfile userProfile = userProfileDAO.get(createdBy.toString(), schema);
-		String creatorName = userProfile.getDisplayName();
-		if (creatorName == null) {
-			creatorName = userProfile.getOwnerId();
+		Long principalId = node.getCreatedByPrincipalId();
+		String creatorName = userManager.getDisplayName(principalId);
+		// Display name is optional
+		if (creatorName == null || creatorName.isEmpty()) {
+			creatorName = EzidConstants.DEFAULT_CREATOR;
 		}
-		// TODO: Creator name?
-//		System.out.println(userProfile.getDisplayName());
-//		System.out.println(userProfile.getEmail());
-//		System.out.println(userProfile.getFirstName());
-//		System.out.println(userProfile.getLastName());
-//		System.out.println(userProfile.getUserName());
-//		System.out.println(userProfile.getOwnerId());
 		metadata.setCreator(creatorName);
 		final int year = Calendar.getInstance().get(Calendar.YEAR);
 		metadata.setPublicationYear(year);
@@ -179,5 +157,32 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		}
 
 		return doiDao.getDoi(entityId, DoiObjectType.ENTITY, versionNumber);
+	}
+
+	/**
+	 * Limits the transaction boundary to within the DOI DAO. DOI client creating the DOI
+	 * is an asynchronous call and must happen outside the transaction to avoid race conditions.
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	private Doi doCreateTransaction(String userGroupId, String entityId, Long versionNumber) {
+		return doiDao.createDoi(userGroupId, entityId, DoiObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
+	}
+
+	/** Gets the node whose information will be used in DOI metadata. */
+	private Node getNode(String entityId, Long versionNumber) throws NotFoundException {
+		Node node = null;
+		if (versionNumber == null) {
+			node = nodeDao.getNode(entityId);
+		} else {
+			node = nodeDao.getNodeForVersion(entityId, versionNumber);
+		}
+		if (node == null) {
+			String error = "Cannot find entity " + entityId;
+			if (versionNumber != null) {
+				error = error + " for version " + versionNumber;
+			}
+			throw new NotFoundException(error);
+		}
+		return node;
 	}
 }
