@@ -105,7 +105,7 @@ public class DBODoiDaoImpl implements DoiDao {
 
 		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
 		if (!dbo.getETag().equals(etag)) {
-			throw new ConflictingUpdateException("Etag does not match.");
+			throw new ConflictingUpdateException("Etags do not match.");
 		}
 		dbo.setDoiStatus(doiStatus);
 		boolean success = basicDao.update(dbo);
