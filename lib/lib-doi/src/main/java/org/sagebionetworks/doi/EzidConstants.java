@@ -19,4 +19,9 @@ public class EzidConstants {
 	 * Publisher is always Sage Bionetworks.
 	 */
 	public static final String PUBLISHER = "Sage Bionetworks";
+
+	/**
+	 * Publisher is always Sage Bionetworks.
+	 */
+	public static final String DEFAULT_CREATOR = "(author name not available)";
 }
