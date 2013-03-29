@@ -21,7 +21,8 @@ public interface DoiDao {
 	 * Updates a DOI's status.
 	 */
 	Doi updateDoiStatus(String objectId, DoiObjectType objectType, Long versionNumber,
-			DoiStatus doiStatus) throws NotFoundException, DatastoreException;
+			DoiStatus doiStatus, String etag) throws NotFoundException,
+			DatastoreException, ConflictingUpdateException;
 
 	/**
 	 * Gets the DOI for the specified entity version. If version number is null,

@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 
@@ -8,6 +9,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiDao;
@@ -53,6 +55,10 @@ public class DBODoiDaoImplAutowiredTest {
 		Doi doi = doiDao.createDoi(userId, objectId, objectType, versionNumber, doiStatus);
 		assertNotNull(doi);
 		assertNotNull(doi.getId());
+		final String id1 = doi.getId();
+		assertNotNull(doi.getEtag());
+		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
+		final String etag1 = doi.getEtag();
 		assertEquals(objectId, doi.getObjectId());
 		assertEquals(versionNumber, doi.getObjectVersion());
 		assertEquals(objectType, doi.getDoiObjectType());
@@ -65,6 +71,10 @@ public class DBODoiDaoImplAutowiredTest {
 		doi = doiDao.createDoi(userId, objectId, objectType, null, doiStatus);
 		assertNotNull(doi);
 		assertNotNull(doi.getId());
+		final String id2 = doi.getId();
+		assertNotNull(doi.getEtag());
+		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
+		final String etag2 = doi.getEtag();
 		assertEquals(objectId, doi.getObjectId());
 		assertNull(doi.getObjectVersion());
 		assertEquals(objectType, doi.getDoiObjectType());
@@ -76,6 +86,9 @@ public class DBODoiDaoImplAutowiredTest {
 		doi = doiDao.getDoi(objectId, objectType, versionNumber);
 		assertNotNull(doi);
 		assertNotNull(doi.getId());
+		assertEquals(id1, doi.getId());
+		assertNotNull(doi.getEtag());
+		assertEquals(etag1, doi.getEtag());
 		assertEquals(objectId, doi.getObjectId());
 		assertEquals(versionNumber, doi.getObjectVersion());
 		assertEquals(objectType, doi.getDoiObjectType());
@@ -86,6 +99,9 @@ public class DBODoiDaoImplAutowiredTest {
 		doi = doiDao.getDoi(objectId, objectType, null);
 		assertNotNull(doi);
 		assertNotNull(doi.getId());
+		assertEquals(id2, doi.getId());
+		assertNotNull(doi.getEtag());
+		assertEquals(etag2, doi.getEtag());
 		assertEquals(objectId, doi.getObjectId());
 		System.out.println(doi.getObjectVersion());
 		assertNull(doi.getObjectVersion());
@@ -95,10 +111,13 @@ public class DBODoiDaoImplAutowiredTest {
 		assertNotNull(doi.getCreatedOn());
 		assertNotNull(doi.getUpdatedOn());
 		// Update status
-		doiDao.updateDoiStatus(objectId, objectType, versionNumber, DoiStatus.READY);
+		doiDao.updateDoiStatus(objectId, objectType, versionNumber, DoiStatus.READY, etag1);
 		doi = doiDao.getDoi(objectId, objectType, versionNumber);
 		assertNotNull(doi);
 		assertNotNull(doi.getId());
+		assertEquals(id1, doi.getId());
+		assertNotNull(doi.getEtag());
+		assertEquals(etag1, doi.getEtag());
 		assertEquals(objectId, doi.getObjectId());
 		assertEquals(versionNumber, doi.getObjectVersion());
 		assertEquals(objectType, doi.getDoiObjectType());
@@ -106,10 +125,13 @@ public class DBODoiDaoImplAutowiredTest {
 		assertEquals(userId, doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
 		assertNotNull(doi.getUpdatedOn());
-		doiDao.updateDoiStatus(objectId, objectType, null, DoiStatus.ERROR);
+		doiDao.updateDoiStatus(objectId, objectType, null, DoiStatus.ERROR, etag2);
 		doi = doiDao.getDoi(objectId, objectType, null);
 		assertNotNull(doi);
 		assertNotNull(doi.getId());
+		assertEquals(id2, doi.getId());
+		assertNotNull(doi.getEtag());
+		assertEquals(etag2, doi.getEtag());
 		assertEquals(objectId, doi.getObjectId());
 		assertNull(doi.getObjectVersion());
 		assertEquals(objectType, doi.getDoiObjectType());

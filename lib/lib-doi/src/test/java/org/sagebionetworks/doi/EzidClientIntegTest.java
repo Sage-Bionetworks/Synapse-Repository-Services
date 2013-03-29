@@ -4,20 +4,18 @@ import java.util.Calendar;
 import java.util.Random;
 
 import org.junit.Test;
-import org.sagebionetworks.repo.model.doi.DoiObjectType;
+import org.sagebionetworks.repo.model.doi.Doi;
 
 public class EzidClientIntegTest {
 
 	@Test
 	public void testCreate() throws Exception {
 		final EzidDoi ezidDoi = new EzidDoi();
+		final Doi dto = new Doi();
+		ezidDoi.setDto(dto);
 		String id = Integer.toHexString(random.nextInt());
 		final String doi = "doi:10.5072/FK2." + id;
 		ezidDoi.setDoi(doi);
-		final DoiObjectType objectType = DoiObjectType.ENTITY;
-		ezidDoi.setDoiObjectType(objectType);
-		final String objectId = "123";
-		ezidDoi.setObjectId(objectId);
 		final EzidMetadata metadata = new EzidMetadata();
 		final String target = EzidConstants.TARGET_URL_PREFIX;
 		metadata.setTarget(target);
@@ -37,14 +35,12 @@ public class EzidClientIntegTest {
 	@Test(expected=RuntimeException.class)
 	public void testCreateInvalidDoi() throws Exception {
 		final EzidDoi ezidDoi = new EzidDoi();
+		final Doi dto = new Doi();
+		ezidDoi.setDto(dto);
 		String id = Integer.toHexString(random.nextInt());
 		// Invalid domain
 		final String doi = "doi:10.99999/test.invalid." + id;
 		ezidDoi.setDoi(doi);
-		final DoiObjectType objectType = DoiObjectType.ENTITY;
-		ezidDoi.setDoiObjectType(objectType);
-		final String objectId = "123";
-		ezidDoi.setObjectId(objectId);
 		final EzidMetadata metadata = new EzidMetadata();
 		final String target = EzidConstants.TARGET_URL_PREFIX;
 		metadata.setTarget(target);
@@ -64,12 +60,10 @@ public class EzidClientIntegTest {
 	@Test
 	public void testCreateDoiAlreadyExists() throws Exception {
 		final EzidDoi ezidDoi = new EzidDoi();
+		final Doi dto = new Doi();
+		ezidDoi.setDto(dto);
 		final String doi = "doi:10.5072/FK2." + "3829383478";
 		ezidDoi.setDoi(doi);
-		final DoiObjectType objectType = DoiObjectType.ENTITY;
-		ezidDoi.setDoiObjectType(objectType);
-		final String objectId = "123";
-		ezidDoi.setObjectId(objectId);
 		final EzidMetadata metadata = new EzidMetadata();
 		final String target = EzidConstants.TARGET_URL_PREFIX;
 		metadata.setTarget(target);
