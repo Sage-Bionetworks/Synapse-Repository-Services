@@ -163,7 +163,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	 * Limits the transaction boundary to within the DOI DAO. DOI client creating the DOI
 	 * is an asynchronous call and must happen outside the transaction to avoid race conditions.
 	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	private Doi doCreateTransaction(String userGroupId, String entityId, Long versionNumber) {
 		return doiDao.createDoi(userGroupId, entityId, DoiObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
 	}
