@@ -9,6 +9,9 @@ import java.sql.Timestamp;
 import java.util.List;
 
 import org.joda.time.DateTime;
+import org.sagebionetworks.ids.ETagGenerator;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.DoiDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
@@ -41,10 +44,17 @@ public class DBODoiDaoImpl implements DoiDao {
 
 	private static final RowMapper<DBODoi> rowMapper = (new DBODoi()).getTableMapping();
 
+	@Autowired private IdGenerator idGenerator;
+	@Autowired private ETagGenerator eTagGenerator;
 	@Autowired private DBOBasicDao basicDao;
 	@Autowired private SimpleJdbcTemplate simpleJdbcTemplate;
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	/**
+	 * Limits the transaction boundary to within the DOI DAO and runs with a new transaction.
+	 * DOI client creating the DOI is an asynchronous call and must happen outside the transaction to
+	 * avoid race conditions.
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public Doi createDoi(final String userGroupId, final String objectId,
 			final DoiObjectType objectType, final Long versionNumber, final DoiStatus doiStatus)
@@ -64,6 +74,8 @@ public class DBODoiDaoImpl implements DoiDao {
 		}
 
 		DBODoi dbo = new DBODoi();
+		dbo.setId(idGenerator.generateNewId());
+		dbo.setETag(eTagGenerator.generateETag());
 		dbo.setObjectId(KeyFactory.stringToKey(objectId));
 		dbo.setDoiObjectType(objectType);
 		dbo.setObjectVersion(versionNumber);
@@ -76,15 +88,15 @@ public class DBODoiDaoImpl implements DoiDao {
 		Timestamp now = new Timestamp(nowInSeconds);
 		dbo.setCreatedOn(now);
 		dbo.setUpdatedOn(now);
-		dbo = basicDao.createNew(dbo);
+		basicDao.createNew(dbo);
 		return convertToDto(dbo);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public Doi updateDoiStatus(final String objectId, final DoiObjectType objectType,
-			final Long versionNumber, final DoiStatus doiStatus)
-			throws NotFoundException, DatastoreException {
+			final Long versionNumber, final DoiStatus doiStatus, String etag)
+			throws NotFoundException, DatastoreException, ConflictingUpdateException {
 
 		if (objectId == null || objectId.isEmpty()) {
 			throw new IllegalArgumentException("Object ID cannot be null nor empty.");
@@ -95,7 +107,11 @@ public class DBODoiDaoImpl implements DoiDao {
 		if (doiStatus == null) {
 			throw new IllegalArgumentException("DOI status cannot be null.");
 		}
+
 		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
+		if (!dbo.getETag().equals(etag)) {
+			throw new ConflictingUpdateException("Etags do not match.");
+		}
 		dbo.setDoiStatus(doiStatus);
 		boolean success = basicDao.update(dbo);
 		if (!success) {
@@ -146,6 +162,7 @@ public class DBODoiDaoImpl implements DoiDao {
 	private Doi convertToDto(DBODoi dbo) {
 		Doi dto = new Doi();
 		dto.setId(dbo.getId().toString());
+		dto.setEtag(dbo.getETag());
 		dto.setDoiStatus(DoiStatus.valueOf(dbo.getDoiStatus()));
 		final DoiObjectType objectType = DoiObjectType.valueOf(dbo.getDoiObjectType());
 		if (DoiObjectType.ENTITY.equals(objectType)) {

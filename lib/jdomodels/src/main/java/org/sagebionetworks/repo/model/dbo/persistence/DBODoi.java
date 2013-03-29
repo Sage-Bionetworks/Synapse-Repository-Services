@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_CREATED_ON;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_DOI_STATUS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_DOI_OBJECT_TYPE;
@@ -15,16 +16,17 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
-import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
+import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 
-public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
+public class DBODoi implements DatabaseObject<DBODoi> {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 			new FieldColumn("id", COL_DOI_ID, true),
+			new FieldColumn("eTag", COL_DOI_ETAG),
 			new FieldColumn("doiStatus", COL_DOI_DOI_STATUS),
 			new FieldColumn("objectId", COL_DOI_OBJECT_ID),
 			new FieldColumn("doiObjectType", COL_DOI_OBJECT_TYPE),
@@ -41,6 +43,7 @@ public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 				public DBODoi mapRow(ResultSet rs, int rowNum) throws SQLException {
 					DBODoi dbo = new DBODoi();
 					dbo.setId(rs.getLong(COL_DOI_ID));
+					dbo.setETag(rs.getString(COL_DOI_ETAG));
 					dbo.setDoiStatus(DoiStatus.valueOf(rs.getString(COL_DOI_DOI_STATUS)));
 					dbo.setObjectId(rs.getLong(COL_DOI_OBJECT_ID));
 					dbo.setDoiObjectType(DoiObjectType.valueOf(rs.getString(COL_DOI_OBJECT_TYPE)));
@@ -83,6 +86,12 @@ public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 	}
 	public void setId(Long id) {
 		this.id = id;
+	}
+	public String getETag() {
+		return eTag;
+	}
+	public void setETag(String eTag) {
+		this.eTag = eTag;
 	}
 	public String getDoiStatus() {
 		return doiStatus.name();
@@ -129,14 +138,15 @@ public class DBODoi implements AutoIncrementDatabaseObject<DBODoi> {
 
 	@Override
 	public String toString() {
-		return "DBODoi [id=" + id + ", doiStatus=" + doiStatus + ", objectId="
-				+ objectId + ", doiObjectType=" + doiObjectType
-				+ ", objectVersion=" + objectVersion + ", createdBy="
-				+ createdBy + ", createdOn=" + createdOn + ", updatedOn="
-				+ updatedOn + "]";
+		return "DBODoi [id=" + id + ", eTag=" + eTag + ", doiStatus="
+				+ doiStatus + ", objectId=" + objectId + ", doiObjectType="
+				+ doiObjectType + ", objectVersion=" + objectVersion
+				+ ", createdBy=" + createdBy + ", createdOn=" + createdOn
+				+ ", updatedOn=" + updatedOn + "]";
 	}
 
 	private Long id;
+	private String eTag;
 	private DoiStatus doiStatus;
 	private Long objectId;
 	private DoiObjectType doiObjectType;
