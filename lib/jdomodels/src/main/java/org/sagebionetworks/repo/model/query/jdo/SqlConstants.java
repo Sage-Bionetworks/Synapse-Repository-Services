@@ -308,6 +308,7 @@ public class SqlConstants {
 	// The DOI table
 	public static final String TABLE_DOI                = "DOI";
 	public static final String COL_DOI_ID               = "ID";
+	public static final String COL_DOI_ETAG             = "ETAG";
 	public static final String COL_DOI_DOI_STATUS       = "DOI_STATUS";
 	public static final String COL_DOI_OBJECT_ID        = "OBJECT_ID";
 	public static final String COL_DOI_OBJECT_TYPE      = "OBJECT_TYPE";

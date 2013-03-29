@@ -6,6 +6,11 @@
 			"type": "string",
 			"required": true
 		},
+		"etag": {
+			"type": "string",
+			"description": "For Optimistic Concurrency Control (OCC).",
+			"transient": true
+		},
 		"doiStatus": {
 			"description": "The status of the DOI.",
 			"$ref": "org.sagebionetworks.repo.model.doi.DoiStatus",

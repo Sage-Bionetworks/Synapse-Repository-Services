@@ -48,8 +48,9 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			public void onSuccess(EzidDoi doi) {
 				assert doi != null;
 				try {
-					doiDao.updateDoiStatus(doi.getObjectId(), doi.getDoiObjectType(),
-							doi.getObjectVersion(), DoiStatus.READY);
+					Doi dto = doi.getDto();
+					doiDao.updateDoiStatus(dto.getObjectId(), dto.getDoiObjectType(),
+							dto.getObjectVersion(), DoiStatus.READY, dto.getEtag());
 				} catch (DatastoreException e) {
 					logger.error(e.getMessage(), e);
 				} catch (NotFoundException e) {
@@ -61,8 +62,9 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			public void onError(EzidDoi doi, Exception e) {
 				assert doi != null;
 				try {
-					doiDao.updateDoiStatus(doi.getObjectId(), doi.getDoiObjectType(),
-							doi.getObjectVersion(), DoiStatus.ERROR);
+					Doi dto = doi.getDto();
+					doiDao.updateDoiStatus(dto.getObjectId(), dto.getDoiObjectType(),
+							dto.getObjectVersion(), DoiStatus.ERROR, dto.getEtag());
 				} catch (DatastoreException x) {
 					logger.error(x.getMessage(), x);
 				} catch (NotFoundException x) {
@@ -105,11 +107,9 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 
 		// Create DOI
 		EzidDoi ezidDoi = new EzidDoi();
+		ezidDoi.setDto(doiDto);
 		final String doi = EzidConstants.DOI_PREFIX + entityId;
 		ezidDoi.setDoi(doi);
-		ezidDoi.setObjectId(entityId);
-		ezidDoi.setDoiObjectType(DoiObjectType.ENTITY);
-		ezidDoi.setObjectVersion(versionNumber);
 
 		// Find the node. Info will be used in DOI metadata.
 		Node node = null;

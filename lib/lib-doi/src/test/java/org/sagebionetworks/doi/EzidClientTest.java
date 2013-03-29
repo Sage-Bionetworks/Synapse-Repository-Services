@@ -30,7 +30,7 @@ import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.protocol.HTTP;
 import org.junit.Test;
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.repo.model.doi.DoiObjectType;
+import org.sagebionetworks.repo.model.doi.Doi;
 import org.springframework.test.util.ReflectionTestUtils;
 
 public class EzidClientTest {
@@ -55,13 +55,11 @@ public class EzidClientTest {
 
 		// Create test data
 		final EzidDoi ezidDoi = new EzidDoi();
+		final Doi dto = new Doi();
+		ezidDoi.setDto(dto);
 		String id = "syn123";
 		final String doi = "doi:10.5072/" + id;
 		ezidDoi.setDoi(doi);
-		final DoiObjectType objectType = DoiObjectType.ENTITY;
-		ezidDoi.setDoiObjectType(objectType);
-		final String objectId = id;
-		ezidDoi.setObjectId(objectId);
 		final EzidMetadata metadata = new EzidMetadata();
 		final String target = EzidConstants.TARGET_URL_PREFIX;
 		metadata.setTarget(target);
