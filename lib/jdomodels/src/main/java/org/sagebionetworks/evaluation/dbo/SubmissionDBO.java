@@ -26,7 +26,6 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_ID, COL_SUBMISSION_ENTITY_ID),
 			new FieldColumn(PARAM_SUBMISSION_EWA, COL_SUBMISSION_EWA),
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_VERSION, COL_SUBMISSION_ENTITY_VERSION),
-			new FieldColumn(PARAM_SUBMISSION_FILE_HANDLE_ID, COL_SUBMISSION_FILE_HANDLE_ID),
 			new FieldColumn(PARAM_SUBMISSION_NAME, COL_SUBMISSION_NAME),
 			new FieldColumn(PARAM_SUBMISSION_CREATED_ON, COL_SUBMISSION_CREATED_ON)
 			};
@@ -41,7 +40,6 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				sub.setEvalId(rs.getLong(COL_SUBMISSION_EVAL_ID));
 				sub.setEntityId(rs.getLong(COL_SUBMISSION_ENTITY_ID));
 				sub.setVersionNumber(rs.getLong(COL_SUBMISSION_ENTITY_VERSION));
-				sub.setFileHandleId(rs.getLong(COL_SUBMISSION_FILE_HANDLE_ID));
 				sub.setName(rs.getString(COL_SUBMISSION_NAME));
 				sub.setCreatedOn(rs.getLong(COL_SUBMISSION_CREATED_ON));
 				java.sql.Blob blob = rs.getBlob(COL_SUBMISSION_EWA);
@@ -75,7 +73,6 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 	private Long entityId;
 	private byte[] entityWithAnnotations;
 	private Long versionNumber;
-	private Long fileHandleId;
 	private Long createdOn;
 	private String name;
 	public Long getId() {
@@ -118,13 +115,6 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 	public void setVersionNumber(Long versionNumber) {
 		this.versionNumber = versionNumber;
 	}
-	
-	public Long getFileHandleId() {
-		return fileHandleId;
-	}
-	public void setFileHandleId(Long fileHandleId) {
-		this.fileHandleId = fileHandleId;
-	}
 	public Long getCreatedOn() {
 		return createdOn;
 	}
@@ -148,8 +138,6 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				+ ((entityId == null) ? 0 : entityId.hashCode());
 		result = prime * result + Arrays.hashCode(entityWithAnnotations);
 		result = prime * result + ((evalId == null) ? 0 : evalId.hashCode());
-		result = prime * result
-				+ ((fileHandleId == null) ? 0 : fileHandleId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
 		result = prime * result + ((userId == null) ? 0 : userId.hashCode());
@@ -183,11 +171,6 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				return false;
 		} else if (!evalId.equals(other.evalId))
 			return false;
-		if (fileHandleId == null) {
-			if (other.fileHandleId != null)
-				return false;
-		} else if (!fileHandleId.equals(other.fileHandleId))
-			return false;
 		if (id == null) {
 			if (other.id != null)
 				return false;
@@ -216,8 +199,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				+ evalId + ", entityId=" + entityId
 				+ ", entityWithAnnotations="
 				+ Arrays.toString(entityWithAnnotations) + ", versionNumber="
-				+ versionNumber + ", fileHandleId=" + fileHandleId
-				+ ", createdOn=" + createdOn + ", name=" + name + "]";
+				+ versionNumber + ", createdOn=" + createdOn + ", name=" + name + "]";
 	}
 
 

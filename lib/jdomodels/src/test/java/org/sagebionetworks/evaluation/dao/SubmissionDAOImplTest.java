@@ -111,7 +111,6 @@ public class SubmissionDAOImplTest {
         submission.setEntityId(nodeId);
         submission.setVersionNumber(versionNumber);
         submission.setUserId(userId);
-        submission.setFileHandleId(fileHandleId);
     }
     
     @After

@@ -116,7 +116,6 @@ public class SubmissionDBOTest {
         submission.setVersionNumber(1L);
         submission.setUserId(userId);
         submission.setEvalId(evalId);
-        submission.setFileHandleId(Long.parseLong(fileHandleId));
         submission.setCreatedOn(System.currentTimeMillis());
         submission.setEntityWithAnnotations(JDOSecondaryPropertyUtils.compressObject(submission));
  

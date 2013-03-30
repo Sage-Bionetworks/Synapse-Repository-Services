@@ -112,8 +112,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			return dbo.getId().toString();
 		} catch (Exception e) {
 			throw new DatastoreException(e.getMessage() + " id=" + dbo.getId() +
-					" userId=" + dto.getUserId() + " entityId=" + dto.getEntityId() +
-					" fileHandleId=" + dto.getFileHandleId(), e);
+					" userId=" + dto.getUserId() + " entityId=" + dto.getEntityId());
 		}
 	}
 
@@ -267,14 +266,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		} catch (NumberFormatException e) {
 			throw new NumberFormatException("Invalid Evaluation ID: " + dto.getEvaluationId());
 		}
-		try {
-			if (dto.getFileHandleId() == null || dto.getFileHandleId().equals("0"))
-				dbo.setFileHandleId(null);
-			else
-				dbo.setFileHandleId(Long.parseLong(dto.getFileHandleId()));
-		} catch (NumberFormatException e) {
-			throw new NumberFormatException("Invalid File Handle ID: " + dto.getFileHandleId());
-		}
 		dbo.setEntityId(dto.getEntityId() == null ? null : KeyFactory.stringToKey(dto.getEntityId()));
 		dbo.setVersionNumber(dto.getVersionNumber());
 		dbo.setName(dto.getName());
@@ -292,7 +283,6 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dto.setUserId(dbo.getUserId() == null ? null : dbo.getUserId().toString());
 		dto.setEvaluationId(dbo.getEvalId() == null ? null : dbo.getEvalId().toString());
 		dto.setEntityId(dbo.getEntityId() == null ? null : KeyFactory.keyToString(dbo.getEntityId()));
-		dto.setFileHandleId(dbo.getFileHandleId() == null ? null : dbo.getFileHandleId().toString());
 		dto.setVersionNumber(dbo.getVersionNumber());
 		dto.setName(dbo.getName());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));

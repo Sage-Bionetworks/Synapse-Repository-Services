@@ -23,7 +23,6 @@ public class DBOConstants {
 	public static final String PARAM_SUBMISSION_EVAL_ID = "evalId";
 	public static final String PARAM_SUBMISSION_ENTITY_ID = "entityId";
 	public static final String PARAM_SUBMISSION_EWA = "entityWithAnnotations";
-	public static final String PARAM_SUBMISSION_FILE_HANDLE_ID = "fileHandleId";
 	public static final String PARAM_SUBMISSION_ENTITY_VERSION = "versionNumber";
 	public static final String PARAM_SUBMISSION_NAME = "name";
 	public static final String PARAM_SUBMISSION_CREATED_ON = "createdOn";

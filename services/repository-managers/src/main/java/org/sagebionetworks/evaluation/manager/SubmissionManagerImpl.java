@@ -98,7 +98,6 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		Class<? extends Entity> clazz = EntityType.valueOf(node.getNodeType()).getClassForType();
 		EntityWithAnnotations<? extends Entity> ewa = entityManager.getEntityWithAnnotations(
 				userInfo, submission.getEntityId(), clazz);
-		submission.setFileHandleId(node.getFileHandleId());
 		
 		// if no name is provided, use the Entity name
 		if (submission.getName() == null) {

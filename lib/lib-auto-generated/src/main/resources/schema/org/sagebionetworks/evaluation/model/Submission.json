@@ -26,17 +26,6 @@
             "type":"integer",
             "description":"The version number of the Entity."            
         },
-        "entity": {
-			"type": "object",
-			"description": "The entity contained in this Submission.",
-			"name": "Status",
-			"$ref": "org.sagebionetworks.repo.model.Entity"
-		},
-		"fileHandleId": {
-			"type": "string",
-			"description": "The File Handle ID of the Entity in this Submission.",
-			"transient": true
-		},
         "name": {
 			"type": "string",
 			"description": "The title of this Submission.",
