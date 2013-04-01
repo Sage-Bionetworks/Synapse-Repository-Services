@@ -21,6 +21,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.provenance.Used;
+import org.sagebionetworks.repo.model.provenance.UsedEntity;
+import org.sagebionetworks.repo.model.provenance.UsedURL;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -113,7 +115,8 @@ public class ActivityBackupDriver implements GenericBackupDriver {
 				}
 				
 				// This is a backup file.
-				ActivityBackup backup = NodeSerializerUtil.readActivityBackup(zin);				
+				ActivityBackup backup = NodeSerializerUtil.readActivityBackup(zin);
+				assureConcreteType(backup);
 				createOrUpdateActivity(createActivity(backup));
 				
 				// Append this id to the log.
@@ -135,6 +138,19 @@ public class ActivityBackupDriver implements GenericBackupDriver {
 		return true;
 	}
 	
+	// TODO : This method can be removed upon next deployment
+	private void assureConcreteType(ActivityBackup backup) {
+		if(backup != null && backup.getUsed() != null) {
+			for(Used ue : backup.getUsed()) {
+				if(ue instanceof UsedEntity) {
+					ue.setConcreteType(UsedEntity.class.getName());
+				} else if (ue instanceof UsedURL) {
+					ue.setConcreteType(UsedURL.class.getName());
+				}
+			}
+		}
+	}
+
 	private void createOrUpdateActivity(Activity act) throws DatastoreException, NotFoundException, InvalidModelException, ConflictingUpdateException {
 		// create the activity		
 		Activity existingActivity = null;
