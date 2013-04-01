@@ -307,5 +307,11 @@ public class AdministrationController extends BaseController {
 		return serviceProvider.getAdministrationService().rebroadcastChangeMessagesToQueue(userId, queueName, startChangeNumber, typeEnum, limit);
 	}
 
-
+	@RequestMapping(value = {UrlHelpers.ADMIN_DOI_CLEAR}, method = RequestMethod.DELETE)
+	@ResponseStatus(HttpStatus.OK)
+	public void
+	clearDoi(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId)
+			throws NotFoundException, UnauthorizedException, DatastoreException {
+		serviceProvider.getAdministrationService().clearDoi(userId);
+	}
 }

@@ -190,8 +190,9 @@ public interface AdministrationService {
 	 * @throws DatastoreException 
 	 */
 	PublishResults rebroadcastChangeMessagesToQueue(String userId,	String queueName, Long startChangeNumber, ObjectType type,	Long limit) throws DatastoreException, NotFoundException;
-	
-	
-	
 
+	/**
+	 * Clears the DOI table.
+	 */
+	void clearDoi(String userId) throws NotFoundException, UnauthorizedException, DatastoreException;
 }

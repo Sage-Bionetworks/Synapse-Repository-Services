@@ -43,7 +43,8 @@ public class SynapseAdministration extends Synapse {
 	private static final String ADMIN_TRASHCAN_PURGE = ADMIN + "/trashcan/purge";
 	private static final String ADMIN_CHANGE_MESSAGES = ADMIN + "/messages";
 	private static final String ADMIN_PUBLISH_MESSAGES = ADMIN_CHANGE_MESSAGES+"/rebroadcast";
-	
+	private static final String ADMIN_DOI_CLEAR = ADMIN + "/doi/clear";
+
 	public SynapseAdministration() {
 		super();
 	}
@@ -244,5 +245,12 @@ public class SynapseAdministration extends Synapse {
 			builder.append("&limit=").append(limit);
 		}
 		return builder.toString();
+	}
+
+	/**
+	 * Clears the DOI table.
+	 */
+	public void clearDoi() throws SynapseException {
+		signAndDispatchSynapseRequest(repoEndpoint, ADMIN_DOI_CLEAR, "DELETE", null, defaultGETDELETEHeaders);
 	}
 }
