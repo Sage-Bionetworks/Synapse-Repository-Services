@@ -195,7 +195,7 @@ public class SearchDocumentDriverImplAutowireTest {
 			references.add(ref);
 		}
 		
-		String wikiPageText = "title/n/markdown";
+		String wikiPageText = "title\nmarkdown";
 
 		Set<ACCESS_TYPE> rwAccessType = new HashSet<ACCESS_TYPE>();
 		rwAccessType.add(ACCESS_TYPE.READ);
@@ -329,13 +329,13 @@ public class SearchDocumentDriverImplAutowireTest {
 	public void testGetAllWikiPageText(){
 		// The expected text fo
 		StringBuilder expected = new StringBuilder();
-		expected.append("/n");
+		expected.append("\n");
 		expected.append(rootPage.getTitle());
-		expected.append("/n");
+		expected.append("\n");
 		expected.append(rootPage.getMarkdown());
-		expected.append("/n");
+		expected.append("\n");
 		expected.append(subPage.getTitle());
-		expected.append("/n");
+		expected.append("\n");
 		expected.append(subPage.getMarkdown());
 		// Now get the text from the d
 		String resultText = searchDocumentDriver.getAllWikiPageText(project.getId());

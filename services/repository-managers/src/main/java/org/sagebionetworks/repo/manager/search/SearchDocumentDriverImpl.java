@@ -433,11 +433,11 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				WikiPage page = wikiPageDao.get(new WikiPageKey(nodeId, ObjectType.ENTITY,  header.getId()));
 				// Append the title and markdown
 				if(page.getTitle() != null){
-					builder.append("/n");
+					builder.append("\n");
 					builder.append(page.getTitle());
 				}
 				if(page.getMarkdown() != null){
-					builder.append("/n");
+					builder.append("\n");
 					builder.append(page.getMarkdown());
 				}
 			}
