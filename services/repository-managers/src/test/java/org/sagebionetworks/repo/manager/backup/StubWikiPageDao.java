@@ -119,4 +119,10 @@ public class StubWikiPageDao implements WikiPageDao {
 		return key;
 	}
 
+	@Override
+	public WikiPageKey lookupWikiKey(String wikiId) throws NotFoundException {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
 }

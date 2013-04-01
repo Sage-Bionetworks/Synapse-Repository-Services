@@ -5,6 +5,7 @@ import java.util.concurrent.Callable;
 
 import org.sagebionetworks.asynchronous.workers.sqs.MessageWorkerFactory;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
+import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.search.SearchDao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
@@ -24,6 +25,9 @@ public class SearchQueueWorkerFactory implements MessageWorkerFactory {
 	@Autowired
 	private SearchDocumentDriver searchDocumentDriver;
 	
+	@Autowired
+	private WikiPageDao wikPageDao;
+	
 	public void initialize(){
 		System.out.println("Starting");
 		SchedulerFactoryBean bean;
@@ -32,7 +36,7 @@ public class SearchQueueWorkerFactory implements MessageWorkerFactory {
 	@Override
 	public Callable<List<Message>> createWorker(List<Message> messages) {
 		// Create a new worker
-		return new SearchQueueWorker(searchDao, searchDocumentDriver, messages);
+		return new SearchQueueWorker(searchDao, searchDocumentDriver, messages, wikPageDao);
 	}
 
 }
