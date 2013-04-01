@@ -3904,29 +3904,36 @@ public class Synapse {
 	}
 
 	/**
+	 * Creates a DOI for the specified entity. The DOI will always be associated with
+	 * the current version of the entity.
+	 */
+	public void createEntityDoi(String entityId) throws SynapseException {
+		createEntityDoi(entityId, null);
+	}
+
+	/**
 	 * Creates a DOI for the specified entity version. If version is null, the DOI
 	 * will always be associated with the current version of the entity.
 	 */
-	public Doi createEntityDoi(String entityId, Long entityVersion) throws SynapseException {
+	public void createEntityDoi(String entityId, Long entityVersion) throws SynapseException {
 
 		if (entityId == null || entityId.isEmpty()) {
 			throw new IllegalArgumentException("Must provide entity ID.");
 		}
 
-		try {
-			String url = ENTITY + "/" + entityId;
-			if (entityVersion != null) {
-				url = url + REPO_SUFFIX_VERSION + "/" + entityVersion;
-			}
-			url = url + DOI;
-			JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, url, "PUT", null, defaultPOSTPUTHeaders);
-			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-			Doi doi = new Doi();
-			doi.initializeFromJSONObject(adapter);
-			return doi;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
+		String url = ENTITY + "/" + entityId;
+		if (entityVersion != null) {
+			url = url + REPO_SUFFIX_VERSION + "/" + entityVersion;
 		}
+		url = url + DOI;
+		signAndDispatchSynapseRequest(repoEndpoint, url, "PUT", null, defaultPOSTPUTHeaders);
+	}
+
+	/**
+	 * Gets the DOI for the specified entity version. The DOI is for the current version of the entity.
+	 */
+	public Doi getEntityDoi(String entityId) throws SynapseException {
+		return getEntityDoi(entityId, null);
 	}
 
 	/**

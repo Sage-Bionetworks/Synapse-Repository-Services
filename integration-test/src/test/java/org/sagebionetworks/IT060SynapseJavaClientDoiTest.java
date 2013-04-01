@@ -81,22 +81,11 @@ public class IT060SynapseJavaClientDoiTest {
 	}
 
 	@Test
-	public void test() throws SynapseException {
+	public void testCreateGet() throws SynapseException {
 
-		Doi doi = synapse.createEntityDoi(entity.getId(), null);
-		assertNotNull(doi);
+		synapse.createEntityDoi(entity.getId());
 
-		assertEquals(DoiStatus.IN_PROCESS, doi.getDoiStatus());
-		assertTrue(Long.parseLong(doi.getId()) > 0L);
-		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
-		assertEquals(entity.getId(), doi.getObjectId());
-		assertNull(doi.getObjectVersion());
-		assertEquals(DoiObjectType.ENTITY, doi.getDoiObjectType());
-		assertNotNull(doi.getCreatedBy());
-		assertNotNull(doi.getCreatedOn());
-		assertNotNull(doi.getUpdatedOn());
-
-		doi = synapse.getEntityDoi(entity.getId(), null);
+		Doi doi = synapse.getEntityDoi(entity.getId());
 		assertNotNull(doi);
 		// Wait for the status to turn green
 		try {
@@ -105,7 +94,7 @@ public class IT060SynapseJavaClientDoiTest {
 			while (time < MAX_WAIT && DoiStatus.IN_PROCESS.equals(status)) {
 				Thread.sleep(PAUSE);
 				time = time + PAUSE;
-				doi = synapse.getEntityDoi(entity.getId(), null);
+				doi = synapse.getEntityDoi(entity.getId());
 				status = doi.getDoiStatus();
 			}
 		} catch (InterruptedException e) {
@@ -120,20 +109,14 @@ public class IT060SynapseJavaClientDoiTest {
 		assertNotNull(doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
 		assertNotNull(doi.getUpdatedOn());
+	}
 
-		doi = synapse.createEntityDoi(entity.getId(), 1L);
-		assertNotNull(doi);
-		assertEquals(DoiStatus.IN_PROCESS, doi.getDoiStatus());
-		assertTrue(Long.parseLong(doi.getId()) > 0L);
-		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
-		assertEquals(entity.getId(), doi.getObjectId());
-		assertEquals(Long.valueOf(1L), doi.getObjectVersion());
-		assertEquals(DoiObjectType.ENTITY, doi.getDoiObjectType());
-		assertNotNull(doi.getCreatedBy());
-		assertNotNull(doi.getCreatedOn());
-		assertNotNull(doi.getUpdatedOn());
+	@Test
+	public void testCreateGetWithVersion() throws SynapseException {
 
-		doi = synapse.getEntityDoi(entity.getId(), 1L);
+		synapse.createEntityDoi(entity.getId(), 1L);
+
+		Doi doi = synapse.getEntityDoi(entity.getId(), 1L);
 		assertNotNull(doi);
 		// Wait for the status to turn green
 		try {
