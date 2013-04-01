@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.manager.StackStatusManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.daemon.BackupDaemonLauncher;
 import org.sagebionetworks.repo.manager.backup.migration.DependencyManager;
+import org.sagebionetworks.repo.manager.doi.DoiAdminManager;
 import org.sagebionetworks.repo.manager.message.MessageSyndication;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -52,7 +53,9 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	DependencyManager dependencyManager;
 	@Autowired
 	MessageSyndication messageSyndication;
-	
+	@Autowired
+	private DoiAdminManager doiAdminManager;
+
 	/**
 	 * Spring will use this constructor
 	 */
@@ -241,4 +244,8 @@ public class AdministrationServiceImpl implements AdministrationService  {
 		return messageSyndication.rebroadcastChangeMessagesToQueue(queueName, type, startChangeNumber, limit);
 	}
 
+	@Override
+	public void clearDoi(String userId) throws NotFoundException, UnauthorizedException, DatastoreException {
+		doiAdminManager.clear(userId);
+	}
 }

@@ -38,8 +38,6 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.StringEntity;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.FileBody;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -95,6 +93,7 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.ChunkRequest;
 import org.sagebionetworks.repo.model.file.ChunkResult;
 import org.sagebionetworks.repo.model.file.ChunkedFileToken;
@@ -120,7 +119,6 @@ import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.sagebionetworks.securitytools.HMACUtils;
-import org.sagebionetworks.utils.DefaultHttpClientSingleton;
 import org.sagebionetworks.utils.HttpClientHelperException;
 import org.sagebionetworks.utils.MD5ChecksumHelper;
 
@@ -219,6 +217,8 @@ public class Synapse {
 	private static final String TRASHCAN_RESTORE = "/trashcan/restore";
 	private static final String TRASHCAN_VIEW = "/trashcan/view";
 	private static final String TRASHCAN_PURGE = "/trashcan/purge";
+
+	private static final String DOI = "/doi";
 
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
@@ -3901,5 +3901,64 @@ public class Synapse {
 			throw new SynapseException(e);
 		}
 		
+	}
+
+	/**
+	 * Creates a DOI for the specified entity. The DOI will always be associated with
+	 * the current version of the entity.
+	 */
+	public void createEntityDoi(String entityId) throws SynapseException {
+		createEntityDoi(entityId, null);
+	}
+
+	/**
+	 * Creates a DOI for the specified entity version. If version is null, the DOI
+	 * will always be associated with the current version of the entity.
+	 */
+	public void createEntityDoi(String entityId, Long entityVersion) throws SynapseException {
+
+		if (entityId == null || entityId.isEmpty()) {
+			throw new IllegalArgumentException("Must provide entity ID.");
+		}
+
+		String url = ENTITY + "/" + entityId;
+		if (entityVersion != null) {
+			url = url + REPO_SUFFIX_VERSION + "/" + entityVersion;
+		}
+		url = url + DOI;
+		signAndDispatchSynapseRequest(repoEndpoint, url, "PUT", null, defaultPOSTPUTHeaders);
+	}
+
+	/**
+	 * Gets the DOI for the specified entity version. The DOI is for the current version of the entity.
+	 */
+	public Doi getEntityDoi(String entityId) throws SynapseException {
+		return getEntityDoi(entityId, null);
+	}
+
+	/**
+	 * Gets the DOI for the specified entity version. If version is null, the DOI
+	 * is for the current version of the entity.
+	 */
+	public Doi getEntityDoi(String entityId, Long entityVersion) throws SynapseException {
+
+		if (entityId == null || entityId.isEmpty()) {
+			throw new IllegalArgumentException("Must provide entity ID.");
+		}
+
+		try {
+			String url = ENTITY + "/" + entityId;
+			if (entityVersion != null) {
+				url = url + REPO_SUFFIX_VERSION + "/" + entityVersion;
+			}
+			url = url + DOI;
+			JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, url, "GET", null, defaultGETDELETEHeaders);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			Doi doi = new Doi();
+			doi.initializeFromJSONObject(adapter);
+			return doi;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 }

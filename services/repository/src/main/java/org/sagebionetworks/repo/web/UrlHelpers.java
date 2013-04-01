@@ -272,6 +272,11 @@ public class UrlHelpers {
 	public static final String DOI = "/doi";
 
 	/**
+	 * Clears the Synapse DOI table (by administrators only).
+	 */
+	public static final String ADMIN_DOI_CLEAR = ADMIN + DOI + "/clear";
+
+	/**
 	 * The DOI associated with the entity (implies the current version).
 	 */
 	public static final String ENTITY_DOI = ENTITY_ID + DOI;
