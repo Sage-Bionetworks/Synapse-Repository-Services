@@ -12,6 +12,7 @@ import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.SynapseAdministration;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
@@ -23,7 +24,8 @@ import org.sagebionetworks.repo.model.doi.DoiStatus;
 public class IT060SynapseJavaClientDoiTest {
 
 	/** Max wait time for the DOI status to turn green */
-	private static long MAX_WAIT = 20000; // 10 seconds
+	private static long MAX_WAIT = 10000; // 10 seconds
+	private static long PAUSE = 2000;     // Pause for 2 seconds
 	private static SynapseAdministration synapseAdmin;
 	private Synapse synapse;
 	private Entity entity;
@@ -71,6 +73,11 @@ public class IT060SynapseJavaClientDoiTest {
 			synapse.deleteEntityById(entity.getId());
 		}
 		synapseAdmin.clearDoi();
+		try {
+			synapse.getEntityDoi(entity.getId(), null);
+		} catch (SynapseNotFoundException e) {
+			assertTrue(true);
+		}
 	}
 
 	@Test
@@ -79,20 +86,7 @@ public class IT060SynapseJavaClientDoiTest {
 		Doi doi = synapse.createEntityDoi(entity.getId(), null);
 		assertNotNull(doi);
 
-		// Wait for the status to turn green
-		try {
-			DoiStatus status = doi.getDoiStatus();
-			long time = 0;
-			while (time < MAX_WAIT && (!DoiStatus.READY.equals(status))) {
-				Thread.sleep(1000L);
-				time = time + 1000L;
-				status = doi.getDoiStatus();
-			}
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e.getMessage(), e);
-		}
-
-		assertEquals(DoiStatus.READY, doi.getDoiStatus());
+		assertEquals(DoiStatus.IN_PROCESS, doi.getDoiStatus());
 		assertTrue(Long.parseLong(doi.getId()) > 0L);
 		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());
@@ -104,7 +98,20 @@ public class IT060SynapseJavaClientDoiTest {
 
 		doi = synapse.getEntityDoi(entity.getId(), null);
 		assertNotNull(doi);
-		assertEquals(DoiStatus.READY, doi.getDoiStatus());
+		// Wait for the status to turn green
+		try {
+			DoiStatus status = doi.getDoiStatus();
+			long time = 0;
+			while (time < MAX_WAIT && DoiStatus.IN_PROCESS.equals(status)) {
+				Thread.sleep(PAUSE);
+				time = time + PAUSE;
+				doi = synapse.getEntityDoi(entity.getId(), null);
+				status = doi.getDoiStatus();
+			}
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e.getMessage(), e);
+		}
+		assertTrue(DoiStatus.READY.equals(doi.getDoiStatus()) || DoiStatus.ERROR.equals(doi.getDoiStatus()));
 		assertTrue(Long.parseLong(doi.getId()) > 0L);
 		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());
@@ -116,21 +123,7 @@ public class IT060SynapseJavaClientDoiTest {
 
 		doi = synapse.createEntityDoi(entity.getId(), 1L);
 		assertNotNull(doi);
-
-		// Wait for the status to turn green
-		try {
-			DoiStatus status = doi.getDoiStatus();
-			long time = 0;
-			while (time < MAX_WAIT && (!DoiStatus.READY.equals(status))) {
-				Thread.sleep(1000L);
-				time = time + 1000L;
-				status = doi.getDoiStatus();
-			}
-		} catch (InterruptedException e) {
-			throw new RuntimeException(e.getMessage(), e);
-		}
-
-		assertEquals(DoiStatus.READY, doi.getDoiStatus());
+		assertEquals(DoiStatus.IN_PROCESS, doi.getDoiStatus());
 		assertTrue(Long.parseLong(doi.getId()) > 0L);
 		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());
@@ -140,9 +133,22 @@ public class IT060SynapseJavaClientDoiTest {
 		assertNotNull(doi.getCreatedOn());
 		assertNotNull(doi.getUpdatedOn());
 
-		doi = synapse.getEntityDoi(entity.getId(), null);
+		doi = synapse.getEntityDoi(entity.getId(), 1L);
 		assertNotNull(doi);
-		assertEquals(DoiStatus.READY, doi.getDoiStatus());
+		// Wait for the status to turn green
+		try {
+			DoiStatus status = doi.getDoiStatus();
+			long time = 0;
+			while (time < MAX_WAIT && DoiStatus.IN_PROCESS.equals(status)) {
+				Thread.sleep(PAUSE);
+				time = time + PAUSE;
+				doi = synapse.getEntityDoi(entity.getId(), 1L);
+				status = doi.getDoiStatus();
+			}
+		} catch (InterruptedException e) {
+			throw new RuntimeException(e.getMessage(), e);
+		}
+		assertTrue(DoiStatus.READY.equals(doi.getDoiStatus()) || DoiStatus.ERROR.equals(doi.getDoiStatus()));
 		assertTrue(Long.parseLong(doi.getId()) > 0L);
 		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());

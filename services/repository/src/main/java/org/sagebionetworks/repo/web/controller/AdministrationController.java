@@ -307,6 +307,9 @@ public class AdministrationController extends BaseController {
 		return serviceProvider.getAdministrationService().rebroadcastChangeMessagesToQueue(userId, queueName, startChangeNumber, typeEnum, limit);
 	}
 
+	/**
+	 * Clears the Synapse DOI table.
+	 */
 	@RequestMapping(value = {UrlHelpers.ADMIN_DOI_CLEAR}, method = RequestMethod.DELETE)
 	@ResponseStatus(HttpStatus.OK)
 	public void

@@ -7,14 +7,12 @@ import javax.servlet.http.HttpServletRequest;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectCount;
+import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
-import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
@@ -192,7 +190,7 @@ public interface AdministrationService {
 	PublishResults rebroadcastChangeMessagesToQueue(String userId,	String queueName, Long startChangeNumber, ObjectType type,	Long limit) throws DatastoreException, NotFoundException;
 
 	/**
-	 * Clears the DOI table.
+	 * Clears the Synapse DOI table.
 	 */
 	void clearDoi(String userId) throws NotFoundException, UnauthorizedException, DatastoreException;
 }

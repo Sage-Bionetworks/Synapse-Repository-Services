@@ -248,7 +248,7 @@ public class SynapseAdministration extends Synapse {
 	}
 
 	/**
-	 * Clears the DOI table.
+	 * Clears the Synapse DOI table. Note this does not clear the DOIs registered outside Synapse.
 	 */
 	public void clearDoi() throws SynapseException {
 		signAndDispatchSynapseRequest(repoEndpoint, ADMIN_DOI_CLEAR, "DELETE", null, defaultGETDELETEHeaders);

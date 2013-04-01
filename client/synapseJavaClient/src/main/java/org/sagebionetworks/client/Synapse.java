@@ -3904,7 +3904,7 @@ public class Synapse {
 	}
 
 	/**
-	 * Creates DOI for the specified entity version. If version is null, the DOI
+	 * Creates a DOI for the specified entity version. If version is null, the DOI
 	 * will always be associated with the current version of the entity.
 	 */
 	public Doi createEntityDoi(String entityId, Long entityVersion) throws SynapseException {
@@ -3930,7 +3930,7 @@ public class Synapse {
 	}
 
 	/**
-	 * Gets DOI for the specified entity version. If version is null, the DOI
+	 * Gets the DOI for the specified entity version. If version is null, the DOI
 	 * is for the current version of the entity.
 	 */
 	public Doi getEntityDoi(String entityId, Long entityVersion) throws SynapseException {
