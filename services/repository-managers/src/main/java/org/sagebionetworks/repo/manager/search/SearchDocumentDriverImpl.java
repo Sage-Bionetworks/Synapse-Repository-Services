@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.backup.NodeBackupManager;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriver;
 import org.sagebionetworks.repo.manager.backup.migration.MigrationDriverImpl;
+import org.sagebionetworks.repo.manager.wiki.WikiManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.Annotations;
@@ -29,10 +30,15 @@ import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.dao.WikiPageDao;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.query.jdo.NodeAliasCache;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.DocumentFields;
 import org.sagebionetworks.repo.model.search.DocumentTypeNames;
+import org.sagebionetworks.repo.model.wiki.WikiHeader;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.schema.adapter.org.json.EntityFactory;
@@ -83,6 +89,9 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	
 	@Autowired
 	NodeManager nodeManager;
+	
+	@Autowired
+	WikiPageDao wikiPageDao;
 		
 	// For now we can just create one of these. We might need to make beans in
 	// the future.
@@ -150,9 +159,12 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 				revId);
 		// get the path
 		EntityPath entityPath = getEntityPath(node.getId());
+
+		// Get the wikipage text
+		 String wikiPagesText = getAllWikiPageText(node.getId());
 		
 		Document document = formulateSearchDocument(node, rev, benefactorBackup
-				.getAcl(), entityPath);
+				.getAcl(), entityPath, wikiPagesText);
 		return document;
 	}
 
@@ -187,7 +199,7 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 	@Override
 	public Document formulateSearchDocument(Node node, NodeRevisionBackup rev,
-			AccessControlList acl, EntityPath entityPath) throws DatastoreException, NotFoundException {
+			AccessControlList acl, EntityPath entityPath,  String wikiPagesText) throws DatastoreException, NotFoundException {
 		DateTime now = DateTime.now();
 		Document document = new Document();
 		DocumentFields fields = new DocumentFields();
@@ -221,9 +233,18 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 
 		
 		fields.setNode_type(aliasCache.getPreferredAlias(node.getNodeType()));
-		if (null != node.getDescription()) {
-			fields.setDescription(node.getDescription());
+		
+		// The description contains the entity description and all wiki page text
+		StringBuilder descriptionValue = new StringBuilder();
+		if(node.getDescription() != null){
+			descriptionValue.append(node.getDescription());
 		}
+		if(wikiPagesText != null){
+			descriptionValue.append(wikiPagesText);
+		}
+		// Set the description
+		fields.setDescription(descriptionValue.toString());
+		
 		fields.setCreated_by(getDisplayNameForPrincipalId(node.getCreatedByPrincipalId()));
 		fields.setCreated_on(node.getCreatedOn().getTime() / 1000);
 		fields.setModified_by(getDisplayNameForPrincipalId(node.getModifiedByPrincipalId()));
@@ -393,6 +414,38 @@ public class SearchDocumentDriverImpl implements SearchDocumentDriver {
 	@Override
 	public boolean doesDocumentExist(String nodeId, String etag) {
 		return backupManager.doesNodeExist(nodeId, etag);
+	}
+	
+	/**
+	 * Get all wiki text for an entity.
+	 * @param nodeId
+	 * @return
+	 * @throws DatastoreException
+	 */
+	public String getAllWikiPageText(String nodeId) throws DatastoreException{
+		// Lookup all wiki pages for this node
+		try {
+			List<WikiHeader> wikiHeaders = wikiPageDao.getHeaderTree(nodeId, ObjectType.ENTITY);
+			if(wikiHeaders == null) return null;
+			// For each header get the wikipage
+			StringBuilder builder = new StringBuilder();
+			for(WikiHeader header: wikiHeaders){
+				WikiPage page = wikiPageDao.get(new WikiPageKey(nodeId, ObjectType.ENTITY,  header.getId()));
+				// Append the title and markdown
+				if(page.getTitle() != null){
+					builder.append("/n");
+					builder.append(page.getTitle());
+				}
+				if(page.getMarkdown() != null){
+					builder.append("/n");
+					builder.append(page.getMarkdown());
+				}
+			}
+			return builder.toString();
+		} catch (NotFoundException e) {
+			// There is no WikiPage for this node.
+			return null;
+		}
 	}
 
 }

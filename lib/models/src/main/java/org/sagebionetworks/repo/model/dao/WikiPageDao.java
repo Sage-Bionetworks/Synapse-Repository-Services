@@ -115,5 +115,12 @@ public interface WikiPageDao extends MigratableDAO {
 	 * @throws DatastoreException 
 	 */
 	public WikiPageKey createOrUpdateFromBackup(WikiPageBackup backup) throws DatastoreException, NotFoundException;
+	
+	/**
+	 * Given a wiki id, lookup the key
+	 * @param wikiId
+	 * @return
+	 */
+	public WikiPageKey lookupWikiKey(String wikiId) throws NotFoundException;
 
 }
