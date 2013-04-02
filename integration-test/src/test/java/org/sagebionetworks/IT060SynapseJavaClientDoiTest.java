@@ -24,8 +24,8 @@ import org.sagebionetworks.repo.model.doi.DoiStatus;
 public class IT060SynapseJavaClientDoiTest {
 
 	/** Max wait time for the DOI status to turn green */
-	private static long MAX_WAIT = 10000; // 10 seconds
-	private static long PAUSE = 2000;     // Pause for 2 seconds
+	private static long MAX_WAIT = 10000; // 12 seconds
+	private static long PAUSE = 2000;     // Pause between waits is 2 seconds
 	private static SynapseAdministration synapseAdmin;
 	private Synapse synapse;
 	private Entity entity;
@@ -100,7 +100,7 @@ public class IT060SynapseJavaClientDoiTest {
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e.getMessage(), e);
 		}
-		assertTrue(DoiStatus.READY.equals(doi.getDoiStatus()) || DoiStatus.ERROR.equals(doi.getDoiStatus()));
+		assertEquals(DoiStatus.READY, doi.getDoiStatus());
 		assertTrue(Long.parseLong(doi.getId()) > 0L);
 		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());
@@ -131,7 +131,7 @@ public class IT060SynapseJavaClientDoiTest {
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e.getMessage(), e);
 		}
-		assertTrue(DoiStatus.READY.equals(doi.getDoiStatus()) || DoiStatus.ERROR.equals(doi.getDoiStatus()));
+		assertEquals(DoiStatus.READY, doi.getDoiStatus());
 		assertTrue(Long.parseLong(doi.getId()) > 0L);
 		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());

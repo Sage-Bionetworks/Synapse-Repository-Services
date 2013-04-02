@@ -14,7 +14,7 @@ public class EzidClientIntegTest {
 		final Doi dto = new Doi();
 		ezidDoi.setDto(dto);
 		String id = Integer.toHexString(random.nextInt());
-		final String doi = "doi:10.5072/FK2." + id;
+		final String doi = EzidConstants.DOI_PREFIX + id;
 		ezidDoi.setDoi(doi);
 		final EzidMetadata metadata = new EzidMetadata();
 		final String target = EzidConstants.TARGET_URL_PREFIX;
@@ -62,7 +62,7 @@ public class EzidClientIntegTest {
 		final EzidDoi ezidDoi = new EzidDoi();
 		final Doi dto = new Doi();
 		ezidDoi.setDto(dto);
-		final String doi = "doi:10.5072/FK2." + "3829383478";
+		final String doi = EzidConstants.DOI_PREFIX + "3829383478";
 		ezidDoi.setDoi(doi);
 		final EzidMetadata metadata = new EzidMetadata();
 		final String target = EzidConstants.TARGET_URL_PREFIX;
