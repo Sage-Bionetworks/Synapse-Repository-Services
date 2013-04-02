@@ -12,6 +12,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.BooleanResult;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -342,5 +343,26 @@ public class EvaluationController extends BaseController {
 			throws DatastoreException, NotFoundException
 	{
 		return serviceProvider.getEvaluationService().getSubmissionCount(evalId);
+	}
+	
+	/**
+	 * @param id 
+	 * @param userId 
+	 * @param accessType 
+	 * @param request 
+	 * @return the access types that the given user has to the given resource
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 * @throws UnauthorizedException 
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value={UrlHelpers.EVALUATION_WITH_ID+UrlHelpers.ACCESS}, method=RequestMethod.GET)
+	public @ResponseBody BooleanResult hasAccess(
+			@PathVariable String evalId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = UrlHelpers.ACCESS_TYPE_PARAM, required = false) String accessType,
+			HttpServletRequest request) throws DatastoreException, NotFoundException, UnauthorizedException {
+		// pass it along.
+		return new BooleanResult(serviceProvider.getEvaluationService().hasAccess(evalId, userId, request, accessType));
 	}
 }

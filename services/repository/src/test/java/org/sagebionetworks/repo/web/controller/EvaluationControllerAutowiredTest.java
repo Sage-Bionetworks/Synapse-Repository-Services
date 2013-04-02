@@ -26,6 +26,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.InvalidModelException;
@@ -161,11 +162,25 @@ public class EvaluationControllerAutowiredTest {
 		assertNotNull(eval1.getId());
 		evaluationsToDelete.add(eval1.getId());
 		
+		//can read
+		Boolean canRead = entityServletHelper.canAccess(ownerName, eval1.getId(), ACCESS_TYPE.READ);
+		assertTrue(canRead);
+		//test user can also read
+		canRead = entityServletHelper.canAccess(userName, eval1.getId(), ACCESS_TYPE.READ);
+		assertTrue(canRead);
+		
 		// Read
 		Evaluation fetched = entityServletHelper.getEvaluation(eval1.getId());
 		assertEquals(eval1, fetched);
 		fetched = entityServletHelper.findEvaluation(eval1.getName());
 		assertEquals(eval1, fetched);
+		
+		//can update
+		Boolean canUpdate = entityServletHelper.canAccess(ownerName, eval1.getId(), ACCESS_TYPE.UPDATE);
+		assertTrue(canUpdate);
+		//test user can't update
+		canUpdate = entityServletHelper.canAccess(userName, eval1.getId(), ACCESS_TYPE.UPDATE);
+		assertFalse(canUpdate);
 		
 		// Update
 		fetched.setDescription(eval1.getDescription() + " (modified)");
