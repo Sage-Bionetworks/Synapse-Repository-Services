@@ -8,7 +8,7 @@ public class EzidConstants {
 	/**
 	 * DOI prefix plus the separator (/).
 	 */
-	public static final String DOI_PREFIX = "doi:10.5072/";
+	public static final String DOI_PREFIX = "doi:10.5072/FK2.";
 
 	/**
 	 * Synapse web portal URL with protocol and host name. Path not included.

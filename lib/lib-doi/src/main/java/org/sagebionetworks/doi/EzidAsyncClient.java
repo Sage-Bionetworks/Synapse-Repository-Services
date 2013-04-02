@@ -10,7 +10,7 @@ public class EzidAsyncClient implements DoiClient {
 		if (createCallback == null) {
 			throw new IllegalArgumentException("Callback handle must not be null.");
 		}
-		callback = createCallback;
+		this.createCallback = createCallback;
 	}
 
 	@Override
@@ -20,10 +20,10 @@ public class EzidAsyncClient implements DoiClient {
 			public EzidDoi call() {
 				try {
 					ezidClient.create(doi);
-					callback.onSuccess(doi);
+					createCallback.onSuccess(doi);
 					return doi;
 				} catch (Exception e) {
-					callback.onError(doi, e);
+					createCallback.onError(doi, e);
 					return doi;
 				}
 			}});
@@ -31,5 +31,5 @@ public class EzidAsyncClient implements DoiClient {
 
 	private final ExecutorService executor = Executors.newFixedThreadPool(1);
 	private final EzidClient ezidClient = new EzidClient();
-	private EzidAsyncCallback callback;
+	private final EzidAsyncCallback createCallback;
 }
