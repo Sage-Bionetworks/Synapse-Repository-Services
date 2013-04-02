@@ -17,6 +17,7 @@ import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -87,15 +88,16 @@ public class DoiControllerAutowiredTest {
 		Doi doiGet = new Doi();
 		doiGet.initializeFromJSONObject(adapter);
 		assertNotNull(doiGet);
-		assertEquals(doiPut.getCreatedBy(), doiPut.getCreatedBy());
-		assertEquals(doiPut.getCreatedOn(), doiPut.getCreatedOn());
-		assertEquals(doiPut.getDoiObjectType(), doiPut.getDoiObjectType());
-		assertEquals(doiPut.getDoiStatus(), doiPut.getDoiStatus());
-		assertEquals(doiPut.getEtag(), doiPut.getEtag());
-		assertEquals(doiPut.getId(), doiPut.getId());
-		assertEquals(doiPut.getObjectId(), doiPut.getObjectId());
-		assertEquals(doiPut.getObjectVersion(), doiPut.getObjectVersion());
-		assertEquals(doiPut.getUpdatedOn(), doiPut.getUpdatedOn());
+		assertEquals(doiPut.getCreatedBy(), doiGet.getCreatedBy());
+		assertEquals(doiPut.getCreatedOn(), doiGet.getCreatedOn());
+		assertEquals(doiPut.getDoiObjectType(), doiGet.getDoiObjectType());
+		assertEquals(DoiStatus.IN_PROCESS, doiPut.getDoiStatus());
+		assertNotNull(doiGet.getDoiStatus());
+		assertEquals(doiPut.getEtag(), doiGet.getEtag());
+		assertEquals(doiPut.getId(), doiGet.getId());
+		assertEquals(doiPut.getObjectId(), doiGet.getObjectId());
+		assertEquals(doiPut.getObjectVersion(), doiGet.getObjectVersion());
+		assertEquals(doiPut.getUpdatedOn(), doiGet.getUpdatedOn());
 
 		// Put with version
 		uri = UrlHelpers.ENTITY + "/" + entity.getId() + UrlHelpers.VERSION + "/" + 1 + UrlHelpers.DOI;
@@ -129,15 +131,16 @@ public class DoiControllerAutowiredTest {
 		doiGet = new Doi();
 		doiGet.initializeFromJSONObject(adapter);
 		assertNotNull(doiGet);
-		assertEquals(doiPut.getCreatedBy(), doiPut.getCreatedBy());
-		assertEquals(doiPut.getCreatedOn(), doiPut.getCreatedOn());
-		assertEquals(doiPut.getDoiObjectType(), doiPut.getDoiObjectType());
-		assertEquals(doiPut.getDoiStatus(), doiPut.getDoiStatus());
-		assertEquals(doiPut.getEtag(), doiPut.getEtag());
-		assertEquals(doiPut.getId(), doiPut.getId());
-		assertEquals(doiPut.getObjectId(), doiPut.getObjectId());
-		assertEquals(doiPut.getObjectVersion(), doiPut.getObjectVersion());
-		assertEquals(doiPut.getUpdatedOn(), doiPut.getUpdatedOn());
+		assertEquals(doiPut.getCreatedBy(), doiGet.getCreatedBy());
+		assertEquals(doiPut.getCreatedOn(), doiGet.getCreatedOn());
+		assertEquals(doiPut.getDoiObjectType(), doiGet.getDoiObjectType());
+		assertEquals(DoiStatus.IN_PROCESS, doiPut.getDoiStatus());
+		assertNotNull(doiGet.getDoiStatus());
+		assertEquals(doiPut.getEtag(), doiGet.getEtag());
+		assertEquals(doiPut.getId(), doiGet.getId());
+		assertEquals(doiPut.getObjectId(), doiGet.getObjectId());
+		assertEquals(doiPut.getObjectVersion(), doiGet.getObjectVersion());
+		assertEquals(doiPut.getUpdatedOn(), doiGet.getUpdatedOn());
 	}
 
 	@Test
