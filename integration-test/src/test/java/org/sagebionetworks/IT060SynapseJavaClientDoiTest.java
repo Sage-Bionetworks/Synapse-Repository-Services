@@ -24,7 +24,7 @@ import org.sagebionetworks.repo.model.doi.DoiStatus;
 public class IT060SynapseJavaClientDoiTest {
 
 	/** Max wait time for the DOI status to turn green */
-	private static long MAX_WAIT = 10000; // 12 seconds
+	private static long MAX_WAIT = 12000; // 12 seconds
 	private static long PAUSE = 2000;     // Pause between waits is 2 seconds
 	private static SynapseAdministration synapseAdmin;
 	private Synapse synapse;

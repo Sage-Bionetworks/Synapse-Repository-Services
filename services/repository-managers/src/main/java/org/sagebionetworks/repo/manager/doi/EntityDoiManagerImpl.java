@@ -57,6 +57,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			public void onError(EzidDoi doi, Exception e) {
 				assert doi != null;
 				try {
+					logger.error(e.getMessage(), e);
 					Doi dto = doi.getDto();
 					doiDao.updateDoiStatus(dto.getObjectId(), dto.getDoiObjectType(),
 							dto.getObjectVersion(), DoiStatus.ERROR, dto.getEtag());
@@ -109,7 +110,10 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		// Create DOI string
 		EzidDoi ezidDoi = new EzidDoi();
 		ezidDoi.setDto(doiDto);
-		final String doi = EzidConstants.DOI_PREFIX + entityId;
+		String doi = EzidConstants.DOI_PREFIX + entityId;
+		if (versionNumber != null) {
+			doi = doi + "." + versionNumber;
+		}
 		ezidDoi.setDoi(doi);
 
 		// Create DOI metadata.
