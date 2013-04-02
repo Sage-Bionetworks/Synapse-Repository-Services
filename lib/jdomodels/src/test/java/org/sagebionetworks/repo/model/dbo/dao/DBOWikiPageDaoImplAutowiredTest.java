@@ -124,7 +124,8 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		WikiPage clone = wikiPageDao.create(page, fileNameMap, ownerId, ownerType);
 		assertNotNull(clone);
 		assertNotNull(clone.getId());
-		toDelete.add(new WikiPageKey(ownerId, ownerType, clone.getId()));
+		WikiPageKey key = new WikiPageKey(ownerId, ownerType, clone.getId());
+		toDelete.add(key);
 		assertNotNull("createdOn date should have been filled in by the DB", clone.getCreatedOn());
 		assertNotNull("modifiedOn date should have been filled in by the DB", clone.getModifiedOn());
 		assertNotNull(clone.getEtag());
@@ -140,6 +141,15 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		String etag = wikiPageDao.lockForUpdate(clone.getId());
 		assertNotNull(etag);
 		assertEquals(clone.getEtag(), etag);
+		
+		// Make sure the key matchs
+		WikiPageKey lookupKey = wikiPageDao.lookupWikiKey(key.getWikiPageId());
+		assertEquals(key, lookupKey);
+	}
+	
+	@Test (expected=NotFoundException.class)
+	public void testLookupWikiKeyNotFound() throws NotFoundException{
+		wikiPageDao.lookupWikiKey("-123");
 	}
 	
 	@Test
