@@ -9,6 +9,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.repo.model.search.Hit;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -44,7 +45,7 @@ public interface SearchDocumentDriver {
 	 * @throws NotFoundException
 	 */
 	public Document formulateSearchDocument(Node node, NodeRevisionBackup rev,
-			AccessControlList acl, EntityPath entityPath) throws DatastoreException, NotFoundException;
+			AccessControlList acl, EntityPath entityPath, String wikiPagesText) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -53,6 +54,9 @@ public interface SearchDocumentDriver {
 	 * @throws NotFoundException
 	 */
 	public EntityPath getEntityPath(String nodeId) throws NotFoundException;
+	
+	
+	public String getAllWikiPageText(String nodeId) throws DatastoreException;
 	
 
 }
