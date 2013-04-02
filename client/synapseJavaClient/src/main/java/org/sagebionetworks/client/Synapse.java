@@ -18,9 +18,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang.StringUtils;
@@ -31,8 +36,8 @@ import org.apache.http.ParseException;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.mime.MultipartEntity;
-import org.apache.http.entity.mime.content.FileBody;
+import org.apache.http.client.methods.HttpPut;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.util.EntityUtils;
 import org.apache.log4j.Logger;
 import org.joda.time.DateTime;
@@ -66,7 +71,6 @@ import org.sagebionetworks.repo.model.EntityBundleCreate;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityIdList;
 import org.sagebionetworks.repo.model.EntityPath;
-import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.Locationable;
@@ -89,9 +93,16 @@ import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
 import org.sagebionetworks.repo.model.attachment.URLStatus;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.file.ChunkRequest;
+import org.sagebionetworks.repo.model.file.ChunkResult;
+import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
+import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.request.ReferenceList;
@@ -196,11 +207,18 @@ public class Synapse {
 	private static final String FILE_PREVIEW = "/filepreview";
 	private static final String EXTERNAL_FILE_HANDLE = "/externalFileHandle";
 	private static final String FILE_HANDLES = "/filehandles";
-
+	
+	private static final String CREATE_CHUNKED_FILE_UPLOAD_TOKEN = "/createChunkedFileUploadToken";
+	private static final String CREATE_CHUNKED_FILE_UPLOAD_CHUNK_URL = "/createChunkedFileUploadChunkURL";
+	private static final String ADD_CHUNK_TO_FILE = "/addChunkToFile";
+	private static final String COMPLETE_CHUNK_FILE_UPLOAD = "/completeChunkFileUpload";
+	
 	private static final String TRASHCAN_TRASH = "/trashcan/trash";
 	private static final String TRASHCAN_RESTORE = "/trashcan/restore";
 	private static final String TRASHCAN_VIEW = "/trashcan/view";
 	private static final String TRASHCAN_PURGE = "/trashcan/purge";
+
+	private static final String DOI = "/doi";
 
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
@@ -223,6 +241,23 @@ public class Synapse {
 	protected DataUploader dataUploader;
 
 	protected AutoGenFactory autoGenFactory = new AutoGenFactory();
+	
+	/**
+	 * The maximum number of threads that should be used to upload asynchronous file chunks.
+	 */
+	private static final int MAX_NUMBER_OF_THREADS = 2;
+	
+	/**
+	 * This thread pool is used for asynchronous file chunk uploads.
+	 */
+	private ExecutorService fileUplaodthreadPool = Executors.newFixedThreadPool(MAX_NUMBER_OF_THREADS);
+	
+	/**
+	 * Note: 5 MB is currently the minimum size of a single part of S3 Multi-part upload, so any file chunk must be at
+	 * least this size.
+	 */
+	public static final int MINIMUM_CHUNK_SIZE_BYTES = ((int) Math.pow(2, 20))*5;
+	
 	/**
 	 * Default constructor uses the default repository and auth services
 	 * endpoints.
@@ -1414,14 +1449,16 @@ public class Synapse {
 	public FileHandleResults createFileHandles(List<File> files) throws SynapseException{
 		if(files == null) throw new IllegalArgumentException("File list cannot be null");
 		try {
-			MultipartEntity reqEntity = new MultipartEntity();
+			List<FileHandle> list = new LinkedList<FileHandle>();
 			for(File file: files){
 				// We need to determine the content type of the file
 				String contentType = guessContentTypeFromStream(file);
-				FileBody bin = new FileBody(file, contentType);
-				reqEntity.addPart("file", bin);
+				S3FileHandle handle = createFileHandle(file, contentType);
+				list.add(handle);
 			}
-			return createFileHandles(reqEntity);
+			FileHandleResults results = new FileHandleResults();
+			results.setList(list);
+			return results;
 		} 
 		catch (IOException e) {
 			throw new SynapseException(e);
@@ -1429,50 +1466,206 @@ public class Synapse {
 	}
 	
 	/**
-	 * Upload a file to Synapse
+	 * The high-level API for uploading a file to Synapse.
 	 * 
 	 * @param file
+	 * @param contentType
 	 * @return
+	 * @throws SynapseException
+	 * @throws IOException 
+	 */
+	public S3FileHandle createFileHandle(File file, String contentType) throws SynapseException, IOException{
+		if(file == null) throw new IllegalArgumentException("File cannot be null");
+		if(contentType == null) throw new IllegalArgumentException("Content type cannot be null");
+		CreateChunkedFileTokenRequest ccftr = new CreateChunkedFileTokenRequest();
+		ccftr.setContentType(contentType);
+		ccftr.setFileName(file.getName());
+		// Calculate the MD5
+		String md5 = MD5ChecksumHelper.getMD5Checksum(file);
+		ccftr.setContentMD5(md5);
+		// Start the upload
+		ChunkedFileToken token = createChunkedFileUploadToken(ccftr);
+		// Now break the file into part as needed
+		List<File> fileChunks = FileUtils.chunkFile(file, MINIMUM_CHUNK_SIZE_BYTES);
+		try{
+			// Upload all of the parts.
+			List<ChunkResult> results = uploadChunks(fileChunks, token);
+			// We can now complete the upload
+			CompleteChunkedFileRequest ccfr = new CompleteChunkedFileRequest();
+			ccfr.setChunkedFileToken(token);
+			ccfr.setChunkResults(results);
+			// Complete the upload
+			return completeChunkFileUpload(ccfr);
+		}finally{
+			// Delete any tmep files created by this method.  The original file will not be deleted.
+			FileUtils.deleteAllFilesExcludingException(file, fileChunks);
+		}
+	}
+	
+	/**
+	 * Upload all of the passed file chunks.
+	 * 
+	 * @param fileChunks
+	 * @param token
+	 * @return
+	 * @throws ExecutionException 
+	 * @throws InterruptedException 
+	 */
+	private List<ChunkResult> uploadChunks(List<File> fileChunks, ChunkedFileToken token) throws SynapseException{
+		try{
+			List<ChunkResult> results = new LinkedList<ChunkResult>();
+			// The future list
+			List<Future<ChunkResult>> futureList = new ArrayList<Future<ChunkResult>>();
+			// For each chunk create a worker and add it to the thread pool
+			long chunkNumber = 1;
+			for(File file: fileChunks){
+				// create a worker for each chunk
+				ChunkRequest request = new ChunkRequest();
+				request.setChunkedFileToken(token);
+				request.setChunkNumber(chunkNumber);
+				FileChunkUploadWorker worker = new FileChunkUploadWorker(this, request, file);
+				// Add this the the thread pool
+				Future<ChunkResult> future = fileUplaodthreadPool.submit(worker);
+				futureList.add(future);
+				chunkNumber++;
+			}
+			// Get all of the results
+			for(Future<ChunkResult> future: futureList){
+				ChunkResult cr = future.get();
+				results.add(cr);
+			}
+			return results;
+		} catch (Exception e) {
+			throw new SynapseException(e);
+		} 
+	}
+	
+	/**
+	 * <P>
+	 * This is a low-level API call for uploading large files. We recomend using the high-level
+	 * API call for uploading files {@link #createFileHandle(File, String)}.
+	 * </P>
+	 * This is the first step in the low-level API used to upload large files to Synapse. The
+	 * resulting {@link ChunkedFileToken} is required for all subsequent steps.
+	 * Large file upload is exectued as follows:
+	 * <ol>
+	 * <li>{@link #createChunkedFileUploadToken(CreateChunkedFileTokenRequest)}</li>
+	 * <li>{@link #createChunkedPresignedUrl(ChunkRequest)}</li>
+	 * <li>{@link #addChunkToFile(ChunkRequest)}</li>
+	 * <li>{@link #completeChunkFileUpload(CompleteChunkedFileRequest)}</li>
+	 * </ol>
+	 * Steps 2 & 3 are repated in for each file chunk. Note: All chunks can be sent asynchronously.
+	 * @param ccftr
+	 * @return The @link {@link ChunkedFileToken} is required for all subsequent steps.
+	 * @throws JSONObjectAdapterException 
+	 * @throws SynapseException 
 	 * @throws IOException 
 	 * @throws ClientProtocolException 
 	 */
-	public FileHandle createFileHandle(File file, String contentType) throws SynapseException{
-		if(file == null) throw new IllegalArgumentException("File cannot be null");
-		MultipartEntity reqEntity = new MultipartEntity();
-		FileBody bin = new FileBody(file, contentType);
-		reqEntity.addPart("file", bin);
-		FileHandleResults results =  createFileHandles(reqEntity);
-		if (results.getList() != null && results.getList().size() > 0)
-			return results.getList().get(0);
-		return null;
+	public ChunkedFileToken createChunkedFileUploadToken(CreateChunkedFileTokenRequest ccftr) throws SynapseException{
+		if(ccftr == null) throw new IllegalArgumentException("CreateChunkedFileTokenRequest cannot be null");
+		if(ccftr.getFileName() == null) throw new IllegalArgumentException("FileName cannot be null");
+		if(ccftr.getContentType() == null) throw new IllegalArgumentException("ContentType cannot be null");
+		String url = getFileEndpoint()+CREATE_CHUNKED_FILE_UPLOAD_TOKEN;
+		return asymmetricalPost(url, ccftr, ChunkedFileToken.class);
 	}
 	
-	private FileHandleResults createFileHandles(MultipartEntity reqEntity) throws SynapseException{
-		String url = getFileEndpoint()+FILE_HANDLE;
-		// This call requires a multi-part request.
+	/**
+	 * <P>
+	 * This is a low-level API call for uploading large files. We recomend using the high-level
+	 * API call for uploading files {@link #createFileHandle(File, String)}.
+	 * </P>
+	 * The second step in the low-level API used to upload large files to Synapse. This method is used to 
+	 * get a pre-signed URL that can be used to PUT the data of a single chunk to S3.
+	 * 
+	 * @param chunkRequest
+	 * @return
+	 * @throws JSONObjectAdapterException 
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 */
+	public URL createChunkedPresignedUrl(ChunkRequest chunkRequest) throws SynapseException {
 		try {
-			HttpPost httppost = new HttpPost(url);
-			// Add the headers
-			for(String key: this.defaultPOSTPUTHeaders.keySet()){
-				String value = this.defaultPOSTPUTHeaders.get(key);
-				httppost.setHeader(key, value);
-			}
-			// Add the header that sets the content type and the boundary
-			httppost.setHeader(reqEntity.getContentType());
-			httppost.setHeader(reqEntity.getContentEncoding());
-			httppost.setEntity(reqEntity);
-			HttpResponse response = clientProvider.execute(httppost);
+			if(chunkRequest == null) throw new IllegalArgumentException("ChunkRequest cannot be null");
+			String url = getFileEndpoint()+CREATE_CHUNKED_FILE_UPLOAD_CHUNK_URL;
+			HttpPost post = createPost(url, chunkRequest);
+			HttpResponse response;
+			response = clientProvider.execute(post);
 			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
-			return EntityFactory.createEntityFromJSONString(responseBody, FileHandleResults.class);
-			// Get the response.
+			return new URL(responseBody);
 		} catch (ClientProtocolException e) {
 			throw new SynapseException(e);
 		} catch (IOException e) {
 			throw new SynapseException(e);
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}		
+		}
 	}
+	
+	/**
+	 * Put the contents of the passed file to the passed URL.
+	 * @param url
+	 * @param file
+	 * @throws IOException 
+	 * @throws ClientProtocolException 
+	 */
+	public String putFileToURL(URL url, File file, String contentType) throws SynapseException{
+		try{
+			if(url == null) throw new IllegalArgumentException("URL cannot be null");
+			if(file == null) throw new IllegalArgumentException("File cannot be null");
+			HttpPut httppost = new HttpPut(url.toString());
+			// There must not be any headers added or Amazon will return a 403.
+			// Therefore, we must clear the content type.
+			org.apache.http.entity.FileEntity fe = new org.apache.http.entity.FileEntity(file, contentType);
+			httppost.setEntity(fe);
+			HttpResponse response = clientProvider.execute(httppost);
+			int code = response.getStatusLine().getStatusCode();
+			if(code < 200 || code > 299){
+				throw new SynapseException("Response code: "+code+" "+response.getStatusLine().getReasonPhrase()+" for "+url+" File: "+file.getName());
+			}
+			return EntityUtils.toString(response.getEntity());
+		} catch (ClientProtocolException e) {
+			throw new SynapseException(e);
+		} catch (IOException e) {
+			throw new SynapseException(e);
+		}
+
+	}
+	/**
+	 * <P>
+	 * This is a low-level API call for uploading large files. We recomend using the high-level
+	 * API call for uploading files {@link #createFileHandle(File, String)}.
+	 * </P>
+	 * 
+	 * The thrid step in the low-level API used to upload large files to Synapse. After a chunk is PUT to 
+	 * a pre-signed URL (see: {@link #createChunkedPresignedUrl(ChunkRequest)}, it must be added to the file.
+	 * The resulting {@link ChunkResult} is required to complte the with {@link #completeChunkFileUpload(CompleteChunkedFileRequest)}.
+	 * 
+	 * @param chunkRequest
+	 * @return
+	 * @throws SynapseException 
+	 */
+	public ChunkResult addChunkToFile(ChunkRequest chunkRequest) throws SynapseException{
+		String url = getFileEndpoint()+ADD_CHUNK_TO_FILE;
+		return asymmetricalPost(url, chunkRequest, ChunkResult.class);
+	}
+	
+	/**
+	 * <P>
+	 * This is a low-level API call for uploading large files. We recomend using the high-level
+	 * API call for uploading files {@link #createFileHandle(File, String)}.
+	 * </P>
+	 * 
+	 * The final step in the low-level API used to upload large files to Synapse. After all of the chunks have
+	 * been added to the file (see: {@link #addChunkToFile(ChunkRequest)}) the upload is complted by calling this method.
+	 * 
+	 * @param request
+	 * @return Returns the resulting {@link S3FileHandle} that can be used for any opperation that accepts {@link FileHandle} objects.
+	 * @throws SynapseException 
+	 */
+	public S3FileHandle completeChunkFileUpload(CompleteChunkedFileRequest request) throws SynapseException{
+		String url = getFileEndpoint()+COMPLETE_CHUNK_FILE_UPLOAD;
+		return asymmetricalPost(url, request, S3FileHandle.class);
+	}
+	
 	
 	/**
 	 * Create an External File Handle.  This is used to references a file that is not stored in Synpase.
@@ -1484,6 +1677,61 @@ public class Synapse {
 	public ExternalFileHandle createExternalFileHandle(ExternalFileHandle efh) throws JSONObjectAdapterException, SynapseException{
 		String uri = EXTERNAL_FILE_HANDLE;
 		return createJSONEntity(getFileEndpoint(), uri, efh);
+	}
+	
+	/**
+	 * Asymmetrical post where the request and response are not of the same type.
+	 * 
+	 * @param url
+	 * @param reqeust
+	 * @param calls
+	 * @throws SynapseException 
+	 */
+	private <T extends JSONEntity> T asymmetricalPost(String url, JSONEntity requestBody, Class<? extends T> returnClass) throws SynapseException{
+		HttpPost post;
+		try {
+			post = createPost(url, requestBody);
+			HttpResponse response = clientProvider.execute(post);
+			int code = response.getStatusLine().getStatusCode();
+			if(code < 200 || code > 299){
+				throw new SynapseException("Response code: "+code+" "+response.getStatusLine().getReasonPhrase()+" for "+url+" body: "+requestBody);
+			}
+			String responseBody = (null != response.getEntity()) ? EntityUtils.toString(response.getEntity()) : null;
+			return EntityFactory.createEntityFromJSONString(responseBody, returnClass);
+		} catch (UnsupportedEncodingException e) {
+			throw new SynapseException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		} catch (ClientProtocolException e) {
+			throw new SynapseException(e);
+		} catch (IOException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
+	/**
+	 * Helper to create a post from an object.
+	 * @param url
+	 * @param body
+	 * @return
+	 * @throws JSONObjectAdapterException 
+	 * @throws UnsupportedEncodingException 
+	 */
+	private HttpPost createPost(String url, JSONEntity body) throws SynapseException{
+		try {
+			HttpPost post = new HttpPost(url);
+			for(String headerKey: this.defaultPOSTPUTHeaders.keySet()){
+				String value = this.defaultPOSTPUTHeaders.get(headerKey);
+				post.setHeader(headerKey, value);
+			}
+			StringEntity stringEntity = new StringEntity(EntityFactory.createJSONStringForEntity(body));
+			post.setEntity(stringEntity);
+			return post;
+		} catch (UnsupportedEncodingException e) {
+			throw new SynapseException(e);
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 	/**
 	 * Get the raw file handle.
@@ -3653,5 +3901,64 @@ public class Synapse {
 			throw new SynapseException(e);
 		}
 		
+	}
+
+	/**
+	 * Creates a DOI for the specified entity. The DOI will always be associated with
+	 * the current version of the entity.
+	 */
+	public void createEntityDoi(String entityId) throws SynapseException {
+		createEntityDoi(entityId, null);
+	}
+
+	/**
+	 * Creates a DOI for the specified entity version. If version is null, the DOI
+	 * will always be associated with the current version of the entity.
+	 */
+	public void createEntityDoi(String entityId, Long entityVersion) throws SynapseException {
+
+		if (entityId == null || entityId.isEmpty()) {
+			throw new IllegalArgumentException("Must provide entity ID.");
+		}
+
+		String url = ENTITY + "/" + entityId;
+		if (entityVersion != null) {
+			url = url + REPO_SUFFIX_VERSION + "/" + entityVersion;
+		}
+		url = url + DOI;
+		signAndDispatchSynapseRequest(repoEndpoint, url, "PUT", null, defaultPOSTPUTHeaders);
+	}
+
+	/**
+	 * Gets the DOI for the specified entity version. The DOI is for the current version of the entity.
+	 */
+	public Doi getEntityDoi(String entityId) throws SynapseException {
+		return getEntityDoi(entityId, null);
+	}
+
+	/**
+	 * Gets the DOI for the specified entity version. If version is null, the DOI
+	 * is for the current version of the entity.
+	 */
+	public Doi getEntityDoi(String entityId, Long entityVersion) throws SynapseException {
+
+		if (entityId == null || entityId.isEmpty()) {
+			throw new IllegalArgumentException("Must provide entity ID.");
+		}
+
+		try {
+			String url = ENTITY + "/" + entityId;
+			if (entityVersion != null) {
+				url = url + REPO_SUFFIX_VERSION + "/" + entityVersion;
+			}
+			url = url + DOI;
+			JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, url, "GET", null, defaultGETDELETEHeaders);
+			JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+			Doi doi = new Doi();
+			doi.initializeFromJSONObject(adapter);
+			return doi;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
 	}
 }

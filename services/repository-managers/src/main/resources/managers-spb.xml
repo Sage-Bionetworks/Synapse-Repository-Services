@@ -54,7 +54,7 @@
 	<bean id="tempFileTransferStrategy" class="org.sagebionetworks.repo.manager.file.transfer.TempFileTransferStrategy" />
 	
 	<!-- File Upload manager -->
-	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" >
+	<bean id="fileHandleManager" class="org.sagebionetworks.repo.manager.file.FileHandleManagerImpl" init-method="initialize" >
 	    <!-- The memory strategy is the primary -->
 	    <property name="primaryStrategy" ref="memoryTransferStrategy"/>
 	   	<!-- The temp strategy is the fall-back -->
@@ -247,6 +247,12 @@
 		scope="singleton" />
 	
 	<bean id="wikiManager" class="org.sagebionetworks.repo.manager.wiki.WikiManagerImpl" 
+		scope="singleton" />
+
+	<bean id="entityDoiManager" class="org.sagebionetworks.repo.manager.doi.EntityDoiManagerImpl" 
+		scope="singleton" />
+
+	<bean id="doiAdminManager" class="org.sagebionetworks.repo.manager.doi.DoiAdminManagerImpl" 
 		scope="singleton" />
 
 	<!-- The thread pool used by the backup/restore daemons -->

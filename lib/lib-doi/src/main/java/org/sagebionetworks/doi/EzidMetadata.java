@@ -50,20 +50,6 @@ public class EzidMetadata {
 		this.target = target;
 	}
 
-	public String getDoi() {
-		if (doi == null || doi.isEmpty()) {
-			throw new NullPointerException("Missing DOI. DOI is required");
-		}
-		return doi;
-	}
-
-	public void setDoi(String doi) {
-		if (doi == null || doi.isEmpty()) {
-			throw new IllegalArgumentException("Missing DOI. DOI is required");
-		}
-		this.doi = doi;
-	}
-
 	public String getPublisher() {
 		if (publisher == null || publisher.isEmpty()) {
 			throw new NullPointerException("Missing publisher. Publisher is required");
@@ -108,7 +94,6 @@ public class EzidMetadata {
 		}
 	}
 
-	private String doi;
 	private String title;
 	private String creator;
 	private String publisher;

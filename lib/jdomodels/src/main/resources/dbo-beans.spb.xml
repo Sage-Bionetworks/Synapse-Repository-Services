@@ -50,6 +50,7 @@
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiAttachment" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFavorite" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBODoi" />
 				<!-- Competition beans -->
 				<bean class="org.sagebionetworks.evaluation.dbo.EvaluationDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.ParticipantDBO" />

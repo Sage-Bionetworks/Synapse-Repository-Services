@@ -13,6 +13,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -320,6 +321,16 @@ public class EntityManagerImpl implements EntityManager {
 				newVersion = true;
 				// setting this to null we cause the revision id to be used.
 				locationable.setVersionLabel(null);
+			}
+		}
+		
+		// Auto-version FileEntity See PLFM-1744
+		if(!newVersion && (updated instanceof FileEntity)){
+			FileEntity updatedFile = (FileEntity) updated;
+			if(!updatedFile.getDataFileHandleId().equals(node.getFileHandleId())){
+				newVersion = true;
+				// setting this to null we cause the revision id to be used.
+				updatedFile.setVersionLabel(null);
 			}
 		}
 

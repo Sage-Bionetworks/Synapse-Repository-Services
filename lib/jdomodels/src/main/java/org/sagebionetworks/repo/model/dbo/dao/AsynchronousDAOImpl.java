@@ -57,14 +57,15 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	WikiPageDao wikiPageDao;
 	
 
-	Set<String> typesToMirror = new HashSet<String>(2);
+	Set<String> typesToMirror = new HashSet<String>(0);
 
 	/**
 	 * Used by Spring's IoC
 	 */
 	public AsynchronousDAOImpl(){
-		typesToMirror.add("folder");
-		typesToMirror.add("project");
+		// We no longer need to mirror projects and folders.
+//		typesToMirror.add("folder");
+//		typesToMirror.add("project");
 	}
 
 	/**
@@ -157,6 +158,8 @@ public class AsynchronousDAOImpl implements AsynchronousDAO {
 	 * @throws NotFoundException
 	 */
 	private void mirrorAttachmentsAndDescription(String id) throws DatastoreException, NotFoundException{
+		// If we have no types to mirror then do nothing.
+		if(typesToMirror.size() < 1) return;
 		Node node = nodeDao.getNode(id);
 		if(node != null){
 			// Only mirror for the given types.

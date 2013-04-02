@@ -101,9 +101,14 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 		}
 		if((mask & EntityBundle.FILE_HANDLES) > 0 ){
 			try{
-				FileHandleResults fhr = serviceProvider.getEntityService().getEntityFileHandlesForCurrentVersion(userId, entityId);
+				FileHandleResults fhr = null;
+				if(versionNumber == null){
+					fhr = serviceProvider.getEntityService().getEntityFileHandlesForCurrentVersion(userId, entityId);
+				}else{
+					fhr = serviceProvider.getEntityService().getEntityFileHandlesForVersion(userId, entityId, versionNumber);
+				} 
 				eb.setFileHandles(fhr.getList());
-			}catch( UnauthorizedException e){
+			}catch( Exception e){
 				// If the user does not have permission to see the handles then set them to be an empty list.
 				eb.setFileHandles(new LinkedList<FileHandle>());
 			}

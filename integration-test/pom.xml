@@ -140,7 +140,7 @@
 						    <cargo.jvmargs>
 								-Xmx2g
 								-Xms128m
-								-XX:MaxPermSize=500m
+								-XX:MaxPermSize=850m
 							</cargo.jvmargs>
 	
 <!-- 							<cargo.jvmargs> -->

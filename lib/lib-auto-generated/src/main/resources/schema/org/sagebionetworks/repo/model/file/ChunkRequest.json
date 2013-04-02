@@ -1,0 +1,12 @@
+{
+	"description": "JSON schema for ChunkedRequest",
+	"properties": {
+		"chunkNumber": {
+			"description": "The chunk number indicates this chunks position in the larger file.  If there are 'n' chunks then the first chunk is '1' and the last chunk is 'n'",
+			"type": "integer"
+		},
+		"chunkedFileToken": {
+			"$ref": "org.sagebionetworks.repo.model.file.ChunkedFileToken"
+		}
+	}
+}
