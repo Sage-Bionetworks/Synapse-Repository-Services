@@ -63,7 +63,7 @@ public class EzidClient implements DoiClient {
 			StringEntity requestEntity = new StringEntity(doi.getMetadata().getMetadataAsString(), HTTP.PLAIN_TEXT_TYPE, "UTF-8");
 			put.setEntity(requestEntity);
 		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
+			throw new RuntimeException(e.getMessage(), e);
 		}
 		executeWithRetry(put);
 	}
