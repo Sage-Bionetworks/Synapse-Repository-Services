@@ -63,7 +63,7 @@ public class EzidClient implements DoiClient {
 			StringEntity requestEntity = new StringEntity(doi.getMetadata().getMetadataAsString(), HTTP.PLAIN_TEXT_TYPE, "UTF-8");
 			put.setEntity(requestEntity);
 		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
+			throw new RuntimeException(e.getMessage(), e);
 		}
 		executeWithRetry(put);
 	}
@@ -87,25 +87,31 @@ public class EzidClient implements DoiClient {
 		}
 
 		final HttpResponse response = execute(request);
-		final int status = response.getStatusLine().getStatusCode();
-
-		if (status == HttpStatus.SC_CREATED) {
-			return;
-		}
-
-		// Retry 500 and 503 at most 3 times with exponential backoff
-		if (status == HttpStatus.SC_INTERNAL_SERVER_ERROR
-				|| status == HttpStatus.SC_SERVICE_UNAVAILABLE) {
-			if (isRetryable(request) && retryCount < 3) {
-				retryCount++;
-				executeWithRetry(request, retryCount);
-			}
-		}
 
 		try {
+
+			// Consume the response to close the connection
+			final String responseStr = EntityUtils.toString(response.getEntity());
+
+			// Success
+			final int status = response.getStatusLine().getStatusCode();
+			if (status == HttpStatus.SC_CREATED) {
+				return;
+			}
+
+			// Retry 500 and 503 at most 3 times with exponential backoff
+			if (status == HttpStatus.SC_INTERNAL_SERVER_ERROR
+					|| status == HttpStatus.SC_SERVICE_UNAVAILABLE) {
+				EntityUtils.consume(response.getEntity());
+				if (isRetryable(request) && retryCount < 3) {
+					retryCount++;
+					executeWithRetry(request, retryCount);
+				}
+			}
+
+			// Error
 			String error = status + " " + response.getStatusLine().getReasonPhrase();
-			HttpEntity responseEntity = response.getEntity();
-			error = " " + EntityUtils.toString(responseEntity);
+			error = " " + responseStr;
 			if (status == HttpStatus.SC_BAD_REQUEST) {
 				if (error.toLowerCase().contains("identifier already exists")) {
 					return;
