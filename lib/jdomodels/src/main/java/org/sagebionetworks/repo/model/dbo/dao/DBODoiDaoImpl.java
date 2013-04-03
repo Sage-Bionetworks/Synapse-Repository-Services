@@ -89,7 +89,7 @@ public class DBODoiDaoImpl implements DoiDao {
 		dbo.setCreatedOn(now);
 		dbo.setUpdatedOn(now);
 		basicDao.createNew(dbo);
-		return convertToDto(dbo);
+		return DoiUtils.convertToDto(dbo);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -134,7 +134,7 @@ public class DBODoiDaoImpl implements DoiDao {
 		if (dbo == null) {
 			return null;
 		}
-		return convertToDto(dbo);
+		return DoiUtils.convertToDto(dbo);
 	}
 
 	private DBODoi getDbo (String objectId, DoiObjectType objectType, Long versionNumber)
@@ -157,24 +157,5 @@ public class DBODoiDaoImpl implements DoiDao {
 			throw new DatastoreException(error);
 		}
 		return (dboList.get(0));
-	}
-
-	private Doi convertToDto(DBODoi dbo) {
-		Doi dto = new Doi();
-		dto.setId(dbo.getId().toString());
-		dto.setEtag(dbo.getETag());
-		dto.setDoiStatus(DoiStatus.valueOf(dbo.getDoiStatus()));
-		final DoiObjectType objectType = DoiObjectType.valueOf(dbo.getDoiObjectType());
-		if (DoiObjectType.ENTITY.equals(objectType)) {
-			dto.setObjectId(KeyFactory.keyToString(dbo.getObjectId()));
-		} else {
-			dto.setObjectId(dbo.getObjectId().toString());
-		}
-		dto.setDoiObjectType(objectType);
-		dto.setObjectVersion(dbo.getObjectVersion());
-		dto.setCreatedBy(dbo.getCreatedBy().toString());
-		dto.setCreatedOn(dbo.getCreatedOn());
-		dto.setUpdatedOn(dbo.getUpdatedOn());
-		return dto;
 	}
 }
