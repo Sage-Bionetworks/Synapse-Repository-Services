@@ -14,12 +14,12 @@ public class DoiMigratableManager implements MigratableManager {
 	@Override
 	public void writeBackupToOutputStream(String idToBackup, OutputStream out) {
 		Doi backup = doiMigratableDao.get(idToBackup);
-		NodeSerializerUtil.writeToStream(backup, out);
+		NodeSerializerUtil.writeDoiBackup(backup, out);
 	}
 
 	@Override
 	public String createOrUpdateFromBackupStream(InputStream in) {
-		Doi backup = NodeSerializerUtil.readFromStream(in, Doi.class);
+		Doi backup = NodeSerializerUtil.readDoiBackup(in);
 		doiMigratableDao.createOrUpdate(backup);
 		return backup.getId().toString();
 	}
