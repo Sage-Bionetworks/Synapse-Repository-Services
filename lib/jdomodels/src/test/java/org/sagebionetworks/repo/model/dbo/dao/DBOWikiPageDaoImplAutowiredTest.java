@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -356,11 +357,24 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		assertEquals(currentCount, results.getTotalNumberOfResults());
 		assertEquals(2l, results.getResults().size());
 		// the results must be sorted by ID.
-		assertEquals(rootKey.getKeyString(),  results.getResults().get(0).getId().getId());
-		assertEquals(root.getEtag(),  results.getResults().get(0).getEtag());
+		MigratableObjectData mod = results.getResults().get(0);
+		assertEquals(rootKey.getKeyString(),  mod.getId().getId());
+		assertEquals(root.getEtag(),  mod.getEtag());
+		// The Root page should have no dependencies.
+		assertNotNull(mod.getDependencies());
+		assertEquals(0, mod.getDependencies().size());
 		// next item
-		assertEquals(childKey.getKeyString(),  results.getResults().get(1).getId().getId());
-		assertEquals(child.getEtag(),  results.getResults().get(1).getEtag());
+		mod = results.getResults().get(1);
+		assertEquals(childKey.getKeyString(),  mod.getId().getId());
+		assertEquals(child.getEtag(),  mod.getEtag());
+		// This page should depend on its parent.
+		assertNotNull(mod.getDependencies());
+		assertEquals(1, mod.getDependencies().size());
+		MigratableObjectDescriptor dependancy = mod.getDependencies().iterator().next();
+		assertNotNull(dependancy);
+		assertEquals(root.getId(), dependancy.getId());
+		assertEquals(MigratableObjectType.WIKIPAGE, dependancy.getType());
+		
 		// Test paging
 		// Only select the second to last.
 		results = wikiPageDao.getMigrationObjectData(startCount+1, 1, true);
