@@ -16,15 +16,13 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityWithAnnotations;
-import org.sagebionetworks.repo.model.Node;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,25 +39,18 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	EvaluationManager evaluationManager;
 	@Autowired
 	ParticipantManager participantManager;
-	@Autowired
-	EntityManager entityManager;
-	@Autowired
-	NodeManager nodeManager;
 	
 	public SubmissionManagerImpl() {};
 	
 	// for testing purposes
 	protected SubmissionManagerImpl(IdGenerator idGenerator, SubmissionDAO submissionDAO, 
 			SubmissionStatusDAO submissionStatusDAO, EvaluationManager evaluationManager,
-			ParticipantManager participantManager, EntityManager entityManager,
-			NodeManager nodeManager) {
+			ParticipantManager participantManager) {
 		this.idGenerator = idGenerator;
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
 		this.evaluationManager = evaluationManager;
 		this.participantManager = participantManager;
-		this.entityManager = entityManager;
-		this.nodeManager = nodeManager;
 	}
 
 	@Override
@@ -76,8 +67,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission createSubmission(UserInfo userInfo, Submission submission) throws NotFoundException {
+	public Submission createSubmission(UserInfo userInfo, Submission submission, EntityBundle bundle) throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
+		EvaluationUtils.ensureNotNull(bundle, "EntityBundle");
 		String evalId = submission.getEvaluationId();
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
@@ -92,16 +84,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 					" has not joined Evaluation ID: " + evalId);
 		}
 		
-		// fetch entity and annotations
-		Node node = nodeManager.getNodeForVersionNumber(
-				userInfo, submission.getEntityId(), submission.getVersionNumber());	
-		Class<? extends Entity> clazz = EntityType.valueOf(node.getNodeType()).getClassForType();
-		EntityWithAnnotations<? extends Entity> ewa = entityManager.getEntityWithAnnotations(
-				userInfo, submission.getEntityId(), clazz);
-		
 		// if no name is provided, use the Entity name
 		if (submission.getName() == null) {
-			submission.setName(node.getName());
+			submission.setName(bundle.getEntity().getName());
 		}
 		
 		// ensure evaluation is open
@@ -115,7 +100,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setCreatedOn(new Date());
 		
 		// create the Submission	
-		String id = submissionDAO.create(submission, ewa);
+		String id = submissionDAO.create(submission, bundle);
 		
 		// create an accompanying SubmissionStatus object
 		SubmissionStatus status = new SubmissionStatus();

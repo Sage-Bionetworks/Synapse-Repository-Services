@@ -1,6 +1,5 @@
 package org.sagebionetworks.evaluation.dao;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,12 +13,13 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.query.jdo.SQLConstants;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityWithAnnotations;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
-import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -94,14 +94,19 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String create(Submission dto, EntityWithAnnotations<? extends Entity> ewa) throws DatastoreException {
+	public String create(Submission dto, EntityBundle bundle) throws DatastoreException, JSONObjectAdapterException {
 		EvaluationUtils.ensureNotNull(dto, "Submission");
-		EvaluationUtils.ensureNotNull(dto.getId(), "Submission ID");
 		
+		// Insert EntityBundle JSON
+		if (bundle != null) {
+			JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+			bundle.writeToJSONObject(joa);
+			dto.setEntityBundleJSON(joa.toJSONString());
+		}
+
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
 		copyDtoToDbo(dto, dbo);
-		copyEWAToSerializedField(ewa, dbo);
 		
 		// Ensure DBO has required information
 		verifySubmissionDBO(dbo);
@@ -125,15 +130,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		copyDboToDto(dbo, dto);
 		return dto;
 	}
-	
-	@Override
-	public EntityWithAnnotations<? extends Entity> getSubmissionEWA(String submissionId) throws DatastoreException, NotFoundException {
-		MapSqlParameterSource param = new MapSqlParameterSource();
-		param.addValue(ID, submissionId);
-		SubmissionDBO dbo = basicDao.getObjectById(SubmissionDBO.class, param);
-		return deserializeEntityWithAnnotations(dbo);
-	}
-	
+
 	@Override
 	public long getCount() throws DatastoreException, NotFoundException {
 		return basicDao.getCount(SubmissionDBO.class);
@@ -270,6 +267,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dbo.setVersionNumber(dto.getVersionNumber());
 		dbo.setName(dto.getName());
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
+		dbo.setEntityBundle(dto.getEntityBundleJSON().getBytes());
 	}
 	
 	/**
@@ -286,6 +284,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dto.setVersionNumber(dbo.getVersionNumber());
 		dto.setName(dbo.getName());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
+		dto.setEntityBundleJSON(new String(dbo.getEntityBundle()));
 	}
 
 	/**
@@ -298,25 +297,8 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		EvaluationUtils.ensureNotNull(dbo.getUserId(), "User ID");
 		EvaluationUtils.ensureNotNull(dbo.getEntityId(), "Entity ID");
 		EvaluationUtils.ensureNotNull(dbo.getVersionNumber(), "Entity Version");
-		EvaluationUtils.ensureNotNull(dbo.getEntityWithAnnotations(), "Serialized EntityWithAnnotations");
+		EvaluationUtils.ensureNotNull(dbo.getEntityBundle(), "Serialized EntityWithAnnotations");
 		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
 		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "Creation date");
-	}
-	
-	protected static void copyEWAToSerializedField(EntityWithAnnotations<? extends Entity> ewa, SubmissionDBO dbo) throws DatastoreException {
-		try {
-			dbo.setEntityWithAnnotations(JDOSecondaryPropertyUtils.compressObject(ewa));
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
-	}
-	
-	protected static <T extends Entity> EntityWithAnnotations<T> deserializeEntityWithAnnotations(SubmissionDBO dbo) throws DatastoreException {
-		try {
-			return (EntityWithAnnotations<T>) JDOSecondaryPropertyUtils.decompressedObject(dbo.getEntityWithAnnotations());
-		} catch (IOException e) {
-			throw new DatastoreException(e);
-		}
-	}
-	
+	}	
 }

@@ -117,7 +117,7 @@ public class SubmissionDBOTest {
         submission.setUserId(userId);
         submission.setEvalId(evalId);
         submission.setCreatedOn(System.currentTimeMillis());
-        submission.setEntityWithAnnotations(JDOSecondaryPropertyUtils.compressObject(submission));
+        submission.setEntityBundle(JDOSecondaryPropertyUtils.compressObject(submission));
  
         // Create it
         SubmissionDBO clone = dboBasicDao.createNew(submission);

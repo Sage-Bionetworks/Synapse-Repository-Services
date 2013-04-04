@@ -268,6 +268,26 @@ public class EvaluationControllerAutowiredTest {
 		assertEquals(initialCount, entityServletHelper.getSubmissionCount(eval1.getId()));
 	}
 	
+
+	
+	@Test(expected=IllegalArgumentException.class)
+	public void testSubmissionUnauthorized() throws NotFoundException, DatastoreException, JSONObjectAdapterException, IOException, ServletException {		
+		eval1.setStatus(EvaluationStatus.OPEN);
+		eval1 = entityServletHelper.createEvaluation(eval1, ownerName);
+		evaluationsToDelete.add(eval1.getId());
+		part1 = entityServletHelper.createParticipant(userName, eval1.getId());
+		participantsToDelete.add(part1);
+		UserInfo ownerInfo = userManager.getUserInfo(ownerName);
+		String nodeId = createNode("An entity", ownerInfo);
+		assertNotNull(nodeId);
+		nodesToDelete.add(nodeId);
+		
+		// create
+		sub1.setEvaluationId(eval1.getId());
+		sub1.setEntityId(nodeId);
+		sub1 = entityServletHelper.createSubmission(sub1, userName);
+	}
+	
 	@Test
 	public void testPaginated() throws DatastoreException, JSONObjectAdapterException, IOException, NotFoundException, ServletException {
 		// create objects

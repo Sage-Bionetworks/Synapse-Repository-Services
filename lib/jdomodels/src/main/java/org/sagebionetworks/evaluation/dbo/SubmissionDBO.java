@@ -24,7 +24,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 			new FieldColumn(PARAM_SUBMISSION_USER_ID, COL_SUBMISSION_USER_ID),
 			new FieldColumn(PARAM_SUBMISSION_EVAL_ID, COL_SUBMISSION_EVAL_ID),
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_ID, COL_SUBMISSION_ENTITY_ID),
-			new FieldColumn(PARAM_SUBMISSION_EWA, COL_SUBMISSION_EWA),
+			new FieldColumn(PARAM_SUBMISSION_ENTITY_BUNDLE, COL_SUBMISSION_ENTITY_BUNDLE),
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_VERSION, COL_SUBMISSION_ENTITY_VERSION),
 			new FieldColumn(PARAM_SUBMISSION_NAME, COL_SUBMISSION_NAME),
 			new FieldColumn(PARAM_SUBMISSION_CREATED_ON, COL_SUBMISSION_CREATED_ON)
@@ -42,9 +42,9 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				sub.setVersionNumber(rs.getLong(COL_SUBMISSION_ENTITY_VERSION));
 				sub.setName(rs.getString(COL_SUBMISSION_NAME));
 				sub.setCreatedOn(rs.getLong(COL_SUBMISSION_CREATED_ON));
-				java.sql.Blob blob = rs.getBlob(COL_SUBMISSION_EWA);
+				java.sql.Blob blob = rs.getBlob(COL_SUBMISSION_ENTITY_BUNDLE);
 				if(blob != null){
-					sub.setEntityWithAnnotations(blob.getBytes(1, (int) blob.length()));
+					sub.setEntityBundle(blob.getBytes(1, (int) blob.length()));
 				}
 				return sub;
 			}
@@ -71,7 +71,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 	private Long userId;
 	private Long evalId;
 	private Long entityId;
-	private byte[] entityWithAnnotations;
+	private byte[] entityBundle;
 	private Long versionNumber;
 	private Long createdOn;
 	private String name;
@@ -103,11 +103,11 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 		this.entityId = entityId;
 	}
 	
-	public byte[] getEntityWithAnnotations() {
-		return entityWithAnnotations;
+	public byte[] getEntityBundle() {
+		return entityBundle;
 	}
-	public void setEntityWithAnnotations(byte[] node) {
-		this.entityWithAnnotations = node;
+	public void setEntityBundle(byte[] node) {
+		this.entityBundle = node;
 	}
 	public Long getVersionNumber() {
 		return versionNumber;
@@ -136,7 +136,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
 		result = prime * result
 				+ ((entityId == null) ? 0 : entityId.hashCode());
-		result = prime * result + Arrays.hashCode(entityWithAnnotations);
+		result = prime * result + Arrays.hashCode(entityBundle);
 		result = prime * result + ((evalId == null) ? 0 : evalId.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((name == null) ? 0 : name.hashCode());
@@ -164,7 +164,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				return false;
 		} else if (!entityId.equals(other.entityId))
 			return false;
-		if (!Arrays.equals(entityWithAnnotations, other.entityWithAnnotations))
+		if (!Arrays.equals(entityBundle, other.entityBundle))
 			return false;
 		if (evalId == null) {
 			if (other.evalId != null)
@@ -198,7 +198,7 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 		return "SubmissionDBO [id=" + id + ", userId=" + userId + ", evalId="
 				+ evalId + ", entityId=" + entityId
 				+ ", entityWithAnnotations="
-				+ Arrays.toString(entityWithAnnotations) + ", versionNumber="
+				+ Arrays.toString(entityBundle) + ", versionNumber="
 				+ versionNumber + ", createdOn=" + createdOn + ", name=" + name + "]";
 	}
 

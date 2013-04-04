@@ -23,18 +23,15 @@ import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManagerImpl;
 import org.sagebionetworks.ids.IdGenerator;
-import org.sagebionetworks.repo.manager.EntityManager;
-import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.EntityWithAnnotations;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public class SubmissionManagerTest {
 		
@@ -46,15 +43,13 @@ public class SubmissionManagerTest {
 	private static Submission subWithId;
 	private static Submission sub2WithId;
 	private static SubmissionStatus subStatus;
+	private static EntityBundle bundle;
 	
 	private static IdGenerator mockIdGenerator;
 	private static SubmissionDAO mockSubmissionDAO;
 	private static SubmissionStatusDAO mockSubmissionStatusDAO;
 	private static EvaluationManager mockCompetitionManager;
 	private static ParticipantManager mockParticipantManager;
-	private static EntityManager mockEntityManager;
-	private static NodeManager mockNodeManager;
-	private static Node mockNode;
 	
 	private static final String EVAL_ID = "12";
 	private static final String OWNER_ID = "34";
@@ -129,7 +124,10 @@ public class SubmissionManagerTest {
         subStatus.setId(SUB_ID);
         subStatus.setModifiedOn(new Date());
         subStatus.setScore(0.0);
-        subStatus.setStatus(SubmissionStatusEnum.OPEN);       
+        subStatus.setStatus(SubmissionStatusEnum.OPEN);
+        
+        bundle = new EntityBundle();
+        bundle.setEntity(new Folder());
 		
     	// Mocks
         mockIdGenerator = mock(IdGenerator.class);
@@ -137,9 +135,6 @@ public class SubmissionManagerTest {
     	mockSubmissionStatusDAO = mock(SubmissionStatusDAO.class);
     	mockCompetitionManager = mock(EvaluationManager.class);
     	mockParticipantManager = mock(ParticipantManager.class);
-    	mockEntityManager = mock(EntityManager.class);
-    	mockNodeManager = mock(NodeManager.class);
-    	mockNode = mock(Node.class);
     	
     	when(mockIdGenerator.generateNewId()).thenReturn(Long.parseLong(SUB_ID));
     	when(mockParticipantManager.getParticipant(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
@@ -147,28 +142,21 @@ public class SubmissionManagerTest {
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(sub);
     	when(mockCompetitionManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
-    	when(mockEntityManager.getEntityWithAnnotations(eq(userInfo), anyString(), any(Class.class))).thenReturn(new EntityWithAnnotations<Entity>());
-    	when(mockNode.getNodeType()).thenReturn(EntityType.values()[0].toString());
-    	when(mockNodeManager.get(eq(userInfo), eq(ENTITY_ID))).thenReturn(mockNode);    	
-    	when(mockNodeManager.get(eq(userInfo), eq(ENTITY2_ID))).thenThrow(new UnauthorizedException());
-    	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY_ID), anyLong())).thenReturn(mockNode);
-    	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY2_ID), anyLong())).thenThrow(new UnauthorizedException());
     	
     	// Submission Manager
     	submissionManager = new SubmissionManagerImpl(mockIdGenerator, mockSubmissionDAO, 
-    			mockSubmissionStatusDAO, mockCompetitionManager, mockParticipantManager,
-    			mockEntityManager, mockNodeManager);
+    			mockSubmissionStatusDAO, mockCompetitionManager, mockParticipantManager);
     }
 	
 	@Test
 	public void testCRUDAsAdmin() throws Exception {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
-		submissionManager.createSubmission(userInfo, sub);
+		submissionManager.createSubmission(userInfo, sub, bundle);
 		submissionManager.getSubmission(SUB_ID);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 		submissionManager.deleteSubmission(ownerInfo, SUB_ID);
-		verify(mockSubmissionDAO).create(any(Submission.class), any(EntityWithAnnotations.class));
+		verify(mockSubmissionDAO).create(any(Submission.class), any(EntityBundle.class));
 		verify(mockSubmissionDAO, times(3)).get(eq(SUB_ID));
 		verify(mockSubmissionDAO).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
@@ -176,10 +164,10 @@ public class SubmissionManagerTest {
 	}
 	
 	@Test
-	public void testCRUDAsUser() throws NotFoundException {
+	public void testCRUDAsUser() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
-		submissionManager.createSubmission(userInfo, sub);
+		submissionManager.createSubmission(userInfo, sub, bundle);
 		submissionManager.getSubmission(SUB_ID);
 		try {
 			submissionManager.updateSubmissionStatus(userInfo, subStatus);
@@ -193,22 +181,16 @@ public class SubmissionManagerTest {
 		} catch (UnauthorizedException e) {
 			//expected
 		}
-		verify(mockSubmissionDAO).create(any(Submission.class), any(EntityWithAnnotations.class));
+		verify(mockSubmissionDAO).create(any(Submission.class), any(EntityBundle.class));
 		verify(mockSubmissionDAO, times(3)).get(eq(SUB_ID));
 		verify(mockSubmissionDAO, never()).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
 		verify(mockSubmissionStatusDAO, never()).update(any(SubmissionStatus.class));
 	}
 	
-	@Test(expected=UnauthorizedException.class)
-	public void testUnauthorizedEntity() throws NotFoundException {		
-		// user should not have access to sub2
-		submissionManager.createSubmission(userInfo, sub2);		
-	}
-	
 	@Test(expected=IllegalArgumentException.class)
 	public void testInvalidScore() throws Exception {
-		submissionManager.createSubmission(userInfo, sub);
+		submissionManager.createSubmission(userInfo, sub, bundle);
 		submissionManager.getSubmission(SUB_ID);
 		subStatus.setScore(1.1);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);

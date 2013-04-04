@@ -19,11 +19,10 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.SubmissionBackup;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Deprecated // This needs to be replaced with GenericBackupDriverImpl and should not be copied.
@@ -75,7 +74,6 @@ public class SubmissionBackupDriver implements GenericBackupDriver {
 
 				SubmissionBackup subBackup = new SubmissionBackup();
 				subBackup.setSubmission(submissionDAO.get(idToBackup));
-				subBackup.setEntityWithAnnotations(submissionDAO.getSubmissionEWA(idToBackup));
 				subBackup.setSubmissionStatus(submissionStatusDAO.get(idToBackup));
 				ZipEntry entry = new ZipEntry(idToBackup + ZIP_ENTRY_SUFFIX);
 				zos.putNextEntry(entry);
@@ -163,7 +161,6 @@ public class SubmissionBackupDriver implements GenericBackupDriver {
 			throws DatastoreException, NotFoundException,
 			InvalidModelException, ConflictingUpdateException {
 		Submission submission = backup.getSubmission();
-		EntityWithAnnotations<? extends Entity> ewa = backup.getEntityWithAnnotations();
 		SubmissionStatus submissionStatus = backup.getSubmissionStatus();
 		
 		// create the Submission
@@ -173,7 +170,13 @@ public class SubmissionBackupDriver implements GenericBackupDriver {
 		} catch (NotFoundException e) {}
 		if (null == existing) {
 			// create
-			submissionDAO.create(submission, ewa);
+			try {
+				submissionDAO.create(submission, null);
+			} catch (JSONObjectAdapterException e) {
+				// this will never happen, since we're not actually serializing
+				// an EntityBundle
+				e.printStackTrace();
+			}
 			submissionStatusDAO.createFromBackup(submissionStatus);
 		} else {
 			// Update only when backup is different from the current system

@@ -21,13 +21,14 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityWithAnnotations;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -55,7 +56,7 @@ public class SubmissionStatusDAOImplTest {
     private Long versionNumber = 1L;
     
     @Before
-    public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
+    public void setUp() throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException {
     	// create a node
   		Node toCreate = NodeTestUtils.createNew(name, Long.parseLong(userId));
     	toCreate.setVersionComment("This is the first version of the first node ever!");
@@ -80,6 +81,10 @@ public class SubmissionStatusDAOImplTest {
         participant.setEvaluationId(evalId);
         participantDAO.create(participant);
         
+        // create a bundle
+        EntityBundle bundle = new EntityBundle();
+        bundle.setEntity(new Folder());
+        
         // create a submission
         Submission submission = new Submission();
         submission.setId("5678");
@@ -89,7 +94,7 @@ public class SubmissionStatusDAOImplTest {
         submission.setUserId(userId);
         submission.setEvaluationId(evalId);
         submission.setCreatedOn(new Date());
-        submissionId = submissionDAO.create(submission, new EntityWithAnnotations<Entity>());
+        submissionId = submissionDAO.create(submission, bundle);
     }
     
     @After

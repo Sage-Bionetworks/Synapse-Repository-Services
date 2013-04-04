@@ -5,10 +5,12 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public interface SubmissionManager {
 
@@ -42,9 +44,11 @@ public interface SubmissionManager {
 	 * @param submission
 	 * @return
 	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException 
 	 */
-	public Submission createSubmission(UserInfo userInfo, Submission submission)
-			throws NotFoundException;
+	public Submission createSubmission(UserInfo userInfo, Submission submission, EntityBundle bundle)
+			throws NotFoundException, DatastoreException, JSONObjectAdapterException;
 
 	/**
 	 * Update the SubmissionStatus object for a Submission. Note that the

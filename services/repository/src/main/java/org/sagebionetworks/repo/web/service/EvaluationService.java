@@ -8,12 +8,15 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public interface EvaluationService {
 
@@ -173,9 +176,14 @@ public interface EvaluationService {
 	 * @param submission
 	 * @return
 	 * @throws NotFoundException
+	 * @throws ParseException 
+	 * @throws ACLInheritanceException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws JSONObjectAdapterException 
 	 */
-	public Submission createSubmission(String userId, Submission submission)
-			throws NotFoundException;
+	public Submission createSubmission(String userId, Submission submission, HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException;
 
 	/**
 	 * Get a Submission.

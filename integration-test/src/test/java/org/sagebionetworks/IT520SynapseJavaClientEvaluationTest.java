@@ -26,10 +26,14 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 
 /**
  * Exercise the Evaluation Services methods in the Synapse Java Client
@@ -238,6 +242,8 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// read
 		Submission clone = synapseOne.getSubmission(sub1.getId());
+		assertNotNull(clone.getEntityBundleJSON());
+		sub1.setEntityBundleJSON(clone.getEntityBundleJSON());
 		assertEquals(sub1, clone);
 		SubmissionStatus status = synapseOne.getSubmissionStatus(sub1.getId());
 		assertNotNull(status);
@@ -256,6 +262,50 @@ public class IT520SynapseJavaClientEvaluationTest {
 		status.setEtag(statusClone.getEtag());
 		assertEquals(status, statusClone);
 		assertEquals(newCount, synapseOne.getSubmissionCount(eval1.getId()));
+		
+		// delete
+		synapseOne.deleteSubmission(sub1.getId());
+		try {
+			synapseOne.deleteSubmission(sub1.getId());
+			fail("Failed to delete Submission " + sub1.toString());
+		} catch (SynapseException e) {
+			// expected
+		}
+		assertEquals(initialCount, synapseOne.getSubmissionCount(eval1.getId()));
+	}
+	
+	@Test
+	public void testSubmissionEntityBundle() throws SynapseException, NotFoundException, InterruptedException, JSONObjectAdapterException {
+		eval1.setStatus(EvaluationStatus.OPEN);
+		eval1 = synapseOne.createEvaluation(eval1);
+		evaluationsToDelete.add(eval1.getId());
+		part1 = synapseOne.createParticipant(eval1.getId());
+		participantsToDelete.add(part1);
+		String entityId = project.getId();
+		assertNotNull(entityId);
+		entitiesToDelete.add(entityId);
+		
+		Long initialCount = synapseOne.getSubmissionCount(eval1.getId());
+		
+		// create
+		sub1.setEvaluationId(eval1.getId());
+		sub1.setEntityId(entityId);
+		sub1 = synapseOne.createSubmission(sub1);
+		assertNotNull(sub1.getId());
+		submissionsToDelete.add(sub1.getId());
+		Long newCount = initialCount + 1;
+		assertEquals(newCount, synapseOne.getSubmissionCount(eval1.getId()));
+		
+		// read
+		sub1 = synapseOne.getSubmission(sub1.getId());
+		
+		// verify EntityBundle
+		int partsMask = EntityBundle.ENTITY + EntityBundle.ANNOTATIONS;
+		EntityBundle eb = synapseOne.getEntityBundle(entityId, partsMask);
+		EntityBundle clone = new EntityBundle();
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		clone.initializeFromJSONObject(joa.createNew(sub1.getEntityBundleJSON()));
+		assertEquals(eb, clone);
 		
 		// delete
 		synapseOne.deleteSubmission(sub1.getId());

@@ -12,21 +12,27 @@ import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class EvaluationServiceImpl implements EvaluationService {
 	
+	@Autowired
+	ServiceProvider serviceProvider;
 	@Autowired
 	EvaluationManager evaluationManager;
 	@Autowired
@@ -145,10 +151,12 @@ public class EvaluationServiceImpl implements EvaluationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission createSubmission(String userName, Submission submission)
-			throws NotFoundException {
+	public Submission createSubmission(String userName, Submission submission, HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
 		UserInfo userInfo = userManager.getUserInfo(userName);
-		return submissionManager.createSubmission(userInfo, submission);
+		int mask = EntityBundle.ENTITY + EntityBundle.ANNOTATIONS;
+		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userName, submission.getEntityId(), mask, request);
+		return submissionManager.createSubmission(userInfo, submission, bundle);
 	}
 
 	@Override

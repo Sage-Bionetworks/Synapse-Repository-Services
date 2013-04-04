@@ -7,7 +7,6 @@ public class SubmissionBackup {
 
 	private Submission submission;
 	private SubmissionStatus submissionStatus;
-	private EntityWithAnnotations<? extends Entity> entityWithAnnotations;
 	
 	public Submission getSubmission() {
 		return submission;
@@ -21,20 +20,10 @@ public class SubmissionBackup {
 	public void setSubmissionStatus(SubmissionStatus submissionStatus) {
 		this.submissionStatus = submissionStatus;
 	}
-	public EntityWithAnnotations<? extends Entity> getEntityWithAnnotations() {
-		return entityWithAnnotations;
-	}
-	public void setEntityWithAnnotations(EntityWithAnnotations<? extends Entity> entityWithAnnotations) {
-		this.entityWithAnnotations = entityWithAnnotations;
-	}
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
-		result = prime
-				* result
-				+ ((entityWithAnnotations == null) ? 0 : entityWithAnnotations
-						.hashCode());
 		result = prime * result
 				+ ((submission == null) ? 0 : submission.hashCode());
 		result = prime
@@ -51,11 +40,6 @@ public class SubmissionBackup {
 		if (getClass() != obj.getClass())
 			return false;
 		SubmissionBackup other = (SubmissionBackup) obj;
-		if (entityWithAnnotations == null) {
-			if (other.entityWithAnnotations != null)
-				return false;
-		} else if (!entityWithAnnotations.equals(other.entityWithAnnotations))
-			return false;
 		if (submission == null) {
 			if (other.submission != null)
 				return false;
@@ -71,7 +55,6 @@ public class SubmissionBackup {
 	@Override
 	public String toString() {
 		return "SubmissionBackup [submission=" + submission
-				+ ", submissionStatus=" + submissionStatus
-				+ ", entityWithAnnotations=" + entityWithAnnotations + "]";
+				+ ", submissionStatus=" + submissionStatus + "]";
 	}
 }
