@@ -219,6 +219,8 @@ public class Synapse {
 	private static final String TRASHCAN_PURGE = "/trashcan/purge";
 
 	private static final String DOI = "/doi";
+	
+	private static final String ETAG = "etag";
 
 	// web request pagination parameters
 	protected static final String LIMIT = "limit";
@@ -3626,8 +3628,8 @@ public class Synapse {
 		return res.getTotalNumberOfResults();
 	}
 	
-	public Submission createSubmission(Submission sub) throws SynapseException {
-		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION;
+	public Submission createSubmission(Submission sub, String etag) throws SynapseException {
+		String uri = EVALUATION_URI_PATH + "/" + SUBMISSION + "?" + ETAG + "=" + etag;
 		try {
 			JSONObject jsonObj = EntityFactory.createJSONObjectForEntity(sub);
 			jsonObj = createJSONObject(uri, jsonObj);

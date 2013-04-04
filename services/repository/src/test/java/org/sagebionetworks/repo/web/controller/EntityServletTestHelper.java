@@ -834,7 +834,7 @@ public class EntityServletTestHelper {
 		return Long.parseLong(response.getContentAsString());
 	}
 	
-	public Submission createSubmission(Submission sub, String userId)
+	public Submission createSubmission(Submission sub, String userId, String entityEtag)
 			throws JSONObjectAdapterException, IOException, DatastoreException,
 			NotFoundException, ServletException 
 	{
@@ -844,6 +844,7 @@ public class EntityServletTestHelper {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.SUBMISSION);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.ETAG_PARAM, entityEtag);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
 		sub.writeToJSONObject(joa);

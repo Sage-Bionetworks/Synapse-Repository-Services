@@ -751,6 +751,6 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	
 	@Override
 	public String lockNode(String nodeId) {
-		return nodeDao.lockNode(Long.parseLong(nodeId));
+		return nodeDao.lockNode(KeyFactory.stringToKey(nodeId));
 	}
 }

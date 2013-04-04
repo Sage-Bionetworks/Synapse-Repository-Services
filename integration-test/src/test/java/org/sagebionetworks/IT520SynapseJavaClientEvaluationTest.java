@@ -25,7 +25,9 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
@@ -226,6 +228,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		part1 = synapseOne.createParticipant(eval1.getId());
 		participantsToDelete.add(part1);
 		String entityId = project.getId();
+		String entityEtag = project.getEtag();
 		assertNotNull(entityId);
 		entitiesToDelete.add(entityId);
 		
@@ -234,7 +237,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// create
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(entityId);
-		sub1 = synapseOne.createSubmission(sub1);
+		sub1 = synapseOne.createSubmission(sub1, entityEtag);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 		Long newCount = initialCount + 1;
@@ -282,6 +285,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		part1 = synapseOne.createParticipant(eval1.getId());
 		participantsToDelete.add(part1);
 		String entityId = project.getId();
+		String entityEtag = project.getEtag();
 		assertNotNull(entityId);
 		entitiesToDelete.add(entityId);
 		
@@ -290,7 +294,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		// create
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(entityId);
-		sub1 = synapseOne.createSubmission(sub1);
+		sub1 = synapseOne.createSubmission(sub1, entityEtag);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 		Long newCount = initialCount + 1;
@@ -301,11 +305,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		
 		// verify EntityBundle
 		int partsMask = EntityBundle.ENTITY + EntityBundle.ANNOTATIONS;
-		EntityBundle eb = synapseOne.getEntityBundle(entityId, partsMask);
+		EntityBundle bundle = synapseOne.getEntityBundle(entityId, partsMask);
 		EntityBundle clone = new EntityBundle();
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
 		clone.initializeFromJSONObject(joa.createNew(sub1.getEntityBundleJSON()));
-		assertEquals(eb, clone);
+		assertEquals(bundle, clone);
 		
 		// delete
 		synapseOne.deleteSubmission(sub1.getId());
@@ -381,9 +385,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		participantsToDelete.add(part2);
 		
 		String entityId1 = project.getId();
+		String entityEtag1 = project.getEtag();
 		assertNotNull(entityId1);
 		entitiesToDelete.add(entityId1);
 		String entityId2 = dataset.getId();
+		String entityEtag2 = dataset.getEtag();
 		assertNotNull(entityId2);
 		entitiesToDelete.add(entityId2);
 		
@@ -391,14 +397,14 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub1.setEntityId(entityId1);
 		sub1.setVersionNumber(1L);
 		sub1.setUserId(userName);
-		sub1 = synapseOne.createSubmission(sub1);
+		sub1 = synapseOne.createSubmission(sub1, entityEtag1);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());		
 		sub2.setEvaluationId(eval1.getId());
 		sub2.setEntityId(entityId2);
 		sub2.setVersionNumber(1L);
 		sub2.setUserId(userName);
-		sub2 = synapseOne.createSubmission(sub2);
+		sub2 = synapseOne.createSubmission(sub2, entityEtag2);
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
 				
@@ -485,9 +491,11 @@ public class IT520SynapseJavaClientEvaluationTest {
 		participantsToDelete.add(part2);
 		
 		String entityId1 = project.getId();
+		String entityEtag1 = project.getEtag();
 		assertNotNull(entityId1);
 		entitiesToDelete.add(entityId1);
-		String entityId2 = dataset.getId();
+		String entityId2 = projectTwo.getId();
+		String entityEtag2 = projectTwo.getEtag();
 		assertNotNull(entityId2);
 		entitiesToDelete.add(entityId2);
 		
@@ -495,7 +503,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub1.setEntityId(entityId1);
 		sub1.setVersionNumber(1L);
 		sub1.setUserId(userName);
-		sub1 = synapseOne.createSubmission(sub1);
+		sub1 = synapseOne.createSubmission(sub1, entityEtag1);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 		
@@ -503,7 +511,7 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub2.setEntityId(projectTwo.getId());
 		sub2.setVersionNumber(1L);
 		sub2.setUserId(userName);
-		sub2 = synapseTwo.createSubmission(sub2);
+		sub2 = synapseTwo.createSubmission(sub2, entityEtag2);
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
 		

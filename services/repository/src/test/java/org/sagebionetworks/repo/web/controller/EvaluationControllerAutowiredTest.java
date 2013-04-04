@@ -230,9 +230,10 @@ public class EvaluationControllerAutowiredTest {
 		long initialCount = entityServletHelper.getSubmissionCount(eval1.getId());
 		
 		// create
+		Node node = nodeManager.get(userInfo, nodeId);
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(nodeId);
-		sub1 = entityServletHelper.createSubmission(sub1, userName);
+		sub1 = entityServletHelper.createSubmission(sub1, userName, node.getETag());
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());
 		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(eval1.getId()));
@@ -281,11 +282,12 @@ public class EvaluationControllerAutowiredTest {
 		String nodeId = createNode("An entity", ownerInfo);
 		assertNotNull(nodeId);
 		nodesToDelete.add(nodeId);
+		Node node = nodeManager.get(ownerInfo, nodeId);
 		
 		// create
 		sub1.setEvaluationId(eval1.getId());
 		sub1.setEntityId(nodeId);
-		sub1 = entityServletHelper.createSubmission(sub1, userName);
+		sub1 = entityServletHelper.createSubmission(sub1, userName, node.getETag());
 	}
 	
 	@Test
@@ -314,8 +316,10 @@ public class EvaluationControllerAutowiredTest {
 		UserInfo userInfo = userManager.getUserInfo(userName);
 		String node1 = createNode("entity1", userInfo);
 		assertNotNull(node1);
+		String etag1 = nodeManager.get(userInfo, node1).getETag();
 		nodesToDelete.add(node1);
 		String node2 = createNode("entity2", userInfo);
+		String etag2 = nodeManager.get(userInfo, node2).getETag();
 		assertNotNull(node2);
 		nodesToDelete.add(node2);
 		
@@ -323,14 +327,14 @@ public class EvaluationControllerAutowiredTest {
 		sub1.setEntityId(node1);
 		sub1.setVersionNumber(1L);
 		sub1.setUserId(userName);
-		sub1 = entityServletHelper.createSubmission(sub1, userName);
+		sub1 = entityServletHelper.createSubmission(sub1, userName, etag1);
 		assertNotNull(sub1.getId());
 		submissionsToDelete.add(sub1.getId());		
 		sub2.setEvaluationId(eval1.getId());
 		sub2.setEntityId(node2);
 		sub2.setVersionNumber(1L);
 		sub2.setUserId(userName);
-		sub2 = entityServletHelper.createSubmission(sub2, userName);
+		sub2 = entityServletHelper.createSubmission(sub2, userName, etag2);
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
 		
