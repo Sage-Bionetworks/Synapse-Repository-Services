@@ -19,6 +19,7 @@ import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.queryparser.ParseException;
@@ -151,10 +152,17 @@ public class EvaluationServiceImpl implements EvaluationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission createSubmission(String userName, Submission submission, String entityEtag)
+	public Submission createSubmission(String userName, Submission submission, String entityEtag, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
 		UserInfo userInfo = userManager.getUserInfo(userName);
-		return submissionManager.createSubmission(userInfo, submission, entityEtag);
+		
+		// fetch EntityBundle to be serialized
+		int mask = ServiceConstants.DEFAULT_ENTITYBUNDLE_MASK_FOR_SUBMISSIONS;
+		String userId = userInfo.getUser().getId();
+		String entityId = submission.getEntityId();
+		Long versionNumber = submission.getVersionNumber();
+		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask, request);
+		return submissionManager.createSubmission(userInfo, submission, entityEtag, bundle);
 	}
 
 	@Override

@@ -323,12 +323,4 @@ public interface NodeManager {
 	 */
 	public List<Reference> getCurrentRevisionNumbers(List<String> nodeIds);
 
-	/**
-	 * Lock a node for reading. Note that the node eTag is NOT updated.
-	 * 
-	 * @param nodeId
-	 * @return
-	 */
-	public String lockNode(String nodeId);
-
 }

@@ -56,7 +56,8 @@ public class SubmissionManagerTest {
 	private static EntityManager mockEntityManager;
 	private static NodeManager mockNodeManager;
 	private static Node mockNode;
-	private static Folder folder = new Folder();
+	private static Folder folder;
+	private static EntityBundle bundle;
 	
 	private static final String EVAL_ID = "12";
 	private static final String OWNER_ID = "34";
@@ -132,7 +133,11 @@ public class SubmissionManagerTest {
         subStatus.setId(SUB_ID);
         subStatus.setModifiedOn(new Date());
         subStatus.setScore(0.0);
-        subStatus.setStatus(SubmissionStatusEnum.OPEN);       
+        subStatus.setStatus(SubmissionStatusEnum.OPEN);
+        
+        folder = new Folder();
+        bundle = new EntityBundle();
+        bundle.setEntity(folder);        
 		
     	// Mocks
         mockIdGenerator = mock(IdGenerator.class);
@@ -168,7 +173,7 @@ public class SubmissionManagerTest {
 	public void testCRUDAsAdmin() throws Exception {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
-		submissionManager.createSubmission(userInfo, sub, ETAG);
+		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
 		submissionManager.getSubmission(SUB_ID);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 		submissionManager.deleteSubmission(ownerInfo, SUB_ID);
@@ -183,7 +188,7 @@ public class SubmissionManagerTest {
 	public void testCRUDAsUser() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
-		submissionManager.createSubmission(userInfo, sub, ETAG);
+		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
 		submissionManager.getSubmission(SUB_ID);
 		try {
 			submissionManager.updateSubmissionStatus(userInfo, subStatus);
@@ -207,12 +212,12 @@ public class SubmissionManagerTest {
 	@Test(expected=UnauthorizedException.class)
 	public void testUnauthorizedEntity() throws NotFoundException, DatastoreException, JSONObjectAdapterException {		
 		// user should not have access to sub2
-		submissionManager.createSubmission(userInfo, sub2, ETAG);		
+		submissionManager.createSubmission(userInfo, sub2, ETAG, bundle);		
 	}
 	
 	@Test(expected=IllegalArgumentException.class)
 	public void testInvalidScore() throws Exception {
-		submissionManager.createSubmission(userInfo, sub, ETAG);
+		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
 		submissionManager.getSubmission(SUB_ID);
 		subStatus.setScore(1.1);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
@@ -220,7 +225,7 @@ public class SubmissionManagerTest {
 		
 	@Test(expected=IllegalArgumentException.class)
 	public void testInvalidEtag() throws Exception {
-		submissionManager.createSubmission(userInfo, sub, ETAG + "modified");
+		submissionManager.createSubmission(userInfo, sub, ETAG + "modified", bundle);
 	}
 	
 	@Test

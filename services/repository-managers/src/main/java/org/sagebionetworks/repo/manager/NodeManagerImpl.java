@@ -748,9 +748,4 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 			removeBenefactorAcl(child);
 		}
 	}
-	
-	@Override
-	public String lockNode(String nodeId) {
-		return nodeDao.lockNode(KeyFactory.stringToKey(nodeId));
-	}
 }

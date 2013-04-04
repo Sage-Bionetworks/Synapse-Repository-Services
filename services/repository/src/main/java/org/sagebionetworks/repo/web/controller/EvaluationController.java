@@ -216,7 +216,7 @@ public class EvaluationController extends BaseController {
 	{
 		String requestBody = ControllerUtil.getRequestBodyAsString(request);
 		Submission sub = new Submission(new JSONObjectAdapterImpl(requestBody));
-		return serviceProvider.getEvaluationService().createSubmission(userId, sub, entityEtag);
+		return serviceProvider.getEvaluationService().createSubmission(userId, sub, entityEtag, request);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)

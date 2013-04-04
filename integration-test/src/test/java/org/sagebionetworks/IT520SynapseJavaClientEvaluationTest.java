@@ -25,12 +25,11 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
-import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -304,11 +303,16 @@ public class IT520SynapseJavaClientEvaluationTest {
 		sub1 = synapseOne.getSubmission(sub1.getId());
 		
 		// verify EntityBundle
-		int partsMask = EntityBundle.ENTITY + EntityBundle.ANNOTATIONS;
+		int partsMask = ServiceConstants.DEFAULT_ENTITYBUNDLE_MASK_FOR_SUBMISSIONS;
 		EntityBundle bundle = synapseOne.getEntityBundle(entityId, partsMask);
 		EntityBundle clone = new EntityBundle();
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
 		clone.initializeFromJSONObject(joa.createNew(sub1.getEntityBundleJSON()));
+		// we don't care if etags have changed
+		clone.getEntity().setEtag(null);
+		clone.getAnnotations().setEtag(null);
+		bundle.getEntity().setEtag(null);
+		bundle.getAnnotations().setEtag(null);
 		assertEquals(bundle, clone);
 		
 		// delete

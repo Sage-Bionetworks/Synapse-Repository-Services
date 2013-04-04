@@ -16,9 +16,7 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -77,7 +75,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag)
+	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, EntityBundle bundle)
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
 		String evalId = submission.getEvaluationId();
@@ -96,22 +94,12 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		// validate eTag
 		String entityId = submission.getEntityId();
-		Long version = submission.getVersionNumber();
 		Node node = nodeManager.get(userInfo, entityId);
 		if (!node.getETag().equals(entityEtag)) {
 			// invalid eTag; reject the Submission
 			throw new IllegalArgumentException("The supplied eTag is out of date. " +
 					"Please fetch Entity " + entityId + " again.");
-		} else {
-			// valid eTag; lock the node
-			nodeManager.lockNode(entityId);
-		}
-
-		// prepare EntityBundle with Entity and Annotations
-		EntityBundle bundle = new EntityBundle();
-		Class<? extends Entity> clazz = EntityType.valueOf(node.getNodeType()).getClassForType();
-		bundle.setEntity(entityManager.getEntityForVersion(userInfo, entityId, version, clazz));
-		bundle.setAnnotations(entityManager.getAnnotationsForVersion(userInfo, entityId, version));
+		} 
 		
 		// if no name is provided, use the Entity name
 		if (submission.getName() == null) {
