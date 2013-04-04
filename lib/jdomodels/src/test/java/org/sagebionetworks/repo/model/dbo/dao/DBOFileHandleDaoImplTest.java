@@ -25,6 +25,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MigratableObjectData;
+import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -476,14 +477,30 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(currentCount, results.getTotalNumberOfResults());
 		assertEquals(3l, results.getResults().size());
 		// the results must be sorted by ID descending so that previews migrate before the handles that depend on them.
-		assertEquals(preview.getId(),  results.getResults().get(0).getId().getId());
-		assertEquals(preview.getEtag(),  results.getResults().get(0).getEtag());
+		MigratableObjectData mod = results.getResults().get(0);
+		assertEquals(preview.getId(),  mod.getId().getId());
+		assertEquals(preview.getEtag(), mod.getEtag());
+		// The should have no previews
+		assertNotNull(mod.getDependencies());
+		assertEquals(0, mod.getDependencies().size());
 		// next item
-		assertEquals(withPreview.getId(),  results.getResults().get(1).getId().getId());
-		assertEquals(withPreview.getEtag(),  results.getResults().get(1).getEtag());
+		mod = results.getResults().get(1);
+		assertEquals(withPreview.getId(),  mod.getId().getId());
+		assertEquals(withPreview.getEtag(),  mod.getEtag());
+		// This should depend on the preview
+		assertNotNull(mod.getDependencies());
+		assertEquals(1, mod.getDependencies().size());
+		MigratableObjectDescriptor depend = mod.getDependencies().iterator().next();
+		assertNotNull(depend);
+		assertEquals(preview.getId(), depend.getId());
+		assertEquals(MigratableObjectType.FILEHANDLE, depend.getType());
 		// preview
-		assertEquals(noPreviewHandle.getId(),  results.getResults().get(2).getId().getId());
-		assertEquals(noPreviewHandle.getEtag(),  results.getResults().get(2).getEtag());
+		mod = results.getResults().get(2);
+		assertEquals(noPreviewHandle.getId(),  mod.getId().getId());
+		assertEquals(noPreviewHandle.getEtag(),  mod.getEtag());
+		// The preview should have no dependencies.
+		assertNotNull(mod.getDependencies());
+		assertEquals(0, mod.getDependencies().size());
 		
 		// test paging.
 		// Only select the second to last.

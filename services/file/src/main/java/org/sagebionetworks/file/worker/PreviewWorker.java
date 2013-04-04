@@ -62,11 +62,14 @@ public class PreviewWorker implements Callable<List<Message>> {
 						// We do not make previews of previews
 					} else if (metadata instanceof S3FileHandle) {
 						S3FileHandle s3fileMeta = (S3FileHandle) metadata;
-						// Generate a preview.
-						previewManager.generatePreview(s3fileMeta);
+						// Only generate a preview if we do not already have one.
+						if(s3fileMeta.getPreviewId() == null){
+							// Generate a preview.
+							previewManager.generatePreview(s3fileMeta);
+						}
 					} else if (metadata instanceof ExternalFileHandle) {
 						// we need to add support for this
-						throw new UnsupportedOperationException("We need to add support for external file URLss");
+						log.warn("Currently do not support previews for ExternalFileHandles");
 					} else {
 						// We will never be able to process such a message.
 						throw new IllegalArgumentException("Unknown file type: "+ metadata.getClass().getName());
