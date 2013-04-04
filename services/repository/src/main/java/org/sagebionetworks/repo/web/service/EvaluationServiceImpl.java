@@ -151,12 +151,10 @@ public class EvaluationServiceImpl implements EvaluationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission createSubmission(String userName, Submission submission, HttpServletRequest request)
+	public Submission createSubmission(String userName, Submission submission, String entityEtag)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
 		UserInfo userInfo = userManager.getUserInfo(userName);
-		int mask = EntityBundle.ENTITY + EntityBundle.ANNOTATIONS;
-		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userName, submission.getEntityId(), mask, request);
-		return submissionManager.createSubmission(userInfo, submission, bundle);
+		return submissionManager.createSubmission(userInfo, submission, entityEtag);
 	}
 
 	@Override

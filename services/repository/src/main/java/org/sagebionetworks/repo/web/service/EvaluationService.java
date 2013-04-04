@@ -174,15 +174,16 @@ public interface EvaluationService {
 	 * 
 	 * @param userId
 	 * @param submission
+	 * @param entityEtag
 	 * @return
 	 * @throws NotFoundException
-	 * @throws ParseException 
-	 * @throws ACLInheritanceException 
-	 * @throws UnauthorizedException 
-	 * @throws DatastoreException 
-	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws ACLInheritanceException
+	 * @throws ParseException
+	 * @throws JSONObjectAdapterException
 	 */
-	public Submission createSubmission(String userId, Submission submission, HttpServletRequest request)
+	public Submission createSubmission(String userId, Submission submission,String entityEtag)
 			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException;
 
 	/**

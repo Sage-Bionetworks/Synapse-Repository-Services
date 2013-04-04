@@ -209,13 +209,14 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	Submission createSubmission(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.ETAG_PARAM, required = false) String entityEtag,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
 			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, UnauthorizedException, ACLInheritanceException, ParseException
 	{
 		String requestBody = ControllerUtil.getRequestBodyAsString(request);
 		Submission sub = new Submission(new JSONObjectAdapterImpl(requestBody));
-		return serviceProvider.getEvaluationService().createSubmission(userId, sub, request);
+		return serviceProvider.getEvaluationService().createSubmission(userId, sub, entityEtag);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)

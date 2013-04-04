@@ -16,7 +16,10 @@ import org.sagebionetworks.ids.IdGenerator;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -39,18 +42,25 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	EvaluationManager evaluationManager;
 	@Autowired
 	ParticipantManager participantManager;
+	@Autowired
+	EntityManager entityManager;
+	@Autowired
+	NodeManager nodeManager;
 	
 	public SubmissionManagerImpl() {};
 	
 	// for testing purposes
 	protected SubmissionManagerImpl(IdGenerator idGenerator, SubmissionDAO submissionDAO, 
 			SubmissionStatusDAO submissionStatusDAO, EvaluationManager evaluationManager,
-			ParticipantManager participantManager) {
+			ParticipantManager participantManager, EntityManager entityManager,
+			NodeManager nodeManager) {
 		this.idGenerator = idGenerator;
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
 		this.evaluationManager = evaluationManager;
 		this.participantManager = participantManager;
+		this.entityManager = entityManager;
+		this.nodeManager = nodeManager;
 	}
 
 	@Override
@@ -67,9 +77,9 @@ public class SubmissionManagerImpl implements SubmissionManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission createSubmission(UserInfo userInfo, Submission submission, EntityBundle bundle) throws NotFoundException, DatastoreException, JSONObjectAdapterException {
+	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag)
+			throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
-		EvaluationUtils.ensureNotNull(bundle, "EntityBundle");
 		String evalId = submission.getEvaluationId();
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
@@ -84,9 +94,28 @@ public class SubmissionManagerImpl implements SubmissionManager {
 					" has not joined Evaluation ID: " + evalId);
 		}
 		
+		// validate eTag
+		String entityId = submission.getEntityId();
+		Long version = submission.getVersionNumber();
+		Node node = nodeManager.get(userInfo, entityId);
+		if (!node.getETag().equals(entityEtag)) {
+			// invalid eTag; reject the Submission
+			throw new IllegalArgumentException("The supplied eTag is out of date. " +
+					"Please fetch Entity " + entityId + " again.");
+		} else {
+			// valid eTag; lock the node
+			nodeManager.lockNode(entityId);
+		}
+
+		// prepare EntityBundle with Entity and Annotations
+		EntityBundle bundle = new EntityBundle();
+		Class<? extends Entity> clazz = EntityType.valueOf(node.getNodeType()).getClassForType();
+		bundle.setEntity(entityManager.getEntityForVersion(userInfo, entityId, version, clazz));
+		bundle.setAnnotations(entityManager.getAnnotationsForVersion(userInfo, entityId, version));
+		
 		// if no name is provided, use the Entity name
 		if (submission.getName() == null) {
-			submission.setName(bundle.getEntity().getName());
+			submission.setName(node.getName());
 		}
 		
 		// ensure evaluation is open
