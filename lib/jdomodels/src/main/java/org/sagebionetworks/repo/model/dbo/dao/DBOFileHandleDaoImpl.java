@@ -49,7 +49,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOFileHandleDaoImpl implements FileHandleDao {
 	
-	private static final String SQL_GET_MIGRATION_OBJECT_DATA_PAGE = "SELECT "+COL_FILES_ID+", "+COL_FILES_ETAG+" FROM "+TABLE_FILES+" ORDER BY "+COL_FILES_ID+" DESC LIMIT ? OFFSET ?";
+	private static final String SQL_GET_MIGRATION_OBJECT_DATA_PAGE = "SELECT "+COL_FILES_ID+", "+COL_FILES_ETAG+", "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" ORDER BY "+COL_FILES_ID+" DESC LIMIT ? OFFSET ?";
 	private static final String SQL_COUNT_ALL_FILES = "SELECT COUNT(*) FROM "+TABLE_FILES;
 	private static final String SQL_SELECT_CREATOR = "SELECT "+COL_FILES_CREATED_BY+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
 	private static final String SQL_SELECT_PREVIEW_ID = "SELECT "+COL_FILES_PREVIEW_ID+" FROM "+TABLE_FILES+" WHERE "+COL_FILES_ID+" = ?";
@@ -243,7 +243,17 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 				des.setType(MigratableObjectType.FILEHANDLE);
 				mod.setId(des);
 				if(includeDependencies){
-					mod.setDependencies(new HashSet<MigratableObjectDescriptor>(0));
+					Long previewId = rs.getLong(COL_FILES_PREVIEW_ID);
+					if(rs.wasNull()){
+						previewId = null;
+					}
+					mod.setDependencies(new HashSet<MigratableObjectDescriptor>(1));
+					if(previewId != null){
+						MigratableObjectDescriptor previewMod = new MigratableObjectDescriptor();
+						previewMod.setId(""+previewId);
+						previewMod.setType(MigratableObjectType.FILEHANDLE);
+						mod.getDependencies().add(previewMod);
+					}
 				}
 				mod.setEtag(rs.getString(COL_FILES_ETAG));
 				return mod;
