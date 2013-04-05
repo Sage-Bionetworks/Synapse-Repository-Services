@@ -13,6 +13,8 @@ public class FieldColumn {
 	private String fieldName;
 	private String columnName;
 	private boolean isPrimaryKey = false;
+	private boolean isEtag = false;
+	private boolean isBackupId = false;
 	
 	/**
 	 * The only constructor.
