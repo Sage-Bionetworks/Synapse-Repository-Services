@@ -224,10 +224,11 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	Submission getSubmission(
 			@PathVariable String subId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		return serviceProvider.getEvaluationService().getSubmission(subId);
+		return serviceProvider.getEvaluationService().getSubmission(userId, subId);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)

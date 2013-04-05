@@ -11,7 +11,6 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -195,7 +194,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Submission getSubmission(String submissionId)
+	public Submission getSubmission(String userName, String submissionId)
 			throws DatastoreException, NotFoundException;
 
 	/**

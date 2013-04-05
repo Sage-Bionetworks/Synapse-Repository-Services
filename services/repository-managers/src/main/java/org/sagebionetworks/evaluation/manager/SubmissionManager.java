@@ -22,7 +22,7 @@ public interface SubmissionManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Submission getSubmission(String submissionId)
+	public Submission getSubmission(UserInfo userInfo, String submissionId)
 			throws DatastoreException, NotFoundException;
 
 	/**

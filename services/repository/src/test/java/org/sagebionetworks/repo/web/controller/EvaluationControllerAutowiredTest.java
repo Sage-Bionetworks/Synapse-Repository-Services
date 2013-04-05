@@ -239,7 +239,7 @@ public class EvaluationControllerAutowiredTest {
 		assertEquals(initialCount + 1, entityServletHelper.getSubmissionCount(eval1.getId()));
 		
 		// read
-		Submission clone = entityServletHelper.getSubmission(sub1.getId());
+		Submission clone = entityServletHelper.getSubmission(userName, sub1.getId());
 		assertEquals(sub1, clone);
 		SubmissionStatus status = entityServletHelper.getSubmissionStatus(sub1.getId());
 		assertNotNull(status);

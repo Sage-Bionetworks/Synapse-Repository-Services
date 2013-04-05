@@ -62,9 +62,17 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	}
 
 	@Override
-	public Submission getSubmission(String submissionId) throws DatastoreException, NotFoundException {
+	public Submission getSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
-		return submissionDAO.get(submissionId);
+		Submission sub = submissionDAO.get(submissionId);
+		boolean isSubmissionOwner = userInfo.getIndividualGroup().getId().equals(sub.getUserId());
+		boolean isEvaluationAdmin = evaluationManager.isEvalAdmin(userInfo, sub.getEvaluationId());
+		if (isSubmissionOwner || isEvaluationAdmin) {
+			return sub;
+		} else {
+			throw new UnauthorizedException("User " + userInfo.getUser().getId() +
+					" is not authorized to view Submission " + submissionId);
+		}
 	}
 
 	@Override
@@ -138,7 +146,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		// ensure Submission exists and validate admin rights
 		SubmissionStatus old = getSubmissionStatus(submissionStatus.getId());
-		String evalId = getSubmission(submissionStatus.getId()).getEvaluationId();
+		String evalId = getSubmission(userInfo, submissionStatus.getId()).getEvaluationId();
 		if (!evaluationManager.isEvalAdmin(userInfo, evalId))
 			throw new UnauthorizedException("Not authorized");
 		

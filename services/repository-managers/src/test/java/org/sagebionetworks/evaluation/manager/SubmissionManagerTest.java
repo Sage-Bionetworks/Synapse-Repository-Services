@@ -157,7 +157,7 @@ public class SubmissionManagerTest {
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
     	when(mockNode.getNodeType()).thenReturn(EntityType.values()[0].toString());
     	when(mockNode.getETag()).thenReturn(ETAG);
-    	when(mockNodeManager.get(eq(userInfo), eq(ENTITY_ID))).thenReturn(mockNode);    	
+    	when(mockNodeManager.get(any(UserInfo.class), eq(ENTITY_ID))).thenReturn(mockNode);    	
     	when(mockNodeManager.get(eq(userInfo), eq(ENTITY2_ID))).thenThrow(new UnauthorizedException());
     	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY_ID), anyLong())).thenReturn(mockNode);
     	when(mockNodeManager.getNodeForVersionNumber(eq(userInfo), eq(ENTITY2_ID), anyLong())).thenThrow(new UnauthorizedException());
@@ -174,7 +174,7 @@ public class SubmissionManagerTest {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
-		submissionManager.getSubmission(SUB_ID);
+		submissionManager.getSubmission(userInfo, SUB_ID);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 		submissionManager.deleteSubmission(ownerInfo, SUB_ID);
 		verify(mockSubmissionDAO).create(any(Submission.class), any(EntityBundle.class));
@@ -189,7 +189,7 @@ public class SubmissionManagerTest {
 		assertNull(sub.getId());
 		assertNotNull(subWithId.getId());
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
-		submissionManager.getSubmission(SUB_ID);
+		submissionManager.getSubmission(userInfo, SUB_ID);
 		try {
 			submissionManager.updateSubmissionStatus(userInfo, subStatus);
 			fail();
@@ -210,6 +210,14 @@ public class SubmissionManagerTest {
 	}
 	
 	@Test(expected=UnauthorizedException.class)
+	public void testUnauthorizedGet() throws NotFoundException, DatastoreException, JSONObjectAdapterException {
+		assertNull(sub.getId());
+		assertNotNull(subWithId.getId());
+		submissionManager.createSubmission(ownerInfo, sub, ETAG, bundle);
+		submissionManager.getSubmission(userInfo, SUB_ID);
+	}
+	
+	@Test(expected=UnauthorizedException.class)
 	public void testUnauthorizedEntity() throws NotFoundException, DatastoreException, JSONObjectAdapterException {		
 		// user should not have access to sub2
 		submissionManager.createSubmission(userInfo, sub2, ETAG, bundle);		
@@ -218,7 +226,7 @@ public class SubmissionManagerTest {
 	@Test(expected=IllegalArgumentException.class)
 	public void testInvalidScore() throws Exception {
 		submissionManager.createSubmission(userInfo, sub, ETAG, bundle);
-		submissionManager.getSubmission(SUB_ID);
+		submissionManager.getSubmission(userInfo, SUB_ID);
 		subStatus.setScore(1.1);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 	}

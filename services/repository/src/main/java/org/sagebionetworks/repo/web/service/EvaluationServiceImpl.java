@@ -166,9 +166,10 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 
 	@Override
-	public Submission getSubmission(String submissionId)
+	public Submission getSubmission(String userName, String submissionId)
 			throws DatastoreException, NotFoundException {
-		return submissionManager.getSubmission(submissionId);
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return submissionManager.getSubmission(userInfo, submissionId);
 	}
 
 	@Override
