@@ -180,4 +180,20 @@ public interface SubmissionManager {
 			String evalId, SubmissionStatusEnum status, long limit, long offset)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
+	/**
+	 * Get SubmissionStatuses by Evaluation and status.
+	 * 
+	 * @param evalId
+	 * @param status
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public QueryResults<SubmissionStatus> getAllSubmissionStatuses(String evalId, 
+			SubmissionStatusEnum status, long limit, long offset)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
+
 }

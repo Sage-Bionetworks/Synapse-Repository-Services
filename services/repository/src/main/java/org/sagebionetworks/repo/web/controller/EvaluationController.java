@@ -293,6 +293,24 @@ public class EvaluationController extends BaseController {
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SUBMISSION_STATUS_WITH_EVAL_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(
+			@PathVariable String evalId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
+			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException 
+	{
+		SubmissionStatusEnum status = null;
+		if (statusString.length() > 0) {
+			status = SubmissionStatusEnum.valueOf(statusString.toUpperCase().trim());
+		}
+		return serviceProvider.getEvaluationService().getAllSubmissionStatuses(evalId, status, limit, offset, request);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.SUBMISSION_WITH_EVAL_ID_ADMIN_BUNDLE, method = RequestMethod.GET)
 	public @ResponseBody
 	PaginatedResults<SubmissionBundle> getAllSubmissionBundles(

@@ -180,12 +180,13 @@ public class Synapse {
 	protected static final String COUNT = "count";
 	protected static final String NAME = "name";
 	protected static final String ALL = "/all";
+	protected static final String STATUS = "/status";
 	protected static final String PARTICIPANT = "participant";
 	protected static final String SUBMISSION = "submission";
 	protected static final String SUBMISSION_BUNDLE = SUBMISSION + BUNDLE;
 	protected static final String SUBMISSION_ALL = SUBMISSION + ALL;
-	protected static final String SUBMISSION_ALL_BUNDLE = SUBMISSION + BUNDLE + ALL;
-	protected static final String STATUS = "status";
+	protected static final String SUBMISSION_STATUS_ALL = SUBMISSION + STATUS + ALL;
+	protected static final String SUBMISSION_BUNDLE_ALL = SUBMISSION + BUNDLE + ALL;	
 	protected static final String STATUS_SUFFIX = "?status=";
 
 	protected static final String USER_PROFILE_PATH = "/userProfile";
@@ -3665,7 +3666,7 @@ public class Synapse {
 	
 	public SubmissionStatus updateSubmissionStatus(SubmissionStatus status) throws SynapseException {
 		if (status == null) throw new IllegalArgumentException("SubmissionStatus  cannot be null");
-		String url = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + status.getId() + "/" + STATUS;			
+		String url = EVALUATION_URI_PATH + "/" + SUBMISSION + "/" + status.getId() + STATUS;			
 		JSONObjectAdapter toUpdateAdapter = new JSONObjectAdapterImpl();
 		JSONObject obj;
 		try {
@@ -3702,9 +3703,25 @@ public class Synapse {
 		}
 	}
 	
+	public PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(String evalId, long offset, long limit) throws SynapseException {
+		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
+		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_STATUS_ALL +
+				"?offset" + "=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<SubmissionStatus> results = new PaginatedResults<SubmissionStatus>(SubmissionStatus.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
 	public PaginatedResults<SubmissionBundle> getAllSubmissionBundles(String evalId, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
-		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_ALL_BUNDLE +
+		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_BUNDLE_ALL +
 				"?offset" + "=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
@@ -3735,10 +3752,27 @@ public class Synapse {
 		}
 	}
 	
+	public PaginatedResults<SubmissionStatus> getAllSubmissionStatusesByStatus(String evalId, 
+			SubmissionStatusEnum status, long offset, long limit) throws SynapseException {
+		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
+		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_STATUS_ALL  + 
+				STATUS_SUFFIX + status.toString() + "&offset=" + offset + "&limit=" + limit;
+		JSONObject jsonObj = getEntity(url);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<SubmissionStatus> results = new PaginatedResults<SubmissionStatus>(SubmissionStatus.class);
+
+		try {
+			results.initializeFromJSONObject(adapter);
+			return results;
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		}
+	}
+	
 	public PaginatedResults<SubmissionBundle> getAllSubmissionBundlesByStatus(
 			String evalId, SubmissionStatusEnum status, long offset, long limit) throws SynapseException {
 		if (evalId == null) throw new IllegalArgumentException("Evaluation id cannot be null");
-		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_ALL_BUNDLE + 
+		String url = EVALUATION_URI_PATH +	"/" + evalId + "/" + SUBMISSION_BUNDLE_ALL + 
 				STATUS_SUFFIX + status.toString() + "&offset=" + offset + "&limit=" + limit;
 		JSONObject jsonObj = getEntity(url);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);

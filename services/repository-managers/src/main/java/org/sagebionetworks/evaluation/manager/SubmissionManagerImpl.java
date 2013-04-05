@@ -195,6 +195,11 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		if (!evaluationManager.isEvalAdmin(userInfo, evalId))
 			throw new UnauthorizedException("User Principal ID" + principalId + " is not authorized to adminster Evaluation " + evalId);
 		
+		return getAllSubmissions(evalId, status, limit, offset);
+	}
+	
+	private QueryResults<Submission> getAllSubmissions(String evalId, SubmissionStatusEnum status, long limit, long offset)
+			throws DatastoreException, NotFoundException {		
 		List<Submission> submissions;
 		long totalNumberOfResults;
 		if (status == null)	{
@@ -204,9 +209,16 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			submissions = submissionDAO.getAllByEvaluationAndStatus(evalId, status, limit, offset);
 			totalNumberOfResults = submissionDAO.getCountByEvaluationAndStatus(evalId, status);
 		}
-		
 		QueryResults<Submission> res = new QueryResults<Submission>(submissions, totalNumberOfResults);
 		return res;
+	}
+	
+	@Override
+	public QueryResults<SubmissionStatus> getAllSubmissionStatuses(String evalId, SubmissionStatusEnum status, long limit, long offset) 
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		// note that this request is publicly-accessible; we do not validate userInfo
+		QueryResults<Submission> submissions = getAllSubmissions(evalId, status, limit, offset);
+		return submissionsToSubmissionStatuses(submissions);
 	}
 	
 	@Override
@@ -264,6 +276,14 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			bundles.add(bun);
 		}
 		return new QueryResults<SubmissionBundle>(bundles, submissions.getTotalNumberOfResults());
+	}
+	
+	protected QueryResults<SubmissionStatus> submissionsToSubmissionStatuses(QueryResults<Submission> submissions) throws DatastoreException, NotFoundException {
+		List<SubmissionStatus> statuses = new ArrayList<SubmissionStatus>(submissions.getResults().size());
+		for (Submission sub : submissions.getResults()) {
+			statuses.add(getSubmissionStatus(sub.getId()));
+		}
+		return new QueryResults<SubmissionStatus>(statuses, submissions.getTotalNumberOfResults());
 	}
 
 }

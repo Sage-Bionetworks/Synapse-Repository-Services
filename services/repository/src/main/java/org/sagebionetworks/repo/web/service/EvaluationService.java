@@ -350,4 +350,27 @@ public interface EvaluationService {
 			long offset, HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
 
+	/**
+	 * Get all SubmissionStatuses for a given Evaluation. This method is
+	 * publicly-accessible.
+	 * 
+	 * If a SubmissionStatusEnum is provided, results will be filtered
+	 * accordingly.
+	 * 
+	 * @param userName
+	 * @param evalId
+	 * @param status
+	 * @param limit
+	 * @param offset
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(
+			String evalId, SubmissionStatusEnum status,
+			long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
+
 }

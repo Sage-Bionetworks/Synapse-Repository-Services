@@ -213,6 +213,22 @@ public class EvaluationServiceImpl implements EvaluationService {
 	}
 	
 	@Override
+	public PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(String evalId,
+			SubmissionStatusEnum status, long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		QueryResults<SubmissionStatus> res = submissionManager.getAllSubmissionStatuses(evalId, status, limit, offset);
+		return new PaginatedResults<SubmissionStatus>(
+				request.getServletPath() + makeEvalIdUrl(UrlHelpers.SUBMISSION_STATUS_WITH_EVAL_ID, evalId),
+				res.getResults(),
+				res.getTotalNumberOfResults(),
+				offset,
+				limit,
+				"",
+				false			
+			);
+	}
+	
+	@Override
 	public PaginatedResults<SubmissionBundle> getAllSubmissionBundles(String userName, String evalId,
 			SubmissionStatusEnum status, long limit, long offset, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException, NotFoundException {

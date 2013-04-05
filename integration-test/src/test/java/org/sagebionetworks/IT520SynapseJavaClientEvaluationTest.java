@@ -412,17 +412,25 @@ public class IT520SynapseJavaClientEvaluationTest {
 		assertNotNull(sub2.getId());
 		submissionsToDelete.add(sub2.getId());
 				
-		// paginated submissions and bundles
+		// paginated submissions, statuses, and bundles
 		PaginatedResults<Submission> subs;
+		PaginatedResults<SubmissionStatus> subStatuses;
 		PaginatedResults<SubmissionBundle> subBundles;
 		
 		subs = synapseOne.getAllSubmissions(eval1.getId(), 0, 10);
+		subStatuses = synapseOne.getAllSubmissionStatuses(eval1.getId(), 0, 10);
 		subBundles = synapseOne.getAllSubmissionBundles(eval1.getId(), 0, 10);		
 		assertEquals(2, subs.getTotalNumberOfResults());
+		assertEquals(2, subStatuses.getTotalNumberOfResults());
 		assertEquals(2, subBundles.getTotalNumberOfResults());
 		assertEquals(2, subs.getResults().size());
 		for (Submission s : subs.getResults()) {
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
+		}
+		assertEquals(2, subStatuses.getResults().size());
+		for (SubmissionStatus status : subStatuses.getResults()) {
+			assertTrue("Unknown SubmissionStatus returned: " + status.toString(),
+					status.getId().equals(sub1.getId()) || status.getId().equals(sub2.getId()));
 		}
 		assertEquals(2, subBundles.getResults().size());
 		for (SubmissionBundle bundle : subBundles.getResults()) {
@@ -433,12 +441,18 @@ public class IT520SynapseJavaClientEvaluationTest {
 		}
 				
 		subs = synapseOne.getAllSubmissionsByStatus(eval1.getId(), SubmissionStatusEnum.OPEN, 0, 10);
+		subStatuses = synapseOne.getAllSubmissionStatusesByStatus(eval1.getId(), SubmissionStatusEnum.OPEN, 0, 10);
 		subBundles = synapseOne.getAllSubmissionBundlesByStatus(eval1.getId(), SubmissionStatusEnum.OPEN, 0, 10);
 		assertEquals(2, subs.getTotalNumberOfResults());
 		assertEquals(2, subBundles.getTotalNumberOfResults());
 		assertEquals(2, subs.getResults().size());
 		for (Submission s : subs.getResults()) {
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1) || s.equals(sub2));
+		}
+		assertEquals(2, subStatuses.getResults().size());
+		for (SubmissionStatus status : subStatuses.getResults()) {
+			assertTrue("Unknown SubmissionStatus returned: " + status.toString(),
+					status.getId().equals(sub1.getId()) || status.getId().equals(sub2.getId()));
 		}
 		assertEquals(2, subBundles.getResults().size());
 		for (SubmissionBundle bundle : subBundles.getResults()) {
