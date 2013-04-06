@@ -1,9 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
+import org.sagebionetworks.repo.model.migration.MigratableTableType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 
 /**
@@ -20,7 +23,7 @@ public interface MigatableTableDAO {
 	 * The total number of rows in the table.
 	 * @return
 	 */
-	public long getCount();
+	public long getCount(MigratableTableType type);
 	
 	/**
 	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.
@@ -31,7 +34,7 @@ public interface MigatableTableDAO {
 	 * @param offest
 	 * @return
 	 */
-	public <T extends DatabaseObject<?>> QueryResults<RowMetadata> listRowMetadata(Class<? extends T> clazz, long limit, long offest);
+	public QueryResults<RowMetadata> listRowMetadata(MigratableTableType type, long limit, long offest);
 	
 	/**
 	 * Given a list of ID return the RowMetadata for each row that exist in the table.
@@ -42,22 +45,30 @@ public interface MigatableTableDAO {
 	 * @param idList
 	 * @return
 	 */
-	public List<RowMetadata> listDeltaRowMetadata(List<String> idList);
+	public List<RowMetadata> listDeltaRowMetadata(MigratableTableType type, List<String> idList);
+	
+
+	/**
+	 * Backup the given row IDs to the passed output stream.
+	 * @param type
+	 * @param rowIds
+	 * @param out
+	 */
+	public void backupToStream(MigratableTableType type, List<String> rowIds, OutputStream out);
+	
+
+	/**
+	 * Restore rows from an input stream.
+	 * @param type
+	 * @param in
+	 */
+	public void restoreFromStream(MigratableTableType type, InputStream in);
 	
 	/**
-	 * Given a list of ID return a list of DatabaseObject to be backed up.
-	 * 
-	 * @param clazz
+	 * Delete objects by their IDs
+	 * @param type
 	 * @param idList
-	 * @return
 	 */
-	public <T extends DatabaseObject<T>> List<T> createListToBackup(Class<? extends T> clazz, List<String> idList);
-	
-	/**
-	 * Givne a list of DatabaseObject batch creatt/update the rows in the database table.
-	 * @param toRestore
-	 * @return
-	 */
-	public <T extends DatabaseObject<T>> int batchCreateOrUpdateRows(List<T> toRestore);
+	public int deleteObjectsById(MigratableTableType type, List<String> idList);
 	
 }

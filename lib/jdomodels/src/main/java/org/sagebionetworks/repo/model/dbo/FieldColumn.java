@@ -15,16 +15,21 @@ public class FieldColumn {
 	private boolean isPrimaryKey = false;
 	private boolean isEtag = false;
 	private boolean isBackupId = false;
+	private boolean isSelfForeignKey = false;
 	
 	/**
-	 * The only constructor.
-	 * @param fieldName
-	 * @param columnName
+	 * @param fieldName - the name of the field as declared in the DBO class.
+	 * @param columnName - the name of the column in the database
 	 */
 	public FieldColumn(String fieldName, String columnName) {
 		this(fieldName, columnName, false);;
 	}
 	
+	/**
+	 * @param fieldName - the name of the field as declared in the DBO class.
+	 * @param columnName - the name of the column in the database
+	 * @param isPrimary - Set to true if this column is part of the primary key.
+	 */
 	public FieldColumn(String fieldName, String columnName, boolean isPrimary) {
 		super();
 		this.fieldName = fieldName;
@@ -48,8 +53,82 @@ public class FieldColumn {
 		return columnName;
 	}
 
+	/**
+	 * Boolean used to mark a column as part of the primary key.
+	 * Note: More than one column can be part of the primary key
+	 * @return
+	 */
 	public boolean isPrimaryKey() {
 		return isPrimaryKey;
+	}
+	
+	/**
+	 * Is this column the etag?
+	 * This is only used for MigratableDatabaseObject.
+	 * @return
+	 */
+	public boolean isEtag(){
+		return isEtag;
+	}
+	
+	/**
+	 * Is this column the backup ID.
+	 * Note: The backup ID is the same as the primary key as only as the primary key only includes one column.
+	 * For tables that have primary keys that span multiple columns a separate single backup column ID must be provided.
+	 * For such cases the backup ID should be a single delimited string of the primary key columns. The backup ID must be unique.
+	 * This is only used for MigratableDatabaseObject.
+	 * 
+	 * @return
+	 */
+	public boolean isBackupId(){
+		return isBackupId;
+	}
+	
+	/**
+	 * Is this column the etag?
+	 * This is only used for MigratableDatabaseObject.
+	 * @param isEtag
+	 * @return
+	 */
+	public FieldColumn withIsEtag(boolean isEtag){
+		this.isEtag = isEtag;
+		return this;
+	}
+	
+	/**
+	 * Is this column the backup ID.
+	 * Note: The backup ID is the same as the primary key as only as the primary key only includes one column.
+	 * For tables that have primary keys that span multiple columns a separate single backup column ID must be provided.
+	 * For such cases the backup ID should be a single delimited string of the primary key columns. The backup ID must be unique.
+	 * This is only used for MigratableDatabaseObject.
+	 * @param isBackupId
+	 * @return
+	 */
+	public FieldColumn withIsBackupId(boolean isBackupId){
+		this.isBackupId = isBackupId;
+		return this;
+	}
+	
+	/**
+	 * Does this column have a Foreign Key constraint to another column on this table?
+	 * For example, 'parentId' can be a reference to another row within the same table.
+	 * In this example, the 'parentId' column should be set to isSelfForeignKey = true;
+	 * @param isSelfForeignKey
+	 * @return
+	 */
+	public FieldColumn withIsSelfForeignKey(boolean isSelfForeignKey){
+		this.isSelfForeignKey = isSelfForeignKey;
+		return this;
+	}
+	
+	/**
+	 * Does this column have a Foreign Key constraint to another column on this table?
+	 * For example, 'parentId' can be a reference to another row within the same table.
+	 * In this example, the 'parentId' column should be set to isSelfForeignKey = true;
+	 * @return
+	 */
+	public boolean isSelfForeignKey(){
+		return this.isSelfForeignKey;
 	}
 
 	@Override

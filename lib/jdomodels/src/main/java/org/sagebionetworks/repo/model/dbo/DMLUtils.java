@@ -9,6 +9,13 @@ package org.sagebionetworks.repo.model.dbo;
 public class DMLUtils {
 
 	/**
+	 * The SQL bind variable for a list of IDs;
+	 */
+	public static final String BIND_VAR_ID_lIST = "BVIDLIST";
+	public static final String BIND_VAR_OFFSET = "BVOFFSET";
+	public static final String BIND_VAR_LIMIT = "BCLIMIT";
+
+	/**
 	 * Create an INSERT statement for a given mapping.
 	 * @param mapping
 	 * @return
@@ -152,5 +159,78 @@ public class DMLUtils {
 		return main.toString();
 	}
 	
+	/**
+	 * Build a batch Delete SQL statment for the given mapping.
+	 * @param mapping
+	 * @return
+	 */
+	public static String createBatchDelete(TableMapping mapping){
+		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
+		if(mapping.getTableName() == null) throw new IllegalArgumentException("Mapping.tableName cannot be null");
+		if(mapping.getFieldColumns() == null) throw new IllegalArgumentException("TableMapping.fieldColumns() cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append("DELETE FROM ");
+		builder.append(mapping.getTableName());
+		builder.append(" WHERE ");
+		addBackupIdInList(builder, mapping);
+		return builder.toString();
+	}
+	
+	private static void addBackupIdInList(StringBuilder builder, TableMapping mapping){
+		// Find the backup id
+		builder.append("`");
+		builder.append(getBackupIdColumnName(mapping));
+		builder.append("`");
+		builder.append(" IN ( :"+BIND_VAR_ID_lIST+" )");
+	}
+	
+	/**
+	 * Find the backup column
+	 * @param mapping
+	 * @return
+	 */
+	private static String getBackupIdColumnName(TableMapping mapping){
+		for(FieldColumn column: mapping.getFieldColumns()){
+			if(column.isBackupId()){
+				return column.getColumnName();
+			}
+		}
+		throw new IllegalArgumentException(mapping.getTableName()+" did not have a TableMapping.fieldColumn with is isBackupId = 'true' ");
+	}
+	
+	public static FieldColumn getEtagColumn(TableMapping mapping){
+		for(FieldColumn column: mapping.getFieldColumns()){
+			if(column.isEtag()){
+				return column;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * List all of the row data.
+	 * @param mapping
+	 * @return
+	 */
+	public static String listRowMetadata(TableMapping mapping) {
+		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
+		if(mapping.getTableName() == null) throw new IllegalArgumentException("Mapping.tableName cannot be null");
+		if(mapping.getFieldColumns() == null) throw new IllegalArgumentException("TableMapping.fieldColumns() cannot be null");
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ");
+		builder.append(getBackupIdColumnName(mapping));
+		FieldColumn etagColumn = getEtagColumn(mapping);
+		if(etagColumn != null){
+			builder.append(", ");
+			builder.append(etagColumn.getColumnName());
+		}
+		builder.append(" FROM ");
+		builder.append(mapping.getTableName());
+		builder.append(" OFFSET :");
+		builder.append(BIND_VAR_OFFSET);
+		builder.append("LIMIT :");
+		builder.append(BIND_VAR_LIMIT);
+		return builder.toString();
+	}
 	
 }

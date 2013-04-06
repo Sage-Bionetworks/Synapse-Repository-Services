@@ -31,11 +31,14 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAO;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.migration.MigratableTableType;
+import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -55,6 +58,9 @@ public class DBOFileHandleDaoImplTest {
 	
 	private List<String> toDelete;
 	String creatorUserGroupId;
+	
+	@Autowired
+	MigatableTableDAO migatableTableDAO;
 	
 	@Before
 	public void before(){
@@ -569,6 +575,31 @@ public class DBOFileHandleDaoImplTest {
 		
 	}
 	
+	@Test
+	public void testTableMigration() throws Exception {
+		long startCount = fileHandleDao.getCount();
+		long migrationCount = migatableTableDAO.getCount(MigratableTableType.FILE_HANDLE);
+		assertEquals(startCount, migrationCount);
+		// The one will have a preview
+		S3FileHandle withPreview = createS3FileHandle();
+		withPreview.setFileName("withPreview.txt");
+		withPreview = fileHandleDao.createFile(withPreview);
+		assertNotNull(withPreview);
+		toDelete.add(withPreview.getId());
+		// The Preview
+		PreviewFileHandle preview = createPreviewFileHandle();
+		preview.setFileName("preview.txt");
+		preview = fileHandleDao.createFile(preview);
+		assertNotNull(preview);
+		toDelete.add(preview.getId());
+		// Assign it as a preview
+		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
+		// The etag should have changed
+		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
+		
+		// Now list all of the objects
+		QueryResults<RowMetadata> totalList = migatableTableDAO.listRowMetadata(MigratableTableType.FILE_HANDLE, Long.MAX_VALUE, 0);
+	}
 	
 	@Test
 	public void testFindFileHandleWithKeyAndMD5(){

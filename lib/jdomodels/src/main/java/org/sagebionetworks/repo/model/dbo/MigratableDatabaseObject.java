@@ -11,11 +11,17 @@ import org.sagebionetworks.repo.model.migration.MigratableTableType;
  * @param <D>
  * @param <B>
  */
-public interface MigratableDatabaseObject<D extends DatabaseObject<?>, B> extends DatabaseObject<D>, MigratableTableTranslation<D, B> {
+public interface MigratableDatabaseObject<D extends DatabaseObject<?>, B> extends DatabaseObject<D> {
 
 	/**
 	 * The type of this table.
 	 * @return
 	 */
 	public MigratableTableType getMigratableTableType();
+	
+	/**
+	 * Get the translator that will be used to translate from one object to another.
+	 * @return
+	 */
+	public MigratableTableTranslation<D, B> getTranslator();
 }
