@@ -1,8 +1,9 @@
 package org.sagebionetworks.doi;
 
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import org.sagebionetworks.repo.model.doi.Doi;
 
 public class EzidAsyncClient implements DoiClient {
 
@@ -14,17 +15,34 @@ public class EzidAsyncClient implements DoiClient {
 	}
 
 	@Override
+	public EzidDoi get(String doi, Doi dto) {
+		return ezidClient.get(doi, dto);
+	}
+
+	@Override
 	public void create(final EzidDoi doi) {
-		executor.submit(new Callable<EzidDoi> () {
+		executor.submit(new Runnable () {
 			@Override
-			public EzidDoi call() {
+			public void run() {
 				try {
 					ezidClient.create(doi);
 					createCallback.onSuccess(doi);
-					return doi;
 				} catch (Exception e) {
 					createCallback.onError(doi, e);
-					return doi;
+				}
+			}});
+	}
+
+	@Override
+	public void update(final EzidDoi doi) {
+		executor.submit(new Runnable () {
+			@Override
+			public void run() {
+				try {
+					ezidClient.update(doi);
+					createCallback.onSuccess(doi);
+				} catch (Exception e) {
+					createCallback.onError(doi, e);
 				}
 			}});
 	}

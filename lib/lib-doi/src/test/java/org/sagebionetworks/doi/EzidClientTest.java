@@ -39,7 +39,7 @@ public class EzidClientTest {
 	public void testConstructor() throws Exception {
 		DoiClient client = new EzidClient();
 		assertNotNull(client);
-		DefaultHttpClient httpClient = (DefaultHttpClient)ReflectionTestUtils.getField(client, "client");
+		DefaultHttpClient httpClient = (DefaultHttpClient)ReflectionTestUtils.getField(client, "writeClient");
 		assertNotNull(httpClient);
 		assertEquals(Integer.valueOf(9000), httpClient.getParams().getParameter(CoreConnectionPNames.SO_TIMEOUT));
 		assertEquals("Synapse", httpClient.getParams().getParameter(CoreProtocolPNames.USER_AGENT));
@@ -91,7 +91,7 @@ public class EzidClientTest {
 
 		// "Inject" the mock client
 		DoiClient doiClient = new EzidClient();
-		ReflectionTestUtils.setField(doiClient, "client", mockClient);
+		ReflectionTestUtils.setField(doiClient, "writeClient", mockClient);
 
 		Method method = EzidClient.class.getDeclaredMethod("executeWithRetry", HttpUriRequest.class);
 		method.setAccessible(true);
@@ -103,7 +103,7 @@ public class EzidClientTest {
 			assertTrue(cause.getMessage().contains("503"));
 		}
 
-		// Retried 3 times
-		verify(mockClient.execute(httpPut), times(3));
+		// Retried 3 times -- in total, it's executed 4 times
+		verify(mockClient, times(4)).execute(httpPut);
 	}
 }
