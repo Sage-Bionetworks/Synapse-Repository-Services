@@ -47,6 +47,9 @@ public class EzidAsyncClient implements DoiClient {
 			}});
 	}
 
+	// If the thread pool is to have more than 1 thread,
+	// the blocking client must also use a pool of connections.
+	// The blocking client currently uses SingleClientConnManager.
 	private final ExecutorService executor = Executors.newFixedThreadPool(1);
 	private final EzidClient ezidClient = new EzidClient();
 	private final EzidAsyncCallback createCallback;
