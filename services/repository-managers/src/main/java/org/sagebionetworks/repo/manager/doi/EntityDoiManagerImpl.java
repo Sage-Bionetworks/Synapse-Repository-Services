@@ -93,7 +93,12 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		}
 
 		// If it already exists with no error, no need to create again.
-		Doi doiDto = doiDao.getDoi(entityId, DoiObjectType.ENTITY, versionNumber);
+		Doi doiDto = null;
+		try {
+			doiDto = doiDao.getDoi(entityId, DoiObjectType.ENTITY, versionNumber);
+		} catch (NotFoundException e) {
+			doiDto = null;
+		}
 		if (doiDto != null && !DoiStatus.ERROR.equals(doiDto.getDoiStatus())) {
 			return doiDto;
 		}
