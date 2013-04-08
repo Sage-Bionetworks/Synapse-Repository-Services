@@ -14,6 +14,10 @@ public class EzidAsyncClient implements DoiClient {
 		this.createCallback = createCallback;
 	}
 
+	/**
+	 * This is implemented for now as a blocking call to get the results.
+	 * Ideally we would get the results from the async callback.
+	 */
 	@Override
 	public EzidDoi get(String doi, Doi dto) {
 		return ezidClient.get(doi, dto);
