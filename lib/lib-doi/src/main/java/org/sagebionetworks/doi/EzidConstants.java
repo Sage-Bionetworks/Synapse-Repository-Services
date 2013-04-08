@@ -15,7 +15,7 @@ public class EzidConstants {
 	/**
 	 * Synapse web portal URL with protocol and host name. Path not included.
 	 */
-	public static final String TARGET_URL_PREFIX = StackConfiguration.getEzidTargetUrlPrefix() + "/";
+	public static final String TARGET_URL_PREFIX = StackConfiguration.getEzidTargetUrlPrefix() + "/#!Synapse:";
 
 	/**
 	 * Publisher is always Sage Bionetworks.

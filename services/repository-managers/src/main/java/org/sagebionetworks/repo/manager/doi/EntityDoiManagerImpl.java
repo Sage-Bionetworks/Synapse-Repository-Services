@@ -128,7 +128,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		final int year = Calendar.getInstance().get(Calendar.YEAR);
 		metadata.setPublicationYear(year);
 		metadata.setPublisher(EzidConstants.PUBLISHER);
-		String target = EzidConstants.TARGET_URL_PREFIX + "#!Synapse:" + entityId;
+		String target = EzidConstants.TARGET_URL_PREFIX + entityId;
 		if (versionNumber != null) {
 			target = target + "/version/" + versionNumber;
 		}

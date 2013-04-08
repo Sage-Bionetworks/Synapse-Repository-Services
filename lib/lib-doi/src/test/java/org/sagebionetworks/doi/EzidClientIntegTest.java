@@ -25,8 +25,8 @@ public class EzidClientIntegTest {
 		final EzidMetadata metadata = new EzidMetadata();
 		final String target = EzidConstants.TARGET_URL_PREFIX;
 		assertTrue(target.startsWith("http"));
-		assertTrue(target.endsWith("/"));
-		assertFalse(target.endsWith("//"));
+		assertTrue(target.endsWith("/#!Synapse:"));
+		assertFalse(target.endsWith("//#!Synapse:"));
 		metadata.setTarget(target);
 		final String creator = "Test, Something";
 		metadata.setCreator(creator);
