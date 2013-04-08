@@ -18,6 +18,7 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -103,7 +104,6 @@ public class DBODoiDaoImplAutowiredTest {
 		assertNotNull(doi.getEtag());
 		assertEquals(etag2, doi.getEtag());
 		assertEquals(objectId, doi.getObjectId());
-		System.out.println(doi.getObjectVersion());
 		assertNull(doi.getObjectVersion());
 		assertEquals(objectType, doi.getDoiObjectType());
 		assertEquals(doiStatus, doi.getDoiStatus());
@@ -139,5 +139,10 @@ public class DBODoiDaoImplAutowiredTest {
 		assertEquals(userId, doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
 		assertNotNull(doi.getUpdatedOn());
+	}
+
+	@Test(expected=NotFoundException.class)
+	public void testGetNotFoundException() throws Exception {
+		doiDao.getDoi("syn372861388593", DoiObjectType.ENTITY, null);
 	}
 }

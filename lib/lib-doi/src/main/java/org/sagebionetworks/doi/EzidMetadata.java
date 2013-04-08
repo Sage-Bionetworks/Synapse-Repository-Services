@@ -1,6 +1,10 @@
 package org.sagebionetworks.doi;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 
 /**
@@ -73,17 +77,75 @@ public class EzidMetadata {
 	}
 
 	/**
-	 * This is all the metadata minus the DOI. Special characters in the values are encoded
-	 * by percent-encoding per EZID documentation.
+	 * This is the minimum required metadata to create a DataCite DOI via EZID.
+	 * Special characters in the values are encoded by percent-encoding per EZID documentation.
 	 */
 	public String getMetadataAsString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("datacite.title: ").append(encode(getTitle())).append("\r\n");
-		builder.append("datacite.creator: ").append(encode(getCreator())).append("\r\n");
-		builder.append("datacite.publisher: ").append(encode(getPublisher())).append("\r\n");
-		builder.append("datacite.publicationyear: ").append(Integer.toString(publicationYear)).append("\r\n");
-		builder.append("_target: ").append(encode(getTarget()));
+		builder.append(FIELD_TITLE + SEPARATOR + " ").append(encode(getTitle())).append("\r\n");
+		builder.append(FIELD_CREATOR + SEPARATOR + " ").append(encode(getCreator())).append("\r\n");
+		builder.append(FIELD_PUBLISHER + SEPARATOR + " ").append(encode(getPublisher())).append("\r\n");
+		builder.append(FIELD_PUBLICATION_YEAR + SEPARATOR + " ").append(Integer.toString(publicationYear)).append("\r\n");
+		builder.append(FIELD_TARGET + SEPARATOR + " ").append(encode(getTarget()));
 		return builder.toString();
+	}
+
+	void initFromString(String metadata) {
+
+		if (metadata == null || metadata.isEmpty()) {
+			throw new IllegalArgumentException("Metadata cannot be null.");
+		}
+
+		this.originalMetadata = metadata;
+
+		try {
+			BufferedReader r = new BufferedReader(new StringReader(metadata));
+			String line = r.readLine();
+			while (line != null) {
+				final int splitAt = line.indexOf(SEPARATOR);
+				if (splitAt > 0 && splitAt < line.length() - 1) {
+					String value = line.substring(splitAt + 1, line.length());
+					value = value.trim();
+					String field = line.substring(0, splitAt);
+					field = field.trim().toLowerCase();
+					if (FIELD_TITLE.equals(field)) {
+						this.setTitle(decode(value));
+					} else if (FIELD_CREATOR.equals(field)) {
+						this.setCreator(decode(value));
+					} else if (FIELD_PUBLISHER.equals(field)) {
+						this.setPublisher(decode(value));
+					} else if (FIELD_PUBLICATION_YEAR.equals(field)) {
+						this.setPublicationYear(Integer.valueOf(decode(value)));
+					} else if (FIELD_TARGET.equals(field)) {
+						this.setTarget(decode(value));
+					}
+ 				}
+				line = r.readLine();
+			}
+			r.close();
+		} catch (IOException e) {
+			throw new RuntimeException(e.getMessage(), e);
+		}
+	}
+
+	/**
+	 * This is the response string from the get operation.
+	 * Besides the required fields, these additional fields
+	 * appear in the response. Example:
+	 *
+	 * success: doi:10.5072/FK2.5FB2B17A
+	 * _ownergroup: apitest
+	 * _owner: apitest
+	 * _created: 1365186258
+	 * _updated: 1365186258
+	 * _profile: datacite
+	 * _status: public
+	 * _shadowedby: ark:/b5072/fk2.5fb2b17a
+	 * _export: yes
+	 *
+	 */
+	String getOriginalMetadata() {
+		return originalMetadata;
 	}
 
 	private String encode(String value) {
@@ -94,9 +156,42 @@ public class EzidMetadata {
 		}
 	}
 
+	private String decode(String value) {
+		try {
+			return URLDecoder.decode(value, "UTF-8");
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException("Error occurred while decoding " + value, e);
+		}
+	}
+
+	private static final char SEPARATOR = ':';
+	private static final String FIELD_TITLE = "datacite.title";
+	private static final String FIELD_CREATOR = "datacite.creator";
+	private static final String FIELD_PUBLISHER = "datacite.publisher";
+	private static final String FIELD_PUBLICATION_YEAR = "datacite.publicationyear";
+	private static final String FIELD_TARGET = "_target";
+
+	// Required
 	private String title;
 	private String creator;
 	private String publisher;
 	private int publicationYear;
 	private String target;
+
+	// Optional. This is a temporary holder
+	// of the response string from the get operation.
+	// Besides the required fields, these additional
+	// fields appear in the response. Example:
+	//
+	//		success: doi:10.5072/FK2.5FB2B17A
+	//		_ownergroup: apitest
+	//		_owner: apitest
+	//		_created: 1365186258
+	//		_updated: 1365186258
+	//		_profile: datacite
+	//		_status: public
+	//		_shadowedby: ark:/b5072/fk2.5fb2b17a
+	//		_export: yes
+	//
+	private String originalMetadata;
 }

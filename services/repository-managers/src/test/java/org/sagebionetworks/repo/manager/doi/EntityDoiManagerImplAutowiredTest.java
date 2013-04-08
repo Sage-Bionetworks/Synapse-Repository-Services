@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DoiAdminDao;
+import org.sagebionetworks.repo.model.DoiDao;
 import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -35,6 +36,7 @@ public class EntityDoiManagerImplAutowiredTest {
 	@Autowired private EntityDoiManager entityDoiManager;
 	@Autowired private NodeManager nodeManager;
 	@Autowired private UserProvider userProvider;
+	@Autowired private DoiDao doiDao;
 	@Autowired private DoiAdminDao doiAdminDao;
 	private UserInfo testUserInfo;
 	private List<String> toClearList;
@@ -148,6 +150,58 @@ public class EntityDoiManagerImplAutowiredTest {
 			Thread.sleep(PAUSE);
 			time = time + PAUSE;
 			doiGet = entityDoiManager.getDoi(userName, nodeId, 1L);
+			doiStatus = doiGet.getDoiStatus();
+		}
+		assertEquals(DoiStatus.READY, doiStatus);
+	}
+
+	@Test
+	public void testRetryableOnError() throws Exception {
+
+		Node node = new Node();
+		final String nodeName = "EntityDoiManagerImplAutowiredTest.testRetryableOnError()";
+		node.setName(nodeName);
+		node.setNodeType(EntityType.project.name());
+		final String nodeId = nodeManager.createNewNode(node, testUserInfo);
+		toClearList.add(nodeId);
+		assertNotNull(nodeId);
+
+		// Set up an error status first
+		// Test that we should be able to recreate the DOI from here
+		final String userId = testUserInfo.getIndividualGroup().getId();
+		doiDao.createDoi(userId, nodeId, DoiObjectType.ENTITY, null, DoiStatus.ERROR);
+
+		final String userName = testUserInfo.getIndividualGroup().getName();
+		Doi doiCreate = entityDoiManager.createDoi(userName, nodeId, null);
+
+		assertNotNull(doiCreate);
+		assertNotNull(doiCreate.getId());
+		assertEquals(nodeId, doiCreate.getObjectId());
+		assertEquals(DoiObjectType.ENTITY, doiCreate.getDoiObjectType());
+		assertNull(doiCreate.getObjectVersion());
+		assertNotNull(doiCreate.getCreatedOn());
+		assertEquals(testUserInfo.getIndividualGroup().getId(), doiCreate.getCreatedBy());
+		assertNotNull(doiCreate.getUpdatedOn());
+		assertEquals(DoiStatus.IN_PROCESS, doiCreate.getDoiStatus());
+
+		Doi doiGet = entityDoiManager.getDoi(userName, nodeId, null);
+		assertNotNull(doiGet);
+		assertNotNull(doiGet.getId());
+		assertEquals(nodeId, doiGet.getObjectId());
+		assertEquals(DoiObjectType.ENTITY, doiGet.getDoiObjectType());
+		assertNull(doiCreate.getObjectVersion());
+		assertNotNull(doiGet.getCreatedOn());
+		assertEquals(testUserInfo.getIndividualGroup().getId(), doiGet.getCreatedBy());
+		assertNotNull(doiGet.getUpdatedOn());
+		assertNotNull(doiGet.getDoiStatus());
+
+		// Wait for status to turn green
+		DoiStatus doiStatus = doiGet.getDoiStatus();
+		long time = 0L;
+		while (time < MAX_WAIT && DoiStatus.IN_PROCESS.equals(doiStatus)) {
+			Thread.sleep(PAUSE);
+			time = time + PAUSE;
+			doiGet = entityDoiManager.getDoi(userName, nodeId, null);
 			doiStatus = doiGet.getDoiStatus();
 		}
 		assertEquals(DoiStatus.READY, doiStatus);
