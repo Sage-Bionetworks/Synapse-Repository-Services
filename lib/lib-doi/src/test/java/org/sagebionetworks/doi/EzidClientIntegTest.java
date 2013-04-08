@@ -1,7 +1,9 @@
 package org.sagebionetworks.doi;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.Calendar;
 import java.util.Random;
@@ -18,9 +20,13 @@ public class EzidClientIntegTest {
 		doiCreate.setDto(dto);
 		String id = Integer.toHexString(random.nextInt());
 		final String doi = EzidConstants.DOI_PREFIX + id;
+		assertTrue(doi.startsWith("doi:10.5072/FK2."));
 		doiCreate.setDoi(doi);
 		final EzidMetadata metadata = new EzidMetadata();
 		final String target = EzidConstants.TARGET_URL_PREFIX;
+		assertTrue(target.startsWith("http"));
+		assertTrue(target.endsWith("/"));
+		assertFalse(target.endsWith("//"));
 		metadata.setTarget(target);
 		final String creator = "Test, Something";
 		metadata.setCreator(creator);
