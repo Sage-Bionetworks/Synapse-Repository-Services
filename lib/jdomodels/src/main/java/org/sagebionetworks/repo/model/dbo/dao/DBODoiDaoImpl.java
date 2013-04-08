@@ -137,7 +137,8 @@ public class DBODoiDaoImpl implements DoiDao {
 		}
 		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
 		if (dbo == null) {
-			return null;
+			throw new NotFoundException("DOI not found for type " + objectType
+					+ ", ID " + objectType + ", Version " + versionNumber);
 		}
 		return DoiUtils.convertToDto(dbo);
 	}
