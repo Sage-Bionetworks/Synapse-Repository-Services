@@ -47,4 +47,10 @@ public class SQLConstants {
 	public static final String COL_SUBSTATUS_SCORE		 		= "SCORE";
 	public static final String COL_SUBSTATUS_STATUS 			= "STATUS";
 	public static final String COL_SUBSTATUS_SERIALIZED_ENTITY	= "SERIALIZED_ENTITY";
+	
+	// SubmissionFile table constants
+	public static final String DDL_FILE_SUBFILE					= "schema/evaluation/SubmissionFile-ddl.sql";
+	public static final String TABLE_SUBFILE					= "JDOSUBMISSION_FILE";
+	public static final String COL_SUBFILE_SUBMISSION_ID 		= "SUBMISSION_ID";
+	public static final String COL_SUBFILE_FILE_HANDLE_ID 		= "FILE_HANDLE_ID";
 }
