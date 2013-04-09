@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.UserProfileDAO;
 import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
@@ -33,7 +32,6 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	@Autowired private AuthorizationManager authorizationManager;
 	@Autowired private DoiDao doiDao;
 	@Autowired private NodeDAO nodeDao;
-	@Autowired private UserProfileDAO userProfileDAO;
 	private final DoiClient ezidAsyncClient;
 
 	public EntityDoiManagerImpl() {
@@ -94,18 +92,27 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 			throw new UnauthorizedException(userId + " lacks change access to the requested object.");
 		}
 
-		// If it already exists, no need to create again.
-		Doi doiDto = doiDao.getDoi(entityId, DoiObjectType.ENTITY, versionNumber);
-		if (doiDto != null) {
+		// If it already exists with no error, no need to create again.
+		Doi doiDto = null;
+		try {
+			doiDto = doiDao.getDoi(entityId, DoiObjectType.ENTITY, versionNumber);
+		} catch (NotFoundException e) {
+			doiDto = null;
+		}
+		if (doiDto != null && !DoiStatus.ERROR.equals(doiDto.getDoiStatus())) {
 			return doiDto;
 		}
 
-		// Find the node. Info will be used in DOI metadata.
+		// Find the node. Make sure the node exists. Node info will be used in DOI metadata.
 		final Node node = getNode(entityId, versionNumber);
 
 		// Record the attempt. This is where we draw the transaction boundary.
-		String userGroupId = currentUser.getIndividualGroup().getId();
-		doiDto = doCreateTransaction(userGroupId, entityId, versionNumber);
+		if (doiDto == null) {
+			String userGroupId = currentUser.getIndividualGroup().getId();
+			doiDto = doiDao.createDoi(userGroupId, entityId, DoiObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
+		} else {
+			doiDto = doiDao.updateDoiStatus(entityId, DoiObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS, doiDto.getEtag());
+		}
 
 		// Create DOI string
 		EzidDoi ezidDoi = new EzidDoi();
@@ -128,7 +135,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		final int year = Calendar.getInstance().get(Calendar.YEAR);
 		metadata.setPublicationYear(year);
 		metadata.setPublisher(EzidConstants.PUBLISHER);
-		String target = EzidConstants.TARGET_URL_PREFIX + "#!Synapse:" + entityId;
+		String target = EzidConstants.TARGET_URL_PREFIX + entityId;
 		if (versionNumber != null) {
 			target = target + "/version/" + versionNumber;
 		}
@@ -161,10 +168,6 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		}
 
 		return doiDao.getDoi(entityId, DoiObjectType.ENTITY, versionNumber);
-	}
-
-	private Doi doCreateTransaction(String userGroupId, String entityId, Long versionNumber) {
-		return doiDao.createDoi(userGroupId, entityId, DoiObjectType.ENTITY, versionNumber, DoiStatus.IN_PROCESS);
 	}
 
 	/** Gets the node whose information will be used in DOI metadata. */
