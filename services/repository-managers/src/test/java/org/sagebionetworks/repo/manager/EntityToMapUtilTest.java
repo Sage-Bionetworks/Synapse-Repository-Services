@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.junit.Test;
 import org.sagebionetworks.repo.model.Annotations;
+import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.Study;
 
 @SuppressWarnings("rawtypes")

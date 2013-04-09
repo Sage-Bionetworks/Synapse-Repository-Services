@@ -5,7 +5,9 @@ import java.util.List;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public interface SubmissionDAO {
 
@@ -13,10 +15,12 @@ public interface SubmissionDAO {
 	 * Create a new Submission
 	 * 
 	 * @param dto
+	 * @param node
+	 * @param annos
+	 * @return
 	 * @throws DatastoreException
-	 * @return the ID of the newly-created object
 	 */
-	public String create(Submission dto) throws DatastoreException;
+	public String create(Submission dto, EntityBundle bundle) throws DatastoreException, JSONObjectAdapterException;
 
 	/**
 	 * Get a Submission by ID

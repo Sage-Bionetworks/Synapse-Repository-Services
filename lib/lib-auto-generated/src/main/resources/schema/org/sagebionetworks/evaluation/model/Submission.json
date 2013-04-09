@@ -22,6 +22,11 @@
 			"description": "The Synapse ID of the Entity in this Submission.",
 			"transient": true
 		},
+		"entityBundleJSON": {
+			"type": "string",
+			"description": "Bundled Entity and Annotations JSON.",
+			"transient": true
+		},
 		"versionNumber":{
             "type":"integer",
             "description":"The version number of the Entity."            

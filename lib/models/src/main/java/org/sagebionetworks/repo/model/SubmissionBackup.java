@@ -20,7 +20,6 @@ public class SubmissionBackup {
 	public void setSubmissionStatus(SubmissionStatus submissionStatus) {
 		this.submissionStatus = submissionStatus;
 	}
-	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -32,7 +31,6 @@ public class SubmissionBackup {
 				+ ((submissionStatus == null) ? 0 : submissionStatus.hashCode());
 		return result;
 	}
-	
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -54,7 +52,6 @@ public class SubmissionBackup {
 			return false;
 		return true;
 	}
-	
 	@Override
 	public String toString() {
 		return "SubmissionBackup [submission=" + submission

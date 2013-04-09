@@ -11,6 +11,7 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -18,6 +19,7 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.util.ControllerUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
@@ -207,13 +209,14 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	Submission createSubmission(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			@RequestParam(value = AuthorizationConstants.ETAG_PARAM, required = false) String entityEtag,
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request
-			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException
+			) throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException, UnauthorizedException, ACLInheritanceException, ParseException
 	{
 		String requestBody = ControllerUtil.getRequestBodyAsString(request);
 		Submission sub = new Submission(new JSONObjectAdapterImpl(requestBody));
-		return serviceProvider.getEvaluationService().createSubmission(userId, sub);
+		return serviceProvider.getEvaluationService().createSubmission(userId, sub, entityEtag, request);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -221,10 +224,11 @@ public class EvaluationController extends BaseController {
 	public @ResponseBody
 	Submission getSubmission(
 			@PathVariable String subId,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			HttpServletRequest request
 			) throws DatastoreException, UnauthorizedException, NotFoundException 
 	{
-		return serviceProvider.getEvaluationService().getSubmission(subId);
+		return serviceProvider.getEvaluationService().getSubmission(userId, subId);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
@@ -286,6 +290,24 @@ public class EvaluationController extends BaseController {
 			status = SubmissionStatusEnum.valueOf(statusString.toUpperCase().trim());
 		}		
 		return serviceProvider.getEvaluationService().getAllSubmissions(userId, evalId, status, limit, offset, request);
+	}
+	
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = UrlHelpers.SUBMISSION_STATUS_WITH_EVAL_ID, method = RequestMethod.GET)
+	public @ResponseBody
+	PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(
+			@PathVariable String evalId,
+			@RequestParam(value = ServiceConstants.PAGINATION_OFFSET_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_OFFSET_PARAM_NEW) long offset,
+			@RequestParam(value = ServiceConstants.PAGINATION_LIMIT_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_PAGINATION_LIMIT_PARAM) long limit,
+			@RequestParam(value = UrlHelpers.STATUS, defaultValue = "") String statusString,
+			HttpServletRequest request
+			) throws DatastoreException, UnauthorizedException, NotFoundException 
+	{
+		SubmissionStatusEnum status = null;
+		if (statusString.length() > 0) {
+			status = SubmissionStatusEnum.valueOf(statusString.toUpperCase().trim());
+		}
+		return serviceProvider.getEvaluationService().getAllSubmissionStatuses(evalId, status, limit, offset, request);
 	}
 	
 	@ResponseStatus(HttpStatus.OK)
