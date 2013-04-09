@@ -22,6 +22,9 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -92,7 +95,7 @@ public class SubmissionBackupDriverTest {
 			@Override
 			public Object invoke(Object synapseClient, Method method, Object[] args)
 					throws Throwable {
-				if (method.equals(SubmissionDAO.class.getMethod("create", Submission.class))) {
+				if (method.equals(SubmissionDAO.class.getMethod("create", Submission.class, EntityBundle.class))) {
 					Submission sub = (Submission) args[0];
 					subs.put(sub.getId(), sub);
 					return null;
@@ -133,14 +136,16 @@ public class SubmissionBackupDriverTest {
 	@Before
 	public void before() throws Exception {
 		srcSubs = new HashMap<String, Submission>();
-		srcStatuses = new HashMap<String, SubmissionStatus>();
 		dstSubs = new HashMap<String, Submission>();
+		srcStatuses = new HashMap<String, SubmissionStatus>();		
 		dstStatuses = new HashMap<String, SubmissionStatus>();
 		SubmissionStatusDAO srcSubmissionStatusDAO = createSubmissionStatusDAO(srcStatuses);
 		SubmissionDAO srcSubmissionDAO = createSubmissionDAO(srcSubs);
 		int numSubs = 5;
 		for (int i = 0; i < numSubs; i++) {
-			srcSubmissionDAO.create(createSubmission("" + i));
+			Entity entity = new Folder();
+			entity.setName("foo" + i);
+			srcSubmissionDAO.create(createSubmission("" + i), null);
 			srcSubmissionStatusDAO.create(createSubmissionStatus("" + i));
 		}
 		assertEquals(numSubs, srcStatuses.size());

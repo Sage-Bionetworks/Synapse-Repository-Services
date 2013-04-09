@@ -22,6 +22,7 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.SubmissionBackup;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 
 @Deprecated // This needs to be replaced with GenericBackupDriverImpl and should not be copied.
@@ -169,7 +170,13 @@ public class SubmissionBackupDriver implements GenericBackupDriver {
 		} catch (NotFoundException e) {}
 		if (null == existing) {
 			// create
-			submissionDAO.create(submission);
+			try {
+				submissionDAO.create(submission, null);
+			} catch (JSONObjectAdapterException e) {
+				// this will never happen, since we're not actually serializing
+				// an EntityBundle
+				e.printStackTrace();
+			}
 			submissionStatusDAO.createFromBackup(submissionStatus);
 		} else {
 			// Update only when backup is different from the current system

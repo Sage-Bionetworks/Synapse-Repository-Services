@@ -834,7 +834,7 @@ public class EntityServletTestHelper {
 		return Long.parseLong(response.getContentAsString());
 	}
 	
-	public Submission createSubmission(Submission sub, String userId)
+	public Submission createSubmission(Submission sub, String userId, String entityEtag)
 			throws JSONObjectAdapterException, IOException, DatastoreException,
 			NotFoundException, ServletException 
 	{
@@ -844,6 +844,7 @@ public class EntityServletTestHelper {
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.SUBMISSION);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.setParameter(AuthorizationConstants.ETAG_PARAM, entityEtag);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
 		sub.writeToJSONObject(joa);
@@ -861,13 +862,14 @@ public class EntityServletTestHelper {
 		return new Submission(joa);
 	}
 	
-	public Submission getSubmission(String subId) throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
+	public Submission getSubmission(String userId, String subId) throws ServletException, IOException, DatastoreException, NotFoundException, JSONObjectAdapterException {
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
 		request.setMethod("GET");
 		request.addHeader("Accept", "application/json");
 		request.setRequestURI(UrlHelpers.SUBMISSION+"/"+subId);
 		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		dispatcherServlet.service(request, response);
 		log.debug("Results: " + response.getContentAsString());
 		if (response.getStatus() != HttpStatus.OK.value()) {

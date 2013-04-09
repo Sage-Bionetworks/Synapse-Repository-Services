@@ -13,14 +13,17 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -38,6 +41,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Autowired
 	ParticipantManager participantManager;
 	@Autowired
+	EntityManager entityManager;
+	@Autowired
 	NodeManager nodeManager;
 	
 	public SubmissionManagerImpl() {};
@@ -45,19 +50,29 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	// for testing purposes
 	protected SubmissionManagerImpl(IdGenerator idGenerator, SubmissionDAO submissionDAO, 
 			SubmissionStatusDAO submissionStatusDAO, EvaluationManager evaluationManager,
-			ParticipantManager participantManager, NodeManager nodeManager) {
+			ParticipantManager participantManager, EntityManager entityManager,
+			NodeManager nodeManager) {
 		this.idGenerator = idGenerator;
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
 		this.evaluationManager = evaluationManager;
 		this.participantManager = participantManager;
+		this.entityManager = entityManager;
 		this.nodeManager = nodeManager;
 	}
 
 	@Override
-	public Submission getSubmission(String submissionId) throws DatastoreException, NotFoundException {
+	public Submission getSubmission(UserInfo userInfo, String submissionId) throws DatastoreException, NotFoundException {
 		EvaluationUtils.ensureNotNull(submissionId, "Submission ID");
-		return submissionDAO.get(submissionId);
+		Submission sub = submissionDAO.get(submissionId);
+		boolean isSubmissionOwner = userInfo.getIndividualGroup().getId().equals(sub.getUserId());
+		boolean isEvaluationAdmin = evaluationManager.isEvalAdmin(userInfo, sub.getEvaluationId());
+		if (isSubmissionOwner || isEvaluationAdmin) {
+			return sub;
+		} else {
+			throw new UnauthorizedException("User " + userInfo.getUser().getId() +
+					" is not authorized to view Submission " + submissionId);
+		}
 	}
 
 	@Override
@@ -68,7 +83,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission createSubmission(UserInfo userInfo, Submission submission) throws NotFoundException {
+	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, EntityBundle bundle)
+			throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
 		String evalId = submission.getEvaluationId();
 		UserInfo.validateUserInfo(userInfo);
@@ -84,8 +100,15 @@ public class SubmissionManagerImpl implements SubmissionManager {
 					" has not joined Evaluation ID: " + evalId);
 		}
 		
-		// ensure entity exists and user has read permissions
-		Node node = nodeManager.get(userInfo, submission.getEntityId());
+		// validate eTag
+		String entityId = submission.getEntityId();
+		Node node = nodeManager.get(userInfo, entityId);
+		if (!node.getETag().equals(entityEtag)) {
+			// invalid eTag; reject the Submission
+			throw new IllegalArgumentException("The supplied eTag is out of date. " +
+					"Please fetch Entity " + entityId + " again.");
+		} 
+		
 		// if no name is provided, use the Entity name
 		if (submission.getName() == null) {
 			submission.setName(node.getName());
@@ -102,7 +125,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setCreatedOn(new Date());
 		
 		// create the Submission	
-		String id = submissionDAO.create(submission);
+		String id = submissionDAO.create(submission, bundle);
 		
 		// create an accompanying SubmissionStatus object
 		SubmissionStatus status = new SubmissionStatus();
@@ -123,7 +146,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		
 		// ensure Submission exists and validate admin rights
 		SubmissionStatus old = getSubmissionStatus(submissionStatus.getId());
-		String evalId = getSubmission(submissionStatus.getId()).getEvaluationId();
+		String evalId = getSubmission(userInfo, submissionStatus.getId()).getEvaluationId();
 		if (!evaluationManager.isEvalAdmin(userInfo, evalId))
 			throw new UnauthorizedException("Not authorized");
 		
@@ -172,6 +195,11 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		if (!evaluationManager.isEvalAdmin(userInfo, evalId))
 			throw new UnauthorizedException("User Principal ID" + principalId + " is not authorized to adminster Evaluation " + evalId);
 		
+		return getAllSubmissions(evalId, status, limit, offset);
+	}
+	
+	private QueryResults<Submission> getAllSubmissions(String evalId, SubmissionStatusEnum status, long limit, long offset)
+			throws DatastoreException, NotFoundException {		
 		List<Submission> submissions;
 		long totalNumberOfResults;
 		if (status == null)	{
@@ -181,9 +209,16 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			submissions = submissionDAO.getAllByEvaluationAndStatus(evalId, status, limit, offset);
 			totalNumberOfResults = submissionDAO.getCountByEvaluationAndStatus(evalId, status);
 		}
-		
 		QueryResults<Submission> res = new QueryResults<Submission>(submissions, totalNumberOfResults);
 		return res;
+	}
+	
+	@Override
+	public QueryResults<SubmissionStatus> getAllSubmissionStatuses(String evalId, SubmissionStatusEnum status, long limit, long offset) 
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		// note that this request is publicly-accessible; we do not validate userInfo
+		QueryResults<Submission> submissions = getAllSubmissions(evalId, status, limit, offset);
+		return submissionsToSubmissionStatuses(submissions);
 	}
 	
 	@Override
@@ -241,6 +276,14 @@ public class SubmissionManagerImpl implements SubmissionManager {
 			bundles.add(bun);
 		}
 		return new QueryResults<SubmissionBundle>(bundles, submissions.getTotalNumberOfResults());
+	}
+	
+	protected QueryResults<SubmissionStatus> submissionsToSubmissionStatuses(QueryResults<Submission> submissions) throws DatastoreException, NotFoundException {
+		List<SubmissionStatus> statuses = new ArrayList<SubmissionStatus>(submissions.getResults().size());
+		for (Submission sub : submissions.getResults()) {
+			statuses.add(getSubmissionStatus(sub.getId()));
+		}
+		return new QueryResults<SubmissionStatus>(statuses, submissions.getTotalNumberOfResults());
 	}
 
 }
