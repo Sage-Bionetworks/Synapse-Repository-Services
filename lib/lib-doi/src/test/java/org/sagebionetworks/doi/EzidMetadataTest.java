@@ -56,6 +56,19 @@ public class EzidMetadataTest {
 	}
 
 	@Test
+	public void testInitFromString() throws Exception {
+		String plainText = metadata.getMetadataAsString();
+		plainText = plainText + "\r\n_status: public";
+		EzidMetadata metadata = new EzidMetadata();
+		metadata.initFromString(plainText);
+		assertEquals(title, metadata.getTitle());
+		assertEquals(creator, metadata.getCreator());
+		assertEquals(publisher, metadata.getPublisher());
+		assertEquals(year, metadata.getPublicationYear());
+		assertEquals(target, metadata.getTarget());
+	}
+
+	@Test
 	public void testGetSet() {
 		assertEquals(title, metadata.getTitle());
 		metadata.setTitle("title");

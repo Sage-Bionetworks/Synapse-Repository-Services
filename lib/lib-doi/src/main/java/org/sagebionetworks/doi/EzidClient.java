@@ -14,6 +14,8 @@ import org.apache.http.auth.Credentials;
 import org.apache.http.auth.UsernamePasswordCredentials;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.apache.http.client.params.AuthPolicy;
@@ -25,6 +27,7 @@ import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.repo.model.doi.Doi;
 
 /**
  * EZID DOI client.
@@ -34,9 +37,11 @@ public class EzidClient implements DoiClient {
 	private static final String REALM = "EZID";
 	private static final Integer TIME_OUT = Integer.valueOf(9000); // 9 seconds
 	private static final String USER_AGENT = "Synapse";
-	private final HttpClient client;
+	private final HttpClient writeClient;
+	private final HttpClient readClient;
 
 	public EzidClient() {
+		// Write client needs to set up authentication
 		DefaultHttpClient httpClient = new DefaultHttpClient();
 		AuthScope authScope = new AuthScope(
 				AuthScope.ANY_HOST, AuthScope.ANY_PORT, REALM, AuthPolicy.BASIC);
@@ -47,11 +52,37 @@ public class EzidClient implements DoiClient {
 		HttpParams params = httpClient.getParams();
 		params.setParameter(CoreConnectionPNames.SO_TIMEOUT, TIME_OUT);
 		params.setParameter(CoreProtocolPNames.USER_AGENT, USER_AGENT);
-		client = httpClient;
+		writeClient = httpClient;
+		// Read client does not need authentication
+		readClient = new DefaultHttpClient();
+		readClient.getParams().setParameter(CoreConnectionPNames.SO_TIMEOUT, TIME_OUT);
+		readClient.getParams().setParameter(CoreProtocolPNames.USER_AGENT, USER_AGENT);
 	}
 
 	@Override
-	public void create(EzidDoi doi) {
+	public EzidDoi get(final String doi, final Doi doiDto) {
+
+		if (doi == null) {
+			throw new IllegalArgumentException("DOI string cannot be null.");
+		}
+		if (doiDto == null) {
+			throw new IllegalArgumentException("DOI DTO cannot be null.");
+		}
+
+		URI uri = URI.create(StackConfiguration.getEzidUrl() + "id/" + doi);
+		HttpGet get = new HttpGet(uri);
+		String response = executeWithRetry(get);
+		EzidDoi result = new EzidDoi();
+		result.setDoi(doi);
+		result.setDto(doiDto);
+		EzidMetadata metadata = new EzidMetadata();
+		metadata.initFromString(response);
+		result.setMetadata(metadata);
+		return result;
+	}
+
+	@Override
+	public void create(final EzidDoi doi) {
 
 		if (doi == null) {
 			throw new IllegalArgumentException("DOI cannot be null.");
@@ -68,12 +99,30 @@ public class EzidClient implements DoiClient {
 		executeWithRetry(put);
 	}
 
-	/** Retries max 3 times with exponential backoff */
-	private void executeWithRetry(HttpUriRequest request) {
-		executeWithRetry(request, 0);
+	@Override
+	public void update(EzidDoi doi) {
+
+		if (doi == null) {
+			throw new IllegalArgumentException("DOI cannot be null.");
+		}
+
+		URI uri = URI.create(StackConfiguration.getEzidUrl() + "id/" + doi.getDoi());
+		HttpPost post = new HttpPost(uri);
+		try {
+			StringEntity requestEntity = new StringEntity(doi.getMetadata().getMetadataAsString(), HTTP.PLAIN_TEXT_TYPE, "UTF-8");
+			post.setEntity(requestEntity);
+		} catch (UnsupportedEncodingException e) {
+			throw new RuntimeException(e.getMessage(), e);
+		}
+		executeWithRetry(post);
 	}
 
-	private void executeWithRetry(HttpUriRequest request, int retryCount) {
+	/** Retries max 3 times with exponential backoff */
+	private String executeWithRetry(HttpUriRequest request) {
+		return executeWithRetry(request, 0);
+	}
+
+	private String executeWithRetry(HttpUriRequest request, int retryCount) {
 
 		// Pause to do the exponential backoff
 		if (retryCount > 0) {
@@ -95,8 +144,8 @@ public class EzidClient implements DoiClient {
 
 			// Success
 			final int status = response.getStatusLine().getStatusCode();
-			if (status == HttpStatus.SC_CREATED) {
-				return;
+			if (status == HttpStatus.SC_OK || status == HttpStatus.SC_CREATED) {
+				return responseStr;
 			}
 
 			// Retry 500 and 503 at most 3 times with exponential backoff
@@ -111,10 +160,10 @@ public class EzidClient implements DoiClient {
 
 			// Error
 			String error = status + " " + response.getStatusLine().getReasonPhrase();
-			error = " " + responseStr;
+			error = error + " " + responseStr;
 			if (status == HttpStatus.SC_BAD_REQUEST) {
 				if (error.toLowerCase().contains("identifier already exists")) {
-					return;
+					return responseStr;
 				}
 			}
 			throw new RuntimeException(error);
@@ -125,7 +174,7 @@ public class EzidClient implements DoiClient {
 
 	private HttpResponse execute(HttpUriRequest request) {
 		try {
-			HttpResponse response = client.execute(request);
+			HttpResponse response = writeClient.execute(request);
 			return response;
 		} catch (ClientProtocolException e) {
 			throw new RuntimeException(e.getMessage(), e);

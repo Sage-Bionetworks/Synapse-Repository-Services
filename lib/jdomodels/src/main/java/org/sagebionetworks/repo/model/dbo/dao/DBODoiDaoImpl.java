@@ -92,7 +92,12 @@ public class DBODoiDaoImpl implements DoiDao {
 		return DoiUtils.convertToDto(dbo);
 	}
 
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	/**
+	 * Limits the transaction boundary to within the DOI DAO and runs with a new transaction.
+	 * DOI client updating the DOI is an asynchronous call and must happen outside the transaction to
+	 * avoid race conditions.
+	 */
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRES_NEW)
 	@Override
 	public Doi updateDoiStatus(final String objectId, final DoiObjectType objectType,
 			final Long versionNumber, final DoiStatus doiStatus, String etag)
@@ -132,7 +137,8 @@ public class DBODoiDaoImpl implements DoiDao {
 		}
 		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
 		if (dbo == null) {
-			return null;
+			throw new NotFoundException("DOI not found for type " + objectType
+					+ ", ID " + objectType + ", Version " + versionNumber);
 		}
 		return DoiUtils.convertToDto(dbo);
 	}

@@ -11,7 +11,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 public class EzidAsyncClientTest {
 
 	@Test
-	public void testSuccess() throws Exception {
+	public void testCreateSuccess() throws Exception {
 
 		EzidAsyncCallback callback = mock(EzidAsyncCallback.class);
 		DoiClient asyncClient = new EzidAsyncClient(callback);
@@ -29,7 +29,7 @@ public class EzidAsyncClientTest {
 	}
 
 	@Test
-	public void testError() throws Exception {
+	public void testCreateError() throws Exception {
 
 		EzidAsyncCallback callback = mock(EzidAsyncCallback.class);
 		DoiClient asyncClient = new EzidAsyncClient(callback);
@@ -45,6 +45,44 @@ public class EzidAsyncClientTest {
 		// the execution is on a separate thread
 		Thread.sleep(1000L);
 		verify(ezidClient, times(1)).create(doiWithError);
+		verify(callback, times(1)).onError(doiWithError, e);
+	}
+
+	@Test
+	public void testUpdateSuccess() throws Exception {
+
+		EzidAsyncCallback callback = mock(EzidAsyncCallback.class);
+		DoiClient asyncClient = new EzidAsyncClient(callback);
+
+		EzidClient ezidClient = mock(EzidClient.class);
+		ReflectionTestUtils.setField(asyncClient, "ezidClient", ezidClient);
+
+		EzidDoi doi = mock(EzidDoi.class);
+		asyncClient.update(doi);
+		// Wait 1s before verifying the call
+		// the execution is on a separate thread
+		Thread.sleep(1000L);
+		verify(ezidClient, times(1)).update(doi);
+		verify(callback, times(1)).onSuccess(doi);
+	}
+
+	@Test
+	public void testUpdateError() throws Exception {
+
+		EzidAsyncCallback callback = mock(EzidAsyncCallback.class);
+		DoiClient asyncClient = new EzidAsyncClient(callback);
+
+		EzidClient ezidClient = mock(EzidClient.class);
+		EzidDoi doiWithError = mock(EzidDoi.class);
+		Exception e = new RuntimeException("Mocked exception");
+		doThrow(e).when(ezidClient).update(doiWithError);
+		ReflectionTestUtils.setField(asyncClient, "ezidClient", ezidClient);
+
+		asyncClient.update(doiWithError);
+		// Wait 1s before verifying the call
+		// the execution is on a separate thread
+		Thread.sleep(1000L);
+		verify(ezidClient, times(1)).update(doiWithError);
 		verify(callback, times(1)).onError(doiWithError, e);
 	}
 }
