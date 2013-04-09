@@ -23,7 +23,9 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -86,6 +88,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, EntityBundle bundle)
 			throws NotFoundException, DatastoreException, JSONObjectAdapterException {
 		EvaluationUtils.ensureNotNull(submission, "Submission");
+		EvaluationUtils.ensureNotNull(bundle, "EntityBundle");
 		String evalId = submission.getEvaluationId();
 		UserInfo.validateUserInfo(userInfo);
 		String principalId = userInfo.getIndividualGroup().getId();
@@ -118,6 +121,11 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		Evaluation eval = evaluationManager.getEvaluation(evalId);
 		EvaluationUtils.ensureEvaluationIsOpen(eval);
 		
+		// Insert EntityBundle JSON
+		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
+		bundle.writeToJSONObject(joa);
+		submission.setEntityBundleJSON(joa.toJSONString());
+		
 		// always generate a unique ID
 		submission.setId(idGenerator.generateNewId().toString());
 				
@@ -125,7 +133,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		submission.setCreatedOn(new Date());
 		
 		// create the Submission	
-		String id = submissionDAO.create(submission, bundle);
+		String id = submissionDAO.create(submission);
 		
 		// create an accompanying SubmissionStatus object
 		SubmissionStatus status = new SubmissionStatus();

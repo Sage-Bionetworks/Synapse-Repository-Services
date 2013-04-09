@@ -22,8 +22,6 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -63,7 +61,6 @@ public class SubmissionDAOImplTest {
     private String fileHandleId;
     private Long versionNumber = 1L;
     private Submission submission;
-    private EntityBundle bundle;
     
     @Before
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
@@ -112,9 +109,7 @@ public class SubmissionDAOImplTest {
         submission.setEntityId(nodeId);
         submission.setVersionNumber(versionNumber);
         submission.setUserId(userId);
-        
-        bundle = new EntityBundle();
-        bundle.setEntity(new Folder());
+        submission.setEntityBundleJSON("some bundle");
     }
     
     @After
@@ -139,7 +134,7 @@ public class SubmissionDAOImplTest {
         long initialCount = submissionDAO.getCount();
  
         // create Submission
-        submissionId = submissionDAO.create(submission, bundle);
+        submissionId = submissionDAO.create(submission);
         assertNotNull(submissionId);   
         
         // fetch it
@@ -164,7 +159,7 @@ public class SubmissionDAOImplTest {
     
     @Test
     public void testGetAllByUser() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-    	submissionId = submissionDAO.create(submission, bundle);
+    	submissionId = submissionDAO.create(submission);
     	
     	// userId should have submissions
     	List<Submission> subs = submissionDAO.getAllByUser(userId, 10, 0);
@@ -181,7 +176,7 @@ public class SubmissionDAOImplTest {
     
     @Test
     public void testGetAllByEvaluation() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-    	submissionId = submissionDAO.create(submission, bundle);
+    	submissionId = submissionDAO.create(submission);
     	
     	// evalId should have submissions
     	List<Submission> subs = submissionDAO.getAllByEvaluation(evalId, 10, 0);
@@ -199,7 +194,7 @@ public class SubmissionDAOImplTest {
     
     @Test
     public void testGetAllByEvaluationAndStatus() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-    	submissionId = submissionDAO.create(submission, bundle);
+    	submissionId = submissionDAO.create(submission);
     	
     	// create a SubmissionStatus object
     	SubmissionStatus subStatus = new SubmissionStatus();
@@ -229,7 +224,7 @@ public class SubmissionDAOImplTest {
     
     @Test
     public void testGetAllByEvaluationAndUser() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
-    	submissionId = submissionDAO.create(submission, bundle);
+    	submissionId = submissionDAO.create(submission);
     	
     	// hit evalId and hit user => should find 1 submission
     	List<Submission> subs = submissionDAO.getAllByEvaluationAndUser(evalId, userId, 10, 0);
@@ -277,6 +272,6 @@ public class SubmissionDAOImplTest {
     @Test(expected=IllegalArgumentException.class)
     public void testMissingVersionNumber() throws DatastoreException, JSONObjectAdapterException {
         submission.setVersionNumber(null);
-        submissionDAO.create(submission, bundle);
+        submissionDAO.create(submission);
     }
 }
