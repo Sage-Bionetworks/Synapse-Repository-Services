@@ -21,8 +21,6 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityBundle;
-import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
@@ -81,10 +79,6 @@ public class SubmissionStatusDAOImplTest {
         participant.setEvaluationId(evalId);
         participantDAO.create(participant);
         
-        // create a bundle
-        EntityBundle bundle = new EntityBundle();
-        bundle.setEntity(new Folder());
-        
         // create a submission
         Submission submission = new Submission();
         submission.setId("5678");
@@ -94,7 +88,8 @@ public class SubmissionStatusDAOImplTest {
         submission.setUserId(userId);
         submission.setEvaluationId(evalId);
         submission.setCreatedOn(new Date());
-        submissionId = submissionDAO.create(submission, bundle);
+        submission.setEntityBundleJSON("some bundle");
+        submissionId = submissionDAO.create(submission);
     }
     
     @After

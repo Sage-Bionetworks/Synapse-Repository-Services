@@ -13,13 +13,9 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.query.jdo.SQLConstants;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
@@ -94,15 +90,8 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String create(Submission dto, EntityBundle bundle) throws DatastoreException, JSONObjectAdapterException {
+	public String create(Submission dto) {
 		EvaluationUtils.ensureNotNull(dto, "Submission");
-		
-		// Insert EntityBundle JSON
-		if (bundle != null) {
-			JSONObjectAdapter joa = new JSONObjectAdapterImpl();
-			bundle.writeToJSONObject(joa);
-			dto.setEntityBundleJSON(joa.toJSONString());
-		}
 
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
