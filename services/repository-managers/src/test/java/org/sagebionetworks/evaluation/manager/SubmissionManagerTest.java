@@ -177,7 +177,7 @@ public class SubmissionManagerTest {
 		submissionManager.getSubmission(userInfo, SUB_ID);
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 		submissionManager.deleteSubmission(ownerInfo, SUB_ID);
-		verify(mockSubmissionDAO).create(any(Submission.class), any(EntityBundle.class));
+		verify(mockSubmissionDAO).create(any(Submission.class));
 		verify(mockSubmissionDAO, times(3)).get(eq(SUB_ID));
 		verify(mockSubmissionDAO).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
@@ -202,7 +202,7 @@ public class SubmissionManagerTest {
 		} catch (UnauthorizedException e) {
 			//expected
 		}
-		verify(mockSubmissionDAO).create(any(Submission.class), any(EntityBundle.class));
+		verify(mockSubmissionDAO).create(any(Submission.class));
 		verify(mockSubmissionDAO, times(3)).get(eq(SUB_ID));
 		verify(mockSubmissionDAO, never()).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));

@@ -23,7 +23,6 @@ import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
-import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -95,7 +94,7 @@ public class SubmissionBackupDriverTest {
 			@Override
 			public Object invoke(Object synapseClient, Method method, Object[] args)
 					throws Throwable {
-				if (method.equals(SubmissionDAO.class.getMethod("create", Submission.class, EntityBundle.class))) {
+				if (method.equals(SubmissionDAO.class.getMethod("create", Submission.class))) {
 					Submission sub = (Submission) args[0];
 					subs.put(sub.getId(), sub);
 					return null;
@@ -145,7 +144,7 @@ public class SubmissionBackupDriverTest {
 		for (int i = 0; i < numSubs; i++) {
 			Entity entity = new Folder();
 			entity.setName("foo" + i);
-			srcSubmissionDAO.create(createSubmission("" + i), null);
+			srcSubmissionDAO.create(createSubmission("" + i));
 			srcSubmissionStatusDAO.create(createSubmissionStatus("" + i));
 		}
 		assertEquals(numSubs, srcStatuses.size());
