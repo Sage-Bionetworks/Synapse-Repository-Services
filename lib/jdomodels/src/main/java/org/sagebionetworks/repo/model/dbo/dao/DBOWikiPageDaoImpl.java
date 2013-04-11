@@ -61,7 +61,8 @@ import org.springframework.transaction.annotation.Transactional;
  */
 public class DBOWikiPageDaoImpl implements WikiPageDao {
 	
-	private static final String SQL_MIGRATEABLE_WIKIPAGE = "SELECT O."+COL_WIKI_ONWERS_OWNER_ID+", O."+COL_WIKI_ONWERS_OBJECT_TYPE+", W."+COL_WIKI_ID+", W."+COL_WIKI_ETAG+" FROM "+TABLE_WIKI_PAGE+" W, "+TABLE_WIKI_OWNERS+" O WHERE W."+COL_WIKI_ROOT_ID+" = O."+COL_WIKI_ONWERS_ROOT_WIKI_ID+" ORDER BY W."+COL_WIKI_ID+" LIMIT ? OFFSET ?";
+	private static final String SQL_LOOKUP_WIKI_PAGE_KEY = "SELECT WO."+COL_WIKI_ONWERS_OWNER_ID+", WO."+COL_WIKI_ONWERS_OBJECT_TYPE+", WP."+COL_WIKI_ID+" FROM "+TABLE_WIKI_PAGE+" WP, "+TABLE_WIKI_OWNERS+" WO WHERE WP."+COL_WIKI_ROOT_ID+" = WO."+COL_WIKI_ONWERS_ROOT_WIKI_ID+" AND WP."+COL_WIKI_ID+" = ?";
+	private static final String SQL_MIGRATEABLE_WIKIPAGE = "SELECT O."+COL_WIKI_ONWERS_OWNER_ID+", O."+COL_WIKI_ONWERS_OBJECT_TYPE+", W."+COL_WIKI_ID+", W."+COL_WIKI_ETAG+", W."+COL_WIKI_PARENT_ID+" FROM "+TABLE_WIKI_PAGE+" W, "+TABLE_WIKI_OWNERS+" O WHERE W."+COL_WIKI_ROOT_ID+" = O."+COL_WIKI_ONWERS_ROOT_WIKI_ID+" ORDER BY W."+COL_WIKI_ID+" LIMIT ? OFFSET ?";
 	private static final String SQL_COUNT_ALL_WIKIPAGES = "SELECT COUNT(*) FROM "+TABLE_WIKI_PAGE;
 	private static final String SQL_FIND_WIKI_ATTACHMENT_BY_NAME = "SELECT WA."+COL_WIKI_ATTACHMENT_FILE_HANDLE_ID+" FROM "+TABLE_WIKI_OWNERS+" WO, "+TABLE_WIKI_PAGE+" WP, "+TABLE_WIKI_ATTACHMENT+" WA WHERE WO."+COL_WIKI_ONWERS_OWNER_ID+" = ? AND WO."+COL_WIKI_ONWERS_OBJECT_TYPE+" = ? AND WO."+COL_WIKI_ONWERS_ROOT_WIKI_ID+" = WP."+COL_WIKI_ROOT_ID+" AND WP."+COL_WIKI_ID+" = ? AND WP."+COL_WIKI_ID+" = WA."+COL_WIKI_ATTACHMENT_ID+" AND WA."+COL_WIKI_ATTACHMENT_FILE_NAME+"= ?";
 	private static final String SQL_SELECT_WIKI_ROOT_USING_OWNER_ID_AND_TYPE = "SELECT "+COL_WIKI_ONWERS_ROOT_WIKI_ID+" FROM "+TABLE_WIKI_OWNERS+" WHERE "+COL_WIKI_ONWERS_OWNER_ID+" = ? AND "+COL_WIKI_ONWERS_OBJECT_TYPE+" = ?";
@@ -408,7 +409,18 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 				des.setType(MigratableObjectType.WIKIPAGE);
 				mod.setId(des);
 				if(includeDependencies){
-					mod.setDependencies(new HashSet<MigratableObjectDescriptor>(0));
+					Long parentId = rs.getLong(COL_WIKI_PARENT_ID);
+					if(rs.wasNull()){
+						parentId = null;
+					}
+					mod.setDependencies(new HashSet<MigratableObjectDescriptor>(1));
+					if(parentId != null){
+						// Add the parent as a dependency.
+						MigratableObjectDescriptor parentMod = new MigratableObjectDescriptor();
+						parentMod.setId(""+parentId);
+						parentMod.setType(MigratableObjectType.WIKIPAGE);
+						mod.getDependencies().add(parentMod);
+					}
 				}
 				mod.setEtag(rs.getString(COL_WIKI_ETAG));
 				return mod;
@@ -461,6 +473,28 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 		// Send a message
 		tagMessenger.sendMessage(dbo.getId().toString(), dbo.getEtag(), ObjectType.WIKI, changeType);
 		return key;
+	}
+
+	@Override
+	public WikiPageKey lookupWikiKey(String wikiId) throws NotFoundException {
+		if(wikiId == null) throw new IllegalArgumentException("wikiId cannot be null");
+		long id = Long.parseLong(wikiId);
+		try{
+			return this.simpleJdbcTemplate.queryForObject(SQL_LOOKUP_WIKI_PAGE_KEY, new RowMapper<WikiPageKey>() {
+				@Override
+				public WikiPageKey mapRow(ResultSet rs, int rowNum) throws SQLException {
+					String owner = rs.getString(COL_WIKI_ONWERS_OWNER_ID);
+					ObjectType type = ObjectType.valueOf(rs.getString(COL_WIKI_ONWERS_OBJECT_TYPE));
+					if(ObjectType.ENTITY == type){
+						owner = KeyFactory.keyToString(Long.parseLong(owner));
+					}
+					String wikiId = rs.getString(COL_WIKI_ID);
+					return new WikiPageKey(owner, type, wikiId);
+				}
+			}, id);
+		}catch(EmptyResultDataAccessException e){
+			throw new NotFoundException("Cannot find a wiki page with id: "+wikiId);
+		}
 	}
 
 }

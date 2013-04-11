@@ -1,12 +1,24 @@
 package org.sagebionetworks.doi;
 
+import org.sagebionetworks.repo.model.doi.Doi;
+
 /**
  * Client for DOIs.
  */
 public interface DoiClient {
 
 	/**
-	 * Creates a new DOI from the supplied metadata.
+	 * Gets the DOI metadata given the DOI string.
 	 */
-	void create(EzidMetadata metadata);
+	EzidDoi get(String doi, Doi doiDto);
+
+	/**
+	 * Creates a new DOI from the supplied data.
+	 */
+	void create(EzidDoi doi);
+
+	/**
+	 * Updates with the DOI with the supplied data.
+	 */
+	void update(EzidDoi doi);
 }

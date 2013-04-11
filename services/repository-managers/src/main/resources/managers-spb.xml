@@ -209,7 +209,14 @@
 			<bean id="wikiPageMigratableManager" class="org.sagebionetworks.repo.manager.backup.WikiPageMigratableManager" />
 		</constructor-arg>
 	</bean>
-	
+
+	<bean id="doiBackupDriver"
+		class="org.sagebionetworks.repo.manager.backup.GenericBackupDriverImpl">
+		<constructor-arg>
+			<bean id="doiMigratableManager" class="org.sagebionetworks.repo.manager.backup.DoiMigratableManager" />
+		</constructor-arg>
+	</bean>
+
 	<bean id="stackStatusManager" class="org.sagebionetworks.repo.manager.StackStatusManagerImpl"
 		scope="singleton" />
 
@@ -247,6 +254,12 @@
 		scope="singleton" />
 	
 	<bean id="wikiManager" class="org.sagebionetworks.repo.manager.wiki.WikiManagerImpl" 
+		scope="singleton" />
+
+	<bean id="entityDoiManager" class="org.sagebionetworks.repo.manager.doi.EntityDoiManagerImpl" 
+		scope="singleton" />
+
+	<bean id="doiAdminManager" class="org.sagebionetworks.repo.manager.doi.DoiAdminManagerImpl" 
 		scope="singleton" />
 
 	<!-- The thread pool used by the backup/restore daemons -->
@@ -311,6 +324,9 @@
 				<entry key="FAVORITE">
 					<ref bean="favoriteBackupDriver" />
 				</entry>
+				<entry key="DOI">
+					<ref bean="doiBackupDriver" />
+				</entry>
 			</map>
 		</property>
 	</bean>
@@ -331,6 +347,7 @@
 				<ref bean="submissionStatusDAO"/>
 				<ref bean="trashCanBackupDao"/>
 				<ref bean="favoriteDao"/>
+				<ref bean="doiMigratableDao"/>
 			</list>
 		</property>
 	</bean>

@@ -152,13 +152,12 @@ public class SubmissionBackupDriver implements GenericBackupDriver {
 	}
 
 	@Override
-	public void delete(String id) throws DatastoreException, NotFoundException {
+	public void delete(String id) throws NotFoundException {
 		submissionDAO.delete(id);
 	}
 
-	private void createOrUpdate(SubmissionBackup backup)
-			throws DatastoreException, NotFoundException,
-			InvalidModelException, ConflictingUpdateException {
+	private void createOrUpdate(SubmissionBackup backup) throws DatastoreException, 
+			InvalidModelException, ConflictingUpdateException, NotFoundException {
 		Submission submission = backup.getSubmission();
 		SubmissionStatus submissionStatus = backup.getSubmissionStatus();
 		
@@ -168,7 +167,6 @@ public class SubmissionBackupDriver implements GenericBackupDriver {
 			existing = submissionStatusDAO.get(submissionStatus.getId().toString());
 		} catch (NotFoundException e) {}
 		if (null == existing) {
-			// create
 			submissionDAO.create(submission);
 			submissionStatusDAO.createFromBackup(submissionStatus);
 		} else {

@@ -8,12 +8,15 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
+import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public interface EvaluationService {
 
@@ -171,11 +174,17 @@ public interface EvaluationService {
 	 * 
 	 * @param userId
 	 * @param submission
+	 * @param entityEtag
 	 * @return
 	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws ACLInheritanceException
+	 * @throws ParseException
+	 * @throws JSONObjectAdapterException
 	 */
-	public Submission createSubmission(String userId, Submission submission)
-			throws NotFoundException;
+	public Submission createSubmission(String userId, Submission submission, String entityEtag, HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException;
 
 	/**
 	 * Get a Submission.
@@ -185,7 +194,7 @@ public interface EvaluationService {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Submission getSubmission(String submissionId)
+	public Submission getSubmission(String userName, String submissionId)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -340,5 +349,28 @@ public interface EvaluationService {
 			String evalId, SubmissionStatusEnum status, long limit,
 			long offset, HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
+
+	/**
+	 * Get all SubmissionStatuses for a given Evaluation. This method is
+	 * publicly-accessible.
+	 * 
+	 * If a SubmissionStatusEnum is provided, results will be filtered
+	 * accordingly.
+	 * 
+	 * @param userName
+	 * @param evalId
+	 * @param status
+	 * @param limit
+	 * @param offset
+	 * @param request
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(
+			String evalId, SubmissionStatusEnum status,
+			long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 }

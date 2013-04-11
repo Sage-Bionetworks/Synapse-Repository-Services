@@ -5,11 +5,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+
 import javax.servlet.ServletException;
 
 import org.junit.After;
@@ -29,7 +31,6 @@ import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
 import org.sagebionetworks.repo.model.NameConflictException;
-import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -61,6 +62,7 @@ public class EntityBundleControllerTest {
 	
 	private List<String> toDelete = null;
 	S3FileHandle handleOne;
+	S3FileHandle handleTwo;
 	private String userName;
 	private String ownerId;
 	/**
@@ -88,6 +90,11 @@ public class EntityBundleControllerTest {
 		if(handleOne != null && fileMetadataDao != null){
 			try{
 				fileMetadataDao.delete(handleOne.getId());
+			}catch(Exception e){}
+		}
+		if(handleTwo != null && fileMetadataDao != null){
+			try{
+				fileMetadataDao.delete(handleTwo.getId());
 			}catch(Exception e){}
 		}
 	}
@@ -309,15 +316,21 @@ public class EntityBundleControllerTest {
 	
 	@Test
 	public void testGetFileHandle() throws NameConflictException, DatastoreException, JSONObjectAdapterException, ServletException, IOException, NotFoundException{
+		
+		S3FileHandle handle = new S3FileHandle();
 		// Create a file handle
-		handleOne = new S3FileHandle();
-		handleOne.setCreatedBy(ownerId);
-		handleOne.setCreatedOn(new Date());
-		handleOne.setBucketName("bucket");
-		handleOne.setKey("EntityControllerTest.mainFileKey");
-		handleOne.setEtag("etag");
-		handleOne.setFileName("foo.bar");
-		handleOne = fileMetadataDao.createFile(handleOne);
+		handle = new S3FileHandle();
+		handle.setCreatedBy(ownerId);
+		handle.setCreatedOn(new Date());
+		handle.setBucketName("bucket");
+		handle.setKey("EntityControllerTest.testGetFileHandle1");
+		handle.setEtag("etag");
+		handle.setFileName("foo.bar");
+		handleOne = fileMetadataDao.createFile(handle);
+		// Second handle
+		handle.setKey("EntityControllerTest.testGetFileHandle2");
+		handle.setFileName("fo2o.bar");
+		handleTwo = fileMetadataDao.createFile(handle);
 		// Create an entity
 		Project p = new Project();
 		p.setName(DUMMY_PROJECT);
@@ -338,6 +351,25 @@ public class EntityBundleControllerTest {
 		assertTrue(bundle.getFileHandles().size() > 0);
 		assertNotNull(bundle.getFileHandles().get(0));
 		assertEquals(handleOne.getId(), bundle.getFileHandles().get(0).getId());
+		// Same test with a verion number
+		// Update the file 
+		file.setDataFileHandleId(handleTwo.getId());
+		file = (FileEntity) entityServletHelper.updateEntity(file, TEST_USER1);
+		assertEquals("Changing the fileHandle should have created a new version", new Long(2), file.getVersionNumber());
+		// Get version one.
+		bundle = entityServletHelper.getEntityBundleForVersion(file.getId(), new Long(1), EntityBundle.FILE_HANDLES, TEST_USER1);
+		assertNotNull(bundle);
+		assertNotNull(bundle.getFileHandles());
+		assertTrue(bundle.getFileHandles().size() > 0);
+		assertNotNull(bundle.getFileHandles().get(0));
+		assertEquals(handleOne.getId(), bundle.getFileHandles().get(0).getId());
+		// Get version two
+		bundle = entityServletHelper.getEntityBundleForVersion(file.getId(), new Long(2), EntityBundle.FILE_HANDLES, TEST_USER1);
+		assertNotNull(bundle);
+		assertNotNull(bundle.getFileHandles());
+		assertTrue(bundle.getFileHandles().size() > 0);
+		assertNotNull(bundle.getFileHandles().get(0));
+		assertEquals(handleTwo.getId(), bundle.getFileHandles().get(0).getId());
 	}
 
 }

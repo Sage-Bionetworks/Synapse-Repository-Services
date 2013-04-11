@@ -16,7 +16,6 @@ import org.junit.Test;
 public class EzidMetadataTest {
 
 	private EzidMetadata metadata;
-	private final String doi = "doi:10.9999/test.1234567";
 	private final String target = "http://eiqucmdjeisxkd.org/";
 	private final String creator = "Last Name, First Name";
 	private final String title = "Some test title";
@@ -26,7 +25,6 @@ public class EzidMetadataTest {
 	@Before
 	public void before() {
 		metadata = new EzidMetadata();
-		metadata.setDoi(doi);
 		metadata.setTarget(target);
 		metadata.setCreator(creator);
 		metadata.setTitle(title);
@@ -58,10 +56,20 @@ public class EzidMetadataTest {
 	}
 
 	@Test
+	public void testInitFromString() throws Exception {
+		String plainText = metadata.getMetadataAsString();
+		plainText = plainText + "\r\n_status: public";
+		EzidMetadata metadata = new EzidMetadata();
+		metadata.initFromString(plainText);
+		assertEquals(title, metadata.getTitle());
+		assertEquals(creator, metadata.getCreator());
+		assertEquals(publisher, metadata.getPublisher());
+		assertEquals(year, metadata.getPublicationYear());
+		assertEquals(target, metadata.getTarget());
+	}
+
+	@Test
 	public void testGetSet() {
-		assertEquals(doi, metadata.getDoi());
-		metadata.setDoi("doi");
-		assertEquals("doi", metadata.getDoi());
 		assertEquals(title, metadata.getTitle());
 		metadata.setTitle("title");
 		assertEquals("title", metadata.getTitle());
@@ -78,18 +86,6 @@ public class EzidMetadataTest {
 		metadata.setTarget("target");
 		assertEquals("target", metadata.getTarget());
 		
-	}
-
-	@Test(expected=IllegalArgumentException.class)
-	public void testRequriedSetDoi() {
-		EzidMetadata md = new EzidMetadata();
-		md.setDoi(null);
-	}
-
-	@Test(expected=NullPointerException.class)
-	public void testRequriedGetDoi() {
-		EzidMetadata md = new EzidMetadata();
-		md.getDoi();
 	}
 
 	@Test(expected=IllegalArgumentException.class)

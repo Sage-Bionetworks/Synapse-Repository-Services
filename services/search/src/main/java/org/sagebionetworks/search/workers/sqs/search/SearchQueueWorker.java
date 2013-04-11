@@ -13,6 +13,8 @@ import org.apache.http.client.ClientProtocolException;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.dao.WikiPageDao;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -36,6 +38,7 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 	private SearchDao searchDao;
 	private SearchDocumentDriver documentProvider;
 	private List<Message> messagesToProcess;
+	private WikiPageDao wikiPageDao;
 	
 	private List<ChangeMessage> createOrUpdateMessages;
 	private List<ChangeMessage> deleteMessages;
@@ -47,13 +50,14 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 	 * @param nodeWorkerManager
 	 * @param messagesToProcess
 	 */
-	public SearchQueueWorker(SearchDao searchDao, SearchDocumentDriver documentProvider, List<Message> messagesToProcess) {
+	public SearchQueueWorker(SearchDao searchDao, SearchDocumentDriver documentProvider, List<Message> messagesToProcess, WikiPageDao wikiPageDao) {
 		if(searchDao == null) throw new IllegalArgumentException("SearchDao canot be null");
 		if(documentProvider == null) throw new IllegalArgumentException("SearchDocumentDriver cannot be null");
 		if(messagesToProcess == null) throw new IllegalArgumentException("messagesToProcess cannot be null");
 		this.searchDao = searchDao;
 		this.documentProvider = documentProvider;
 		this.messagesToProcess = messagesToProcess;
+		this.wikiPageDao = wikiPageDao;
 	}
 
 	@Override
@@ -71,6 +75,26 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 					addDeleteEntity(change);
 				}else{
 					throw new IllegalArgumentException("Unknown change type: "+change.getChangeType()+" for messageID =" +message.getMessageId());
+				}
+			}
+			// Is this a wikipage?
+			if(ObjectType.WIKI == change.getObjectType()){
+				// Lookup the owner of the page
+				try{
+					WikiPageKey key = wikiPageDao.lookupWikiKey(change.getObjectId());
+					// If the owner of the wiki is a an entity then pass along the message.
+					if(ObjectType.ENTITY == key.getOwnerObjectType()){
+						// We need the current document etag
+						ChangeMessage newMessage = new ChangeMessage();
+						newMessage.setChangeType(ChangeType.UPDATE);
+						newMessage.setObjectId(key.getOwnerObjectId());
+						newMessage.setObjectType(ObjectType.ENTITY);
+						newMessage.setObjectEtag(null);
+						addCreateOrUpdateEntity(newMessage);
+					}
+				}catch(NotFoundException e){
+					// Nothing to do if the wiki does not exist
+					log.debug(e);
 				}
 			}
 		}
@@ -129,7 +153,7 @@ public class SearchQueueWorker implements Callable<List<Message>> {
 				// We want to ignore this message if a document with this ID and Etag already exists in the search index.
 				if(!searchDao.doesDocumentExist(message.getObjectId(), message.getObjectEtag())){
 					// We want to ignore this message if a document with this ID and Etag are not in the repository as it is an old message.
-					if(documentProvider.doesDocumentExist(message.getObjectId(), message.getObjectEtag())){
+					if(message.getObjectEtag() == null || documentProvider.doesDocumentExist(message.getObjectId(), message.getObjectEtag())){
 						// Create a document for this
 						Document newDoc = documentProvider.formulateSearchDocument(message.getObjectId());
 						batch.add(newDoc);

@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 
@@ -41,6 +42,7 @@ import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.EntityType;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -55,14 +57,14 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.EntityService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.mock.web.MockServletConfig;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.web.servlet.DispatcherServlet;
 
 /**
  * This is a an integration test for the default controller.
@@ -87,6 +89,8 @@ public class DefaultControllerAutowiredAllTypesTest {
 	
 	@Autowired
 	UserGroupDAO userGroupDAO;
+	@Autowired
+	FileHandleDao fileMetadataDao;
 
 	static private Log log = LogFactory
 			.getLog(DefaultControllerAutowiredAllTypesTest.class);
@@ -97,6 +101,7 @@ public class DefaultControllerAutowiredAllTypesTest {
 	private UserInfo testUser;
 
 	private List<String> toDelete;
+	S3FileHandle handleOne;
 
 	@Before
 	public void before() throws DatastoreException, NotFoundException {
@@ -106,6 +111,14 @@ public class DefaultControllerAutowiredAllTypesTest {
 		// Make sure we have a valid user.
 		testUser = userManager.getUserInfo(userName);
 		UserInfo.validateUserInfo(testUser);
+		handleOne = new S3FileHandle();
+		handleOne.setCreatedBy(testUser.getIndividualGroup().getId());
+		handleOne.setCreatedOn(new Date());
+		handleOne.setBucketName("bucket");
+		handleOne.setKey("EntityControllerTest.mainFileKey");
+		handleOne.setEtag("etag");
+		handleOne.setFileName("foo.bar");
+		handleOne = fileMetadataDao.createFile(handleOne);
 	}
 
 	@After
@@ -120,6 +133,9 @@ public class DefaultControllerAutowiredAllTypesTest {
 					// nothing to do here.
 				}
 			}
+		}
+		if(handleOne != null && handleOne.getId() != null){
+			fileMetadataDao.delete(handleOne.getId());
 		}
 	}
 
@@ -195,6 +211,10 @@ public class DefaultControllerAutowiredAllTypesTest {
 				// use the correct parent type.
 				String parentId = findCompatableParentId(path, type);
 				Entity object = ObjectTypeFactory.createObjectForTest(name, type, parentId);
+				if(object instanceof FileEntity){
+					FileEntity file = (FileEntity) object;
+					file.setDataFileHandleId(handleOne.getId());
+				}
 				Entity clone = ServletTestHelper.createEntity(dispatchServlet, object, userName);
 				assertNotNull(clone);
 				assertNotNull(clone.getId());

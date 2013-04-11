@@ -304,8 +304,20 @@ public class SqlConstants {
 	public static final String COL_FAVORITE_NODE_ID 			= "NODE_ID";
 	public static final String COL_FAVORITE_CREATED_ON			= "CREATED_ON";
 	public static final String DDL_FILE_FAVORITE = "schema/Favorite-ddl.sql";
-	
-	
+
+	// The DOI table
+	public static final String TABLE_DOI                = "DOI";
+	public static final String COL_DOI_ID               = "ID";
+	public static final String COL_DOI_ETAG             = "ETAG";
+	public static final String COL_DOI_DOI_STATUS       = "DOI_STATUS";
+	public static final String COL_DOI_OBJECT_ID        = "OBJECT_ID";
+	public static final String COL_DOI_OBJECT_TYPE      = "OBJECT_TYPE";
+	public static final String COL_DOI_OBJECT_VERSION   = "OBJECT_VERSION";
+	public static final String COL_DOI_CREATED_BY       = "CREATED_BY";
+	public static final String COL_DOI_CREATED_ON       = "CREATED_ON";
+	public static final String COL_DOI_UPDATED_ON       = "UPDATED_ON";
+	public static final String DDL_FILE_DOI = "schema/Doi-ddl.sql";
+
 	// This seems to be the name of the id column for all tables.
 	public static final String COLUMN_ID		= "id";
 	

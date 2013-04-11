@@ -78,7 +78,7 @@ public class FileChunkUploadWorker implements Callable<ChunkResult> {
 		log.info("createChunkedPresignedUrl() in "+(System.currentTimeMillis()-start)+" ms"); 
 		// Put the file to the URL
 		start = System.currentTimeMillis();
-		client.putFileToURL(url, chunk);
+		client.putFileToURL(url, chunk, request.getChunkedFileToken().getContentType());
 		log.info("putFileToURL() in "+(System.currentTimeMillis()-start)+" ms"); 
 		// Add the chunk to the final file
 		start = System.currentTimeMillis();

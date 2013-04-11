@@ -143,4 +143,9 @@ public class AuthorizationConstants {
 	 */
 	public static final long AUTH_CACHE_TIMEOUT_DEFAULT = 60000L;
 	
+	/**
+	 * Request parameter for an optimistic concurrency control (OCC) eTag.
+	 */
+	public static final String ETAG_PARAM = "etag";
+	
 }

@@ -756,13 +756,6 @@ public class StackConfiguration {
 	}
 
 	/**
-	 * EZID REST API URL.
-	 */
-	public static String getEzidUrl() {
-		return configuration.getProperty("org.sagebionetworks.ezid.url");
-	}
-
-	/**
 	 * EZID user name.
 	 */
 	public static String getEzidUsername() {
@@ -774,5 +767,26 @@ public class StackConfiguration {
 	 */
 	public static String getEzidPassword() {
 		return configuration.getDecryptedProperty("org.sagebionetworks.ezid.password");
+	}
+
+	/**
+	 * EZID REST API URL.
+	 */
+	public static String getEzidUrl() {
+		return configuration.getProperty("org.sagebionetworks.ezid.url");
+	}
+
+	/**
+	 * EZID DOI prefix.
+	 */
+	public static String getEzidDoiPrefix() {
+		return configuration.getProperty("org.sagebionetworks.ezid.doi.prefix");
+	}
+
+	/**
+	 * EZID target URL prefix. Example: https://synapse.prod.sagebase.org/
+	 */
+	public static String getEzidTargetUrlPrefix() {
+		return configuration.getProperty("org.sagebionetworks.ezid.doi.target.url.prefix");
 	}
 }

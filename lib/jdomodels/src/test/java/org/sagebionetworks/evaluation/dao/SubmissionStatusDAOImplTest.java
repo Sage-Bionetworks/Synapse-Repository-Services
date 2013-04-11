@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -53,7 +54,7 @@ public class SubmissionStatusDAOImplTest {
     private Long versionNumber = 1L;
     
     @Before
-    public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
+    public void setUp() throws DatastoreException, InvalidModelException, NotFoundException, JSONObjectAdapterException {
     	// create a node
   		Node toCreate = NodeTestUtils.createNew(name, Long.parseLong(userId));
     	toCreate.setVersionComment("This is the first version of the first node ever!");
@@ -87,6 +88,7 @@ public class SubmissionStatusDAOImplTest {
         submission.setUserId(userId);
         submission.setEvaluationId(evalId);
         submission.setCreatedOn(new Date());
+        submission.setEntityBundleJSON("some bundle");
         submissionId = submissionDAO.create(submission);
     }
     

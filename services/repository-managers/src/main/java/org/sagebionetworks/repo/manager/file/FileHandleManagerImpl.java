@@ -381,6 +381,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		allowAll.setAllowedOrigins("*");
 		allowAll.setAllowedMethods(AllowedMethods.GET, AllowedMethods.PUT, AllowedMethods.POST, AllowedMethods.HEAD);
 		allowAll.setMaxAgeSeconds(300);
+		allowAll.setAllowedHeaders("*");
 		bcoc.withRules(allowAll);
 		s3Client.setBucketCrossOriginConfiguration(StackConfiguration.getS3Bucket(), bcoc);
 		log.info("Set CORSRule on bucket: "+bucketName+" to be: "+allowAll);
@@ -436,6 +437,9 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		String partKey = getChunkPartKey(token, partNumber);
 		// For each block we want to create a pre-signed URL file.
 		GeneratePresignedUrlRequest gpur = new GeneratePresignedUrlRequest(StackConfiguration.getS3Bucket(), partKey).withMethod(HttpMethod.PUT);
+		if(cpr.getChunkedFileToken().getContentType() != null){
+			gpur.setContentType(cpr.getChunkedFileToken().getContentType());
+		}
 		return  s3Client.generatePresignedUrl(gpur);
 	}
 
@@ -480,7 +484,7 @@ public class FileHandleManagerImpl implements FileHandleManager {
 		cp.setChunkNumber((long) result.getPartNumber());
 		return cp;
 	}
-
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public S3FileHandle completeChunkFileUpload(UserInfo userInfo, CompleteChunkedFileRequest ccfr) {

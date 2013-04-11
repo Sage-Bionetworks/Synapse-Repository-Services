@@ -5,10 +5,12 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 public interface SubmissionManager {
 
@@ -20,7 +22,7 @@ public interface SubmissionManager {
 	 * @throws DatastoreException
 	 * @throws NotFoundException
 	 */
-	public Submission getSubmission(String submissionId)
+	public Submission getSubmission(UserInfo userInfo, String submissionId)
 			throws DatastoreException, NotFoundException;
 
 	/**
@@ -42,9 +44,11 @@ public interface SubmissionManager {
 	 * @param submission
 	 * @return
 	 * @throws NotFoundException
+	 * @throws JSONObjectAdapterException 
+	 * @throws DatastoreException 
 	 */
-	public Submission createSubmission(UserInfo userInfo, Submission submission)
-			throws NotFoundException;
+	public Submission createSubmission(UserInfo userInfo, Submission submission, String entityEtag, EntityBundle bundle)
+			throws NotFoundException, DatastoreException, JSONObjectAdapterException;
 
 	/**
 	 * Update the SubmissionStatus object for a Submission. Note that the
@@ -174,6 +178,22 @@ public interface SubmissionManager {
 	 */
 	public QueryResults<SubmissionBundle> getAllSubmissionBundles(UserInfo userInfo,
 			String evalId, SubmissionStatusEnum status, long limit, long offset)
+			throws DatastoreException, UnauthorizedException, NotFoundException;
+
+	/**
+	 * Get SubmissionStatuses by Evaluation and status.
+	 * 
+	 * @param evalId
+	 * @param status
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 */
+	public QueryResults<SubmissionStatus> getAllSubmissionStatuses(String evalId, 
+			SubmissionStatusEnum status, long limit, long offset)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 }

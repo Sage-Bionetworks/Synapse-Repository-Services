@@ -1,15 +1,16 @@
-package org.sagebionetworks.repo.manager;
+package org.sagebionetworks.repo.model;
 
-import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.Base;
 import org.sagebionetworks.repo.model.Entity;
 
 /**
  * Allows methods to return an entity with its annotations.
+ * 
+ * This object is deprecated. Please use the EntityBundle instead.
  * @author John
  *
  * @param <T>
  */
+@Deprecated
 public class EntityWithAnnotations <T extends Entity>{
 	
 	private T entity;

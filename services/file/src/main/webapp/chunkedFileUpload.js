@@ -31,9 +31,11 @@ function getCookie(c_name) {
 
 // Upload a file
 function uploadFile(file){
-	this.fileToUpload = file;
+	// Keep track of the file we are uploading
+	var fileToUpload = file;
 	// This will keep track of the parts we create.
-	this.chunkParts.list = new Array();
+	var chunkParts.list = new Array();
+	var chunkedFileToken;
 	
 	// We are now ready to start the chain of events to upload a file
 	this.startChunkedFileUploadToken(this.fileToUpload.name, this.fileToUpload.type);
@@ -43,20 +45,23 @@ function uploadFile(file){
 		var xhr = createCORSRequest();
 		// only continue if we have a request.
 		if(xhr){
+			var createRequest = new Object();
+			createRequest.fileName = fileName;
+			createRequest.contentType = contentType;
 			xhr.addEventListener("load", callbackTokenCreated, false);
 			xhr.addEventListener("error", callbackFailed, false);
 			xhr.addEventListener("abort", callbackCanceled, false);
-			xhr.open('POST',FILE_SERVICE_ENDPOINT+"/chunkedFileUploadToken?fileName="+ fileName + '&contentType=' + contentType, true);
+			xhr.open('POST',FILE_SERVICE_ENDPOINT+"/createChunkedFileUploadToken, true);
 			// Set the session token from the cookie.
 			xhr.setRequestHeader(SESSION_TOKEN_HEADER_NAME, getCookie(SESSION_TOKEN_COOKIE_NAME));
 			xhr.setRequestHeader("Accept", "application/json");
-			xhr.send();
+			xhr.send(createRequest);
 		}
 	}
 	
 	// Called once we have a chunked file token.
 	function callbackTokenCreated(evt){
-		var chunkedFileToken = JSON.parse(this.responseText);
+		this.chunkedFileToken = JSON.parse(this.responseText);
 		// Next step is to start uploading the file
 		startFileUpload(chunkedFileToken);
 	}
@@ -77,12 +82,16 @@ function uploadFile(file){
 			xhr.addEventListener("load", callbackPresignedCreated, false);
 			xhr.addEventListener("error", callbackFailed, false);
 			xhr.addEventListener("abort", callbackCanceled, false);
-			xhr.open('POST',FILE_SERVICE_ENDPOINT+"/chunkedFileUploadToken?partNumber="+ partNumber, true);
+			xhr.open('POST',FILE_SERVICE_ENDPOINT+"/createChunkedFileUploadChunkURL, true);
 			// Set the session token from the cookie.
 			xhr.setRequestHeader(SESSION_TOKEN_HEADER_NAME, getCookie(SESSION_TOKEN_COOKIE_NAME));
 			xhr.setRequestHeader("Accept", "text/plain");
 			xhr.send(partRequest);
 		}
+	}
+	
+	public callbackPresignedCreated(evt){
+		alert(this.responseText);
 	}
 	
 	// Generic callback for failures

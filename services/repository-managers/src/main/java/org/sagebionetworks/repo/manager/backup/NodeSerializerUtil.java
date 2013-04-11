@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.TrashedEntity;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.backup.WikiPageAttachmentBackup;
 import org.sagebionetworks.repo.model.backup.WikiPageBackup;
+import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.provenance.Used;
 import org.sagebionetworks.repo.model.provenance.UsedEntity;
 import org.sagebionetworks.repo.model.provenance.UsedURL;
@@ -55,6 +56,7 @@ public class NodeSerializerUtil  {
 	private static final String ALIAS_FILEHANDLE = "file-handle";
 	private static final String ALIAS_WIKI_PAGE = "wiki-page";
 	private static final String ALIAS_WIKI_ATTACHMENT = "wiki-attachment";
+	private static final String ALIAS_DOI = "doi";
 
 
 	/**
@@ -211,7 +213,19 @@ public class NodeSerializerUtil  {
 		XStream xstream = createXStream();
 		return (Favorite)xstream.fromXML(reader);
 	}
-	
+
+	public static void writeDoiBackup(Doi doi, OutputStream out) {
+		OutputStreamWriter writer = new OutputStreamWriter(out);
+		XStream xstream = createXStream();
+		xstream.toXML(doi, writer);
+	}
+
+	public static Doi readDoiBackup(InputStream in) {
+		InputStreamReader reader = new InputStreamReader(in);
+		XStream xstream = createXStream();
+		return (Doi) xstream.fromXML(reader);
+	}
+
 	/**
 	 * Write and object to a Stream
 	 * @param object
@@ -255,6 +269,7 @@ public class NodeSerializerUtil  {
 		xstream.alias(ALIAS_FILEHANDLE, FileHandleBackup.class);
 		xstream.alias(ALIAS_WIKI_PAGE, WikiPageBackup.class);
 		xstream.alias(ALIAS_WIKI_ATTACHMENT, WikiPageAttachmentBackup.class);
+		xstream.alias(ALIAS_DOI, Doi.class);
 		return xstream;
 	}
 
