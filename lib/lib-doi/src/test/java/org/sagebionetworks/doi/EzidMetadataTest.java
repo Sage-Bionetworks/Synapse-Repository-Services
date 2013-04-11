@@ -2,6 +2,7 @@ package org.sagebionetworks.doi;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedReader;
 import java.io.StringReader;
@@ -42,15 +43,15 @@ public class EzidMetadataTest {
 		while (line != null) {
 			String[] splits = line.split(":");
 			assertNotNull(splits);
-			assertEquals(2, splits.length);
+			assertTrue(splits.length > 1);
 			map.put(splits[0].trim(), splits[1].trim());
 			line = reader.readLine();
 		}
 		reader.close();
 		assertEquals(5, map.entrySet().size());
-		assertEquals(URLEncoder.encode(title, "UTF-8"), map.get("datacite.title"));
-		assertEquals(URLEncoder.encode(creator, "UTF-8"), map.get("datacite.creator"));
-		assertEquals(URLEncoder.encode(publisher, "UTF-8"), map.get("datacite.publisher"));
+		assertEquals(title, map.get("datacite.title"));
+		assertEquals(creator, map.get("datacite.creator"));
+		assertEquals(publisher, map.get("datacite.publisher"));
 		assertEquals(year, Integer.parseInt(map.get("datacite.publicationyear")));
 		assertEquals(URLEncoder.encode(target, "UTF-8"), map.get("_target"));
 	}
@@ -65,7 +66,7 @@ public class EzidMetadataTest {
 		assertEquals(creator, metadata.getCreator());
 		assertEquals(publisher, metadata.getPublisher());
 		assertEquals(year, metadata.getPublicationYear());
-		assertEquals(target, metadata.getTarget());
+		assertEquals(URLEncoder.encode(target, "UTF-8"), metadata.getTarget());
 	}
 
 	@Test
