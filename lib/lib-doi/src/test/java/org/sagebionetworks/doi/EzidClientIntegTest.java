@@ -28,9 +28,9 @@ public class EzidClientIntegTest {
 		assertTrue(target.endsWith("/#!Synapse:"));
 		assertFalse(target.endsWith("//#!Synapse:"));
 		metadata.setTarget(target);
-		final String creator = "Test, Something";
+		final String creator = "Test, Something-Interesting";
 		metadata.setCreator(creator);
-		final String title = "This is a test";
+		final String title = "This is a test! (And I mean it.)";
 		metadata.setTitle(title);
 		final String publisher = EzidConstants.PUBLISHER;
 		metadata.setPublisher(publisher);

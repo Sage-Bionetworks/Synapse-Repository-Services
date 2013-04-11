@@ -82,9 +82,9 @@ public class EzidMetadata {
 	 */
 	public String getMetadataAsString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append(FIELD_TITLE + SEPARATOR + " ").append(encode(getTitle())).append("\r\n");
-		builder.append(FIELD_CREATOR + SEPARATOR + " ").append(encode(getCreator())).append("\r\n");
-		builder.append(FIELD_PUBLISHER + SEPARATOR + " ").append(encode(getPublisher())).append("\r\n");
+		builder.append(FIELD_TITLE + SEPARATOR + " ").append(getTitle()).append("\r\n");
+		builder.append(FIELD_CREATOR + SEPARATOR + " ").append(getCreator()).append("\r\n");
+		builder.append(FIELD_PUBLISHER + SEPARATOR + " ").append(getPublisher()).append("\r\n");
 		builder.append(FIELD_PUBLICATION_YEAR + SEPARATOR + " ").append(Integer.toString(publicationYear)).append("\r\n");
 		builder.append(FIELD_TARGET + SEPARATOR + " ").append(encode(getTarget()));
 		return builder.toString();
@@ -109,15 +109,15 @@ public class EzidMetadata {
 					String field = line.substring(0, splitAt);
 					field = field.trim().toLowerCase();
 					if (FIELD_TITLE.equals(field)) {
-						this.setTitle(decode(value));
+						this.setTitle(value);
 					} else if (FIELD_CREATOR.equals(field)) {
-						this.setCreator(decode(value));
+						this.setCreator(value);
 					} else if (FIELD_PUBLISHER.equals(field)) {
-						this.setPublisher(decode(value));
+						this.setPublisher(value);
 					} else if (FIELD_PUBLICATION_YEAR.equals(field)) {
-						this.setPublicationYear(Integer.valueOf(decode(value)));
+						this.setPublicationYear(Integer.valueOf(value));
 					} else if (FIELD_TARGET.equals(field)) {
-						this.setTarget(decode(value));
+						this.setTarget(value);
 					}
  				}
 				line = r.readLine();
