@@ -223,4 +223,7 @@ public class ServiceConstants {
 	
 	public static final int DEFAULT_CONNECT_TIMEOUT_MSEC = 5000;
 	public static final int DEFAULT_SOCKET_TIMEOUT_MSEC = 20000;
+	
+	// default EntityBundle mask for serialization in Submission objects.
+	public static final int DEFAULT_ENTITYBUNDLE_MASK_FOR_SUBMISSIONS = EntityBundle.ENTITY + EntityBundle.ANNOTATIONS;
 }
