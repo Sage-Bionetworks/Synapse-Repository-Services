@@ -149,5 +149,6 @@
 	<bean id="submissionDAO" class="org.sagebionetworks.evaluation.dao.SubmissionDAOImpl"
 		depends-on="idGenerator" />
 	<bean id="submissionStatusDAO" class="org.sagebionetworks.evaluation.dao.SubmissionStatusDAOImpl" />
+	<bean id="submissionFileHandleDAO" class="org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAOImpl" />
 
 </beans>

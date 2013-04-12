@@ -5,6 +5,7 @@ import java.util.Date;
 import java.util.List;
 
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
+import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.Submission;
@@ -21,6 +22,7 @@ import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
@@ -39,6 +41,8 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	@Autowired
 	SubmissionStatusDAO submissionStatusDAO;
 	@Autowired
+	SubmissionFileHandleDAO submissionFileHandleDAO;
+	@Autowired
 	EvaluationManager evaluationManager;
 	@Autowired
 	ParticipantManager participantManager;
@@ -51,12 +55,13 @@ public class SubmissionManagerImpl implements SubmissionManager {
 	
 	// for testing purposes
 	protected SubmissionManagerImpl(IdGenerator idGenerator, SubmissionDAO submissionDAO, 
-			SubmissionStatusDAO submissionStatusDAO, EvaluationManager evaluationManager,
-			ParticipantManager participantManager, EntityManager entityManager,
-			NodeManager nodeManager) {
+			SubmissionStatusDAO submissionStatusDAO, SubmissionFileHandleDAO submissionFileHandleDAO,
+			EvaluationManager evaluationManager, ParticipantManager participantManager,
+			EntityManager entityManager, NodeManager nodeManager) {
 		this.idGenerator = idGenerator;
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
+		this.submissionFileHandleDAO = submissionFileHandleDAO;
 		this.evaluationManager = evaluationManager;
 		this.participantManager = participantManager;
 		this.entityManager = entityManager;
@@ -121,7 +126,7 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		Evaluation eval = evaluationManager.getEvaluation(evalId);
 		EvaluationUtils.ensureEvaluationIsOpen(eval);
 		
-		// Insert EntityBundle JSON
+		// insert EntityBundle JSON
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl();
 		bundle.writeToJSONObject(joa);
 		submission.setEntityBundleJSON(joa.toJSONString());
@@ -129,21 +134,26 @@ public class SubmissionManagerImpl implements SubmissionManager {
 		// always generate a unique ID
 		submission.setId(idGenerator.generateNewId().toString());
 				
-		// Set creation date
+		// set creation date
 		submission.setCreatedOn(new Date());
 		
 		// create the Submission	
-		String id = submissionDAO.create(submission);
+		String submissionId = submissionDAO.create(submission);
 		
 		// create an accompanying SubmissionStatus object
 		SubmissionStatus status = new SubmissionStatus();
-		status.setId(id);
+		status.setId(submissionId);
 		status.setStatus(SubmissionStatusEnum.OPEN);
 		status.setModifiedOn(new Date());
 		submissionStatusDAO.create(status);
 		
+		// save FileHandle IDs
+		for (FileHandle handle : bundle.getFileHandles()) {
+			submissionFileHandleDAO.create(submissionId, handle.getId());
+		}
+		
 		// return the Submission
-		return submissionDAO.get(id);
+		return submissionDAO.get(submissionId);
 	}
 
 	@Override
