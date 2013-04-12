@@ -2,7 +2,9 @@ package org.sagebionetworks.evaluation.manager;
 
 import static org.mockito.Mockito.*;
 
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -11,6 +13,7 @@ import static org.junit.Assert.fail;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
+import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -33,6 +36,8 @@ import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.FileHandle;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.util.UserInfoUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -51,6 +56,7 @@ public class SubmissionManagerTest {
 	private static IdGenerator mockIdGenerator;
 	private static SubmissionDAO mockSubmissionDAO;
 	private static SubmissionStatusDAO mockSubmissionStatusDAO;
+	private static SubmissionFileHandleDAO mockSubmissionFileHandleDAO;
 	private static EvaluationManager mockCompetitionManager;
 	private static ParticipantManager mockParticipantManager;
 	private static EntityManager mockEntityManager;
@@ -58,6 +64,9 @@ public class SubmissionManagerTest {
 	private static Node mockNode;
 	private static Folder folder;
 	private static EntityBundle bundle;
+	
+    private FileHandle fileHandle1;
+    private FileHandle fileHandle2;
 	
 	private static final String EVAL_ID = "12";
 	private static final String OWNER_ID = "34";
@@ -72,12 +81,21 @@ public class SubmissionManagerTest {
 	private static UserInfo userInfo;
     
     @Before
-    public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {    	
+    public void setUp() throws DatastoreException, NotFoundException, InvalidModelException {
 		// User Info
     	ownerInfo = UserInfoUtils.createValidUserInfo(false);
     	ownerInfo.getIndividualGroup().setId(OWNER_ID);
     	userInfo = UserInfoUtils.createValidUserInfo(false);
     	userInfo.getIndividualGroup().setId(USER_ID);
+    	
+    	// FileHandles
+		List<FileHandle> handles = new ArrayList<FileHandle>();
+		fileHandle1 = new PreviewFileHandle();
+		fileHandle1.setId("handle1");
+		handles.add(fileHandle1);
+		fileHandle2 = new PreviewFileHandle();
+		fileHandle2.setId("handle2");
+		handles.add(fileHandle2);
     	
     	// Objects
 		eval = new Evaluation();
@@ -137,12 +155,14 @@ public class SubmissionManagerTest {
         
         folder = new Folder();
         bundle = new EntityBundle();
-        bundle.setEntity(folder);        
+        bundle.setEntity(folder);
+        bundle.setFileHandles(handles);
 		
     	// Mocks
         mockIdGenerator = mock(IdGenerator.class);
     	mockSubmissionDAO = mock(SubmissionDAO.class);
     	mockSubmissionStatusDAO = mock(SubmissionStatusDAO.class);
+    	mockSubmissionFileHandleDAO = mock(SubmissionFileHandleDAO.class);
     	mockCompetitionManager = mock(EvaluationManager.class);
     	mockParticipantManager = mock(ParticipantManager.class);
     	mockEntityManager = mock(EntityManager.class);
@@ -153,6 +173,7 @@ public class SubmissionManagerTest {
     	when(mockParticipantManager.getParticipant(eq(USER_ID), eq(EVAL_ID))).thenReturn(part);
     	when(mockCompetitionManager.getEvaluation(eq(EVAL_ID))).thenReturn(eval);
     	when(mockSubmissionDAO.get(eq(SUB_ID))).thenReturn(sub);
+    	when(mockSubmissionDAO.create(eq(sub))).thenReturn(SUB_ID);
     	when(mockCompetitionManager.isEvalAdmin(eq(ownerInfo), eq(EVAL_ID))).thenReturn(true);
     	when(mockSubmissionStatusDAO.get(eq(SUB_ID))).thenReturn(subStatus);
     	when(mockNode.getNodeType()).thenReturn(EntityType.values()[0].toString());
@@ -165,8 +186,8 @@ public class SubmissionManagerTest {
     	
     	// Submission Manager
     	submissionManager = new SubmissionManagerImpl(mockIdGenerator, mockSubmissionDAO, 
-    			mockSubmissionStatusDAO, mockCompetitionManager, mockParticipantManager,
-    			mockEntityManager, mockNodeManager);
+    			mockSubmissionStatusDAO, mockSubmissionFileHandleDAO, mockCompetitionManager, 
+    			mockParticipantManager, mockEntityManager, mockNodeManager);
     }
 	
 	@Test
@@ -178,10 +199,11 @@ public class SubmissionManagerTest {
 		submissionManager.updateSubmissionStatus(ownerInfo, subStatus);
 		submissionManager.deleteSubmission(ownerInfo, SUB_ID);
 		verify(mockSubmissionDAO).create(any(Submission.class));
-		verify(mockSubmissionDAO, times(3)).get(eq(SUB_ID));
 		verify(mockSubmissionDAO).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
 		verify(mockSubmissionStatusDAO).update(any(SubmissionStatus.class));
+		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle1.getId()));
+		verify(mockSubmissionFileHandleDAO).create(eq(SUB_ID), eq(fileHandle2.getId()));		
 	}
 	
 	@Test
@@ -203,7 +225,6 @@ public class SubmissionManagerTest {
 			//expected
 		}
 		verify(mockSubmissionDAO).create(any(Submission.class));
-		verify(mockSubmissionDAO, times(3)).get(eq(SUB_ID));
 		verify(mockSubmissionDAO, never()).delete(eq(SUB_ID));
 		verify(mockSubmissionStatusDAO).create(any(SubmissionStatus.class));
 		verify(mockSubmissionStatusDAO, never()).update(any(SubmissionStatus.class));
