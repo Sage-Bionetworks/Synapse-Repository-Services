@@ -114,7 +114,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	public Submission get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
-		SubmissionDBO dbo = basicDao.getObjectById(SubmissionDBO.class, param);
+		SubmissionDBO dbo = basicDao.getObjectByPrimaryKey(SubmissionDBO.class, param);
 		Submission dto = new Submission();
 		copyDboToDto(dbo, dto);
 		return dto;
@@ -226,7 +226,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(ID, id);
-		basicDao.deleteObjectById(SubmissionDBO.class, param);		
+		basicDao.deleteObjectByPrimaryKey(SubmissionDBO.class, param);		
 	}
 
 	/**

@@ -48,7 +48,7 @@ public class JDONodeInheritanceDAOImpl implements NodeInheritanceDAO {
 		if(id == null) throw new IllegalArgumentException("Node ID cannot be null");
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", id);
-		return dboBasicDao.getObjectById(DBONode.class, params);
+		return dboBasicDao.getObjectByPrimaryKey(DBONode.class, params);
 	}
 
 	@Override

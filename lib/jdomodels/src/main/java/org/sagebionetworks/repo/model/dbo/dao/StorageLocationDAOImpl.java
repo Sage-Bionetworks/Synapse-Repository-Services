@@ -149,7 +149,7 @@ public final class StorageLocationDAOImpl implements StorageLocationDAO {
 		for (Long id : idList) {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue(COL_STORAGE_LOCATION_ID.toLowerCase(), id);
-			basicDao.deleteObjectById(DBOStorageLocation.class, params);
+			basicDao.deleteObjectByPrimaryKey(DBOStorageLocation.class, params);
 		}
 	}
 

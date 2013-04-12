@@ -103,18 +103,18 @@ public class SubmissionFileHandleDBOTest {
         	// delete Submission
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("id", submissionId);
-            dboBasicDao.deleteObjectById(SubmissionDBO.class, params);
+            dboBasicDao.deleteObjectByPrimaryKey(SubmissionDBO.class, params);
             
             // delete Participant
             params = new MapSqlParameterSource();
             params.addValue("userId", userId);
             params.addValue("evalId", evalId);
-            dboBasicDao.deleteObjectById(ParticipantDBO.class, params);
+            dboBasicDao.deleteObjectByPrimaryKey(ParticipantDBO.class, params);
             
             // delete Evaluation
             params = new MapSqlParameterSource();
             params.addValue("id", evalId);
-            dboBasicDao.deleteObjectById(EvaluationDBO.class, params);
+            dboBasicDao.deleteObjectByPrimaryKey(EvaluationDBO.class, params);
         }
     	try {
     		nodeDAO.delete(nodeId);
@@ -138,12 +138,12 @@ public class SubmissionFileHandleDBOTest {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue(DBOConstants.PARAM_SUBFILE_SUBMISSION_ID, submissionId);
         params.addValue(DBOConstants.PARAM_SUBFILE_FILE_HANDLE_ID, fileHandleId);
-        SubmissionFileHandleDBO clone2 = dboBasicDao.getObjectById(SubmissionFileHandleDBO.class, params);
+        SubmissionFileHandleDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionFileHandleDBO.class, params);
         assertNotNull(clone2);
         assertEquals(handle, clone2); 
         
         // Delete it
-        boolean result = dboBasicDao.deleteObjectById(SubmissionFileHandleDBO.class,  params);
+        boolean result = dboBasicDao.deleteObjectByPrimaryKey(SubmissionFileHandleDBO.class,  params);
         assertTrue("Failed to delete the entry created", result); 
     }
  
