@@ -267,6 +267,26 @@ public class UrlHelpers {
 	public static final String ENTITY_VERSION_GENERATED_BY = ENTITY_VERSION_NUMBER+GENERATED_BY;
 
 	/**
+	 * DOI (Digital Object Identifier).
+	 */
+	public static final String DOI = "/doi";
+
+	/**
+	 * Clears the Synapse DOI table (by administrators only).
+	 */
+	public static final String ADMIN_DOI_CLEAR = ADMIN + DOI + "/clear";
+
+	/**
+	 * The DOI associated with the entity (implies the current version).
+	 */
+	public static final String ENTITY_DOI = ENTITY_ID + DOI;
+
+	/**
+	 * The DOI associated with the entity version.
+	 */
+	public static final String ENTITY_VERSION_DOI = ENTITY_VERSION_NUMBER + DOI;
+
+	/**
 	 * Gets the root node.
 	 */
 	public static final String ENTITY_ROOT = ENTITY + "/root";
@@ -521,6 +541,7 @@ public class UrlHelpers {
 	public static final String SUBMISSION_WITH_EVAL_ID = EVALUATION_WITH_ID + "/submission";
 	public static final String SUBMISSION_WITH_EVAL_ID_BUNDLE = SUBMISSION_WITH_EVAL_ID + BUNDLE;
 	public static final String SUBMISSION_WITH_EVAL_ID_ADMIN = SUBMISSION_WITH_EVAL_ID + ALL;
+	public static final String SUBMISSION_STATUS_WITH_EVAL_ID = SUBMISSION_WITH_EVAL_ID + "/" + STATUS + ALL;
 	public static final String SUBMISSION_WITH_EVAL_ID_ADMIN_BUNDLE = SUBMISSION_WITH_EVAL_ID + BUNDLE + ALL;
 	public static final String SUBMISSION_COUNT = SUBMISSION_WITH_EVAL_ID + "/count";
 	

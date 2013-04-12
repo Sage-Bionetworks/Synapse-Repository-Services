@@ -383,6 +383,12 @@
 
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
+				<artifactId>lib-doi</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-dynamo</artifactId>
 				<version>${project.version}</version>
 			</dependency>

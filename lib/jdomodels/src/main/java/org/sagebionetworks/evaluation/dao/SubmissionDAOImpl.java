@@ -90,10 +90,9 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public String create(Submission dto) throws DatastoreException {
+	public String create(Submission dto) {
 		EvaluationUtils.ensureNotNull(dto, "Submission");
-		EvaluationUtils.ensureNotNull(dto.getId(), "Submission ID");
-		
+
 		// Convert to DBO
 		SubmissionDBO dbo = new SubmissionDBO();
 		copyDtoToDbo(dto, dbo);
@@ -106,8 +105,8 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 			dbo = basicDao.createNew(dbo);
 			return dbo.getId().toString();
 		} catch (Exception e) {
-			throw new DatastoreException(e.getMessage() + " id=" + dbo.getId() + " userId=" + 
-						dto.getUserId() + " entityId=" + dto.getEntityId(), e);
+			throw new DatastoreException(e.getMessage() + " id=" + dbo.getId() +
+					" userId=" + dto.getUserId() + " entityId=" + dto.getEntityId());
 		}
 	}
 
@@ -120,7 +119,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		copyDboToDto(dbo, dto);
 		return dto;
 	}
-	
+
 	@Override
 	public long getCount() throws DatastoreException, NotFoundException {
 		return basicDao.getCount(SubmissionDBO.class);
@@ -231,10 +230,11 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 	}
 
 	/**
-	 * Copy a SubmissionDBO database object to a Participant data transfer object
+	 * Copy a Submission data transfer object to a SubmissionDBO database object
 	 * 
-	 * @param dto
 	 * @param dbo
+	 * @param dto
+	 * @throws DatastoreException
 	 */
 	protected static void copyDtoToDbo(Submission dto, SubmissionDBO dbo) {	
 		try {
@@ -256,14 +256,14 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dbo.setVersionNumber(dto.getVersionNumber());
 		dbo.setName(dto.getName());
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
+		dbo.setEntityBundle(dto.getEntityBundleJSON().getBytes());
 	}
 	
 	/**
-	 * Copy a Submission data transfer object to a SubmissionDBO database object
+	 * Copy a SubmissionDBO database object to a Submission data transfer object
 	 * 
-	 * @param dbo
 	 * @param dto
-	 * @throws DatastoreException
+	 * @param dbo
 	 */
 	protected static void copyDboToDto(SubmissionDBO dbo, Submission dto) throws DatastoreException {
 		dto.setId(dbo.getId() == null ? null : dbo.getId().toString());
@@ -273,6 +273,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dto.setVersionNumber(dbo.getVersionNumber());
 		dto.setName(dbo.getName());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
+		dto.setEntityBundleJSON(new String(dbo.getEntityBundle()));
 	}
 
 	/**
@@ -285,8 +286,8 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		EvaluationUtils.ensureNotNull(dbo.getUserId(), "User ID");
 		EvaluationUtils.ensureNotNull(dbo.getEntityId(), "Entity ID");
 		EvaluationUtils.ensureNotNull(dbo.getVersionNumber(), "Entity Version");
+		EvaluationUtils.ensureNotNull(dbo.getEntityBundle(), "Serialized EntityWithAnnotations");
 		EvaluationUtils.ensureNotNull(dbo.getId(), "Submission ID");
 		EvaluationUtils.ensureNotNull(dbo.getCreatedOn(), "Creation date");
-	}
-	
+	}	
 }

@@ -14,6 +14,7 @@ import static org.mockito.Mockito.*;
 import org.mockito.Mockito;
 import org.sagebionetworks.asynchronous.workers.sqs.MessageUtils;
 import org.sagebionetworks.repo.manager.search.SearchDocumentDriver;
+import org.sagebionetworks.repo.model.dao.WikiPageDao;
 import org.sagebionetworks.repo.model.search.Document;
 import org.sagebionetworks.search.SearchDao;
 
@@ -23,12 +24,14 @@ public class SearchQueueWorkerTest {
 	
 	private SearchDao mockSeachDao;
 	private SearchDocumentDriver mockDocumentProvider;
+	private WikiPageDao mockWikiPageDao;
 	private List<Message> messageList;
 	
 	@Before
 	public void before(){
 		mockSeachDao = Mockito.mock(SearchDao.class);
 		mockDocumentProvider = Mockito.mock(SearchDocumentDriver.class);
+		mockWikiPageDao = Mockito.mock(WikiPageDao.class);
 		messageList = new LinkedList<Message>();
 	}
 	
@@ -38,7 +41,7 @@ public class SearchQueueWorkerTest {
 		messageList.add(MessageUtils.buildDeleteEntityMessage("one", "parent1", "1", "handle1"));
 		messageList.add(MessageUtils.buildDeleteEntityMessage("two", "parent2", "2", "handle2"));
 		
-		SearchQueueWorker worker = new SearchQueueWorker(mockSeachDao, mockDocumentProvider, messageList);
+		SearchQueueWorker worker = new SearchQueueWorker(mockSeachDao, mockDocumentProvider, messageList, mockWikiPageDao);
 		List<Message> results = worker.call();
 		assertNotNull(results);
 		assertEquals(messageList, results);
@@ -76,7 +79,7 @@ public class SearchQueueWorkerTest {
 		when(mockSeachDao.doesDocumentExist("one", "etag1")).thenReturn(false);
 		when(mockSeachDao.doesDocumentExist("two", "etag2")).thenReturn(false);
 		
-		SearchQueueWorker worker = new SearchQueueWorker(mockSeachDao, mockDocumentProvider, messageList);
+		SearchQueueWorker worker = new SearchQueueWorker(mockSeachDao, mockDocumentProvider, messageList, mockWikiPageDao);
 		List<Message> results = worker.call();
 		assertNotNull(results);
 		assertEquals(messageList, results);
@@ -101,7 +104,7 @@ public class SearchQueueWorkerTest {
 		// Create only occurs if it is not already in the search index
 		when(mockSeachDao.doesDocumentExist("one", "etag1")).thenReturn(true);
 
-		SearchQueueWorker worker = new SearchQueueWorker(mockSeachDao, mockDocumentProvider, messageList);
+		SearchQueueWorker worker = new SearchQueueWorker(mockSeachDao, mockDocumentProvider, messageList, mockWikiPageDao);
 		List<Message> results = worker.call();
 		assertNotNull(results);
 		assertEquals(messageList, results);
@@ -128,7 +131,7 @@ public class SearchQueueWorkerTest {
 		// Create only occurs if it is not already in the search index
 		when(mockSeachDao.doesDocumentExist("one", "etag1")).thenReturn(false);
 
-		SearchQueueWorker worker = new SearchQueueWorker(mockSeachDao, mockDocumentProvider, messageList);
+		SearchQueueWorker worker = new SearchQueueWorker(mockSeachDao, mockDocumentProvider, messageList, mockWikiPageDao);
 		List<Message> results = worker.call();
 		assertNotNull(results);
 		assertEquals(messageList, results);

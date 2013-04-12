@@ -1,0 +1,50 @@
+{
+	"description": "JSON schema for DOI.",
+	"properties": {
+		"id": {
+			"description": "The unique ID of this DOI.",
+			"type": "string",
+			"required": true
+		},
+		"etag": {
+			"type": "string",
+			"description": "For Optimistic Concurrency Control (OCC).",
+			"transient": true
+		},
+		"doiStatus": {
+			"description": "The status of the DOI.",
+			"$ref": "org.sagebionetworks.repo.model.doi.DoiStatus",
+			"required": true
+		},
+		"objectId": {
+			"description": "The ID of the digital object for which this DOI is created.",
+			"type": "string",
+			"required": true
+		},
+		"doiObjectType": {
+			"description": "The type of the digital object.",
+			"$ref": "org.sagebionetworks.repo.model.doi.DoiObjectType",
+			"required": true
+		},
+		"objectVersion": {
+			"description": "The version of the digital object. When null, the DOI is associated with the current version of the object.",
+			"type": "integer",
+			"required": false
+		},
+		"createdBy": {
+			"description": "The ID of the user that creates this DOI.",
+			"type": "string",
+			"required": true
+		},
+		"createdOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date time this DOI is first created."
+		},
+		"updatedOn": {
+			"type": "string",
+			"format": "date-time",
+			"description": "The date time this DOI is last updated."
+		}
+	}
+}

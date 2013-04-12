@@ -58,7 +58,7 @@
 	<bean id="trashService"
 		class="org.sagebionetworks.repo.web.service.TrashServiceImpl" />
 
-	<!-- The StorageUsage Service -->
+	<!-- The Wiki Service -->
 	<bean id="wikiService" class="org.sagebionetworks.repo.web.service.WikiServiceImpl" />
 
 	<!-- The UserProfile Service -->
@@ -84,6 +84,9 @@
 	<!-- The Evaluation Service -->
 	<bean id="evaluationService"
 		class="org.sagebionetworks.repo.web.service.EvaluationServiceImpl" />
+
+	<!-- The DOI Service -->
+	<bean id="doiService" class="org.sagebionetworks.repo.web.service.DoiServiceImpl" />
 
 	<!-- The Location helper -->
 	<bean id="locationHelper" class="org.sagebionetworks.repo.util.LocationHelpersImpl" />
@@ -156,6 +159,9 @@
 				</entry>
 				<entry key="locationable">
 					<ref bean="locationableMetadataProvider" />
+				</entry>
+				<entry key="file">
+					<bean class= "org.sagebionetworks.repo.web.controller.metadata.FileEntityMetadataProvider"/> 
 				</entry>
 			</map>
 		</property>

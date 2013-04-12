@@ -11,12 +11,19 @@ import org.apache.commons.fileupload.FileItemStream;
 import org.apache.commons.fileupload.FileUploadException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.ChunkRequest;
+import org.sagebionetworks.repo.model.file.ChunkResult;
+import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
+import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.ServiceUnavailableException;
+
+import com.amazonaws.services.s3.model.BucketCrossOriginConfiguration;
 
 /**
  * Manages uploading files.
@@ -26,6 +33,12 @@ import org.sagebionetworks.repo.web.ServiceUnavailableException;
  */
 public interface FileHandleManager {
 
+	/**
+	 * The ID used for the CORS rule on the data bucket.
+	 * 
+	 */
+	public static final String AUTO_GENERATED_ALLOW_ALL_CORS_RULE_ID = "auto-generated-allow-all-CORS";
+	
 	/**
 	 * Upload all of the files found in a request and capture all of the parameters and meta-data.
 	 * 
@@ -105,5 +118,45 @@ public interface FileHandleManager {
 	 * @return
 	 */
 	ExternalFileHandle createExternalFileHandle(UserInfo userInfo,	ExternalFileHandle fileHandle);
+	
+	/**
+	 * Ge the bucket CORS settings
+	 * @return
+	 */
+	BucketCrossOriginConfiguration getBucketCrossOriginConfiguration();
 
+	/**
+	 * This is the first step in uploading a file as multiple chunks. The returned file token must be provide in all subsequent chunk calls.
+	 * @param userInfo
+	 * @return
+	 */
+	public ChunkedFileToken createChunkedFileUploadToken(UserInfo userInfo, CreateChunkedFileTokenRequest ccftr);
+	
+	/**
+	 * Create a pre-signed URL that can be used to PUT a single chunk of file data to S3.
+	 * @param token
+	 * @param partNumber
+	 * @return
+	 */
+	public URL createChunkedFileUploadPartURL(UserInfo userInfo, ChunkRequest cpr);
+	
+	/**
+	 * After uploading a file chunk to the pre-signed URL add it to the larger file.
+	 * This must be called for each chunk.
+	 * @param userInfo
+	 * @param token
+	 * @param partNumber
+	 * @return
+	 */
+	public ChunkResult addChunkToFile(UserInfo userInfo, ChunkRequest cpr);
+
+	/**
+	 * The final step of a chunked file upload.  This is where an {@link S3FileHandle} is created.
+	 * @param userInfo
+	 * @param token
+	 * @param partList
+	 * @return
+	 */
+	public S3FileHandle completeChunkFileUpload(UserInfo userInfo,	CompleteChunkedFileRequest ccfr);
+	
 }

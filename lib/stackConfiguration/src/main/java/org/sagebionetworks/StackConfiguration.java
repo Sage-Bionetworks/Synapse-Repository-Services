@@ -754,4 +754,39 @@ public class StackConfiguration {
 	public boolean getShouldMessagesBePublishedToTopic(){
 		return Boolean.parseBoolean(configuration.getProperty("org.sagebionetworks.repo.manage.shouldMessagesBePublishedToTopic"));
 	}
+
+	/**
+	 * EZID user name.
+	 */
+	public static String getEzidUsername() {
+		return configuration.getProperty("org.sagebionetworks.ezid.username");
+	}
+
+	/**
+	 * EZID password.
+	 */
+	public static String getEzidPassword() {
+		return configuration.getDecryptedProperty("org.sagebionetworks.ezid.password");
+	}
+
+	/**
+	 * EZID REST API URL.
+	 */
+	public static String getEzidUrl() {
+		return configuration.getProperty("org.sagebionetworks.ezid.url");
+	}
+
+	/**
+	 * EZID DOI prefix.
+	 */
+	public static String getEzidDoiPrefix() {
+		return configuration.getProperty("org.sagebionetworks.ezid.doi.prefix");
+	}
+
+	/**
+	 * EZID target URL prefix. Example: https://synapse.prod.sagebase.org/
+	 */
+	public static String getEzidTargetUrlPrefix() {
+		return configuration.getProperty("org.sagebionetworks.ezid.doi.target.url.prefix");
+	}
 }

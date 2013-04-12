@@ -22,6 +22,8 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -133,13 +135,15 @@ public class SubmissionBackupDriverTest {
 	@Before
 	public void before() throws Exception {
 		srcSubs = new HashMap<String, Submission>();
-		srcStatuses = new HashMap<String, SubmissionStatus>();
 		dstSubs = new HashMap<String, Submission>();
+		srcStatuses = new HashMap<String, SubmissionStatus>();		
 		dstStatuses = new HashMap<String, SubmissionStatus>();
 		SubmissionStatusDAO srcSubmissionStatusDAO = createSubmissionStatusDAO(srcStatuses);
 		SubmissionDAO srcSubmissionDAO = createSubmissionDAO(srcSubs);
 		int numSubs = 5;
 		for (int i = 0; i < numSubs; i++) {
+			Entity entity = new Folder();
+			entity.setName("foo" + i);
 			srcSubmissionDAO.create(createSubmission("" + i));
 			srcSubmissionStatusDAO.create(createSubmissionStatus("" + i));
 		}

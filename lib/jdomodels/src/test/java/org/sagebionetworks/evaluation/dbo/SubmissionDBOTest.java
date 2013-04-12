@@ -14,7 +14,10 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
+import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,20 +33,35 @@ public class SubmissionDBOTest {
     DBOBasicDao dboBasicDao;
 	@Autowired
 	NodeDAO nodeDAO;
+	@Autowired
+	FileHandleDao fileHandleDAO;
  
     private String nodeId = null;
     private long submissionId = 2000;
     private long userId = 0;
     private long evalId;
+    private String fileHandleId;
     private String name = "test submission";
     
     @Before
-    public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {    	
+    public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {   
+    	// create a file handle
+		PreviewFileHandle meta = new PreviewFileHandle();
+		meta.setBucketName("bucketName");
+		meta.setKey("key");
+		meta.setContentType("content type");
+		meta.setContentSize(123l);
+		meta.setContentMd5("md5");
+		meta.setCreatedBy("" + userId);
+		meta.setFileName("preview.jpg");
+		fileHandleId = fileHandleDAO.createFile(meta).getId();
+		
     	// create a node
   		Node toCreate = NodeTestUtils.createNew(name, userId);
     	toCreate.setVersionComment("This is the first version of the first node ever!");
     	toCreate.setVersionLabel("0.0.1");
-    	nodeId = nodeDAO.createNew(toCreate).substring(3); // trim "syn" from node ID
+    	toCreate.setFileHandleId(fileHandleId);
+    	nodeId = nodeDAO.createNew(toCreate).substring(3); // trim "syn" from node ID    
     	
         // Initialize a new Evaluation
         EvaluationDBO evaluation = new EvaluationDBO();
@@ -86,6 +104,7 @@ public class SubmissionDBOTest {
     	try {
     		nodeDAO.delete(nodeId);
     	} catch (NotFoundException e) {};
+    	fileHandleDAO.delete(fileHandleId);;
     }
     @Test
     public void testCRD() throws Exception{
@@ -98,6 +117,7 @@ public class SubmissionDBOTest {
         submission.setUserId(userId);
         submission.setEvalId(evalId);
         submission.setCreatedOn(System.currentTimeMillis());
+        submission.setEntityBundle(JDOSecondaryPropertyUtils.compressObject(submission));
  
         // Create it
         SubmissionDBO clone = dboBasicDao.createNew(submission);

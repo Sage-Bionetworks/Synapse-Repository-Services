@@ -1,6 +1,7 @@
 package org.sagebionetworks.file.services;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -13,6 +14,11 @@ import org.sagebionetworks.repo.manager.file.FileUploadResults;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.file.ChunkRequest;
+import org.sagebionetworks.repo.model.file.ChunkResult;
+import org.sagebionetworks.repo.model.file.ChunkedFileToken;
+import org.sagebionetworks.repo.model.file.CompleteChunkedFileRequest;
+import org.sagebionetworks.repo.model.file.CreateChunkedFileTokenRequest;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -77,6 +83,36 @@ public class FileUploadServiceImpl implements FileUploadService {
 		// resolve the user
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		return fileUploadManager.createExternalFileHandle(userInfo, fileHandle);
+	}
+
+	@Override
+	public ChunkedFileToken createChunkedFileUploadToken(String userId,	CreateChunkedFileTokenRequest ccftr) throws DatastoreException, NotFoundException {
+		if(userId == null) throw new UnauthorizedException("The user must be authenticated");
+		if(ccftr == null) throw new IllegalArgumentException("CreateChunkedFileTokenRequest cannot be null");
+		// resolve the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.createChunkedFileUploadToken(userInfo, ccftr);
+	}
+
+	@Override
+	public URL createChunkedFileUploadPartURL(String userId, ChunkRequest cpr) throws DatastoreException, NotFoundException {
+		// resolve the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.createChunkedFileUploadPartURL(userInfo, cpr);
+	}
+
+	@Override
+	public ChunkResult addChunkToFile(String userId, ChunkRequest cpr) throws DatastoreException, NotFoundException {
+		// resolve the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.addChunkToFile(userInfo, cpr);
+	}
+
+	@Override
+	public S3FileHandle completeChunkFileUpload(String userId, CompleteChunkedFileRequest ccfr) throws DatastoreException, NotFoundException {
+		// resolve the user
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		return fileUploadManager.completeChunkFileUpload(userInfo, ccfr);
 	}
 
 }
