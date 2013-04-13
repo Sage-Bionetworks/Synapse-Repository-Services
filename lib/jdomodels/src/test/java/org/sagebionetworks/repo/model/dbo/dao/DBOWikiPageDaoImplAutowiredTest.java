@@ -372,7 +372,7 @@ public class DBOWikiPageDaoImplAutowiredTest {
 		assertEquals(1, mod.getDependencies().size());
 		MigratableObjectDescriptor dependancy = mod.getDependencies().iterator().next();
 		assertNotNull(dependancy);
-		assertEquals(root.getId(), dependancy.getId());
+		assertEquals(rootKey.getKeyString(), dependancy.getId());
 		assertEquals(MigratableObjectType.WIKIPAGE, dependancy.getType());
 		
 		// Test paging
