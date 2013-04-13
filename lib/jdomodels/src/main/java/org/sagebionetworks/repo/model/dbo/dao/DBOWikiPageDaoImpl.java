@@ -417,7 +417,8 @@ public class DBOWikiPageDaoImpl implements WikiPageDao {
 					if(parentId != null){
 						// Add the parent as a dependency.
 						MigratableObjectDescriptor parentMod = new MigratableObjectDescriptor();
-						parentMod.setId(""+parentId);
+						WikiPageKey parentKey = new WikiPageKey(ownerId, ownerType, parentId.toString());
+						parentMod.setId(parentKey.getKeyString());
 						parentMod.setType(MigratableObjectType.WIKIPAGE);
 						mod.getDependencies().add(parentMod);
 					}
