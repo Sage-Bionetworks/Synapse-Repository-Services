@@ -65,7 +65,7 @@ public class DBOAnnotationsDaoImplTest {
 			for(Long id: toDelete){
 				MapSqlParameterSource params = new MapSqlParameterSource();
 				params.addValue("id", id);
-				dboBasicDao.deleteObjectById(DBONode.class, params);
+				dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, params);
 				dboAnnotationsDao.deleteAnnotationsByOwnerId(id);
 			}
 		}

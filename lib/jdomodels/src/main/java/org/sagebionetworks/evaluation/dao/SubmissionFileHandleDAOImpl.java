@@ -76,6 +76,6 @@ public class SubmissionFileHandleDAOImpl implements SubmissionFileHandleDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOConstants.PARAM_SUBFILE_SUBMISSION_ID, submissionId);
 		param.addValue(DBOConstants.PARAM_SUBFILE_FILE_HANDLE_ID, fileHandleId);		
-		basicDao.deleteObjectById(SubmissionFileHandleDBO.class, param);		
+		basicDao.deleteObjectByPrimaryKey(SubmissionFileHandleDBO.class, param);		
 	}	
 }

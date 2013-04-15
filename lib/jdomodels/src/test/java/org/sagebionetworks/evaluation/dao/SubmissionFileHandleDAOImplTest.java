@@ -50,12 +50,14 @@ public class SubmissionFileHandleDAOImplTest {
 	FileHandleDao fileHandleDAO;
  
 	private String nodeId = null;
-    private String submissionId = "206";
+    private String submissionId1 = "206";
+    private String submissionId2 = "207";
     private String userId = "0";
     private String evalId;
     private String name = "test submission";
     private String fileHandleId1;
     private String fileHandleId2;
+    private String fileHandleId3;
     private Long versionNumber = 1L;
     
     @Before
@@ -71,6 +73,7 @@ public class SubmissionFileHandleDAOImplTest {
 		meta.setFileName("preview.jpg");
 		fileHandleId1 = fileHandleDAO.createFile(meta).getId();		
 		fileHandleId2 = fileHandleDAO.createFile(meta).getId();
+		fileHandleId3 = fileHandleDAO.createFile(meta).getId();
 		
     	// create a node
   		Node toCreate = NodeTestUtils.createNew(name, Long.parseLong(userId));
@@ -100,26 +103,31 @@ public class SubmissionFileHandleDAOImplTest {
         // create a Submission
         Submission submission = new Submission();
         submission.setCreatedOn(new Date());
-        submission.setId(submissionId);
+        submission.setId(submissionId1);
         submission.setName(name);
         submission.setEvaluationId(evalId);
         submission.setEntityId(nodeId);
         submission.setVersionNumber(versionNumber);
         submission.setUserId(userId);
         submission.setEntityBundleJSON("some bundle");
-        submissionId = submissionDAO.create(submission);
+        submissionId1 = submissionDAO.create(submission);
+        submission.setId(submissionId2);
+        submissionId2 = submissionDAO.create(submission);
     }
     
     @After
     public void tearDown() throws DatastoreException {
     	try {
-    		submissionFileHandleDAO.delete(submissionId, fileHandleId1);
+    		submissionFileHandleDAO.delete(submissionId1, fileHandleId1);
     	} catch (NotFoundException e) {};
     	try {
-    		submissionFileHandleDAO.delete(submissionId, fileHandleId2);
+    		submissionFileHandleDAO.delete(submissionId1, fileHandleId2);
     	} catch (NotFoundException e) {};
 		try {
-			submissionDAO.delete(submissionId);
+			submissionDAO.delete(submissionId1);
+		} catch (NotFoundException e)  {};
+		try {
+			submissionDAO.delete(submissionId2);
 		} catch (NotFoundException e)  {};
 		try {
 			participantDAO.delete(userId, evalId);
@@ -132,34 +140,38 @@ public class SubmissionFileHandleDAOImplTest {
     	} catch (NotFoundException e) {};
     	fileHandleDAO.delete(fileHandleId1);
 		fileHandleDAO.delete(fileHandleId2);
+		fileHandleDAO.delete(fileHandleId3);
     }
     
     @Test
     public void testRoundTrip() throws Exception{
         long initialCount = submissionFileHandleDAO.getCount();
  
-        // create SubmissionFileHandles
-        submissionFileHandleDAO.create(submissionId, fileHandleId1);
-        submissionFileHandleDAO.create(submissionId, fileHandleId2);
+        // create two SubmissionFileHandles for Submission1
+        submissionFileHandleDAO.create(submissionId1, fileHandleId1);
+        submissionFileHandleDAO.create(submissionId1, fileHandleId2);
+        // create one SubmissionFileHandle for Submission2
+        submissionFileHandleDAO.create(submissionId2, fileHandleId3);
         
         // fetch
-        assertEquals(initialCount + 2, submissionFileHandleDAO.getCount());
-        List<String> ids = submissionFileHandleDAO.getAllBySubmission(submissionId);
+        assertEquals(initialCount + 3, submissionFileHandleDAO.getCount());
+        List<String> ids = submissionFileHandleDAO.getAllBySubmission(submissionId1);
         assertEquals(2, ids.size());
         for (String id : ids) {
         	assertTrue("Unknown File Handle ID returned", id.equals(fileHandleId1) || id.equals(fileHandleId2));
         }
         
         // delete
-        submissionFileHandleDAO.delete(submissionId, fileHandleId1);
-        submissionFileHandleDAO.delete(submissionId, fileHandleId2);
+        submissionFileHandleDAO.delete(submissionId1, fileHandleId1);
+        submissionFileHandleDAO.delete(submissionId1, fileHandleId2);
+        submissionFileHandleDAO.delete(submissionId2, fileHandleId3);
         assertEquals(initialCount, submissionFileHandleDAO.getCount());
     }
     
     @Test
     public void testNoHandles() throws Exception{        
         // should return an empty list
-        List<String> ids = submissionFileHandleDAO.getAllBySubmission(submissionId);
+        List<String> ids = submissionFileHandleDAO.getAllBySubmission(submissionId1);
         assertNotNull(ids);
         assertEquals(0, ids.size());
     }
@@ -167,7 +179,7 @@ public class SubmissionFileHandleDAOImplTest {
     @Test
     public void testDeleteFileHandle() throws DatastoreException, NotFoundException {     
         // create SubmissionFileHandle
-        submissionFileHandleDAO.create(submissionId, fileHandleId1);
+        submissionFileHandleDAO.create(submissionId1, fileHandleId1);
         long count = submissionFileHandleDAO.getCount();
         
         try {
@@ -186,12 +198,12 @@ public class SubmissionFileHandleDAOImplTest {
         long initialCount = submissionFileHandleDAO.getCount();
         
         // create SubmissionFileHandles
-        submissionFileHandleDAO.create(submissionId, fileHandleId1);
-        submissionFileHandleDAO.create(submissionId, fileHandleId2);
+        submissionFileHandleDAO.create(submissionId1, fileHandleId1);
+        submissionFileHandleDAO.create(submissionId1, fileHandleId2);
         assertEquals(initialCount + 2, submissionFileHandleDAO.getCount());
         
         // delete Submission
-        submissionDAO.delete(submissionId);
+        submissionDAO.delete(submissionId1);
         
         // submissionFileHandles should have been deleted
         assertEquals(initialCount, submissionFileHandleDAO.getCount());

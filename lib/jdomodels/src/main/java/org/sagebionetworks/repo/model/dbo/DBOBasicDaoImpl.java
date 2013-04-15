@@ -159,7 +159,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	}
 	
 	@Override
-	public <T extends DatabaseObject<T>> T getObjectById(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException, NotFoundException{
+	public <T extends DatabaseObject<T>> T getObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException, NotFoundException{
 		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
 		if(namedParameters == null) throw new IllegalArgumentException("namedParameters cannot be null");
 		@SuppressWarnings("unchecked")
@@ -185,7 +185,7 @@ public class DBOBasicDaoImpl implements DBOBasicDao, InitializingBean {
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends DatabaseObject<T>> boolean deleteObjectById(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException {
+	public <T extends DatabaseObject<T>> boolean deleteObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException {
 		if(clazz == null) throw new IllegalArgumentException("Clazz cannot be null");
 		if(namedParameters == null) throw new IllegalArgumentException("namedParameters cannot be null");
 		String sql = getDeleteSQL(clazz);

@@ -53,7 +53,7 @@ public class DBOFavoriteTest {
 				params.addValue(DBOFavorite.FIELD_COLUMN_ID_PRINCIPAL_ID, fav.getPrincipalId());
 				params.addValue(DBOFavorite.FIELD_COLUMN_ID_NODE_ID, fav.getNodeId());
 				try {
-				dboBasicDao.deleteObjectById(DBOFavorite.class, params);
+				dboBasicDao.deleteObjectByPrimaryKey(DBOFavorite.class, params);
 				} catch (DatastoreException e) {
 					// next
 				}
@@ -64,7 +64,7 @@ public class DBOFavoriteTest {
 				MapSqlParameterSource params = new MapSqlParameterSource();
 				params.addValue("id", id);
 				try {
-				dboBasicDao.deleteObjectById(DBONode.class, params);
+				dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, params);
 				} catch (DatastoreException e) {
 					// next
 				}
@@ -97,7 +97,7 @@ public class DBOFavoriteTest {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue(DBOFavorite.FIELD_COLUMN_ID_PRINCIPAL_ID, favorite.getPrincipalId());
 		params.addValue(DBOFavorite.FIELD_COLUMN_ID_NODE_ID, favorite.getNodeId());
-		clone = dboBasicDao.getObjectById(DBOFavorite.class, params);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBOFavorite.class, params);
 		assertNotNull(clone);
 		assertEquals(favorite, clone);
 		
@@ -111,7 +111,7 @@ public class DBOFavoriteTest {
 		params = new MapSqlParameterSource();
 		params.addValue(DBOFavorite.FIELD_COLUMN_ID_PRINCIPAL_ID, clone.getPrincipalId());
 		params.addValue(DBOFavorite.FIELD_COLUMN_ID_NODE_ID, clone.getNodeId());
-		DBOFavorite clone2 = dboBasicDao.getObjectById(DBOFavorite.class, params);
+		DBOFavorite clone2 = dboBasicDao.getObjectByPrimaryKey(DBOFavorite.class, params);
 		assertEquals(clone, clone2);
 	}
 

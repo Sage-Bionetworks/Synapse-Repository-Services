@@ -359,7 +359,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		MapSqlParameterSource prams = getNodeParameters(KeyFactory.stringToKey(id));
 		// Send a delete message
 		tagMessenger.sendDeleteMessage(id, ObjectType.ENTITY);
-		return dboBasicDao.deleteObjectById(DBONode.class, prams);
+		return dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, prams);
 	}
 	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -368,7 +368,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		// Get the version in question
 		Long id = KeyFactory.stringToKey(nodeId);
 		// Delete the revision.
-		boolean wasDeleted = dboBasicDao.deleteObjectById(DBORevision.class, getRevisionParameters(id, versionNumber));
+		boolean wasDeleted = dboBasicDao.deleteObjectByPrimaryKey(DBORevision.class, getRevisionParameters(id, versionNumber));
 		if(wasDeleted){
 			// Make sure the node is still pointing the the current version
 			List<Long> versions = getVersionNumbers(nodeId);
@@ -392,7 +392,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private DBONode getNodeById(Long id) throws NotFoundException, DatastoreException{
 		if(id == null) throw new IllegalArgumentException("Node ID cannot be null");
 		MapSqlParameterSource params = getNodeParameters(id);
-		return dboBasicDao.getObjectById(DBONode.class, params);
+		return dboBasicDao.getObjectByPrimaryKey(DBONode.class, params);
 	}
 
 	/**
@@ -413,7 +413,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	
 	private DBORevision getNodeRevisionById(Long id, Long revNumber) throws NotFoundException, DatastoreException{
 		MapSqlParameterSource params = getRevisionParameters(id, revNumber);
-		return dboBasicDao.getObjectById(DBORevision.class, params);
+		return dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params);
 	}
 
 	/**
@@ -815,7 +815,7 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 	private DBONodeType getNodeType(EntityType type) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", type.getId());
-		return dboBasicDao.getObjectById(DBONodeType.class, params);
+		return dboBasicDao.getObjectByPrimaryKey(DBONodeType.class, params);
 	}
 
 	@Override

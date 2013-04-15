@@ -32,7 +32,7 @@ public class EvaluationDBOTest {
         if(dboBasicDao != null){
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("id", id);
-            dboBasicDao.deleteObjectById(EvaluationDBO.class, params);
+            dboBasicDao.deleteObjectByPrimaryKey(EvaluationDBO.class, params);
         }
     }
     @Test
@@ -55,7 +55,7 @@ public class EvaluationDBOTest {
         // Fetch it
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("id", id);
-        clone = dboBasicDao.getObjectById(EvaluationDBO.class, params);
+        clone = dboBasicDao.getObjectByPrimaryKey(EvaluationDBO.class, params);
         assertNotNull(clone);
         assertEquals(competition.getId(), clone.getId());
         assertEquals(competition.getName(), clone.getName());
@@ -68,11 +68,11 @@ public class EvaluationDBOTest {
 		// Verify it
 		params = new MapSqlParameterSource();
 		params.addValue("id", clone.getId());
-		EvaluationDBO clone2 = dboBasicDao.getObjectById(EvaluationDBO.class, params);
+		EvaluationDBO clone2 = dboBasicDao.getObjectByPrimaryKey(EvaluationDBO.class, params);
 		assertEquals(clone, clone2);
         
         // Delete it
-        result = dboBasicDao.deleteObjectById(EvaluationDBO.class,  params);
+        result = dboBasicDao.deleteObjectByPrimaryKey(EvaluationDBO.class,  params);
         assertTrue("Failed to delete the type created", result); 
     }
     
