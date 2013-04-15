@@ -73,7 +73,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ID.toLowerCase(), id);
-		basicDao.deleteObjectById(DBOAccessApproval.class, param);
+		basicDao.deleteObjectByPrimaryKey(DBOAccessApproval.class, param);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -94,7 +94,7 @@ public class DBOAccessApprovalDAOImpl implements AccessApprovalDAO {
 			NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_APPROVAL_ID.toLowerCase(), id);
-		DBOAccessApproval dbo = basicDao.getObjectById(DBOAccessApproval.class, param);
+		DBOAccessApproval dbo = basicDao.getObjectByPrimaryKey(DBOAccessApproval.class, param);
 		AccessApproval dto = AccessApprovalUtils.copyDboToDto(dbo);
 		return dto;
 	}

@@ -81,7 +81,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		if(id == null) throw new IllegalArgumentException("Id cannot be null");
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_FILES_ID.toLowerCase(), id);
-		DBOFileHandle dbo = basicDao.getObjectById(DBOFileHandle.class, param);
+		DBOFileHandle dbo = basicDao.getObjectByPrimaryKey(DBOFileHandle.class, param);
 		return dbo;
 	}
 
@@ -95,7 +95,7 @@ public class DBOFileHandleDaoImpl implements FileHandleDao {
 		tagMessenger.sendDeleteMessage(id, ObjectType.FILE);
 		// Delete this object
 		try{
-			basicDao.deleteObjectById(DBOFileHandle.class, param);
+			basicDao.deleteObjectByPrimaryKey(DBOFileHandle.class, param);
 		}catch (DataIntegrityViolationException e){
 			// This occurs when we try to delete a handle that is in use.
 			new DataIntegrityViolationException("Cannot delete a file handle that has been assigned to an owner object. FileHandle id: "+id);

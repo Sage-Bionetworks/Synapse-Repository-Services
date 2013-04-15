@@ -85,7 +85,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 		try {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("id", id);
-			return dboBasicDao.getObjectById(DBODaemonStatus.class, params);
+			return dboBasicDao.getObjectByPrimaryKey(DBODaemonStatus.class, params);
 		} catch (NotFoundException e) {
 			throw new NotFoundException(
 					"Cannot find a BackupRestoreStatus with ID: " + id);
@@ -123,7 +123,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", id);
-		dboBasicDao.deleteObjectById(DBODaemonStatus.class, params);
+		dboBasicDao.deleteObjectByPrimaryKey(DBODaemonStatus.class, params);
 	}
 
 	private DBODaemonTerminate getJobTerminate(String id)
@@ -131,7 +131,7 @@ public class BackupRestoreStatusDAOImpl implements BackupRestoreStatusDAO {
 		try {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("owner", id);
-			return dboBasicDao.getObjectById(DBODaemonTerminate.class, params);
+			return dboBasicDao.getObjectByPrimaryKey(DBODaemonTerminate.class, params);
 		} catch (NotFoundException e) {
 			throw new NotFoundException(
 					"Cannot find a BackupRestoreStatus with ID: " + id);

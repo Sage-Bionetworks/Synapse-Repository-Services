@@ -48,7 +48,7 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 		try{
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("id", DBOStackStatus.STATUS_ID);
-			DBOStackStatus jdo = dboBasicDao.getObjectById(DBOStackStatus.class, params);
+			DBOStackStatus jdo = dboBasicDao.getObjectByPrimaryKey(DBOStackStatus.class, params);
 			jdo.setStatus(getStatusCode(dto.getStatus()));
 			jdo.setCurrentMessage(dto.getCurrentMessage());
 			jdo.setPendingMessage(dto.getPendingMaintenanceMessage());
@@ -68,7 +68,7 @@ public class StackStatusDaoImpl implements StackStatusDao, InitializingBean {
 			// Try to get the single status row.  If it does not exist yet we will need to create it.
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("id", DBOStackStatus.STATUS_ID);
-			DBOStackStatus jdo = dboBasicDao.getObjectById(DBOStackStatus.class, params);
+			DBOStackStatus jdo = dboBasicDao.getObjectByPrimaryKey(DBOStackStatus.class, params);
 		}catch (NotFoundException e){
 			// If here then the the single status row does not exist.
 			DBOStackStatus status = new DBOStackStatus();

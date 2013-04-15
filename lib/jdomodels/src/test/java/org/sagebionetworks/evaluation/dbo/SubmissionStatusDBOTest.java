@@ -84,18 +84,18 @@ public class SubmissionStatusDBOTest {
             // delete submission
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("id", submissionId);
-            dboBasicDao.deleteObjectById(SubmissionDBO.class, params);
+            dboBasicDao.deleteObjectByPrimaryKey(SubmissionDBO.class, params);
             
             // delete participant
             params = new MapSqlParameterSource();
             params.addValue("userId", userId);
             params.addValue("evalId", evalId);
-            dboBasicDao.deleteObjectById(ParticipantDBO.class, params);
+            dboBasicDao.deleteObjectByPrimaryKey(ParticipantDBO.class, params);
             
             // delete Evaluation
             params = new MapSqlParameterSource();
             params.addValue("id", evalId);
-            dboBasicDao.deleteObjectById(EvaluationDBO.class, params);
+            dboBasicDao.deleteObjectByPrimaryKey(EvaluationDBO.class, params);
         }
     	try {
     		nodeDAO.delete(nodeId);
@@ -120,18 +120,18 @@ public class SubmissionStatusDBOTest {
         // Fetch it
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("id",submissionId);
-        SubmissionStatusDBO clone2 = dboBasicDao.getObjectById(SubmissionStatusDBO.class, params);
+        SubmissionStatusDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, params);
         assertEquals(status, clone2);
         
         // Update it
         clone2.setStatusEnum(SubmissionStatusEnum.SCORED);
         clone2.setScore(0.9);
         dboBasicDao.update(clone2);
-        SubmissionStatusDBO clone3 = dboBasicDao.getObjectById(SubmissionStatusDBO.class, params);
+        SubmissionStatusDBO clone3 = dboBasicDao.getObjectByPrimaryKey(SubmissionStatusDBO.class, params);
         assertEquals(clone2, clone3);
 
     	// Delete it
-        boolean result = dboBasicDao.deleteObjectById(SubmissionStatusDBO.class,  params);
+        boolean result = dboBasicDao.deleteObjectByPrimaryKey(SubmissionStatusDBO.class,  params);
         assertTrue("Failed to delete the entry created", result); 
     }
  

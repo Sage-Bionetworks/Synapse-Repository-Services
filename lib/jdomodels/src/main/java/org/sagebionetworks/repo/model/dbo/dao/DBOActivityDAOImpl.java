@@ -180,7 +180,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 	public void delete(String id) throws DatastoreException {				
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACTIVITY_ID.toLowerCase(), id);
-		basicDao.deleteObjectById(DBOActivity.class, param);
+		basicDao.deleteObjectByPrimaryKey(DBOActivity.class, param);
 	}
 			
 	@Override
@@ -311,7 +311,7 @@ public class DBOActivityDAOImpl implements ActivityDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACTIVITY_ID.toLowerCase(), id);
 		try {
-			DBOActivity dbo = basicDao.getObjectById(DBOActivity.class, param);
+			DBOActivity dbo = basicDao.getObjectByPrimaryKey(DBOActivity.class, param);
 			return dbo;
 		} catch (NotFoundException e) {
 			throw new NotFoundException(String.format(ACTIVITY_NOT_FOUND, id));
