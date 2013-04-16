@@ -9,6 +9,7 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.NodeManager;
@@ -63,6 +64,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		doiAdminDao.clear();
 	}
 
+	@Ignore
 	@Test
 	public void testRoundTrip() throws Exception {
 
@@ -109,6 +111,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertEquals(DoiStatus.READY, doiStatus);
 	}
 
+	@Ignore
 	@Test
 	public void testRoundTripWithVersionNumber() throws Exception {
 
@@ -155,6 +158,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertEquals(DoiStatus.READY, doiStatus);
 	}
 
+	@Ignore
 	@Test
 	public void testRetryableOnError() throws Exception {
 
