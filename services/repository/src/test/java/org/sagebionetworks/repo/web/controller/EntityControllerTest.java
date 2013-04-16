@@ -455,4 +455,26 @@ public class EntityControllerTest {
 		assertEquals(handleOne.getId(), fhr.getList().get(0).getId());
 		assertEquals(previewOne.getId(), fhr.getList().get(1).getId());
 	}
+	
+	@Test
+	public void testPLFM_1841() throws Exception{
+		// Create a study and then attempt to add a file to the study.
+		Study study = new Study();
+		study.setName("parentStudy-PLFM-1841");
+		study.setEntityType(Study.class.getName());
+		study = (Study) entityServletHelper.createEntity(study, userName, null);
+		toDelete.add(study.getId());
+		// Create a file Entity
+		// Create a file entity
+		FileEntity file = new FileEntity();
+		file.setName("FileName");
+		file.setEntityType(FileEntity.class.getName());
+		file.setParentId(study.getId());
+		file.setDataFileHandleId(handleOne.getId());
+		// Save it
+		file = (FileEntity) entityServletHelper.createEntity(file, userName, null);
+		assertNotNull(file);
+		assertNotNull(file.getId());
+		toDelete.add(file.getId());
+	}
 }
