@@ -4,8 +4,12 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+
 import com.sun.javadoc.AnnotationDesc;
 import com.sun.javadoc.ClassDoc;
+import com.sun.javadoc.MethodDoc;
 import com.sun.javadoc.RootDoc;
 /**
  * Java Doclet for generating javadocs for Spring MVC web-services.
@@ -15,10 +19,6 @@ import com.sun.javadoc.RootDoc;
  */
 public class SpringMVCDoclet {
 
-	/**
-	 * Identifies a Spring controller.
-	 */
-	public static final String ORG_SPRINGFRAMEWORK_STEREOTYPE_CONTROLLER = "@org.springframework.stereotype.Controller";
 
 	public static boolean start(RootDoc root) {
 		// Pass this along to the standard doclet
@@ -26,14 +26,16 @@ public class SpringMVCDoclet {
         Iterator<ClassDoc> contollers = controllerIterator(classes);
         while(contollers.hasNext()){
         	ClassDoc classDoc = contollers.next();
-        	System.out.println(classDoc);
+        	String string = classDoc.toString();
+        	System.out.println(string);
+        	Iterator<MethodDoc> methodIt = requestMappingIterator(classDoc.methods());
         }
 
 		return true;
 	}
 	
 	/**
-	 * Create an iterator that only includes contollers
+	 * Create an iterator that only includes controllers
 	 * @param classes
 	 * @return
 	 */
@@ -44,10 +46,30 @@ public class SpringMVCDoclet {
             AnnotationDesc[] annos = classDoc.annotations();
             if(annos != null){
             	for(AnnotationDesc ad: annos){
-                    if(ORG_SPRINGFRAMEWORK_STEREOTYPE_CONTROLLER.equals(ad.toString())){
-                    	// This is a controller
+                    if(Controller.class.getName().equals(ad.annotationType().qualifiedName())){
                     	list.add(classDoc);
                     }
+            	}
+            }
+		}
+		return list.iterator();
+	}
+	
+	/**
+	 * Create an iterator that only includes @RequestMapping methods.
+	 * @param classes
+	 * @return
+	 */
+	public static Iterator<MethodDoc> requestMappingIterator(MethodDoc[] methods){
+		if(methods == null) throw new IllegalArgumentException("classes cannot be null");
+		List<MethodDoc> list = new LinkedList<MethodDoc>();
+		for(MethodDoc methodDoc: methods){
+            AnnotationDesc[] annos = methodDoc.annotations();
+            if(annos != null){
+            	for(AnnotationDesc ad: annos){
+            		if(RequestMapping.class.getName().equals(ad.annotationType().qualifiedName())){
+                		list.add(methodDoc);
+            		}
             	}
             }
 		}

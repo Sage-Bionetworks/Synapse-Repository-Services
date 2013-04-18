@@ -36,12 +36,14 @@
 		<repository>
 			<id>sagebionetworks-releases-local</id>
 			<name>sagebionetworks-releases-local</name>
-			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local</url>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/libs-releases-local
+			</url>
 		</repository>
 		<repository>
 			<id>sagebionetworks-ext</id>
 			<name>sagebionetworks-releases-ext</name>
-			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/ext-releases-local</url>
+			<url>http://sagebionetworks.artifactoryonline.com/sagebionetworks/ext-releases-local
+			</url>
 		</repository>
 		<repository>
 			<id>mvn-gae-plugin-repo</id>
@@ -57,7 +59,8 @@
 		</repository>
 		<repository>
 			<id>apache-repo-releases</id>
-			<url>https://repository.apache.org/content/repositories/releases/</url>
+			<url>https://repository.apache.org/content/repositories/releases/
+			</url>
 		</repository>
 	</repositories>
 
@@ -139,7 +142,7 @@
 				<artifactId>jackson-mapper-asl</artifactId>
 				<version>${jackson.version}</version>
 			</dependency>
-			
+
 			<!-- Used for timer triggers (cron-like) -->
 			<dependency>
 				<groupId>opensymphony</groupId>
@@ -272,7 +275,8 @@
 				<version>${com.amazonaws.version}</version>
 			</dependency>
 
-			<!-- note:  OpenID4Java seems to require version 4.1.1 and to break with 4.1.2 -->
+			<!-- note: OpenID4Java seems to require version 4.1.1 and to break with 
+				4.1.2 -->
 			<dependency>
 				<groupId>org.apache.httpcomponents</groupId>
 				<artifactId>httpclient</artifactId>
@@ -361,13 +365,13 @@
 				<artifactId>lib-shared-models</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-			
+
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-worker</artifactId>
 				<version>${project.version}</version>
 			</dependency>
-			
+
 			<dependency>
 				<groupId>org.sagebionetworks</groupId>
 				<artifactId>lib-communicationUtilities</artifactId>
@@ -495,7 +499,7 @@
 				<artifactId>xstream</artifactId>
 				<version>${xstream.version}</version>
 			</dependency>
-			
+
 			<!-- Used to for file upload -->
 			<dependency>
 				<groupId>commons-fileupload</groupId>
@@ -550,6 +554,7 @@
 										<versionRange>[0,)</versionRange>
 										<goals>
 											<goal>unpack-dependencies</goal>
+											<goal>build-classpath</goal>
 										</goals>
 									</pluginExecutionFilter>
 									<action>
@@ -674,22 +679,19 @@
 					<version>${findbugs-maven-plugin.version}</version>
 				</plugin>
 				<plugin>
-					<!--
-						To use the clover2 plugin, you will need the license file and add
-						the following property to the ~/.m2/settings.xml file:
-
-						<maven.clover.licenseLocation>/path/to/clover.license</maven.clover.licenseLocation>
-
-					 -->
+					<!-- To use the clover2 plugin, you will need the license file and add 
+						the following property to the ~/.m2/settings.xml file: <maven.clover.licenseLocation>/path/to/clover.license</maven.clover.licenseLocation> -->
 					<groupId>com.atlassian.maven.plugins</groupId>
 					<artifactId>maven-clover2-plugin</artifactId>
 					<version>${maven-clover2-plugin.version}</version>
 					<configuration>
 						<excludes>
 							<exclude>**/*Test.java</exclude>
-							<exclude>**/org/sagebionetworks/repo/model/bootstrap/DatabasePreparation.java</exclude>
+							<exclude>**/org/sagebionetworks/repo/model/bootstrap/DatabasePreparation.java
+							</exclude>
 							<exclude>**/org/sagebionetworks/StackConfiguration.java</exclude>
-							<exclude>**/org/sagebionetworks/TemplatedConfigurationImpl.java</exclude>
+							<exclude>**/org/sagebionetworks/TemplatedConfigurationImpl.java
+							</exclude>
 							<exclude>**/org/sagebionetworks/SettingsLoader.java</exclude>
 							<exclude>**/org/sagebionetworks/StringEncrypter.java</exclude>
 							<exclude>**/org/sagebionetworks/ResourceEncoder.java</exclude>
@@ -708,6 +710,11 @@
 							</goals>
 						</execution>
 					</executions>
+				</plugin>
+				<plugin>
+					<groupId>org.apache.maven.plugins</groupId>
+					<artifactId>maven-dependency-plugin</artifactId>
+					<version>2.7</version>
 				</plugin>
 				<plugin>
 					<groupId>org.sagebionetworks</groupId>

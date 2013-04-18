@@ -27,13 +27,27 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
+/**
+ * Controller for WikiPage services.
+ * @author John
+ *
+ */
 @Controller
 public class WikiController extends BaseController {
 	
 	@Autowired
 	ServiceProvider serviceProvider;
 	
-	// Create methods.
+	/**
+	 * Create a wiki page with an entity owner.
+	 * 
+	 * @param userId - the user's id.
+	 * @param ownerId - the ID of thw owner object.
+	 * @param toCreate - the WikiPage to create.s
+	 * @return - 
+	 * @throws DatastoreException - Synapse error.
+	 * @throws NotFoundException - returned if the user or owner does not exist.
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI, method = RequestMethod.POST)
 	public @ResponseBody
@@ -45,6 +59,16 @@ public class WikiController extends BaseController {
 		return serviceProvider.getWikiService().createWikiPage(userId, ownerId, ObjectType.ENTITY, toCreate);
 	}
 	
+	/**
+	 * Create a wiki page with a evaluation owner.
+	 * 
+	 * @param userId
+	 * @param ownerId
+	 * @param toCreate
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.CREATED)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI, method = RequestMethod.POST)
 	public @ResponseBody
@@ -56,7 +80,14 @@ public class WikiController extends BaseController {
 		return serviceProvider.getWikiService().createWikiPage(userId, ownerId, ObjectType.EVALUATION, toCreate);
 	}
 	
-	// Create methods.
+	/**
+	 * Get the root wiki page for an owner.
+	 * @param userId
+	 * @param ownerId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI, method = RequestMethod.GET)
 	public @ResponseBody
@@ -67,6 +98,14 @@ public class WikiController extends BaseController {
 		return serviceProvider.getWikiService().getRootWikiPage(userId, ownerId, ObjectType.ENTITY);
 	}
 	
+	/**
+	 * Get the root wiki page owned by an evaluation.
+	 * @param userId
+	 * @param ownerId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI, method = RequestMethod.GET)
 	public @ResponseBody
@@ -77,8 +116,15 @@ public class WikiController extends BaseController {
 		return serviceProvider.getWikiService().getRootWikiPage(userId, ownerId, ObjectType.EVALUATION);
 	}
 	
-	// Get methods
-	
+	/**
+	 * Get a wiki page owned by an entity.
+	 * @param userId
+	 * @param ownerId
+	 * @param wikiId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.ENTITY_WIKI_ID, method = RequestMethod.GET)
 	public @ResponseBody
@@ -90,6 +136,15 @@ public class WikiController extends BaseController {
 		return serviceProvider.getWikiService().getWikiPage(userId, new WikiPageKey(ownerId, ObjectType.ENTITY, wikiId));
 	}
 	
+	/**
+	 * Get a WikiPage owed by 
+	 * @param userId
+	 * @param ownerId - the ID of the owner object
+	 * @param wikiId - the ID of the wiki.
+	 * @return
+	 * @throws DatastoreException
+	 * @throws NotFoundException
+	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = UrlHelpers.EVALUATION_WIKI_ID, method = RequestMethod.GET)
 	public @ResponseBody
