@@ -1,15 +1,15 @@
 package org.sagebionetworks.javadoc.web.services;
 
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
+import java.io.File;
+import java.io.IOException;
 
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.RequestMapping;
+import javax.xml.stream.XMLStreamException;
 
-import com.sun.javadoc.AnnotationDesc;
-import com.sun.javadoc.ClassDoc;
-import com.sun.javadoc.MethodDoc;
+import org.sagebionetworks.javadoc.CopyBaseFiles;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+
+import com.sun.javadoc.DocErrorReporter;
+import com.sun.javadoc.LanguageVersion;
 import com.sun.javadoc.RootDoc;
 /**
  * Java Doclet for generating javadocs for Spring MVC web-services.
@@ -20,59 +20,83 @@ import com.sun.javadoc.RootDoc;
 public class SpringMVCDoclet {
 
 
-	public static boolean start(RootDoc root) {
+	/**
+	 * The main entry point of the Doclet
+	 * @param root
+	 * @return
+	 * @throws XMLStreamException 
+	 * @throws IOException 
+	 * @throws JSONObjectAdapterException 
+	 */
+	public static boolean start(RootDoc root) throws Exception {
 		// Pass this along to the standard doclet
-        ClassDoc[] classes = root.classes();
-        Iterator<ClassDoc> contollers = controllerIterator(classes);
-        while(contollers.hasNext()){
-        	ClassDoc classDoc = contollers.next();
-        	String string = classDoc.toString();
-        	System.out.println(string);
-        	Iterator<MethodDoc> methodIt = requestMappingIterator(classDoc.methods());
-        }
-
+		// First determine the output directory.
+		File outputDirectory = getOutputDirectory(root.options());
+		
+		// Copy all of the base file to the output directory
+		CopyBaseFiles.copyFiel(outputDirectory);
+		
+		// First write all of the schema files
+		SchemaWriter schemaWriter = new SchemaWriter(outputDirectory, root);
 		return true;
 	}
 	
 	/**
-	 * Create an iterator that only includes controllers
-	 * @param classes
+	 * Get the output directory.
+	 * @param options
 	 * @return
 	 */
-	public static Iterator<ClassDoc> controllerIterator(ClassDoc[] classes){
-		if(classes == null) throw new IllegalArgumentException("classes cannot be null");
-		List<ClassDoc> list = new LinkedList<ClassDoc>();
-		for(ClassDoc classDoc: classes){
-            AnnotationDesc[] annos = classDoc.annotations();
-            if(annos != null){
-            	for(AnnotationDesc ad: annos){
-                    if(Controller.class.getName().equals(ad.annotationType().qualifiedName())){
-                    	list.add(classDoc);
-                    }
-            	}
-            }
+	public static File getOutputDirectory(String[][] options){
+		String outputDirectoryPath = Options.getOptionValue(options, Options.DIRECTORY_FLAG);
+		if(outputDirectoryPath == null){
+			outputDirectoryPath = System.getProperty("user.dir");
 		}
-		return list.iterator();
+		File outputDirectory = new File(outputDirectoryPath);
+		if(!outputDirectory.exists()){
+			outputDirectory.mkdirs();
+		}
+		return outputDirectory;
 	}
 	
-	/**
-	 * Create an iterator that only includes @RequestMapping methods.
-	 * @param classes
-	 * @return
-	 */
-	public static Iterator<MethodDoc> requestMappingIterator(MethodDoc[] methods){
-		if(methods == null) throw new IllegalArgumentException("classes cannot be null");
-		List<MethodDoc> list = new LinkedList<MethodDoc>();
-		for(MethodDoc methodDoc: methods){
-            AnnotationDesc[] annos = methodDoc.annotations();
-            if(annos != null){
-            	for(AnnotationDesc ad: annos){
-            		if(RequestMapping.class.getName().equals(ad.annotationType().qualifiedName())){
-                		list.add(methodDoc);
-            		}
-            	}
-            }
-		}
-		return list.iterator();
-	}
+    /**
+     * Check for doclet added options here.
+     *
+     * @return number of arguments to option. Zero return means
+     * option not known.  Negative value means error occurred.
+     */
+    public static int optionLength(String option) {
+    	return Options.optionLength(option);
+    }
+
+    /**
+     * Check that options have the correct arguments here.
+     * <P>
+     * This method is not required and will default gracefully
+     * (to true) if absent.
+     * <P>
+     * Printing option related error messages (using the provided
+     * DocErrorReporter) is the responsibility of this method.
+     *
+     * @return true if the options are valid.
+     */
+    public static boolean validOptions(String[][] options, DocErrorReporter reporter) {
+    	System.out.println("options:");
+    	for(int i=0; i<options.length; i++){
+    		for(int j=0; j<options[i].length; j++){
+    			System.out.print(" "+options[i][j]);
+    		}
+    		System.out.println();
+    	}
+        return true;
+    }
+    
+    /**
+     * Indicate that this doclet supports the 1.5 language features.
+     * @return JAVA_1_5, indicating that the new features are supported.
+     */
+    public static LanguageVersion languageVersion() {
+        return LanguageVersion.JAVA_1_5;
+    }
+
+
 }

@@ -1,0 +1,33 @@
+/** Add css rules here for your application. */
+
+/* Google Font API */
+@import url(http://fonts.googleapis.com/css?family=Droid+Serif:400,400italic,700|Droid+Sans:700);
+
+html,body {
+	margin:0;
+	padding:0;
+	height:100%; /* needed for container min-height */
+}
+
+div#container {
+	position:relative; /* needed for footer positioning*/
+	height:auto !important; /* real browsers */
+	height:100%; /* IE6: treaded as min-height*/
+	min-height:100%; /* real browsers */
+}
+
+div#main {
+	padding:0em 0em 5em; /* bottom padding for footer */
+}
+
+footer {
+	position:absolute;
+	width:100%;
+	bottom:0; /* stick to bottom */
+}
+
+.user-name {
+	color:#e0e0e0;
+	padding-right:1em
+}
+
