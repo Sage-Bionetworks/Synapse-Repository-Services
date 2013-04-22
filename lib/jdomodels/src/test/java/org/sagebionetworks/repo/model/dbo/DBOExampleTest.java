@@ -42,7 +42,7 @@ public class DBOExampleTest {
 				try {
 					MapSqlParameterSource params = new MapSqlParameterSource();
 					params.addValue("id", id);
-					dboBasicDao.deleteObjectById(DBOExample.class, params);
+					dboBasicDao.deleteObjectByPrimaryKey(DBOExample.class, params);
 				} catch (DatastoreException e) {}
 			}
 		}
@@ -89,7 +89,7 @@ public class DBOExampleTest {
 			// Check the results
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("id", created.getId());
-			DBOExample clone = dboBasicDao.getObjectById(DBOExample.class, params);
+			DBOExample clone = dboBasicDao.getObjectByPrimaryKey(DBOExample.class, params);
 			assertNotNull(clone);
 			assertEquals(created, clone);
 		}
@@ -110,7 +110,7 @@ public class DBOExampleTest {
 		// Make sure we can get a clone
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", example.getId());
-		DBOExample clone = dboBasicDao.getObjectById(DBOExample.class, params);
+		DBOExample clone = dboBasicDao.getObjectByPrimaryKey(DBOExample.class, params);
 		assertNotNull(clone);
 		assertEquals(example, clone);
 	}
@@ -120,7 +120,7 @@ public class DBOExampleTest {
 		// This should fail with NotFoundException
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", new Long(33344));
-		dboBasicDao.getObjectById(DBOExample.class, params);
+		dboBasicDao.getObjectByPrimaryKey(DBOExample.class, params);
 	}
 	
 	@Test
@@ -138,7 +138,7 @@ public class DBOExampleTest {
 		// delete it
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", example.getId());
-		boolean result = dboBasicDao.deleteObjectById(DBOExample.class, params);
+		boolean result = dboBasicDao.deleteObjectByPrimaryKey(DBOExample.class, params);
 		assertTrue(result);
 	}
 	
@@ -156,7 +156,7 @@ public class DBOExampleTest {
 		// Get it back from the DB
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", example.getId());
-		DBOExample fetched = dboBasicDao.getObjectById(DBOExample.class, params);
+		DBOExample fetched = dboBasicDao.getObjectByPrimaryKey(DBOExample.class, params);
 		assertEquals(example, fetched);
 		// Now change the value
 		fetched.setBlob("I am the new string for the blob!".getBytes("UTF-8"));
@@ -166,7 +166,7 @@ public class DBOExampleTest {
 		boolean result = dboBasicDao.update(fetched);
 		assertTrue(result);
 		// Fetch it back
-		DBOExample clone = dboBasicDao.getObjectById(DBOExample.class, params);
+		DBOExample clone = dboBasicDao.getObjectByPrimaryKey(DBOExample.class, params);
 		assertEquals(fetched, clone);
 		
 	}

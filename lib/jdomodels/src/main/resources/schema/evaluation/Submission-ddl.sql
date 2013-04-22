@@ -4,6 +4,7 @@ CREATE TABLE JDOSUBMISSION (
     EVALUATION_ID bigint(20) NOT NULL,
     USER_ID bigint(20) NOT NULL,
     ENTITY_ID bigint(20) NOT NULL,
+    ENTITY_BUNDLE mediumblob,
     VERSION bigint(20) NOT NULL,
     CREATED_ON bigint(20) NOT NULL,
     PRIMARY KEY (ID),

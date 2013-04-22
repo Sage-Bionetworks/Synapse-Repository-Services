@@ -55,7 +55,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, id);
-		basicDao.deleteObjectById(DBOUserProfile.class, param);
+		basicDao.deleteObjectByPrimaryKey(DBOUserProfile.class, param);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -74,7 +74,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 			NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOUserProfile.OWNER_ID_FIELD_NAME, id);
-		DBOUserProfile jdo = basicDao.getObjectById(DBOUserProfile.class, param);
+		DBOUserProfile jdo = basicDao.getObjectByPrimaryKey(DBOUserProfile.class, param);
 		UserProfile dto = new UserProfile();
 		UserProfileUtils.copyDboToDto(jdo, dto, schema);
 		return dto;

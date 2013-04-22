@@ -25,8 +25,11 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.jdo.NodeTestUtils;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -45,6 +48,8 @@ public class SubmissionDAOImplTest {
     EvaluationDAO evaluationDAO;
 	@Autowired
 	NodeDAO nodeDAO;
+	@Autowired
+	FileHandleDao fileHandleDAO;
  
 	private String nodeId = null;
     private String submissionId = "206";
@@ -53,15 +58,28 @@ public class SubmissionDAOImplTest {
     private String evalId;
     private String evalId_does_not_exist = "456";
     private String name = "test submission";
+    private String fileHandleId;
     private Long versionNumber = 1L;
     private Submission submission;
     
     @Before
     public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {
+    	// create a file handle
+		PreviewFileHandle meta = new PreviewFileHandle();
+		meta.setBucketName("bucketName");
+		meta.setKey("key");
+		meta.setContentType("content type");
+		meta.setContentSize(123l);
+		meta.setContentMd5("md5");
+		meta.setCreatedBy("" + userId);
+		meta.setFileName("preview.jpg");
+		fileHandleId = fileHandleDAO.createFile(meta).getId();
+		
     	// create a node
   		Node toCreate = NodeTestUtils.createNew(name, Long.parseLong(userId));
     	toCreate.setVersionComment("This is the first version of the first node ever!");
     	toCreate.setVersionLabel("0.0.1");
+    	toCreate.setFileHandleId(fileHandleId);
     	nodeId = nodeDAO.createNew(toCreate);
     	
     	// create a Evaluation
@@ -91,13 +109,11 @@ public class SubmissionDAOImplTest {
         submission.setEntityId(nodeId);
         submission.setVersionNumber(versionNumber);
         submission.setUserId(userId);
+        submission.setEntityBundleJSON("some bundle");
     }
     
     @After
     public void tearDown() throws DatastoreException {
-    	try {
-    		nodeDAO.delete(nodeId);
-    	} catch (NotFoundException e) {};
 		try {
 			submissionDAO.delete(submissionId);
 		} catch (NotFoundException e)  {};
@@ -107,6 +123,10 @@ public class SubmissionDAOImplTest {
 		try {
 			evaluationDAO.delete(evalId);
 		} catch (NotFoundException e) {};
+    	try {
+    		nodeDAO.delete(nodeId);
+    	} catch (NotFoundException e) {};
+		fileHandleDAO.delete(fileHandleId);
     }
     
     @Test
@@ -138,7 +158,7 @@ public class SubmissionDAOImplTest {
     }
     
     @Test
-    public void testGetAllByUser() throws DatastoreException, NotFoundException {
+    public void testGetAllByUser() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
     	submissionId = submissionDAO.create(submission);
     	
     	// userId should have submissions
@@ -155,7 +175,7 @@ public class SubmissionDAOImplTest {
     }
     
     @Test
-    public void testGetAllByEvaluation() throws DatastoreException, NotFoundException {
+    public void testGetAllByEvaluation() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
     	submissionId = submissionDAO.create(submission);
     	
     	// evalId should have submissions
@@ -173,7 +193,7 @@ public class SubmissionDAOImplTest {
     }
     
     @Test
-    public void testGetAllByEvaluationAndStatus() throws DatastoreException, NotFoundException {
+    public void testGetAllByEvaluationAndStatus() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
     	submissionId = submissionDAO.create(submission);
     	
     	// create a SubmissionStatus object
@@ -203,7 +223,7 @@ public class SubmissionDAOImplTest {
     }
     
     @Test
-    public void testGetAllByEvaluationAndUser() throws DatastoreException, NotFoundException {
+    public void testGetAllByEvaluationAndUser() throws DatastoreException, NotFoundException, JSONObjectAdapterException {
     	submissionId = submissionDAO.create(submission);
     	
     	// hit evalId and hit user => should find 1 submission
@@ -239,6 +259,7 @@ public class SubmissionDAOImplTest {
     	subDTO.setName("name");
     	subDTO.setUserId("42");
     	subDTO.setVersionNumber(1L);
+    	subDTO.setEntityBundleJSON("foo");
     	    	
     	SubmissionDAOImpl.copyDtoToDbo(subDTO, subDBO);
     	SubmissionDAOImpl.copyDboToDto(subDBO, subDTOclone);
@@ -249,7 +270,7 @@ public class SubmissionDAOImplTest {
     }
     
     @Test(expected=IllegalArgumentException.class)
-    public void testMissingVersionNumber() {
+    public void testMissingVersionNumber() throws DatastoreException, JSONObjectAdapterException {
         submission.setVersionNumber(null);
         submissionDAO.create(submission);
     }

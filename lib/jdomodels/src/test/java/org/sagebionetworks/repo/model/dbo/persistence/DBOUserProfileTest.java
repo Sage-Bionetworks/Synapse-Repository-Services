@@ -51,7 +51,7 @@ public class DBOUserProfileTest {
 		if(dboBasicDao != null && individualGroup!=null){
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("ownerId", individualGroup.getId());
-			dboBasicDao.deleteObjectById(DBOUserProfile.class, params);
+			dboBasicDao.deleteObjectByPrimaryKey(DBOUserProfile.class, params);
 		}		
 	}
 		
@@ -80,7 +80,7 @@ public class DBOUserProfileTest {
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("ownerId", individualGroup.getId());
-		clone = dboBasicDao.getObjectById(DBOUserProfile.class, params);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBOUserProfile.class, params);
 		assertNotNull(clone);
 		assertEquals(userProfile.getOwnerId(), clone.getOwnerId());
 		
@@ -88,12 +88,12 @@ public class DBOUserProfileTest {
 		String newContent = "Your dog has fleas!";
 		clone.setProperties(newContent.getBytes());
 		dboBasicDao.update(clone);
-		clone = dboBasicDao.getObjectById(DBOUserProfile.class, params);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBOUserProfile.class, params);
 		assertNotNull(clone);
 		assertEquals(newContent, new String(clone.getProperties()));
 		
 		// Delete it
-		boolean result = dboBasicDao.deleteObjectById(DBOUserProfile.class,  params);
+		boolean result = dboBasicDao.deleteObjectByPrimaryKey(DBOUserProfile.class,  params);
 		assertTrue("Failed to delete the type created", result);
 		
 	}

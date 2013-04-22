@@ -12,21 +12,28 @@ import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.queryparser.ParseException;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 public class EvaluationServiceImpl implements EvaluationService {
 	
+	@Autowired
+	ServiceProvider serviceProvider;
 	@Autowired
 	EvaluationManager evaluationManager;
 	@Autowired
@@ -145,16 +152,24 @@ public class EvaluationServiceImpl implements EvaluationService {
 	
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public Submission createSubmission(String userName, Submission submission)
-			throws NotFoundException {
+	public Submission createSubmission(String userName, Submission submission, String entityEtag, HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException, ACLInheritanceException, ParseException, JSONObjectAdapterException {
 		UserInfo userInfo = userManager.getUserInfo(userName);
-		return submissionManager.createSubmission(userInfo, submission);
+		
+		// fetch EntityBundle to be serialized
+		int mask = ServiceConstants.DEFAULT_ENTITYBUNDLE_MASK_FOR_SUBMISSIONS;
+		String userId = userInfo.getUser().getId();
+		String entityId = submission.getEntityId();
+		Long versionNumber = submission.getVersionNumber();
+		EntityBundle bundle = serviceProvider.getEntityBundleService().getEntityBundle(userId, entityId, versionNumber, mask, request);
+		return submissionManager.createSubmission(userInfo, submission, entityEtag, bundle);
 	}
 
 	@Override
-	public Submission getSubmission(String submissionId)
+	public Submission getSubmission(String userName, String submissionId)
 			throws DatastoreException, NotFoundException {
-		return submissionManager.getSubmission(submissionId);
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return submissionManager.getSubmission(userInfo, submissionId);
 	}
 
 	@Override
@@ -188,6 +203,22 @@ public class EvaluationServiceImpl implements EvaluationService {
 		QueryResults<Submission> res = submissionManager.getAllSubmissions(userInfo, evalId, status, limit, offset);
 		return new PaginatedResults<Submission>(
 				request.getServletPath() + makeEvalIdUrl(UrlHelpers.SUBMISSION_WITH_EVAL_ID_ADMIN, evalId),
+				res.getResults(),
+				res.getTotalNumberOfResults(),
+				offset,
+				limit,
+				"",
+				false			
+			);
+	}
+	
+	@Override
+	public PaginatedResults<SubmissionStatus> getAllSubmissionStatuses(String evalId,
+			SubmissionStatusEnum status, long limit, long offset, HttpServletRequest request)
+			throws DatastoreException, UnauthorizedException, NotFoundException {
+		QueryResults<SubmissionStatus> res = submissionManager.getAllSubmissionStatuses(evalId, status, limit, offset);
+		return new PaginatedResults<SubmissionStatus>(
+				request.getServletPath() + makeEvalIdUrl(UrlHelpers.SUBMISSION_STATUS_WITH_EVAL_ID, evalId),
 				res.getResults(),
 				res.getTotalNumberOfResults(),
 				offset,

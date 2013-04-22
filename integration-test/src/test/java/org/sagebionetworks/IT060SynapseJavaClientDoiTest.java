@@ -141,4 +141,9 @@ public class IT060SynapseJavaClientDoiTest {
 		assertNotNull(doi.getCreatedOn());
 		assertNotNull(doi.getUpdatedOn());
 	}
+
+	@Test(expected=SynapseNotFoundException.class)
+	public void testGetNotFoundException() throws SynapseException {
+		synapse.getEntityDoi("syn372861388593");
+	}
 }

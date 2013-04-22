@@ -13,10 +13,9 @@ public interface SubmissionDAO {
 	 * Create a new Submission
 	 * 
 	 * @param dto
-	 * @throws DatastoreException
-	 * @return the ID of the newly-created object
+	 * @return ID of the created Submission
 	 */
-	public String create(Submission dto) throws DatastoreException;
+	public String create(Submission dto);
 
 	/**
 	 * Get a Submission by ID

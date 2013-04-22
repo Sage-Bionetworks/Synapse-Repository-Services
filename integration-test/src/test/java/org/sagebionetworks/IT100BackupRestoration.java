@@ -796,7 +796,7 @@ public class IT100BackupRestoration {
 		submission.setEvaluationId(eval.getId());
 		submission.setName("my submission");
 		submission.setVersionNumber(1L);
-		submission = synapse.createSubmission(submission);
+		submission = synapse.createSubmission(submission, project.getEtag());
 				
 		// Verify creation
 		assertTrue(synapse.getSubmissionCount(eval.getId()).equals(1L));
