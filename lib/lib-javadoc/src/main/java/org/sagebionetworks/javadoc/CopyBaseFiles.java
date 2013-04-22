@@ -2,7 +2,10 @@ package org.sagebionetworks.javadoc;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
+
+import javax.print.attribute.standard.Fidelity;
 
 import org.apache.commons.io.FileUtils;
 
@@ -33,6 +36,16 @@ public class CopyBaseFiles {
 		if(url == null) throw new IllegalArgumentException("Failed to find a File: "+fileName+" on the classpath");
 		File file = new File(url.getFile().replaceAll("%20", " "));
 		return file;
+	}
+	
+	/**
+	 * Load the HTML template file as a string.
+	 * @return
+	 * @throws IOException 
+	 */
+	public static String loadHTMLTemplateAsString() throws IOException{
+		File templateFile = findFileOnClasspath("template.html");
+		return FileUtils.readFileToString(templateFile);
 	}
 
 }

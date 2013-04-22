@@ -56,8 +56,7 @@ public class SchemaWriter {
         	// Create a file for this schema
         	File schemaFile = FileUtils.createNewFileForClassName(outputDirectory, name, "html");
         	// Write this file
-        	SchemaHTMLWriter.write(schemaFile, json);
-        	
+        	SchemaHTMLWriter.write(schemaFile, json, name);
         }
 	}
 

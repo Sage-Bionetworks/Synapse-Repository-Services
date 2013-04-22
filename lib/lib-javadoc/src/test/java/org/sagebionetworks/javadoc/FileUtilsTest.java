@@ -13,5 +13,11 @@ public class FileUtilsTest {
 		assertEquals("org/sagebionetworks/Example.html", result);
 	}
 	
+	@Test
+	public void testPathToRoot(){
+		String result = FileUtils.pathToRoot("org.sagebionetworks.samples.Example");
+		System.out.println(result);
+		assertEquals("../../..", result);
+	}
 	
 }

@@ -1,5 +1,6 @@
 package org.sagebionetworks.javadoc;
 
+import java.io.IOException;
 import java.util.List;
 
 import javax.xml.stream.XMLStreamException;
@@ -51,5 +52,20 @@ public class HTMLUtils {
 		writer.writeStartElement(element);
 		writer.writeCharacters(body);
 		writer.writeEndElement();
+	}
+	
+	/**
+	 * Create the final HTML from the template.
+	 * @param pathToRoot
+	 * @param body
+	 * @throws IOException 
+	 */
+	public static String createHTMFromTempalte(String pathToRoot, String body) throws IOException{
+		// Load the template
+		String template = CopyBaseFiles.loadHTMLTemplateAsString();
+		// Set the path
+		template = template.replaceAll("path_to_root", pathToRoot);
+		// set the body
+		return template.replaceAll("main_page_body", body);
 	}
 }

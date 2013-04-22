@@ -3,6 +3,7 @@ package org.sagebionetworks.javadoc.web.services;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -13,6 +14,7 @@ import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamWriter;
 
+import org.sagebionetworks.javadoc.FileUtils;
 import org.sagebionetworks.javadoc.HTMLUtils;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -37,7 +39,7 @@ public class SchemaHTMLWriter {
 	 * @throws XMLStreamException 
 	 * @throws JSONObjectAdapterException 
 	 */
-	public static void write(File outputFile, String jsonSchema)
+	public static void write(File outputFile, String jsonSchema, String name)
 			throws IOException, XMLStreamException, JSONObjectAdapterException {
 		if (outputFile == null)
 			throw new IllegalArgumentException("The outputFile cannot be null");
@@ -46,33 +48,44 @@ public class SchemaHTMLWriter {
 		// Parse the schema
 		JSONObjectAdapterImpl adpater = new JSONObjectAdapterImpl(jsonSchema);
 		ObjectSchema schema = new ObjectSchema(adpater);
-		
-		XMLOutputFactory factory = XMLOutputFactory.newInstance();
-		FileOutputStream fos = new FileOutputStream(outputFile);
-		try{
-			XMLStreamWriter writer = factory.createXMLStreamWriter(fos);
-			writer.writeStartDocument();
-			writer.setPrefix("html", "http://www.w3.org/TR/REC-html40");
-			writer.writeStartElement("html");
-			writer.writeStartElement("body");
-			
-			// Write the ID as a header
-			writeElement(writer, "h1", schema.getName());
-			writeElement(writer, "h2", schema.getId());
-
-			// Write the properties to a table
-			writePropertiesToTable(writer, schema.getProperties());
-
-			writer.writeEndElement(); //body
-			writer.writeEndElement(); //html
-			writer.writeEndDocument();// end
-			// done
-			writer.flush();
-			writer.close();
-		}finally{
-			fos.close();
-		}
+		// Get the body HTML
+		String body = writeToHTML(schema);
+		String pathToRoot = FileUtils.pathToRoot(name);
+		String pageHTML = HTMLUtils.createHTMFromTempalte(pathToRoot, body);
+		// Write the file
+		org.apache.commons.io.FileUtils.writeStringToFile(outputFile, pageHTML);
 	}
+
+
+
+	/**
+	 * Write the schema to HTML
+	 * @param schema
+	 * @return
+	 * @throws XMLStreamException
+	 */
+	public static String writeToHTML(ObjectSchema schema)	throws XMLStreamException {
+		XMLOutputFactory factory = XMLOutputFactory.newInstance();
+		StringWriter stringWriter = new StringWriter();
+		XMLStreamWriter writer = factory.createXMLStreamWriter(stringWriter);
+		writer.writeStartDocument();
+
+		// Write the ID as a header
+		writeElement(writer, "h2", schema.getName());
+		writeElement(writer, "h5", schema.getId());
+
+		// Write the properties to a table
+		writePropertiesToTable(writer, schema.getProperties());
+		writer.writeEndDocument();// end
+		// done
+		writer.flush();
+		writer.close();
+		String bodyHTML = stringWriter.toString();
+		System.out.println(bodyHTML);
+		return bodyHTML;
+	}
+	
+
 	
 	/**
 	 * Write a header to the stream

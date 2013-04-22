@@ -50,4 +50,19 @@ public class FileUtils {
 		return className.replaceAll("\\.", "/")+"."+suffix;
 	}
 
+	/**
+	 * Build the path to the root folder for a given class name.
+	 * @return
+	 */
+	public static String pathToRoot(String className){
+		StringBuilder builder = new  StringBuilder();
+		String[] split = className.split("\\.");
+		for(int i=0; i<split.length-1; i++){
+			if(i > 0){
+				builder.append("/");
+			}
+			builder.append("..");
+		}
+		return builder.toString();
+	}
 }
