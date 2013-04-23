@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.dbo;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.sagebionetworks.repo.model.migration.MigratableTableType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.springframework.jdbc.core.RowMapper;
 
@@ -55,6 +54,18 @@ public class DMLUtils {
 		main.append(values.toString());
 		main.append(")");
 		return main.toString();
+	}
+	
+	/**
+	 * A batch insert or update SQL.
+	 * @return
+	 */
+	public static String getBatchInsertOrUdpate(TableMapping mapping){
+		StringBuilder builder = new StringBuilder();
+		builder.append(createInsertStatement(mapping));
+		builder.append(" ON DUPLICATE KEY UPDATE ");
+		buildUpdateBody(mapping, builder);
+		return builder.toString();
 	}
 	
 	/**
@@ -146,24 +157,33 @@ public class DMLUtils {
 		main.append("UPDATE ");
 		main.append(mapping.getTableName());
 		main.append(" SET ");
+		buildUpdateBody(mapping, main);
+		main.append(" WHERE ");
+		appendPrimaryKey(mapping, main);
+		return main.toString();
+	}
+
+	/**
+	 * The main body of an update
+	 * @param mapping
+	 * @param builder
+	 */
+	private static void buildUpdateBody(TableMapping mapping, StringBuilder builder) {
 		int count = 0;
 		for(int i=0; i<mapping.getFieldColumns().length; i++){
 			FieldColumn fc = mapping.getFieldColumns()[i];
 			if(!fc.isPrimaryKey()){
 				if(count > 0){
-					main.append(", ");
+					builder.append(", ");
 				}
-				main.append("`");
-				main.append(fc.getColumnName());
-				main.append("`");
-				main.append(" = :");
-				main.append(fc.getFieldName());
+				builder.append("`");
+				builder.append(fc.getColumnName());
+				builder.append("`");
+				builder.append(" = :");
+				builder.append(fc.getFieldName());
 				count++;
 			}
 		}
-		main.append(" WHERE ");
-		appendPrimaryKey(mapping, main);
-		return main.toString();
 	}
 	
 	/**
@@ -178,9 +198,15 @@ public class DMLUtils {
 		builder.append(mapping.getTableName());
 		builder.append(" WHERE ");
 		addBackupIdInList(builder, mapping);
+		buildBackupOrderBy(mapping, builder, false);
 		return builder.toString();
 	}
 	
+	/**
+	 * 'ID' IN ( :BVIDLIST )
+	 * @param builder
+	 * @param mapping
+	 */
 	private static void addBackupIdInList(StringBuilder builder, TableMapping mapping){
 		// Find the backup id
 		builder.append("`");
@@ -240,6 +266,23 @@ public class DMLUtils {
 		validateMigratableTableMapping(mapping);
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT ");
+		buildSelectIdAndEtag(mapping, builder);
+		builder.append(" FROM ");
+		builder.append(mapping.getTableName());
+		buildBackupOrderBy(mapping, builder, true);
+		builder.append(" LIMIT :");
+		builder.append(BIND_VAR_LIMIT);
+		builder.append(" OFFSET :");
+		builder.append(BIND_VAR_OFFSET);
+		return builder.toString();
+	}
+
+	/**
+	 * When etag is not null: " `ID`, `ETAG`", else: "`ID`"
+	 * @param mapping
+	 * @param builder
+	 */
+	private static void buildSelectIdAndEtag(TableMapping mapping,StringBuilder builder) {
 		FieldColumn backupId = getBackupIdColumnName(mapping);
 		builder.append("`");
 		builder.append(backupId.getColumnName());
@@ -250,20 +293,6 @@ public class DMLUtils {
 			builder.append(etagColumn.getColumnName());
 			builder.append("`");
 		}
-		builder.append(" FROM ");
-		builder.append(mapping.getTableName());
-		builder.append(" ORDER BY `");
-		FieldColumn selfKey = getSelfForeignKey(mapping);
-		if(selfKey != null){
-			builder.append(selfKey.getColumnName());
-		}else{
-			builder.append(backupId.getColumnName());
-		}
-		builder.append("` ASC LIMIT :");
-		builder.append(BIND_VAR_LIMIT);
-		builder.append(" OFFSET :");
-		builder.append(BIND_VAR_OFFSET);
-		return builder.toString();
 	}
 	
 	/**
@@ -275,29 +304,12 @@ public class DMLUtils {
 		validateMigratableTableMapping(mapping);
 		StringBuilder builder = new StringBuilder();
 		builder.append("SELECT ");
-		FieldColumn backupId = getBackupIdColumnName(mapping);
-		builder.append("`");
-		builder.append(backupId.getColumnName());
-		builder.append("`");
-		FieldColumn etagColumn = getEtagColumn(mapping);
-		if(etagColumn != null){
-			builder.append(", `");
-			builder.append(etagColumn.getColumnName());
-			builder.append("`");
-		}
+		buildSelectIdAndEtag(mapping, builder);
 		builder.append(" FROM ");
 		builder.append(mapping.getTableName());
-		builder.append(" WHERE `");
-		builder.append(backupId.getColumnName());
-		builder.append("` IN ( :"+BIND_VAR_ID_lIST+" )");
-		builder.append(" ORDER BY `");
-		FieldColumn selfKey = getSelfForeignKey(mapping);
-		if(selfKey != null){
-			builder.append(selfKey.getColumnName());
-		}else{
-			builder.append(backupId.getColumnName());
-		}
-		builder.append("`");
+		builder.append(" WHERE ");
+		addBackupIdInList(builder, mapping);
+		buildBackupOrderBy(mapping, builder, true);
 		return builder.toString();
 	}
 	
@@ -309,23 +321,41 @@ public class DMLUtils {
 	public static String getBackupBatch(TableMapping mapping) {
 		validateMigratableTableMapping(mapping);
 		StringBuilder builder = new StringBuilder();
-		FieldColumn backupId = getBackupIdColumnName(mapping);
 		builder.append("SELECT * FROM ");
 		builder.append(mapping.getTableName());
-		builder.append(" WHERE `");
-		builder.append(backupId.getColumnName());
-		builder.append("` IN ( :"+BIND_VAR_ID_lIST+" )");
+		builder.append(" WHERE ");
+		addBackupIdInList(builder, mapping);
+		buildBackupOrderBy(mapping, builder, true);
+		return builder.toString();
+	}
+
+	/**
+	 * build - "ORDER BY `BACKUP_ID` ASC/DESC"
+	 * @param mapping
+	 * @param builder
+	 */
+	private static void buildBackupOrderBy(TableMapping mapping, StringBuilder builder, boolean ascending) {
 		builder.append(" ORDER BY `");
+		FieldColumn backupId = getBackupIdColumnName(mapping);
 		FieldColumn selfKey = getSelfForeignKey(mapping);
 		if(selfKey != null){
 			builder.append(selfKey.getColumnName());
 		}else{
 			builder.append(backupId.getColumnName());
 		}
-		builder.append("`");
-		return builder.toString();
+		builder.append("` ");
+		if(ascending){
+			builder.append("ASC");
+		}else{
+			builder.append("DESC");
+		}
 	}
 	
+	/**
+	 * Validate the passed mapping meets the minimum requirements for a backup table mapping.
+	 * 
+	 * @param mapping
+	 */
 	public static void validateMigratableTableMapping(TableMapping mapping){
 		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
 		if(mapping.getTableName() == null) throw new IllegalArgumentException("Mapping.tableName cannot be null");

@@ -149,7 +149,7 @@ public class DMLUtilsTest {
 		String batchDelete = DMLUtils.createBatchDelete(mapping);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST )", batchDelete);
+		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `ID` DESC", batchDelete);
 	}
 	
 	@Test
@@ -173,7 +173,7 @@ public class DMLUtilsTest {
 		String batchDelete = DMLUtils.deltaListRowMetadata(migrateableMappingSelfForeignKey);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("SELECT `ID`, `ETAG` FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID`", batchDelete);
+		assertEquals("SELECT `ID`, `ETAG` FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID` ASC", batchDelete);
 	}
 
 	@Test
@@ -181,7 +181,7 @@ public class DMLUtilsTest {
 		String batchDelete = DMLUtils.deltaListRowMetadata(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `ID`", batchDelete);
+		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `ID` ASC", batchDelete);
 	}
 	
 	@Test
@@ -189,7 +189,7 @@ public class DMLUtilsTest {
 		String batchDelete = DMLUtils.getBackupBatch(migrateableMappingSelfForeignKey);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID`", batchDelete);
+		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID` ASC", batchDelete);
 	}
 
 	@Test
@@ -197,6 +197,14 @@ public class DMLUtilsTest {
 		String batchDelete = DMLUtils.getBackupBatch(migrateableMappingNoEtagNotSelfForeignKey);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `ID`", batchDelete);
+		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `ID` ASC", batchDelete);
+	}
+	
+	@Test
+	public void testGetBatchInsertOrUdpate(){
+		String sql = DMLUtils.getBatchInsertOrUdpate(migrateableMappingSelfForeignKey);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals("INSERT INTO SOME_TABLE(`ID`, `ETAG`, `PARENT_ID`) VALUES (:id, :etag, :parentId) ON DUPLICATE KEY UPDATE `ETAG` = :etag, `PARENT_ID` = :parentId", sql);
 	}
 }

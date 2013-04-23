@@ -63,7 +63,7 @@ public interface MigatableTableDAO {
 	 * Create or update a batch.
 	 * @param batch - batch of objects to create or update.
 	 */
-	public <T extends DatabaseObject<T>> void createOrUpdateBatch(List<T> batch);
+	public <T extends DatabaseObject<T>> int[] createOrUpdateBatch(List<T> batch);
 	
 	/**
 	 * Delete objects by their IDs

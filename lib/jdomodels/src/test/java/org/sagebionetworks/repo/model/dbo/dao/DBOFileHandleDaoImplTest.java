@@ -648,6 +648,35 @@ public class DBOFileHandleDaoImplTest {
 		//with preview.
 		dbfh = backupList.get(1);
 		assertEquals(withPreview.getId(), ""+dbfh.getId());
+		// Now delete all of the data
+		int count = migatableTableDAO.deleteObjectsById(MigratableTableType.FILE_HANDLE, idsToBackup);
+		assertEquals(2, count);
+		assertEquals(startCount, migatableTableDAO.getCount(MigratableTableType.FILE_HANDLE));
+		// Now restore the data
+		int[] result = migatableTableDAO.createOrUpdateBatch(backupList);
+		assertNotNull(result);
+		assertEquals(2, result.length);
+		assertEquals(1, result[0]);
+		assertEquals(1, result[1]);
+		// Now make sure if we update again it works
+		backupList.get(0).setBucketName("updateBucketName");
+		result = migatableTableDAO.createOrUpdateBatch(backupList);
+		assertNotNull(result);
+		assertEquals(2, result.length);
+		assertEquals(2, result[0]);
+		assertEquals(1, result[1]);
+		// Check final counts
+		delta = migatableTableDAO.listDeltaRowMetadata(MigratableTableType.FILE_HANDLE, idsToFind);
+		assertNotNull(delta);
+		assertEquals(2, delta.size());
+		// The preview should be first
+		row = delta.get(0);
+		assertEquals(preview.getId(), row.getId());
+		assertEquals(preview.getEtag(), row.getEtag());
+		// Followed by the withPreview
+		row = delta.get(1);
+		assertEquals(withPreview.getId(), row.getId());
+		assertEquals(withPreview.getEtag(), row.getEtag());
 	}
 	
 	@Test

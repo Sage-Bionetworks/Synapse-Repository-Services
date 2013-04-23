@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
@@ -14,6 +15,7 @@ import org.sagebionetworks.repo.model.migration.MigratableTableType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
+import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
@@ -50,7 +52,9 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	private Map<MigratableTableType, String> listSqlMap = new HashMap<MigratableTableType, String>();
 	private Map<MigratableTableType, String> deltaListSqlMap = new HashMap<MigratableTableType, String>();
 	
-	private Map<MigratableTableType, String> backupBatchSql = new HashMap<MigratableTableType, String>();
+	private Map<MigratableTableType, String> backupSqlMap = new HashMap<MigratableTableType, String>();
+	
+	private Map<MigratableTableType, String> insertOrUpdateSqlMap = new HashMap<MigratableTableType, String>();
 	
 	private Map<MigratableTableType, FieldColumn> etagColumns = new HashMap<MigratableTableType, FieldColumn>();
 	private Map<MigratableTableType, FieldColumn> backupIdColumns = new HashMap<MigratableTableType, FieldColumn>();
@@ -95,10 +99,13 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 			rowMetadataMappers.put(type, rowMetadataMapper);
 			// Backup batch SQL
 			String batchBackup = DMLUtils.getBackupBatch(mapping);
-			backupBatchSql.put(type, batchBackup);
+			backupSqlMap.put(type, batchBackup);
 			// map the class to the object
 			this.classToMapping.put(mapping.getDBOClass(), type);
 			this.typeTpObject.put(type, dbo);
+			// The batch insert or update sql
+			String sql = DMLUtils.getBatchInsertOrUdpate(mapping);
+			this.insertOrUpdateSqlMap.put(type, sql);
 		}
 	}
 
@@ -158,9 +165,17 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends DatabaseObject<T>> void createOrUpdateBatch(List<T> batch) {
-		// TODO Auto-generated method stub
-		
+	public <T extends DatabaseObject<T>> int[] createOrUpdateBatch(List<T> batch) {
+		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
+		// nothing to do with an empty batch
+		if(batch.size() < 1) return new int[0]; 
+		MigratableTableType type = getTypeForClass(batch.get(0).getClass());
+		String sql = getInsertOrUpdateSql(type);
+		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
+		for(int i=0; i<batch.size(); i++){
+			namedParameters[i] = new BeanPropertySqlParameterSource(batch.get(i));
+		}
+		return  simpleJdbcTemplate.batchUpdate(sql, namedParameters);
 	}
 	
 	/**
@@ -209,8 +224,14 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	}
 
 	private String getBatchBackupSql(MigratableTableType type){
-		String sql = this.backupBatchSql.get(type);
+		String sql = this.backupSqlMap.get(type);
 		if(sql == null) throw new IllegalArgumentException("Cannot find the batch backup SQL for type: "+type);
+		return sql;
+	}
+	
+	private String getInsertOrUpdateSql(MigratableTableType type){
+		String sql = this.insertOrUpdateSqlMap.get(type);
+		if(sql == null) throw new IllegalArgumentException("Cannot find the insert/update backup SQL for type: "+type);
 		return sql;
 	}
 	
