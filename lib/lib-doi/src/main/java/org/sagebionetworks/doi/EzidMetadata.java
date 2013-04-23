@@ -4,7 +4,6 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 
 /**
@@ -153,14 +152,6 @@ public class EzidMetadata {
 			return URLEncoder.encode(value, "UTF-8");
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException("Error occurred while encoding " + value, e);
-		}
-	}
-
-	private String decode(String value) {
-		try {
-			return URLDecoder.decode(value, "UTF-8");
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException("Error occurred while decoding " + value, e);
 		}
 	}
 
