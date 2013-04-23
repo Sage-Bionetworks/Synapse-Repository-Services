@@ -56,6 +56,7 @@
 				<bean class="org.sagebionetworks.evaluation.dbo.ParticipantDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionDBO" />
 				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionStatusDBO" />
+				<bean class="org.sagebionetworks.evaluation.dbo.SubmissionFileHandleDBO" />
 			</list>
 		</property>
 	</bean>

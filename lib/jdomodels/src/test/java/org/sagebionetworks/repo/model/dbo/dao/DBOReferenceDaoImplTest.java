@@ -92,7 +92,7 @@ public class DBOReferenceDaoImplTest {
 			for(DBONode node: toDelete){
 				MapSqlParameterSource params = new MapSqlParameterSource();
 				params.addValue("id", node.getId());
-				dboBasicDao.deleteObjectById(DBONode.class, params);
+				dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, params);
 				dboReferenceDao.deleteReferencesByOwnderId(node.getId());
 			}
 		}

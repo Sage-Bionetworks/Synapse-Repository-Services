@@ -51,7 +51,7 @@ public interface DBOBasicDao {
 	 * @throws DatastoreException
 	 * @throws NotFoundException 
 	 */
-	public <T extends DatabaseObject<T>> T getObjectById(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException, NotFoundException;
+	public <T extends DatabaseObject<T>> T getObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException, NotFoundException;
 	
 	/**
 	 * 
@@ -60,7 +60,7 @@ public interface DBOBasicDao {
 	 * @return
 	 * @throws DatastoreException
 	 */
-	public <T extends DatabaseObject<T>> boolean deleteObjectById(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException;
+	public <T extends DatabaseObject<T>> boolean deleteObjectByPrimaryKey(Class<? extends T> clazz, SqlParameterSource namedParameters) throws DatastoreException;
 
 	public <T extends DatabaseObject<T>> long getCount(Class<? extends T> clazz) throws DatastoreException;
 }

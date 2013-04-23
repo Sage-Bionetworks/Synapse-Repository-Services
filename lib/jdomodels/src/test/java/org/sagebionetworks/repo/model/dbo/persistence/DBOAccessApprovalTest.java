@@ -73,7 +73,7 @@ public class DBOAccessApprovalTest {
 		if(dboBasicDao != null && ar!=null){
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("id", ar.getId());
-			dboBasicDao.deleteObjectById(DBOAccessRequirement.class, params);
+			dboBasicDao.deleteObjectByPrimaryKey(DBOAccessRequirement.class, params);
 			ar=null;
 		}		
 	}
@@ -82,7 +82,7 @@ public class DBOAccessApprovalTest {
 		if(dboBasicDao != null && accessApproval!=null){
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("id", accessApproval.getId());
-			dboBasicDao.deleteObjectById(DBOAccessApproval.class, params);
+			dboBasicDao.deleteObjectByPrimaryKey(DBOAccessApproval.class, params);
 			accessApproval=null;
 		}		
 	}
@@ -130,17 +130,17 @@ public class DBOAccessApprovalTest {
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", accessApproval.getId());
-		DBOAccessApproval clone = dboBasicDao.getObjectById(DBOAccessApproval.class, params);
+		DBOAccessApproval clone = dboBasicDao.getObjectByPrimaryKey(DBOAccessApproval.class, params);
 		assertNotNull(clone);
 		assertEquals(accessApproval, clone);
 		
 		// Update it
 		dboBasicDao.update(clone);
-		clone = dboBasicDao.getObjectById(DBOAccessApproval.class, params);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBOAccessApproval.class, params);
 		assertNotNull(clone);
 		
 		// Delete it
-		boolean result = dboBasicDao.deleteObjectById(DBOAccessApproval.class,  params);
+		boolean result = dboBasicDao.deleteObjectByPrimaryKey(DBOAccessApproval.class,  params);
 		assertTrue("Failed to delete the type created", result);
 		
 	}

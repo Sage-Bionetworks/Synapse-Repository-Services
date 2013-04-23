@@ -134,6 +134,6 @@ public class DBODoiMigratableDaoImpl implements DoiMigratableDao {
 		}
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_DOI_ID.toLowerCase(), id);
-		basicDao.deleteObjectById(DBODoi.class, param);
+		basicDao.deleteObjectByPrimaryKey(DBODoi.class, param);
 	}
 }

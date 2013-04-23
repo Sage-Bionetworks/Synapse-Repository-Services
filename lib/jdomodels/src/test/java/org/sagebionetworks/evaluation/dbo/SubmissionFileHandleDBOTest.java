@@ -2,6 +2,8 @@ package org.sagebionetworks.evaluation.dbo;
 
 import static org.junit.Assert.*;
 
+import java.io.IOException;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,7 +29,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
-public class SubmissionDBOTest {
+public class SubmissionFileHandleDBOTest {
  
     @Autowired
     DBOBasicDao dboBasicDao;
@@ -37,14 +39,14 @@ public class SubmissionDBOTest {
 	FileHandleDao fileHandleDAO;
  
     private String nodeId = null;
-    private long submissionId = 2000;
+    private long submissionId;
     private long userId = 0;
     private long evalId;
     private String fileHandleId;
     private String name = "test submission";
     
     @Before
-    public void setUp() throws DatastoreException, InvalidModelException, NotFoundException {   
+    public void setUp() throws DatastoreException, InvalidModelException, NotFoundException, IOException {   
     	// create a file handle
 		PreviewFileHandle meta = new PreviewFileHandle();
 		meta.setBucketName("bucketName");
@@ -80,17 +82,30 @@ public class SubmissionDBOTest {
         participant.setEvalId(evalId);
         participant.setCreatedOn(System.currentTimeMillis());
         dboBasicDao.createNew(participant);
+        
+        // Initialize a new Submission
+        SubmissionDBO submission = new SubmissionDBO();
+        submission.setId(submissionId);
+        submission.setName(name);
+        submission.setEntityId(Long.parseLong(nodeId));
+        submission.setVersionNumber(1L);
+        submission.setUserId(userId);
+        submission.setEvalId(evalId);
+        submission.setCreatedOn(System.currentTimeMillis());
+        submission.setEntityBundle(JDOSecondaryPropertyUtils.compressObject(submission));
+        submissionId = dboBasicDao.createNew(submission).getId();
+        
     }
     
     @After
-    public void after() throws DatastoreException {
+    public void tearDown() throws DatastoreException {
         if(dboBasicDao != null) {
-        	// delete submission
+        	// delete Submission
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("id", submissionId);
             dboBasicDao.deleteObjectByPrimaryKey(SubmissionDBO.class, params);
             
-            // delete participant
+            // delete Participant
             params = new MapSqlParameterSource();
             params.addValue("userId", userId);
             params.addValue("evalId", evalId);
@@ -104,35 +119,31 @@ public class SubmissionDBOTest {
     	try {
     		nodeDAO.delete(nodeId);
     	} catch (NotFoundException e) {};
-    	fileHandleDAO.delete(fileHandleId);;
+    	fileHandleDAO.delete(fileHandleId);
     }
+    
     @Test
     public void testCRD() throws Exception{
-        // Initialize a new Submission
-        SubmissionDBO submission = new SubmissionDBO();
-        submission.setId(submissionId);
-        submission.setName(name);
-        submission.setEntityId(Long.parseLong(nodeId));
-        submission.setVersionNumber(1L);
-        submission.setUserId(userId);
-        submission.setEvalId(evalId);
-        submission.setCreatedOn(System.currentTimeMillis());
-        submission.setEntityBundle(JDOSecondaryPropertyUtils.compressObject(submission));
- 
+    	// Initialize a new SubmissionFileHandle
+    	SubmissionFileHandleDBO handle = new SubmissionFileHandleDBO();
+    	handle.setSubmissionId(submissionId);
+    	handle.setFileHandleId(Long.parseLong(fileHandleId));
+    	
         // Create it
-        SubmissionDBO clone = dboBasicDao.createNew(submission);
+        SubmissionFileHandleDBO clone = dboBasicDao.createNew(handle);
         assertNotNull(clone);
-        assertEquals(submission, clone);
+        assertEquals(handle, clone);
         
         // Fetch it
         MapSqlParameterSource params = new MapSqlParameterSource();
-        params.addValue("id",submissionId);
-        SubmissionDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionDBO.class, params);
+        params.addValue(DBOConstants.PARAM_SUBFILE_SUBMISSION_ID, submissionId);
+        params.addValue(DBOConstants.PARAM_SUBFILE_FILE_HANDLE_ID, fileHandleId);
+        SubmissionFileHandleDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionFileHandleDBO.class, params);
         assertNotNull(clone2);
-        assertEquals(submission, clone2); 
+        assertEquals(handle, clone2); 
         
         // Delete it
-        boolean result = dboBasicDao.deleteObjectByPrimaryKey(SubmissionDBO.class,  params);
+        boolean result = dboBasicDao.deleteObjectByPrimaryKey(SubmissionFileHandleDBO.class,  params);
         assertTrue("Failed to delete the entry created", result); 
     }
  

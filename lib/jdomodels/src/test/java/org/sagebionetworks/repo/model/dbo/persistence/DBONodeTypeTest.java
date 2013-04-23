@@ -28,7 +28,7 @@ public class DBONodeTypeTest {
 		if(dboBasicDao != null){
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("id", id);
-			dboBasicDao.deleteObjectById(DBONodeType.class, params);
+			dboBasicDao.deleteObjectByPrimaryKey(DBONodeType.class, params);
 		}
 	}
 	@Test
@@ -45,12 +45,12 @@ public class DBONodeTypeTest {
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", id);
-		clone = dboBasicDao.getObjectById(DBONodeType.class, params);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBONodeType.class, params);
 		assertNotNull(clone);
 		assertEquals(nodeType.getId(), clone.getId());
 		assertEquals(nodeType.getName(), clone.getName());
 		// Delete it
-		boolean result = dboBasicDao.deleteObjectById(DBONodeType.class,  params);
+		boolean result = dboBasicDao.deleteObjectByPrimaryKey(DBONodeType.class,  params);
 		assertTrue("Failed to delete the type created", result);
 		
 	}
@@ -76,7 +76,7 @@ public class DBONodeTypeTest {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("typeOwner", id);
 			params.addValue("alias", aliasValue);
-			DBONodeTypeAlias aliasClone = dboBasicDao.getObjectById(DBONodeTypeAlias.class, params);
+			DBONodeTypeAlias aliasClone = dboBasicDao.getObjectByPrimaryKey(DBONodeTypeAlias.class, params);
 			assertEquals(alias, aliasClone);
 		}
 		

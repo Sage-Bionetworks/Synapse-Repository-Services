@@ -47,11 +47,11 @@ public class ParticipantDBOTest {
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("userId", userId);
             params.addValue("evalId", evalId);
-            dboBasicDao.deleteObjectById(ParticipantDBO.class, params);
+            dboBasicDao.deleteObjectByPrimaryKey(ParticipantDBO.class, params);
             
             // delete Evaluation
             params.addValue("id", evalId);
-            dboBasicDao.deleteObjectById(EvaluationDBO.class, params);
+            dboBasicDao.deleteObjectByPrimaryKey(EvaluationDBO.class, params);
         }
     }
     @Test
@@ -71,13 +71,13 @@ public class ParticipantDBOTest {
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("userId", userId);
         params.addValue("evalId", evalId);
-        clone = dboBasicDao.getObjectById(ParticipantDBO.class, params);
+        clone = dboBasicDao.getObjectByPrimaryKey(ParticipantDBO.class, params);
         assertNotNull(clone);
         assertEquals(participant.getUserId(), clone.getUserId());
         assertEquals(participant.getEvalId(), clone.getEvalId());
         
         // Delete it
-        boolean result = dboBasicDao.deleteObjectById(ParticipantDBO.class,  params);
+        boolean result = dboBasicDao.deleteObjectByPrimaryKey(ParticipantDBO.class,  params);
         assertTrue("Failed to delete the entry created", result); 
     }
  
