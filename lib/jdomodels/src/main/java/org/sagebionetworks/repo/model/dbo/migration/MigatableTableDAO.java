@@ -4,10 +4,14 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.migration.MigratableTableType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 
 /**
  * An abstraction for a Data Access Object (DAO) that can be used to migrate an single database table.
@@ -31,10 +35,10 @@ public interface MigatableTableDAO {
 	 * then row 'a' must be listed before row 'b'.  For this example, row 'a' would be migrated before row 'b'.
 	 *    
 	 * @param limit
-	 * @param offest
+	 * @param offset
 	 * @return
 	 */
-	public QueryResults<RowMetadata> listRowMetadata(MigratableTableType type, long limit, long offest);
+	public QueryResults<RowMetadata> listRowMetadata(MigratableTableType type, long limit, long offset);
 	
 	/**
 	 * Given a list of ID return the RowMetadata for each row that exist in the table.
@@ -47,22 +51,19 @@ public interface MigatableTableDAO {
 	 */
 	public List<RowMetadata> listDeltaRowMetadata(MigratableTableType type, List<String> idList);
 	
-
 	/**
-	 * Backup the given row IDs to the passed output stream.
-	 * @param type
+	 * Get a batch of objects to backup.
+	 * @param clazz
 	 * @param rowIds
-	 * @param out
+	 * @return
 	 */
-	public void backupToStream(MigratableTableType type, List<String> rowIds, OutputStream out);
-	
+	public <T extends DatabaseObject<T>> List<T> getBackupBatch(Class<? extends T> clazz, List<String> rowIds);
 
 	/**
-	 * Restore rows from an input stream.
-	 * @param type
-	 * @param in
+	 * Create or update a batch.
+	 * @param batch - batch of objects to create or update.
 	 */
-	public void restoreFromStream(MigratableTableType type, InputStream in);
+	public <T extends DatabaseObject<T>> void createOrUpdateBatch(List<T> batch);
 	
 	/**
 	 * Delete objects by their IDs

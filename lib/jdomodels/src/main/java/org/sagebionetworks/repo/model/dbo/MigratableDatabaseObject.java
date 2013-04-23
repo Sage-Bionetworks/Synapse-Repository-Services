@@ -8,8 +8,8 @@ import org.sagebionetworks.repo.model.migration.MigratableTableType;
  * 
  * @author John
  *
- * @param <D>
- * @param <B>
+ * @param <D> - database object type
+ * @param <B> - backup object type
  */
 public interface MigratableDatabaseObject<D extends DatabaseObject<?>, B> extends DatabaseObject<D> {
 

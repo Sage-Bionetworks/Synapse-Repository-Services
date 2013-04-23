@@ -32,6 +32,7 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -598,7 +599,55 @@ public class DBOFileHandleDaoImplTest {
 		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
 		
 		// Now list all of the objects
-		QueryResults<RowMetadata> totalList = migatableTableDAO.listRowMetadata(MigratableTableType.FILE_HANDLE, Long.MAX_VALUE, 0);
+		QueryResults<RowMetadata> totalList = migatableTableDAO.listRowMetadata(MigratableTableType.FILE_HANDLE, 1000, startCount);
+		assertNotNull(totalList);
+		assertEquals(startCount+2,  totalList.getTotalNumberOfResults());
+		assertNotNull(totalList.getResults());
+		assertEquals(2, totalList.getResults().size());
+		System.out.println(totalList.getResults());
+		// The preview should be first
+		RowMetadata row = totalList.getResults().get(0);
+		assertEquals(preview.getId(), row.getId());
+		assertEquals(preview.getEtag(), row.getEtag());
+		// Followed by the withPreview
+		row = totalList.getResults().get(1);
+		assertEquals(withPreview.getId(), row.getId());
+		assertEquals(withPreview.getEtag(), row.getEtag());
+		
+		// Now list the deltas
+		List<String> idsToFind = new LinkedList<String>();
+		// This should not exist
+		idsToFind.add(""+(Long.MAX_VALUE - 10));
+		idsToFind.add(preview.getId());
+		idsToFind.add(withPreview.getId());
+		// This should not exist
+		idsToFind.add(""+(Long.MAX_VALUE - 101));
+		// Get the detla
+		List<RowMetadata> delta = migatableTableDAO.listDeltaRowMetadata(MigratableTableType.FILE_HANDLE, idsToFind);
+		assertNotNull(delta);
+		assertEquals(2, delta.size());
+		// The preview should be first
+		row = delta.get(0);
+		assertEquals(preview.getId(), row.getId());
+		assertEquals(preview.getEtag(), row.getEtag());
+		// Followed by the withPreview
+		row = delta.get(1);
+		assertEquals(withPreview.getId(), row.getId());
+		assertEquals(withPreview.getEtag(), row.getEtag());
+		
+		// Get the full back object
+		List<String> idsToBackup = new LinkedList<String>();
+		idsToBackup.add(preview.getId());
+		idsToBackup.add(withPreview.getId());
+		List<DBOFileHandle> backupList = migatableTableDAO.getBackupBatch(DBOFileHandle.class, idsToBackup);
+		assertNotNull(backupList);
+		assertEquals(2, backupList.size());
+		// preview
+		DBOFileHandle dbfh = backupList.get(0);
+		assertEquals(preview.getId(), ""+dbfh.getId());
+		//with preview.
+		dbfh = backupList.get(1);
+		assertEquals(withPreview.getId(), ""+dbfh.getId());
 	}
 	
 	@Test
