@@ -64,7 +64,6 @@ public class EntityDoiManagerImplAutowiredTest {
 		doiAdminDao.clear();
 	}
 
-	@Ignore
 	@Test
 	public void testRoundTrip() throws Exception {
 
@@ -111,7 +110,6 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertEquals(DoiStatus.READY, doiStatus);
 	}
 
-	@Ignore
 	@Test
 	public void testRoundTripWithVersionNumber() throws Exception {
 
@@ -158,7 +156,6 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertEquals(DoiStatus.READY, doiStatus);
 	}
 
-	@Ignore
 	@Test
 	public void testRetryableOnError() throws Exception {
 

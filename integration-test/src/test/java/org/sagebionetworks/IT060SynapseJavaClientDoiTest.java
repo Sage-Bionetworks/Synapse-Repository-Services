@@ -22,7 +22,6 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 
-@Ignore
 public class IT060SynapseJavaClientDoiTest {
 
 	/** Max wait time for the DOI status to turn green */
