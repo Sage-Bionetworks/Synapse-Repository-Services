@@ -656,7 +656,7 @@ public class EntityServletTestHelper {
 		StringReader reader = new StringReader(response.getContentAsString());
 		String json = JSONEntityHttpMessageConverter.readToString(reader);
 		JSONObjectAdapter joa = new JSONObjectAdapterImpl(json);
-		return true;
+		return (Boolean)joa.get("result");
 	}
 
 	
