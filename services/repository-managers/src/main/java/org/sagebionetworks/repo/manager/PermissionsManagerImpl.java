@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -233,6 +234,19 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	@Override
 	public boolean hasAccess(String resourceId, ACCESS_TYPE accessType, UserInfo userInfo) throws NotFoundException, DatastoreException  {
 		return authorizationManager.canAccess(userInfo, resourceId, accessType);
+	}
+	
+	/**
+	 * Use case:  Need to find out if a user can download a resource.
+	 * 
+	 * @param resource the resource of interest
+	 * @param user
+	 * @param accessType
+	 * @return
+	 */
+	@Override
+	public boolean hasAccess(String resourceId, ObjectType objectType, ACCESS_TYPE accessType, UserInfo userInfo) throws NotFoundException, DatastoreException  {
+		return authorizationManager.canAccess(userInfo, resourceId, objectType, accessType);
 	}
 
 	/**
