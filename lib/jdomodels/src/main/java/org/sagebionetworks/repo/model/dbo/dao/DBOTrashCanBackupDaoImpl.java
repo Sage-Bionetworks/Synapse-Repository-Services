@@ -79,7 +79,7 @@ public class DBOTrashCanBackupDaoImpl implements DBOTrashCanBackupDao {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		Long nodeId = KeyFactory.stringToKey(entityId);
 		params.addValue("nodeId", nodeId);
-		basicDao.deleteObjectById(DBOTrashedEntity.class, params);
+		basicDao.deleteObjectByPrimaryKey(DBOTrashedEntity.class, params);
 	}
 
 	@Override

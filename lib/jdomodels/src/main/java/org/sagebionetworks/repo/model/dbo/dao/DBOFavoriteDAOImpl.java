@@ -142,7 +142,7 @@ public class DBOFavoriteDAOImpl implements FavoriteDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(DBOFavorite.FIELD_COLUMN_ID_PRINCIPAL_ID, principalId);
 		param.addValue(DBOFavorite.FIELD_COLUMN_ID_NODE_ID, KeyFactory.stringToKey(entityId));
-		basicDao.deleteObjectById(DBOFavorite.class, param);
+		basicDao.deleteObjectByPrimaryKey(DBOFavorite.class, param);
 	}
 
 	@Override

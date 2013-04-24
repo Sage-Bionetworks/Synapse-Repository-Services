@@ -45,7 +45,7 @@ public class DBONodeTest {
 			for(Long id: toDelete){
 				MapSqlParameterSource params = new MapSqlParameterSource();
 				params.addValue("id", id);
-				dboBasicDao.deleteObjectById(DBONode.class, params);
+				dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, params);
 			}
 		}
 	}
@@ -75,7 +75,7 @@ public class DBONodeTest {
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", node.getId());
-		clone = dboBasicDao.getObjectById(DBONode.class, params);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBONode.class, params);
 		assertNotNull(clone);
 		assertEquals(node, clone);
 		
@@ -107,7 +107,7 @@ public class DBONodeTest {
 		// Get the clone back again
 		params = new MapSqlParameterSource();
 		params.addValue("id", clone.getId());
-		DBONode clone2 = dboBasicDao.getObjectById(DBONode.class, params);
+		DBONode clone2 = dboBasicDao.getObjectByPrimaryKey(DBONode.class, params);
 		assertEquals(clone, clone2);
 	}
 
