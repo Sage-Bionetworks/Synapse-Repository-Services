@@ -6,10 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -31,21 +28,15 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAO;
-import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.migration.MigratableTableType;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.amazonaws.util.BinaryUtils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -59,9 +50,6 @@ public class DBOFileHandleDaoImplTest {
 	
 	private List<String> toDelete;
 	String creatorUserGroupId;
-	
-	@Autowired
-	MigatableTableDAO migatableTableDAO;
 	
 	@Before
 	public void before(){
@@ -118,7 +106,7 @@ public class DBOFileHandleDaoImplTest {
 	
 	@Test
 	public void testS3FileCURD() throws DatastoreException, NotFoundException{
-		S3FileHandle meta = createS3FileHandle();
+		S3FileHandle meta = TestUtils.createS3FileHandle(creatorUserGroupId);
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta.getId());
@@ -133,7 +121,7 @@ public class DBOFileHandleDaoImplTest {
 	@Test
 	public void testGetCreator() throws NotFoundException{
 		// Create the metadata
-		S3FileHandle meta = createS3FileHandle();
+		S3FileHandle meta = TestUtils.createS3FileHandle(creatorUserGroupId);
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta.getId());
@@ -178,7 +166,7 @@ public class DBOFileHandleDaoImplTest {
 	
 	@Test
 	public void testPreviewFileCRUD() throws DatastoreException, NotFoundException{
-		PreviewFileHandle meta = createPreviewFileHandle();
+		PreviewFileHandle meta = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta);
@@ -405,19 +393,19 @@ public class DBOFileHandleDaoImplTest {
 	@Test
 	public void testgetAllFileHandles() throws Exception{
 		// Create one without a preview
-		S3FileHandle noPreviewHandle = createS3FileHandle();
+		S3FileHandle noPreviewHandle = TestUtils.createS3FileHandle(creatorUserGroupId);
 		noPreviewHandle.setFileName("newPreview.txt");
 		noPreviewHandle = fileHandleDao.createFile(noPreviewHandle);
 		assertNotNull(noPreviewHandle);
 		toDelete.add(noPreviewHandle.getId());
 		// The one will have a preview
-		S3FileHandle withPreview = createS3FileHandle();
+		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
 		withPreview.setFileName("withPreview.txt");
 		withPreview = fileHandleDao.createFile(withPreview);
 		assertNotNull(withPreview);
 		toDelete.add(withPreview.getId());
 		// The Preview
-		PreviewFileHandle preview = createPreviewFileHandle();
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		preview.setFileName("preview.txt");
 		preview = fileHandleDao.createFile(preview);
 		assertNotNull(preview);
@@ -452,19 +440,19 @@ public class DBOFileHandleDaoImplTest {
 	public void testgetMigrationObjectDatas() throws Exception{
 		long startCount = fileHandleDao.getCount();
 		// Create one without a preview
-		S3FileHandle noPreviewHandle = createS3FileHandle();
+		S3FileHandle noPreviewHandle = TestUtils.createS3FileHandle(creatorUserGroupId);
 		noPreviewHandle.setFileName("newPreview.txt");
 		noPreviewHandle = fileHandleDao.createFile(noPreviewHandle);
 		assertNotNull(noPreviewHandle);
 		toDelete.add(noPreviewHandle.getId());
 		// The one will have a preview
-		S3FileHandle withPreview = createS3FileHandle();
+		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
 		withPreview.setFileName("withPreview.txt");
 		withPreview = fileHandleDao.createFile(withPreview);
 		assertNotNull(withPreview);
 		toDelete.add(withPreview.getId());
 		// The Preview
-		PreviewFileHandle preview = createPreviewFileHandle();
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		preview.setFileName("preview.txt");
 		preview = fileHandleDao.createFile(preview);
 		assertNotNull(preview);
@@ -528,13 +516,13 @@ public class DBOFileHandleDaoImplTest {
 	public void testBackupRestore() throws Exception{
 		long startCount = fileHandleDao.getCount();
 		// The one will have a preview
-		S3FileHandle withPreview = createS3FileHandle();
+		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
 		withPreview.setFileName("withPreview.txt");
 		withPreview = fileHandleDao.createFile(withPreview);
 		assertNotNull(withPreview);
 		toDelete.add(withPreview.getId());
 		// The Preview
-		PreviewFileHandle preview = createPreviewFileHandle();
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		preview.setFileName("preview.txt");
 		preview = fileHandleDao.createFile(preview);
 		assertNotNull(preview);
@@ -576,116 +564,15 @@ public class DBOFileHandleDaoImplTest {
 		
 	}
 	
-	@Test
-	public void testTableMigration() throws Exception {
-		long startCount = fileHandleDao.getCount();
-		long migrationCount = migatableTableDAO.getCount(MigratableTableType.FILE_HANDLE);
-		assertEquals(startCount, migrationCount);
-		// The one will have a preview
-		S3FileHandle withPreview = createS3FileHandle();
-		withPreview.setFileName("withPreview.txt");
-		withPreview = fileHandleDao.createFile(withPreview);
-		assertNotNull(withPreview);
-		toDelete.add(withPreview.getId());
-		// The Preview
-		PreviewFileHandle preview = createPreviewFileHandle();
-		preview.setFileName("preview.txt");
-		preview = fileHandleDao.createFile(preview);
-		assertNotNull(preview);
-		toDelete.add(preview.getId());
-		// Assign it as a preview
-		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
-		// The etag should have changed
-		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
-		
-		// Now list all of the objects
-		QueryResults<RowMetadata> totalList = migatableTableDAO.listRowMetadata(MigratableTableType.FILE_HANDLE, 1000, startCount);
-		assertNotNull(totalList);
-		assertEquals(startCount+2,  totalList.getTotalNumberOfResults());
-		assertNotNull(totalList.getResults());
-		assertEquals(2, totalList.getResults().size());
-		System.out.println(totalList.getResults());
-		// The preview should be first
-		RowMetadata row = totalList.getResults().get(0);
-		assertEquals(preview.getId(), row.getId());
-		assertEquals(preview.getEtag(), row.getEtag());
-		// Followed by the withPreview
-		row = totalList.getResults().get(1);
-		assertEquals(withPreview.getId(), row.getId());
-		assertEquals(withPreview.getEtag(), row.getEtag());
-		
-		// Now list the deltas
-		List<String> idsToFind = new LinkedList<String>();
-		// This should not exist
-		idsToFind.add(""+(Long.MAX_VALUE - 10));
-		idsToFind.add(preview.getId());
-		idsToFind.add(withPreview.getId());
-		// This should not exist
-		idsToFind.add(""+(Long.MAX_VALUE - 101));
-		// Get the detla
-		List<RowMetadata> delta = migatableTableDAO.listDeltaRowMetadata(MigratableTableType.FILE_HANDLE, idsToFind);
-		assertNotNull(delta);
-		assertEquals(2, delta.size());
-		// The preview should be first
-		row = delta.get(0);
-		assertEquals(preview.getId(), row.getId());
-		assertEquals(preview.getEtag(), row.getEtag());
-		// Followed by the withPreview
-		row = delta.get(1);
-		assertEquals(withPreview.getId(), row.getId());
-		assertEquals(withPreview.getEtag(), row.getEtag());
-		
-		// Get the full back object
-		List<String> idsToBackup = new LinkedList<String>();
-		idsToBackup.add(preview.getId());
-		idsToBackup.add(withPreview.getId());
-		List<DBOFileHandle> backupList = migatableTableDAO.getBackupBatch(DBOFileHandle.class, idsToBackup);
-		assertNotNull(backupList);
-		assertEquals(2, backupList.size());
-		// preview
-		DBOFileHandle dbfh = backupList.get(0);
-		assertEquals(preview.getId(), ""+dbfh.getId());
-		//with preview.
-		dbfh = backupList.get(1);
-		assertEquals(withPreview.getId(), ""+dbfh.getId());
-		// Now delete all of the data
-		int count = migatableTableDAO.deleteObjectsById(MigratableTableType.FILE_HANDLE, idsToBackup);
-		assertEquals(2, count);
-		assertEquals(startCount, migatableTableDAO.getCount(MigratableTableType.FILE_HANDLE));
-		// Now restore the data
-		int[] result = migatableTableDAO.createOrUpdateBatch(backupList);
-		assertNotNull(result);
-		assertEquals(2, result.length);
-		assertEquals(1, result[0]);
-		assertEquals(1, result[1]);
-		// Now make sure if we update again it works
-		backupList.get(0).setBucketName("updateBucketName");
-		result = migatableTableDAO.createOrUpdateBatch(backupList);
-		assertNotNull(result);
-		assertEquals(2, result.length);
-		assertEquals(2, result[0]);
-		assertEquals(1, result[1]);
-		// Check final counts
-		delta = migatableTableDAO.listDeltaRowMetadata(MigratableTableType.FILE_HANDLE, idsToFind);
-		assertNotNull(delta);
-		assertEquals(2, delta.size());
-		// The preview should be first
-		row = delta.get(0);
-		assertEquals(preview.getId(), row.getId());
-		assertEquals(preview.getEtag(), row.getEtag());
-		// Followed by the withPreview
-		row = delta.get(1);
-		assertEquals(withPreview.getId(), row.getId());
-		assertEquals(withPreview.getEtag(), row.getEtag());
-	}
+
 	
 	@Test
 	public void testFindFileHandleWithKeyAndMD5(){
-		S3FileHandle handle = createS3FileHandle();
+		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId);
 		// Use a random UUID for the key
 		handle.setKey(UUID.randomUUID().toString());
 		// Calculate an MD5 from the key.
-		String md5 = calculateMD5(handle.getKey());
+		String md5 = TestUtils.calculateMD5(handle.getKey());
 		handle.setContentMd5(md5);
 		// Create the handle
 		handle = fileHandleDao.createFile(handle);
@@ -697,54 +584,5 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(1, list.size());
 		assertEquals(handle.getId(), list.get(0));
 	}
-	/**
-	 * Helper to create a S3FileHandle
-	 * 
-	 * @return
-	 */
-	public S3FileHandle createS3FileHandle() {
-		S3FileHandle meta = new S3FileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("foobar.txt");
-		return meta;
-	}
 
-	/**
-	 * Helper to create a PreviewFileHandle
-	 * @return
-	 */
-	public PreviewFileHandle createPreviewFileHandle() {
-		PreviewFileHandle meta = new PreviewFileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("preview.jpg");
-		return meta;
-	}
-	
-	/**
-	 * Calcualte the MD5 digest of a given string.
-	 * @param tocalculate
-	 * @return
-	 */
-	public String calculateMD5(String tocalculate){
-		try {
-			MessageDigest digetst = MessageDigest.getInstance("MD5");
-			byte[] bytes = digetst.digest(tocalculate.getBytes("UTF-8"));
-			return  BinaryUtils.toHex(bytes);	
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-
-	}
 }

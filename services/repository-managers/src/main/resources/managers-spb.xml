@@ -153,6 +153,8 @@
 			</list>
 		</property>
 	</bean>
+	
+	<bean id="migrationManager" class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl" scope="singleton"/>
 
 	<bean id="nodeSerializer"
 		class="org.sagebionetworks.repo.manager.backup.NodeSerializerImpl"

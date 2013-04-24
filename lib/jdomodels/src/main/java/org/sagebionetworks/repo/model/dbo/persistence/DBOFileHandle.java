@@ -145,6 +145,15 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 		};
 	}
 
+	@Override
+	public Class<? extends FileHandleBackup> getBackupClass() {
+		return FileHandleBackup.class;
+	}
+	
+	@Override
+	public Class<? extends DBOFileHandle> getDatabaseObjectClass() {
+		return DBOFileHandle.class;
+	}
 
 	public Long getId() {
 		return id;
@@ -351,5 +360,6 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 				+ contentSize + ", contentMD5=" + contentMD5 + ", bucketName="
 				+ bucketName + ", key=" + key + ", name=" + name + "]";
 	}
+
 
 }

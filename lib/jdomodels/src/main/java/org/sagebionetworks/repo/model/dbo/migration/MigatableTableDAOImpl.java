@@ -4,7 +4,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
@@ -23,7 +22,7 @@ import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * This DAO can be used for any 
+ * This is a generic dao like DBOBasicDao that provides data migration functions for individual tables.
  * @author John
  *
  */
@@ -51,14 +50,10 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	private Map<MigratableTableType, String> countSqlMap = new HashMap<MigratableTableType, String>();
 	private Map<MigratableTableType, String> listSqlMap = new HashMap<MigratableTableType, String>();
 	private Map<MigratableTableType, String> deltaListSqlMap = new HashMap<MigratableTableType, String>();
-	
 	private Map<MigratableTableType, String> backupSqlMap = new HashMap<MigratableTableType, String>();
-	
 	private Map<MigratableTableType, String> insertOrUpdateSqlMap = new HashMap<MigratableTableType, String>();
-	
 	private Map<MigratableTableType, FieldColumn> etagColumns = new HashMap<MigratableTableType, FieldColumn>();
 	private Map<MigratableTableType, FieldColumn> backupIdColumns = new HashMap<MigratableTableType, FieldColumn>();
-	
 	private Map<MigratableTableType, RowMapper<RowMetadata>> rowMetadataMappers = new HashMap<MigratableTableType, RowMapper<RowMetadata>>();
 	
 	/**
@@ -154,18 +149,18 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	
 
 	@Override
-	public <T extends DatabaseObject<T>> List<T> getBackupBatch(Class<? extends T> clazz, List<String> rowIds) {
+	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<String> rowIds) {
 		MigratableTableType type = getTypeForClass(clazz);
 		String sql = getBatchBackupSql(type);
-		MigratableDatabaseObject<T, ?> object = getMigratableObject(type);
+		MigratableDatabaseObject<D, ?> object = getMigratableObject(type);
 		SqlParameterSource params = new MapSqlParameterSource(DMLUtils.BIND_VAR_ID_lIST, rowIds);
-		List<T> page = simpleJdbcTemplate.query(sql, object.getTableMapping(), params);
+		List<D> page = simpleJdbcTemplate.query(sql, object.getTableMapping(), params);
 		return page;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public <T extends DatabaseObject<T>> int[] createOrUpdateBatch(List<T> batch) {
+	public <D extends DatabaseObject<D>> int[] createOrUpdateBatch(List<D> batch) {
 		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
 		// nothing to do with an empty batch
 		if(batch.size() < 1) return new int[0]; 
@@ -239,5 +234,10 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		MigratableDatabaseObject ob = this.typeTpObject.get(type);
 		if(ob == null) throw new IllegalArgumentException("Cannot find the MigratableDatabaseObject for type: "+type);
 		return ob;
+	}
+
+	@Override
+	public MigratableDatabaseObject getObjectForType(MigratableTableType type) {
+		return getMigratableObject(type);
 	}
 }

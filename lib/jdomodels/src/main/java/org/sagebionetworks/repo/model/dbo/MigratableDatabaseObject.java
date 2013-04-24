@@ -24,4 +24,16 @@ public interface MigratableDatabaseObject<D extends DatabaseObject<?>, B> extend
 	 * @return
 	 */
 	public MigratableTableTranslation<D, B> getTranslator();
+	
+	/**
+	 * The class for <B>
+	 * @return
+	 */
+	public Class<? extends B> getBackupClass();
+	
+	/**
+	 * The class for <D>
+	 * @return
+	 */
+	public Class<? extends D> getDatabaseObjectClass();
 }

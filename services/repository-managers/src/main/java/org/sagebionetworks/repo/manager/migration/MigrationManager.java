@@ -1,28 +1,28 @@
-package org.sagebionetworks.repo.model.dbo.migration;
+package org.sagebionetworks.repo.manager.migration;
 
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.QueryResults;
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
-import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.migration.MigratableTableType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 
 /**
- * An abstraction for a Data Access Object (DAO) that can be used to migrate an single database table.
- * 
- * For performance reasons each method should be implemented as a single database call.
+ * Abstraction for the V2 migration manager.
  * 
  * @author John
  *
  */
-public interface MigatableTableDAO {
-	
+public interface MigrationManager {
+
 	/**
 	 * The total number of rows in the table.
 	 * @return
 	 */
-	public long getCount(MigratableTableType type);
+	public long getCount(UserInfo user, MigratableTableType type);
 	
 	/**
 	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.
@@ -33,7 +33,7 @@ public interface MigatableTableDAO {
 	 * @param offset
 	 * @return
 	 */
-	public QueryResults<RowMetadata> listRowMetadata(MigratableTableType type, long limit, long offset);
+	public QueryResults<RowMetadata> listRowMetadata(UserInfo user, MigratableTableType type, long limit, long offset);
 	
 	/**
 	 * Given a list of ID return the RowMetadata for each row that exist in the table.
@@ -44,7 +44,7 @@ public interface MigatableTableDAO {
 	 * @param idList
 	 * @return
 	 */
-	public List<RowMetadata> listDeltaRowMetadata(MigratableTableType type, List<String> idList);
+	public RowMetadataResult listDeltaRowMetadata(UserInfo user, MigratableTableType type, List<String> idList);
 	
 	/**
 	 * Get a batch of objects to backup.
@@ -52,26 +52,18 @@ public interface MigatableTableDAO {
 	 * @param rowIds
 	 * @return
 	 */
-	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<String> rowIds);
+	public void writeBackupBatch(UserInfo user, MigratableTableType type, List<String> rowIds, OutputStream out);
 
 	/**
 	 * Create or update a batch.
 	 * @param batch - batch of objects to create or update.
 	 */
-	public <D extends DatabaseObject<D>> int[] createOrUpdateBatch(List<D> batch);
+	public <T> void createOrUpdateBatch(UserInfo user, MigratableTableType type, InputStream in);
 	
 	/**
 	 * Delete objects by their IDs
 	 * @param type
 	 * @param idList
 	 */
-	public int deleteObjectsById(MigratableTableType type, List<String> idList);
-	
-	/**
-	 * Get the MigratableObjectType from 
-	 * @param type
-	 * @return
-	 */
-	public MigratableDatabaseObject getObjectForType(MigratableTableType type);
-	
+	public int deleteObjectsById(UserInfo user, MigratableTableType type, List<String> idList);
 }
