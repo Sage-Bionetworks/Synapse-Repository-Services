@@ -122,55 +122,6 @@ public class IT100BackupRestoration {
 		toDelete = new ArrayList<Entity>();
 	}
 
-	// This was used to create the backup used for the restoration step.
-	@Ignore
-	@Test
-	public void createSnapshot() throws Exception {
-		// Start the daemon
-		BackupSubmission submission = new BackupSubmission();
-		BackupRestoreStatus status = synapse.startBackupDaemon(submission, MigratableObjectType.ENTITY);
-		assertNotNull(status);
-		assertNotNull(status.getStatus());
-		assertFalse(DaemonStatus.FAILED == status.getStatus());
-		assertEquals(DaemonType.BACKUP, status.getType());
-		String backupId = status.getId();
-		assertNotNull(backupId);
-		String backupUri = "/daemon/" + backupId;
-		long start = System.currentTimeMillis();
-		// Wait for the backup to finish.
-		while (true) {
-			long now = System.currentTimeMillis();
-			assertTrue("Timed out waiting for a backup to complete", now
-					- start < TEST_TIME_OUT);
-			status = synapse.getDaemonStatus(backupId);
-			assertNotNull(status);
-			assertNotNull(status.getStatus());
-			// We are done if it failed.
-			assertFalse(DaemonStatus.FAILED == status.getStatus());
-			// Are we done?
-			if (DaemonStatus.COMPLETED == status.getStatus()) {
-				System.out.println("Backup Complete. Message: "
-						+ status.getProgresssMessage());
-				System.out.println("Backup File: "
-						+ status.getBackupUrl());
-				break;
-			} else {
-				long current = status.getProgresssCurrent();
-				long total = status.getProgresssTotal();
-				if (total <= 0) {
-					total = 1000000;
-				}
-				String message = status.getProgresssMessage();
-				double percent = ((double) current / (double) total) * 100.0;
-				System.out.println("Backup progresss: " + percent
-						+ " % Message: " + message);
-			}
-			// Wait.
-			Thread.sleep(1000);
-		}
-	}
-	
-
 	@Test
 	public void restoreFromBackup() throws Exception {
 
@@ -202,42 +153,6 @@ public class IT100BackupRestoration {
 			waitForDaemon(status.getId());
 
 		}
-		
-		// now restore the Entities
-		
-		// Step one is to upload the file to s3.
-		URL fileUrl = IT100BackupRestoration.class.getClassLoader()
-				.getResource(BACKUP_FILE_NAME);
-		File backupFile = new File(fileUrl.getFile().replaceAll("%20", " "));
-		// Make sure the file exists
-		assertTrue(backupFile.getAbsolutePath()+" does not exist.", backupFile.exists());
-		// Now upload the file to s3
-		PutObjectResult putResults = s3Client.putObject(bucket,	BACKUP_FILE_NAME, backupFile);
-		System.out.println(putResults);
-
-		// Start the daemon
-		RestoreSubmission submission = new RestoreSubmission();
-		submission.setFileName(BACKUP_FILE_NAME);
-		BackupRestoreStatus status = synapse.startRestoreDaemon(submission, MigratableObjectType.ENTITY);
-
-		assertNotNull(status);
-		assertNotNull(status.getStatus());
-		assertFalse(status.getErrorMessage(),DaemonStatus.FAILED == status.getStatus());
-		assertTrue(DaemonType.RESTORE == status.getType());
-		String restoreId = status.getId();
-		assertNotNull(restoreId);
-		
-		// Wait for it to finish
-		waitForDaemon(status.getId());
-		
-		// Login as the test user one.
-		synapse.login(StackConfiguration.getIntegrationTestUserOneName(),
-				StackConfiguration.getIntegrationTestUserOnePassword());
-		// Now make sure we can find one of the datasetst
-		JSONObject datasetQueryResults = synapse
-				.query("select * from dataset where name == \"MSKCC Prostate Cancer\"");
-		assertEquals(1, datasetQueryResults.getJSONArray("results").length());
-		System.out.println("Found the 'MSKCC Prostate Cancer' using devUser1@sagebase.org");
 	}
 	
 	/**
