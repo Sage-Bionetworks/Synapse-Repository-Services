@@ -309,8 +309,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 			prefixes.add(lowerCaseDisplayName);
 		}
 		
-		if (header.getEmail() != null && header.getEmail().length() > 0)
-			prefixes.add(header.getEmail().toLowerCase());
+		//would like to add email too, but it's obfuscated at the manager level
 		
 		for (String prefix : prefixes) {
 			if (!prefixCache.containsKey(prefix)) {
