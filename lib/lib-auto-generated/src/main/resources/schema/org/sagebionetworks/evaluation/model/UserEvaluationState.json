@@ -1,0 +1,10 @@
+{
+    "description":"JSON schema for the possible states of a User with respect to an Evaluation.",
+    "name": "UserEvaluationState",
+    "type":"string",
+    "enum":[
+        "EVAL_REGISTRATION_UNAVAILABLE",
+		"EVAL_OPEN_USER_REGISTERED",
+		"EVAL_OPEN_USER_NOT_REGISTERED"
+    ]
+}
