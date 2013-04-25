@@ -53,6 +53,8 @@
 
 	<!-- The StorageUsage Service -->
 	<bean id="storageUsageService" class="org.sagebionetworks.repo.web.service.StorageUsageServiceImpl" />
+	
+	<bean id="migrationService" class="org.sagebionetworks.repo.web.service.MigrationServiceImpl" />
 
 	<!-- The TrashService -->
 	<bean id="trashService"

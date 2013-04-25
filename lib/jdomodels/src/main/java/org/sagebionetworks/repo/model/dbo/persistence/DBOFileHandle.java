@@ -25,7 +25,7 @@ import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.migration.MigratableTableType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * The DBO object for file metadata.
@@ -126,8 +126,8 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 	}
 	
 	@Override
-	public MigratableTableType getMigratableTableType() {
-		return MigratableTableType.FILE_HANDLE;
+	public MigrationType getMigratableTableType() {
+		return MigrationType.FILE_HANDLE;
 	}
 
 	@Override

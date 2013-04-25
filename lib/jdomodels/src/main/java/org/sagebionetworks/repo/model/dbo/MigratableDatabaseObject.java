@@ -1,7 +1,7 @@
 package org.sagebionetworks.repo.model.dbo;
 
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.migration.MigratableTableType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * A database object that is Migratable.
@@ -17,7 +17,7 @@ public interface MigratableDatabaseObject<D extends DatabaseObject<?>, B> extend
 	 * The type of this table.
 	 * @return
 	 */
-	public MigratableTableType getMigratableTableType();
+	public MigrationType getMigratableTableType();
 	
 	/**
 	 * Get the translator that will be used to translate from one object to another.

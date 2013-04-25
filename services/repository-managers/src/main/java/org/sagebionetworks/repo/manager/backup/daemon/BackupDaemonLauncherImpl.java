@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.manager.backup.daemon;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
@@ -13,6 +14,7 @@ import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -29,7 +31,6 @@ import com.amazonaws.services.s3.AmazonS3Client;
 public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	
 	private static String backupBucket = StackConfiguration.getSharedS3BackupBucket();
-	private static String workflowBucket = StackConfiguration.getS3WorkflowBucket();
 	
 	@Autowired
 	BackupRestoreStatusDAO backupRestoreStatusDao;
@@ -43,12 +44,16 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	@Autowired
 	ExecutorService backupDaemonThreadPool2;
 	
+	@Autowired
+	BackupDriver backupDriver;
+	
 	// for use by Spring
 	public void setBackupDriverMap(Map<String,GenericBackupDriver> map) {
 		this.backupDriverMap = map;
 	}
 
 	@Override
+	@Deprecated
 	public BackupRestoreStatus startBackup(UserInfo username, Set<String> entitiesToBackup, MigratableObjectType migrationType) throws UnauthorizedException, DatastoreException {
 		UserInfo.validateUserInfo(username);
 		// Only an admin can start a backup Daemon
@@ -69,6 +74,7 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 
 	
 	@Override
+	@Deprecated
 	public BackupRestoreStatus startRestore(UserInfo username, String fileName, MigratableObjectType migrationType)	throws UnauthorizedException, DatastoreException {
 		UserInfo.validateUserInfo(username);
 		// Only an admin can start a backup Daemon
@@ -121,6 +127,7 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	}
 
 	@Override
+	@Deprecated
 	public void delete(UserInfo user, MigratableObjectDescriptor mod)
 			throws UnauthorizedException, DatastoreException, NotFoundException {
 		UserInfo.validateUserInfo(user);
@@ -136,6 +143,20 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	
 	}
 
+	@Override
+	public BackupRestoreStatus startBackup(UserInfo user, MigrationType type, List<String> idsToBackup) {
+		// Create a new daemon and start it
+		AmazonS3Client client = createNewAWSClient();
+		BackupRestoreDaemon daemon = new BackupRestoreDaemon(user, backupRestoreStatusDao, backupDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, idsToBackup, type);
+		return daemon.startBackup();
+	}
 
+	@Override
+	public BackupRestoreStatus startRestore(UserInfo user, String fileName,
+			MigrationType type) {
+		AmazonS3Client client = createNewAWSClient();
+		BackupRestoreDaemon daemon = new BackupRestoreDaemon(user, backupRestoreStatusDao, backupDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, null, type);
+		return daemon.startRestore(fileName);
+	}
 
 }

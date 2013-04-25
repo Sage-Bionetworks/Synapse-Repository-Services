@@ -21,7 +21,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.migration.MigratableTableType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -84,58 +84,58 @@ public class MigrationManagerImplAutowireTest {
 	
 	@Test
 	public void testGetCount(){
-		long count = migrationManager.getCount(adminUser, MigratableTableType.FILE_HANDLE);
+		long count = migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE);
 		assertEquals(startCount+2, count);
 	}
 	
 	@Test
 	public void testListRowMetadata(){
-		QueryResults<RowMetadata> result = migrationManager.listRowMetadata(adminUser, MigratableTableType.FILE_HANDLE, Long.MAX_VALUE, startCount);
+		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
 		assertNotNull(result);
-		assertEquals(startCount+2, result.getTotalNumberOfResults());
-		assertNotNull(result.getResults());
-		assertEquals(2, result.getResults().size());
+		assertEquals(new Long(startCount+2), result.getTotalCount());
+		assertNotNull(result.getList());
+		assertEquals(2, result.getList().size());
 		// List the delta
 		List<String> ids = new LinkedList<String>();
-		for(RowMetadata rm: result.getResults()){
+		for(RowMetadata rm: result.getList()){
 			ids.add(rm.getId());
 		}
-		RowMetadataResult delta = migrationManager.listDeltaRowMetadata(adminUser, MigratableTableType.FILE_HANDLE, ids);
+		RowMetadataResult delta = migrationManager.getRowMetadataDeltaForType(adminUser, MigrationType.FILE_HANDLE, ids);
 		assertNotNull(delta);
 		assertNotNull(delta.getList());
-		assertEquals(result.getResults(), delta.getList());
+		assertEquals(result.getList(), delta.getList());
 	}
 	
 	@Test
 	public void testRoundTrip() throws Exception{
-		QueryResults<RowMetadata> result = migrationManager.listRowMetadata(adminUser, MigratableTableType.FILE_HANDLE, Long.MAX_VALUE, startCount);
+		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
 		assertNotNull(result);
 		// List the delta
 		List<String> ids = new LinkedList<String>();
-		for(RowMetadata rm: result.getResults()){
+		for(RowMetadata rm: result.getList()){
 			ids.add(rm.getId());
 		}
 		// Write the backup data
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		migrationManager.writeBackupBatch(adminUser, MigratableTableType.FILE_HANDLE, ids, out);
+		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids, out);
 		String xml = new String(out.toByteArray(), "UTF-8");
 		System.out.println(xml);
 		// Now delete the rows
-		migrationManager.deleteObjectsById(adminUser, MigratableTableType.FILE_HANDLE, ids);
+		migrationManager.deleteObjectsById(adminUser, MigrationType.FILE_HANDLE, ids);
 		// The count should be the same as start
-		assertEquals(startCount, migrationManager.getCount(adminUser, MigratableTableType.FILE_HANDLE));
+		assertEquals(startCount, migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
 		// Now restore them from the xml
 		ByteArrayInputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
-		migrationManager.createOrUpdateBatch(adminUser, MigratableTableType.FILE_HANDLE, in);
+		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
 		// The count should be backup
-		assertEquals(startCount+2, migrationManager.getCount(adminUser, MigratableTableType.FILE_HANDLE));
+		assertEquals(startCount+2, migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
 		// Calling again should not fail
 		in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
-		migrationManager.createOrUpdateBatch(adminUser, MigratableTableType.FILE_HANDLE, in);
+		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
 		// Now get the data
-		QueryResults<RowMetadata> afterResult = migrationManager.listRowMetadata(adminUser, MigratableTableType.FILE_HANDLE, Long.MAX_VALUE, startCount);
+		RowMetadataResult afterResult = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
 		assertNotNull(result);
-		assertEquals(result.getResults(), afterResult.getResults());
+		assertEquals(result.getList(), afterResult.getList());
 	}
 	
 

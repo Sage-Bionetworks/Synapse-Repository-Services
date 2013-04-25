@@ -6,7 +6,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.migration.MigratableTableType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 
@@ -22,7 +22,7 @@ public interface MigrationManager {
 	 * The total number of rows in the table.
 	 * @return
 	 */
-	public long getCount(UserInfo user, MigratableTableType type);
+	public long getCount(UserInfo user, MigrationType type);
 	
 	/**
 	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.
@@ -33,7 +33,7 @@ public interface MigrationManager {
 	 * @param offset
 	 * @return
 	 */
-	public QueryResults<RowMetadata> listRowMetadata(UserInfo user, MigratableTableType type, long limit, long offset);
+	public RowMetadataResult getRowMetadaForType(UserInfo user, MigrationType type, long limit, long offset);
 	
 	/**
 	 * Given a list of ID return the RowMetadata for each row that exist in the table.
@@ -44,7 +44,7 @@ public interface MigrationManager {
 	 * @param idList
 	 * @return
 	 */
-	public RowMetadataResult listDeltaRowMetadata(UserInfo user, MigratableTableType type, List<String> idList);
+	public RowMetadataResult getRowMetadataDeltaForType(UserInfo user, MigrationType type, List<String> idList);
 	
 	/**
 	 * Get a batch of objects to backup.
@@ -52,18 +52,18 @@ public interface MigrationManager {
 	 * @param rowIds
 	 * @return
 	 */
-	public void writeBackupBatch(UserInfo user, MigratableTableType type, List<String> rowIds, OutputStream out);
+	public void writeBackupBatch(UserInfo user, MigrationType type, List<String> rowIds, OutputStream out);
 
 	/**
 	 * Create or update a batch.
 	 * @param batch - batch of objects to create or update.
 	 */
-	public <T> void createOrUpdateBatch(UserInfo user, MigratableTableType type, InputStream in);
+	public <T> int[] createOrUpdateBatch(UserInfo user, MigrationType type, InputStream in);
 	
 	/**
 	 * Delete objects by their IDs
 	 * @param type
 	 * @param idList
 	 */
-	public int deleteObjectsById(UserInfo user, MigratableTableType type, List<String> idList);
+	public int deleteObjectsById(UserInfo user, MigrationType type, List<String> idList);
 }

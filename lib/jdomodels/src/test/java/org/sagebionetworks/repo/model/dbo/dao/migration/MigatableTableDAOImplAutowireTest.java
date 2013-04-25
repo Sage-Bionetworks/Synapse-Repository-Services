@@ -19,8 +19,9 @@ import org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAO;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
-import org.sagebionetworks.repo.model.migration.MigratableTableType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
@@ -60,7 +61,7 @@ public class MigatableTableDAOImplAutowireTest {
 	@Test
 	public void testMigrationRoundTrip() throws Exception {
 		long startCount = fileHandleDao.getCount();
-		long migrationCount = migatableTableDAO.getCount(MigratableTableType.FILE_HANDLE);
+		long migrationCount = migatableTableDAO.getCount(MigrationType.FILE_HANDLE);
 		assertEquals(startCount, migrationCount);
 		// The one will have a preview
 		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
@@ -80,18 +81,18 @@ public class MigatableTableDAOImplAutowireTest {
 		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
 		
 		// Now list all of the objects
-		QueryResults<RowMetadata> totalList = migatableTableDAO.listRowMetadata(MigratableTableType.FILE_HANDLE, 1000, startCount);
+		RowMetadataResult totalList = migatableTableDAO.listRowMetadata(MigrationType.FILE_HANDLE, 1000, startCount);
 		assertNotNull(totalList);
-		assertEquals(startCount+2,  totalList.getTotalNumberOfResults());
-		assertNotNull(totalList.getResults());
-		assertEquals(2, totalList.getResults().size());
-		System.out.println(totalList.getResults());
+		assertEquals(new Long(startCount+2),  totalList.getTotalCount());
+		assertNotNull(totalList.getList());
+		assertEquals(2, totalList.getList().size());
+		System.out.println(totalList.getList());
 		// The preview should be first
-		RowMetadata row = totalList.getResults().get(0);
+		RowMetadata row = totalList.getList().get(0);
 		assertEquals(preview.getId(), row.getId());
 		assertEquals(preview.getEtag(), row.getEtag());
 		// Followed by the withPreview
-		row = totalList.getResults().get(1);
+		row = totalList.getList().get(1);
 		assertEquals(withPreview.getId(), row.getId());
 		assertEquals(withPreview.getEtag(), row.getEtag());
 		
@@ -104,7 +105,7 @@ public class MigatableTableDAOImplAutowireTest {
 		// This should not exist
 		idsToFind.add(""+(Long.MAX_VALUE - 101));
 		// Get the detla
-		List<RowMetadata> delta = migatableTableDAO.listDeltaRowMetadata(MigratableTableType.FILE_HANDLE, idsToFind);
+		List<RowMetadata> delta = migatableTableDAO.listDeltaRowMetadata(MigrationType.FILE_HANDLE, idsToFind);
 		assertNotNull(delta);
 		assertEquals(2, delta.size());
 		// The preview should be first
@@ -130,9 +131,9 @@ public class MigatableTableDAOImplAutowireTest {
 		dbfh = backupList.get(1);
 		assertEquals(withPreview.getId(), ""+dbfh.getId());
 		// Now delete all of the data
-		int count = migatableTableDAO.deleteObjectsById(MigratableTableType.FILE_HANDLE, idsToBackup);
+		int count = migatableTableDAO.deleteObjectsById(MigrationType.FILE_HANDLE, idsToBackup);
 		assertEquals(2, count);
-		assertEquals(startCount, migatableTableDAO.getCount(MigratableTableType.FILE_HANDLE));
+		assertEquals(startCount, migatableTableDAO.getCount(MigrationType.FILE_HANDLE));
 		// Now restore the data
 		int[] result = migatableTableDAO.createOrUpdateBatch(backupList);
 		assertNotNull(result);
@@ -147,7 +148,7 @@ public class MigatableTableDAOImplAutowireTest {
 		assertEquals(2, result[0]);
 		assertEquals(1, result[1]);
 		// Check final counts
-		delta = migatableTableDAO.listDeltaRowMetadata(MigratableTableType.FILE_HANDLE, idsToFind);
+		delta = migatableTableDAO.listDeltaRowMetadata(MigrationType.FILE_HANDLE, idsToFind);
 		assertNotNull(delta);
 		assertEquals(2, delta.size());
 		// The preview should be first

@@ -12,7 +12,7 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAO;
 import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
-import org.sagebionetworks.repo.model.migration.MigratableTableType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,14 +29,14 @@ public class MigrationManagerImpl implements MigrationManager {
 	MigatableTableDAO migratableTableDao;
 
 	@Override
-	public long getCount(UserInfo user, MigratableTableType type) {
+	public long getCount(UserInfo user, MigrationType type) {
 		validateUser(user);
 		// pass this to the dao.
 		return migratableTableDao.getCount(type);
 	}
 
 	@Override
-	public QueryResults<RowMetadata> listRowMetadata(UserInfo user,  MigratableTableType type, long limit, long offset) {
+	public RowMetadataResult getRowMetadaForType(UserInfo user,  MigrationType type, long limit, long offset) {
 		validateUser(user);
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// pass this to the dao.
@@ -44,7 +44,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	}
 
 	@Override
-	public RowMetadataResult listDeltaRowMetadata(UserInfo user, MigratableTableType type, List<String> idList) {
+	public RowMetadataResult getRowMetadataDeltaForType(UserInfo user, MigrationType type, List<String> idList) {
 		validateUser(user);
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// Get the list from the DAO and convert to a result
@@ -56,7 +56,7 @@ public class MigrationManagerImpl implements MigrationManager {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public void writeBackupBatch(UserInfo user, MigratableTableType type, List<String> rowIds, OutputStream out) {
+	public void writeBackupBatch(UserInfo user, MigrationType type, List<String> rowIds, OutputStream out) {
 		validateUser(user);
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// Get the database object from the dao
@@ -67,16 +67,16 @@ public class MigrationManagerImpl implements MigrationManager {
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public <B> void createOrUpdateBatch(UserInfo user,	MigratableTableType type, InputStream in) {
+	public <B> int[] createOrUpdateBatch(UserInfo user,	MigrationType type, InputStream in) {
 		validateUser(user);
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		// Get the database object from the dao
 		MigratableDatabaseObject mdo = migratableTableDao.getObjectForType(type);
-		createOrUpdateBatch(mdo, type, in);
+		return createOrUpdateBatch(mdo, type, in);
 	}
 
 	@Override
-	public int deleteObjectsById(UserInfo user, MigratableTableType type,  List<String> idList) {
+	public int deleteObjectsById(UserInfo user, MigrationType type,  List<String> idList) {
 		validateUser(user);
 		if(type == null) throw new IllegalArgumentException("Type cannot be null");
 		return migratableTableDao.deleteObjectsById(type, idList);
@@ -99,7 +99,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param rowIds
 	 * @param out
 	 */
-	private <D extends DatabaseObject<D>, B> void writeBackupBatch(MigratableDatabaseObject<D, B> mdo, MigratableTableType type, List<String> rowIds, OutputStream out){
+	private <D extends DatabaseObject<D>, B> void writeBackupBatch(MigratableDatabaseObject<D, B> mdo, MigrationType type, List<String> rowIds, OutputStream out){
 		// First get the database object from the database
 		List<D> databaseList = migratableTableDao.getBackupBatch(mdo.getDatabaseObjectClass(), rowIds);
 		// Translate to the backup objects
@@ -122,7 +122,7 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param batch
 	 * @param in
 	 */
-	private <D extends DatabaseObject<D>, B> void createOrUpdateBatch(MigratableDatabaseObject<D, B> mdo, MigratableTableType type, InputStream in){
+	private <D extends DatabaseObject<D>, B> int[] createOrUpdateBatch(MigratableDatabaseObject<D, B> mdo, MigrationType type, InputStream in){
 		// we use the table name as the Alias
 		String alias = mdo.getTableMapping().getTableName();
 		// Read the list from the stream
@@ -135,7 +135,7 @@ public class MigrationManagerImpl implements MigrationManager {
 			databaseList.add(translator.createDatabaseObjectFromBackup(backup));
 		}
 		// Now write the batch to the database
-		migratableTableDao.createOrUpdateBatch(databaseList);
+		return migratableTableDao.createOrUpdateBatch(databaseList);
 	}
 
 }

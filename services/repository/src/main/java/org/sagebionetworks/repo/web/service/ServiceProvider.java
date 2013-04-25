@@ -41,4 +41,8 @@ public interface ServiceProvider {
 	public TrashService getTrashService();
 
 	public DoiService getDoiService();
+	
+	public MigrationService getMigrationService();
+	
+	
 }

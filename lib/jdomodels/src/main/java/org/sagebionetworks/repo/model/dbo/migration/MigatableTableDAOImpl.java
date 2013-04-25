@@ -10,8 +10,9 @@ import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
-import org.sagebionetworks.repo.model.migration.MigratableTableType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.BeanPropertySqlParameterSource;
@@ -46,22 +47,22 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		this.databaseObjectRegister = databaseObjectRegister;
 	}
 	
-	private Map<MigratableTableType, String> deleteSqlMap = new HashMap<MigratableTableType, String>();
-	private Map<MigratableTableType, String> countSqlMap = new HashMap<MigratableTableType, String>();
-	private Map<MigratableTableType, String> listSqlMap = new HashMap<MigratableTableType, String>();
-	private Map<MigratableTableType, String> deltaListSqlMap = new HashMap<MigratableTableType, String>();
-	private Map<MigratableTableType, String> backupSqlMap = new HashMap<MigratableTableType, String>();
-	private Map<MigratableTableType, String> insertOrUpdateSqlMap = new HashMap<MigratableTableType, String>();
-	private Map<MigratableTableType, FieldColumn> etagColumns = new HashMap<MigratableTableType, FieldColumn>();
-	private Map<MigratableTableType, FieldColumn> backupIdColumns = new HashMap<MigratableTableType, FieldColumn>();
-	private Map<MigratableTableType, RowMapper<RowMetadata>> rowMetadataMappers = new HashMap<MigratableTableType, RowMapper<RowMetadata>>();
+	private Map<MigrationType, String> deleteSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> countSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> listSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> deltaListSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> backupSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> insertOrUpdateSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, FieldColumn> etagColumns = new HashMap<MigrationType, FieldColumn>();
+	private Map<MigrationType, FieldColumn> backupIdColumns = new HashMap<MigrationType, FieldColumn>();
+	private Map<MigrationType, RowMapper<RowMetadata>> rowMetadataMappers = new HashMap<MigrationType, RowMapper<RowMetadata>>();
 	
 	/**
 	 * We cache the mapping for each object type.
 	 */
-	private Map<Class<? extends DatabaseObject>, MigratableTableType> classToMapping = new HashMap<Class<? extends DatabaseObject>, MigratableTableType>();
+	private Map<Class<? extends DatabaseObject>, MigrationType> classToMapping = new HashMap<Class<? extends DatabaseObject>, MigrationType>();
 	
-	private Map<MigratableTableType, MigratableDatabaseObject> typeTpObject = new HashMap<MigratableTableType, MigratableDatabaseObject>();
+	private Map<MigrationType, MigratableDatabaseObject> typeTpObject = new HashMap<MigrationType, MigratableDatabaseObject>();
 	
 	/**
 	 * Called when this bean is ready.
@@ -73,7 +74,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		for(MigratableDatabaseObject dbo: databaseObjectRegister){
 			TableMapping mapping = dbo.getTableMapping();
 			DMLUtils.validateMigratableTableMapping(mapping);
-			MigratableTableType type = dbo.getMigratableTableType();
+			MigrationType type = dbo.getMigratableTableType();
 			// Build up the SQL cache.
 			String delete = DMLUtils.createBatchDelete(mapping);
 			deleteSqlMap.put(type, delete);
@@ -105,7 +106,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	}
 
 	@Override
-	public long getCount(MigratableTableType type) {
+	public long getCount(MigrationType type) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		String countSql = this.countSqlMap.get(type);
 		if(countSql == null) throw new IllegalArgumentException("Cannot find count SQL for "+type);
@@ -113,7 +114,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	}
 
 	@Override
-	public QueryResults<RowMetadata> listRowMetadata(MigratableTableType type, long limit, long offset) {
+	public RowMetadataResult listRowMetadata(MigrationType type, long limit, long offset) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		String sql = this.getListSql(type);
 		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
@@ -122,11 +123,14 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		params.addValue(DMLUtils.BIND_VAR_OFFSET, offset);
 		List<RowMetadata> page = simpleJdbcTemplate.query(sql, mapper, params);
 		long count = this.getCount(type);
-		return new QueryResults<RowMetadata>(page, count);
+		RowMetadataResult result = new RowMetadataResult();
+		result.setList(page);
+		result.setTotalCount(count);
+		return result;
 	}
 	
 	@Override
-	public List<RowMetadata> listDeltaRowMetadata(MigratableTableType type,	List<String> idList) {
+	public List<RowMetadata> listDeltaRowMetadata(MigrationType type,	List<String> idList) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		String sql = this.getDeltaListSql(type);
 		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
@@ -138,7 +142,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public int deleteObjectsById(MigratableTableType type, List<String> idList) {
+	public int deleteObjectsById(MigrationType type, List<String> idList) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		if(idList == null) throw new IllegalArgumentException("idList cannot be null");
 		String deleteSQL = this.deleteSqlMap.get(type);
@@ -150,7 +154,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 
 	@Override
 	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<String> rowIds) {
-		MigratableTableType type = getTypeForClass(clazz);
+		MigrationType type = getTypeForClass(clazz);
 		String sql = getBatchBackupSql(type);
 		MigratableDatabaseObject<D, ?> object = getMigratableObject(type);
 		SqlParameterSource params = new MapSqlParameterSource(DMLUtils.BIND_VAR_ID_lIST, rowIds);
@@ -164,7 +168,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		if(batch == null) throw new IllegalArgumentException("Batch cannot be null");
 		// nothing to do with an empty batch
 		if(batch.size() < 1) return new int[0]; 
-		MigratableTableType type = getTypeForClass(batch.get(0).getClass());
+		MigrationType type = getTypeForClass(batch.get(0).getClass());
 		String sql = getInsertOrUpdateSql(type);
 		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
 		for(int i=0; i<batch.size(); i++){
@@ -178,7 +182,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	 * @param type
 	 * @return
 	 */
-	private String getListSql(MigratableTableType type){
+	private String getListSql(MigrationType type){
 		String sql = this.listSqlMap.get(type);
 		if(sql == null) throw new IllegalArgumentException("Cannot find list SQL for type: "+type);
 		return sql;
@@ -189,7 +193,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	 * @param type
 	 * @return
 	 */
-	private String getDeltaListSql(MigratableTableType type){
+	private String getDeltaListSql(MigrationType type){
 		String sql = this.deltaListSqlMap.get(type);
 		if(sql == null) throw new IllegalArgumentException("Cannot find delta list SQL for type: "+type);
 		return sql;
@@ -200,7 +204,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	 * @param type
 	 * @return
 	 */
-	private RowMapper<RowMetadata> getRowMetadataRowMapper(MigratableTableType type){
+	private RowMapper<RowMetadata> getRowMetadataRowMapper(MigrationType type){
 		RowMapper<RowMetadata> mapper = this.rowMetadataMappers.get(type);
 		if(mapper == null) throw new IllegalArgumentException("Cannot find RowMetadataRowMapper for type: "+type);
 		return mapper;
@@ -211,33 +215,33 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	 * @param clazz
 	 * @return
 	 */
-	private MigratableTableType getTypeForClass(Class<? extends DatabaseObject> clazz){
+	private MigrationType getTypeForClass(Class<? extends DatabaseObject> clazz){
 		if(clazz == null) throw new IllegalArgumentException("Class cannot be null");
-		MigratableTableType type = this.classToMapping.get(clazz);
+		MigrationType type = this.classToMapping.get(clazz);
 		if(type == null) throw new IllegalArgumentException("Cannot find the Type for Class: "+clazz.getName());
 		return type;
 	}
 
-	private String getBatchBackupSql(MigratableTableType type){
+	private String getBatchBackupSql(MigrationType type){
 		String sql = this.backupSqlMap.get(type);
 		if(sql == null) throw new IllegalArgumentException("Cannot find the batch backup SQL for type: "+type);
 		return sql;
 	}
 	
-	private String getInsertOrUpdateSql(MigratableTableType type){
+	private String getInsertOrUpdateSql(MigrationType type){
 		String sql = this.insertOrUpdateSqlMap.get(type);
 		if(sql == null) throw new IllegalArgumentException("Cannot find the insert/update backup SQL for type: "+type);
 		return sql;
 	}
 	
-	private MigratableDatabaseObject getMigratableObject(MigratableTableType type){
+	private MigratableDatabaseObject getMigratableObject(MigrationType type){
 		MigratableDatabaseObject ob = this.typeTpObject.get(type);
 		if(ob == null) throw new IllegalArgumentException("Cannot find the MigratableDatabaseObject for type: "+type);
 		return ob;
 	}
 
 	@Override
-	public MigratableDatabaseObject getObjectForType(MigratableTableType type) {
+	public MigratableDatabaseObject getObjectForType(MigrationType type) {
 		return getMigratableObject(type);
 	}
 }

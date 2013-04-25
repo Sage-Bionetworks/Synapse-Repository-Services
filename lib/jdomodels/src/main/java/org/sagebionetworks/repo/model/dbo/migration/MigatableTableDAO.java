@@ -5,8 +5,9 @@ import java.util.List;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
-import org.sagebionetworks.repo.model.migration.MigratableTableType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 
 /**
  * An abstraction for a Data Access Object (DAO) that can be used to migrate an single database table.
@@ -22,7 +23,7 @@ public interface MigatableTableDAO {
 	 * The total number of rows in the table.
 	 * @return
 	 */
-	public long getCount(MigratableTableType type);
+	public long getCount(MigrationType type);
 	
 	/**
 	 * List all row metadata in a paginated format. All rows will be migrated in the order listed by this method.
@@ -33,7 +34,7 @@ public interface MigatableTableDAO {
 	 * @param offset
 	 * @return
 	 */
-	public QueryResults<RowMetadata> listRowMetadata(MigratableTableType type, long limit, long offset);
+	public RowMetadataResult listRowMetadata(MigrationType type, long limit, long offset);
 	
 	/**
 	 * Given a list of ID return the RowMetadata for each row that exist in the table.
@@ -44,7 +45,7 @@ public interface MigatableTableDAO {
 	 * @param idList
 	 * @return
 	 */
-	public List<RowMetadata> listDeltaRowMetadata(MigratableTableType type, List<String> idList);
+	public List<RowMetadata> listDeltaRowMetadata(MigrationType type, List<String> idList);
 	
 	/**
 	 * Get a batch of objects to backup.
@@ -65,13 +66,13 @@ public interface MigatableTableDAO {
 	 * @param type
 	 * @param idList
 	 */
-	public int deleteObjectsById(MigratableTableType type, List<String> idList);
+	public int deleteObjectsById(MigrationType type, List<String> idList);
 	
 	/**
 	 * Get the MigratableObjectType from 
 	 * @param type
 	 * @return
 	 */
-	public MigratableDatabaseObject getObjectForType(MigratableTableType type);
+	public MigratableDatabaseObject getObjectForType(MigrationType type);
 	
 }
