@@ -269,6 +269,32 @@ public class SubmissionDAOImplTest {
     	assertEquals(subDBO, subDBOclone);
     }
     
+    @Test
+    public void testDtoToDboNullColumn() {
+    	Submission subDTO = new Submission();
+    	Submission subDTOclone = new Submission();
+    	SubmissionDBO subDBO = new SubmissionDBO();
+    	SubmissionDBO subDBOclone = new SubmissionDBO();
+    	
+    	subDTO.setEvaluationId("123");
+    	subDTO.setCreatedOn(new Date());
+    	subDTO.setEntityId("syn456");
+    	subDTO.setId("789");
+    	subDTO.setName("name");
+    	subDTO.setUserId("42");
+    	subDTO.setVersionNumber(1L);
+    	// null EntityBundle
+    	    	
+    	SubmissionDAOImpl.copyDtoToDbo(subDTO, subDBO);
+    	SubmissionDAOImpl.copyDboToDto(subDBO, subDTOclone);
+    	SubmissionDAOImpl.copyDtoToDbo(subDTOclone, subDBOclone);
+    	
+    	assertEquals(subDTO, subDTOclone);
+    	assertEquals(subDBO, subDBOclone);
+    	assertNull(subDTOclone.getEntityBundleJSON());
+    	assertNull(subDBOclone.getEntityBundle());
+    }
+    
     @Test(expected=IllegalArgumentException.class)
     public void testMissingVersionNumber() throws DatastoreException, JSONObjectAdapterException {
         submission.setVersionNumber(null);
