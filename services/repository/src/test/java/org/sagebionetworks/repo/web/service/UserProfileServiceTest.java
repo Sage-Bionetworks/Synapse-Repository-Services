@@ -79,11 +79,13 @@ public class UserProfileServiceTest {
 			UserProfile p = new UserProfile();
 			p.setOwnerId("p" + i);
 			p.setDisplayName("User " + i);
+			p.setEmail("email_"+i+"@junit.org");
 			list.add(p);
 		}
 		// extra profile with duplicated name
 		UserProfile p = new UserProfile();
 		p.setOwnerId("p0_duplicate");
+		p.setEmail("email_0@junit.org");
 		p.setDisplayName("User 0");
 		list.add(p);
 		QueryResults<UserProfile> profiles = new QueryResults<UserProfile>(list, list.size());
@@ -257,6 +259,51 @@ public class UserProfileServiceTest {
 		assertTrue("Expected principal was not returned", ids.contains("p0"));
 		assertTrue("Expected principal was not returned", ids.contains("p0_duplicate"));
 	}
+	
+	@Test
+	public void testGetUserGroupHeadersWithFilterByEmail() throws ServletException, IOException, DatastoreException, NotFoundException {
+		String prefix = "email_0";
+		int limit = Integer.MAX_VALUE;
+		int offset = 0;
+		
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByPrefix(prefix, offset, limit, null, null);
+		assertNotNull(response);
+		List<UserGroupHeader> children = response.getChildren();
+		assertNotNull(children);
+		
+		assertEquals("Expected different number of results", 2, children.size());
+
+		Set<String> ids = new HashSet<String>();
+		for (UserGroupHeader ugh : children) {
+			assertEquals("Invalid header returned", "User 0", ugh.getDisplayName());
+			ids.add(ugh.getOwnerId());
+		}
+		assertTrue("Expected principal was not returned", ids.contains("p0"));
+		assertTrue("Expected principal was not returned", ids.contains("p0_duplicate"));
+	}
+
+	@Test
+	public void testGetUserGroupHeadersWithFilterByLastName() throws ServletException, IOException, DatastoreException, NotFoundException {
+		String prefix = "0";
+		int limit = Integer.MAX_VALUE;
+		int offset = 0;
+		
+		UserGroupHeaderResponsePage response = userProfileService.getUserGroupHeadersByPrefix(prefix, offset, limit, null, null);
+		assertNotNull(response);
+		List<UserGroupHeader> children = response.getChildren();
+		assertNotNull(children);
+		
+		assertEquals("Expected different number of results", 3, children.size());
+
+		Set<String> ids = new HashSet<String>();
+		for (UserGroupHeader ugh : children) {
+			ids.add(ugh.getOwnerId());
+		}
+		assertTrue("Expected profile 0, but was not found", ids.contains("p0"));
+		assertTrue("Expected profile 0 duplicate, but was not found", ids.contains("p0_duplicate"));
+		assertTrue("Expected group 0, but was not found.", ids.contains("g0"));
+	}
+
 
 	@Test
 	public void testAddFavorite() throws Exception {

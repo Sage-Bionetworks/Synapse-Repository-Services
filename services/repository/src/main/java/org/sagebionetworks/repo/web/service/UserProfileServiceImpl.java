@@ -4,10 +4,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.SortedMap;
 
 import javax.servlet.http.HttpServletRequest;
@@ -294,16 +296,33 @@ public class UserProfileServiceImpl implements UserProfileService {
 	}
 
 	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, UserGroupHeader header) {
-		String name = header.getDisplayName().toLowerCase();
-		if (!prefixCache.containsKey(name)) {
-			// cache does not contain a user/group with that name
-			Collection<UserGroupHeader> coll = new HashSet<UserGroupHeader>();
-			coll.add(header);
-			prefixCache.put(name, coll);
-		} else {					
-			// cache already contains a user/group with that name; add to the collection
-			Collection<UserGroupHeader> coll = prefixCache.get(name);
-			coll.add(header);
+		//get the collection of prefixes that we want to associate to this UserGroupHeader
+		List<String> prefixes = new ArrayList<String>();
+		String lowerCaseDisplayName = header.getDisplayName().toLowerCase();
+		String[] namePrefixes = lowerCaseDisplayName.split(" ");
+		
+		for (String namePrefix : namePrefixes) {
+			prefixes.add(namePrefix);				
+		}
+		//if it was split, also include the entire name
+		if (prefixes.size() > 1) {
+			prefixes.add(lowerCaseDisplayName);
+		}
+		
+		if (header.getEmail() != null && header.getEmail().length() > 0)
+			prefixes.add(header.getEmail().toLowerCase());
+		
+		for (String prefix : prefixes) {
+			if (!prefixCache.containsKey(prefix)) {
+				// cache does not contain a user/group with that name
+				Collection<UserGroupHeader> coll = new HashSet<UserGroupHeader>();
+				coll.add(header);
+				prefixCache.put(prefix, coll);
+			} else {					
+				// cache already contains a user/group with that name; add to the collection
+				Collection<UserGroupHeader> coll = prefixCache.get(prefix);
+				coll.add(header);
+			}
 		}
 	}
 
@@ -340,13 +359,24 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 */
 	private List<UserGroupHeader> flatten (
 			SortedMap<String, Collection<UserGroupHeader>> prefixMap) {
-		List<UserGroupHeader> list = new ArrayList<UserGroupHeader>();
+		//gather all unique UserGroupHeaders
+		Set<UserGroupHeader> set = new HashSet<UserGroupHeader>();
 		for (Collection<UserGroupHeader> headersOfOneName : prefixMap.values()) {
 			for (UserGroupHeader header : headersOfOneName) {
-				list.add(header);
+				set.add(header);
 			}
 		}
-		return list;
+		//put them in a list
+		List<UserGroupHeader> returnList = new ArrayList<UserGroupHeader>();
+		returnList.addAll(set);
+		//return in a logical order
+		Collections.sort(returnList, new Comparator<UserGroupHeader>() {
+			@Override
+			public int compare(UserGroupHeader o1, UserGroupHeader o2) {
+				return o1.getDisplayName().compareTo(o2.getDisplayName());
+			}
+		});
+		return returnList;
 	}
 
 }
