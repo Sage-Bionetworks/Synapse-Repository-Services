@@ -195,6 +195,7 @@ public class FieldTypeCacheTest {
 		expected.put("versionLabel", FieldType.PRIMARY_FIELD);
 		expected.put("etag", FieldType.STRING_ATTRIBUTE);
 		expected.put("singleDouble", FieldType.DOUBLE_ATTRIBUTE);
+		expected.put("modifiedBy", FieldType.PRIMARY_FIELD);
 		expected.put("singleString", FieldType.STRING_ATTRIBUTE);
 		expected.put("stringList", FieldType.STRING_ATTRIBUTE);
 		

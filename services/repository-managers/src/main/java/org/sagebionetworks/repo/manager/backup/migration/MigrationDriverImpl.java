@@ -1,16 +1,21 @@
 package org.sagebionetworks.repo.manager.backup.migration;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
 import org.sagebionetworks.repo.model.AccessControlList;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeBackup;
 import org.sagebionetworks.repo.model.NodeRevisionBackup;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.ResourceAccess;
+import org.sagebionetworks.repo.model.registry.MigrationDataLoaderImpl;
+import org.sagebionetworks.repo.model.registry.MigrationSpecDataLoaderImpl;
+import org.sagebionetworks.repo.model.registry.MigrationSpecData;
 import org.springframework.beans.factory.annotation.Autowired;
 
 
@@ -78,6 +83,16 @@ public class MigrationDriverImpl implements MigrationDriver{
 		if (nodeBackup==null) throw new IllegalArgumentException("NodeBackup cannot be null");
 		Node node = nodeBackup.getNode();
 		if (node==null) throw new IllegalArgumentException("Node cannot be null");
+		if (node.getCreatedByPrincipalId() == null) {
+			// then we have to set it based on the createdBy user name
+			String creatorUserName = node.getCreatedBy();
+			node.setCreatedByPrincipalId(nodeOwnerMigrator.getUserPrincipalWithSubstitution(creatorUserName));
+		}
+		if (node.getModifiedByPrincipalId() == null) {
+			// then we have to set it based on the modifiedBy user name
+			String modifiedByUserName = node.getModifiedBy();
+			node.setModifiedByPrincipalId(nodeOwnerMigrator.getUserPrincipalWithSubstitution(modifiedByUserName));
+		}
 		AccessControlList acl = nodeBackup.getAcl();
 		if (acl!=null) {
 			// this set will hold the ResourceAccess objects that we don't skip
