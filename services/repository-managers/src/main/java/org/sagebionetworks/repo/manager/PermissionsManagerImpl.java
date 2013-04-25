@@ -55,33 +55,9 @@ public class PermissionsManagerImpl implements PermissionsManager {
 			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor, benefactor);
 		}
 		AccessControlList acl = aclDAO.getForResource(nodeId);
-		if (!userInfo.isAdmin()) 
-			addOwnerPermissionsToAcl(acl);
 		return acl;
 	}
-	
-	private void addOwnerPermissionsToAcl(AccessControlList acl) throws DatastoreException, NotFoundException {
-		Long ownerId = nodeDao.getCreatedBy(acl.getId());
-		Set<ResourceAccess> resourceAccesses = acl.getResourceAccess();
-		ResourceAccess ownerRA = null;
 		
-		// find the owner in the ACL
-		for (ResourceAccess ra : resourceAccesses)
-			if (ra.getPrincipalId().equals(ownerId))
-				ownerRA = ra;
-		
-		// if not found, create and add a new Resource Access
-		if (ownerRA == null) {
-			ownerRA = new ResourceAccess();
-			ownerRA.setGroupName(userManager.getDisplayName(ownerId));
-			ownerRA.setPrincipalId(ownerId);
-			resourceAccesses.add(ownerRA);
-		}
-		
-		// set all permissions
-		ownerRA.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.values())));
-	}
-	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
