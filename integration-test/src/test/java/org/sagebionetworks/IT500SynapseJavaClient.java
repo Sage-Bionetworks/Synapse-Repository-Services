@@ -1258,6 +1258,8 @@ public class IT500SynapseJavaClient {
 		assertEquals(new Long(3), promotedEntityVersion.getVersionNumber());
 		Code eAfter = (Code)synapse.getEntityById(e.getId());
 		assertEquals(new Long(3), eAfter.getVersionNumber());
+		Entity e1 = synapse.getEntityByIdForVersion(e.getId(), 1L);
+		assertNotNull(e1);
 	}
 
 	@Ignore
