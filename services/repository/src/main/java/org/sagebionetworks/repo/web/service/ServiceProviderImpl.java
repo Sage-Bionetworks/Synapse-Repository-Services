@@ -46,6 +46,8 @@ public class ServiceProviderImpl implements ServiceProvider {
 	private TrashService trashService;
 	@Autowired
 	private DoiService doiService;
+	@Autowired
+	private MigrationService migrationService;
 
 	public AccessApprovalService getAccessApprovalService() {
 		return accessApprovalService;
@@ -107,5 +109,9 @@ public class ServiceProviderImpl implements ServiceProvider {
 	@Override
 	public DoiService getDoiService() {
 		return doiService;
+	}
+	@Override
+	public MigrationService getMigrationService() {
+		return migrationService;
 	}
 }

@@ -1,0 +1,10 @@
+{
+ 	"properties":{
+         "id":{
+        	"type":"string"
+         },
+         "etag":{
+        	"type":"string"
+         }
+	}	
+}
