@@ -1,6 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
@@ -234,6 +238,12 @@ public class EntityManagerImplAutowireTest {
 		entityManager.updateEntity(userInfo, code2, true, null);
 		VersionInfo promotedEntityVersion = entityManager.promoteEntityVersion(userInfo, id, 1L);
 		assertNotNull(promotedEntityVersion);
+		assertEquals(new Long(3), promotedEntityVersion.getVersionNumber());
+		// Version 1 is still there
+		Code code1 = entityManager.getEntityForVersion(userInfo, id, 1L, Code.class);
+		assertNotNull(code1);
+		// Current version is not promoted
+		promotedEntityVersion = entityManager.promoteEntityVersion(userInfo, id, 3L);
 		assertEquals(new Long(3), promotedEntityVersion.getVersionNumber());
 	}
 

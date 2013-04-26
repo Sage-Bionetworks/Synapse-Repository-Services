@@ -231,6 +231,7 @@ public class EntityServiceImplAutowiredTest {
 		String id = toDelete.get(0);
 		VersionInfo promotedEntityVersion = entityController.promoteEntityVersion(userName, id, 1L);
 		assertNotNull(promotedEntityVersion);
+		// If already the current version, no need to promote
 		assertEquals(new Long(1), promotedEntityVersion.getVersionNumber());
 	}
 
