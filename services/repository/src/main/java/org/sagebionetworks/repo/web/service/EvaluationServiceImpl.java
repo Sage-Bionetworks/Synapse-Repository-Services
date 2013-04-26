@@ -11,11 +11,15 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.manager.EvaluationManager;
 import org.sagebionetworks.evaluation.manager.ParticipantManager;
 import org.sagebionetworks.evaluation.manager.SubmissionManager;
+import org.sagebionetworks.repo.manager.AuthorizationManager;
+import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
+import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
@@ -23,6 +27,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.queryparser.ParseException;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -40,6 +45,9 @@ public class EvaluationServiceImpl implements EvaluationService {
 	ParticipantManager participantManager;
 	@Autowired
 	SubmissionManager submissionManager;
+	@Autowired
+	PermissionsManager permissionsManager;
+	
 	@Autowired
 	UserManager userManager;
 	
@@ -326,6 +334,14 @@ public class EvaluationServiceImpl implements EvaluationService {
 	 */
 	private String makeEvalIdUrl(String evalId, String url) {
 		return url.replace(UrlHelpers.EVALUATION_ID_PATH_VAR, evalId);
+	}
+	
+	@Override
+	public <T extends Entity> boolean hasAccess(String id, String userName,
+			HttpServletRequest request, String accessType)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		UserInfo userInfo = userManager.getUserInfo(userName);
+		return permissionsManager.hasAccess(id, ObjectType.EVALUATION, ACCESS_TYPE.valueOf(accessType), userInfo);
 	}
 	
 }
