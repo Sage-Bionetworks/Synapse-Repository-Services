@@ -98,7 +98,7 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 	public AccessControlList getACL(Long owner) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue("id", owner);
-		DBOAccessControlList dboAcl = dboBasicDao.getObjectById(DBOAccessControlList.class, param);
+		DBOAccessControlList dboAcl = dboBasicDao.getObjectByPrimaryKey(DBOAccessControlList.class, param);
 		AccessControlList acl = AccessControlListUtils.createAcl(dboAcl);
 		// Now fetch the rest of the data for this ACL
 		List<DBOResourceAccess> raList = simpleJdbcTemplate.query(SELECT_ALL_RESOURCE_ACCESS, accessMapper, owner);
@@ -151,7 +151,7 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 		// TODO Auto-generated method stub
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", owner);
-		return dboBasicDao.deleteObjectById(DBOAccessControlList.class, params);
+		return dboBasicDao.deleteObjectByPrimaryKey(DBOAccessControlList.class, params);
 	}
 
 }

@@ -72,7 +72,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(USER_ID, userId);
 		param.addValue(EVAL_ID, evalId);
-		ParticipantDBO dbo = basicDao.getObjectById(ParticipantDBO.class, param);
+		ParticipantDBO dbo = basicDao.getObjectByPrimaryKey(ParticipantDBO.class, param);
 		Participant dto = new Participant();
 		copyDboToDto(dbo, dto);
 		return dto;
@@ -122,7 +122,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(USER_ID, userId);
 		param.addValue(EVAL_ID, evalId);
-		basicDao.deleteObjectById(ParticipantDBO.class, param);		
+		basicDao.deleteObjectByPrimaryKey(ParticipantDBO.class, param);		
 	}
 
 	/**
