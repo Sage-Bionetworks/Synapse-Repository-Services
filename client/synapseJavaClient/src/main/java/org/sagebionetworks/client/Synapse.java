@@ -52,11 +52,13 @@ import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -3824,6 +3826,31 @@ public class Synapse {
 		return res.getTotalNumberOfResults();
 	}
 
+	public UserEvaluationState getUserEvaluationState(String evalId) throws SynapseException{
+		UserEvaluationState returnState = UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE;
+		//TODO: replace with single call to getAvailableEvaluations() (PLFM-1858, simply check to see if evalId is in the return set) 
+		//		instead of these three calls
+		Evaluation evaluation = getEvaluation(evalId);
+		EvaluationStatus status  = evaluation.getStatus();
+		if (EvaluationStatus.OPEN.equals(status)) {
+			//is the user registered for this?
+			UserProfile profile = getMyProfile();
+			if (profile != null && profile.getOwnerId() != null) {
+				//try to get the participant
+				returnState = UserEvaluationState.EVAL_OPEN_USER_NOT_REGISTERED;
+				try {
+					Participant user = getParticipant(evalId, profile.getOwnerId());
+					if (user != null) {
+						returnState = UserEvaluationState.EVAL_OPEN_USER_REGISTERED;
+					}
+				} catch (Exception e) {e.printStackTrace();}
+			}
+			//else user principle id unavailable, returnState = EVAL_REGISTRATION_UNAVAILABLE
+		}
+		//else registration is not OPEN, returnState = EVAL_REGISTRATION_UNAVAILABLE
+		return returnState;
+	}
+	
 	/**
 	 * Moves an entity and its descendants to the trash can.
 	 *
