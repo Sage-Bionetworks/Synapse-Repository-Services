@@ -1,0 +1,14 @@
+{
+	"description": "List of RowMetadata ",
+	"properties": {
+		"list": {
+			"type": "array",
+			"items": {
+				"$ref": "org.sagebionetworks.repo.model.migration.RowMetadata"
+			}
+		},
+         "totalCount":{
+        	"type":"integer"
+         }
+	}
+}
