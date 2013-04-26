@@ -256,7 +256,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dbo.setVersionNumber(dto.getVersionNumber());
 		dbo.setName(dto.getName());
 		dbo.setCreatedOn(dto.getCreatedOn() == null ? null : dto.getCreatedOn().getTime());
-		dbo.setEntityBundle(dto.getEntityBundleJSON().getBytes());
+		dbo.setEntityBundle(dto.getEntityBundleJSON() == null ? null : dto.getEntityBundleJSON().getBytes());
 	}
 	
 	/**
@@ -273,7 +273,7 @@ public class SubmissionDAOImpl implements SubmissionDAO {
 		dto.setVersionNumber(dbo.getVersionNumber());
 		dto.setName(dbo.getName());
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
-		dto.setEntityBundleJSON(new String(dbo.getEntityBundle()));
+		dto.setEntityBundleJSON(dbo.getEntityBundle() == null ? null : new String(dbo.getEntityBundle()));
 	}
 
 	/**
