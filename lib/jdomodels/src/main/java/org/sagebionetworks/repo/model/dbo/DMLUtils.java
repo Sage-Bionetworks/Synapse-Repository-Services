@@ -1,5 +1,12 @@
 package org.sagebionetworks.repo.model.dbo;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import org.sagebionetworks.repo.model.migration.MigratableTableType;
+import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.springframework.jdbc.core.RowMapper;
+
 /**
  * Utility for generating Data Manipulation Language (DML) statements.
  *  
@@ -7,6 +14,13 @@ package org.sagebionetworks.repo.model.dbo;
  *
  */
 public class DMLUtils {
+
+	/**
+	 * The SQL bind variable for a list of IDs;
+	 */
+	public static final String BIND_VAR_ID_lIST = "BVIDLIST";
+	public static final String BIND_VAR_OFFSET = "BVOFFSET";
+	public static final String BIND_VAR_LIMIT = "BCLIMIT";
 
 	/**
 	 * Create an INSERT statement for a given mapping.
@@ -151,4 +165,207 @@ public class DMLUtils {
 		appendPrimaryKey(mapping, main);
 		return main.toString();
 	}
+	
+	/**
+	 * Build a batch Delete SQL statment for the given mapping.
+	 * @param mapping
+	 * @return
+	 */
+	public static String createBatchDelete(TableMapping mapping){
+		validateMigratableTableMapping(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("DELETE FROM ");
+		builder.append(mapping.getTableName());
+		builder.append(" WHERE ");
+		addBackupIdInList(builder, mapping);
+		return builder.toString();
+	}
+	
+	private static void addBackupIdInList(StringBuilder builder, TableMapping mapping){
+		// Find the backup id
+		builder.append("`");
+		builder.append(getBackupIdColumnName(mapping).getColumnName());
+		builder.append("`");
+		builder.append(" IN ( :"+BIND_VAR_ID_lIST+" )");
+	}
+	
+	/**
+	 * Find the backup column
+	 * @param mapping
+	 * @return
+	 */
+	public static FieldColumn getBackupIdColumnName(TableMapping mapping){
+		for(FieldColumn column: mapping.getFieldColumns()){
+			if(column.isBackupId()){
+				return column;
+			}
+		}
+		throw new IllegalArgumentException(mapping.getTableName()+" did not have a TableMapping.fieldColumn with is isBackupId = 'true' ");
+	}
+	
+	/**
+	 * Get the Etag column if there is one.
+	 * @param mapping
+	 * @return
+	 */
+	public static FieldColumn getEtagColumn(TableMapping mapping){
+		for(FieldColumn column: mapping.getFieldColumns()){
+			if(column.isEtag()){
+				return column;
+			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Get the self foreign key column if there is one.
+	 * @param mapping
+	 * @return
+	 */
+	public static FieldColumn getSelfForeignKey(TableMapping mapping){
+		for(FieldColumn column: mapping.getFieldColumns()){
+			if(column.isSelfForeignKey()){
+				return column;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * List all of the row data.
+	 * @param mapping
+	 * @return
+	 */
+	public static String listRowMetadata(TableMapping mapping) {
+		validateMigratableTableMapping(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ");
+		FieldColumn backupId = getBackupIdColumnName(mapping);
+		builder.append("`");
+		builder.append(backupId.getColumnName());
+		builder.append("`");
+		FieldColumn etagColumn = getEtagColumn(mapping);
+		if(etagColumn != null){
+			builder.append(", `");
+			builder.append(etagColumn.getColumnName());
+			builder.append("`");
+		}
+		builder.append(" FROM ");
+		builder.append(mapping.getTableName());
+		builder.append(" ORDER BY `");
+		FieldColumn selfKey = getSelfForeignKey(mapping);
+		if(selfKey != null){
+			builder.append(selfKey.getColumnName());
+		}else{
+			builder.append(backupId.getColumnName());
+		}
+		builder.append("` ASC LIMIT :");
+		builder.append(BIND_VAR_LIMIT);
+		builder.append(" OFFSET :");
+		builder.append(BIND_VAR_OFFSET);
+		return builder.toString();
+	}
+	
+	/**
+	 * List all of the row data.
+	 * @param mapping
+	 * @return
+	 */
+	public static String deltaListRowMetadata(TableMapping mapping) {
+		validateMigratableTableMapping(mapping);
+		StringBuilder builder = new StringBuilder();
+		builder.append("SELECT ");
+		FieldColumn backupId = getBackupIdColumnName(mapping);
+		builder.append("`");
+		builder.append(backupId.getColumnName());
+		builder.append("`");
+		FieldColumn etagColumn = getEtagColumn(mapping);
+		if(etagColumn != null){
+			builder.append(", `");
+			builder.append(etagColumn.getColumnName());
+			builder.append("`");
+		}
+		builder.append(" FROM ");
+		builder.append(mapping.getTableName());
+		builder.append(" WHERE `");
+		builder.append(backupId.getColumnName());
+		builder.append("` IN ( :"+BIND_VAR_ID_lIST+" )");
+		builder.append(" ORDER BY `");
+		FieldColumn selfKey = getSelfForeignKey(mapping);
+		if(selfKey != null){
+			builder.append(selfKey.getColumnName());
+		}else{
+			builder.append(backupId.getColumnName());
+		}
+		builder.append("`");
+		return builder.toString();
+	}
+	
+	/**
+	 * List all of the row data.
+	 * @param mapping
+	 * @return
+	 */
+	public static String getBackupBatch(TableMapping mapping) {
+		validateMigratableTableMapping(mapping);
+		StringBuilder builder = new StringBuilder();
+		FieldColumn backupId = getBackupIdColumnName(mapping);
+		builder.append("SELECT * FROM ");
+		builder.append(mapping.getTableName());
+		builder.append(" WHERE `");
+		builder.append(backupId.getColumnName());
+		builder.append("` IN ( :"+BIND_VAR_ID_lIST+" )");
+		builder.append(" ORDER BY `");
+		FieldColumn selfKey = getSelfForeignKey(mapping);
+		if(selfKey != null){
+			builder.append(selfKey.getColumnName());
+		}else{
+			builder.append(backupId.getColumnName());
+		}
+		builder.append("`");
+		return builder.toString();
+	}
+	
+	public static void validateMigratableTableMapping(TableMapping mapping){
+		if(mapping == null) throw new IllegalArgumentException("Mapping cannot be null");
+		if(mapping.getTableName() == null) throw new IllegalArgumentException("Mapping.tableName cannot be null");
+		if(mapping.getFieldColumns() == null) throw new IllegalArgumentException("TableMapping.fieldColumns() cannot be null");
+		FieldColumn backupId = getBackupIdColumnName(mapping);
+		if(backupId == null) throw new IllegalArgumentException("One column must be marked as the backupIdColumn");
+	}
+	
+	/**
+	 * Get the RowMapper for a given type.
+	 * @param type
+	 * @return
+	 */
+	public static RowMapper<RowMetadata> getRowMetadataRowMapper(TableMapping mapping){
+		// There are two different row mappers, on with etags and one without.
+		final FieldColumn etag = getEtagColumn(mapping);
+		final FieldColumn id = getBackupIdColumnName(mapping);
+		if(etag == null){
+			// Row mapper with a null etag
+			return new RowMapper<RowMetadata>() {
+				@Override
+				public RowMetadata mapRow(ResultSet rs, int rowNum) throws SQLException {
+					RowMetadata metadata = new RowMetadata();
+					metadata.setId(rs.getString(id.getColumnName()));
+					metadata.setEtag(null);
+					return metadata;
+				}
+			};
+		}else{
+			// Row mapper with an etag
+			return new RowMapper<RowMetadata>() {
+				@Override
+				public RowMetadata mapRow(ResultSet rs, int rowNum) throws SQLException {
+					RowMetadata metadata = new RowMetadata();
+					metadata.setId(rs.getString(id.getColumnName()));
+					metadata.setEtag(rs.getString(etag.getColumnName()));
+					return metadata;
+				}
+			};
+		}
+	}
+	
 }

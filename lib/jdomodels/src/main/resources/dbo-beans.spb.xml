@@ -61,5 +61,13 @@
 		</property>
 	</bean>
 
+	<!-- Registar for migratable tables -->
+	<bean id="migatableTableDAO" class="org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAOImpl" init-method="initialize">
+		<property name="databaseObjectRegister">
+			<list>
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
+			</list>
+		</property>
+	</bean>
 
 </beans>

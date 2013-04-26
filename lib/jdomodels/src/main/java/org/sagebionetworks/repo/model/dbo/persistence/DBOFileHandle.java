@@ -1,11 +1,12 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_BUCKET_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_SIZE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ETAG;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_KEY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_METADATA_TYPE;
@@ -18,9 +19,13 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
+import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.FileMetadataUtils;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigratableTableType;
 
 /**
  * The DBO object for file metadata.
@@ -28,7 +33,7 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  * @author John
  *
  */
-public class DBOFileHandle implements DatabaseObject<DBOFileHandle> {
+public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, FileHandleBackup> {
 	
 	/**
 	 * The type of metadata represented.
@@ -42,9 +47,9 @@ public class DBOFileHandle implements DatabaseObject<DBOFileHandle> {
 	}
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_FILES_ID, true),
-		new FieldColumn("etag", COL_FILES_ETAG),
-		new FieldColumn("previewId", COL_FILES_PREVIEW_ID),
+		new FieldColumn("id", COL_FILES_ID, true).withIsBackupId(true),
+		new FieldColumn("etag", COL_FILES_ETAG).withIsEtag(true),
+		new FieldColumn("previewId", COL_FILES_PREVIEW_ID).withIsSelfForeignKey(true),
 		new FieldColumn("createdBy", COL_FILES_CREATED_BY),
 		new FieldColumn("createdOn", COL_FILES_CREATED_ON),
 		new FieldColumn("metadataType", COL_FILES_METADATA_TYPE),
@@ -119,6 +124,27 @@ public class DBOFileHandle implements DatabaseObject<DBOFileHandle> {
 			}
 		};
 	}
+	
+	@Override
+	public MigratableTableType getMigratableTableType() {
+		return MigratableTableType.FILE_HANDLE;
+	}
+
+	@Override
+	public MigratableTableTranslation<DBOFileHandle, FileHandleBackup> getTranslator() {
+		return new MigratableTableTranslation<DBOFileHandle, FileHandleBackup>() {
+			@Override
+			public DBOFileHandle createDatabaseObjectFromBackup(FileHandleBackup backup) {
+				return FileMetadataUtils.createDBOFromBackup(backup);
+			}
+			
+			@Override
+			public FileHandleBackup createBackupFromDatabaseObject(DBOFileHandle dbo) {
+				return FileMetadataUtils.createBackupFromDBO(dbo);
+			}
+		};
+	}
+
 
 	public Long getId() {
 		return id;

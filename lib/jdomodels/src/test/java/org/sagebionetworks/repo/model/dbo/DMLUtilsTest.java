@@ -3,21 +3,12 @@ package org.sagebionetworks.repo.model.dbo;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import org.junit.Test;
 
 public class DMLUtilsTest {
 	
 	// Here is our simple mapping.
-	private TableMapping<Object> mapping = new TableMapping<Object>() {
-		
-		@Override
-		public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-			return null;
-		}
-		
+	private TableMapping<Object> mapping = new AbstractTestTableMapping<Object>() {
 		@Override
 		public String getTableName() {
 			return "SOME_TABLE";
@@ -26,30 +17,14 @@ public class DMLUtilsTest {
 		@Override
 		public FieldColumn[] getFieldColumns() {
 			return new FieldColumn[] {
-					new FieldColumn("id", "ID", true),
+					new FieldColumn("id", "ID", true).withIsBackupId(true),
 					new FieldColumn("bigName", "BIG_NAME"),
 			};
 		}
-		
-		@Override
-		public String getDDLFileName() {
-			return "Example.sql";
-		}
-
-		@Override
-		public Class<? extends Object> getDBOClass() {
-			// TODO Auto-generated method stub
-			return null;
-		}
 	};
 	
-	private TableMapping<Object> mappingTwoKeys = new TableMapping<Object>() {
-		
-		@Override
-		public Object mapRow(ResultSet rs, int rowNum) throws SQLException {
-			return null;
-		}
-		
+	private TableMapping<Object> mappingTwoKeys = new AbstractTestTableMapping<Object>() {
+
 		@Override
 		public String getTableName() {
 			return "TWO_KEY_TABLE";
@@ -64,17 +39,38 @@ public class DMLUtilsTest {
 					new FieldColumn("smallName", "SMALL_NAME"),
 			};
 		}
+	};
+	
+	private TableMapping<Object> migrateableMappingSelfForeignKey = new AbstractTestTableMapping<Object>() {
 		@Override
-		public String getDDLFileName() {
-			return "Example.sql";
+		public String getTableName() {
+			return "SOME_TABLE";
 		}
-
+		
 		@Override
-		public Class<? extends Object> getDBOClass() {
-			// TODO Auto-generated method stub
-			return null;
+		public FieldColumn[] getFieldColumns() {
+			return new FieldColumn[] {
+					new FieldColumn("id", "ID", true).withIsBackupId(true),
+					new FieldColumn("etag", "ETAG").withIsEtag(true),
+					new FieldColumn("parentId", "PARENT_ID").withIsSelfForeignKey(true),
+			};
 		}
 	};
+	
+	private TableMapping<Object> migrateableMappingNoEtagNotSelfForeignKey = new AbstractTestTableMapping<Object>() {
+		@Override
+		public String getTableName() {
+			return "SOME_TABLE";
+		}
+		
+		@Override
+		public FieldColumn[] getFieldColumns() {
+			return new FieldColumn[] {
+					new FieldColumn("id", "ID", true).withIsBackupId(true),
+			};
+		}
+	};
+
 	
 	@Test
 	public void testCreateInsertStatement(){
@@ -147,5 +143,60 @@ public class DMLUtilsTest {
 		System.out.println(dml);
 		assertEquals("UPDATE TWO_KEY_TABLE SET `BIG_NAME` = :bigName, `SMALL_NAME` = :smallName WHERE `OWNER_ID` = :owner AND `REV_NUMBER` = :revNumber", dml);
 	}
+	
+	@Test
+	public void testCreateBatchDelete(){
+		String batchDelete = DMLUtils.createBatchDelete(mapping);
+		assertNotNull(batchDelete);
+		System.out.println(batchDelete);
+		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST )", batchDelete);
+	}
+	
+	@Test
+	public void testListWithSelfForeignKey(){
+		String batchDelete = DMLUtils.listRowMetadata(migrateableMappingSelfForeignKey);
+		assertNotNull(batchDelete);
+		System.out.println(batchDelete);
+		assertEquals("SELECT `ID`, `ETAG` FROM SOME_TABLE ORDER BY `PARENT_ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", batchDelete);
+	}
 
+	@Test
+	public void testListWithNoEtagNoSelfForeignKey(){
+		String batchDelete = DMLUtils.listRowMetadata(migrateableMappingNoEtagNotSelfForeignKey);
+		assertNotNull(batchDelete);
+		System.out.println(batchDelete);
+		assertEquals("SELECT `ID` FROM SOME_TABLE ORDER BY `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", batchDelete);
+	}
+	
+	@Test
+	public void testDeltaListWithSelfForeignKey(){
+		String batchDelete = DMLUtils.deltaListRowMetadata(migrateableMappingSelfForeignKey);
+		assertNotNull(batchDelete);
+		System.out.println(batchDelete);
+		assertEquals("SELECT `ID`, `ETAG` FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID`", batchDelete);
+	}
+
+	@Test
+	public void testDeltaListWithNoEtagNoSelfForeignKey(){
+		String batchDelete = DMLUtils.deltaListRowMetadata(migrateableMappingNoEtagNotSelfForeignKey);
+		assertNotNull(batchDelete);
+		System.out.println(batchDelete);
+		assertEquals("SELECT `ID` FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `ID`", batchDelete);
+	}
+	
+	@Test
+	public void testGetBatchWithSelfForeignKey(){
+		String batchDelete = DMLUtils.getBackupBatch(migrateableMappingSelfForeignKey);
+		assertNotNull(batchDelete);
+		System.out.println(batchDelete);
+		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID`", batchDelete);
+	}
+
+	@Test
+	public void testGetBatchNoEtagNoSelfForeignKey(){
+		String batchDelete = DMLUtils.getBackupBatch(migrateableMappingNoEtagNotSelfForeignKey);
+		assertNotNull(batchDelete);
+		System.out.println(batchDelete);
+		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `ID`", batchDelete);
+	}
 }

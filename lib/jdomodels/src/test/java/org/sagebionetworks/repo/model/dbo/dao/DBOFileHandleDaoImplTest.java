@@ -31,11 +31,15 @@ import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
+import org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAO;
+import org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle;
 import org.sagebionetworks.repo.model.file.ExternalFileHandle;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
+import org.sagebionetworks.repo.model.migration.MigratableTableType;
+import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -55,6 +59,9 @@ public class DBOFileHandleDaoImplTest {
 	
 	private List<String> toDelete;
 	String creatorUserGroupId;
+	
+	@Autowired
+	MigatableTableDAO migatableTableDAO;
 	
 	@Before
 	public void before(){
@@ -569,6 +576,79 @@ public class DBOFileHandleDaoImplTest {
 		
 	}
 	
+	@Test
+	public void testTableMigration() throws Exception {
+		long startCount = fileHandleDao.getCount();
+		long migrationCount = migatableTableDAO.getCount(MigratableTableType.FILE_HANDLE);
+		assertEquals(startCount, migrationCount);
+		// The one will have a preview
+		S3FileHandle withPreview = createS3FileHandle();
+		withPreview.setFileName("withPreview.txt");
+		withPreview = fileHandleDao.createFile(withPreview);
+		assertNotNull(withPreview);
+		toDelete.add(withPreview.getId());
+		// The Preview
+		PreviewFileHandle preview = createPreviewFileHandle();
+		preview.setFileName("preview.txt");
+		preview = fileHandleDao.createFile(preview);
+		assertNotNull(preview);
+		toDelete.add(preview.getId());
+		// Assign it as a preview
+		fileHandleDao.setPreviewId(withPreview.getId(), preview.getId());
+		// The etag should have changed
+		withPreview = (S3FileHandle) fileHandleDao.get(withPreview.getId());
+		
+		// Now list all of the objects
+		QueryResults<RowMetadata> totalList = migatableTableDAO.listRowMetadata(MigratableTableType.FILE_HANDLE, 1000, startCount);
+		assertNotNull(totalList);
+		assertEquals(startCount+2,  totalList.getTotalNumberOfResults());
+		assertNotNull(totalList.getResults());
+		assertEquals(2, totalList.getResults().size());
+		System.out.println(totalList.getResults());
+		// The preview should be first
+		RowMetadata row = totalList.getResults().get(0);
+		assertEquals(preview.getId(), row.getId());
+		assertEquals(preview.getEtag(), row.getEtag());
+		// Followed by the withPreview
+		row = totalList.getResults().get(1);
+		assertEquals(withPreview.getId(), row.getId());
+		assertEquals(withPreview.getEtag(), row.getEtag());
+		
+		// Now list the deltas
+		List<String> idsToFind = new LinkedList<String>();
+		// This should not exist
+		idsToFind.add(""+(Long.MAX_VALUE - 10));
+		idsToFind.add(preview.getId());
+		idsToFind.add(withPreview.getId());
+		// This should not exist
+		idsToFind.add(""+(Long.MAX_VALUE - 101));
+		// Get the detla
+		List<RowMetadata> delta = migatableTableDAO.listDeltaRowMetadata(MigratableTableType.FILE_HANDLE, idsToFind);
+		assertNotNull(delta);
+		assertEquals(2, delta.size());
+		// The preview should be first
+		row = delta.get(0);
+		assertEquals(preview.getId(), row.getId());
+		assertEquals(preview.getEtag(), row.getEtag());
+		// Followed by the withPreview
+		row = delta.get(1);
+		assertEquals(withPreview.getId(), row.getId());
+		assertEquals(withPreview.getEtag(), row.getEtag());
+		
+		// Get the full back object
+		List<String> idsToBackup = new LinkedList<String>();
+		idsToBackup.add(preview.getId());
+		idsToBackup.add(withPreview.getId());
+		List<DBOFileHandle> backupList = migatableTableDAO.getBackupBatch(DBOFileHandle.class, idsToBackup);
+		assertNotNull(backupList);
+		assertEquals(2, backupList.size());
+		// preview
+		DBOFileHandle dbfh = backupList.get(0);
+		assertEquals(preview.getId(), ""+dbfh.getId());
+		//with preview.
+		dbfh = backupList.get(1);
+		assertEquals(withPreview.getId(), ""+dbfh.getId());
+	}
 	
 	@Test
 	public void testFindFileHandleWithKeyAndMD5(){
