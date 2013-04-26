@@ -84,12 +84,6 @@ public class UserProfileManagerImpl implements UserProfileManager {
 			if (userGroup != null)
 				userProfile.setEmail(userGroup.getName());
 		}
-		boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
-		if (!canSeePrivate) {
-			UserProfileManagerUtils.clearPrivateFields(userProfile);
-			if (userGroup != null)
-				userProfile.setEmail(StringUtil.obfuscateEmailAddress(userGroup.getName()));
-		}
 		return userProfile;
 	}
 
@@ -114,11 +108,10 @@ public class UserProfileManagerImpl implements UserProfileManager {
 		List<UserProfile> userProfiles = userProfileDAO.getInRange(startIncl, endExcl, schema);
 		long totalNumberOfResults = userProfileDAO.getCount();
 		for (UserProfile userProfile : userProfiles) {
-			UserProfileManagerUtils.clearPrivateFields(userProfile);
 			if (includeEmail) {
 				UserGroup userGroup = userGroupDAO.get(userProfile.getOwnerId());
 				if (userGroup != null)
-					userProfile.setEmail(StringUtil.obfuscateEmailAddress(userGroup.getName()));
+					userProfile.setEmail(userGroup.getName());
 			}
 		}
 		QueryResults<UserProfile> result = new QueryResults<UserProfile>(userProfiles, (int)totalNumberOfResults);

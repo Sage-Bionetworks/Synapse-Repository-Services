@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.UserProfileManagerUtils;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -39,6 +40,7 @@ import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
+import org.sagebionetworks.repo.util.StringUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.ObjectTypeSerializer;
@@ -87,7 +89,23 @@ public class UserProfileServiceImpl implements UserProfileService {
 	public UserProfile getUserProfileByOwnerId(String userId, String profileId) 
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
-		return userProfileManager.getUserProfile(userInfo, profileId);
+		UserProfile userProfile = userProfileManager.getUserProfile(userInfo, profileId);
+		clearPrivateFields(userInfo, userProfile);
+		return userProfile;
+	}
+	
+	private void clearPrivateFields(UserInfo userInfo, UserProfile userProfile){
+		if (userProfile != null) {
+			boolean canSeePrivate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
+			if (!canSeePrivate) {
+				String obfuscatedEmail = "";
+				if (userProfile.getEmail() != null && userProfile.getEmail().length() > 0)
+					obfuscatedEmail = StringUtil.obfuscateEmailAddress(userProfile.getEmail());
+
+				UserProfileManagerUtils.clearPrivateFields(userProfile);
+				userProfile.setEmail(obfuscatedEmail);
+			}
+		}
 	}
 	
 	@Override
@@ -97,10 +115,13 @@ public class UserProfileServiceImpl implements UserProfileService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		long endExcl = offset+limit;
 		QueryResults<UserProfile >results = userProfileManager.getInRange(userInfo, offset, endExcl);
-		
+		List<UserProfile> profileResults = results.getResults();
+		for (UserProfile profile : profileResults) {
+			clearPrivateFields(userInfo, profile);
+		}
 		return new PaginatedResults<UserProfile>(
 				request.getServletPath()+UrlHelpers.USER, 
-				results.getResults(),
+				profileResults,
 				(int)results.getTotalNumberOfResults(), 
 				offset, 
 				limit,
@@ -199,9 +220,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 		this.logger.info("Loaded " + userProfiles.size() + " user profiles.");
 		UserGroupHeader header;
 		for (UserProfile profile : userProfiles) {
+			String email = profile.getEmail();
 			if (profile.getDisplayName() != null) {
+				clearPrivateFields(null, profile);
 				header = convertUserProfileToHeader(profile);
-				addToPrefixCache(tempPrefixCache, header);
+				addToPrefixCache(tempPrefixCache,email, header);
 				addToIdCache(tempIdCache, header);
 			}
 		}
@@ -210,7 +233,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 		for (UserGroup group : userGroups) {
 			if (group.getName() != null) {
 				header = convertUserGroupToHeader(group);			
-				addToPrefixCache(tempPrefixCache, header);
+				addToPrefixCache(tempPrefixCache, null, header);
 				addToIdCache(tempIdCache, header);
 			}
 		}
@@ -292,10 +315,11 @@ public class UserProfileServiceImpl implements UserProfileService {
 	 */
 	private UserGroupHeader fetchNewHeader(String id) throws DatastoreException, UnauthorizedException, NotFoundException {
 		UserProfile profile = userProfileManager.getUserProfile(null, id);
+		clearPrivateFields(null, profile);
 		return profile != null ? convertUserProfileToHeader(profile) : null;
 	}
 
-	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, UserGroupHeader header) {
+	private void addToPrefixCache(Trie<String, Collection<UserGroupHeader>> prefixCache, String unobfuscatedEmailAddress, UserGroupHeader header) {
 		//get the collection of prefixes that we want to associate to this UserGroupHeader
 		List<String> prefixes = new ArrayList<String>();
 		String lowerCaseDisplayName = header.getDisplayName().toLowerCase();
@@ -309,7 +333,8 @@ public class UserProfileServiceImpl implements UserProfileService {
 			prefixes.add(lowerCaseDisplayName);
 		}
 		
-		//would like to add email too, but it's obfuscated at the manager level
+		if (unobfuscatedEmailAddress != null && unobfuscatedEmailAddress.length() > 0)
+			prefixes.add(unobfuscatedEmailAddress.toLowerCase());
 		
 		for (String prefix : prefixes) {
 			if (!prefixCache.containsKey(prefix)) {
