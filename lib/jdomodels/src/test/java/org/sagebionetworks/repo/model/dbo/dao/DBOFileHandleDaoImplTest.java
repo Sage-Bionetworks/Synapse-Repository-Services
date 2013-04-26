@@ -6,10 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -40,8 +37,6 @@ import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-
-import com.amazonaws.util.BinaryUtils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:jdomodels-test-context.xml" })
@@ -111,7 +106,7 @@ public class DBOFileHandleDaoImplTest {
 	
 	@Test
 	public void testS3FileCURD() throws DatastoreException, NotFoundException{
-		S3FileHandle meta = createS3FileHandle();
+		S3FileHandle meta = TestUtils.createS3FileHandle(creatorUserGroupId);
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta.getId());
@@ -126,7 +121,7 @@ public class DBOFileHandleDaoImplTest {
 	@Test
 	public void testGetCreator() throws NotFoundException{
 		// Create the metadata
-		S3FileHandle meta = createS3FileHandle();
+		S3FileHandle meta = TestUtils.createS3FileHandle(creatorUserGroupId);
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta.getId());
@@ -171,7 +166,7 @@ public class DBOFileHandleDaoImplTest {
 	
 	@Test
 	public void testPreviewFileCRUD() throws DatastoreException, NotFoundException{
-		PreviewFileHandle meta = createPreviewFileHandle();
+		PreviewFileHandle meta = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		// Save it
 		meta = fileHandleDao.createFile(meta);
 		assertNotNull(meta);
@@ -398,19 +393,19 @@ public class DBOFileHandleDaoImplTest {
 	@Test
 	public void testgetAllFileHandles() throws Exception{
 		// Create one without a preview
-		S3FileHandle noPreviewHandle = createS3FileHandle();
+		S3FileHandle noPreviewHandle = TestUtils.createS3FileHandle(creatorUserGroupId);
 		noPreviewHandle.setFileName("newPreview.txt");
 		noPreviewHandle = fileHandleDao.createFile(noPreviewHandle);
 		assertNotNull(noPreviewHandle);
 		toDelete.add(noPreviewHandle.getId());
 		// The one will have a preview
-		S3FileHandle withPreview = createS3FileHandle();
+		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
 		withPreview.setFileName("withPreview.txt");
 		withPreview = fileHandleDao.createFile(withPreview);
 		assertNotNull(withPreview);
 		toDelete.add(withPreview.getId());
 		// The Preview
-		PreviewFileHandle preview = createPreviewFileHandle();
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		preview.setFileName("preview.txt");
 		preview = fileHandleDao.createFile(preview);
 		assertNotNull(preview);
@@ -445,19 +440,19 @@ public class DBOFileHandleDaoImplTest {
 	public void testgetMigrationObjectDatas() throws Exception{
 		long startCount = fileHandleDao.getCount();
 		// Create one without a preview
-		S3FileHandle noPreviewHandle = createS3FileHandle();
+		S3FileHandle noPreviewHandle = TestUtils.createS3FileHandle(creatorUserGroupId);
 		noPreviewHandle.setFileName("newPreview.txt");
 		noPreviewHandle = fileHandleDao.createFile(noPreviewHandle);
 		assertNotNull(noPreviewHandle);
 		toDelete.add(noPreviewHandle.getId());
 		// The one will have a preview
-		S3FileHandle withPreview = createS3FileHandle();
+		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
 		withPreview.setFileName("withPreview.txt");
 		withPreview = fileHandleDao.createFile(withPreview);
 		assertNotNull(withPreview);
 		toDelete.add(withPreview.getId());
 		// The Preview
-		PreviewFileHandle preview = createPreviewFileHandle();
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		preview.setFileName("preview.txt");
 		preview = fileHandleDao.createFile(preview);
 		assertNotNull(preview);
@@ -521,13 +516,13 @@ public class DBOFileHandleDaoImplTest {
 	public void testBackupRestore() throws Exception{
 		long startCount = fileHandleDao.getCount();
 		// The one will have a preview
-		S3FileHandle withPreview = createS3FileHandle();
+		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
 		withPreview.setFileName("withPreview.txt");
 		withPreview = fileHandleDao.createFile(withPreview);
 		assertNotNull(withPreview);
 		toDelete.add(withPreview.getId());
 		// The Preview
-		PreviewFileHandle preview = createPreviewFileHandle();
+		PreviewFileHandle preview = TestUtils.createPreviewFileHandle(creatorUserGroupId);
 		preview.setFileName("preview.txt");
 		preview = fileHandleDao.createFile(preview);
 		assertNotNull(preview);
@@ -569,14 +564,15 @@ public class DBOFileHandleDaoImplTest {
 		
 	}
 	
+
 	
 	@Test
 	public void testFindFileHandleWithKeyAndMD5(){
-		S3FileHandle handle = createS3FileHandle();
+		S3FileHandle handle = TestUtils.createS3FileHandle(creatorUserGroupId);
 		// Use a random UUID for the key
 		handle.setKey(UUID.randomUUID().toString());
 		// Calculate an MD5 from the key.
-		String md5 = calculateMD5(handle.getKey());
+		String md5 = TestUtils.calculateMD5(handle.getKey());
 		handle.setContentMd5(md5);
 		// Create the handle
 		handle = fileHandleDao.createFile(handle);
@@ -588,54 +584,5 @@ public class DBOFileHandleDaoImplTest {
 		assertEquals(1, list.size());
 		assertEquals(handle.getId(), list.get(0));
 	}
-	/**
-	 * Helper to create a S3FileHandle
-	 * 
-	 * @return
-	 */
-	public S3FileHandle createS3FileHandle() {
-		S3FileHandle meta = new S3FileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("foobar.txt");
-		return meta;
-	}
 
-	/**
-	 * Helper to create a PreviewFileHandle
-	 * @return
-	 */
-	public PreviewFileHandle createPreviewFileHandle() {
-		PreviewFileHandle meta = new PreviewFileHandle();
-		meta.setBucketName("bucketName");
-		meta.setKey("key");
-		meta.setContentType("content type");
-		meta.setContentSize(123l);
-		meta.setContentMd5("md5");
-		meta.setCreatedBy(creatorUserGroupId);
-		meta.setFileName("preview.jpg");
-		return meta;
-	}
-	
-	/**
-	 * Calcualte the MD5 digest of a given string.
-	 * @param tocalculate
-	 * @return
-	 */
-	public String calculateMD5(String tocalculate){
-		try {
-			MessageDigest digetst = MessageDigest.getInstance("MD5");
-			byte[] bytes = digetst.digest(tocalculate.getBytes("UTF-8"));
-			return  BinaryUtils.toHex(bytes);	
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
-		} catch (UnsupportedEncodingException e) {
-			throw new RuntimeException(e);
-		}
-
-	}
 }
