@@ -12,8 +12,8 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.model.migration.TypeCount;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -76,11 +76,11 @@ public class MigrationServiceImpl implements MigrationService {
 	}
 
 	@Override
-	public TypeCount delete(String userId, MigrationType type, List<String> list) throws DatastoreException, NotFoundException {
+	public MigrationTypeCount delete(String userId, MigrationType type, List<String> list) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		long count = migrationManager.deleteObjectsById(user, type, list);
-		TypeCount tc = new TypeCount();
+		MigrationTypeCount tc = new MigrationTypeCount();
 		tc.setCount(count);
 		tc.setType(type);
 		return tc;
@@ -91,6 +91,16 @@ public class MigrationServiceImpl implements MigrationService {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		return backupDaemonLauncher.getStatus(user, daemonId);
+	}
+
+	@Override
+	public MigrationTypeList getPrimaryTypes(String userId) throws DatastoreException, NotFoundException {
+		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
+		UserInfo user = userManager.getUserInfo(userId);
+		List<MigrationType> list = migrationManager.getPrimaryMigrationTypes(user);
+		MigrationTypeList mtl = new MigrationTypeList();
+		mtl.setList(list);
+		return mtl;
 	}
 
 }

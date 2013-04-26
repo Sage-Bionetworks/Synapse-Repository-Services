@@ -138,5 +138,18 @@ public class MigrationManagerImplAutowireTest {
 		assertEquals(result.getList(), afterResult.getList());
 	}
 	
+	@Test
+	public void testGetSecondaryTypes(){
+		// Node should have revision as a secondary.
+		List<MigrationType> result = migrationManager.getSecondaryTypes(MigrationType.NODE);
+		List<MigrationType> expected = new LinkedList<MigrationType>();
+		expected.add(MigrationType.NODE_REVISION);
+		assertEquals(expected, result);
+		
+		// file handles do not have secondary so null
+		result = migrationManager.getSecondaryTypes(MigrationType.FILE_HANDLE);
+		assertEquals(null, result);
+	}
+	
 
 }

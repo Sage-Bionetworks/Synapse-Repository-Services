@@ -3,13 +3,12 @@ package org.sagebionetworks.repo.web.service;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.model.migration.TypeCount;
 import org.sagebionetworks.repo.web.NotFoundException;
 
 /**
@@ -82,7 +81,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	TypeCount delete(String userId, MigrationType valueOf, List<String> list) throws DatastoreException, NotFoundException;
+	MigrationTypeCount delete(String userId, MigrationType valueOf, List<String> list) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the status of either a restore or backup deamon
@@ -93,5 +92,15 @@ public interface MigrationService {
 	 * @throws DatastoreException 
 	 */
 	BackupRestoreStatus getStatus(String userId, String daemonId) throws DatastoreException, NotFoundException;
+
+	/**
+	 * The list of primary migration types represents types that either stand-alone or are the owner's of other types.
+	 * Migration is driven off this list as secondary types are migrated with their primary owners.
+	 * @param userId
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	MigrationTypeList getPrimaryTypes(String userId) throws DatastoreException, NotFoundException;
 
 }

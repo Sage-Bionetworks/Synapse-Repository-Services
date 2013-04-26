@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.web.controller;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Date;
@@ -21,7 +22,6 @@ import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.SubmissionBackup;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
@@ -33,9 +33,9 @@ import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.model.migration.TypeCount;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
@@ -156,9 +156,16 @@ public class MigrationControllerAutowireTest {
 	
 	@Test
 	public void testRoundTrip() throws Exception{
+		// Get the list of primary types
+		MigrationTypeList primaryTypesList = entityServletHelper.getPrimaryMigrationTypes(userName);
+		assertNotNull(primaryTypesList);
+		assertNotNull(primaryTypesList.getList());
+		assertTrue(primaryTypesList.getList().size() > 0);
+		// Get the counts before we start
+		MigrationTypeCounts startCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		// This test will backup all data, delete it, then restore it.
 		Map<MigrationType, String> map = new HashMap<MigrationType, String>();
-		for(MigrationType type: MigrationType.values()){
+		for(MigrationType type: primaryTypesList.getList()){
 			// Backup each type
 			BackupRestoreStatus status = backupAllOfType(type);
 			if(status != null){
@@ -168,16 +175,27 @@ public class MigrationControllerAutowireTest {
 			}
 		}
 		// Now delete all data in reverse order
-		for(int i=MigrationType.values().length-1; i >= 0; i--){
+		for(int i=primaryTypesList.getList().size()-1; i >= 0; i--){
 			deleteAllOfType(MigrationType.values()[i]);
 		}
+		// after deleting, the counts should be null
+		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(userName);
+		assertNotNull(afterDeleteCounts);
+		assertNotNull(afterDeleteCounts.getList());
+		for(MigrationTypeCount count: afterDeleteCounts.getList()){
+			assertEquals(new Long(0), count.getCount());
+		}
+		
 		// Now restore all of the data
-		for(MigrationType type: MigrationType.values()){
+		for(MigrationType type: primaryTypesList.getList()){
 			String fileName = map.get(type);
 			if(fileName != null){
 				restoreFromBackup(type, fileName);
 			}
 		}
+		// The counts should all be back
+		MigrationTypeCounts finalCounts = entityServletHelper.getMigrationTypeCounts(userName);
+		assertEquals(startCounts, finalCounts);
 	}
 	
 	/**
@@ -224,7 +242,7 @@ public class MigrationControllerAutowireTest {
 	private void deleteAllOfType(MigrationType type) throws ServletException, IOException, JSONObjectAdapterException{
 		IdList idList = getIdListOfAllOfType(type);
 		if(idList == null) return;
-		TypeCount result = entityServletHelper.deleteMigrationType(userName, type, idList);
+		MigrationTypeCount result = entityServletHelper.deleteMigrationType(userName, type, idList);
 		System.out.print("Deleted: "+result);
 	}
 	

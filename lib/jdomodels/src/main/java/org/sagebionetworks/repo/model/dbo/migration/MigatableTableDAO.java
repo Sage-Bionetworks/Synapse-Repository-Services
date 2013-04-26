@@ -75,4 +75,11 @@ public interface MigatableTableDAO {
 	 */
 	public MigratableDatabaseObject getObjectForType(MigrationType type);
 	
+	/**
+	 * The list of primary migration types represents types that either stand-alone or are the owner's of other types.
+	 * Migration is driven off this list as secondary types are migrated with their primary owners.
+	 * @return
+	 */
+	public List<MigrationType> getPrimaryMigrationTypes();
+	
 }

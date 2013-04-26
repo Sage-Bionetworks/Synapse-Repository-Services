@@ -13,9 +13,10 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.model.migration.TypeCount;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.service.ServiceProvider;
@@ -182,7 +183,7 @@ public class MigrationController extends BaseController {
 	 */
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.MIGRATION_DELETE	}, method = RequestMethod.DELETE)
-	public @ResponseBody TypeCount deleteMigratableObject(
+	public @ResponseBody MigrationTypeCount deleteMigratableObject(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(required = true) String type,
 			@RequestBody IdList request) throws DatastoreException, InvalidModelException,
@@ -196,8 +197,6 @@ public class MigrationController extends BaseController {
 	 * Get the status of a running daemon (either a backup or restore)
 	 * @param daemonId
 	 * @param userId
-	 * @param header
-	 * @param request
 	 * @return
 	 * @throws DatastoreException
 	 * @throws InvalidModelException
@@ -215,6 +214,26 @@ public class MigrationController extends BaseController {
 			throws DatastoreException, InvalidModelException,
 			UnauthorizedException, NotFoundException, IOException, ConflictingUpdateException {
 		return serviceProvider.getMigrationService().getStatus(userId, daemonId);
+	}
+	
+	/**
+	 * The list of primary migration types represents types that either stand-alone or are the owner's of other types.
+	 * Migration is driven off this list as secondary types are migrated with their primary owners.
+	 * @param userId
+	 * @return
+	 * @throws DatastoreException
+	 * @throws InvalidModelException
+	 * @throws UnauthorizedException
+	 * @throws NotFoundException
+	 * @throws IOException
+	 * @throws ConflictingUpdateException
+	 */
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.MIGRATION_PRIMARY }, method = RequestMethod.GET)
+	public @ResponseBody
+	MigrationTypeList getPrimaryTypes(
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws DatastoreException, NotFoundException {
+		return serviceProvider.getMigrationService().getPrimaryTypes(userId);
 	}
 	
 }

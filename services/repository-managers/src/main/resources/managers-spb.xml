@@ -154,6 +154,8 @@
 		</property>
 	</bean>
 	
+	<bean id="backupDriver" class="org.sagebionetworks.repo.manager.backup.daemon.BackupDriverImpl" scope="singleton"/>
+	
 	<bean id="migrationManager" class="org.sagebionetworks.repo.manager.migration.MigrationManagerImpl" scope="singleton"/>
 
 	<bean id="nodeSerializer"

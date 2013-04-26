@@ -25,8 +25,9 @@ public interface BackupDriver {
 	 * @param idsToBackup
 	 * @return
 	 * @throws IOException
+	 * @throws InterruptedException 
 	 */
-	public boolean writeBackup(UserInfo user, File destination,	Progress progress, MigrationType type, List<String> idsToBackup) throws IOException;
+	public boolean writeBackup(UserInfo user, File destination,	Progress progress, MigrationType type, List<String> idsToBackup) throws IOException, InterruptedException;
 	
 	/**
 	 * 
@@ -38,5 +39,5 @@ public interface BackupDriver {
 	 * @throws IOException
 	 * @throws InterruptedException
 	 */
-	public boolean restoreFromBackup(UserInfo user, File source, Progress progress, MigrationType type) throws IOException, InterruptedException;
+	public boolean restoreFromBackup(UserInfo user, File source, Progress progress) throws IOException, InterruptedException;
 }

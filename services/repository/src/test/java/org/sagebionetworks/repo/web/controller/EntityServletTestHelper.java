@@ -43,9 +43,10 @@ import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
-import org.sagebionetworks.repo.model.migration.TypeCount;
 import org.sagebionetworks.repo.model.registry.EntityRegistry;
 import org.sagebionetworks.repo.model.wiki.WikiHeader;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
@@ -1082,6 +1083,36 @@ public class EntityServletTestHelper {
 	}
 	
 	/**
+	 * Get the RowMetadata for a given Migration type.
+	 * This is used to get all metadata from a source stack during migation.
+	 * 
+	 * @param userId
+	 * @param type
+	 * @param limit
+	 * @param offset
+	 * @return
+	 * @throws ServletException
+	 * @throws IOException
+	 * @throws JSONObjectAdapterException
+	 */
+	public MigrationTypeList getPrimaryMigrationTypes(String userId) throws ServletException, IOException, JSONObjectAdapterException{
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		request.setMethod("GET");
+		request.addHeader("Accept", "application/json");
+		String uri = "/migration/primarytypes";
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
+		request.addHeader("Content-Type", "application/json; charset=UTF-8");
+		DispatchServletSingleton.getInstance().service(request, response);
+		if (response.getStatus() != HttpStatus.OK.value()) {
+			throw new ServletTestHelperException(response);
+		}
+		String resultString = response.getContentAsString();
+		return EntityFactory.createEntityFromJSONString(resultString, MigrationTypeList.class);
+	}
+	
+	/**
 	 * Start the backup of a list of objects.
 	 * 
 	 * @param userId
@@ -1187,12 +1218,12 @@ public class EntityServletTestHelper {
 	 * @throws IOException
 	 * @throws JSONObjectAdapterException
 	 */
-	public TypeCount deleteMigrationType(String userId, MigrationType type, IdList list) throws ServletException, IOException, JSONObjectAdapterException{
+	public MigrationTypeCount deleteMigrationType(String userId, MigrationType type, IdList list) throws ServletException, IOException, JSONObjectAdapterException{
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("DELTE");
+		request.setMethod("DELETE");
 		request.addHeader("Accept", "application/json");
-		String uri = "/migration/status";
+		String uri = "/migration/delete";
 		request.setRequestURI(uri);
 		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userId);
 		request.setParameter("type", type.name());
@@ -1204,7 +1235,7 @@ public class EntityServletTestHelper {
 			throw new ServletTestHelperException(response);
 		}
 		String resultString = response.getContentAsString();
-		return EntityFactory.createEntityFromJSONString(resultString, TypeCount.class);
+		return EntityFactory.createEntityFromJSONString(resultString, MigrationTypeCount.class);
 	}
 	
 	/**

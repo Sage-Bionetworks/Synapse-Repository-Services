@@ -525,6 +525,7 @@ public class UrlHelpers {
 	public static final String MIGRATION_RESTORE = MIGRATION+"/restore";
 	public static final String MIGRATION_DELETE = MIGRATION+"/delete";
 	public static final String MIGRATION_STATUS = MIGRATION+"/status";
+	public static final String MIGRATION_PRIMARY = MIGRATION+"/primarytypes";
 
 	/**
 	 * Used by AdministrationController service to say whether object dependencies should be calculated

@@ -5,7 +5,6 @@ import java.io.OutputStream;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
@@ -136,6 +135,27 @@ public class MigrationManagerImpl implements MigrationManager {
 		}
 		// Now write the batch to the database
 		return migratableTableDao.createOrUpdateBatch(databaseList);
+	}
+
+	@Override
+	public List<MigrationType> getPrimaryMigrationTypes(UserInfo user) {
+		validateUser(user);
+		return migratableTableDao.getPrimaryMigrationTypes();
+	}
+
+	@Override
+	public List<MigrationType> getSecondaryTypes(MigrationType type) {
+		// Get the primary type.
+		MigratableDatabaseObject primary = migratableTableDao.getObjectForType(type);
+		List<MigratableDatabaseObject> secondary = primary.getSecondaryTypes();
+		if(secondary != null){
+			List<MigrationType> list = new LinkedList<MigrationType>();
+			for(MigratableDatabaseObject mdo: secondary){
+				list.add(mdo.getMigratableTableType());
+			}
+			return list;
+		}
+		return null;
 	}
 
 }

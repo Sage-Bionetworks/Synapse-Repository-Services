@@ -6,6 +6,7 @@ import java.util.List;
 
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
@@ -66,4 +67,20 @@ public interface MigrationManager {
 	 * @param idList
 	 */
 	public int deleteObjectsById(UserInfo user, MigrationType type, List<String> idList);
+	
+	/**
+	 * The list of primary migration types represents types that either stand-alone or are the owner's of other types.
+	 * Migration is driven off this list as secondary types are migrated with their primary owners.
+	 * @return
+	 */
+	public List<MigrationType> getPrimaryMigrationTypes(UserInfo user);
+	
+	/**
+	 * If this object is the 'owner' of other object, then it is a primary type. All secondary types should be returned in their
+	 * migration order.
+	 * For example, if A owns B and B owns C (A->B->C) then A is the primary, and both B and C are secondary. For this case, return B followed by C.
+	 * Both B and C must have a backup ID column that is a foreign key to the backup ID of A, as the IDs of A will drive the migration of B and C.
+	 * @return
+	 */
+	public List<MigrationType> getSecondaryTypes(MigrationType type);
 }

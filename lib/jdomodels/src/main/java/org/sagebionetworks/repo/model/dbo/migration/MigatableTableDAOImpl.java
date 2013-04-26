@@ -1,10 +1,11 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.dbo.DMLUtils;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -57,6 +58,8 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	private Map<MigrationType, FieldColumn> backupIdColumns = new HashMap<MigrationType, FieldColumn>();
 	private Map<MigrationType, RowMapper<RowMetadata>> rowMetadataMappers = new HashMap<MigrationType, RowMapper<RowMetadata>>();
 	
+	private List<MigrationType> rootTypes = new LinkedList<MigrationType>();
+	
 	/**
 	 * We cache the mapping for each object type.
 	 */
@@ -72,36 +75,56 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		if(databaseObjectRegister == null) throw new IllegalArgumentException("databaseObjectRegister bean cannot be null");
 		// Create the schema for each 
 		for(MigratableDatabaseObject dbo: databaseObjectRegister){
-			TableMapping mapping = dbo.getTableMapping();
-			DMLUtils.validateMigratableTableMapping(mapping);
-			MigrationType type = dbo.getMigratableTableType();
-			// Build up the SQL cache.
-			String delete = DMLUtils.createBatchDelete(mapping);
-			deleteSqlMap.put(type, delete);
-			String count = DMLUtils.createGetCountStatement(mapping);
-			countSqlMap.put(type, count);
-			String listRowMetadataSQL = DMLUtils.listRowMetadata(mapping);
-			listSqlMap.put(type, listRowMetadataSQL);
-			String deltalistRowMetadataSQL = DMLUtils.deltaListRowMetadata(mapping);
-			deltaListSqlMap.put(type, deltalistRowMetadataSQL);
-			// Does this type have an etag?
-			FieldColumn etag = DMLUtils.getEtagColumn(mapping);
-			if(etag != null){
-				etagColumns.put(type, etag);
+			// Root objects are registered here.
+			boolean isRoot = true;
+			registerObject(dbo, isRoot);
+		}
+	}
+
+	/**
+	 * Register a MigratableDatabaseObject with this DAO.
+	 * @param dbo
+	 */
+	private void registerObject(MigratableDatabaseObject dbo, boolean isRoot) {
+		TableMapping mapping = dbo.getTableMapping();
+		DMLUtils.validateMigratableTableMapping(mapping);
+		MigrationType type = dbo.getMigratableTableType();
+		// Build up the SQL cache.
+		String delete = DMLUtils.createBatchDelete(mapping);
+		deleteSqlMap.put(type, delete);
+		String count = DMLUtils.createGetCountStatement(mapping);
+		countSqlMap.put(type, count);
+		String listRowMetadataSQL = DMLUtils.listRowMetadata(mapping);
+		listSqlMap.put(type, listRowMetadataSQL);
+		String deltalistRowMetadataSQL = DMLUtils.deltaListRowMetadata(mapping);
+		deltaListSqlMap.put(type, deltalistRowMetadataSQL);
+		// Does this type have an etag?
+		FieldColumn etag = DMLUtils.getEtagColumn(mapping);
+		if(etag != null){
+			etagColumns.put(type, etag);
+		}
+		FieldColumn backupId = DMLUtils.getBackupIdColumnName(mapping);
+		this.backupIdColumns.put(type, backupId);
+		RowMapper<RowMetadata> rowMetadataMapper = DMLUtils.getRowMetadataRowMapper(mapping);
+		rowMetadataMappers.put(type, rowMetadataMapper);
+		// Backup batch SQL
+		String batchBackup = DMLUtils.getBackupBatch(mapping);
+		backupSqlMap.put(type, batchBackup);
+		// map the class to the object
+		this.classToMapping.put(mapping.getDBOClass(), type);
+		this.typeTpObject.put(type, dbo);
+		// The batch insert or update sql
+		String sql = DMLUtils.getBatchInsertOrUdpate(mapping);
+		this.insertOrUpdateSqlMap.put(type, sql);
+		// If this object has a sub table then regeister the sub table as well
+		if(dbo.getSecondaryTypes() != null){
+			Iterator<MigratableDatabaseObject> it = dbo.getSecondaryTypes().iterator();
+			while(it.hasNext()){
+				registerObject(it.next(), false);
 			}
-			FieldColumn backupId = DMLUtils.getBackupIdColumnName(mapping);
-			this.backupIdColumns.put(type, backupId);
-			RowMapper<RowMetadata> rowMetadataMapper = DMLUtils.getRowMetadataRowMapper(mapping);
-			rowMetadataMappers.put(type, rowMetadataMapper);
-			// Backup batch SQL
-			String batchBackup = DMLUtils.getBackupBatch(mapping);
-			backupSqlMap.put(type, batchBackup);
-			// map the class to the object
-			this.classToMapping.put(mapping.getDBOClass(), type);
-			this.typeTpObject.put(type, dbo);
-			// The batch insert or update sql
-			String sql = DMLUtils.getBatchInsertOrUdpate(mapping);
-			this.insertOrUpdateSqlMap.put(type, sql);
+		}
+		if(isRoot){
+			this.rootTypes.add(type);
 		}
 	}
 
@@ -244,4 +267,10 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	public MigratableDatabaseObject getObjectForType(MigrationType type) {
 		return getMigratableObject(type);
 	}
+
+	@Override
+	public List<MigrationType> getPrimaryMigrationTypes() {
+		return rootTypes;
+	}
+	
 }

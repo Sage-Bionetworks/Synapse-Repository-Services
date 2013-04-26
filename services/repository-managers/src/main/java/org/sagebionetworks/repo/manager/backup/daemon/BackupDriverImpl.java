@@ -4,7 +4,6 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Arrays;
@@ -17,12 +16,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.repo.manager.backup.Progress;
 import org.sagebionetworks.repo.manager.migration.MigrationManager;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
-import org.sagebionetworks.repo.model.DatastoreException;
-import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.web.NotFoundException;
+import org.springframework.beans.factory.annotation.Autowired;
 
 /**
  * The Migration driver updates the progress and read/writes migration data to zip files.
@@ -36,6 +32,7 @@ public class BackupDriverImpl implements BackupDriver {
 
 	private static final String ZIP_ENTRY_SUFFIX = ".xml";
 
+	@Autowired
 	private MigrationManager migrationManager;
 
 	/**
@@ -47,9 +44,9 @@ public class BackupDriverImpl implements BackupDriver {
 	 * @param idsToBackup
 	 * @return
 	 * @throws IOException
+	 * @throws InterruptedException 
 	 */
-	public boolean writeBackup(UserInfo user, File destination,
-			Progress progress, MigrationType type, List<String> idsToBackup) throws IOException {
+	public boolean writeBackup(UserInfo user, File destination,	Progress progress, MigrationType type, List<String> idsToBackup) throws IOException, InterruptedException {
 		if (destination == null)
 			throw new IllegalArgumentException(
 					"Destination file cannot be null");
@@ -62,6 +59,7 @@ public class BackupDriverImpl implements BackupDriver {
 		progress.appendLog("Starting a backup to file: "
 				+ destination.getAbsolutePath());
 		progress.setTotalCount(idsToBackup.size());
+		checkForTermination(progress);
 		// First write to the file
 		FileOutputStream fos = new FileOutputStream(destination);
 		ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(fos));
@@ -72,6 +70,18 @@ public class BackupDriverImpl implements BackupDriver {
 			zos.putNextEntry(entry);
 			migrationManager.writeBackupBatch(user, type, idsToBackup, zos);
 			progress.incrementProgress();
+			// If this type has secondary types then add them to the zip as well.
+			List<MigrationType> secondaryTypes = migrationManager.getSecondaryTypes(type);
+			if(secondaryTypes != null){
+				for(MigrationType secondary: secondaryTypes){
+					checkForTermination(progress);
+					Thread.yield();
+					entry = new ZipEntry(secondary.name() + ZIP_ENTRY_SUFFIX);
+					zos.putNextEntry(entry);
+					migrationManager.writeBackupBatch(user, secondary, idsToBackup, zos);
+					progress.incrementProgress();
+				}
+			}
 			zos.close();
 			progress.appendLog("Finished processing");
 		} finally {
@@ -83,7 +93,7 @@ public class BackupDriverImpl implements BackupDriver {
 		return true;
 	}
 
-	public boolean restoreFromBackup(UserInfo user, File source, Progress progress, MigrationType type) throws IOException, InterruptedException {
+	public boolean restoreFromBackup(UserInfo user, File source, Progress progress) throws IOException, InterruptedException {
 		if (source == null)
 			throw new IllegalArgumentException("Source file cannot be null");
 		if (!source.exists())
@@ -105,12 +115,9 @@ public class BackupDriverImpl implements BackupDriver {
 			progress.appendLog("Processing:");
 			while ((entry = zin.getNextEntry()) != null) {
 				progress.setMessage(entry.getName());
-				// Check for termination.
-				if (progress.shouldTerminate()) {
-					throw new InterruptedException(
-							"Restoration terminated by the user.");
-				}
+				checkForTermination(progress);
 
+				MigrationType type = getTypeFromFileName(entry.getName());
 				// This is a backup file.
 				int[] results = migrationManager.createOrUpdateBatch(user, type, zin);
 				// Append this id to the log.
@@ -132,9 +139,32 @@ public class BackupDriverImpl implements BackupDriver {
 		}
 		return true;
 	}
-
-	public void delete(String id) throws DatastoreException, NotFoundException {
-		// Pass along the delete
-//		migratableManager.deleteByMigratableId(id);
+	
+	/**
+	 * Get a type from a file name.
+	 * @param name
+	 * @return
+	 */
+	public static MigrationType getTypeFromFileName(String name){
+		return MigrationType.valueOf(name.substring(0, name.length()-ZIP_ENTRY_SUFFIX.length()));
 	}
+	
+	/**
+	 * Create a file name for a type.
+	 * @param type
+	 * @return
+	 */
+	public static String getFileNameForType(MigrationType type){
+		return type.name() + ZIP_ENTRY_SUFFIX;
+	}
+
+	private void checkForTermination(Progress progress)
+			throws InterruptedException {
+		// Check for termination.
+		if (progress.shouldTerminate()) {
+			throw new InterruptedException(
+					"Restoration terminated by the user.");
+		}
+	}
+
 }

@@ -66,6 +66,7 @@
 		<property name="databaseObjectRegister">
 			<list>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
 			</list>
 		</property>
 	</bean>

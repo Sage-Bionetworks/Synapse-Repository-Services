@@ -18,6 +18,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.backup.FileHandleBackup;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
@@ -154,6 +155,12 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 	public Class<? extends DBOFileHandle> getDatabaseObjectClass() {
 		return DBOFileHandle.class;
 	}
+	
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
+	}
+
 
 	public Long getId() {
 		return id;
@@ -360,6 +367,5 @@ public class DBOFileHandle implements MigratableDatabaseObject<DBOFileHandle, Fi
 				+ contentSize + ", contentMD5=" + contentMD5 + ", bucketName="
 				+ bucketName + ", key=" + key + ", name=" + name + "]";
 	}
-
 
 }

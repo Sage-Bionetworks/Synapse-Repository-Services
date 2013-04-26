@@ -78,7 +78,7 @@ public class BackupRestoreDaemon implements Runnable{
 		if(client == null) throw new IllegalArgumentException("AmazonS3Client cannot be null");
 		if(bucket == null) throw new IllegalArgumentException("Bucket cannot be null");
 		if(threadPool == null) throw new IllegalArgumentException("Thread pool cannot be null");
-		if(type == null) throw new IllegalArgumentException("Type cannot be null");
+		if(migrationType == null) throw new IllegalArgumentException("Type cannot be null");
 		if(user == null) throw new IllegalArgumentException("User cannot be null");
 		this.backupRestoreStatusDao = dao;
 		this.backupDriver = driver;
@@ -204,7 +204,7 @@ public class BackupRestoreDaemon implements Runnable{
 						backupDriver.writeBackup(user, tempBackup, progress, migrationType, idsToBackup);							
 					}else if(DaemonType.RESTORE == type) {
 						// This is a restore
-						backupDriver.restoreFromBackup(user, tempBackup,progress, migrationType);		
+						backupDriver.restoreFromBackup(user, tempBackup,progress);		
 					}else{
 						throw new IllegalArgumentException("Unknown type: "+type);
 					}

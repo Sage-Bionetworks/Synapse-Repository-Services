@@ -160,4 +160,20 @@ public class MigatableTableDAOImplAutowireTest {
 		assertEquals(withPreview.getId(), row.getId());
 		assertEquals(withPreview.getEtag(), row.getEtag());
 	}
+	
+	/**
+	 * This test exists to ensure only Primary types are listed.  This test will break each type a new 
+	 * primary type is added, but that ensures we check that the types are truly primary.
+	 * Migration will break if secondary types are added to this list.
+	 */
+	@Test
+	public void testGetPrimaryMigrationTypes(){
+		// Only primary migration types should be returned.
+		List<MigrationType> expectedPrimaryTypes = new LinkedList<MigrationType>();
+		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
+		expectedPrimaryTypes.add(MigrationType.NODE);
+		// Get the list
+		List<MigrationType> primary = migatableTableDAO.getPrimaryMigrationTypes();
+		assertEquals(expectedPrimaryTypes, primary);
+	}
 }
