@@ -655,11 +655,16 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		if(toReplace == null) throw new IllegalArgumentException("Node to update cannot be null");
 		Long nodeId = KeyFactory.stringToKey(toReplace.getId());
 		DBONode jdoToUpdate = getNodeById(nodeId);
+		final String currentEtag = jdoToUpdate.geteTag();
 		NodeUtils.replaceFromDto(toReplace, jdoToUpdate);
+		final String newEtag = jdoToUpdate.geteTag();
 		// Delete all revisions.
 		simpleJdbcTemplate.update("DELETE FROM "+TABLE_REVISION+" WHERE "+COL_REVISION_OWNER_NODE+" = ?", nodeId);
 		// Update the node.
 		try{
+			if (!newEtag.equals(currentEtag)) {
+				tagMessenger.sendMessage(jdoToUpdate, ChangeType.UPDATE);
+			}
 			dboBasicDao.update(jdoToUpdate);
 		}catch(IllegalArgumentException e){
 			// Check to see if this is a duplicate name exception.
