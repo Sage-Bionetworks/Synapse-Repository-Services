@@ -1,8 +1,9 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ACTIVITY_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_ANNOS_BLOB;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_COMMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_FILE_HANDLE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_LABEL;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION_MODIFIED_ON;
@@ -12,14 +13,16 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_REVISION;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
 
-import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * The DatabaseObject for Revision.
@@ -27,10 +30,12 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  * @author jmhill
  *
  */
-public class DBORevision implements DatabaseObject<DBORevision> {
+public class DBORevision implements MigratableDatabaseObject<DBORevision, DBORevision> {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("owner", COL_REVISION_OWNER_NODE, true),
+		// This is a sub-table of node, so it gets backed up with nodes using the node ids
+		// so its backup ID is the owner.
+		new FieldColumn("owner", COL_REVISION_OWNER_NODE, true).withIsBackupId(true),
 		new FieldColumn("revisionNumber", COL_REVISION_NUMBER, true),
 		new FieldColumn("activityId", COL_REVISION_ACTIVITY_ID),
 		new FieldColumn("label", COL_REVISION_LABEL),
@@ -166,6 +171,39 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 	}
 	
 	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.NODE_REVISION;
+	}
+	@Override
+	public MigratableTableTranslation<DBORevision, DBORevision> getTranslator() {
+		// currently we do not have a backup object for node
+		return new MigratableTableTranslation<DBORevision, DBORevision>(){
+
+			@Override
+			public DBORevision createDatabaseObjectFromBackup(DBORevision backup) {
+				return backup;
+			}
+
+			@Override
+			public DBORevision createBackupFromDatabaseObject(DBORevision dbo) {
+				return dbo;
+			}};
+	}
+	@Override
+	public Class<? extends DBORevision> getBackupClass() {
+		return DBORevision.class;
+	}
+	@Override
+	public Class<? extends DBORevision> getDatabaseObjectClass() {
+		return DBORevision.class;
+	}
+	
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
+	}
+	
+	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
@@ -251,6 +289,5 @@ public class DBORevision implements DatabaseObject<DBORevision> {
 				+ Arrays.toString(annotations) + ", references="
 				+ Arrays.toString(references) + "]";
 	}
-
 	
 }
