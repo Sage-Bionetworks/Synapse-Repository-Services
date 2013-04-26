@@ -34,12 +34,10 @@ import com.amazonaws.services.s3.model.PutObjectResult;
  */
 public class BackupRestoreDaemon implements Runnable{
 	
-	private static final String PREFIX_TEMP = "temp-";
 	static private Log log = LogFactory.getLog(BackupRestoreDaemon.class);
 	public static long NANO_SECONDS_PER_MILISECOND = 1000000;
 	private static final String S3_DOMAIN = "s3.amazonaws.com";
 	private static final String HTTPS = "https://";
-	private static final String S3KEY_SEARCH_PREFIX = "Search/";
 
 	private BackupRestoreStatusDAO backupRestoreStatusDao;
 	private BackupDriver backupDriver;

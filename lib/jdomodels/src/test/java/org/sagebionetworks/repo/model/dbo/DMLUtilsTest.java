@@ -153,6 +153,14 @@ public class DMLUtilsTest {
 	}
 	
 	@Test
+	public void testCreateBatchDeleteSelfForeign(){
+		String batchDelete = DMLUtils.createBatchDelete(migrateableMappingSelfForeignKey);
+		assertNotNull(batchDelete);
+		System.out.println(batchDelete);
+		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID` DESC", batchDelete);
+	}
+	
+	@Test
 	public void testListWithSelfForeignKey(){
 		String batchDelete = DMLUtils.listRowMetadata(migrateableMappingSelfForeignKey);
 		assertNotNull(batchDelete);

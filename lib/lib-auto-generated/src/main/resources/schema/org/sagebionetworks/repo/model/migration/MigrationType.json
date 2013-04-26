@@ -2,6 +2,7 @@
     "description":"JSON enum for the types of objects which can be migrated. NOTE: The order of this enumeration determines the migration order.",
     "type":"string",
     "enum":[
+    	"PRINCIPAL",
         "FILE_HANDLE",
         "NODE",
         "NODE_REVISION"

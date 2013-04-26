@@ -145,8 +145,6 @@ public class MigatableTableDAOImplAutowireTest {
 		result = migatableTableDAO.createOrUpdateBatch(backupList);
 		assertNotNull(result);
 		assertEquals(2, result.length);
-		assertEquals(2, result[0]);
-		assertEquals(1, result[1]);
 		// Check final counts
 		delta = migatableTableDAO.listDeltaRowMetadata(MigrationType.FILE_HANDLE, idsToFind);
 		assertNotNull(delta);
@@ -170,6 +168,7 @@ public class MigatableTableDAOImplAutowireTest {
 	public void testGetPrimaryMigrationTypes(){
 		// Only primary migration types should be returned.
 		List<MigrationType> expectedPrimaryTypes = new LinkedList<MigrationType>();
+		expectedPrimaryTypes.add(MigrationType.PRINCIPAL);
 		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
 		expectedPrimaryTypes.add(MigrationType.NODE);
 		// Get the list

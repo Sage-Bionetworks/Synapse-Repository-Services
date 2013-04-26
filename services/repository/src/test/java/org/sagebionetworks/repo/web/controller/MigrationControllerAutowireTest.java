@@ -174,17 +174,19 @@ public class MigrationControllerAutowireTest {
 				map.put(type, fileName);
 			}
 		}
-		// Now delete all data in reverse order
-		for(int i=primaryTypesList.getList().size()-1; i >= 0; i--){
-			deleteAllOfType(MigrationType.values()[i]);
-		}
-		// after deleting, the counts should be null
-		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(userName);
-		assertNotNull(afterDeleteCounts);
-		assertNotNull(afterDeleteCounts.getList());
-		for(MigrationTypeCount count: afterDeleteCounts.getList()){
-			assertEquals(new Long(0), count.getCount());
-		}
+		// We will delete the data when all object are ready
+		
+//		// Now delete all data in reverse order
+//		for(int i=primaryTypesList.getList().size()-1; i >= 0; i--){
+//			deleteAllOfType(MigrationType.values()[i]);
+//		}
+//		// after deleting, the counts should be null
+//		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(userName);
+//		assertNotNull(afterDeleteCounts);
+//		assertNotNull(afterDeleteCounts.getList());
+//		for(int i=0; i<afterDeleteCounts.getList().size(); i++){
+//			assertEquals(new Long(0), afterDeleteCounts.getList().get(i).getCount());
+//		}
 		
 		// Now restore all of the data
 		for(MigrationType type: primaryTypesList.getList()){
