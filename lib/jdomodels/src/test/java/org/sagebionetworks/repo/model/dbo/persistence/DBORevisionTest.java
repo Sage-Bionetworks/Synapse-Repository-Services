@@ -45,7 +45,7 @@ public class DBORevisionTest {
 			for(Long id: toDelete){
 				MapSqlParameterSource params = new MapSqlParameterSource();
 				params.addValue("id", id);
-				dboBasicDao.deleteObjectById(DBONode.class, params);
+				dboBasicDao.deleteObjectByPrimaryKey(DBONode.class, params);
 			}
 		}
 	}
@@ -88,7 +88,7 @@ public class DBORevisionTest {
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("owner", rev.getOwner());
 		params.addValue("revisionNumber", rev.getRevisionNumber());
-		DBORevision clone = dboBasicDao.getObjectById(DBORevision.class, params);
+		DBORevision clone = dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params);
 		assertEquals(rev, clone);
 		// Update with some values
 		clone.setAnnotations("Fake annotations".getBytes("UTF-8"));
@@ -97,7 +97,7 @@ public class DBORevisionTest {
 		boolean result = dboBasicDao.update(clone);
 		assertTrue(result);
 		// Fetch the updated
-		DBORevision updatedClone = dboBasicDao.getObjectById(DBORevision.class, params);
+		DBORevision updatedClone = dboBasicDao.getObjectByPrimaryKey(DBORevision.class, params);
 		assertEquals(clone, updatedClone);
 	}
 

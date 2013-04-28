@@ -191,7 +191,7 @@ public class DBOTrashCanDaoImpl implements DBOTrashCanDao {
 		for (TrashedEntity trash : trashList) {
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("nodeId", KeyFactory.stringToKey(trash.getEntityId()));
-			basicDao.deleteObjectById(DBOTrashedEntity.class, params);
+			basicDao.deleteObjectByPrimaryKey(DBOTrashedEntity.class, params);
 		}
 	}
 

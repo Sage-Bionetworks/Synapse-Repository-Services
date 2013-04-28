@@ -31,6 +31,7 @@ import com.amazonaws.services.s3.model.PutObjectResult;
  * @author John
  *
  */
+@Deprecated
 public class BackupDaemon implements Runnable{
 	
 	private static final String PREFIX_BACKUP = "Backup-";

@@ -68,7 +68,7 @@ public class DBOAccessRequirementTest {
 		if(dboBasicDao != null && ar!=null){
 			MapSqlParameterSource params = new MapSqlParameterSource();
 			params.addValue("id", ar.getId());
-			dboBasicDao.deleteObjectById(DBOAccessRequirement.class, params);
+			dboBasicDao.deleteObjectByPrimaryKey(DBOAccessRequirement.class, params);
 			ar=null;
 		}		
 	}
@@ -115,17 +115,17 @@ public class DBOAccessRequirementTest {
 		// Fetch it
 		MapSqlParameterSource params = new MapSqlParameterSource();
 		params.addValue("id", accessRequirement.getId());
-		clone = dboBasicDao.getObjectById(DBOAccessRequirement.class, params);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBOAccessRequirement.class, params);
 		assertNotNull(clone);
 		assertEquals(accessRequirement, clone);
 		
 		// Update it
 		dboBasicDao.update(clone);
-		clone = dboBasicDao.getObjectById(DBOAccessRequirement.class, params);
+		clone = dboBasicDao.getObjectByPrimaryKey(DBOAccessRequirement.class, params);
 		assertNotNull(clone);
 		
 		// Delete it
-		boolean result = dboBasicDao.deleteObjectById(DBOAccessRequirement.class,  params);
+		boolean result = dboBasicDao.deleteObjectByPrimaryKey(DBOAccessRequirement.class,  params);
 		assertTrue("Failed to delete the type created", result);
 		
 	}

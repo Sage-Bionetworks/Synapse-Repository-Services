@@ -24,6 +24,7 @@ import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
+import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Propagation;
@@ -54,33 +55,9 @@ public class PermissionsManagerImpl implements PermissionsManager {
 			throw new ACLInheritanceException("Cannot access the ACL of a node that inherits it permissions. This node inherits its permissions from: "+benefactor, benefactor);
 		}
 		AccessControlList acl = aclDAO.getForResource(nodeId);
-		if (!userInfo.isAdmin()) 
-			addOwnerPermissionsToAcl(acl);
 		return acl;
 	}
-	
-	private void addOwnerPermissionsToAcl(AccessControlList acl) throws DatastoreException, NotFoundException {
-		Long ownerId = nodeDao.getCreatedBy(acl.getId());
-		Set<ResourceAccess> resourceAccesses = acl.getResourceAccess();
-		ResourceAccess ownerRA = null;
 		
-		// find the owner in the ACL
-		for (ResourceAccess ra : resourceAccesses)
-			if (ra.getPrincipalId().equals(ownerId))
-				ownerRA = ra;
-		
-		// if not found, create and add a new Resource Access
-		if (ownerRA == null) {
-			ownerRA = new ResourceAccess();
-			ownerRA.setGroupName(userManager.getDisplayName(ownerId));
-			ownerRA.setPrincipalId(ownerId);
-			resourceAccesses.add(ownerRA);
-		}
-		
-		// set all permissions
-		ownerRA.setAccessType(new HashSet<ACCESS_TYPE>(Arrays.asList(ACCESS_TYPE.values())));
-	}
-	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public AccessControlList updateACL(AccessControlList acl, UserInfo userInfo) throws NotFoundException, DatastoreException, InvalidModelException, UnauthorizedException, ConflictingUpdateException {
@@ -233,6 +210,19 @@ public class PermissionsManagerImpl implements PermissionsManager {
 	@Override
 	public boolean hasAccess(String resourceId, ACCESS_TYPE accessType, UserInfo userInfo) throws NotFoundException, DatastoreException  {
 		return authorizationManager.canAccess(userInfo, resourceId, accessType);
+	}
+	
+	/**
+	 * Use case:  Need to find out if a user can download a resource.
+	 * 
+	 * @param resource the resource of interest
+	 * @param user
+	 * @param accessType
+	 * @return
+	 */
+	@Override
+	public boolean hasAccess(String resourceId, ObjectType objectType, ACCESS_TYPE accessType, UserInfo userInfo) throws NotFoundException, DatastoreException  {
+		return authorizationManager.canAccess(userInfo, resourceId, objectType, accessType);
 	}
 
 	/**

@@ -52,11 +52,13 @@ import org.sagebionetworks.client.exceptions.SynapseTermsOfUseException;
 import org.sagebionetworks.client.exceptions.SynapseUnauthorizedException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
+import org.sagebionetworks.evaluation.model.UserEvaluationState;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessControlList;
@@ -965,9 +967,27 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	public boolean canAccess(String entityId, ACCESS_TYPE accessType) throws SynapseException {
+		return canAccess(entityId, ObjectType.ENTITY, accessType);
+	}
+	
+	public boolean canAccess(String id, ObjectType type, ACCESS_TYPE accessType) throws SynapseException{
+		if(id == null) throw new IllegalArgumentException("id cannot be null");
+		if (type == null) throw new IllegalArgumentException("ObjectType cannot be null");
+		if (accessType == null) throw new IllegalArgumentException("AccessType cannot be null");
+		
+		if (ObjectType.ENTITY.equals(type)) {
+			return canAccess(ENTITY_URI_PATH + "/" + id+ "/access?accessType="+accessType.name());
+		}
+		else if (ObjectType.EVALUATION.equals(type)) {
+			return canAccess(EVALUATION_URI_PATH + "/" + id+ "/access?accessType="+accessType.name());
+		}
+		else
+			throw new IllegalArgumentException("ObjectType not supported: " + type.toString());
+	}
+	
+	private boolean canAccess(String serviceUrl) throws SynapseException {
 		try {
-			String url = ENTITY_URI_PATH + "/" + entityId+ "/access?accessType="+accessType.name();
-			JSONObject jsonObj = getEntity(url);
+			JSONObject jsonObj = getEntity(serviceUrl);
 			String resultString = null;
 			try {
 				resultString = jsonObj.getString("result");
@@ -977,8 +997,9 @@ public class Synapse {
 			return Boolean.parseBoolean(resultString);
 		} catch (JSONException e) {
 			throw new SynapseException(e);
-		}
+		}	
 	}
+	
 	
 	/**
 	 * Get the annotations for an entity.
@@ -3824,6 +3845,31 @@ public class Synapse {
 		return res.getTotalNumberOfResults();
 	}
 
+	public UserEvaluationState getUserEvaluationState(String evalId) throws SynapseException{
+		UserEvaluationState returnState = UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE;
+		//TODO: replace with single call to getAvailableEvaluations() (PLFM-1858, simply check to see if evalId is in the return set) 
+		//		instead of these three calls
+		Evaluation evaluation = getEvaluation(evalId);
+		EvaluationStatus status  = evaluation.getStatus();
+		if (EvaluationStatus.OPEN.equals(status)) {
+			//is the user registered for this?
+			UserProfile profile = getMyProfile();
+			if (profile != null && profile.getOwnerId() != null) {
+				//try to get the participant
+				returnState = UserEvaluationState.EVAL_OPEN_USER_NOT_REGISTERED;
+				try {
+					Participant user = getParticipant(evalId, profile.getOwnerId());
+					if (user != null) {
+						returnState = UserEvaluationState.EVAL_OPEN_USER_REGISTERED;
+					}
+				} catch (Exception e) {e.printStackTrace();}
+			}
+			//else user principle id unavailable, returnState = EVAL_REGISTRATION_UNAVAILABLE
+		}
+		//else registration is not OPEN, returnState = EVAL_REGISTRATION_UNAVAILABLE
+		return returnState;
+	}
+	
 	/**
 	 * Moves an entity and its descendants to the trash can.
 	 *

@@ -11,6 +11,7 @@ import org.sagebionetworks.evaluation.model.SubmissionBundle;
 import org.sagebionetworks.repo.model.ACLInheritanceException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -349,6 +350,21 @@ public interface EvaluationService {
 			String evalId, SubmissionStatusEnum status, long limit,
 			long offset, HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
+	
+	/**
+	 * determine whether a user has the given access type for a given evaluation
+	 * 
+	 * @param evalId
+	 * @param userId
+	 * @param accessType
+	 * @return
+	 * @throws NotFoundException
+	 * @throws DatastoreException
+	 * @throws UnauthorizedException
+	 */
+	public <T extends Entity> boolean hasAccess(String evalId, String userName,
+			HttpServletRequest request, String accessType)
+			throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
 	 * Get all SubmissionStatuses for a given Evaluation. This method is

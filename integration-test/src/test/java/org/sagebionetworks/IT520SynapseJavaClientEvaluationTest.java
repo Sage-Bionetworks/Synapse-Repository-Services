@@ -5,6 +5,8 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.when;
 
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
@@ -25,6 +27,8 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.evaluation.model.SubmissionBundle;
+import org.sagebionetworks.evaluation.model.UserEvaluationState;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.PaginatedResults;
@@ -539,5 +543,52 @@ public class IT520SynapseJavaClientEvaluationTest {
 		for (Submission s : subs.getResults())
 			assertTrue("Unknown Submission returned: " + s.toString(), s.equals(sub1));
 
+	}
+	
+	@Test
+	public void testGetUserEvaluationStateRegistered() throws Exception{
+		//base case, OPEN competition where user is a participant
+		eval1.setStatus(EvaluationStatus.OPEN);
+		eval1 = synapseOne.createEvaluation(eval1);		
+		evaluationsToDelete.add(eval1.getId());
+		// create
+		part1 = synapseOne.createParticipant(eval1.getId());
+		assertNotNull(part1.getCreatedOn());
+		participantsToDelete.add(part1);
+
+		UserEvaluationState state = synapseOne.getUserEvaluationState(eval1.getId());
+		assertEquals(UserEvaluationState.EVAL_OPEN_USER_REGISTERED, state);
+	}
+	
+	@Test
+	public void testGetUserEvaluationStateUnregistered() throws Exception{
+		//OPEN competition where user is not yet a participant
+		eval1.setStatus(EvaluationStatus.OPEN);
+		eval1 = synapseOne.createEvaluation(eval1);		
+		evaluationsToDelete.add(eval1.getId());
+
+		UserEvaluationState state = synapseOne.getUserEvaluationState(eval1.getId());
+		assertEquals(UserEvaluationState.EVAL_OPEN_USER_NOT_REGISTERED, state);
+	}
+	
+	@Test
+	public void testGetUserEvaluationStateNotOpen() throws Exception{
+		//evaluation is in some state, other than OPEN.  Could be CLOSED, COMPLETED, or PLANNED.
+		//in all cases, registration is unavailable
+		eval1.setStatus(EvaluationStatus.CLOSED);
+		eval1 = synapseOne.createEvaluation(eval1);		
+		evaluationsToDelete.add(eval1.getId());
+		UserEvaluationState state = synapseOne.getUserEvaluationState(eval1.getId());
+		assertEquals(UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE, state);
+		
+		eval1.setStatus(EvaluationStatus.COMPLETED);
+		eval1 = synapseOne.updateEvaluation(eval1);		
+		state = synapseOne.getUserEvaluationState(eval1.getId());
+		assertEquals(UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE, state);
+
+		eval1.setStatus(EvaluationStatus.PLANNED);
+		eval1 = synapseOne.updateEvaluation(eval1);		
+		state = synapseOne.getUserEvaluationState(eval1.getId());
+		assertEquals(UserEvaluationState.EVAL_REGISTRATION_UNAVAILABLE, state);
 	}
 }

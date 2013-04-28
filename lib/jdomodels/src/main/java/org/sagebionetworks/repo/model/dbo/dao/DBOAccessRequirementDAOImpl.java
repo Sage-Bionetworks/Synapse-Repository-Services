@@ -152,7 +152,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	public void delete(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_REQUIREMENT_ID.toLowerCase(), id);
-		basicDao.deleteObjectById(DBOAccessRequirement.class, param);
+		basicDao.deleteObjectByPrimaryKey(DBOAccessRequirement.class, param);
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -187,7 +187,7 @@ public class DBOAccessRequirementDAOImpl implements AccessRequirementDAO {
 	public AccessRequirement get(String id) throws DatastoreException, NotFoundException {
 		MapSqlParameterSource param = new MapSqlParameterSource();
 		param.addValue(COL_ACCESS_REQUIREMENT_ID.toLowerCase(), id);
-		DBOAccessRequirement dbo = basicDao.getObjectById(DBOAccessRequirement.class, param);
+		DBOAccessRequirement dbo = basicDao.getObjectByPrimaryKey(DBOAccessRequirement.class, param);
 		List<Long> entities = getEntities(dbo.getId());
 		AccessRequirement dto = AccessRequirementUtils.copyDboToDto(dbo, entities);
 		return dto;

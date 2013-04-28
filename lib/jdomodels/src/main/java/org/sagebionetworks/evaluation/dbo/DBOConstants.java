@@ -26,8 +26,7 @@ public class DBOConstants {
 	public static final String PARAM_SUBMISSION_ENTITY_VERSION 		= "versionNumber";
 	public static final String PARAM_SUBMISSION_NAME 				= "name";
 	public static final String PARAM_SUBMISSION_CREATED_ON 			= "createdOn";
-	
-	
+		
 	// SubmissionStatus
 	public static final String PARAM_SUBSTATUS_ID 					= "id";
 	public static final String PARAM_SUBSTATUS_ETAG 				= "eTag";
@@ -36,4 +35,7 @@ public class DBOConstants {
 	public static final String PARAM_SUBSTATUS_MODIFIED_ON 			= "modifiedOn";
 	public static final String PARAM_SUBSTATUS_SERIALIZED_ENTITY 	= "serializedEntity";
 	
+	// SubmissionFile
+	public static final String PARAM_SUBFILE_SUBMISSION_ID 			= "submissionId";
+	public static final String PARAM_SUBFILE_FILE_HANDLE_ID			= "fileHandleId";
 }

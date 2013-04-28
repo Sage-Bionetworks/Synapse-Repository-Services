@@ -6,6 +6,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -14,6 +15,7 @@ import java.util.zip.ZipOutputStream;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
+import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -31,13 +33,18 @@ public class SubmissionBackupDriver implements GenericBackupDriver {
 	private SubmissionDAO submissionDAO;
 	@Autowired
 	private SubmissionStatusDAO submissionStatusDAO;
+	@Autowired
+	private SubmissionFileHandleDAO submissionFileHandleDAO;
 
 	public SubmissionBackupDriver() { }
 
 	// for testing
-	public SubmissionBackupDriver(SubmissionDAO submissionDAO, SubmissionStatusDAO submissionStatusDAO) {
+	public SubmissionBackupDriver(SubmissionDAO submissionDAO, 
+			SubmissionStatusDAO submissionStatusDAO, 
+			SubmissionFileHandleDAO submissionFileHandleDAO) {
 		this.submissionDAO = submissionDAO;
 		this.submissionStatusDAO = submissionStatusDAO;
+		this.submissionFileHandleDAO = submissionFileHandleDAO;
 	}
 
 	static private Log log = LogFactory.getLog(SubmissionBackupDriver.class);
@@ -74,6 +81,7 @@ public class SubmissionBackupDriver implements GenericBackupDriver {
 				SubmissionBackup subBackup = new SubmissionBackup();
 				subBackup.setSubmission(submissionDAO.get(idToBackup));
 				subBackup.setSubmissionStatus(submissionStatusDAO.get(idToBackup));
+				subBackup.setFileHandleIds(submissionFileHandleDAO.getAllBySubmission(idToBackup));
 				ZipEntry entry = new ZipEntry(idToBackup + ZIP_ENTRY_SUFFIX);
 				zos.putNextEntry(entry);
 				NodeSerializerUtil.writeSubmissionBackup(subBackup, zos);
@@ -160,6 +168,7 @@ public class SubmissionBackupDriver implements GenericBackupDriver {
 			InvalidModelException, ConflictingUpdateException, NotFoundException {
 		Submission submission = backup.getSubmission();
 		SubmissionStatus submissionStatus = backup.getSubmissionStatus();
+		List<String> fileHandleIds = backup.getFileHandleIds();
 		
 		// create the Submission
 		SubmissionStatus existing = null;
@@ -169,6 +178,9 @@ public class SubmissionBackupDriver implements GenericBackupDriver {
 		if (null == existing) {
 			submissionDAO.create(submission);
 			submissionStatusDAO.createFromBackup(submissionStatus);
+			for (String id : fileHandleIds) {
+				submissionFileHandleDAO.create(submission.getId(), id);
+			}
 		} else {
 			// Update only when backup is different from the current system
 			if (!submissionStatus.getEtag().equals(existing.getEtag())) {

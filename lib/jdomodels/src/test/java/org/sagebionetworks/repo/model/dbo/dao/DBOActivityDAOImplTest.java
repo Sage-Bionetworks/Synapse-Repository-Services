@@ -49,7 +49,7 @@ public class DBOActivityDAOImplTest {
 	public void testUpdateNotFound() throws Exception {
 		when(mockIdGenerator.generateNewId()).thenReturn((long)123);
 		when(mockSimpleJdbcTemplate.queryForLong(anyString(), any())).thenReturn((long)0);
-		when(mockBasicDao.getObjectById(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException());
+		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException());
 
 		Activity act = new Activity();
 		act.setId(mockIdGenerator.generateNewId().toString());
@@ -60,7 +60,7 @@ public class DBOActivityDAOImplTest {
 	public void testGetNotFound() throws Exception {
 		when(mockIdGenerator.generateNewId()).thenReturn((long)123);
 		when(mockSimpleJdbcTemplate.queryForLong(anyString(), any())).thenReturn((long)0);		
-		when(mockBasicDao.getObjectById(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException());
+		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException());
 		
 		activityDao.get(mockIdGenerator.generateNewId().toString());		
 	}
@@ -75,7 +75,7 @@ public class DBOActivityDAOImplTest {
 		when(mockDbo.geteTag()).thenReturn(newEtag);
 		when(mockIdGenerator.generateNewId()).thenReturn(id);				
 		when(mockSimpleJdbcTemplate.queryForObject(anyString(), eq(String.class), eq(id.toString()))).thenReturn(oldEtag);
-		when(mockBasicDao.getObjectById(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenReturn(mockDbo);
+		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenReturn(mockDbo);
 		
 		ChangeType type = ChangeType.UPDATE;
 		String returnedNewEtag = activityDao.lockActivityAndGenerateEtag(id.toString(), oldEtag, type);
@@ -89,7 +89,7 @@ public class DBOActivityDAOImplTest {
 		Long id = 123L;
 		when(mockIdGenerator.generateNewId()).thenReturn(id);				
 		when(mockSimpleJdbcTemplate.queryForObject(anyString(), eq(String.class), eq(id.toString()))).thenReturn(oldEtag);
-		when(mockBasicDao.getObjectById(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException());
+		when(mockBasicDao.getObjectByPrimaryKey(eq(DBOActivity.class), any(MapSqlParameterSource.class))).thenThrow(new NotFoundException());
 		
 		activityDao.lockActivityAndGenerateEtag(id.toString(), oldEtag, ChangeType.UPDATE);		
 	}

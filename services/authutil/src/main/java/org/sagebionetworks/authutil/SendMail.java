@@ -22,7 +22,7 @@ public class SendMail {
     private static String resetPWURI;
 
     static {
-    	synapseURL = StackConfiguration.getPortalEndpoint();
+    	synapseURL = "https://www.synapse.org";
 		
 		// read values from the properties file
         Properties props = new Properties();

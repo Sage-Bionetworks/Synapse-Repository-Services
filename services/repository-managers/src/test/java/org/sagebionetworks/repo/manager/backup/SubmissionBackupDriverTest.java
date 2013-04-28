@@ -1,21 +1,25 @@
 package org.sagebionetworks.repo.manager.backup;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.evaluation.dao.SubmissionDAO;
+import org.sagebionetworks.evaluation.dao.SubmissionFileHandleDAO;
 import org.sagebionetworks.evaluation.dao.SubmissionStatusDAO;
 import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
@@ -38,8 +42,10 @@ public class SubmissionBackupDriverTest {
 	
 	Map<String, Submission> srcSubs;
 	Map<String, SubmissionStatus> srcStatuses;
+	Map<String, List<String>> srcHandleIds;
 	Map<String, Submission> dstSubs;
 	Map<String, SubmissionStatus> dstStatuses;
+	Map<String, List<String>> dstHandleIds;
 	
 	private SubmissionStatusDAO createSubmissionStatusDAO(final Map<String, SubmissionStatus> statuses) {
 		return (SubmissionStatusDAO)Proxy.newProxyInstance(SubmissionBackupDriverTest.class.getClassLoader(),
@@ -110,6 +116,31 @@ public class SubmissionBackupDriverTest {
 		});
 	}
 	
+	private SubmissionFileHandleDAO createSubmissionFileHandleDAO(final Map<String, List<String>> fileHandleIds) {
+		return (SubmissionFileHandleDAO)Proxy.newProxyInstance(SubmissionBackupDriverTest.class.getClassLoader(),
+				new Class<?>[]{SubmissionFileHandleDAO.class},
+                new InvocationHandler() {
+			@Override
+			public Object invoke(Object synapseClient, Method method, Object[] args)
+					throws Throwable {
+				if (method.equals(SubmissionFileHandleDAO.class.getMethod("create", String.class, String.class))) {
+					String submissionId = (String) args[0];
+					String fileHandleId = (String) args[1];
+					if (!fileHandleIds.containsKey(submissionId)) {
+						fileHandleIds.put(submissionId, new ArrayList<String>());
+					}
+					fileHandleIds.get(submissionId).add(fileHandleId);
+					return null;
+				} else if (method.equals(SubmissionFileHandleDAO.class.getMethod("getAllBySubmission", String.class))) {
+					List<String> handleIds = fileHandleIds.get((String) args[0]);
+					return handleIds == null ? new ArrayList<String>() : handleIds;
+				} else {
+					throw new IllegalArgumentException(method.getName());
+				}
+			}
+		});
+	}
+	
 	private SubmissionStatus createSubmissionStatus(String submissionId) throws Exception {
 		SubmissionStatus status = new SubmissionStatus();
 		status.setEtag("eTag");
@@ -138,21 +169,28 @@ public class SubmissionBackupDriverTest {
 		dstSubs = new HashMap<String, Submission>();
 		srcStatuses = new HashMap<String, SubmissionStatus>();		
 		dstStatuses = new HashMap<String, SubmissionStatus>();
+		srcHandleIds = new HashMap<String, List<String>>();
+		dstHandleIds = new HashMap<String, List<String>>();
 		SubmissionStatusDAO srcSubmissionStatusDAO = createSubmissionStatusDAO(srcStatuses);
 		SubmissionDAO srcSubmissionDAO = createSubmissionDAO(srcSubs);
+		SubmissionFileHandleDAO srcSubmissionFileHandleDAO = createSubmissionFileHandleDAO(srcHandleIds);
 		int numSubs = 5;
 		for (int i = 0; i < numSubs; i++) {
 			Entity entity = new Folder();
 			entity.setName("foo" + i);
-			srcSubmissionDAO.create(createSubmission("" + i));
-			srcSubmissionStatusDAO.create(createSubmissionStatus("" + i));
+			String submissionId = "" + i;
+			srcSubmissionDAO.create(createSubmission(submissionId));
+			srcSubmissionStatusDAO.create(createSubmissionStatus(submissionId));
+			srcSubmissionFileHandleDAO.create(submissionId, "handle1_" + i);
+			srcSubmissionFileHandleDAO.create(submissionId, "handle2_" + i);
 		}
 		assertEquals(numSubs, srcStatuses.size());
 		assertEquals(numSubs, srcSubs.size());
 		SubmissionStatusDAO dstSubmissionStatusDAO = createSubmissionStatusDAO(dstStatuses);
 		SubmissionDAO dstSubmissionDAO = createSubmissionDAO(dstSubs);
-		sourceDriver = new SubmissionBackupDriver(srcSubmissionDAO, srcSubmissionStatusDAO);
-		destinationDriver = new SubmissionBackupDriver(dstSubmissionDAO, dstSubmissionStatusDAO);
+		SubmissionFileHandleDAO dstSubmissionFileHandleDAO = createSubmissionFileHandleDAO(dstHandleIds);
+		sourceDriver = new SubmissionBackupDriver(srcSubmissionDAO, srcSubmissionStatusDAO, srcSubmissionFileHandleDAO);
+		destinationDriver = new SubmissionBackupDriver(dstSubmissionDAO, dstSubmissionStatusDAO, dstSubmissionFileHandleDAO);
 	}
 	
 	@Test
@@ -168,14 +206,19 @@ public class SubmissionBackupDriverTest {
 			System.out.println("Resulting file: "+temp.getAbsolutePath()+" with a size of: "+temp.length()+" bytes");
 			assertTrue(temp.length() > 10);
 			// They should start off as non equal
+			assertFalse(srcSubs.isEmpty());
+			assertFalse(srcStatuses.isEmpty());
+			assertFalse(srcHandleIds.isEmpty());
 			assertTrue(dstSubs.isEmpty());
 			assertTrue(dstStatuses.isEmpty());
+			assertTrue(dstHandleIds.isEmpty());
 			// Now read push the backup
 			progress = new Progress();
 			destinationDriver.restoreFromBackup(temp, progress);
 			// At this point all of the data should have migrated from the source to the destination
 			assertEquals(srcSubs, dstSubs);
 			assertEquals(srcStatuses, dstStatuses);
+			assertEquals(srcHandleIds, dstHandleIds);
 		}finally{
 			// Cleanup the file
 			temp.delete();

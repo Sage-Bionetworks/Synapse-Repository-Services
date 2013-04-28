@@ -88,18 +88,18 @@ public class SubmissionDBOTest {
         	// delete submission
             MapSqlParameterSource params = new MapSqlParameterSource();
             params.addValue("id", submissionId);
-            dboBasicDao.deleteObjectById(SubmissionDBO.class, params);
+            dboBasicDao.deleteObjectByPrimaryKey(SubmissionDBO.class, params);
             
             // delete participant
             params = new MapSqlParameterSource();
             params.addValue("userId", userId);
             params.addValue("evalId", evalId);
-            dboBasicDao.deleteObjectById(ParticipantDBO.class, params);
+            dboBasicDao.deleteObjectByPrimaryKey(ParticipantDBO.class, params);
             
             // delete Evaluation
             params = new MapSqlParameterSource();
             params.addValue("id", evalId);
-            dboBasicDao.deleteObjectById(EvaluationDBO.class, params);
+            dboBasicDao.deleteObjectByPrimaryKey(EvaluationDBO.class, params);
         }
     	try {
     		nodeDAO.delete(nodeId);
@@ -127,12 +127,12 @@ public class SubmissionDBOTest {
         // Fetch it
         MapSqlParameterSource params = new MapSqlParameterSource();
         params.addValue("id",submissionId);
-        SubmissionDBO clone2 = dboBasicDao.getObjectById(SubmissionDBO.class, params);
+        SubmissionDBO clone2 = dboBasicDao.getObjectByPrimaryKey(SubmissionDBO.class, params);
         assertNotNull(clone2);
         assertEquals(submission, clone2); 
         
         // Delete it
-        boolean result = dboBasicDao.deleteObjectById(SubmissionDBO.class,  params);
+        boolean result = dboBasicDao.deleteObjectByPrimaryKey(SubmissionDBO.class,  params);
         assertTrue("Failed to delete the entry created", result); 
     }
  
