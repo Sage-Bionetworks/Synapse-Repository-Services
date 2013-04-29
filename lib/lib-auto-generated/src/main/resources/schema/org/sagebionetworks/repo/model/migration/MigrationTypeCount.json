@@ -1,0 +1,11 @@
+{
+	"description": "List of ",
+	"properties": {
+		"type": {
+			"$ref": "org.sagebionetworks.repo.model.migration.MigrationType"
+		},
+         "count":{
+        	"type":"integer"
+         }
+	}
+}

@@ -11,6 +11,7 @@ import static org.mockito.Mockito.*;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -33,8 +34,8 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
-import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -492,10 +493,18 @@ public class NodeManagerImplUnitTest {
 	@Test
 	public void testPromoteVersionAuthorized() throws Exception {
 		String nodeId = "123";
+		long versionNumber = 1L;
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.UPDATE))).thenReturn(true);
-		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, 1L);
-		verify(mockNodeDao).lockNodeAndIncrementEtag(eq(nodeId), anyString());
-		verify(mockNodeDao).promoteNodeVersion(eq(nodeId), eq(1L));
+		Node mockNode = mock(Node.class);
+		when(mockNodeDao.getNodeForVersion(nodeId, versionNumber)).thenReturn(mockNode);
+		QueryResults<VersionInfo> results = new QueryResults<VersionInfo>();
+		List<VersionInfo> versionInfoList = new ArrayList<VersionInfo>();
+		versionInfoList.add(mock(VersionInfo.class));
+		results.setResults(versionInfoList);
+		when(mockNodeDao.getVersionsOfEntity(nodeId, 0, 1)).thenReturn(results);
+		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, versionNumber);
+		verify(mockNodeDao, times(1)).lockNodeAndIncrementEtag(eq(nodeId), anyString());
+		verify(mockNodeDao, times(1)).createNewVersion(mockNode);
 	}
 
 	@Test(expected=UnauthorizedException.class)
