@@ -26,4 +26,19 @@ public class EzidConstants {
 	 * Publisher is always Sage Bionetworks.
 	 */
 	public static final String DEFAULT_CREATOR = "(author name not available)";
+
+	/**
+	 * Base URL for the EZID REST APIs.
+	 */
+	public static final String EZID_URL = StackConfiguration.getEzidUrl();
+
+	/**
+	 * EZID account user name.
+	 */
+	public static final String EZID_USERNAME = StackConfiguration.getEzidUsername();
+
+	/**
+	 * EZID account password.
+	 */
+	public static final String EZID_PASSWORD = StackConfiguration.getEzidPassword();
 }

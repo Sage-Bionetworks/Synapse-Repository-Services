@@ -26,7 +26,6 @@ import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.params.HttpParams;
 import org.apache.http.protocol.HTTP;
 import org.apache.http.util.EntityUtils;
-import org.sagebionetworks.StackConfiguration;
 import org.sagebionetworks.repo.model.doi.Doi;
 
 /**
@@ -45,8 +44,8 @@ public class EzidClient implements DoiClient {
 		DefaultHttpClient httpClient = new DefaultHttpClient();
 		AuthScope authScope = new AuthScope(
 				AuthScope.ANY_HOST, AuthScope.ANY_PORT, REALM, AuthPolicy.BASIC);
-		final String username = StackConfiguration.getEzidUsername();
-		final String password = StackConfiguration.getEzidPassword();
+		final String username = EzidConstants.EZID_USERNAME;
+		final String password = EzidConstants.EZID_PASSWORD;
 		Credentials credentials = new UsernamePasswordCredentials(username, password);
 		httpClient.getCredentialsProvider().setCredentials(authScope, credentials);
 		HttpParams params = httpClient.getParams();
@@ -69,7 +68,7 @@ public class EzidClient implements DoiClient {
 			throw new IllegalArgumentException("DOI DTO cannot be null.");
 		}
 
-		URI uri = URI.create(StackConfiguration.getEzidUrl() + "id/" + doi);
+		URI uri = URI.create(EzidConstants.EZID_URL + "id/" + doi);
 		HttpGet get = new HttpGet(uri);
 		String response = executeWithRetry(get);
 		EzidDoi result = new EzidDoi();
@@ -88,7 +87,7 @@ public class EzidClient implements DoiClient {
 			throw new IllegalArgumentException("DOI cannot be null.");
 		}
 
-		URI uri = URI.create(StackConfiguration.getEzidUrl() + "id/" + doi.getDoi());
+		URI uri = URI.create(EzidConstants.EZID_URL + "id/" + doi.getDoi());
 		HttpPut put = new HttpPut(uri);
 		try {
 			StringEntity requestEntity = new StringEntity(doi.getMetadata().getMetadataAsString(), HTTP.PLAIN_TEXT_TYPE, "UTF-8");
@@ -106,7 +105,7 @@ public class EzidClient implements DoiClient {
 			throw new IllegalArgumentException("DOI cannot be null.");
 		}
 
-		URI uri = URI.create(StackConfiguration.getEzidUrl() + "id/" + doi.getDoi());
+		URI uri = URI.create(EzidConstants.EZID_URL + "id/" + doi.getDoi());
 		HttpPost post = new HttpPost(uri);
 		try {
 			StringEntity requestEntity = new StringEntity(doi.getMetadata().getMetadataAsString(), HTTP.PLAIN_TEXT_TYPE, "UTF-8");
