@@ -19,13 +19,16 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
 import org.sagebionetworks.ids.UuidETagGenerator;
+import org.sagebionetworks.repo.manager.file.FileHandleManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.GenotypeData;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -33,6 +36,8 @@ import org.sagebionetworks.repo.model.Study;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.file.ExternalFileHandle;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.util.UserProvider;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,15 +49,21 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 public class EntityManagerImplAutowireTest {
 	
 	@Autowired
-	private EntityManager entityManager;
-	
+	private EntityManager entityManager;	
 	@Autowired
-	public UserProvider testUserProvider;
+	public UserProvider testUserProvider;	
+	@Autowired 
+	ActivityManager activityManager;
+	@Autowired
+	FileHandleManager fileHandleManager;
+	
 	
 	// We use a mock auth DAO for this test.
 	private AuthorizationManager mockAuth;
 
 	private List<String> toDelete;
+	private List<String> activitiesToDelete;
+	private List<String> fileHandlesToDelete;
 	
 	private UserInfo userInfo;
 	
@@ -63,6 +74,8 @@ public class EntityManagerImplAutowireTest {
 		userInfo = testUserProvider.getTestAdminUserInfo();
 		
 		toDelete = new ArrayList<String>();
+		activitiesToDelete = new ArrayList<String>();
+		fileHandlesToDelete = new ArrayList<String>();
 		mockAuth = Mockito.mock(AuthorizationManager.class);
 		when(mockAuth.canAccess((UserInfo)any(), anyString(), any(ACCESS_TYPE.class))).thenReturn(true);
 		when(mockAuth.canCreate((UserInfo)any(), (Node)any())).thenReturn(true);
@@ -75,6 +88,20 @@ public class EntityManagerImplAutowireTest {
 			for(String id: toDelete){
 				try{
 					entityManager.deleteEntity(userInfo, id);
+				}catch(Exception e){}
+			}
+		}
+		if(activityManager != null && activitiesToDelete != null){
+			for(String id: activitiesToDelete){
+				try{
+					activityManager.deleteActivity(userInfo, id);
+				}catch(Exception e){}
+			}
+		}
+		if(fileHandleManager != null && fileHandlesToDelete != null){
+			for(String id: fileHandlesToDelete){
+				try{
+					fileHandleManager.deleteFileHandle(userInfo, id);
 				}catch(Exception e){}
 			}
 		}
@@ -269,6 +296,48 @@ public class EntityManagerImplAutowireTest {
 		layer.setDescription("layerDesc"+i);
 		layer.setCreatedOn(new Date(1001));
 		return layer;
+	}
+
+	@Test
+	public void testCreateNewVersionOfEntityWithoutInheritingProvenance_PLFM_1869() throws Exception {
+		Activity act = new Activity();
+		String actId = activityManager.createActivity(userInfo, act);		
+		assertNotNull(actId);
+		activitiesToDelete.add(actId);
+		
+		FileEntity file = new FileEntity();
+		ExternalFileHandle external1 = new ExternalFileHandle();
+		external1.setExternalURL("http://www.google.com");
+		external1.setFileName("file.txt");
+		external1 = fileHandleManager.createExternalFileHandle(userInfo, external1);
+		fileHandlesToDelete.add(external1.getId());
+		
+		file.setDataFileHandleId(external1.getId());
+		file.setName("testCreateNewVersionOfEntityWithoutProvenance");
+		String id = entityManager.createEntity(userInfo, file, actId);
+		assertNotNull(id);
+		toDelete.add(id);
+		file = entityManager.getEntity(userInfo, id, FileEntity.class);
+		Activity v1Act = entityManager.getActivityForEntity(userInfo, file.getId(), file.getVersionNumber());
+		assertEquals(actId, v1Act.getId());
+				
+		ExternalFileHandle external2 = new ExternalFileHandle();
+		external2.setExternalURL("http://www.yahoo.com");
+		external2.setFileName("file.txt");
+		external2 = fileHandleManager.createExternalFileHandle(userInfo, external2);		
+		fileHandlesToDelete.add(external2.getId());
+		
+		file.setDataFileHandleId(external2.getId());
+		file.setVersionLabel("2");		
+		entityManager.updateEntity(userInfo, file, false, null); // not necessarily a new version, like how the EntityController works
+		FileEntity updated = entityManager.getEntity(userInfo, file.getId(), FileEntity.class);
+		
+		try{			
+			entityManager.getActivityForEntity(userInfo, updated.getId(), updated.getVersionNumber());
+			fail("activity should not have v1's activity id");
+		} catch (NotFoundException e) {
+			// expected
+		}
 	}
 	
 	/**
