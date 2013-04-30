@@ -6,8 +6,12 @@ import java.util.Arrays;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.xml.xpath.XPathExpressionException;
 
 import org.json.JSONException;
+import org.sagebionetworks.authutil.AuthenticationException;
+import org.sagebionetworks.authutil.CrowdAuthUtil;
+import org.sagebionetworks.authutil.User;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -113,7 +117,7 @@ public class UserProfileController extends BaseController {
 			@RequestHeader HttpHeaders header,
 			HttpServletRequest request)
 			throws NotFoundException, ConflictingUpdateException,
-			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
+			DatastoreException, InvalidModelException, UnauthorizedException, IOException, AuthenticationException, XPathExpressionException {
 		return serviceProvider.getUserProfileService().updateUserProfile(userId, header, request);
 	}
 

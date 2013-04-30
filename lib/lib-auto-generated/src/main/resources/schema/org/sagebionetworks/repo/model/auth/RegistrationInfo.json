@@ -8,6 +8,6 @@
 		"password": {
 			"type": "string",
 			"description": "New user password"
-		}		
+		}
 	}
 }

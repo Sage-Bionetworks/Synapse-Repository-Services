@@ -13,12 +13,14 @@ import java.util.Set;
 import java.util.SortedMap;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.xml.xpath.XPathExpressionException;
 
 import org.apache.log4j.Logger;
 import org.ardverk.collection.PatriciaTrie;
 import org.ardverk.collection.StringKeyAnalyzer;
 import org.ardverk.collection.Trie;
 import org.ardverk.collection.Tries;
+import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -132,7 +134,7 @@ public class UserProfileServiceImpl implements UserProfileService {
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public UserProfile updateUserProfile(String userId, HttpHeaders header, HttpServletRequest request) throws NotFoundException, ConflictingUpdateException,
-			DatastoreException, InvalidModelException, UnauthorizedException, IOException {
+			DatastoreException, InvalidModelException, UnauthorizedException, IOException, AuthenticationException, XPathExpressionException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		UserProfile entity = (UserProfile) objectTypeSerializer.deserialize(request.getInputStream(), header, UserProfile.class, header.getContentType());
 		return userProfileManager.updateUserProfile(userInfo, entity);

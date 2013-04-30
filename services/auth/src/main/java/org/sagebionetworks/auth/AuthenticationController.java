@@ -1,9 +1,6 @@
 package org.sagebionetworks.auth;
 
 import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
@@ -16,10 +13,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.sagebionetworks.StackConfiguration;
-import org.sagebionetworks.StringEncrypter;
+import org.sagebionetworks.auth.services.AuthenticationService;
 import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.authutil.CrowdAuthUtil;
-import org.sagebionetworks.authutil.SendMail;
+import org.sagebionetworks.authutil.CrowdAuthUtil.PW_MODE;
 import org.sagebionetworks.authutil.Session;
 import org.sagebionetworks.authutil.User;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
@@ -28,6 +25,7 @@ import org.sagebionetworks.repo.model.ServiceConstants;
 import org.sagebionetworks.repo.model.auth.RegistrationInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.securitytools.HMACUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -40,6 +38,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 
 @Controller
 public class AuthenticationController extends BaseController {	
+	@Autowired
+	AuthenticationService authenticationService;
+
 	private Random rand = new Random();
 	
 	private static Map<User,Session> sessionCache = null;
@@ -53,8 +54,6 @@ public class AuthenticationController extends BaseController {
 //	  	If passed to the user creation service, there is no confirmation email generated.
 //	  	Instead the password is taken from the incoming request
 	private String integrationTestUser = null;
-
-	private static final String REGISTRATION_TOKEN_PREFIX = "register_";
 
 	private void initCache() {
 		sessionCache = Collections.synchronizedMap(new HashMap<User,Session>());
@@ -174,30 +173,10 @@ public class AuthenticationController extends BaseController {
 		if (!isITU) {
 			//encrypt user session
 			Session session = CrowdAuthUtil.authenticate(user, false);
-			sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW, REGISTRATION_TOKEN_PREFIX+encryptString(session.getSessionToken(), getStackEncryptionKey()));
+			CrowdAuthUtil.sendUserPasswordEmail(user.getEmail(), PW_MODE.SET_PW, CrowdAuthUtil.REGISTRATION_TOKEN_PREFIX+session.getSessionToken());
 		}
 	}
 	
-	private String getStackEncryptionKey() {
-		String stackEncryptionKey = StackConfiguration.getEncryptionKey();
-		if (stackEncryptionKey == null || stackEncryptionKey.length() == 0)
-			throw new RuntimeException(
-					"Expected system property org.sagebionetworks.stackEncryptionKey");
-		return stackEncryptionKey;
-	}
-	
-	public static String encryptString(String s, String stackEncryptionKey) throws UnsupportedEncodingException
-	{
-		StringEncrypter se = new StringEncrypter(stackEncryptionKey);
-		return URLEncoder.encode(se.encrypt(s), "UTF-8");
-	}
-
-	public static String decryptedString(String encryptedS, String stackEncryptionKey) throws UnsupportedEncodingException
-	{
-		StringEncrypter se = new StringEncrypter(stackEncryptionKey);
-		return se.decrypt(URLDecoder.decode(encryptedS, "UTF-8"));
-	}	
-
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = "/user", method = RequestMethod.GET)
 	public @ResponseBody User getUser(@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
@@ -216,12 +195,6 @@ public class AuthenticationController extends BaseController {
 		if (!isITU) throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not allowed outside of integration testing.", null);
 		CrowdAuthUtil.deleteUser(userId);
 	}
-		
-	static enum PW_MODE {
-		SET_PW,
-		RESET_PW,
-		SET_API_PW
-	}
 	
 
 	// reset == true means send the 'reset' message; reset== false means send the 'set' message
@@ -231,30 +204,7 @@ public class AuthenticationController extends BaseController {
 		user.setEmail(userEmail);
 		Session session = CrowdAuthUtil.authenticate(user, false);
 		
-		sendUserPasswordEmail(userEmail, mode, session.getSessionToken());
-	}
-	
-	// reset == true means send the 'reset' message; reset== false means send the 'set' message
-	private static void sendUserPasswordEmail(String userEmail, PW_MODE mode, String sessiontoken) throws Exception {
-		// need a session token
-		User user = new User();
-		user.setEmail(userEmail);
-		Session session = CrowdAuthUtil.authenticate(user, false);
-		// need the rest of the user's fields
-		user = CrowdAuthUtil.getUser(user.getEmail());
-		// now send the reset password email, filling in the user name and session token
-		SendMail sendMail = new SendMail();
-		switch (mode) {
-			case SET_PW:
-				sendMail.sendSetPasswordMail(user, sessiontoken);
-				break;
-			case RESET_PW:
-				sendMail.sendResetPasswordMail(user, sessiontoken);
-				break;
-			case SET_API_PW:
-				sendMail.sendSetAPIPasswordMail(user, sessiontoken);
-				break;
-		}
+		CrowdAuthUtil.sendUserPasswordEmail(userEmail, mode, session.getSessionToken());
 	}
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
@@ -287,6 +237,32 @@ public class AuthenticationController extends BaseController {
 		CrowdAuthUtil.updatePassword(user);
 	}
 	
+	@ResponseStatus(HttpStatus.NO_CONTENT)
+	@RequestMapping(value = "/changeEmail", method = RequestMethod.POST)
+	public void setPassword(@RequestBody RegistrationInfo registrationInfo,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
+		//user must be logged in to make this request
+		if (userId==null) 
+			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
+		String registrationToken = registrationInfo.getRegistrationToken();
+		if (registrationToken==null) 
+			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Missing registration token.", null);
+		
+		String sessionToken  = registrationToken.substring(CrowdAuthUtil.CHANGE_EMAIL_TOKEN_PREFIX.length());
+		String realUserId = CrowdAuthUtil.revalidate(sessionToken);
+		if (realUserId==null) 
+			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
+		//set the password
+		User user = new User();
+		user.setEmail(realUserId);
+		user.setPassword(registrationInfo.getPassword());
+		CrowdAuthUtil.updatePassword(user);
+		
+		//and update the preexisting user to the new email address
+		authenticationService.updateEmail(userId, realUserId);
+		CrowdAuthUtil.deauthenticate(sessionToken);
+	}
+	
 
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/registeringUserPassword", method = RequestMethod.POST)
@@ -296,7 +272,7 @@ public class AuthenticationController extends BaseController {
 		if (registrationToken==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Missing registration token.", null);
 		
-		String sessionToken  = decryptedString(registrationToken.substring(REGISTRATION_TOKEN_PREFIX.length()), getStackEncryptionKey());
+		String sessionToken  = registrationToken.substring(CrowdAuthUtil.REGISTRATION_TOKEN_PREFIX.length());
 		String realUserId = CrowdAuthUtil.revalidate(sessionToken);
 		if (realUserId==null) 
 			throw new AuthenticationException(HttpStatus.BAD_REQUEST.value(), "Not authorized.", null);
@@ -350,9 +326,6 @@ public class AuthenticationController extends BaseController {
 			CrowdAuthUtil.setUserAttributes(userId, userAttributes);
 		}
 	}
-	
-	
-
 }
 
 

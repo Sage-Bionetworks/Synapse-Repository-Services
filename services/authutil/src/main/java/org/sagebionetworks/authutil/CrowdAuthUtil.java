@@ -5,6 +5,9 @@ import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCEPTS_TERM
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.security.Security;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -13,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Random;
 import java.util.logging.Logger;
 
 import javax.net.ssl.HostnameVerifier;
@@ -30,6 +34,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.http.HttpResponse;
 import org.joda.time.DateTime;
 import org.sagebionetworks.StackConfiguration;
+import org.sagebionetworks.StringEncrypter;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -41,6 +46,13 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 public class CrowdAuthUtil {
+	
+	public static enum PW_MODE {
+		SET_PW,
+		RESET_PW,
+		SET_API_PW
+	}
+	
 	private static final Logger log = Logger.getLogger(CrowdAuthUtil.class.getName());
 
 	// restore the 'final' designations after the 0.12->0.13 migration is complete
@@ -518,6 +530,55 @@ public class CrowdAuthUtil {
 		return true;
 	}
 
+	// reset == true means send the 'reset' message; reset== false means send the 'set' message
+	public static void sendUserPasswordEmail(String userEmail, PW_MODE mode, String sessiontoken) throws XPathExpressionException, AuthenticationException, IOException {
+		// need a session token
+		User user = new User();
+		user.setEmail(userEmail);
+		Session session = authenticate(user, false);
+		// need the rest of the user's fields
+		user = getUser(user.getEmail());
+		// now send the reset password email, filling in the user name and session token
+		SendMail sendMail = new SendMail();
+		switch (mode) {
+			case SET_PW:
+				sendMail.sendSetPasswordMail(user, sessiontoken);
+				break;
+			case RESET_PW:
+				sendMail.sendResetPasswordMail(user, sessiontoken);
+				break;
+			case SET_API_PW:
+				sendMail.sendSetAPIPasswordMail(user, sessiontoken);
+				break;
+		}
+	}
 	
+	/**
+	 * Creates a new user in Crowd based on the information from the old user email address, and sends an email to
+	 * validate the new email address and set a password (thus completing migration to the new email address).
+	 * Until this second step takes place, the new crowd email address sits in limbo (not associated to a Synapse User)
+	 * @param oldEmail email address associated to the existing Crowd/Synapse user
+	 * @param newEmail email address user would like to migrate to
+	 * @param rand (used to generate a random password)
+	 * @throws IOException
+	 * @throws AuthenticationException
+	 * @throws XPathExpressionException
+	 */
+	public static void copyUser(String oldEmail, String newEmail, Random rand) throws IOException, AuthenticationException, XPathExpressionException {
+		//create a new user in crowd
+		org.sagebionetworks.authutil.User oldUser = CrowdAuthUtil.getUser(oldEmail);
+		org.sagebionetworks.authutil.User newUser = new org.sagebionetworks.authutil.User();
+		newUser.setDisplayName(oldUser.getDisplayName());
+		newUser.setFirstName(oldUser.getFirstName());
+		newUser.setLastName(oldUser.getLastName());
+		newUser.setEmail(newEmail);
+		newUser.setPassword(""+rand.nextLong());
+		CrowdAuthUtil.createUser(newUser);
+		Session session = CrowdAuthUtil.authenticate(newUser, false);
+		CrowdAuthUtil.sendUserPasswordEmail(newUser.getEmail(), PW_MODE.SET_PW, CrowdAuthUtil.CHANGE_EMAIL_TOKEN_PREFIX+session.getSessionToken());
 
+	}
+
+	public static final String REGISTRATION_TOKEN_PREFIX = "register_";
+	public static final String CHANGE_EMAIL_TOKEN_PREFIX = "change_email_";
 }
