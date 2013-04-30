@@ -13,22 +13,22 @@ public class EzidConstants {
 	public static final String DOI_PREFIX = StackConfiguration.getEzidDoiPrefix();
 
 	/**
-	 * Synapse web portal URL with protocol and host name. Path not included.
+	 * Synapse web portal URL with protocol and host name and the path prefix '#!Synapse:'.
 	 */
 	public static final String TARGET_URL_PREFIX = StackConfiguration.getEzidTargetUrlPrefix() + "/#!Synapse:";
 
 	/**
-	 * Publisher is always Sage Bionetworks.
+	 * DOI Publisher is always Sage Bionetworks.
 	 */
 	public static final String PUBLISHER = "Sage Bionetworks";
 
 	/**
-	 * Publisher is always Sage Bionetworks.
+	 * Default DOI creator (author) when the corresponding information is missing in Synapse.
 	 */
 	public static final String DEFAULT_CREATOR = "(author name not available)";
 
 	/**
-	 * Base URL for the EZID REST APIs.
+	 * Base URL (with the trailing slash) for the EZID REST APIs.
 	 */
 	public static final String EZID_URL = StackConfiguration.getEzidUrl();
 
