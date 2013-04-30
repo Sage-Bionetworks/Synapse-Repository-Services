@@ -1,7 +1,10 @@
 package org.sagebionetworks.repo.manager.backup;
 
+import static org.mockito.Mockito.*;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import java.io.File;
 import java.io.IOException;
@@ -223,6 +226,45 @@ public class SubmissionBackupDriverTest {
 			// Cleanup the file
 			temp.delete();
 		}
-	}	
+	}
+	
+	@Test /* see PLFM-1859 */
+	public void testRoundTrip_NullFileHandles() throws Exception {
+		// Create the source driver with a mocked FileHandleDAO (will return null)
+		SubmissionStatusDAO srcSubmissionStatusDAO = createSubmissionStatusDAO(srcStatuses);
+		SubmissionDAO srcSubmissionDAO = createSubmissionDAO(srcSubs);
+		SubmissionFileHandleDAO mockSubmissionFileHandleDAO = mock(SubmissionFileHandleDAO.class);
+		when(mockSubmissionFileHandleDAO.getAllBySubmission(anyString())).thenReturn(null);
+
+		Entity entity = new Folder();
+		entity.setName("foo");
+		String submissionId = "1000";
+		srcSubmissionDAO.create(createSubmission(submissionId));
+		srcSubmissionStatusDAO.create(createSubmissionStatus(submissionId));
+		
+		sourceDriver = new SubmissionBackupDriver(srcSubmissionDAO, srcSubmissionStatusDAO, mockSubmissionFileHandleDAO);
+		
+		assertNull(mockSubmissionFileHandleDAO.getAllBySubmission(submissionId));
+		
+		// Create a temp file
+		File temp = File.createTempFile("SubmissionBackupDriverTest", ".zip");
+		try {
+			// Try to write to the temp file
+			Progress progress = new Progress();
+			Set<String> ids = new HashSet<String>(); 
+			for (String key : srcStatuses.keySet()) ids.add(key);
+			sourceDriver.writeBackup(temp, progress, ids);
+			System.out.println("Resulting file: "+temp.getAbsolutePath()+" with a size of: "+temp.length()+" bytes");
+			
+			destinationDriver.restoreFromBackup(temp, progress);
+			// all of the data should have migrated from the source to the destination
+			assertEquals(srcSubs, dstSubs);
+			assertEquals(srcStatuses, dstStatuses);
+			assertEquals("unknown File Handles returned", 0, dstHandleIds.size());
+		} finally {
+			// Cleanup the file
+			temp.delete();
+		}
+	}
 
 }
