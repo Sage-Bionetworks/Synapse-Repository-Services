@@ -43,7 +43,7 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 				try {
 					Doi dto = doi.getDto();
 					doiDao.updateDoiStatus(dto.getObjectId(), dto.getDoiObjectType(),
-							dto.getObjectVersion(), DoiStatus.READY, dto.getEtag());
+							dto.getObjectVersion(), DoiStatus.CREATED, dto.getEtag());
 				} catch (DatastoreException e) {
 					logger.error(e.getMessage(), e);
 				} catch (NotFoundException e) {
