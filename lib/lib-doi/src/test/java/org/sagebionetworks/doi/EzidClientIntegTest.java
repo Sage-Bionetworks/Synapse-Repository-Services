@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 import java.util.Calendar;
 import java.util.Random;
 
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.doi.Doi;
 
@@ -134,6 +133,18 @@ public class EzidClientIntegTest {
 		ezidDoi.setMetadata(metadata);
 		DoiClient client = new EzidClient();
 		client.create(ezidDoi);
+	}
+
+	// If the doi does not exist, EZID does not return
+	// HttpStatus.SC_NOT_FOUND as of now. Instead it returns
+	// HttpStatus.SC_BAD_REQUEST "no such identifier".
+	@Test(expected=RuntimeException.class)
+	public void testGetDoiNotFoundException() {
+		final Doi dto = new Doi();
+		String id = Integer.toHexString(819079303);
+		final String doi = EzidConstants.DOI_PREFIX + id;
+		DoiClient client = new EzidClient();
+		client.get(doi, dto);
 	}
 
 	private final Random random = new Random();
