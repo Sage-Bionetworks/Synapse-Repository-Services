@@ -107,7 +107,7 @@ public class EntityDoiManagerImplAutowiredTest {
 			doiGet = entityDoiManager.getDoi(userName, nodeId, null);
 			doiStatus = doiGet.getDoiStatus();
 		}
-		assertEquals(DoiStatus.READY, doiStatus);
+		assertEquals(DoiStatus.CREATED, doiStatus);
 	}
 
 	@Test
@@ -153,7 +153,7 @@ public class EntityDoiManagerImplAutowiredTest {
 			doiGet = entityDoiManager.getDoi(userName, nodeId, 1L);
 			doiStatus = doiGet.getDoiStatus();
 		}
-		assertEquals(DoiStatus.READY, doiStatus);
+		assertEquals(DoiStatus.CREATED, doiStatus);
 	}
 
 	@Test
@@ -205,6 +205,6 @@ public class EntityDoiManagerImplAutowiredTest {
 			doiGet = entityDoiManager.getDoi(userName, nodeId, null);
 			doiStatus = doiGet.getDoiStatus();
 		}
-		assertEquals(DoiStatus.READY, doiStatus);
+		assertEquals(DoiStatus.CREATED, doiStatus);
 	}
 }
