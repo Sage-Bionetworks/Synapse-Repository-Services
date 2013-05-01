@@ -300,4 +300,12 @@ public class SubmissionDAOImplTest {
         submission.setVersionNumber(null);
         submissionDAO.create(submission);
     }
+    
+    // Should be able to have null entity bundle
+    @Test
+    public void testPLFM1859() {
+    	submission.setEntityBundleJSON(null);
+    	String id = submissionDAO.create(submission);
+    	assertNotNull(id);
+    }
 }
