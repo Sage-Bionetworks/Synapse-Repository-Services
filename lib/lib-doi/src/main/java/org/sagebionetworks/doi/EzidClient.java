@@ -54,11 +54,16 @@ public class EzidClient implements DoiClient {
 	}
 
 	@Override
-	public EzidDoi get(final String doi, final Doi doiDto) {
+	public EzidDoi get(final EzidDoi ezidDoi) {
 
+		if (ezidDoi == null) {
+			throw new IllegalArgumentException("EZID DOI cannot be null.");
+		}
+		final String doi = ezidDoi.getDoi();
 		if (doi == null) {
 			throw new IllegalArgumentException("DOI string cannot be null.");
 		}
+		final Doi doiDto = ezidDoi.getDto();
 		if (doiDto == null) {
 			throw new IllegalArgumentException("DOI DTO cannot be null.");
 		}
@@ -95,17 +100,17 @@ public class EzidClient implements DoiClient {
 	}
 
 	@Override
-	public void create(final EzidDoi doi) {
+	public void create(final EzidDoi ezidDoi) {
 
-		if (doi == null) {
+		if (ezidDoi == null) {
 			throw new IllegalArgumentException("DOI cannot be null.");
 		}
 
-		URI uri = URI.create(EzidConstants.EZID_URL + "id/" + doi.getDoi());
+		URI uri = URI.create(EzidConstants.EZID_URL + "id/" + ezidDoi.getDoi());
 		HttpPut put = new HttpPut(uri);
 		try {
 			StringEntity requestEntity = new StringEntity(
-					doi.getMetadata().getMetadataAsString(), HTTP.PLAIN_TEXT_TYPE, "UTF-8");
+					ezidDoi.getMetadata().getMetadataAsString(), HTTP.PLAIN_TEXT_TYPE, "UTF-8");
 			put.setEntity(requestEntity);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e.getMessage(), e);
@@ -128,10 +133,10 @@ public class EzidClient implements DoiClient {
 					return;
 				}
 				try {
-					get(doi.getDoi(), doi.getDto());
+					get(ezidDoi);
 					return; // Already exists
 				} catch (RuntimeException e) {
-					String error = "DOI " + doi.getDoi();
+					String error = "DOI " + ezidDoi.getDoi();
 					error += " got 400 BAD_REQUEST but does not already exits.";
 					throw new RuntimeException(error);
 				}
@@ -143,16 +148,18 @@ public class EzidClient implements DoiClient {
 	}
 
 	@Override
-	public void update(EzidDoi doi) {
+	public void update(EzidDoi ezidDoi) {
 
-		if (doi == null) {
+		if (ezidDoi == null) {
 			throw new IllegalArgumentException("DOI cannot be null.");
 		}
 
-		URI uri = URI.create(EzidConstants.EZID_URL + "id/" + doi.getDoi());
+		URI uri = URI.create(EzidConstants.EZID_URL + "id/" + ezidDoi.getDoi());
 		HttpPost post = new HttpPost(uri);
 		try {
-			StringEntity requestEntity = new StringEntity(doi.getMetadata().getMetadataAsString(), HTTP.PLAIN_TEXT_TYPE, "UTF-8");
+			StringEntity requestEntity = new StringEntity(
+					ezidDoi.getMetadata().getMetadataAsString(),
+					HTTP.PLAIN_TEXT_TYPE, "UTF-8");
 			post.setEntity(requestEntity);
 		} catch (UnsupportedEncodingException e) {
 			throw new RuntimeException(e.getMessage(), e);

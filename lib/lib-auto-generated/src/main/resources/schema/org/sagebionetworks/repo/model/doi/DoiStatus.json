@@ -4,6 +4,7 @@
 	"enum": [
 		"IN_PROCESS",
 		"CREATED",
+		"READY",
 		"ERROR"
 	]
 }
