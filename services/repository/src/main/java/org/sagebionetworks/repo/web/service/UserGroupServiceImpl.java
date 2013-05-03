@@ -39,5 +39,4 @@ public class UserGroupServiceImpl implements UserGroupService {
 				sort, 
 				ascending);
 	}
-
 }

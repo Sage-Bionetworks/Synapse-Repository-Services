@@ -25,5 +25,4 @@ public interface UserGroupService {
 			String userId, Integer offset, Integer limit, String sort,
 			Boolean ascending) throws DatastoreException,
 			UnauthorizedException, NotFoundException;
-
 }

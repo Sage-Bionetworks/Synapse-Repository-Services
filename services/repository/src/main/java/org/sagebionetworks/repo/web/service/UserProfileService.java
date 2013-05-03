@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.xml.xpath.XPathExpressionException;
 
+import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.manager.EntityManager;
 import org.sagebionetworks.repo.manager.PermissionsManager;
 import org.sagebionetworks.repo.manager.UserManager;
@@ -12,7 +14,6 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
-import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -71,7 +72,7 @@ public interface UserProfileService {
 	 */
 	public UserProfile updateUserProfile(String userId, HttpHeaders header, HttpServletRequest request) throws NotFoundException,
 			ConflictingUpdateException, DatastoreException,
-			InvalidModelException, UnauthorizedException, IOException;
+			InvalidModelException, UnauthorizedException, IOException, AuthenticationException, XPathExpressionException;
 
 	/**
 	 * Create a security token for use for a particular with a particular

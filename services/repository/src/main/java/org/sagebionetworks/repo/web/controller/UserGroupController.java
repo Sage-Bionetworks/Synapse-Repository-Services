@@ -45,7 +45,5 @@ public class UserGroupController extends BaseController {
 			@RequestParam(value = ServiceConstants.ASCENDING_PARAM, required = false, defaultValue = ServiceConstants.DEFAULT_ASCENDING_PARAM) Boolean ascending
 			) throws DatastoreException, UnauthorizedException, NotFoundException {
 		return serviceProvider.getUserGroupService().getUserGroups(request, userId, offset, limit, sort, ascending);
-		
-	}	
-	
+	}
 }
