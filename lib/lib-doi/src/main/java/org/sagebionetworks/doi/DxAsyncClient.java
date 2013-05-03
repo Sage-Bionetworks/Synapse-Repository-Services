@@ -2,12 +2,8 @@ package org.sagebionetworks.doi;
 
 import java.io.IOException;
 import java.net.URI;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
@@ -61,38 +57,36 @@ public class DxAsyncClient {
 		}
 
 		final String doi = doiString.substring(doiPrefix.length());
-		Callable<String> callable = new Callable<String> () {
+		executor.execute(new Runnable() {
 			@Override
-			public String call() {
-				return resolve(doi);
-			}};
+			public void run() {
+				try {
+					long start = System.currentTimeMillis();
+					String location = resolveWithRetries(doi);
+					long totalTime = System.currentTimeMillis() - start;
+					if (location == null) {
+						callback.onError(ezidDoi, new RuntimeException(
+								"DOI " + doiString + " failed to resolve after "
+								+ totalTime + " seconds."));
+					} else {
+						callback.onSuccess(ezidDoi);
+					}
+				} catch (InterruptedException e) {
+					callback.onError(ezidDoi, e);
+				}
+			}
+		});
+	}
 
+	private String resolveWithRetries(String doi) throws InterruptedException {
 		String location = null;
 		long delay = this.delay;
-		long start = System.currentTimeMillis();
 		while (location == null && delay > 0) {
-			try {
-				Future<String> future = executor.schedule(callable, delay, TimeUnit.MILLISECONDS);
-				location = future.get();
-			} catch (ExecutionException e) {
-				System.out.println(e.getMessage());
-				e.printStackTrace();
-				callback.onError(ezidDoi, e);
-				return;
-			} catch (InterruptedException e) {
-				callback.onError(ezidDoi, e);
-				return;
-			}
+			Thread.sleep(delay);
+			location = resolve(doi);
 			delay = delay - decay;
 		}
-
-		if (location == null) {
-			long totalTime = (System.currentTimeMillis() - start) / 1000;
-			callback.onError(ezidDoi, new RuntimeException(
-					"DOI " + doiString + " failed to resolve after " + totalTime + " seconds."));
-		} else {
-			callback.onSuccess(ezidDoi);
-		}
+		return location;
 	}
 
 	/**
@@ -127,7 +121,7 @@ public class DxAsyncClient {
 	// If the thread pool is to have more than 1 thread,
 	// the blocking client must also use a pool of connections.
 	// The blocking client currently uses SingleClientConnManager.
-	private final ScheduledExecutorService executor = Executors.newScheduledThreadPool(1);
+	private final ExecutorService executor = Executors.newFixedThreadPool(1);
 	private final RetryableHttpClient httpClient;
 	private final long delay;
 	private final long decay;

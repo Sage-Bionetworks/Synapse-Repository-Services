@@ -44,10 +44,10 @@ public class DxAsyncClientIntegTest {
 		final EzidMetadata metadata = new EzidMetadata();
 		ezidDoi.setMetadata(metadata);
 
-		long delay = 1000L;
-		long decay = 300L;
+		long delay = 100L;
+		long decay = 30L;
 		DxAsyncClient dxClient = new DxAsyncClient(delay, decay);
-		long start = System.currentTimeMillis();
+		final long start = System.currentTimeMillis();
 		dxClient.resolve(ezidDoi, new DxAsyncCallback() {
 			@Override
 			public void onSuccess(EzidDoi ezidDoi) {
@@ -55,9 +55,9 @@ public class DxAsyncClientIntegTest {
 			}
 			@Override
 			public void onError(EzidDoi ezidDoi, Exception e) {
+				long stop = System.currentTimeMillis();
+				assertTrue((stop - start) > (100 + 70 + 40 + 10));
 			}
 		});
-		long stop = System.currentTimeMillis();
-		assertTrue((stop - start) > (1000 + 700 + 400 + 100));
 	}
 }

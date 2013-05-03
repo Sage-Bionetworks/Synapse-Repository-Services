@@ -44,14 +44,15 @@ public class DxAsyncClientTest {
 
 		DxAsyncClient dxClient = new DxAsyncClient();
 		ReflectionTestUtils.setField(dxClient, "httpClient", mockClient);
-		ReflectionTestUtils.setField(dxClient, "delay", 1000L);
-		ReflectionTestUtils.setField(dxClient, "decay", 300L);
+		ReflectionTestUtils.setField(dxClient, "delay", 100L);
+		ReflectionTestUtils.setField(dxClient, "decay", 30L);
 
 		DxAsyncCallback callback = mock(DxAsyncCallback.class);
 		dxClient.resolve(ezidDoi, callback);
+		Thread.sleep(1000L);
 		verify(callback).onSuccess(ezidDoi);
 	}
-	
+
 	@Test
 	public void testNotFound() throws Exception {
 
@@ -74,11 +75,12 @@ public class DxAsyncClientTest {
 
 		DxAsyncClient dxClient = new DxAsyncClient();
 		ReflectionTestUtils.setField(dxClient, "httpClient", mockClient);
-		ReflectionTestUtils.setField(dxClient, "delay", 1000L);
-		ReflectionTestUtils.setField(dxClient, "decay", 300L);
+		ReflectionTestUtils.setField(dxClient, "delay", 100L);
+		ReflectionTestUtils.setField(dxClient, "decay", 30L);
 
 		DxAsyncCallback callback = mock(DxAsyncCallback.class);
 		dxClient.resolve(ezidDoi, callback);
+		Thread.sleep(1000L);
 		verify(callback).onError(same(ezidDoi), any(RuntimeException.class));
 		verify(mockClient, times(4)).executeWithRetry(any(HttpGet.class));
 	}
