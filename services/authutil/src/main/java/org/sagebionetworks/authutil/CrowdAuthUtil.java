@@ -136,6 +136,7 @@ public class CrowdAuthUtil {
 				byte[] respBody = (readInputStream(response.getEntity().getContent())).getBytes();
 				return respBody;
 			} catch (HttpClientHelperException hche) {
+			    //TODO: throw a new exception if the response contains "User already exists"
 				throw new AuthenticationException(hche.getHttpStatus(), failureReason, hche);
 			} 
 			

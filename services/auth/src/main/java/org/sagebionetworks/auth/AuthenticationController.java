@@ -239,7 +239,7 @@ public class AuthenticationController extends BaseController {
 	
 	@ResponseStatus(HttpStatus.NO_CONTENT)
 	@RequestMapping(value = "/changeEmail", method = RequestMethod.POST)
-	public void setPassword(@RequestBody RegistrationInfo registrationInfo,
+	public void changeEmail(@RequestBody RegistrationInfo registrationInfo,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId) throws Exception {
 		//user must be logged in to make this request
 		if (userId==null) 
