@@ -41,4 +41,9 @@ public class EzidConstants {
 	 * EZID account password.
 	 */
 	public static final String EZID_PASSWORD = StackConfiguration.getEzidPassword();
+
+	/**
+	 * URL (with the trailing slash) for the DOI name resolution service.
+	 */
+	public static final String DX_URL = "http://dx.doi.org/";
 }

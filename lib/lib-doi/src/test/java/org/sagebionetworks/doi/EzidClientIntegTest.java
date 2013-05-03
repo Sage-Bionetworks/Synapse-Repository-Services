@@ -39,7 +39,7 @@ public class EzidClientIntegTest {
 		doiCreate.setMetadata(metadata);
 		DoiClient client = new EzidClient();
 		client.create(doiCreate);
-		EzidDoi doiGet = client.get(doi, dto);
+		EzidDoi doiGet = client.get(doiCreate);
 		assertNotNull(doiGet);
 		assertEquals(doi, doiGet.getDoi());
 		assertEquals(target, doiGet.getMetadata().getTarget());
@@ -76,7 +76,7 @@ public class EzidClientIntegTest {
 		final String newTarget = target + "#!Home";
 		metadata.setTarget(newTarget);
 		client.update(doiCreate);
-		EzidDoi doiGet = client.get(doi, dto);
+		EzidDoi doiGet = client.get(doiCreate);
 		assertNotNull(doiGet);
 		assertEquals(doi, doiGet.getDoi());
 		assertEquals(newTarget, doiGet.getMetadata().getTarget());
@@ -140,11 +140,12 @@ public class EzidClientIntegTest {
 	// HttpStatus.SC_BAD_REQUEST "no such identifier".
 	@Test(expected=RuntimeException.class)
 	public void testGetDoiNotFoundException() {
-		final Doi dto = new Doi();
-		String id = Integer.toHexString(819079303);
-		final String doi = EzidConstants.DOI_PREFIX + id;
+		EzidDoi ezidDoi = new EzidDoi();
+		ezidDoi.setDoi(EzidConstants.DOI_PREFIX + 819079303);
+		ezidDoi.setDto(new Doi());
+		ezidDoi.setMetadata(new EzidMetadata());
 		DoiClient client = new EzidClient();
-		client.get(doi, dto);
+		client.get(ezidDoi);
 	}
 
 	private final Random random = new Random();

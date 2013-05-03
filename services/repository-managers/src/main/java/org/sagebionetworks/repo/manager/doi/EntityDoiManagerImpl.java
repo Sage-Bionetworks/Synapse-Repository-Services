@@ -3,7 +3,9 @@ package org.sagebionetworks.repo.manager.doi;
 import java.util.Calendar;
 
 import org.apache.log4j.Logger;
-import org.sagebionetworks.doi.DoiClient;
+import org.sagebionetworks.doi.DoiAsyncClient;
+import org.sagebionetworks.doi.DxAsyncCallback;
+import org.sagebionetworks.doi.DxAsyncClient;
 import org.sagebionetworks.doi.EzidAsyncCallback;
 import org.sagebionetworks.doi.EzidAsyncClient;
 import org.sagebionetworks.doi.EzidConstants;
@@ -32,40 +34,12 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	@Autowired private AuthorizationManager authorizationManager;
 	@Autowired private DoiDao doiDao;
 	@Autowired private NodeDAO nodeDao;
-	private final DoiClient ezidAsyncClient;
+	private final DoiAsyncClient ezidAsyncClient;
+	private final DxAsyncClient dxAsyncClient;
 
 	public EntityDoiManagerImpl() {
-		ezidAsyncClient = new EzidAsyncClient(new EzidAsyncCallback() {
-
-			@Override
-			public void onSuccess(EzidDoi doi) {
-				assert doi != null;
-				try {
-					Doi dto = doi.getDto();
-					doiDao.updateDoiStatus(dto.getObjectId(), dto.getDoiObjectType(),
-							dto.getObjectVersion(), DoiStatus.CREATED, dto.getEtag());
-				} catch (DatastoreException e) {
-					logger.error(e.getMessage(), e);
-				} catch (NotFoundException e) {
-					logger.error(e.getMessage(), e);
-				}
-			}
-
-			@Override
-			public void onError(EzidDoi doi, Exception e) {
-				assert doi != null;
-				try {
-					logger.error(e.getMessage(), e);
-					Doi dto = doi.getDto();
-					doiDao.updateDoiStatus(dto.getObjectId(), dto.getDoiObjectType(),
-							dto.getObjectVersion(), DoiStatus.ERROR, dto.getEtag());
-				} catch (DatastoreException x) {
-					logger.error(x.getMessage(), x);
-				} catch (NotFoundException x) {
-					logger.error(x.getMessage(), x);
-				}
-			}
-		});
+		ezidAsyncClient = new EzidAsyncClient();
+		dxAsyncClient = new DxAsyncClient();
 	}
 
 	/**
@@ -144,7 +118,62 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 		ezidDoi.setMetadata(metadata);
 
 		// Call EZID to create the DOI
-		ezidAsyncClient.create(ezidDoi);
+		ezidAsyncClient.create(ezidDoi, new EzidAsyncCallback() {
+
+			@Override
+			public void onSuccess(EzidDoi doi) {
+				assert doi != null;
+				try {
+					Doi dto = doi.getDto();
+					doiDao.updateDoiStatus(dto.getObjectId(), dto.getDoiObjectType(),
+							dto.getObjectVersion(), DoiStatus.CREATED, dto.getEtag());
+				} catch (DatastoreException e) {
+					logger.error(e.getMessage(), e);
+				} catch (NotFoundException e) {
+					logger.error(e.getMessage(), e);
+				}
+			}
+
+			@Override
+			public void onError(EzidDoi doi, Exception e) {
+				assert doi != null;
+				try {
+					logger.error(e.getMessage(), e);
+					Doi dto = doi.getDto();
+					doiDao.updateDoiStatus(dto.getObjectId(), dto.getDoiObjectType(),
+							dto.getObjectVersion(), DoiStatus.ERROR, dto.getEtag());
+				} catch (DatastoreException x) {
+					logger.error(x.getMessage(), x);
+				} catch (NotFoundException x) {
+					logger.error(x.getMessage(), x);
+				}
+			}
+		});
+
+		// Now calls the DOI resolution service to check if the DOI is ready for use
+		dxAsyncClient.resolve(ezidDoi, new DxAsyncCallback() {
+
+			@Override
+			public void onSuccess(EzidDoi ezidDoi) {
+				try {
+					Doi doiDto = ezidDoi.getDto();
+					doiDto = doiDao.getDoi(doiDto.getObjectId(), doiDto.getDoiObjectType(),
+							doiDto.getObjectVersion());
+					doiDao.updateDoiStatus(doiDto.getObjectId(),
+							doiDto.getDoiObjectType(), doiDto.getObjectVersion(),
+							DoiStatus.READY, doiDto.getEtag());
+				} catch (DatastoreException e) {
+					logger.error(e.getMessage(), e);
+				} catch (NotFoundException e) {
+					logger.error(e.getMessage(), e);
+				}
+			}
+
+			@Override
+			public void onError(EzidDoi ezidDoi, Exception e) {
+				logger.error(e.getMessage(), e);
+			}
+		});
 
 		return doiDto;
 	}
