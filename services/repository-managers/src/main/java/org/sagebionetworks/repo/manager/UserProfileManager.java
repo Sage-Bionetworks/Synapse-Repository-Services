@@ -1,5 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.IOException;
+
+import javax.xml.xpath.XPathExpressionException;
+
+import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
@@ -63,8 +68,9 @@ public interface UserProfileManager {
 	 * @throws UnauthorizedException
 	 * @throws ConflictingUpdateException 
 	 * @throws InvalidModelException 
+	 * @throws IOException 
 	 */
-	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated) throws NotFoundException, DatastoreException, UnauthorizedException, ConflictingUpdateException, InvalidModelException;
+	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated) throws DatastoreException, UnauthorizedException, InvalidModelException, NotFoundException, AuthenticationException, IOException, XPathExpressionException;
 
 	/**
 	 * userId may not match the profileId
