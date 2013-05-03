@@ -37,4 +37,9 @@ public class EzidClientTest {
 		assertEquals(Integer.valueOf(9000), httpClient.getParams().getParameter(CoreConnectionPNames.SO_TIMEOUT));
 		assertEquals("Synapse", httpClient.getParams().getParameter(CoreProtocolPNames.USER_AGENT));
 	}
+
+	@Test
+	public void testCreate() throws Exception {
+		
+	}
 }

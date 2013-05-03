@@ -4,6 +4,8 @@ import java.util.Calendar;
 
 import org.apache.log4j.Logger;
 import org.sagebionetworks.doi.DoiClient;
+import org.sagebionetworks.doi.DxAsyncCallback;
+import org.sagebionetworks.doi.DxAsyncClient;
 import org.sagebionetworks.doi.EzidAsyncCallback;
 import org.sagebionetworks.doi.EzidAsyncClient;
 import org.sagebionetworks.doi.EzidConstants;
@@ -33,8 +35,10 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 	@Autowired private DoiDao doiDao;
 	@Autowired private NodeDAO nodeDao;
 	private final DoiClient ezidAsyncClient;
+	private final DxAsyncClient dxAsyncClient;
 
 	public EntityDoiManagerImpl() {
+
 		ezidAsyncClient = new EzidAsyncClient(new EzidAsyncCallback() {
 
 			@Override
@@ -66,6 +70,8 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 				}
 			}
 		});
+
+		dxAsyncClient = new DxAsyncClient();
 	}
 
 	/**
@@ -145,6 +151,31 @@ public class EntityDoiManagerImpl implements EntityDoiManager {
 
 		// Call EZID to create the DOI
 		ezidAsyncClient.create(ezidDoi);
+
+		// Now calls the DOI resolution service to check if the DOI is ready for use
+		dxAsyncClient.resolve(ezidDoi, new DxAsyncCallback() {
+
+			@Override
+			public void onSuccess(EzidDoi ezidDoi) {
+				try {
+					Doi doiDto = ezidDoi.getDto();
+					doiDto = doiDao.getDoi(doiDto.getObjectId(), doiDto.getDoiObjectType(),
+							doiDto.getObjectVersion());
+					doiDao.updateDoiStatus(doiDto.getObjectId(),
+							doiDto.getDoiObjectType(), doiDto.getObjectVersion(),
+							DoiStatus.READY, doiDto.getEtag());
+				} catch (DatastoreException e) {
+					logger.error(e.getMessage(), e);
+				} catch (NotFoundException e) {
+					logger.error(e.getMessage(), e);
+				}
+			}
+
+			@Override
+			public void onError(EzidDoi ezidDoi, Exception e) {
+				logger.error(e.getMessage(), e);
+			}
+		});
 
 		return doiDto;
 	}
