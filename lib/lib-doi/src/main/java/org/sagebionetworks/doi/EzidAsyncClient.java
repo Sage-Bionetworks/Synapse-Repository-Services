@@ -3,8 +3,6 @@ package org.sagebionetworks.doi;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import org.sagebionetworks.repo.model.doi.Doi;
-
 public class EzidAsyncClient implements DoiClient {
 
 	public EzidAsyncClient(EzidAsyncCallback createCallback) {
@@ -19,8 +17,8 @@ public class EzidAsyncClient implements DoiClient {
 	 * Ideally we would get the results from the async callback.
 	 */
 	@Override
-	public EzidDoi get(String doi, Doi dto) {
-		return ezidClient.get(doi, dto);
+	public EzidDoi get(EzidDoi ezidDoi) {
+		return ezidClient.get(ezidDoi);
 	}
 
 	@Override
