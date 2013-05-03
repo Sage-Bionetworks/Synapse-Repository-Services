@@ -63,6 +63,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		doiAdminDao.clear();
 	}
 
+	@SuppressWarnings("deprecation")
 	@Test
 	public void testRoundTrip() throws Exception {
 
@@ -109,6 +110,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertEquals(DoiStatus.CREATED, doiStatus);
 	}
 
+	@SuppressWarnings("deprecation")
 	@Test
 	public void testRoundTripWithVersionNumber() throws Exception {
 
@@ -155,6 +157,7 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertEquals(DoiStatus.CREATED, doiStatus);
 	}
 
+	@SuppressWarnings("deprecation")
 	@Test
 	public void testRetryableOnError() throws Exception {
 
