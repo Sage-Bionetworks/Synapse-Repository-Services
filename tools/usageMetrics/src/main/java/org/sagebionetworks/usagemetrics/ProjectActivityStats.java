@@ -22,7 +22,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
-import org.sagebionetworks.repo.model.UserProfile;
 
 
 /**
@@ -35,16 +34,15 @@ import org.sagebionetworks.repo.model.UserProfile;
  */
 public class ProjectActivityStats {
 	
-	private static final String ID_TO_USERNAME_FILE = "/home/geoff/work/sage/notes/principalIdToUserNameMap.csv";
 	private static Map<String, String> idToUser;
 	
 	private static final int TIME_WINDOW_DAYS = 30;
 	
 	private static final boolean VERBOSE = false;
 	
-	public static void initIdToEmailMap() {
+	public static void initIdToEmailMap(String jdoUserGroupTableCsvPath) {
 		// Load the csv file and process it into the map.
-		File file = new File(ID_TO_USERNAME_FILE);
+		File file = new File(jdoUserGroupTableCsvPath);
 		FileInputStream is;
 		try {
 			is = new FileInputStream(file);
@@ -72,14 +70,15 @@ public class ProjectActivityStats {
 	}
 	
 	public static void main(String[] args) throws Exception {
-		initIdToEmailMap();
-		
-		DateFormat df = new SimpleDateFormat("dd-MMM-yyyy");
-		Date end = df.parse("27-JUL-2012");
-		Long start = (end.getTime())-TIME_WINDOW_DAYS*24*3600*1000L;
+		DateFormat df = new SimpleDateFormat("dd-MMM-yyyy");		
 		Synapse synapse = new Synapse();
-		String username = args[0];
-		String password = args[1];
+		final String username = args[0];
+		final String password = args[1];
+		final Date end = df.parse(args[2]); // i.e. "27-JUL-2012"
+		final String jdoUserGroupTableCsvPath = args[3];
+		initIdToEmailMap(jdoUserGroupTableCsvPath);
+		
+		Long start = (end.getTime())-TIME_WINDOW_DAYS*24*3600*1000L;		
 		synapse.login(username, password);
 		Map<String, Collection<String>> results = findProjectUsers(synapse,  start,  end.getTime());
 		
