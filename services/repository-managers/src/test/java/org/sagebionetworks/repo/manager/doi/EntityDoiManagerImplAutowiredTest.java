@@ -11,6 +11,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.doi.DoiAsyncClient;
+import org.sagebionetworks.doi.DxAsyncClient;
 import org.sagebionetworks.repo.manager.NodeManager;
 import org.sagebionetworks.repo.model.DoiAdminDao;
 import org.sagebionetworks.repo.model.DoiDao;
@@ -21,17 +23,22 @@ import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
 import org.sagebionetworks.repo.web.util.UserProvider;
+import org.springframework.aop.framework.Advised;
+import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class EntityDoiManagerImplAutowiredTest {
 
 	// Max wait time for the DOI status to turn green
-	private static long MAX_WAIT = 12000; // 12 seconds
-	private static long PAUSE = 2000;     // Pause between waits is 2 seconds
+	private static long MAX_WAIT = 10000; // 10 seconds
+	private static long PAUSE = 100;      // Pause between checks is 100 ms
+	private static long EZID_CLIENT_DELAY = 1000;
+	private static long DX_CLIENT_DELAY = 3000;
 
 	@Autowired private EntityDoiManager entityDoiManager;
 	@Autowired private NodeManager nodeManager;
@@ -53,6 +60,16 @@ public class EntityDoiManagerImplAutowiredTest {
 		assertNotNull(testUserInfo);
 
 		toClearList = new ArrayList<String>();
+
+		DoiAsyncClient mockEzidClient = new MockDoiAsyncClient(EZID_CLIENT_DELAY);
+		DxAsyncClient mockDxClient = new MockDxAsyncClient(DX_CLIENT_DELAY);
+		EntityDoiManager manager = entityDoiManager;
+		if (AopUtils.isAopProxy(manager) && manager instanceof Advised) {
+			Object target = ((Advised)manager).getTargetSource().getTarget();
+			manager = (EntityDoiManagerImpl)target;
+		}
+		ReflectionTestUtils.setField(manager, "ezidAsyncClient", mockEzidClient);
+		ReflectionTestUtils.setField(manager, "dxAsyncClient", mockDxClient);
 	}
 
 	@After
@@ -108,6 +125,13 @@ public class EntityDoiManagerImplAutowiredTest {
 			doiStatus = doiGet.getDoiStatus();
 		}
 		assertEquals(DoiStatus.CREATED, doiStatus);
+		while (time < MAX_WAIT && DoiStatus.CREATED.equals(doiStatus)) {
+			Thread.sleep(PAUSE);
+			time = time + PAUSE;
+			doiGet = entityDoiManager.getDoi(userName, nodeId, null);
+			doiStatus = doiGet.getDoiStatus();
+		}
+		assertEquals(DoiStatus.READY, doiStatus);
 	}
 
 	@SuppressWarnings("deprecation")
@@ -155,6 +179,13 @@ public class EntityDoiManagerImplAutowiredTest {
 			doiStatus = doiGet.getDoiStatus();
 		}
 		assertEquals(DoiStatus.CREATED, doiStatus);
+		while (time < MAX_WAIT && DoiStatus.CREATED.equals(doiStatus)) {
+			Thread.sleep(PAUSE);
+			time = time + PAUSE;
+			doiGet = entityDoiManager.getDoi(userName, nodeId, 1L);
+			doiStatus = doiGet.getDoiStatus();
+		}
+		assertEquals(DoiStatus.READY, doiStatus);
 	}
 
 	@SuppressWarnings("deprecation")
@@ -208,5 +239,12 @@ public class EntityDoiManagerImplAutowiredTest {
 			doiStatus = doiGet.getDoiStatus();
 		}
 		assertEquals(DoiStatus.CREATED, doiStatus);
+		while (time < MAX_WAIT && DoiStatus.CREATED.equals(doiStatus)) {
+			Thread.sleep(PAUSE);
+			time = time + PAUSE;
+			doiGet = entityDoiManager.getDoi(userName, nodeId, null);
+			doiStatus = doiGet.getDoiStatus();
+		}
+		assertEquals(DoiStatus.READY, doiStatus);
 	}
 }
