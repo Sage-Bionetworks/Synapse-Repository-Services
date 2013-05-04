@@ -352,7 +352,7 @@ public class EntityControllerTest {
 	@Test
 	public void testPromoteEntity() throws Exception {
 		Project p = new Project();
-		p.setName("Create without entity type");
+		p.setName("Project testPromoteEntity()");
 		p.setEntityType(p.getClass().getName());
 		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 		String id = clone.getId();
@@ -370,7 +370,36 @@ public class EntityControllerTest {
 		assertNotNull(info);
 		assertEquals(new Long(3), info.getVersionNumber());
 	}
-	
+
+	@Test
+	public void testPromoteFileEntity() throws Exception {
+		Project p = new Project();
+		p.setName("Project testPromoteFileEntity()");
+		p.setEntityType(p.getClass().getName());
+		Project parentBack = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
+		String parentId = parentBack.getId();
+		toDelete.add(parentId);
+		FileEntity file1 = new FileEntity();
+		file1.setName("FileName");
+		file1.setEntityType(FileEntity.class.getName());
+		file1.setParentId(parentId);
+		file1.setDataFileHandleId(handleOne.getId());
+		FileEntity fileBack1 = (FileEntity) entityServletHelper.createEntity(file1, TEST_USER1, null);
+		toDelete.add(fileBack1.getId());
+		fileBack1.setDataFileHandleId(handleTwo.getId());
+		fileBack1.setVersionLabel("New label");
+		FileEntity fileBack2 = (FileEntity) entityServletHelper.createNewVersion(TEST_USER1, fileBack1);
+		assertEquals(fileBack1.getId(), fileBack2.getId());
+		VersionInfo info = entityServletHelper.promoteVersion(TEST_USER1, fileBack1.getId(), 1L);
+		assertNotNull(info);
+		assertEquals(new Long(3), info.getVersionNumber());
+		FileEntity promoted = (FileEntity)entityServletHelper.getEntity(fileBack1.getId(), TEST_USER1);
+		assertEquals(handleOne.getId(), file1.getDataFileHandleId());
+		assertEquals(handleTwo.getId(), fileBack1.getDataFileHandleId());
+		assertEquals(handleTwo.getId(), fileBack2.getDataFileHandleId());
+		assertEquals(handleOne.getId(), promoted.getDataFileHandleId());
+	}
+
 	/**
 	 * Test that we can create a file entity.
 	 * @throws NotFoundException 
