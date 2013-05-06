@@ -34,7 +34,7 @@ public class DBOWikiPage implements MigratableDatabaseObject<DBOWikiPage, DBOWik
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_WIKI_ID, true).withIsBackupId(true),
-		new FieldColumn("etag", COL_WIKI_ETAG),
+		new FieldColumn("etag", COL_WIKI_ETAG).withIsEtag(true),
 		new FieldColumn("title", COL_WIKI_TITLE),
 		new FieldColumn("createdBy", COL_WIKI_CREATED_BY),
 		new FieldColumn("createdOn", COL_WIKI_CREATED_ON),
