@@ -1236,8 +1236,8 @@ public class Synapse {
 	 * @return
 	 * @throws SynapseException
 	 */
-	public <T extends Versionable> T cereateNewEntityVersion(T entity) throws SynapseException {
-		return cereateNewEntityVersion(entity, null);
+	public <T extends Versionable> T createNewEntityVersion(T entity) throws SynapseException {
+		return createNewEntityVersion(entity, null);
 	}
 	
 	/**
@@ -1249,7 +1249,7 @@ public class Synapse {
 	 * @throws SynapseException
 	 */
 	@SuppressWarnings("unchecked")
-	public <T extends Versionable> T cereateNewEntityVersion(T entity, String activityId) throws SynapseException {
+	public <T extends Versionable> T createNewEntityVersion(T entity, String activityId) throws SynapseException {
 		if (entity == null)
 			throw new IllegalArgumentException("Entity cannot be null");
 
