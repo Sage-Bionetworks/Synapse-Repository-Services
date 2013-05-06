@@ -67,6 +67,8 @@
 			<list>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOFileHandle" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiPage" />
+				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOWikiOwner" />
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBONode" />
 			</list>
 		</property>

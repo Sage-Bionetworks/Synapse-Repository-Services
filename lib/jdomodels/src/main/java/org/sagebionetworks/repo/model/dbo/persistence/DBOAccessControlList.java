@@ -8,15 +8,19 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.LinkedList;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBOAccessControlList implements DatabaseObject<DBOAccessControlList> {
+public class DBOAccessControlList implements MigratableDatabaseObject<DBOAccessControlList, DBOAccessControlList> {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_ID, true),
+		new FieldColumn("id", COL_ID, true).withIsBackupId(true),
 		new FieldColumn("resource", ACL_OWNER_ID_COLUMN),
 		new FieldColumn("creationDate", COL_NODE_CREATED_ON)
 		};
@@ -77,6 +81,39 @@ public class DBOAccessControlList implements DatabaseObject<DBOAccessControlList
 	public void setCreationDate(Long creationDate) {
 		this.creationDate = creationDate;
 	}
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.ACL;
+	}
+	@Override
+	public MigratableTableTranslation<DBOAccessControlList, DBOAccessControlList> getTranslator() {
+		return new MigratableTableTranslation<DBOAccessControlList, DBOAccessControlList>(){
+
+			@Override
+			public DBOAccessControlList createDatabaseObjectFromBackup(
+					DBOAccessControlList backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOAccessControlList createBackupFromDatabaseObject(
+					DBOAccessControlList dbo) {
+				return dbo;
+			}};
+	}
+	@Override
+	public Class<? extends DBOAccessControlList> getBackupClass() {
+		return DBOAccessControlList.class;
+	}
+	@Override
+	public Class<? extends DBOAccessControlList> getDatabaseObjectClass() {
+		return DBOAccessControlList.class;
+	}
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
