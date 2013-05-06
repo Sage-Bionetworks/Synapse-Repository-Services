@@ -12,6 +12,9 @@
         "ACL",
         "ACL_ACCESS",
         "ACL_ACCESS_TYPE",
+        "ACCESS_REQUIREMENT",
+        "NODE_ACCESS_REQUIRMENT",
+        "ACCESS_APPROVAL",
         "CHANGE"
     ]
 }
