@@ -1,6 +1,7 @@
 package org.sagebionetworks.client;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.json.JSONObject;
@@ -19,6 +20,12 @@ import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
+import org.sagebionetworks.repo.model.migration.IdList;
+import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
+import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
+import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -44,6 +51,18 @@ public class SynapseAdministration extends Synapse {
 	private static final String ADMIN_CHANGE_MESSAGES = ADMIN + "/messages";
 	private static final String ADMIN_PUBLISH_MESSAGES = ADMIN_CHANGE_MESSAGES+"/rebroadcast";
 	private static final String ADMIN_DOI_CLEAR = ADMIN + "/doi/clear";
+	
+	public static final String MIGRATION = "/migration";
+	public static final String MIGRATION_COUNTS = MIGRATION+"/counts";
+	public static final String MIGRATION_ROWS = MIGRATION+"/rows";
+	public static final String MIGRATION_DELTA = MIGRATION+"/delta";
+	public static final String MIGRATION_BACKUP = MIGRATION+"/backup";
+	public static final String MIGRATION_RESTORE = MIGRATION+"/restore";
+	public static final String MIGRATION_DELETE = MIGRATION+"/delete";
+	public static final String MIGRATION_STATUS = MIGRATION+"/status";
+	public static final String MIGRATION_PRIMARY = MIGRATION+"/primarytypes";
+
+
 
 	public SynapseAdministration() {
 		super();
@@ -184,6 +203,113 @@ public class SynapseAdministration extends Synapse {
 		return getJSONEntity(url, ChangeMessages.class);
 	}
 	
+	// New migration client methods
+	
+	/*
+	 * 
+	 */
+	public MigrationTypeList getPrimaryTypes() throws SynapseException, JSONObjectAdapterException {
+		String uri = MIGRATION_PRIMARY;
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		MigrationTypeList mtl = new MigrationTypeList();
+		mtl.initializeFromJSONObject(adapter);
+		return mtl;
+	}
+	
+	/*
+	 * 
+	 * 
+	 */
+	public MigrationTypeCounts getTypeCounts() throws SynapseException, JSONObjectAdapterException {
+		String uri = MIGRATION_COUNTS;
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		MigrationTypeCounts mtc = new MigrationTypeCounts();
+		mtc.initializeFromJSONObject(adapter);
+		return mtc;
+	}
+	
+	/*
+	 * 
+	 */
+	public PaginatedResults<RowMetadataResult> getRowMetadata(MigrationType migrationType, Integer limit, Integer offset) throws SynapseException, JSONObjectAdapterException {
+		String uri = MIGRATION_ROWS + "?type=" + migrationType.name() + "&limit=" + limit + "&offset=" + offset;
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		PaginatedResults<RowMetadataResult> results = new PaginatedResults<RowMetadataResult>(RowMetadataResult.class);
+		results.initializeFromJSONObject(adapter);
+		return results;
+	}
+	
+	/*
+	 * 
+	 */
+	public RowMetadataResult getRowMetadataDelta(MigrationType migrationType, IdList ids) throws JSONObjectAdapterException, SynapseException {
+		String uri = MIGRATION_DELTA + "?type=" + migrationType.name();
+		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(ids);
+		String reqBody = jsonObject.toString();
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", reqBody, defaultGETDELETEHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		RowMetadataResult result = new RowMetadataResult();
+		result.initializeFromJSONObject(adapter);
+		return result;
+	}
+	
+	/*
+	 * 
+	 */
+	public BackupRestoreStatus startBackup(MigrationType migrationType, IdList ids) throws JSONObjectAdapterException, SynapseException {
+		String uri = MIGRATION_BACKUP + "?type=" + migrationType.name();
+		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(ids);
+		String reqBody = jsonObject.toString();
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", reqBody, defaultGETDELETEHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		BackupRestoreStatus brStatus = new BackupRestoreStatus();
+		brStatus.initializeFromJSONObject(adapter);
+		return brStatus;
+	}
+	
+	/*
+	 * 
+	 */
+	public BackupRestoreStatus startRestore(MigrationType migrationType, RestoreSubmission req) throws JSONObjectAdapterException, SynapseException {
+		String uri = MIGRATION_RESTORE + "?type=" + migrationType.name();
+		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(req);
+		String reqBody = jsonObject.toString();
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", reqBody, defaultPOSTPUTHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		BackupRestoreStatus brStatus = new BackupRestoreStatus();
+		brStatus.initializeFromJSONObject(adapter);
+		return brStatus;
+	}
+	
+	/*
+	 * 
+	 */
+	public BackupRestoreStatus getStatus(String daemonId) throws JSONObjectAdapterException, SynapseException {
+		String uri = MIGRATION_STATUS + "/" + daemonId;
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		BackupRestoreStatus brStatus = new BackupRestoreStatus();
+		brStatus.initializeFromJSONObject(adapter);
+		return brStatus;
+	}
+	
+	/*
+	 * 
+	 */
+	public MigrationTypeCount deleteMigratableObject(MigrationType migrationType, IdList ids) throws JSONObjectAdapterException, SynapseException {
+		String uri = MIGRATION_DELETE + "?type=" + migrationType.name();
+		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(ids);
+		String reqBody = jsonObject.toString();
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "DELETE", reqBody, defaultGETDELETEHeaders);
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
+		MigrationTypeCount mtc = new MigrationTypeCount();
+		mtc.initializeFromJSONObject(adapter);
+		return mtc;
+	}
+
 	/**
 	 * Build up the URL for the list change message call.
 	 * @param startChangeNumber
