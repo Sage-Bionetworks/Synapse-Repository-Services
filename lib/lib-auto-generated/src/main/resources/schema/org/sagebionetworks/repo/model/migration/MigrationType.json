@@ -15,6 +15,11 @@
         "ACCESS_REQUIREMENT",
         "NODE_ACCESS_REQUIRMENT",
         "ACCESS_APPROVAL",
+        "EVALUATION",
+        "PARTICIPANT",
+        "SUBMISSION",
+        "SUBMISSION_FILE",
+        "SUBMISSION_STATUS",
         "CHANGE"
     ]
 }

@@ -170,9 +170,19 @@ public class MigatableTableDAOImplAutowireTest {
 		List<MigrationType> expectedPrimaryTypes = new LinkedList<MigrationType>();
 		expectedPrimaryTypes.add(MigrationType.PRINCIPAL);
 		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
+		expectedPrimaryTypes.add(MigrationType.WIKI_PAGE);
+		expectedPrimaryTypes.add(MigrationType.WIKI_OWNERS);
 		expectedPrimaryTypes.add(MigrationType.NODE);
+		expectedPrimaryTypes.add(MigrationType.ACCESS_REQUIREMENT);
+		expectedPrimaryTypes.add(MigrationType.ACCESS_APPROVAL);
+		expectedPrimaryTypes.add(MigrationType.EVALUATION);
+		expectedPrimaryTypes.add(MigrationType.PARTICIPANT);
+		expectedPrimaryTypes.add(MigrationType.SUBMISSION);
+		expectedPrimaryTypes.add(MigrationType.SUBMISSION_STATUS);
+		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list
 		List<MigrationType> primary = migatableTableDAO.getPrimaryMigrationTypes();
+		System.out.println(primary);
 		assertEquals(expectedPrimaryTypes, primary);
 	}
 }

@@ -19,6 +19,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.evaluation.dao.EvaluationDAO;
+import org.sagebionetworks.evaluation.model.Evaluation;
+import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.evaluation.model.Participant;
+import org.sagebionetworks.evaluation.model.Submission;
+import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
@@ -79,6 +85,8 @@ public class MigrationIntegrationAutowireTest {
 	EntityServletTestHelper entityServletHelper;
 	@Autowired
 	UserManager userManager;
+	@Autowired
+	EvaluationDAO evaluationDAO;
 	
 	@Autowired
 	FileHandleDao fileMetadataDao;
@@ -109,6 +117,12 @@ public class MigrationIntegrationAutowireTest {
 	S3FileHandle handleOne;
 	PreviewFileHandle preview;
 	
+	// Evaluation
+	Evaluation evaluation;
+	Participant participant;
+	Submission submission;
+	SubmissionStatus submissionStatus;
+	
 	@Before
 	public void before() throws Exception{
 		// get user IDs
@@ -119,6 +133,37 @@ public class MigrationIntegrationAutowireTest {
 		createAccessRequirement();
 		createAccessApproval();
 		creatWikiPages();
+		createEvaluation();
+	}
+
+
+	private void createEvaluation() throws JSONObjectAdapterException,
+			IOException, NotFoundException, ServletException {
+		// initialize Evaluations
+		evaluation = new Evaluation();
+		evaluation.setName("name");
+		evaluation.setDescription("description");
+		evaluation.setContentSource("contentSource");
+		evaluation.setStatus(EvaluationStatus.PLANNED);
+		evaluation = new Evaluation();
+		evaluation.setName("name2");
+		evaluation.setDescription("description");
+		evaluation.setContentSource("contentSource");
+		evaluation.setStatus(EvaluationStatus.OPEN);
+		evaluation = entityServletHelper.createEvaluation(evaluation, userName);		
+        
+        // initialize Participants
+		participant = entityServletHelper.createParticipant(userName, evaluation.getId());
+        
+        // initialize Submissions
+		submission = new Submission();
+		submission.setName("submission1");
+		submission.setVersionNumber(1L);
+		submission.setEntityId(fileEntity.getId());
+		submission.setUserId(userName);
+		submission.setEvaluationId(evaluation.getId());
+		submission = entityServletHelper.createSubmission(submission, userName, fileEntity.getEtag());
+		submissionStatus = entityServletHelper.getSubmissionStatus(submission.getId());
 	}
 
 
@@ -238,22 +283,35 @@ public class MigrationIntegrationAutowireTest {
 	public void after() throws Exception{
 		if(wikiToDelete != null){
 			for(WikiPageKey key: wikiToDelete){
-				entityServletHelper.deleteWikiPage(key, userName);
+				try {
+					entityServletHelper.deleteWikiPage(key, userName);
+				} catch (Exception e) {}
 			}
 		}
 		// Delete the project
 		if(entityToDelete != null){
 			for(String id: entityToDelete){
-				entityServletHelper.deleteEntity(id, userName);
-			}
-		}
-		if(fileHandlesToDelete != null){
-			for(String id: fileHandlesToDelete){
-				fileMetadataDao.delete(id);
+				try {
+					entityServletHelper.deleteEntity(id, userName);
+				} catch (Exception e) {}
 			}
 		}
 		if(accessRequirement != null){
-			ServletTestHelper.deleteAccessRequirements(DispatchServletSingleton.getInstance(), accessRequirement.getId().toString(), userName);
+			try {
+				ServletTestHelper.deleteAccessRequirements(DispatchServletSingleton.getInstance(), accessRequirement.getId().toString(), userName);
+			} catch (Exception e) {}
+		}
+		if(evaluation != null){
+			try {
+				evaluationDAO.delete(evaluation.getId());
+			} catch (Exception e) {}
+		}
+		if(fileHandlesToDelete != null){
+			for(String id: fileHandlesToDelete){
+				try {
+					fileMetadataDao.delete(id);
+				} catch (Exception e) {}
+			}
 		}
 	}
 	

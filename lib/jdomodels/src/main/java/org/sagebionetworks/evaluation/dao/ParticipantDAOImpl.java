@@ -11,6 +11,8 @@ import org.sagebionetworks.evaluation.dbo.ParticipantDBO;
 import org.sagebionetworks.evaluation.model.Participant;
 import org.sagebionetworks.evaluation.query.jdo.SQLConstants;
 import org.sagebionetworks.evaluation.util.EvaluationUtils;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -48,6 +50,9 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 			" WHERE " + SQLConstants.COL_PARTICIPANT_EVAL_ID + "=:" + EVAL_ID;
 	
 	private static final RowMapper<ParticipantDBO> rowMapper = ((new ParticipantDBO()).getTableMapping());
+	
+	@Autowired
+	private IdGenerator idGenerator;
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
@@ -58,6 +63,7 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 		
 		// Ensure DBO has required information
 		verifyParticipantDBO(dbo);
+		dbo.setId(idGenerator.generateNewId(TYPE.PARTICIPANT_ID));
 		
 		// Create DBO
 		try {
