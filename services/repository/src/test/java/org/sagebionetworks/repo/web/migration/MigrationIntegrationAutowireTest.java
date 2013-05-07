@@ -6,6 +6,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -14,6 +15,9 @@ import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
+import javax.servlet.http.HttpServlet;
+
+import junit.framework.Assert;
 
 import org.junit.After;
 import org.junit.Before;
@@ -30,6 +34,7 @@ import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
+import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
@@ -39,6 +44,7 @@ import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.doi.Doi;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -52,11 +58,17 @@ import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
+import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.DispatchServletSingleton;
 import org.sagebionetworks.repo.web.controller.EntityServletTestHelper;
 import org.sagebionetworks.repo.web.controller.ServletTestHelper;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
+import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockHttpServletRequest;
+import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -125,6 +137,8 @@ public class MigrationIntegrationAutowireTest {
 	Participant participant;
 	Submission submission;
 	SubmissionStatus submissionStatus;
+	// Doi
+	Doi doi;
 	
 	@Before
 	public void before() throws Exception{
@@ -138,6 +152,26 @@ public class MigrationIntegrationAutowireTest {
 		createAccessApproval();
 		creatWikiPages();
 		createEvaluation();
+		createDoi();
+	}
+
+
+	private void createDoi() throws ServletException, IOException,
+			UnsupportedEncodingException, JSONObjectAdapterException {
+		String uri = UrlHelpers.ENTITY + "/" + project.getId() + UrlHelpers.DOI;
+		MockHttpServletRequest request = new MockHttpServletRequest();
+		request.setMethod("PUT");
+		request.addHeader("Accept", "application/json");
+		request.setRequestURI(uri);
+		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
+		MockHttpServletResponse response = new MockHttpServletResponse();
+		HttpServlet servlet = DispatchServletSingleton.getInstance();
+		servlet.service(request, response);
+		Assert.assertEquals(HttpStatus.ACCEPTED.value(), response.getStatus());
+		String jsonStr = response.getContentAsString();
+		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
+		doi = new Doi();
+		doi.initializeFromJSONObject(adapter);
 	}
 
 

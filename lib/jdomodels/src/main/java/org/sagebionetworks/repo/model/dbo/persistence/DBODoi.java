@@ -15,18 +15,21 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_DOI;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.doi.DoiStatus;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBODoi implements DatabaseObject<DBODoi> {
+public class DBODoi implements MigratableDatabaseObject<DBODoi, DBODoi> {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn("id", COL_DOI_ID, true),
-			new FieldColumn("eTag", COL_DOI_ETAG),
+			new FieldColumn("id", COL_DOI_ID, true).withIsBackupId(true),
+			new FieldColumn("eTag", COL_DOI_ETAG).withIsEtag(true),
 			new FieldColumn("doiStatus", COL_DOI_DOI_STATUS),
 			new FieldColumn("objectId", COL_DOI_OBJECT_ID),
 			new FieldColumn("doiObjectType", COL_DOI_OBJECT_TYPE),
@@ -154,5 +157,40 @@ public class DBODoi implements DatabaseObject<DBODoi> {
 	private Long createdBy;
 	private Timestamp createdOn;
 	private Timestamp updatedOn;
+
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.DOI;
+	}
+
+	@Override
+	public MigratableTableTranslation<DBODoi, DBODoi> getTranslator() {
+		return new MigratableTableTranslation<DBODoi, DBODoi>(){
+
+			@Override
+			public DBODoi createDatabaseObjectFromBackup(DBODoi backup) {
+				return backup;
+			}
+
+			@Override
+			public DBODoi createBackupFromDatabaseObject(DBODoi dbo) {
+				return dbo;
+			}};
+	}
+
+	@Override
+	public Class<? extends DBODoi> getBackupClass() {
+		return DBODoi.class;
+	}
+
+	@Override
+	public Class<? extends DBODoi> getDatabaseObjectClass() {
+		return DBODoi.class;
+	}
+
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
+	}
 }
 

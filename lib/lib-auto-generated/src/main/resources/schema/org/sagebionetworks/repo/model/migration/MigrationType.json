@@ -21,6 +21,7 @@
         "SUBMISSION",
         "SUBMISSION_FILE",
         "SUBMISSION_STATUS",
+        "DOI",
         "CHANGE"
     ]
 }

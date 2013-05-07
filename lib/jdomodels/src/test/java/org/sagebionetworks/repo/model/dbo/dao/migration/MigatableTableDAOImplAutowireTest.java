@@ -180,6 +180,7 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.PARTICIPANT);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION_STATUS);
+		expectedPrimaryTypes.add(MigrationType.DOI);
 		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list
 		List<MigrationType> primary = migatableTableDAO.getPrimaryMigrationTypes();
