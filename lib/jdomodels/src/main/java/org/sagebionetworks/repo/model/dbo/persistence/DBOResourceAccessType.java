@@ -2,20 +2,25 @@ package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ELEMENT;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS_TYPE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_RESOURCE_ACCESS__TYPE_OWNER;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_RES_ACCESS_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_RESOURCE_ACCESS_TYPE;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBOResourceAccessType implements DatabaseObject<DBOResourceAccessType> {
+public class DBOResourceAccessType implements MigratableDatabaseObject<DBOResourceAccessType, DBOResourceAccessType> {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_RESOURCE_ACCESS_TYPE_ID, true),
+		new FieldColumn("owner", COL_RESOURCE_ACCESS__TYPE_OWNER).withIsBackupId(true),
 		new FieldColumn("element", COL_RESOURCE_ACCESS_TYPE_ELEMENT, true),
 		};
 
@@ -26,6 +31,7 @@ public class DBOResourceAccessType implements DatabaseObject<DBOResourceAccessTy
 			public DBOResourceAccessType mapRow(ResultSet rs, int rowNum) throws SQLException {
 				DBOResourceAccessType act = new DBOResourceAccessType();
 				act.setId(rs.getLong(COL_RESOURCE_ACCESS_TYPE_ID));
+				act.setOwner(rs.getLong(COL_RESOURCE_ACCESS__TYPE_OWNER));
 				act.setElement(rs.getString(COL_RESOURCE_ACCESS_TYPE_ELEMENT));
 				return act;
 			}
@@ -53,6 +59,7 @@ public class DBOResourceAccessType implements DatabaseObject<DBOResourceAccessTy
 
 	private Long id;
 	private String element;
+	private Long owner;
 
 	public Long getId() {
 		return id;
@@ -66,12 +73,21 @@ public class DBOResourceAccessType implements DatabaseObject<DBOResourceAccessTy
 	public void setElement(String element) {
 		this.element = element;
 	}
+	
+	public Long getOwner() {
+		return owner;
+	}
+	public void setOwner(Long owner) {
+		this.owner = owner;
+	}
+	
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result + ((element == null) ? 0 : element.hashCode());
 		result = prime * result + ((id == null) ? 0 : id.hashCode());
+		result = prime * result + ((owner == null) ? 0 : owner.hashCode());
 		return result;
 	}
 	@Override
@@ -93,11 +109,50 @@ public class DBOResourceAccessType implements DatabaseObject<DBOResourceAccessTy
 				return false;
 		} else if (!id.equals(other.id))
 			return false;
+		if (owner == null) {
+			if (other.owner != null)
+				return false;
+		} else if (!owner.equals(other.owner))
+			return false;
 		return true;
 	}
+	
 	@Override
 	public String toString() {
-		return "DBOResourceAccessType [id=" + id + ", element=" + element + "]";
+		return "DBOResourceAccessType [id=" + id + ", element=" + element
+				+ ", owner=" + owner + "]";
+	}
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.ACL_ACCESS_TYPE;
+	}
+	@Override
+	public MigratableTableTranslation<DBOResourceAccessType, DBOResourceAccessType> getTranslator() {
+		return new MigratableTableTranslation<DBOResourceAccessType, DBOResourceAccessType>(){
+
+			@Override
+			public DBOResourceAccessType createDatabaseObjectFromBackup(
+					DBOResourceAccessType backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOResourceAccessType createBackupFromDatabaseObject(
+					DBOResourceAccessType dbo) {
+				return dbo;
+			}};
+	}
+	@Override
+	public Class<? extends DBOResourceAccessType> getBackupClass() {
+		return DBOResourceAccessType.class;
+	}
+	@Override
+	public Class<? extends DBOResourceAccessType> getDatabaseObjectClass() {
+		return DBOResourceAccessType.class;
+	}
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
 	}
 	
 }

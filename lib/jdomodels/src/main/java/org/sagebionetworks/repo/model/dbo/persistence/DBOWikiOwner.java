@@ -1,23 +1,28 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ONWERS_OBJECT_TYPE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ONWERS_OWNER_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ONWERS_ROOT_WIKI_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_WIKI_ONWERS;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WIKI_OWNERS;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
-public class DBOWikiOwner implements DatabaseObject<DBOWikiOwner> {
+public class DBOWikiOwner implements MigratableDatabaseObject<DBOWikiOwner, DBOWikiOwner> {
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("ownerId", COL_WIKI_ONWERS_OWNER_ID, true),
 		new FieldColumn("ownerType", COL_WIKI_ONWERS_OBJECT_TYPE, true),
-		new FieldColumn("rootWikiId", COL_WIKI_ONWERS_ROOT_WIKI_ID),
+		new FieldColumn("rootWikiId", COL_WIKI_ONWERS_ROOT_WIKI_ID).withIsBackupId(true),
 	};
 	
 	private Long ownerId;
@@ -131,6 +136,43 @@ public class DBOWikiOwner implements DatabaseObject<DBOWikiOwner> {
 	public String toString() {
 		return "DBOWikiOwners [ownerId=" + ownerId + ", ownerType=" + ownerType
 				+ ", rootWikiId=" + rootWikiId + "]";
+	}
+
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.WIKI_OWNERS;
+	}
+
+	@Override
+	public MigratableTableTranslation<DBOWikiOwner, DBOWikiOwner> getTranslator() {
+		return new MigratableTableTranslation<DBOWikiOwner, DBOWikiOwner>(){
+
+			@Override
+			public DBOWikiOwner createDatabaseObjectFromBackup(
+					DBOWikiOwner backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOWikiOwner createBackupFromDatabaseObject(DBOWikiOwner dbo) {
+				return dbo;
+			}};
+	}
+
+	@Override
+	public Class<? extends DBOWikiOwner> getBackupClass() {
+		// TODO Auto-generated method stub
+		return DBOWikiOwner.class;
+	}
+
+	@Override
+	public Class<? extends DBOWikiOwner> getDatabaseObjectClass() {
+		return DBOWikiOwner.class;
+	}
+
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
 	}
 
 }
