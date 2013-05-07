@@ -18,6 +18,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Annotations;
@@ -373,31 +374,50 @@ public class EntityControllerTest {
 
 	@Test
 	public void testPromoteFileEntity() throws Exception {
+
 		Project p = new Project();
 		p.setName("Project testPromoteFileEntity()");
 		p.setEntityType(p.getClass().getName());
 		Project parentBack = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 		String parentId = parentBack.getId();
 		toDelete.add(parentId);
+
 		FileEntity version1 = new FileEntity();
-		version1.setName("FileName");
+		version1.setName("File name of version 1");
 		version1.setEntityType(FileEntity.class.getName());
 		version1.setParentId(parentId);
 		version1.setDataFileHandleId(handleOne.getId());
+		version1.setVersionLabel("Version label of version 1");
+		version1.setVersionComment("Version comment of version 1");
 		FileEntity file = (FileEntity) entityServletHelper.createEntity(version1, TEST_USER1, null);
 		toDelete.add(file.getId());
+
+		file.setName("File name of version 2");
 		file.setDataFileHandleId(handleTwo.getId());
-		file.setVersionLabel("New label");
+		file.setVersionLabel("Version label of version 2");
+		file.setVersionComment("Version comment of version 2");
 		FileEntity version2 = (FileEntity) entityServletHelper.createNewVersion(TEST_USER1, file);
-		assertEquals(version1.getId(), version2.getId());
+		assertEquals(file.getId(), version2.getId());
 		assertEquals(Long.valueOf(2L), version2.getVersionNumber());
+
 		VersionInfo versionInfo = entityServletHelper.promoteVersion(TEST_USER1, file.getId(), 1L);
 		assertNotNull(versionInfo);
-		assertEquals(new Long(3), versionInfo.getVersionNumber());
+		assertEquals(Long.valueOf(3L), versionInfo.getVersionNumber());
+
 		FileEntity promoted = (FileEntity)entityServletHelper.getEntity(file.getId(), TEST_USER1);
+		// The following are newly assigned to the promoted (new) version
+		assertEquals(Long.valueOf(3L), promoted.getVersionNumber());
+		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(promoted.getEtag()));
+		// The following are copied over from the old version
+		assertEquals(version1.getVersionComment(), promoted.getVersionComment());
+		assertEquals(handleOne.getId(), promoted.getDataFileHandleId());
 		assertEquals(handleOne.getId(), version1.getDataFileHandleId());
 		assertEquals(handleTwo.getId(), version2.getDataFileHandleId());
-		assertEquals(handleOne.getId(), promoted.getDataFileHandleId());
+		assertEquals(version1.getModifiedBy(), promoted.getModifiedBy());
+		assertEquals(version1.getModifiedOn(), promoted.getModifiedOn());
+		// The following are carried over from the current version
+		assertEquals(version2.getName(), promoted.getName());
+		assertEquals(version2.getAnnotations(), promoted.getAnnotations());
 	}
 
 	/**
