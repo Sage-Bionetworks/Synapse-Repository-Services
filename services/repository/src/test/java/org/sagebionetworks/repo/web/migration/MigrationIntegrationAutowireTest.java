@@ -31,14 +31,17 @@ import org.sagebionetworks.evaluation.model.Submission;
 import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
+import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
+import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
@@ -100,10 +103,12 @@ public class MigrationIntegrationAutowireTest {
 	UserManager userManager;
 	@Autowired
 	EvaluationDAO evaluationDAO;
-	
 	@Autowired
 	FileHandleDao fileMetadataDao;
+	@Autowired
+	UserProfileManager userProfileManager;	
 	
+	UserInfo userInfo;
 	private String userName;
 	private String adminId;
 	
@@ -139,20 +144,29 @@ public class MigrationIntegrationAutowireTest {
 	SubmissionStatus submissionStatus;
 	// Doi
 	Doi doi;
+	// Favorite
+	Favorite favorite;
 	
 	@Before
 	public void before() throws Exception{
 		// get user IDs
 		userName = TestUserDAO.ADMIN_USER_NAME;
-		adminId = userManager.getUserInfo(userName).getIndividualGroup().getId();
+		userInfo = userManager.getUserInfo(userName);
+		adminId = userInfo.getIndividualGroup().getId();
 		createFileHandles();
 		createActivity();
 		createEntities();
+		createFavorite();
 		createAccessRequirement();
 		createAccessApproval();
 		creatWikiPages();
 		createEvaluation();
 		createDoi();
+	}
+
+
+	private void createFavorite() {
+		favorite = userProfileManager.addFavorite(userInfo, fileEntity.getId());
 	}
 
 

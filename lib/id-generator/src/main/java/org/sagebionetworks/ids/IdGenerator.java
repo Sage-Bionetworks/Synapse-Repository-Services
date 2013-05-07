@@ -12,7 +12,8 @@ public interface IdGenerator {
 		FILE_IDS,
 		WIKI_ID,
 		CHANGE_ID,
-		PARTICIPANT_ID
+		PARTICIPANT_ID,
+		FAVORITE_ID
 	}
 	
 

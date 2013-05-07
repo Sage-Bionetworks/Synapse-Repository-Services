@@ -169,6 +169,7 @@ public class MigatableTableDAOImplAutowireTest {
 		// Only primary migration types should be returned.
 		List<MigrationType> expectedPrimaryTypes = new LinkedList<MigrationType>();
 		expectedPrimaryTypes.add(MigrationType.PRINCIPAL);
+		expectedPrimaryTypes.add(MigrationType.USER_PROFILE);
 		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
 		expectedPrimaryTypes.add(MigrationType.WIKI_PAGE);
 		expectedPrimaryTypes.add(MigrationType.WIKI_OWNERS);
@@ -180,6 +181,7 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.PARTICIPANT);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION_STATUS);
+		expectedPrimaryTypes.add(MigrationType.FAVORITE);
 		expectedPrimaryTypes.add(MigrationType.DOI);
 		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list

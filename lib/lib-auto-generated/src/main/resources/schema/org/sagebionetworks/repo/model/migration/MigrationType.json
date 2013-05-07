@@ -3,6 +3,7 @@
     "type":"string",
     "enum":[
     	"PRINCIPAL",
+    	"USER_PROFILE",
         "FILE_HANDLE",
         "WIKI_PAGE",
         "WIKI_ATTACHMENT",
@@ -13,6 +14,7 @@
         "ACL",
         "ACL_ACCESS",
         "ACL_ACCESS_TYPE",
+        "FAVORITE",
         "ACCESS_REQUIREMENT",
         "NODE_ACCESS_REQUIRMENT",
         "ACCESS_APPROVAL",

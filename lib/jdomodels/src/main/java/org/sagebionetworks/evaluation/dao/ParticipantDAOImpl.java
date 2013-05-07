@@ -30,6 +30,8 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	@Autowired
+	private IdGenerator idGenerator;
 	
 	private static final String USER_ID = DBOConstants.PARAM_PARTICIPANT_USER_ID;
 	private static final String EVAL_ID = DBOConstants.PARAM_PARTICIPANT_EVAL_ID;
@@ -51,8 +53,6 @@ public class ParticipantDAOImpl implements ParticipantDAO {
 	
 	private static final RowMapper<ParticipantDBO> rowMapper = ((new ParticipantDBO()).getTableMapping());
 	
-	@Autowired
-	private IdGenerator idGenerator;
 
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
