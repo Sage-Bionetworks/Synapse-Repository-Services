@@ -49,6 +49,7 @@ import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
+import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.repo.web.controller.DispatchServletSingleton;
@@ -98,6 +99,8 @@ public class MigrationIntegrationAutowireTest {
 	List<String> entityToDelete;
 	List<WikiPageKey> wikiToDelete;
 	List<String> fileHandlesToDelete;
+	// Activity
+	Activity activity;
 	
 	// Entites
 	Project project;
@@ -129,11 +132,19 @@ public class MigrationIntegrationAutowireTest {
 		userName = TestUserDAO.ADMIN_USER_NAME;
 		adminId = userManager.getUserInfo(userName).getIndividualGroup().getId();
 		createFileHandles();
+		createActivity();
 		createEntities();
 		createAccessRequirement();
 		createAccessApproval();
 		creatWikiPages();
 		createEvaluation();
+	}
+
+
+	private void createActivity() throws ServletException, IOException {
+		activity = new Activity();
+		activity.setDescription("some desc");
+		activity = ServletTestHelper.createActivity(DispatchServletSingleton.getInstance(), activity, userName, new HashMap<String, String>());
 	}
 
 
@@ -236,7 +247,7 @@ public class MigrationIntegrationAutowireTest {
 		fileEntity.setEntityType(FileEntity.class.getName());
 		fileEntity.setParentId(project.getId());
 		fileEntity.setDataFileHandleId(handleOne.getId());
-		fileEntity = (FileEntity) entityServletHelper.createEntity(fileEntity, userName, null);
+		fileEntity = (FileEntity) entityServletHelper.createEntity(fileEntity, userName, activity.getId());
 	}
 	
 	private AccessRequirement newAccessRequirement() {
@@ -287,6 +298,11 @@ public class MigrationIntegrationAutowireTest {
 					entityServletHelper.deleteWikiPage(key, userName);
 				} catch (Exception e) {}
 			}
+		}
+		if(activity != null){
+			try {
+				ServletTestHelper.deleteActivity(DispatchServletSingleton.getInstance(), activity.getId(), userName, new HashMap<String, String>());
+			} catch (Exception e) {}
 		}
 		// Delete the project
 		if(entityToDelete != null){

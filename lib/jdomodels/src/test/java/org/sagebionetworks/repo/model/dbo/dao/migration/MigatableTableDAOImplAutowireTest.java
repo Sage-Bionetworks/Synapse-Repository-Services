@@ -172,6 +172,7 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.FILE_HANDLE);
 		expectedPrimaryTypes.add(MigrationType.WIKI_PAGE);
 		expectedPrimaryTypes.add(MigrationType.WIKI_OWNERS);
+		expectedPrimaryTypes.add(MigrationType.ACTIVITY);
 		expectedPrimaryTypes.add(MigrationType.NODE);
 		expectedPrimaryTypes.add(MigrationType.ACCESS_REQUIREMENT);
 		expectedPrimaryTypes.add(MigrationType.ACCESS_APPROVAL);

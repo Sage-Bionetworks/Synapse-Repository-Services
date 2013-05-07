@@ -7,6 +7,7 @@
         "WIKI_PAGE",
         "WIKI_ATTACHMENT",
         "WIKI_OWNERS",
+        "ACTIVITY",
         "NODE",
         "NODE_REVISION",
         "ACL",
