@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
@@ -28,7 +29,6 @@ import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.PaginatedResults;
-import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
@@ -54,6 +54,8 @@ public class ProjectActivityStats {
 	private static final int TIME_WINDOW_DAYS = 30;
 	
 	private static final boolean VERBOSE = false;
+	
+	private static final Set<String> toxicIds = new HashSet<String>(Arrays.asList(new String []{ "syn120145" }));	
 	
 	public static void main(String[] args) throws Exception {
 		DateFormat df = new SimpleDateFormat("dd-MMM-yyyy");		
@@ -89,8 +91,7 @@ public class ProjectActivityStats {
 	
 	// these limits allow us to find multiple contributors without exhaustively
 	// reviewing all the Data objects in large projects, like the Synapse Commons Repository
-	private static final int MAX_STUDIES_PER_PROJECT = 200;
-	private static final int MAX_CONTENT_PER_BUCKET = 200;
+	private static final int MAX_CONTENT_PER_BUCKET = 100;
 	
 	/*
 	 * For each project, find the content belonging to the project and 
@@ -118,8 +119,15 @@ public class ProjectActivityStats {
 			String projectKey = projectId+" "+projectName;
 			System.out.println("Project: "+projectKey+" ("+(p+1)+" of "+projects.length()+")");
 			Queue<String> toProcess = new LinkedList<String>();
-			toProcess.add(projectId);		
-			analyzeEntity(projectKey, ans, start, end, true, synapse, toProcess);
+			toProcess.add(projectId);
+			Integer nEntitiesProcessed = 0;
+			try {
+				analyzeEntity(projectKey, ans, start, end, true, synapse, toProcess, nEntitiesProcessed);
+			} catch (SynapseException e) {
+				System.out.println("Error in calculating project: " + projectKey + ". Skipped.");
+			} catch (JSONException e) {
+				System.out.println("Error in calculating project: " + projectKey + ". Skipped.");
+			}
 			// if we already have the max score, then don't bother searching for more new content in the project
 			if (maxContributorScore(ans.get(projectKey))) continue;
 		} 
@@ -136,6 +144,7 @@ public class ProjectActivityStats {
 	 * @param objectType
 	 * @param results
 	 * @param entitiesToProcess 
+	 * @param nEntitiesProcessed 
 	 * @param contributors 
 	 * @throws InterruptedException 
 	 */
@@ -145,13 +154,14 @@ public class ProjectActivityStats {
 			Long end, 
 			boolean stopIfMaxScore,
 			Synapse synapse, 
-			Queue<String> entitiesToProcess) throws SynapseException, JSONException {
+			Queue<String> entitiesToProcess, Integer nEntitiesProcessed) throws SynapseException, JSONException {
 		
-		if(entitiesToProcess.size() == 0) return;
+		if(entitiesToProcess.size() == 0 || nEntitiesProcessed > MAX_CONTENT_PER_BUCKET) return;		
 				
 		// next in BFS from head of queue
 		String entityId = entitiesToProcess.poll();
-						
+		if(toxicIds.contains(entityId)) return;		
+		
 		// Count for Entity
 		addAllToMap(results, projectKey, lookupEntityContributors(entityId, start, end, synapse));
 		if (stopIfMaxScore && maxContributorScore(results.get(projectKey))) return;
@@ -174,9 +184,12 @@ public class ProjectActivityStats {
 			
 		
 		// Add children to DFS queue if exist					
-		addChildren(synapse, entitiesToProcess, entityId, bundle.getHasChildren());							
+		addChildren(synapse, entitiesToProcess, entityId, bundle.getHasChildren());
+		
+		nEntitiesProcessed++;
+		
 		// continue on DFS if needed
-		if(entitiesToProcess.size() > 0) analyzeEntity(projectKey, results, start, end, stopIfMaxScore, synapse, entitiesToProcess);
+		if(entitiesToProcess.size() > 0) analyzeEntity(projectKey, results, start, end, stopIfMaxScore, synapse, entitiesToProcess, nEntitiesProcessed);
 	}
 
 	private static List<String> lookupOldVersionContributors(Long start,
@@ -257,11 +270,14 @@ public class ProjectActivityStats {
 		try {			
 			PaginatedResults<WikiHeader> headerTree = synapse.getWikiHeaderTree(entityId, ObjectType.ENTITY);
 			if(headerTree.getTotalNumberOfResults() > 0) {
+				int i = 0;
 				for(WikiHeader header : headerTree.getResults()) {
+					if(i > MAX_CONTENT_PER_BUCKET) break;
 					WikiPageKey key = new WikiPageKey(entityId, ObjectType.ENTITY, header.getId());
 					WikiPage page = synapse.getWikiPage(key);
 					addUserToListWithinDateRange(start, end, contributors, page.getCreatedOn().getTime(), page.getCreatedBy());
-					addUserToListWithinDateRange(start, end, contributors, page.getModifiedOn().getTime(), page.getModifiedBy());								
+					addUserToListWithinDateRange(start, end, contributors, page.getModifiedOn().getTime(), page.getModifiedBy());
+					i++;					
 				}
 			}
 		} catch (JSONObjectAdapterException e) {

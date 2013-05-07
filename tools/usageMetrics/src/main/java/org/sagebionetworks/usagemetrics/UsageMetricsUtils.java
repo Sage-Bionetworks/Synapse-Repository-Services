@@ -27,7 +27,7 @@ public class UsageMetricsUtils {
 	// names we are confident to be developer or admin names in ANY domain
 	// must all be lower case
 	private static final String[] distinctiveDeveloperAndAdminNames = {
-		"kellen",  "deflaux", "furia", "schildwachter", 
+		"kellen",  "deflaux", "burdick", "furia", "schildwachter", 
 		"gepipeline", "public", "synapsify", "produseradmin"
 	};
 	
