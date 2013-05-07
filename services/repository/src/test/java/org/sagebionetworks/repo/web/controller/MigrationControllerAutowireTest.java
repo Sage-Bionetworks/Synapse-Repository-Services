@@ -1,16 +1,12 @@
 package org.sagebionetworks.repo.web.controller;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import javax.servlet.ServletException;
 
@@ -18,13 +14,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
-import org.sagebionetworks.repo.model.daemon.DaemonStatus;
-import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -33,7 +25,6 @@ import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
-import org.sagebionetworks.repo.model.migration.MigrationTypeList;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -59,8 +50,6 @@ public class MigrationControllerAutowireTest {
 	private String adminId;
 	
 	Project entity;
-	Evaluation evaluation;
-	List<WikiPageKey> toDelete;
 	S3FileHandle handleOne;
 	PreviewFileHandle preview;
 	long startFileCount;
@@ -70,7 +59,6 @@ public class MigrationControllerAutowireTest {
 		// get user IDs
 		userName = TestUserDAO.ADMIN_USER_NAME;
 		adminId = userManager.getUserInfo(userName).getIndividualGroup().getId();
-		toDelete = new LinkedList<WikiPageKey>();
 		startFileCount = fileMetadataDao.getCount();
 		// Create a file handle
 		handleOne = new S3FileHandle();
@@ -100,12 +88,6 @@ public class MigrationControllerAutowireTest {
 		// Delete the project
 		if(entity != null){
 			entityServletHelper.deleteEntity(entity.getId(), userName);
-		}
-		if(evaluation != null){
-			entityServletHelper.deleteEvaluation(evaluation.getId(), userName);
-		}
-		for(WikiPageKey key: toDelete){
-			entityServletHelper.deleteWikiPage(key, userName);
 		}
 		if(handleOne != null && handleOne.getId() != null){
 			fileMetadataDao.delete(handleOne.getId());
@@ -154,52 +136,7 @@ public class MigrationControllerAutowireTest {
 		assertEquals(results.getList(), delta.getList());
 	}
 	
-	@Test
-	public void testRoundTrip() throws Exception{
-		// Get the list of primary types
-		MigrationTypeList primaryTypesList = entityServletHelper.getPrimaryMigrationTypes(userName);
-		assertNotNull(primaryTypesList);
-		assertNotNull(primaryTypesList.getList());
-		assertTrue(primaryTypesList.getList().size() > 0);
-		// Get the counts before we start
-		MigrationTypeCounts startCounts = entityServletHelper.getMigrationTypeCounts(userName);
-		// This test will backup all data, delete it, then restore it.
-		Map<MigrationType, String> map = new HashMap<MigrationType, String>();
-		for(MigrationType type: primaryTypesList.getList()){
-			// Backup each type
-			BackupRestoreStatus status = backupAllOfType(type);
-			if(status != null){
-				assertNotNull(status.getBackupUrl());
-				String fileName = getFileNameFromUrl(status.getBackupUrl());
-				map.put(type, fileName);
-			}
-		}
-		// We will delete the data when all object are ready
-		
-//		// Now delete all data in reverse order
-//		for(int i=primaryTypesList.getList().size()-1; i >= 0; i--){
-//			deleteAllOfType(MigrationType.values()[i]);
-//		}
-//		// after deleting, the counts should be null
-//		MigrationTypeCounts afterDeleteCounts = entityServletHelper.getMigrationTypeCounts(userName);
-//		assertNotNull(afterDeleteCounts);
-//		assertNotNull(afterDeleteCounts.getList());
-//		for(int i=0; i<afterDeleteCounts.getList().size(); i++){
-//			assertEquals(new Long(0), afterDeleteCounts.getList().get(i).getCount());
-//		}
-		
-		// Now restore all of the data
-		for(MigrationType type: primaryTypesList.getList()){
-			String fileName = map.get(type);
-			if(fileName != null){
-				restoreFromBackup(type, fileName);
-			}
-		}
-		// The counts should all be back
-		MigrationTypeCounts finalCounts = entityServletHelper.getMigrationTypeCounts(userName);
-		assertEquals(startCounts, finalCounts);
-	}
-	
+
 	/**
 	 * Extract the filename from the full url.
 	 * @param fullUrl
@@ -208,85 +145,6 @@ public class MigrationControllerAutowireTest {
 	public String getFileNameFromUrl(String fullUrl){;
 		int index = fullUrl.lastIndexOf("/");
 		return fullUrl.substring(index+1, fullUrl.length());
-	}
-	
-	/**
-	 * Backup all data
-	 * @param type
-	 * @return
-	 * @throws Exception
-	 */
-	private BackupRestoreStatus backupAllOfType(MigrationType type) throws Exception {
-		IdList idList = getIdListOfAllOfType(type);
-		if(idList == null) return null;
-		// Start the backup job
-		BackupRestoreStatus status = entityServletHelper.startBackup(userName, type, idList);
-		// wait for it..
-		waitForDaemon(status);
-		return entityServletHelper.getBackupRestoreStatus(userName, status.getId());
-	}
-	
-	private void restoreFromBackup(MigrationType type, String fileName) throws ServletException, IOException, JSONObjectAdapterException, InterruptedException{
-		RestoreSubmission sub = new RestoreSubmission();
-		sub.setFileName(fileName);
-		BackupRestoreStatus status = entityServletHelper.startRestore(userName, type, sub);
-		// wait for it
-		waitForDaemon(status);
-	}
-	
-	/**
-	 * Delete all data for a type.
-	 * @param type
-	 * @throws ServletException
-	 * @throws IOException
-	 * @throws JSONObjectAdapterException
-	 */
-	private void deleteAllOfType(MigrationType type) throws ServletException, IOException, JSONObjectAdapterException{
-		IdList idList = getIdListOfAllOfType(type);
-		if(idList == null) return;
-		MigrationTypeCount result = entityServletHelper.deleteMigrationType(userName, type, idList);
-		System.out.print("Deleted: "+result);
-	}
-	
-	/**
-	 * List all of the IDs for a type.
-	 * @param type
-	 * @return
-	 * @throws ServletException
-	 * @throws IOException
-	 * @throws JSONObjectAdapterException
-	 */
-	private IdList getIdListOfAllOfType(MigrationType type) throws ServletException, IOException, JSONObjectAdapterException{
-		RowMetadataResult list = entityServletHelper.getRowMetadata(userName, type, Long.MAX_VALUE, 0);
-		if(list.getTotalCount() < 1) return null;
-		// Create the backup list
-		List<String> toBackup = new LinkedList<String>();
-		for(RowMetadata row: list.getList()){
-			toBackup.add(row.getId());
-		}
-		IdList idList = new IdList();
-		idList.setList(toBackup);
-		return idList;
-	}
-	
-	/**
-	 * Wait for a deamon to process a a job.
-	 * @param status
-	 * @throws InterruptedException 
-	 * @throws JSONObjectAdapterException 
-	 * @throws IOException 
-	 * @throws ServletException 
-	 */
-	private void waitForDaemon(BackupRestoreStatus status) throws InterruptedException, ServletException, IOException, JSONObjectAdapterException{
-		long start = System.currentTimeMillis();
-		while(DaemonStatus.COMPLETED != status.getStatus()){
-			assertFalse("Daemon failed", DaemonStatus.FAILED == status.getStatus());
-			System.out.println("Waiting for backup/restore daemon.  Message: "+status.getProgresssMessage());
-			Thread.sleep(1000);
-			long elapse = System.currentTimeMillis() - start;
-			assertTrue("Timed out waiting for a backup/restore daemon",elapse < MAX_WAIT_MS);
-			status = entityServletHelper.getBackupRestoreStatus(userName, status.getId());
-		}
 	}
 
 }

@@ -13,6 +13,8 @@ import java.util.List;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOChange;
 import org.sagebionetworks.repo.model.message.ChangeMessage;
@@ -50,6 +52,9 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 
 	@Autowired
 	private SimpleJdbcTemplate simpleJdbcTemplate;
+	
+	@Autowired
+	private IdGenerator idGenerator;
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
@@ -67,8 +72,8 @@ public class DBOChangeDAOImpl implements DBOChangeDAO {
 		// Note: Mysql TIMESTAMP only keeps seconds (not MS) so for consistency we only write second accuracy.
 		// We are using (System.currentTimeMillis()/1000)*1000; to convert all MS to zeros.
 		long nowMs = (System.currentTimeMillis()/1000)*1000;
+		dbo.setChangeNumber(idGenerator.generateNewId(TYPE.CHANGE_ID));
 		dbo.setTimeStamp(new Timestamp(nowMs));
-		dbo.setChangeNumber(null);
 		// Now insert the row with the current value
 		dbo = basicDao.createNew(dbo);
 		return ChangeMessageUtils.createDTO(dbo);
