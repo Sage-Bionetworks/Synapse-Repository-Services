@@ -50,7 +50,7 @@ public class DBODoiMigratableDaoImplAutowiredTest {
 		final Long createdBy = 1L;
 		final Timestamp createdOn = new Timestamp((new Date()).getTime());
 		final DoiObjectType doiObjectType = DoiObjectType.ENTITY;
-		final DoiStatus doiStatus = DoiStatus.READY;
+		final DoiStatus doiStatus = DoiStatus.CREATED;
 		final String etag = "etag";
 		final Long id = 2L;
 		final Long objectId = 3L;
@@ -118,7 +118,7 @@ public class DBODoiMigratableDaoImplAutowiredTest {
 		final Long createdBy = 1L;
 		final Timestamp createdOn = new Timestamp((new Date()).getTime());
 		final DoiObjectType doiObjectType = DoiObjectType.ENTITY;
-		final DoiStatus doiStatus = DoiStatus.READY;
+		final DoiStatus doiStatus = DoiStatus.CREATED;
 		final String etag = "etag";
 		final Long id = 2L;
 		final Long objectId = 3L;

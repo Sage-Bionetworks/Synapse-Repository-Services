@@ -199,5 +199,19 @@ public class UserManagerImplTest {
 		userManager.getUserInfo(AuthorizationConstants.ANONYMOUS_USER_ID);
 	}
 	
+	@Test
+	public void testUpdateEmail() throws Exception {
+		String oldEmail = "old-change-email-test-user@sagebase.org";
+		String newEmail = "new-change-email-test-user@sagebase.org";
+		UserInfo userInfo = userManager.getUserInfo(oldEmail);
+		userManager.updateEmail(userInfo, newEmail);
+		UserInfo newUserInfo = userManager.getUserInfo(newEmail);
+		//should be the same after updating the email
+		assertEquals(userInfo.getIndividualGroup().getId(), newUserInfo.getIndividualGroup().getId());
+		userManager.deletePrincipal(newEmail);
+		userManager.deletePrincipal(oldEmail);
+	}
+	
+	
 
 }
