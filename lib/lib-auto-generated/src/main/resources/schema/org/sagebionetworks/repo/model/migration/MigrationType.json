@@ -23,6 +23,7 @@
         "SUBMISSION",
         "SUBMISSION_FILE",
         "SUBMISSION_STATUS",
+        "TRASH_CAN",
         "DOI",
         "CHANGE"
     ]

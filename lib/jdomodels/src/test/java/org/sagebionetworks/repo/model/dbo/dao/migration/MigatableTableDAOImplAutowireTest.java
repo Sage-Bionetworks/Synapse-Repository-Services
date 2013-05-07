@@ -11,7 +11,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dbo.dao.TestUtils;
@@ -182,6 +181,7 @@ public class MigatableTableDAOImplAutowireTest {
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION);
 		expectedPrimaryTypes.add(MigrationType.SUBMISSION_STATUS);
 		expectedPrimaryTypes.add(MigrationType.FAVORITE);
+		expectedPrimaryTypes.add(MigrationType.TRASH_CAN);
 		expectedPrimaryTypes.add(MigrationType.DOI);
 		expectedPrimaryTypes.add(MigrationType.CHANGE);
 		// Get the list

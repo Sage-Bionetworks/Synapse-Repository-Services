@@ -4,9 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
@@ -15,14 +15,13 @@ import java.util.List;
 import java.util.Map;
 
 import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-
-import junit.framework.Assert;
+import javax.servlet.http.HttpServletRequest;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 import org.sagebionetworks.evaluation.dao.EvaluationDAO;
 import org.sagebionetworks.evaluation.model.Evaluation;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
@@ -35,9 +34,9 @@ import org.sagebionetworks.repo.manager.UserProfileManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
-import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.Favorite;
 import org.sagebionetworks.repo.model.FileEntity;
+import org.sagebionetworks.repo.model.Folder;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
@@ -48,6 +47,7 @@ import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.doi.Doi;
+import org.sagebionetworks.repo.model.doi.DoiObjectType;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
@@ -61,17 +61,12 @@ import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.provenance.Activity;
 import org.sagebionetworks.repo.model.wiki.WikiPage;
 import org.sagebionetworks.repo.web.NotFoundException;
-import org.sagebionetworks.repo.web.UrlHelpers;
 import org.sagebionetworks.repo.web.controller.DispatchServletSingleton;
 import org.sagebionetworks.repo.web.controller.EntityServletTestHelper;
 import org.sagebionetworks.repo.web.controller.ServletTestHelper;
-import org.sagebionetworks.schema.adapter.JSONObjectAdapter;
+import org.sagebionetworks.repo.web.service.ServiceProvider;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
-import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.mock.web.MockHttpServletRequest;
-import org.springframework.mock.web.MockHttpServletResponse;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
@@ -106,7 +101,10 @@ public class MigrationIntegrationAutowireTest {
 	@Autowired
 	FileHandleDao fileMetadataDao;
 	@Autowired
-	UserProfileManager userProfileManager;	
+	UserProfileManager userProfileManager;
+	@Autowired
+	ServiceProvider serviceProvider;
+
 	
 	UserInfo userInfo;
 	private String userName;
@@ -122,6 +120,7 @@ public class MigrationIntegrationAutowireTest {
 	// Entites
 	Project project;
 	FileEntity fileEntity;
+	Folder folderToTrash;
 	// requirement
 	AccessRequirement accessRequirement;
 	// approval
@@ -147,8 +146,13 @@ public class MigrationIntegrationAutowireTest {
 	// Favorite
 	Favorite favorite;
 	
+	HttpServletRequest mockRequest;
+	
 	@Before
 	public void before() throws Exception{
+		
+		mockRequest = Mockito.mock(HttpServletRequest.class);
+		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		// get user IDs
 		userName = TestUserDAO.ADMIN_USER_NAME;
 		userInfo = userManager.getUserInfo(userName);
@@ -166,33 +170,19 @@ public class MigrationIntegrationAutowireTest {
 
 
 	private void createFavorite() {
-		favorite = userProfileManager.addFavorite(userInfo, fileEntity.getId());
+		favorite =  userProfileManager.addFavorite(userInfo, fileEntity.getId());
 	}
 
 
-	private void createDoi() throws ServletException, IOException,
-			UnsupportedEncodingException, JSONObjectAdapterException {
-		String uri = UrlHelpers.ENTITY + "/" + project.getId() + UrlHelpers.DOI;
-		MockHttpServletRequest request = new MockHttpServletRequest();
-		request.setMethod("PUT");
-		request.addHeader("Accept", "application/json");
-		request.setRequestURI(uri);
-		request.setParameter(AuthorizationConstants.USER_ID_PARAM, userName);
-		MockHttpServletResponse response = new MockHttpServletResponse();
-		HttpServlet servlet = DispatchServletSingleton.getInstance();
-		servlet.service(request, response);
-		Assert.assertEquals(HttpStatus.ACCEPTED.value(), response.getStatus());
-		String jsonStr = response.getContentAsString();
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonStr);
-		doi = new Doi();
-		doi.initializeFromJSONObject(adapter);
+	private void createDoi() throws Exception {
+		doi = serviceProvider.getDoiService().createDoi(userName, project.getId(), DoiObjectType.ENTITY, 1L);
 	}
 
 
-	private void createActivity() throws ServletException, IOException {
+	private void createActivity() throws Exception {
 		activity = new Activity();
 		activity.setDescription("some desc");
-		activity = ServletTestHelper.createActivity(DispatchServletSingleton.getInstance(), activity, userName, new HashMap<String, String>());
+		activity = serviceProvider.getActivityService().createActivity(adminId, activity);
 	}
 
 
@@ -209,10 +199,10 @@ public class MigrationIntegrationAutowireTest {
 		evaluation.setDescription("description");
 		evaluation.setContentSource("contentSource");
 		evaluation.setStatus(EvaluationStatus.OPEN);
-		evaluation = entityServletHelper.createEvaluation(evaluation, userName);		
+		evaluation = serviceProvider.getEvaluationService().createEvaluation(userName, evaluation);		
         
         // initialize Participants
-		participant = entityServletHelper.createParticipant(userName, evaluation.getId());
+		participant = serviceProvider.getEvaluationService().addParticipant(userName, evaluation.getId());
         
         // initialize Submissions
 		submission = new Submission();
@@ -222,7 +212,7 @@ public class MigrationIntegrationAutowireTest {
 		submission.setUserId(userName);
 		submission.setEvaluationId(evaluation.getId());
 		submission = entityServletHelper.createSubmission(submission, userName, fileEntity.getEtag());
-		submissionStatus = entityServletHelper.getSubmissionStatus(submission.getId());
+		submissionStatus = serviceProvider.getEvaluationService().getSubmissionStatus(submission.getId());
 	}
 
 
@@ -250,8 +240,7 @@ public class MigrationIntegrationAutowireTest {
 	}
 
 
-	public void creatWikiPages() throws ServletException, IOException,
-			JSONObjectAdapterException {
+	public void creatWikiPages() throws Exception {
 		wikiToDelete = new LinkedList<WikiPageKey>();
 		// Create a wiki page
 		rootWiki = new WikiPage();
@@ -259,7 +248,7 @@ public class MigrationIntegrationAutowireTest {
 		rootWiki.getAttachmentFileHandleIds().add(handleOne.getId());
 		rootWiki.setTitle("Root title");
 		rootWiki.setMarkdown("Root markdown");
-		rootWiki = entityServletHelper.createWikiPage(userName, fileEntity.getId(), ObjectType.ENTITY, rootWiki);
+		rootWiki = serviceProvider.getWikiService().createWikiPage(userName, fileEntity.getId(), ObjectType.ENTITY, rootWiki);
 		rootWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, rootWiki.getId());
 		wikiToDelete.add(rootWikiKey);
 		
@@ -267,7 +256,7 @@ public class MigrationIntegrationAutowireTest {
 		subWiki.setParentWikiId(rootWiki.getId());
 		subWiki.setTitle("Sub-wiki-title");
 		subWiki.setMarkdown("sub-wiki markdown");
-		subWiki = entityServletHelper.createWikiPage(userName, fileEntity.getId(), ObjectType.ENTITY, subWiki);
+		subWiki = serviceProvider.getWikiService().createWikiPage(userName, fileEntity.getId(), ObjectType.ENTITY, subWiki);
 		subWikiKey = new WikiPageKey(fileEntity.getId(), ObjectType.ENTITY, subWiki.getId());
 	}
 
@@ -286,7 +275,7 @@ public class MigrationIntegrationAutowireTest {
 		project = new Project();
 		project.setName("MigrationIntegrationAutowireTest.Project");
 		project.setEntityType(Project.class.getName());
-		project = (Project) entityServletHelper.createEntity(project, userName, null);
+		project = serviceProvider.getEntityService().createEntity(userName, project, null, mockRequest);
 		entityToDelete.add(project.getId());
 		
 		// Create a file entity
@@ -295,7 +284,15 @@ public class MigrationIntegrationAutowireTest {
 		fileEntity.setEntityType(FileEntity.class.getName());
 		fileEntity.setParentId(project.getId());
 		fileEntity.setDataFileHandleId(handleOne.getId());
-		fileEntity = (FileEntity) entityServletHelper.createEntity(fileEntity, userName, activity.getId());
+		fileEntity = serviceProvider.getEntityService().createEntity(userName, fileEntity, activity.getId(),mockRequest);
+		
+		// Create a folder to trash
+		folderToTrash = new Folder();
+		folderToTrash.setName("boundForTheTrashCan");
+		folderToTrash.setParentId(project.getId());
+		folderToTrash = serviceProvider.getEntityService().createEntity(userName, folderToTrash, null, mockRequest);
+		// Send it to the trash can
+		serviceProvider.getTrashService().moveToTrash(userName, folderToTrash.getId());
 	}
 	
 	private AccessRequirement newAccessRequirement() {
@@ -343,20 +340,20 @@ public class MigrationIntegrationAutowireTest {
 		if(wikiToDelete != null){
 			for(WikiPageKey key: wikiToDelete){
 				try {
-					entityServletHelper.deleteWikiPage(key, userName);
+					serviceProvider.getWikiService().deleteWikiPage(userName, key);
 				} catch (Exception e) {}
 			}
 		}
 		if(activity != null){
 			try {
-				ServletTestHelper.deleteActivity(DispatchServletSingleton.getInstance(), activity.getId(), userName, new HashMap<String, String>());
+				serviceProvider.getActivityService().deleteActivity(userName, activity.getId());
 			} catch (Exception e) {}
 		}
 		// Delete the project
 		if(entityToDelete != null){
 			for(String id: entityToDelete){
 				try {
-					entityServletHelper.deleteEntity(id, userName);
+					serviceProvider.getEntityService().deleteEntity(id, userName);
 				} catch (Exception e) {}
 			}
 		}
