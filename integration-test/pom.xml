@@ -118,7 +118,7 @@
 					<wait>${org.sagebionetworks.integration.debug}</wait>
 					<!-- Container configuration -->
 					<container>
-						<timeout>240000</timeout>
+						<timeout>360000</timeout>
 						<containerId>tomcat7x</containerId>
 						<!-- Download and install tomcat -->
 						<zipUrlInstaller>
