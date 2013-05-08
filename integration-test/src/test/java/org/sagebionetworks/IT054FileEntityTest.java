@@ -33,13 +33,10 @@ public class IT054FileEntityTest {
 	public static final long MAX_WAIT_MS = 1000*10; // 10 sec
 	
 	private static String FILE_NAME = "LittleImage.png";
-	private static String FILE_NAME_2 = "profile_pic.png";
 
 	private static Synapse synapse = null;
 	File imageFile;
-	File imageFile2;
 	S3FileHandle fileHandle;
-	S3FileHandle fileHandle2;
 	PreviewFileHandle previewFileHandle;
 	Project project;
 	
@@ -73,20 +70,14 @@ public class IT054FileEntityTest {
 		imageFile = new File(url.getFile().replaceAll("%20", " "));
 		assertNotNull(imageFile);
 		assertTrue(imageFile.exists());
-		url = IT054FileEntityTest.class.getClassLoader().getResource("images/"+FILE_NAME_2);
-		imageFile2 = new File(url.getFile().replaceAll("%20", " "));
-		assertNotNull(imageFile2);
-		assertTrue(imageFile2.exists());
 		// Create the image file handle
 		List<File> list = new LinkedList<File>();
 		list.add(imageFile);
-		list.add(imageFile2);
 		FileHandleResults results = synapse.createFileHandles(list);
 		assertNotNull(results);
 		assertNotNull(results.getList());
-		assertEquals(2, results.getList().size());
+		assertEquals(1, results.getList().size());
 		fileHandle = (S3FileHandle) results.getList().get(0);
-		fileHandle2 = (S3FileHandle) results.getList().get(1);
 		// Create a project, this will own the file entity
 		project = new Project();
 		project = synapse.createEntity(project);
@@ -108,11 +99,6 @@ public class IT054FileEntityTest {
 		if(fileHandle != null){
 			try {
 				synapse.deleteFileHandle(fileHandle.getId());
-			} catch (Exception e) {}
-		}
-		if(fileHandle2 != null){
-			try {
-				synapse.deleteFileHandle(fileHandle2.getId());
 			} catch (Exception e) {}
 		}
 		if(previewFileHandle != null){
