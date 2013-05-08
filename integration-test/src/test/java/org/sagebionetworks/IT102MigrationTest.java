@@ -36,7 +36,7 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 
-
+@Ignore
 public class IT102MigrationTest {
 	
 	private static SynapseAdministration conn;
