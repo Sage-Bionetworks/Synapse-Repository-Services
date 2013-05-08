@@ -247,9 +247,8 @@ public class SynapseAdministration extends Synapse {
 	 */
 	public RowMetadataResult getRowMetadataDelta(MigrationType migrationType, IdList ids) throws JSONObjectAdapterException, SynapseException {
 		String uri = MIGRATION_DELTA + "?type=" + migrationType.name();
-		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(ids);
-		String reqBody = jsonObject.toString();
-		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", reqBody, defaultGETDELETEHeaders);
+		String jsonStr = EntityFactory.createJSONStringForEntity(ids);
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", jsonStr, defaultGETDELETEHeaders);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		RowMetadataResult result = new RowMetadataResult();
 		result.initializeFromJSONObject(adapter);
@@ -261,9 +260,8 @@ public class SynapseAdministration extends Synapse {
 	 */
 	public BackupRestoreStatus startBackup(MigrationType migrationType, IdList ids) throws JSONObjectAdapterException, SynapseException {
 		String uri = MIGRATION_BACKUP + "?type=" + migrationType.name();
-		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(ids);
-		String reqBody = jsonObject.toString();
-		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", reqBody, defaultGETDELETEHeaders);
+		String jsonStr = EntityFactory.createJSONStringForEntity(ids);
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "POST", jsonStr, defaultPOSTPUTHeaders);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		BackupRestoreStatus brStatus = new BackupRestoreStatus();
 		brStatus.initializeFromJSONObject(adapter);
@@ -275,9 +273,8 @@ public class SynapseAdministration extends Synapse {
 	 */
 	public BackupRestoreStatus startRestore(MigrationType migrationType, RestoreSubmission req) throws JSONObjectAdapterException, SynapseException {
 		String uri = MIGRATION_RESTORE + "?type=" + migrationType.name();
-		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(req);
-		String reqBody = jsonObject.toString();
-		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", reqBody, defaultPOSTPUTHeaders);
+		String jsonStr = EntityFactory.createJSONStringForEntity(req);
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "POST", jsonStr, defaultPOSTPUTHeaders);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		BackupRestoreStatus brStatus = new BackupRestoreStatus();
 		brStatus.initializeFromJSONObject(adapter);
@@ -288,7 +285,7 @@ public class SynapseAdministration extends Synapse {
 	 * 
 	 */
 	public BackupRestoreStatus getStatus(String daemonId) throws JSONObjectAdapterException, SynapseException {
-		String uri = MIGRATION_STATUS + "/" + daemonId;
+		String uri = MIGRATION_STATUS + "?daemonId=" + daemonId;
 		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		BackupRestoreStatus brStatus = new BackupRestoreStatus();
@@ -301,9 +298,8 @@ public class SynapseAdministration extends Synapse {
 	 */
 	public MigrationTypeCount deleteMigratableObject(MigrationType migrationType, IdList ids) throws JSONObjectAdapterException, SynapseException {
 		String uri = MIGRATION_DELETE + "?type=" + migrationType.name();
-		JSONObject jsonObject = EntityFactory.createJSONObjectForEntity(ids);
-		String reqBody = jsonObject.toString();
-		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "DELETE", reqBody, defaultGETDELETEHeaders);
+		String jsonStr = EntityFactory.createJSONStringForEntity(ids);
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "DELETE", jsonStr, defaultGETDELETEHeaders);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		MigrationTypeCount mtc = new MigrationTypeCount();
 		mtc.initializeFromJSONObject(adapter);
