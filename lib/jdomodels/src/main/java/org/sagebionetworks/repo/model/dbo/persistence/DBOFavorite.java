@@ -1,6 +1,7 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FAVORITE_CREATED_ON;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FAVORITE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FAVORITE_NODE_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FAVORITE_PRINCIPAL_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_FAVORITE;
@@ -8,18 +9,21 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FAVORI
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * @author dburdick
  *
  */
-public class DBOFavorite implements DatabaseObject<DBOFavorite>, ObservableEntity {
+public class DBOFavorite implements MigratableDatabaseObject<DBOFavorite, DBOFavorite>, ObservableEntity {
 	
 	public static final String FIELD_COLUMN_ID_PRINCIPAL_ID = "principalId";
 	public static final String FIELD_COLUMN_ID_NODE_ID = "nodeId";
@@ -27,11 +31,13 @@ public class DBOFavorite implements DatabaseObject<DBOFavorite>, ObservableEntit
 	private Long principalId;
 	private Long nodeId;
 	private Long createdOn;
+	private Long id;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn(FIELD_COLUMN_ID_PRINCIPAL_ID, COL_FAVORITE_PRINCIPAL_ID, true),
 		new FieldColumn(FIELD_COLUMN_ID_NODE_ID, COL_FAVORITE_NODE_ID, true),
 		new FieldColumn("createdOn", COL_FAVORITE_CREATED_ON),
+		new FieldColumn("id", COL_FAVORITE_ID).withIsBackupId(true),
 		};
 
 	@Override
@@ -44,6 +50,7 @@ public class DBOFavorite implements DatabaseObject<DBOFavorite>, ObservableEntit
 				dbo.setPrincipalId(rs.getLong(COL_FAVORITE_PRINCIPAL_ID));
 				dbo.setNodeId(rs.getLong(COL_FAVORITE_NODE_ID));
 				dbo.setCreatedOn(rs.getLong(COL_FAVORITE_CREATED_ON));
+				dbo.setId(rs.getLong(COL_FAVORITE_ID));
 				return dbo;
 			}
 
@@ -128,12 +135,23 @@ public class DBOFavorite implements DatabaseObject<DBOFavorite>, ObservableEntit
 	}
 
 
+	public Long getId() {
+		return id;
+	}
+
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
 		int result = 1;
 		result = prime * result
 				+ ((createdOn == null) ? 0 : createdOn.hashCode());
+		result = prime * result + ((id == null) ? 0 : id.hashCode());
 		result = prime * result + ((nodeId == null) ? 0 : nodeId.hashCode());
 		result = prime * result
 				+ ((principalId == null) ? 0 : principalId.hashCode());
@@ -155,6 +173,11 @@ public class DBOFavorite implements DatabaseObject<DBOFavorite>, ObservableEntit
 				return false;
 		} else if (!createdOn.equals(other.createdOn))
 			return false;
+		if (id == null) {
+			if (other.id != null)
+				return false;
+		} else if (!id.equals(other.id))
+			return false;
 		if (nodeId == null) {
 			if (other.nodeId != null)
 				return false;
@@ -172,7 +195,47 @@ public class DBOFavorite implements DatabaseObject<DBOFavorite>, ObservableEntit
 	@Override
 	public String toString() {
 		return "DBOFavorite [principalId=" + principalId + ", nodeId=" + nodeId
-				+ ", createdOn=" + createdOn + "]";
+				+ ", createdOn=" + createdOn + ", id=" + id + "]";
+	}
+
+
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.FAVORITE;
+	}
+
+
+	@Override
+	public MigratableTableTranslation<DBOFavorite, DBOFavorite> getTranslator() {
+		return new  MigratableTableTranslation<DBOFavorite, DBOFavorite>(){
+
+			@Override
+			public DBOFavorite createDatabaseObjectFromBackup(DBOFavorite backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOFavorite createBackupFromDatabaseObject(DBOFavorite dbo) {
+				return dbo;
+			}};
+	}
+
+
+	@Override
+	public Class<? extends DBOFavorite> getBackupClass() {
+		return DBOFavorite.class;
+	}
+
+
+	@Override
+	public Class<? extends DBOFavorite> getDatabaseObjectClass() {
+		return DBOFavorite.class;
+	}
+
+
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
 	}
 
 }
