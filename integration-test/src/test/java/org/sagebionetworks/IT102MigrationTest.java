@@ -36,12 +36,13 @@ import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.services.s3.AmazonS3Client;
 
-@Ignore
+
 public class IT102MigrationTest {
 	
 	private static SynapseAdministration conn;
 	private static AmazonS3Client s3Client;
 	private static String bucket;
+	private Project project;
 	
 	private List<Entity> toDelete;
 
@@ -75,6 +76,10 @@ public class IT102MigrationTest {
 		conn.login(StackConfiguration.getIntegrationTestUserAdminName(),
 				StackConfiguration.getIntegrationTestUserAdminPassword());
 		toDelete = new ArrayList<Entity>();
+		project = new Project();
+		project.setName("projectIT102");
+		project = conn.createEntity(project);
+		toDelete.add(project);
 	}
 
 	@After
@@ -135,27 +140,24 @@ public class IT102MigrationTest {
 		}
 		// Round trip
 		System.out.println("Backup/restore");
-		Project p = new Project();
-		p.setName("projectIT102");
-		p = conn.createEntity(p);
 		IdList idList = new IdList();
 		List<String> ids = new ArrayList<String>();
-		ids.add(p.getId());
+		ids.add(project.getId().substring(3));
 		idList.setList(ids);
 		System.out.println("Backing up...");
 		BackupRestoreStatus brStatus = conn.startBackup(MigrationType.NODE, idList);
 		brStatus = waitForDaemonCompletion(brStatus);
-		conn.deleteEntity(p);
+		conn.deleteEntity(project);
 		System.out.println("Restoring " + brStatus.getBackupUrl() + "...");
 		String fName = getFileNameFromUrl(brStatus.getBackupUrl());
 		RestoreSubmission rReq = new RestoreSubmission();
 		rReq.setFileName(fName);
 		brStatus = conn.startRestore(MigrationType.NODE, rReq);
 		brStatus = waitForDaemonCompletion(brStatus);
-		Project rp = conn.getEntity(p.getId(), Project.class);
+		Project rp = conn.getEntity(project.getId(), Project.class);
 		assertNotNull(rp);
-		assertEquals(p.getId(), rp.getId());
-		assertEquals(p.getName(), rp.getName());
+		assertEquals(project.getId(), rp.getId());
+		assertEquals(project.getName(), rp.getName());
 	}
-
+	
 }

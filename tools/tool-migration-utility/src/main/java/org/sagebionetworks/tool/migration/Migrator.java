@@ -83,7 +83,6 @@ public class Migrator {
 	public static void migrateType(SynapseAdministration src, SynapseAdministration dest, MigrationType t, Long count) throws SynapseException, JSONObjectAdapterException {
 		int limit = batchSize;
 		int offset = 0;
-		PaginatedResults<RowMetadataResult> pRes = src.getRowMetadata(t, limit, offset);
-		System.out.println(pRes.getTotalNumberOfResults());
+		RowMetadataResult pRes = src.getRowMetadata(t, limit, offset);
 	}
 }

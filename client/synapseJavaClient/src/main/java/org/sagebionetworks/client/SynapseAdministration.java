@@ -233,11 +233,11 @@ public class SynapseAdministration extends Synapse {
 	/*
 	 * 
 	 */
-	public PaginatedResults<RowMetadataResult> getRowMetadata(MigrationType migrationType, Integer limit, Integer offset) throws SynapseException, JSONObjectAdapterException {
+	public RowMetadataResult getRowMetadata(MigrationType migrationType, Integer limit, Integer offset) throws SynapseException, JSONObjectAdapterException {
 		String uri = MIGRATION_ROWS + "?type=" + migrationType.name() + "&limit=" + limit + "&offset=" + offset;
 		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		PaginatedResults<RowMetadataResult> results = new PaginatedResults<RowMetadataResult>(RowMetadataResult.class);
+		RowMetadataResult results = new RowMetadataResult(); 
 		results.initializeFromJSONObject(adapter);
 		return results;
 	}
