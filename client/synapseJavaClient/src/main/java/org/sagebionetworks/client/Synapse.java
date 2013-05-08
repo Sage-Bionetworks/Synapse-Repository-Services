@@ -88,7 +88,6 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -1226,47 +1225,6 @@ public class Synapse {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
-	}
-
-	/**
-	 * Create a new version of a given versionable Entity
-	 * @param <T>
-	 * @param entity
-	 * @param activityId
-	 * @return
-	 * @throws SynapseException
-	 */
-	public <T extends Versionable> T createNewEntityVersion(T entity) throws SynapseException {
-		return createNewEntityVersion(entity, null);
-	}
-	
-	/**
-	 * Create a new version of a given versionable Entity and create generatedBy connection to the given activity
-	 * @param <T>
-	 * @param entity
-	 * @param activityId
-	 * @return
-	 * @throws SynapseException
-	 */
-	@SuppressWarnings("unchecked")
-	public <T extends Versionable> T createNewEntityVersion(T entity, String activityId) throws SynapseException {
-		if (entity == null)
-			throw new IllegalArgumentException("Entity cannot be null");
-
-		Map<String,String> headers = new HashMap<String, String>();
-		try {
-			String uri = createEntityUri(ENTITY_URI_PATH, entity.getId()) + REPO_SUFFIX_VERSION;
-			if(activityId != null) 
-				uri += "?" + PARAM_GENERATED_BY + "=" + activityId;
-			JSONObject jsonObject;
-			jsonObject = EntityFactory.createJSONObjectForEntity(entity);
-			jsonObject = putJSONObject(uri, jsonObject, headers);
-			return (T) EntityFactory.createEntityFromJSONObject(jsonObject,
-					entity.getClass());
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-		
 	}
 	
 	/**

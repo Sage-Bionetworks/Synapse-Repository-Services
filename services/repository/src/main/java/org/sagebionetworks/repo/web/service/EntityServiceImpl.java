@@ -432,36 +432,6 @@ public class EntityServiceImpl implements EntityService {
 		BasicQuery query = QueryUtils.createChildrenOfTypePaginated(parentId, paging, childType);
 		return executeQueryAndConvertToEntites(paging, request, clazz, userInfo, query);
 	}
-	
-//	@Override
-//	public Long getChildCount(String userId, String entityId, HttpServletRequest request) throws DatastoreException, ParseException, NotFoundException, UnauthorizedException {
-//		String queryString = SELECT_ID_FROM_ENTITY_WHERE_PARENT_ID + entityId + 
-//				LIMIT_1_OFFSET_1;
-//		QueryResults qr = query(userId, queryString, request);
-//		return qr.getTotalNumberOfResults();
-//	}
-
-	/*
-	 * TODO : dead code, remove?
-	 */
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public <T extends Entity> Collection<T> aggregateEntityUpdate(String userId, String parentId, Collection<T> update,	HttpServletRequest request) throws NotFoundException,
-			ConflictingUpdateException, DatastoreException,
-			InvalidModelException, UnauthorizedException {
-		if(update == null) return null;
-		if(update.isEmpty()) return update;
-		// First try the updated
-		UserInfo userInfo = userManager.getUserInfo(userId);
-		List<String> updatedIds = entityManager.aggregateEntityUpdate(userInfo, parentId, update);
-		// Now create the update object
-		List<T> newList = new ArrayList<T>();
-		Class tClass = update.iterator().next().getClass();
-		for(int i=0; i<updatedIds.size(); i++){
-			newList.add((T) entityManager.getEntity(userInfo, updatedIds.get(i), tClass));
-		}
-		return newList;
-	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override

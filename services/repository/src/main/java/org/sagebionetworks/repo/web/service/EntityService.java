@@ -279,27 +279,6 @@ public interface EntityService {
 			DatastoreException, InvalidModelException, UnauthorizedException;
 
 	/**
-	 * Update multiple children of a single entity within a single transaction.
-	 * 
-	 * @param <T>
-	 * @param userId
-	 * @param parentId
-	 * @param update
-	 * @param request
-	 * @return
-	 * @throws NotFoundException
-	 * @throws ConflictingUpdateException
-	 * @throws DatastoreException
-	 * @throws InvalidModelException
-	 * @throws UnauthorizedException
-	 */
-	public <T extends Entity> Collection<T> aggregateEntityUpdate(
-			String userId, String parentId, Collection<T> update,
-			HttpServletRequest request) throws NotFoundException,
-			ConflictingUpdateException, DatastoreException,
-			InvalidModelException, UnauthorizedException;
-
-	/**
 	 * Delete a specific entity
 	 * <p>
 	 * 

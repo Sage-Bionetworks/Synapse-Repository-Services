@@ -12,10 +12,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.math.BigInteger;
 import java.net.URL;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -57,7 +54,6 @@ import org.sagebionetworks.repo.model.LayerTypeNames;
 import org.sagebionetworks.repo.model.Link;
 import org.sagebionetworks.repo.model.LocationData;
 import org.sagebionetworks.repo.model.LocationTypeNames;
-import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.Reference;
@@ -1245,46 +1241,5 @@ public class IT500SynapseJavaClient {
 		assertEquals(expected.size(), results.size());
 		assertEquals(expected,results);
 		
-	}
-
-	@Ignore
-	@Test
-	public void testGetMigratableObjectCounts() throws SynapseException {
-		
-	}
-
-	// Utility methods - could be extracted to a separate helper
-	//  class to facilitate proper cleanup of all unit tests
-
-	private <T extends Entity> T createEntity(String parentId, Class<? extends T> entityClass) throws SynapseException {
-		T entity;
-		try {
-			entity = entityClass.newInstance();
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-		entity.setParentId(parentId);
-		entity = synapse.createEntity(entity);
-		toDelete.add(entity.getId());
-		return entity;
-	}
-
-	private <T extends Locationable> void versionEntity(T entity, int numVersions) throws SynapseException {
-		try {
-			for (int i = 0; i < numVersions; i++) {
-				entity.setMd5(md5Sum(entity.getMd5()));
-				entity = synapse.putEntity(entity);
-			}
-		} catch (NoSuchAlgorithmException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
-	private String md5Sum(String value) throws NoSuchAlgorithmException {
-		if (value == null) throw new IllegalArgumentException("Value cannot be null");
-		return String.format("%032x",
-				new BigInteger(1, MessageDigest.getInstance("md5").
-									digest(value.getBytes()))).
-						substring(0, 32);
 	}
 }
