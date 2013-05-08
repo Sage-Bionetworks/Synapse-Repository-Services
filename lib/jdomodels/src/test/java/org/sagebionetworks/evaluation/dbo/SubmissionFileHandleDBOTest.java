@@ -12,6 +12,8 @@ import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.dbo.ParticipantDBO;
 import org.sagebionetworks.evaluation.dbo.SubmissionDBO;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Node;
@@ -37,7 +39,9 @@ public class SubmissionFileHandleDBOTest {
 	NodeDAO nodeDAO;
 	@Autowired
 	FileHandleDao fileHandleDAO;
- 
+    @Autowired
+    IdGenerator idGenerator;
+    
     private String nodeId = null;
     private long submissionId;
     private long userId = 0;
@@ -81,6 +85,7 @@ public class SubmissionFileHandleDBOTest {
         participant.setUserId(userId);
         participant.setEvalId(evalId);
         participant.setCreatedOn(System.currentTimeMillis());
+        participant.setId(idGenerator.generateNewId(TYPE.PARTICIPANT_ID));
         dboBasicDao.createNew(participant);
         
         // Initialize a new Submission

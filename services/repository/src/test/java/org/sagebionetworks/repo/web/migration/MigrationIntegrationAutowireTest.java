@@ -150,7 +150,6 @@ public class MigrationIntegrationAutowireTest {
 	
 	@Before
 	public void before() throws Exception{
-		
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		// get user IDs
@@ -523,7 +522,7 @@ public class MigrationIntegrationAutowireTest {
 	private void waitForDaemon(BackupRestoreStatus status) throws InterruptedException, ServletException, IOException, JSONObjectAdapterException{
 		long start = System.currentTimeMillis();
 		while(DaemonStatus.COMPLETED != status.getStatus()){
-			assertFalse("Daemon failed", DaemonStatus.FAILED == status.getStatus());
+			assertFalse("Daemon failed "+status.getErrorDetails(), DaemonStatus.FAILED == status.getStatus());
 			System.out.println("Waiting for backup/restore daemon.  Message: "+status.getProgresssMessage());
 			Thread.sleep(1000);
 			long elapse = System.currentTimeMillis() - start;
