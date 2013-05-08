@@ -160,7 +160,7 @@ public class BackupRestoreDaemon implements Runnable{
 				status.setProgresssMessage("Starting to upload temp file: "+tempBackup.getAbsolutePath()+" to S3...");
 				updateStatus();
 				// Now upload the file to S3
-				String backupUrl = uploadFileToS3(tempBackup, null);
+				String backupUrl = uploadFileToS3(tempBackup, migrationType);
 				status.setBackupUrl(backupUrl);
 			}
 
@@ -314,8 +314,8 @@ public class BackupRestoreDaemon implements Runnable{
 	 * @param toUpload
 	 * @param id
 	 */
-	private String uploadFileToS3(File toUpload, String s3KeyPrefix) {
-		String s3Key = s3KeyPrefix + toUpload.getName();
+	private String uploadFileToS3(File toUpload, MigrationType type) {
+		String s3Key = type.name() +"-"+ toUpload.getName();
 		log.info("Atempting to upload: "+getS3URL(awsBucket, s3Key));
 		PutObjectResult results = this.awsClient.putObject(awsBucket, s3Key, toUpload);
 		log.info(results);

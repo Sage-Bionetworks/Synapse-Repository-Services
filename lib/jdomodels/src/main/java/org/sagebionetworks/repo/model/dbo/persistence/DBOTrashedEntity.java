@@ -11,20 +11,23 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_TRASH_
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * A trashed entity in the trash can. It keeps track of who deleted the item and when.
  *
  * @author Eric Wu
  */
-public class DBOTrashedEntity implements AutoIncrementDatabaseObject<DBOTrashedEntity> {
+public class DBOTrashedEntity implements MigratableDatabaseObject<DBOTrashedEntity, DBOTrashedEntity> {
 
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("nodeId", COL_TRASH_CAN_NODE_ID, true),
+		new FieldColumn("nodeId", COL_TRASH_CAN_NODE_ID, true).withIsBackupId(true),
 		new FieldColumn("nodeName", COL_TRASH_CAN_NODE_NAME),
 		new FieldColumn("deletedBy", COL_TRASH_CAN_DELETED_BY),
 		new FieldColumn("deletedOn", COL_TRASH_CAN_DELETED_ON),
@@ -71,7 +74,6 @@ public class DBOTrashedEntity implements AutoIncrementDatabaseObject<DBOTrashedE
 	/**
 	 * The primary key.
 	 */
-	@Override
 	public Long getId() {
 		return nodeId;
 	}
@@ -79,7 +81,6 @@ public class DBOTrashedEntity implements AutoIncrementDatabaseObject<DBOTrashedE
 	/**
 	 * The primary key.
 	 */
-	@Override
 	public void setId(Long id) {
 		this.nodeId = id;
 	}
@@ -211,4 +212,41 @@ public class DBOTrashedEntity implements AutoIncrementDatabaseObject<DBOTrashedE
 	private Long deletedBy;
 	private Timestamp deletedOn;
 	private Long parentId;
+
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.TRASH_CAN;
+	}
+
+	@Override
+	public MigratableTableTranslation<DBOTrashedEntity, DBOTrashedEntity> getTranslator() {
+		return new MigratableTableTranslation<DBOTrashedEntity, DBOTrashedEntity>(){
+
+			@Override
+			public DBOTrashedEntity createDatabaseObjectFromBackup(
+					DBOTrashedEntity backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOTrashedEntity createBackupFromDatabaseObject(
+					DBOTrashedEntity dbo) {
+				return dbo;
+			}};
+	}
+
+	@Override
+	public Class<? extends DBOTrashedEntity> getBackupClass() {
+		return DBOTrashedEntity.class;
+	}
+
+	@Override
+	public Class<? extends DBOTrashedEntity> getDatabaseObjectClass() {
+		return DBOTrashedEntity.class;
+	}
+
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
+	}
 }

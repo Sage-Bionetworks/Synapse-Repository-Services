@@ -215,4 +215,12 @@ public class DMLUtilsTest {
 		System.out.println(sql);
 		assertEquals("INSERT INTO SOME_TABLE(`ID`, `ETAG`, `PARENT_ID`) VALUES (:id, :etag, :parentId) ON DUPLICATE KEY UPDATE `ETAG` = :etag, `PARENT_ID` = :parentId", sql);
 	}
+	
+	@Test
+	public void testGetBatchInsertOrUdpateKeyOnly(){
+		String sql = DMLUtils.getBatchInsertOrUdpate(migrateableMappingNoEtagNotSelfForeignKey);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals("INSERT INTO SOME_TABLE(`ID`) VALUES (:id)", sql);
+	}
 }

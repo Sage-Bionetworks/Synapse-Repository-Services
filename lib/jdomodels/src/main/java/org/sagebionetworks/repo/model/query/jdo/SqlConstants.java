@@ -305,6 +305,7 @@ public class SqlConstants {
 	public static final String COL_FAVORITE_PRINCIPAL_ID 		= "PRINCIPAL_ID";
 	public static final String COL_FAVORITE_NODE_ID 			= "NODE_ID";
 	public static final String COL_FAVORITE_CREATED_ON			= "CREATED_ON";
+	public static final String COL_FAVORITE_ID					= "FAVORITE_ID";
 	public static final String DDL_FILE_FAVORITE = "schema/Favorite-ddl.sql";
 
 	// The DOI table
