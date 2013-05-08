@@ -2,97 +2,62 @@ library(synapseClient)
 
 synapseLogin()
 
-# Create project and data
+# Create project
 projName <- sprintf("Provenances Project %s", as.character(gsub("-",".",Sys.Date())))
 project <- createEntity(Project(list(name=projName)))
 projectId <- propertyValue(project, "id")
-myAnnotationFile <- createEntity(Data(list(name="myAnnotationFile", parentId=projectId)))
-myRawDataFile <- createEntity(Data(list(name="myRawDataFile", parentId=projectId)))
-myOutputFile <- createEntity(Data(list(name="myOutputFile", parentId=projectId)))
-myScript <- createEntity(Data(list(name="myScript", parentId=projectId)))
 
-########### EX 1
-# Say we have some synapse entity already created with id syn789
+# create some resources to use
+myAnnotationFile <- synStore(File("/tmp/myAnnotationFile.txt", parentId=projectId))
+myRawDataFile <- synStore(File("/tmp/myRawDataFile.txt", parentId=projectId))
+myScript <- synStore(File("/tmp/myScript.txt", parentId=projectId))
 
-# Create an activity describing what was done
-activity<-Activity(list(name="Manual Curation"))
+## Example 1
+# Here we explicitly define an "Activity" object, then we create the myOutputFile 
+# entity and use the activity to describe how it was made. 
 
-# Persisting the activity in synapse at this point is optional.
-# If omitted, the activity will be persisted in the storeEntity
-# command
-activity<-createEntity(activity)
-
-# Connect that activity to our file entity with a "generatedBy" relationship.
-generatedBy(myOutputFile)<-activity
-# Store generatedBy relationship in Synapse
-myOutputFile<-storeEntity(myOutputFile)
-activity<-generatedBy(myOutputFile) # need to update the 'activity' object
+activity<-createEntity(Activity(list(name="Manual Curation")))
+myOutputFile <- synStore(File("/tmp/myOutputFile.txt", parentId=projectId), activity)
 
 onWeb(myOutputFile)
 
-########## EX 2
-# Assuming we already have our output file (syn789) an annotation file (syn123) and a raw data file (syn456) in Synapse
+## Example 2
+# Create an activity implicitly by describing it in the synStore call for myOutputFile. 
+# Here the combination of myAnnotationFile and myRawDataFile are used to generate myOutputFile.
 
-# Create an activity describing the combination of myAnnotationFile and myRawDataFile to generate myOutputFile with the "used" list, 
-# and connect that activity to our file entity with a "generatedBy" relationship.
-activity<-Activity(list(name="Manual Annotation of Raw Data", used=list(list(entity=myAnnotationFile, wasExecuted=F), list(entity=myRawDataFile, wasExecuted=F))))
-activity<-createEntity(activity)
-
-# Connect that activity to our file entity with a "generatedBy" relationship.
-generatedBy(myOutputFile)<-activity
-# Store generatedBy relationship in Synapse
-myOutputFile<-storeEntity(myOutputFile)
-activity<-generatedBy(myOutputFile) # need to update the 'activity' object
+myOutputFile <- synStore(File("/tmp/myOutputFile.txt", parentId=projectId), 
+                         used=list(myAnnotationFile, myRawDataFile), 
+                         activityName="Manual Annotation of Raw Data", 
+                         activityDescription="...")
 
 onWeb(myOutputFile)
 
+## Example 3
+# Create a provenance record for myOutputFile that uses resources external to Synapse. 
+# Here we are describing the execution of Script.py (stored in GitHub) 
+# where myAnnotationFile and a raw data file from GEO are used as inputs 
+# to generate myOutputFile with the "used" list
 
-########## EX 3
-
-# Using the "used" convenience method, create an activity describing the execution of Script.R in GitHub on the combination of 
-# myAnnotationFile and raw data from GEO to generate myOutputFile with the "used" list
-used(myOutputFile)<-list(list(name="Script.R", url="https://raw.github.com/username/RepoName/path/Script.R", wasExecuted=T), list(entity=myAnnotationFile, wasExecuted=F), list(name="GSM349870.CEL", url="http://www.ncbi.nlm.nih.gov/geo/download/?acc=GSM349870&format=file&file=GSM349870%2ECEL%2Egz", wasExecuted=F))
-
-# Persist both new Activity and generatedBy relationship
-myOutputFile<-storeEntity(myOutputFile)
+myOutputFile <- synStore(File("/tmp/myOutputFile.txt", parentId=projectId), 
+                         used=list(list(name="Script.py", url="https://raw.github.com/.../Script.py", wasExecuted=T), 
+                                   list(entity=myAnnotationFile, wasExecuted=F),
+                                   list(name="GSM349870.CEL", url="http://www.ncbi.nlm.nih.gov/geo/download/...", wasExecuted=F)),
+                         activityName="Scripted Annotation of Raw Data", 
+                         activityDescription="To execute run: python Script.py [Annotation] [CEL]")
 
 onWeb(myOutputFile)
 
 
-########## EX 4
-
-# ======== Execute a script and store the result in a file: /tmp/file.txt ========
-
-# Create an activity describing the execution of myScript with myAnnotationFile and myRawDataFile as inputs 
-activity<-Activity(list(name="Scripted Annotation of Raw Data", used=list(list(entity=myScript, wasExecuted=T), list(entity=myAnnotationFile, wasExecuted=F), list(entity=myRawDataFile, wasExecuted=F))))
-activity<-createEntity(activity)
-
-# Load new file into myOutputFile and connect Activity all at once
-myOutputFile <- addFile(myOutputFile, "/tmp/myOutputFile.txt")
-generatedBy(myOutputFile)<-activity
-myOutputFile <- storeEntity(myOutputFile)
-activity<-generatedBy(myOutputFile) # need to update the activity object
-
-onWeb(myOutputFile)
-
-########## EX 5
-
-# ======== Run script and store two files: /tmp/data.txt and /tmp/plot.png ========
-
+## Example 4
 # Create an activity describing the execution of myScript with myRawDataFile as the input
-activity<-Activity(list(name="Process data and plot", used=list(list(entity=myScript, wasExecuted=T), list(entity=myRawDataFile, wasExecuted=F))))
-activity<-createEntity(activity)
 
-# Load two output entities myOutputFile and myPlot and connect Activity
-myOutputFile <- addFile(myOutputFile, "/tmp/myOutputFile.txt")
-generatedBy(myOutputFile)<-activity
-myOutputFile <- storeEntity(myOutputFile)
-activity<-generatedBy(myOutputFile) # need to update the activity object
+activity<-createEntity(Activity(list(name="Process data and plot", 
+                                     used=list(list(entity=myScript, wasExecuted=T), 
+                                               list(entity=myRawDataFile, wasExecuted=F)))))
 
-# Create plot entity and store image in it
-myPlot <- createEntity(Data(list(name="myPlot", parentId=propertyValue(project, "id"))))
-myPlot <- addFile(myOutputFile, "/tmp/plot.png")
-generatedBy(myPlot)<-activity
-myPlot <- storeEntity(myPlot)
+# Record that the script's execution generated two output files, and upload those files
+
+myOutputFile <- synStore(File("/tmp/myOutputFile.txt", parentId=projectId), activity)
+myPlot <- synStore(File("/tmp/myPlot.png", parentId=projectId), activity)
 
 onWeb(myOutputFile)
