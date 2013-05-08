@@ -63,11 +63,26 @@ public class DMLUtils {
 	public static String getBatchInsertOrUdpate(TableMapping mapping){
 		StringBuilder builder = new StringBuilder();
 		builder.append(createInsertStatement(mapping));
-		builder.append(" ON DUPLICATE KEY UPDATE ");
-		buildUpdateBody(mapping, builder);
+		if(hasNonPrimaryKeyColumns(mapping)){
+			builder.append(" ON DUPLICATE KEY UPDATE ");
+			buildUpdateBody(mapping, builder);
+		}
 		return builder.toString();
 	}
 	
+	/**
+	 * Does this table have any columns that are not part of the primary key
+	 * @param mapping
+	 * @return
+	 */
+	private static boolean hasNonPrimaryKeyColumns(TableMapping mapping) {
+		for(int i=0; i<mapping.getFieldColumns().length; i++){
+			FieldColumn fc = mapping.getFieldColumns()[i];
+			if(!fc.isPrimaryKey()) return true;
+		}
+		return false;
+	}
+
 	/**
 	 * Create an INSERT statement for a given mapping.
 	 * @param mapping

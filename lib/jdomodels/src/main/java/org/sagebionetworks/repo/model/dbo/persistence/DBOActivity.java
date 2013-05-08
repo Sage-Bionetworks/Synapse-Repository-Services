@@ -13,18 +13,21 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACTIVI
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.ObservableEntity;
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * @author dburdick
  *
  */
-public class DBOActivity implements DatabaseObject<DBOActivity>, ObservableEntity {
+public class DBOActivity implements MigratableDatabaseObject<DBOActivity, DBOActivity>, ObservableEntity {
 	private Long id;
 	private String eTag;
 	private Long createdBy;
@@ -34,8 +37,8 @@ public class DBOActivity implements DatabaseObject<DBOActivity>, ObservableEntit
 	private byte[] serializedObject;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_ACTIVITY_ID, true),
-		new FieldColumn("eTag", COL_ACTIVITY_ETAG),
+		new FieldColumn("id", COL_ACTIVITY_ID, true).withIsBackupId(true),
+		new FieldColumn("eTag", COL_ACTIVITY_ETAG).withIsEtag(true),
 		new FieldColumn("createdBy", COL_ACTIVITY_CREATED_BY),
 		new FieldColumn("createdOn", COL_ACTIVITY_CREATED_ON),
 		new FieldColumn("modifiedBy", COL_ACTIVITY_MODIFIED_BY),
@@ -223,6 +226,41 @@ public class DBOActivity implements DatabaseObject<DBOActivity>, ObservableEntit
 
 	@Override
 	public String getParentIdString() {
+		return null;
+	}
+
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.ACTIVITY;
+	}
+
+	@Override
+	public MigratableTableTranslation<DBOActivity, DBOActivity> getTranslator() {
+		return new MigratableTableTranslation<DBOActivity, DBOActivity>(){
+
+			@Override
+			public DBOActivity createDatabaseObjectFromBackup(DBOActivity backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOActivity createBackupFromDatabaseObject(DBOActivity dbo) {
+				return dbo;
+			}};
+	}
+
+	@Override
+	public Class<? extends DBOActivity> getBackupClass() {
+		return DBOActivity.class;
+	}
+
+	@Override
+	public Class<? extends DBOActivity> getDatabaseObjectClass() {
+		return DBOActivity.class;
+	}
+
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
 		return null;
 	}
 	

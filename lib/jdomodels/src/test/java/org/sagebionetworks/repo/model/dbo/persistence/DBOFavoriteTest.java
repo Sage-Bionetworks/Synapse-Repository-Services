@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityType;
@@ -87,6 +88,7 @@ public class DBOFavoriteTest {
 		Long createdById = Long.parseLong(userGroupDAO.findGroup(AuthorizationConstants.BOOTSTRAP_USER_GROUP_NAME, false).getId());
 		favorite.setPrincipalId(createdById);
 		favorite.setCreatedOn(System.currentTimeMillis());
+		favorite.setId(idGenerator.generateNewId(TYPE.FAVORITE_ID));
 		favorite.seteTag("1");
 		// Make sure we can create it
 		DBOFavorite clone = dboBasicDao.createNew(favorite);
