@@ -3,6 +3,7 @@ package org.sagebionetworks.repo.web.controller;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -25,6 +26,7 @@ import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
 import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.EntityBundle;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.FileEntity;
@@ -376,48 +378,74 @@ public class EntityControllerTest {
 	public void testPromoteFileEntity() throws Exception {
 
 		Project p = new Project();
-		p.setName("Project testPromoteFileEntity()");
+		p.setName("Project testPromoteFileEntity parent");
 		p.setEntityType(p.getClass().getName());
 		Project parentBack = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
 		String parentId = parentBack.getId();
 		toDelete.add(parentId);
 
-		FileEntity version1 = new FileEntity();
-		version1.setName("File name of version 1");
-		version1.setEntityType(FileEntity.class.getName());
-		version1.setParentId(parentId);
-		version1.setDataFileHandleId(handleOne.getId());
-		version1.setVersionLabel("Version label of version 1");
-		version1.setVersionComment("Version comment of version 1");
-		FileEntity file = (FileEntity) entityServletHelper.createEntity(version1, TEST_USER1, null);
-		toDelete.add(file.getId());
+		// Create the file entity
+		FileEntity file = new FileEntity();
+		file.setName("File name of version 1");
+		file.setEntityType(FileEntity.class.getName());
+		file.setParentId(parentId);
+		file.setDataFileHandleId(handleOne.getId());
+		file.setVersionLabel("Version label of version 1");
+		file.setVersionComment("Version comment of version 1");
+		FileEntity version1 = (FileEntity) entityServletHelper.createEntity(file, TEST_USER1, null);
+		final String id = version1.getId();
+		toDelete.add(id);
 
-		file.setName("File name of version 2");
-		file.setDataFileHandleId(handleTwo.getId());
-		file.setVersionLabel("Version label of version 2");
-		file.setVersionComment("Version comment of version 2");
-		FileEntity version2 = (FileEntity) entityServletHelper.createNewVersion(TEST_USER1, file);
-		assertEquals(file.getId(), version2.getId());
+		// Create version 2 of the entity with a different file
+		version1.setName("File name of version 2");
+		version1.setDataFileHandleId(handleTwo.getId());
+		version1.setVersionLabel("Version label of version 2");
+		version1.setVersionComment("Version comment of version 2");
+		FileEntity version2 = (FileEntity) entityServletHelper.createNewVersion(TEST_USER1, version1);
+		toDelete.add(version2.getId());
+		assertEquals(id, version2.getId());
 		assertEquals(Long.valueOf(2L), version2.getVersionNumber());
 
-		VersionInfo versionInfo = entityServletHelper.promoteVersion(TEST_USER1, file.getId(), 1L);
+		// Promote version 1 to version 3
+		VersionInfo versionInfo = entityServletHelper.promoteVersion(TEST_USER1, version2.getId(), 1L);
 		assertNotNull(versionInfo);
 		assertEquals(Long.valueOf(3L), versionInfo.getVersionNumber());
 
-		FileEntity promoted = (FileEntity)entityServletHelper.getEntity(file.getId(), TEST_USER1);
-		// The following are newly assigned to the promoted (new) version
-		assertEquals(Long.valueOf(3L), promoted.getVersionNumber());
-		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(promoted.getEtag()));
+		// Retrieve the 3 versions
+		int mask = EntityBundle.ENTITY | EntityBundle.FILE_HANDLES;
+		EntityBundle eb1 = entityServletHelper.getEntityBundleForVersion(id, 1L, mask, TEST_USER1);
+		version1 = (FileEntity)eb1.getEntity();
+		assertNotNull(version1);
+		assertEquals(Long.valueOf(1L), version1.getVersionNumber());
+		EntityBundle eb2 = entityServletHelper.getEntityBundleForVersion(id, 2L, mask, TEST_USER1);
+		version2 = (FileEntity)eb2.getEntity();
+		assertNotNull(version2);
+		assertEquals(Long.valueOf(2L), version2.getVersionNumber());
+		EntityBundle eb3 = entityServletHelper.getEntityBundle(id, mask, TEST_USER1);
+		FileEntity version3 = (FileEntity)eb3.getEntity();
+		assertNotNull(version3);
+		assertEquals(Long.valueOf(3L), version3.getVersionNumber());
+
+		// Validate
+		// The following are reset
+		assertFalse(version1.getVersionLabel().equals(version3.getVersionLabel()));
+		assertFalse(version2.getVersionLabel().equals(version3.getVersionLabel()));
+		// TODO assertNull(version3.getVersionComment());
+		// TODO assertFalse(version1.getModifiedOn().equals(version3.getModifiedOn()));
+		System.out.println(version1.getVersionUrl());
+		System.out.println(version2.getVersionUrl());
+		System.out.println(version3.getVersionUrl());
 		// The following are copied over from the old version
-		assertEquals(version1.getVersionComment(), promoted.getVersionComment());
-		assertEquals(handleOne.getId(), promoted.getDataFileHandleId());
 		assertEquals(handleOne.getId(), version1.getDataFileHandleId());
 		assertEquals(handleTwo.getId(), version2.getDataFileHandleId());
-		assertEquals(version1.getModifiedBy(), promoted.getModifiedBy());
-		assertEquals(version1.getModifiedOn(), promoted.getModifiedOn());
+		assertEquals(version1.getDataFileHandleId(), version3.getDataFileHandleId());
+		System.out.println(version1.getAnnotations());
+		System.out.println(version2.getAnnotations());
+		System.out.println(version3.getAnnotations());
+		//eb1.getAnnotations();
+		//eb1.getReferencedBy();
 		// The following are carried over from the current version
-		assertEquals(version2.getName(), promoted.getName());
-		assertEquals(version2.getAnnotations(), promoted.getAnnotations());
+		assertEquals(version2.getName(), version3.getName());
 	}
 
 	/**
