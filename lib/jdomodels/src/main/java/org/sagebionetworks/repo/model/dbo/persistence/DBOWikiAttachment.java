@@ -1,14 +1,20 @@
 package org.sagebionetworks.repo.model.dbo.persistence;
 
-import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.*;
-
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ATTACHMENT_FILE_HANDLE_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ATTACHMENT_FILE_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_WIKI_ATTACHMENT_ID;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.DDL_FILE_WIKI_ATTATCHMENT;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_WIKI_ATTACHMENT;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * Keeps track of wiki attachments.
@@ -16,10 +22,10 @@ import org.sagebionetworks.repo.model.dbo.TableMapping;
  * @author jmhill
  *
  */
-public class DBOWikiAttachment implements DatabaseObject<DBOWikiAttachment>  {
+public class DBOWikiAttachment implements MigratableDatabaseObject<DBOWikiAttachment, DBOWikiAttachment>  {
 	
 	private static final FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("wikiId", COL_WIKI_ATTACHMENT_ID, true),
+		new FieldColumn("wikiId", COL_WIKI_ATTACHMENT_ID, true).withIsBackupId(true),
 		new FieldColumn("fileHandleId", COL_WIKI_ATTACHMENT_FILE_HANDLE_ID, true),
 		new FieldColumn("fileName", COL_WIKI_ATTACHMENT_FILE_NAME),
 	};
@@ -131,6 +137,43 @@ public class DBOWikiAttachment implements DatabaseObject<DBOWikiAttachment>  {
 	public String toString() {
 		return "DBOWikiAttachment [wikiId=" + wikiId + ", fileHandleId="
 				+ fileHandleId + ", fileName=" + fileName + "]";
+	}
+
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.WIKI_ATTACHMENT;
+	}
+
+	@Override
+	public MigratableTableTranslation<DBOWikiAttachment, DBOWikiAttachment> getTranslator() {
+		return new MigratableTableTranslation<DBOWikiAttachment, DBOWikiAttachment>(){
+
+			@Override
+			public DBOWikiAttachment createDatabaseObjectFromBackup(
+					DBOWikiAttachment backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOWikiAttachment createBackupFromDatabaseObject(
+					DBOWikiAttachment dbo) {
+				return dbo;
+			}};
+	}
+
+	@Override
+	public Class<? extends DBOWikiAttachment> getBackupClass() {
+		return DBOWikiAttachment.class;
+	}
+
+	@Override
+	public Class<? extends DBOWikiAttachment> getDatabaseObjectClass() {
+		return DBOWikiAttachment.class;
+	}
+
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
 	}
 
 

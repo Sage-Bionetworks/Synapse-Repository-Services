@@ -1,12 +1,10 @@
 package org.sagebionetworks.repo.manager.migration;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.UnsupportedEncodingException;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -16,7 +14,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
@@ -144,6 +141,9 @@ public class MigrationManagerImplAutowireTest {
 		List<MigrationType> result = migrationManager.getSecondaryTypes(MigrationType.NODE);
 		List<MigrationType> expected = new LinkedList<MigrationType>();
 		expected.add(MigrationType.NODE_REVISION);
+		expected.add(MigrationType.ACL);
+		expected.add(MigrationType.ACL_ACCESS);
+		expected.add(MigrationType.ACL_ACCESS_TYPE);
 		assertEquals(expected, result);
 		
 		// file handles do not have secondary so null

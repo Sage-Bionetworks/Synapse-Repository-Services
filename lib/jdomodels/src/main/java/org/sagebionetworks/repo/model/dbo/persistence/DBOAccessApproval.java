@@ -19,17 +19,20 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.TaggableEntity;
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * @author brucehoff
  *
  */
-public class DBOAccessApproval implements DatabaseObject<DBOAccessApproval>, TaggableEntity {
+public class DBOAccessApproval implements MigratableDatabaseObject<DBOAccessApproval, DBOAccessApproval>, TaggableEntity {
 	private Long id;
 	private String eTag;
 	private Long createdBy;
@@ -42,8 +45,8 @@ public class DBOAccessApproval implements DatabaseObject<DBOAccessApproval>, Tag
 	private byte[] serializedEntity;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_ACCESS_APPROVAL_ID, true),
-		new FieldColumn("eTag", COL_ACCESS_APPROVAL_ETAG),
+		new FieldColumn("id", COL_ACCESS_APPROVAL_ID, true).withIsBackupId(true),
+		new FieldColumn("eTag", COL_ACCESS_APPROVAL_ETAG).withIsEtag(true),
 		new FieldColumn("createdBy", COL_ACCESS_APPROVAL_CREATED_BY),
 		new FieldColumn("createdOn", COL_ACCESS_APPROVAL_CREATED_ON),
 		new FieldColumn("modifiedBy", COL_ACCESS_APPROVAL_MODIFIED_BY),
@@ -274,6 +277,48 @@ public class DBOAccessApproval implements DatabaseObject<DBOAccessApproval>, Tag
 		if (!Arrays.equals(serializedEntity, other.serializedEntity))
 			return false;
 		return true;
+	}
+
+
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.ACCESS_APPROVAL;
+	}
+
+
+	@Override
+	public MigratableTableTranslation<DBOAccessApproval, DBOAccessApproval> getTranslator() {
+		return new MigratableTableTranslation<DBOAccessApproval, DBOAccessApproval>(){
+
+			@Override
+			public DBOAccessApproval createDatabaseObjectFromBackup(
+					DBOAccessApproval backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOAccessApproval createBackupFromDatabaseObject(
+					DBOAccessApproval dbo) {
+				return dbo;
+			}};
+	}
+
+
+	@Override
+	public Class<? extends DBOAccessApproval> getBackupClass() {
+		return DBOAccessApproval.class;
+	}
+
+
+	@Override
+	public Class<? extends DBOAccessApproval> getDatabaseObjectClass() {
+		return DBOAccessApproval.class;
+	}
+
+
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
 	}
 
 

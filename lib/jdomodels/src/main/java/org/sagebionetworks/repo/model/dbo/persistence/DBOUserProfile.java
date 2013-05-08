@@ -12,17 +12,20 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_USER_P
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.TaggableEntity;
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * @author brucehoff
  *
  */
-public class DBOUserProfile implements DatabaseObject<DBOUserProfile>, TaggableEntity {
+public class DBOUserProfile implements MigratableDatabaseObject<DBOUserProfile, DBOUserProfile>, TaggableEntity {
 	private Long ownerId;
 	private byte[] properties;
 	private String eTag;
@@ -30,9 +33,9 @@ public class DBOUserProfile implements DatabaseObject<DBOUserProfile>, TaggableE
 	public static final String OWNER_ID_FIELD_NAME = "ownerId";
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn(OWNER_ID_FIELD_NAME, COL_USER_PROFILE_ID, true),
+		new FieldColumn(OWNER_ID_FIELD_NAME, COL_USER_PROFILE_ID, true).withIsBackupId(true),
 		new FieldColumn("properties", COL_USER_PROFILE_PROPS_BLOB),
-		new FieldColumn("eTag", COL_USER_PROFILE_ETAG)
+		new FieldColumn("eTag", COL_USER_PROFILE_ETAG).withIsEtag(true)
 		};
 
 
@@ -161,6 +164,48 @@ public class DBOUserProfile implements DatabaseObject<DBOUserProfile>, TaggableE
 		if (!Arrays.equals(properties, other.properties))
 			return false;
 		return true;
+	}
+
+
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.USER_PROFILE;
+	}
+
+
+	@Override
+	public MigratableTableTranslation<DBOUserProfile, DBOUserProfile> getTranslator() {
+		return new MigratableTableTranslation<DBOUserProfile, DBOUserProfile>(){
+
+			@Override
+			public DBOUserProfile createDatabaseObjectFromBackup(
+					DBOUserProfile backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOUserProfile createBackupFromDatabaseObject(
+					DBOUserProfile dbo) {
+				return dbo;
+			}};
+	}
+
+
+	@Override
+	public Class<? extends DBOUserProfile> getBackupClass() {
+		return DBOUserProfile.class;
+	}
+
+
+	@Override
+	public Class<? extends DBOUserProfile> getDatabaseObjectClass() {
+		return DBOUserProfile.class;
+	}
+
+
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
 	}
 
 

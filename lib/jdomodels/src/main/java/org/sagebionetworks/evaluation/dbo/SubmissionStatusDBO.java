@@ -1,30 +1,46 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.*;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.*;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_ETAG;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_MODIFIED_ON;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_SCORE;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_SERIALIZED_ENTITY;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBSTATUS_STATUS;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_ETAG;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_MODIFIED_ON;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_SCORE;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_SERIALIZED_ENTITY;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_STATUS;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBSTATUS_SUBMISSION_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.DDL_FILE_SUBSTATUS;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_SUBSTATUS;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.List;
 
 import org.sagebionetworks.evaluation.model.SubmissionStatusEnum;
 import org.sagebionetworks.repo.model.ObservableEntity;
 import org.sagebionetworks.repo.model.TaggableEntity;
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * The database object for the score and status of a Submission to a Synapse Evaluation
  * 
  * @author bkng
  */
-public class SubmissionStatusDBO implements DatabaseObject<SubmissionStatusDBO>, TaggableEntity, ObservableEntity {
+public class SubmissionStatusDBO implements MigratableDatabaseObject<SubmissionStatusDBO, SubmissionStatusDBO>, TaggableEntity, ObservableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn(PARAM_SUBMISSION_ID, COL_SUBSTATUS_SUBMISSION_ID, true),
-			new FieldColumn(PARAM_SUBSTATUS_ETAG, COL_SUBSTATUS_ETAG),
+			new FieldColumn(PARAM_SUBMISSION_ID, COL_SUBSTATUS_SUBMISSION_ID, true).withIsBackupId(true),
+			new FieldColumn(PARAM_SUBSTATUS_ETAG, COL_SUBSTATUS_ETAG).withIsEtag(true),
 			new FieldColumn(PARAM_SUBSTATUS_MODIFIED_ON, COL_SUBSTATUS_MODIFIED_ON),
 			new FieldColumn(PARAM_SUBSTATUS_STATUS, COL_SUBSTATUS_STATUS),
 			new FieldColumn(PARAM_SUBSTATUS_SCORE, COL_SUBSTATUS_SCORE),
@@ -186,6 +202,38 @@ public class SubmissionStatusDBO implements DatabaseObject<SubmissionStatusDBO>,
 				+ ", modifiedOn=" + modifiedOn + ", status=" + status
 				+ ", score=" + score + ", serializedEntity="
 				+ Arrays.toString(serializedEntity) + "]";
+	}
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.SUBMISSION_STATUS;
+	}
+	@Override
+	public MigratableTableTranslation<SubmissionStatusDBO, SubmissionStatusDBO> getTranslator() {
+		return new MigratableTableTranslation<SubmissionStatusDBO, SubmissionStatusDBO>(){
+
+			@Override
+			public SubmissionStatusDBO createDatabaseObjectFromBackup(
+					SubmissionStatusDBO backup) {
+				return backup;
+			}
+
+			@Override
+			public SubmissionStatusDBO createBackupFromDatabaseObject(
+					SubmissionStatusDBO dbo) {
+				return dbo;
+			}};
+	}
+	@Override
+	public Class<? extends SubmissionStatusDBO> getBackupClass() {
+		return SubmissionStatusDBO.class;
+	}
+	@Override
+	public Class<? extends SubmissionStatusDBO> getDatabaseObjectClass() {
+		return SubmissionStatusDBO.class;
+	}
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
 	}
 	
 }
