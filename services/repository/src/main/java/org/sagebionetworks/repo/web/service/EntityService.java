@@ -709,10 +709,6 @@ public interface EntityService {
 			HttpServletRequest request) throws DatastoreException,
 			NotFoundException, UnauthorizedException;
 
-	public VersionInfo promoteEntityVersion(String userId, String id,
-			Long versionNumber) throws DatastoreException,
-			NotFoundException, UnauthorizedException;
-
 	/**
 	 * Get the file redirect URL for the current version of the entity.
 	 * @param userId

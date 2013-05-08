@@ -23,8 +23,6 @@ import org.sagebionetworks.client.exceptions.SynapseServiceException;
 import org.sagebionetworks.client.exceptions.SynapseUserException;
 import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.Project;
-import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -169,50 +167,6 @@ public class IT054FileEntityTest {
 		assertNotNull(tempUrl);
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedPreviewKey) > 0);
 		System.out.println(tempUrl);
-	}
-	
-	@Test
-	public void testPromoteFileEntityVersion() throws Exception {
-
-		// Create a file entity
-		FileEntity file = new FileEntity();
-		file.setName("IT054FileEntityTest.testPromoteFileEntityVersion");
-		file.setParentId(project.getId());
-		file.setDataFileHandleId(fileHandle.getId());
-		FileEntity file1 = synapse.createEntity(file);
-		assertNotNull(file1);
-		assertEquals(Long.valueOf(1L), file1.getVersionNumber());
-
-		// Create a new version
-		file1.setName("IT054FileEntityTest.testPromoteFileEntityVersion 2");
-		file1.setDataFileHandleId(fileHandle2.getId());
-		file1.setVersionLabel("Version label 2");
-		file1.setVersionComment("Version comment 2");
-		FileEntity file2 = synapse.createNewEntityVersion(file1);
-		assertNotNull(file2);
-		assertEquals(Long.valueOf(2L), file2.getVersionNumber());
-		assertEquals(file1.getId(), file2.getId());
-
-		// Promote version 1
-		VersionInfo versionInfo = synapse.promoteEntityVersion(file1.getId(), Long.valueOf(1L));
-		assertEquals(Long.valueOf(3L), versionInfo.getVersionNumber());
-
-		// Check the file handles
-		List<FileHandle> fileHandles1 = synapse.getEntityFileHandlesForVersion(file1.getId(), Long.valueOf(1L)).getList();
-		assertNotNull(fileHandles1);
-		assertTrue(fileHandles1.size() > 0);
-		assertTrue(fileHandles1.get(0) instanceof S3FileHandle);
-		S3FileHandle fh1 = (S3FileHandle)fileHandles1.get(0);
-
-		List<FileHandle> fileHandles3 = synapse.getEntityFileHandlesForCurrentVersion(file1.getId()).getList();
-		assertNotNull(fileHandles3);
-		assertTrue(fileHandles3.size() > 0);
-		assertTrue(fileHandles3.get(0) instanceof S3FileHandle);
-		S3FileHandle fh3 = (S3FileHandle)fileHandles3.get(0);
-
-		assertEquals(fh1.getId(), fh3.getId());
-		assertEquals(fh1.getFileName(), fh3.getFileName());
-		assertEquals(fh1.getContentMd5(), fh3.getContentMd5());
 	}
 
 	/**

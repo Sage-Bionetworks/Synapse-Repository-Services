@@ -46,7 +46,6 @@ import org.sagebionetworks.repo.model.AccessControlList;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.Annotations;
 import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Code;
 import org.sagebionetworks.repo.model.Data;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityBundle;
@@ -72,7 +71,6 @@ import org.sagebionetworks.repo.model.UserGroupHeaderResponsePage;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
@@ -1247,19 +1245,6 @@ public class IT500SynapseJavaClient {
 		assertEquals(expected.size(), results.size());
 		assertEquals(expected,results);
 		
-	}
-
-	@Test
-	public void testPromoteEntityVersion() throws SynapseException {
-		Code e = createEntity(project.getId(), Code.class);
-		e.setMd5("abc");
-		versionEntity(e, 2);
-		VersionInfo promotedEntityVersion = synapse.promoteEntityVersion(e.getId(), 1L);
-		assertEquals(new Long(3), promotedEntityVersion.getVersionNumber());
-		Code eAfter = (Code)synapse.getEntityById(e.getId());
-		assertEquals(new Long(3), eAfter.getVersionNumber());
-		Entity e1 = synapse.getEntityByIdForVersion(e.getId(), 1L);
-		assertNotNull(e1);
 	}
 
 	@Ignore
