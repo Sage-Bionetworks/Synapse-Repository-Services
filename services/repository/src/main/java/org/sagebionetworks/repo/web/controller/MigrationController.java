@@ -158,7 +158,6 @@ public class MigrationController extends BaseController {
 	@RequestMapping(value = { UrlHelpers.MIGRATION_RESTORE }, method = RequestMethod.POST)
 	public @ResponseBody
 	BackupRestoreStatus startRestore(
-			@RequestBody RestoreSubmission file,
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(required = true) String type,
 			@RequestBody RestoreSubmission request)
