@@ -26,7 +26,7 @@ public class DoiMigratableManagerTest {
 		final Long createdBy = 1L;
 		final Timestamp createdOn = new Timestamp((new Date()).getTime());
 		final DoiObjectType doiObjectType = DoiObjectType.ENTITY;
-		final DoiStatus doiStatus = DoiStatus.READY;
+		final DoiStatus doiStatus = DoiStatus.CREATED;
 		final String eTag = "eTag";
 		final Long id = 2L;
 		final Long objectId = 3L;

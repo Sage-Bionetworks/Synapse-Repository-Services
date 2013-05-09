@@ -49,6 +49,7 @@
          <filter-name>CrowdAuth</filter-name>  
          <url-pattern>/auth/v1/user</url-pattern>  
          <url-pattern>/auth/v1/userPassword</url-pattern>
+         <url-pattern>/auth/v1/changeEmail</url-pattern>
          <url-pattern>/auth/v1/apiPasswordEmail</url-pattern>
          <url-pattern>/auth/v1/secretKey</url-pattern>  
          <url-pattern>/auth/v1/resourceAccess/*</url-pattern>  

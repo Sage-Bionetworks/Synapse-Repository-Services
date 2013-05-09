@@ -1,14 +1,23 @@
 package org.sagebionetworks.usagemetrics;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Queue;
 import java.util.Set;
 
 import org.json.JSONArray;
@@ -16,6 +25,18 @@ import org.json.JSONException;
 import org.json.JSONObject;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.exceptions.SynapseException;
+import org.sagebionetworks.client.exceptions.SynapseNotFoundException;
+import org.sagebionetworks.repo.model.Entity;
+import org.sagebionetworks.repo.model.EntityBundle;
+import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.VersionInfo;
+import org.sagebionetworks.repo.model.Versionable;
+import org.sagebionetworks.repo.model.dao.WikiPageKey;
+import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.provenance.Activity;
+import org.sagebionetworks.repo.model.wiki.WikiHeader;
+import org.sagebionetworks.repo.model.wiki.WikiPage;
+import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 
 
 /**
@@ -28,21 +49,27 @@ import org.sagebionetworks.client.exceptions.SynapseException;
  */
 public class ProjectActivityStats {
 	
+	private static Map<String, String> idToUser;
+	
 	private static final int TIME_WINDOW_DAYS = 30;
 	
 	private static final boolean VERBOSE = false;
 	
+	private static final Set<String> toxicIds = new HashSet<String>(Arrays.asList(new String []{ "syn120145" }));	
+	
 	public static void main(String[] args) throws Exception {
-//		String startDateString = null;
-//		String endDateString = null;
-		Long start = (new Date()).getTime()-TIME_WINDOW_DAYS*24*3600*1000L;
-		Long end = null;
+		DateFormat df = new SimpleDateFormat("dd-MMM-yyyy");		
 		Synapse synapse = new Synapse();
-		String username = args[0];
-		String password = args[1];
+		final String username = args[0];
+		final String password = args[1];
+		final Date end = df.parse(args[2]); // i.e. "27-JUL-2012"
+		final String jdoUserGroupTableCsvPath = args[3];
+		initIdToEmailMap(jdoUserGroupTableCsvPath);
+		
+		Long start = (end.getTime())-TIME_WINDOW_DAYS*24*3600*1000L;		
 		synapse.login(username, password);
-		Map<String, Collection<String>> results = findProjectUsers(synapse,  start,  end);
-		DateFormat df = new SimpleDateFormat("dd-MMM-yyyy");
+		Map<String, Collection<String>> results = findProjectUsers(synapse,  start,  end.getTime());
+		
 		System.out.println("\nStart date: "+(start==null?"NONE":df.format(start))+" End date: "+(end==null?"NONE":df.format(end)));
 		System.out.println("Note:  Not all contributors are listed below.  When we reach the maximum 'score' for a project we stop scanning it for contributors.");
 		int totalScore = 0;
@@ -64,8 +91,7 @@ public class ProjectActivityStats {
 	
 	// these limits allow us to find multiple contributors without exhaustively
 	// reviewing all the Data objects in large projects, like the Synapse Commons Repository
-	private static final int MAX_STUDIES_PER_PROJECT = 200;
-	private static final int MAX_CONTENT_PER_BUCKET = 200;
+	private static final int MAX_CONTENT_PER_BUCKET = 100;
 	
 	/*
 	 * For each project, find the content belonging to the project and 
@@ -92,49 +118,24 @@ public class ProjectActivityStats {
 			String projectName = ((JSONObject)projects.get(p)).getString("project.name");
 			String projectKey = projectId+" "+projectName;
 			System.out.println("Project: "+projectKey+" ("+(p+1)+" of "+projects.length()+")");
-			
-			analyzeAllDataTypes(projectKey, projectId, ans, start, end, true, synapse);
+			Queue<String> toProcess = new LinkedList<String>();
+			toProcess.add(projectId);
+			Integer nEntitiesProcessed = 0;
+			try {
+				analyzeEntity(projectKey, ans, start, end, true, synapse, toProcess, nEntitiesProcessed);
+			} catch (SynapseException e) {
+				System.out.println("Error in calculating project: " + projectKey + ". Skipped.");
+			} catch (JSONException e) {
+				System.out.println("Error in calculating project: " + projectKey + ". Skipped.");
+			}
 			// if we already have the max score, then don't bother searching for more new content in the project
 			if (maxContributorScore(ans.get(projectKey))) continue;
-			// find all the studies
-			int studyOffset=1;
-			int studyBatchSize = 20;
-			int studyTotal=0;
-			boolean projectMeetsMaxContributorScore = false;
-			do {
-				// get a batch of studies
-				JSONObject studyIds = synapse.query("select id, name from study where parentId==\""+projectId+"\" LIMIT "+studyBatchSize+" OFFSET "+studyOffset);
-				studyTotal = (int)studyIds.getLong("totalNumberOfResults");
-				JSONArray a = studyIds.getJSONArray("results");
-				for (int i=0; i<a.length() && !projectMeetsMaxContributorScore; i++) {
-					JSONObject study = a.getJSONObject(i);
-					String studyId = study.getString("study.id");
-					if (VERBOSE) System.out.println("\tStudy: "+studyId);
-					analyzeAllDataTypes(projectKey, studyId, ans, start, end, true, synapse);
-					projectMeetsMaxContributorScore = maxContributorScore(ans.get(projectKey));
-				}
-				studyOffset += studyBatchSize;
-			} while (studyOffset<=studyTotal && studyOffset<=MAX_STUDIES_PER_PROJECT && !projectMeetsMaxContributorScore);
-			if (projectMeetsMaxContributorScore) continue;
-		} // project iterator
+		} 
 		return ans;
 	}
 	
-	public static final String[] contentTypes = {"data", "expressiondata", "genotypedata", "phenotypedata", "code"};
-	
-	public static void analyzeAllDataTypes(String projectKey,
-			String bucketId, 
-			Map<String, Collection<String>> results, 
-			Long start, 
-			Long end, 
-			boolean stopIfMaxScore,
-			Synapse synapse) throws SynapseException, JSONException {
-		for (String objectType : contentTypes) {
-			analyzeBucket(projectKey, bucketId, objectType, results, start, end, stopIfMaxScore, synapse);
-			if (stopIfMaxScore && maxContributorScore(results.get(projectKey))) return;
-		}
-	}
-	
+	public static final String[] contentTypes = {"entity"};
+		
 	/**
 	 * 
 	 * Look in the given bucket (e.g. a project or study) for objects of the given type (e.g. data or code)
@@ -142,41 +143,165 @@ public class ProjectActivityStats {
 	 * @param bucketId
 	 * @param objectType
 	 * @param results
+	 * @param entitiesToProcess 
+	 * @param nEntitiesProcessed 
+	 * @param contributors 
+	 * @throws InterruptedException 
 	 */
-	public static void analyzeBucket(String projectKey,
-			String bucketId, 
-			String objectType, 
+	public static void analyzeEntity(String projectKey, 
 			Map<String, Collection<String>> results, 
 			Long start, 
 			Long end, 
 			boolean stopIfMaxScore,
-			Synapse synapse) throws SynapseException, JSONException {
-		// find all the data and code in the study
-		int offset = 1;
-		int batchSize = 20;
-		int total = 0;
-		do {
-			String query = "select id, createdOn, modifiedOn, createdBy, modifiedBy from "+
-					objectType+" where parentId==\""+bucketId+"\"";
-			// if start is specified, then limit results to those whose modified date is >= start
-			if (start!=null) query += " and modifiedOn >= "+start;
-			// if end is specified thenlimit results to those whose creation date is <= end
-			if (end!=null) query += "and createdOn <= "+end;
-			query += " LIMIT "+batchSize+" OFFSET "+offset;
-			JSONObject dataIds = synapse.query(query);
-			total = (int)dataIds.getLong("totalNumberOfResults");
-			JSONArray d = dataIds.getJSONArray("results");
-			for (int j=0; j<d.length(); j++) {
-				if (j==0  && VERBOSE) System.out.println("\t\t"+objectType+" "+offset+" of "+total);
-				JSONObject data = d.getJSONObject(j);
-				addAllToMap(results, projectKey, getContributors(data, objectType, start, end));
-				if (stopIfMaxScore && maxContributorScore(results.get(projectKey))) return;
-			}
-			offset += batchSize;
-		} while (offset<=total && offset<=MAX_CONTENT_PER_BUCKET);
+			Synapse synapse, 
+			Queue<String> entitiesToProcess, Integer nEntitiesProcessed) throws SynapseException, JSONException {
 		
+		if(entitiesToProcess.size() == 0 || nEntitiesProcessed > MAX_CONTENT_PER_BUCKET) return;		
+				
+		// next in BFS from head of queue
+		String entityId = entitiesToProcess.poll();
+		if(toxicIds.contains(entityId)) return;		
+		
+		// Count for Entity
+		addAllToMap(results, projectKey, lookupEntityContributors(entityId, start, end, synapse));
+		if (stopIfMaxScore && maxContributorScore(results.get(projectKey))) return;
+		
+		// Count for Wiki
+		addAllToMap(results, projectKey, lookupWikiContributors(entityId, start, end, synapse));
+		if (stopIfMaxScore && maxContributorScore(results.get(projectKey))) return;
+		
+		// Count for Provenance
+		addAllToMap(results, projectKey, lookupProvenanceContributors(entityId, start, end, synapse));
+		if (stopIfMaxScore && maxContributorScore(results.get(projectKey))) return;				
+
+		// get bundle
+		int partsMask = EntityBundle.ENTITY | EntityBundle.HAS_CHILDREN;
+		EntityBundle bundle = synapse.getEntityBundle(entityId, partsMask);		
+
+		// Count for Older versions
+		addAllToMap(results, projectKey, lookupOldVersionContributors(start, end, synapse,	bundle.getEntity()));
+		if (stopIfMaxScore && maxContributorScore(results.get(projectKey))) return;				
+			
+		
+		// Add children to DFS queue if exist					
+		addChildren(synapse, entitiesToProcess, entityId, bundle.getHasChildren());
+		
+		nEntitiesProcessed++;
+		
+		// continue on DFS if needed
+		if(entitiesToProcess.size() > 0) analyzeEntity(projectKey, results, start, end, stopIfMaxScore, synapse, entitiesToProcess, nEntitiesProcessed);
+	}
+
+	private static List<String> lookupOldVersionContributors(Long start,
+			Long end, Synapse synapse, Entity entity) throws SynapseException {
+		List<String> contributors = new ArrayList<String>();
+
+		if(entity instanceof Versionable) {			 				
+			PaginatedResults<VersionInfo> versions = synapse.getEntityVersions(entity.getId(), 1, Integer.MAX_VALUE);
+			for(VersionInfo info : versions.getResults()) {								
+				// if version is in start/end range, add to DFS queue
+				long modified = info.getModifiedOn().getTime();
+				if ((start==null || start<=modified) && (end==null || modified<=end)) {
+					String email = idToUser.get(info.getModifiedByPrincipalId());
+					if (email != null && !UsageMetricsUtils.isOmittedName(email)) { 
+						contributors.add(email);
+					}
+				}
+			}
+		}
+		return contributors;
+	}
+
+	private static void addChildren(Synapse synapse,
+			Queue<String> entitiesToProcess, String entityId,
+			boolean hasChildren) throws JSONException {
+		if(hasChildren) {					
+			int offset = 1;
+			int batchSize = 1000;
+			int total = 0;
+			do {
+				// Count Children
+				String query = "select id from entity where parentId==\""+entityId+"\"";
+				query += " LIMIT "+batchSize+" OFFSET "+offset;
+				JSONObject queryResult = reliablyQuerySynapse(synapse, query);
+				total = (int)queryResult.getLong("totalNumberOfResults");
+				JSONArray resultsArray = queryResult.getJSONArray("results");
+				for (int j=0; j<resultsArray.length(); j++) {
+					JSONObject child = resultsArray.getJSONObject(j);
+					entitiesToProcess.add(child.getString("entity.id"));
+				}
+				offset += batchSize;
+			} while (offset<=total && offset<=MAX_CONTENT_PER_BUCKET);
+		}
+	}
+
+	/**
+	 * This method is required until principalId is added to the Entity object (not just name for createdOn/modifiedOn)
+	 * @param entityId
+	 * @param start
+	 * @param end
+	 * @param versionId 
+	 * @param synapse
+	 * @return
+	 * @throws SynapseException
+	 */
+	private static List<String> lookupEntityContributors(String entityId, Long start, Long end, Synapse synapse) throws SynapseException {
+		List<String> contributors = new ArrayList<String>();		
+
+		// Count Children
+		String query = "select id,createdOn,modifiedOn,createdByPrincipalId,modifiedByPrincipalId from entity where id==\""+entityId+"\"";
+		query += " LIMIT "+1+" OFFSET "+1;
+		JSONObject queryResult = reliablyQuerySynapse(synapse, query);
+		JSONArray resultsArray;
+		try {
+			resultsArray = queryResult.getJSONArray("results");
+			JSONObject entityHit = resultsArray.getJSONObject(0);		
+			addUserToListWithinDateRange(start, end, contributors, entityHit.getLong("entity.createdOn"), entityHit.getString("entity.createdByPrincipalId"));
+			addUserToListWithinDateRange(start, end, contributors, entityHit.getLong("entity.modifiedOn"), entityHit.getString("entity.modifiedByPrincipalId"));
+		} catch (JSONException e) {
+			throw new SynapseException(e);
+		}
+
+		return contributors;
 	}
 	
+	private static Collection<String> lookupWikiContributors(String entityId, Long start, Long end, Synapse synapse) throws SynapseException {
+		List<String> contributors = new ArrayList<String>();
+		try {			
+			PaginatedResults<WikiHeader> headerTree = synapse.getWikiHeaderTree(entityId, ObjectType.ENTITY);
+			if(headerTree.getTotalNumberOfResults() > 0) {
+				int i = 0;
+				for(WikiHeader header : headerTree.getResults()) {
+					if(i > MAX_CONTENT_PER_BUCKET) break;
+					WikiPageKey key = new WikiPageKey(entityId, ObjectType.ENTITY, header.getId());
+					WikiPage page = synapse.getWikiPage(key);
+					addUserToListWithinDateRange(start, end, contributors, page.getCreatedOn().getTime(), page.getCreatedBy());
+					addUserToListWithinDateRange(start, end, contributors, page.getModifiedOn().getTime(), page.getModifiedBy());
+					i++;					
+				}
+			}
+		} catch (JSONObjectAdapterException e) {
+			throw new SynapseException(e);
+		} catch (SynapseException e) {
+			if(!(e instanceof SynapseNotFoundException)) throw e;
+		}
+		return contributors;
+	}
+
+	private static Collection<String> lookupProvenanceContributors(String entityId, Long start, Long end, Synapse synapse) throws SynapseException {
+		List<String> contributors = new ArrayList<String>();
+		
+		try {
+			Activity activity = synapse.getActivityForEntity(entityId);
+			addUserToListWithinDateRange(start, end, contributors, activity.getCreatedOn().getTime(), activity.getCreatedBy());
+			addUserToListWithinDateRange(start, end, contributors, activity.getModifiedOn().getTime(), activity.getModifiedBy());			
+		} catch (SynapseException e) {
+			if(!(e instanceof SynapseNotFoundException)) throw e;
+		}
+		
+		return contributors;
+	}
+		
 	/**
 	 * 
 	 *
@@ -214,26 +339,62 @@ public class ProjectActivityStats {
 		}
 		c.addAll(values);
 	}
-	
-	// if the creation date is within the time range, record the creator
-	// if the modification date is within the time range, record the modifier
-	public static List<String> getContributors(JSONObject o, String type, Long start, Long end) {
-		List<String> ans = new ArrayList<String>();
- 		try {
-			long created = o.getLong(type+".createdOn");
-			long modified = o.getLong(type+".modifiedOn");
-			if ((start==null || start<=created) && (end==null || created<=end)) {
-				String name = o.getString(type+".createdBy");
-				if (!UsageMetricsUtils.isOmittedName(name)) ans.add(name);
-			}
-			if ((start==null || start<=modified) && (end==null || modified<=end)) {
-				String name = o.getString(type+".modifiedBy");
-				if (!UsageMetricsUtils.isOmittedName(name)) ans.add(name);
-			}
-		} catch (JSONException e) {
-			throw new RuntimeException(o.toString(), e);
+
+	public static void initIdToEmailMap(String jdoUserGroupTableCsvPath) {
+		// Load the csv file and process it into the map.
+		File file = new File(jdoUserGroupTableCsvPath);
+		FileInputStream is;
+		try {
+			is = new FileInputStream(file);
+		} catch (FileNotFoundException e) {
+			throw new RuntimeException(e);
 		}
-		return ans;
+		BufferedReader br = new BufferedReader(new InputStreamReader(is));
+		try {
+			idToUser = new HashMap<String, String>(600);
+			String s = br.readLine();
+			while (s != null) {
+				String[] values = s.split(",");
+				try {
+					if (Integer.parseInt(values[2]) == 1) {
+						idToUser.put(values[0], values[3]);
+					}
+				} catch (NumberFormatException e) {
+				}
+				s = br.readLine();
+			}
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		}
+		
 	}
 
+	private static JSONObject reliablyQuerySynapse(Synapse synapse, String query) {
+		JSONObject dataIds = null;
+		boolean succeeded = false;
+		do {
+			try {
+				dataIds = synapse.query(query);
+				succeeded = true;
+			} catch (Exception e) {
+				try {
+					Thread.sleep(10000);
+				} catch (InterruptedException e1) {
+					e1.printStackTrace();
+				}
+			}
+		} while (!succeeded);
+		return dataIds;
+	}
+
+	private static void addUserToListWithinDateRange(Long start, Long end,
+			List<String> contributors, long created, String principalId) {
+		if ((start==null || start<=created) && (end==null || created<=end)) {
+			String email = idToUser.get(principalId);
+			if (email != null && !UsageMetricsUtils.isOmittedName(email) && !contributors.contains(email)) { 
+				contributors.add(email);
+			}
+		}
+	} 
+	
 }

@@ -154,7 +154,6 @@ public class IT054FileEntityTest {
 		assertTrue("The temporary URL did not contain the expected file handle key",tempUrl.toString().indexOf(expectedPreviewKey) > 0);
 		System.out.println(tempUrl);
 	}
-	
 
 	/**
 	 * Wait for a preview to be generated for the given file handle.

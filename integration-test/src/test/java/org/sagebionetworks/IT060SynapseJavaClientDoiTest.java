@@ -8,7 +8,6 @@ import static org.junit.Assert.assertTrue;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.sagebionetworks.client.Synapse;
 import org.sagebionetworks.client.SynapseAdministration;
@@ -101,7 +100,7 @@ public class IT060SynapseJavaClientDoiTest {
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e.getMessage(), e);
 		}
-		assertEquals(DoiStatus.READY, doi.getDoiStatus());
+		assertEquals(DoiStatus.CREATED, doi.getDoiStatus());
 		assertTrue(Long.parseLong(doi.getId()) > 0L);
 		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());
@@ -132,7 +131,7 @@ public class IT060SynapseJavaClientDoiTest {
 		} catch (InterruptedException e) {
 			throw new RuntimeException(e.getMessage(), e);
 		}
-		assertEquals(DoiStatus.READY, doi.getDoiStatus());
+		assertEquals(DoiStatus.CREATED, doi.getDoiStatus());
 		assertTrue(Long.parseLong(doi.getId()) > 0L);
 		assertFalse(UuidETagGenerator.ZERO_E_TAG.equals(doi.getEtag()));
 		assertEquals(entity.getId(), doi.getObjectId());

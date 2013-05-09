@@ -1,5 +1,10 @@
 package org.sagebionetworks.repo.manager;
 
+import java.io.IOException;
+
+import javax.xml.xpath.XPathExpressionException;
+
+import org.sagebionetworks.authutil.AuthenticationException;
 import org.sagebionetworks.repo.model.AuthorizationConstants.DEFAULT_GROUPS;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.UserDAO;
@@ -74,4 +79,6 @@ public interface UserManager {
 	 */
 	public String getDisplayName(Long principalId) throws NotFoundException, DatastoreException;
 
+	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException, IOException, AuthenticationException, XPathExpressionException;
+	
 }

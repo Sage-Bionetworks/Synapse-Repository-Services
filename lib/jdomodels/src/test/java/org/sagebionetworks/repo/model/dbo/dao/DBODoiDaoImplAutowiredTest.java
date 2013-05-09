@@ -111,7 +111,7 @@ public class DBODoiDaoImplAutowiredTest {
 		assertNotNull(doi.getCreatedOn());
 		assertNotNull(doi.getUpdatedOn());
 		// Update status
-		doiDao.updateDoiStatus(objectId, objectType, versionNumber, DoiStatus.READY, etag1);
+		doiDao.updateDoiStatus(objectId, objectType, versionNumber, DoiStatus.CREATED, etag1);
 		doi = doiDao.getDoi(objectId, objectType, versionNumber);
 		assertNotNull(doi);
 		assertNotNull(doi.getId());
@@ -121,7 +121,7 @@ public class DBODoiDaoImplAutowiredTest {
 		assertEquals(objectId, doi.getObjectId());
 		assertEquals(versionNumber, doi.getObjectVersion());
 		assertEquals(objectType, doi.getDoiObjectType());
-		assertEquals(DoiStatus.READY, doi.getDoiStatus());
+		assertEquals(DoiStatus.CREATED, doi.getDoiStatus());
 		assertEquals(userId, doi.getCreatedBy());
 		assertNotNull(doi.getCreatedOn());
 		assertNotNull(doi.getUpdatedOn());

@@ -13,12 +13,15 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_CHANGE
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.List;
 
-import org.sagebionetworks.repo.model.dbo.AutoIncrementDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
 import org.sagebionetworks.repo.model.message.ChangeType;
 import org.sagebionetworks.repo.model.message.ObjectType;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * Database object used to keep track of all changes that occurred in the repository.
@@ -26,10 +29,10 @@ import org.sagebionetworks.repo.model.message.ObjectType;
  * @author jmhill
  *
  */
-public class DBOChange implements AutoIncrementDatabaseObject<DBOChange>  {
+public class DBOChange implements MigratableDatabaseObject<DBOChange, DBOChange>  {
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[]{
-		new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM, true),
+		new FieldColumn("changeNumber", COL_CHANGES_CHANGE_NUM, true).withIsBackupId(true),
 		new FieldColumn("timeStamp", COL_CHANGES_TIME_STAMP),
 		new FieldColumn("objectId", COL_CHANGES_OBJECT_ID),
 		new FieldColumn("parentId", COL_CHANGES_PARENT_ID),
@@ -54,7 +57,7 @@ public class DBOChange implements AutoIncrementDatabaseObject<DBOChange>  {
 			public DBOChange mapRow(ResultSet rs, int index)
 					throws SQLException {
 				DBOChange change = new DBOChange();
-				change.setId(rs.getLong(COL_CHANGES_CHANGE_NUM));
+				change.setChangeNumber(rs.getLong(COL_CHANGES_CHANGE_NUM));
 				change.setTimeStamp(rs.getTimestamp(COL_CHANGES_TIME_STAMP));
 				change.setObjectId(rs.getLong(COL_CHANGES_OBJECT_ID));
 				long parentId = rs.getLong(COL_CHANGES_PARENT_ID);
@@ -87,18 +90,6 @@ public class DBOChange implements AutoIncrementDatabaseObject<DBOChange>  {
 				return DBOChange.class;
 			}
 		};
-	}
-
-
-	@Override
-	public Long getId() {
-		return changeNumber;
-	}
-
-
-	@Override
-	public void setId(Long id) {
-		this.changeNumber = id;
 	}
 
 
@@ -336,6 +327,47 @@ public class DBOChange implements AutoIncrementDatabaseObject<DBOChange>  {
 				+ timeStamp + ", objectId=" + objectId + ", parentId="
 				+ parentId + ", objectType=" + objectType + ", objectEtag="
 				+ objectEtag + ", changeType=" + changeType + "]";
+	}
+
+
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.CHANGE;
+	}
+
+
+	@Override
+	public MigratableTableTranslation<DBOChange, DBOChange> getTranslator() {
+		// TODO Auto-generated method stub
+		return new MigratableTableTranslation<DBOChange, DBOChange>(){
+
+			@Override
+			public DBOChange createDatabaseObjectFromBackup(DBOChange backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOChange createBackupFromDatabaseObject(DBOChange dbo) {
+				return dbo;
+			}};
+	}
+
+
+	@Override
+	public Class<? extends DBOChange> getBackupClass() {
+		return DBOChange.class;
+	}
+
+
+	@Override
+	public Class<? extends DBOChange> getDatabaseObjectClass() {
+		return DBOChange.class;
+	}
+
+
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		return null;
 	}
 
 }

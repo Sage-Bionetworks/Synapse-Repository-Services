@@ -1,26 +1,46 @@
 package org.sagebionetworks.evaluation.dbo;
 
-import static org.sagebionetworks.evaluation.dbo.DBOConstants.*;
-import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.*;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ENTITY_BUNDLE;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ENTITY_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ENTITY_VERSION;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_EVAL_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_ID;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_NAME;
+import static org.sagebionetworks.evaluation.dbo.DBOConstants.PARAM_SUBMISSION_USER_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_CREATED_ON;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ENTITY_BUNDLE;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ENTITY_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ENTITY_VERSION;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_EVAL_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_NAME;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.COL_SUBMISSION_USER_ID;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.DDL_FILE_SUBMISSION;
+import static org.sagebionetworks.evaluation.query.jdo.SQLConstants.TABLE_SUBMISSION;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.TaggableEntity;
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * The database object for a Submission to a Synapse Evaluation
  * 
  * @author bkng
  */
-public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEntity {
+public class SubmissionDBO implements MigratableDatabaseObject<SubmissionDBO, SubmissionDBO>, TaggableEntity {
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-			new FieldColumn(PARAM_SUBMISSION_ID, COL_SUBMISSION_ID, true),
+			new FieldColumn(PARAM_SUBMISSION_ID, COL_SUBMISSION_ID, true).withIsBackupId(true),
 			new FieldColumn(PARAM_SUBMISSION_USER_ID, COL_SUBMISSION_USER_ID),
 			new FieldColumn(PARAM_SUBMISSION_EVAL_ID, COL_SUBMISSION_EVAL_ID),
 			new FieldColumn(PARAM_SUBMISSION_ENTITY_ID, COL_SUBMISSION_ENTITY_ID),
@@ -200,6 +220,40 @@ public class SubmissionDBO implements DatabaseObject<SubmissionDBO>, TaggableEnt
 				+ ", entityWithAnnotations="
 				+ Arrays.toString(entityBundle) + ", versionNumber="
 				+ versionNumber + ", createdOn=" + createdOn + ", name=" + name + "]";
+	}
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.SUBMISSION;
+	}
+	@Override
+	public MigratableTableTranslation<SubmissionDBO, SubmissionDBO> getTranslator() {
+		return new MigratableTableTranslation<SubmissionDBO, SubmissionDBO>(){
+
+			@Override
+			public SubmissionDBO createDatabaseObjectFromBackup(
+					SubmissionDBO backup) {
+				return backup;
+			}
+
+			@Override
+			public SubmissionDBO createBackupFromDatabaseObject(
+					SubmissionDBO dbo) {
+				return dbo;
+			}};
+	}
+	@Override
+	public Class<? extends SubmissionDBO> getBackupClass() {
+		return SubmissionDBO.class;
+	}
+	@Override
+	public Class<? extends SubmissionDBO> getDatabaseObjectClass() {
+		return SubmissionDBO.class;
+	}
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
+		list.add(new SubmissionFileHandleDBO());
+		return list;
 	}
 
 

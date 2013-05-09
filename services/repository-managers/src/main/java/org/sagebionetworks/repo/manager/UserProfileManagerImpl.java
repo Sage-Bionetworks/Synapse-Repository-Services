@@ -3,10 +3,15 @@
  */
 package org.sagebionetworks.repo.manager;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Random;
 
+import javax.xml.xpath.XPathExpressionException;
+
+import org.sagebionetworks.authutil.AuthenticationException;
+import org.sagebionetworks.authutil.CrowdAuthUtil;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
-import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.Favorite;
@@ -22,10 +27,8 @@ import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
-import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
-import org.sagebionetworks.repo.util.StringUtil;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,6 +53,8 @@ public class UserProfileManagerImpl implements UserProfileManager {
 	private FavoriteDAO favoriteDAO;
 	@Autowired 
 	private NodeDAO nodeDAO;
+	
+	private Random rand = new Random();
 	
 	public UserProfileManagerImpl() {
 	}
@@ -126,19 +131,30 @@ public class UserProfileManagerImpl implements UserProfileManager {
 
 	/**
 	 * This method is only available to the object owner or an admin
+	 * @throws NotFoundException 
+	 * @throws InvalidModelException 
+	 * @throws UnauthorizedException 
+	 * @throws DatastoreException 
+	 * @throws AuthenticationException 
+	 * @throws IOException 
+	 * @throws XPathExpressionException 
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated)
-			throws NotFoundException, DatastoreException,
-			UnauthorizedException, ConflictingUpdateException,
-			InvalidModelException {
+	public UserProfile updateUserProfile(UserInfo userInfo, UserProfile updated) throws DatastoreException, UnauthorizedException, InvalidModelException, NotFoundException, AuthenticationException, IOException, XPathExpressionException {
 		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
 		UserProfile userProfile = userProfileDAO.get(updated.getOwnerId(), schema);
 		boolean canUpdate = UserProfileManagerUtils.isOwnerOrAdmin(userInfo, userProfile.getOwnerId());
 		if (!canUpdate) throw new UnauthorizedException("Only owner or administrator may update UserProfile.");
+		String oldEmail = userInfo.getIndividualGroup().getName();
 		attachmentManager.checkAttachmentsForPreviews(updated);
-		return userProfileDAO.update(updated, schema);
+		UserProfile returnProfile = userProfileDAO.update(updated, schema);
+		
+		//and update email if it is also set (and is different)
+		if (updated.getEmail() != null && !updated.getEmail().equals(oldEmail)) {
+			CrowdAuthUtil.copyUser(oldEmail, updated.getEmail(), rand);
+		}
+		
+		return returnProfile;
 	}
 
 	@Override

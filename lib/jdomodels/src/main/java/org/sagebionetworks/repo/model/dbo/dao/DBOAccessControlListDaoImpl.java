@@ -88,7 +88,7 @@ public class DBOAccessControlListDaoImpl implements DBOAccessControlListDao {
 			dboRa = dboBasicDao.createNew(dboRa);
 			// Now add all of the access
 			Set<ACCESS_TYPE> access = ra.getAccessType();
-			List<DBOResourceAccessType> batch = AccessControlListUtils.createResourceAccessTypeBatch(dboRa.getId(), access);
+			List<DBOResourceAccessType> batch = AccessControlListUtils.createResourceAccessTypeBatch(dboRa.getId(), owner, access);
 			// Add the batch
 			dboBasicDao.createBatch(batch);
 		}

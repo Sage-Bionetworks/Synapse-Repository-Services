@@ -53,11 +53,12 @@ public class AccessControlListUtils {
 	 * @param access
 	 * @return
 	 */
-	public static List<DBOResourceAccessType> createResourceAccessTypeBatch(Long id, Set<ACCESS_TYPE> access) {
+	public static List<DBOResourceAccessType> createResourceAccessTypeBatch(Long id, Long owner, Set<ACCESS_TYPE> access) {
 		List<DBOResourceAccessType> batch = new ArrayList<DBOResourceAccessType>();
 		for(ACCESS_TYPE type: access){
 			DBOResourceAccessType dboType = new DBOResourceAccessType();
 			dboType.setId(id);
+			dboType.setOwner(owner);
 			dboType.setElement(type.name());
 			batch.add(dboType);
 		}

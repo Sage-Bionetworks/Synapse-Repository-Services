@@ -11,6 +11,8 @@
   <!-- Discover all our controllers -->
   <context:component-scan base-package="org.sagebionetworks.auth" />
   
+  <import resource="classpath:authentication-services-spb.xml" />
+  
   <!-- To enable @RequestMapping process on type level and method level -->
   <bean class="org.springframework.web.servlet.mvc.annotation.DefaultAnnotationHandlerMapping" />
   
