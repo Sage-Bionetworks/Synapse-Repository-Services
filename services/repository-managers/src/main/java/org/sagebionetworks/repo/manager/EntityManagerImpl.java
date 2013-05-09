@@ -306,13 +306,8 @@ public class EntityManagerImpl implements EntityManager {
 		NamedAnnotations annos = nodeManager.getAnnotations(userInfo,
 				updated.getId());
 		annos.setEtag(updated.getEtag());
-
-		
-		// Set activityId if new version or if not changing versions and activityId is defined 
-		if(newVersion || (!newVersion && activityId != null)) {
-			node.setActivityId(activityId);
-		} 
-		
+	
+		// Detect if new version for specific types
 		// Auto-version locationable entities
 		if (!newVersion && (updated instanceof Locationable)) {
 			Locationable locationable = (Locationable) updated;
@@ -335,10 +330,18 @@ public class EntityManagerImpl implements EntityManager {
 			}
 		}
 
+		
+		final boolean newVersionFinal = newVersion;
+		
+		// Set activityId if new version or if not changing versions and activityId is defined
+		if(newVersionFinal || (!newVersionFinal && activityId != null)) {
+			node.setActivityId(activityId);
+		}
+		
 		updateNodeAndAnnotationsFromEntity(updated, node,
 				annos.getPrimaryAnnotations());
 		// Now update both at the same time
-		nodeManager.update(userInfo, node, annos, newVersion);
+		nodeManager.update(userInfo, node, annos, newVersionFinal);
 	}
 
 	/**
