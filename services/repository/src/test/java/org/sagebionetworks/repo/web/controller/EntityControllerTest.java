@@ -31,7 +31,6 @@ import org.sagebionetworks.repo.model.NameConflictException;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.RestResourceList;
 import org.sagebionetworks.repo.model.Study;
-import org.sagebionetworks.repo.model.VersionInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -348,29 +347,7 @@ public class EntityControllerTest {
 		String id = clone.getId();
 		toDelete.add(id);
 	}
-	
-	@Test
-	public void testPromoteEntity() throws Exception {
-		Project p = new Project();
-		p.setName("Create without entity type");
-		p.setEntityType(p.getClass().getName());
-		Project clone = (Project) entityServletHelper.createEntity(p, TEST_USER1, null);
-		String id = clone.getId();
-		toDelete.add(id);
-		Code c = new Code();
-		c.setName("code");
-		c.setParentId(id);
-		c.setEntityType(c.getClass().getName());
-		c.setMd5(String.format("%032x", 1));
-		Code cclone = (Code) entityServletHelper.createEntity(c, TEST_USER1, null);
-		cclone.setVersionLabel("v2");
-		toDelete.add(cclone.getId());
-		Code cclone2 = (Code) entityServletHelper.createNewVersion(TEST_USER1, cclone);
-		VersionInfo info = entityServletHelper.promoteVersion(TEST_USER1, cclone2.getId(), 1L);
-		assertNotNull(info);
-		assertEquals(new Long(3), info.getVersionNumber());
-	}
-	
+
 	/**
 	 * Test that we can create a file entity.
 	 * @throws NotFoundException 

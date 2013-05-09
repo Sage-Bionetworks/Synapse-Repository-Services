@@ -1,18 +1,16 @@
 package org.sagebionetworks.repo.manager;
 
-import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.Annotations;
-import org.sagebionetworks.repo.model.BatchResults;
-import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
+import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
 import org.sagebionetworks.repo.model.InvalidModelException;
-import org.sagebionetworks.repo.model.EntityType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.Reference;
 import org.sagebionetworks.repo.model.UnauthorizedException;
@@ -348,19 +346,6 @@ public interface EntityManager {
 	 * @throws NotFoundException
 	 */
 	public void deleteActivityForEntity(UserInfo userInfo, String entityId)
-			throws DatastoreException, UnauthorizedException, NotFoundException;
-
-	/**
-	 * Promotes the specified version to the "most recent" version
-	 * @param userInfo
-	 * @param id
-	 * @param versionNumber
-	 * @return
-	 * @throws DatastoreException
-	 * @throws UnauthorizedException
-	 * @throws NotFoundException
-	 */
-	VersionInfo promoteEntityVersion(UserInfo userInfo, String id, Long versionNumber)
 			throws DatastoreException, UnauthorizedException, NotFoundException;
 
 	/**
