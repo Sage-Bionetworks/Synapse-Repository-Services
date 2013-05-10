@@ -159,7 +159,7 @@ public class MigrationClient {
 			deltaList.add(dd);
 		}
 		// Now we need to delete any data in reverse order
-		for(int i=deltaList.size()-1; i >= 2; i--){
+		for(int i=deltaList.size()-1; i >= 0; i--){
 			DeltaData dd = deltaList.get(i);
 			deleteFromDestination(dd.getType(), dd.getDeleteTemp(), dd.getCounts().getDelete(), batchSize);
 		}
