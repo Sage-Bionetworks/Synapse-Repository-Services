@@ -6,6 +6,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.util.Date;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -13,10 +14,14 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.ids.UuidETagGenerator;
 import org.sagebionetworks.repo.model.ConflictingUpdateException;
+import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.SchemaCache;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -116,5 +121,21 @@ public class DBOUserProfileDAOImplTest {
 		userProfileDAO.delete(id);
 
 		assertEquals(initialCount, userProfileDAO.getCount());
+	}
+	
+	@Test
+	public void testBootstrapUsers() throws DatastoreException, NotFoundException{
+		List<UserGroupInt> boots = this.userGroupDAO.getBootstrapUsers();
+		assertNotNull(boots);
+		assertTrue(boots.size() >0);
+		// Each should exist
+		ObjectSchema schema = SchemaCache.getSchema(UserProfile.class);
+		for(UserGroupInt bootUg: boots){
+			if(bootUg.getIsIndividual()){
+				UserProfile profile = userProfileDAO.get(bootUg.getId(), schema);
+				UserGroup ug = userGroupDAO.get(bootUg.getId());
+				assertEquals(bootUg.getId(), profile.getOwnerId());
+			}
+		}
 	}
 }
