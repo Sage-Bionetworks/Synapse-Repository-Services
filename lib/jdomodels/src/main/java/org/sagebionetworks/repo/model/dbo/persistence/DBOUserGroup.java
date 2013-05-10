@@ -16,8 +16,6 @@ import java.sql.Timestamp;
 import java.util.Date;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.backup.FileHandleBackup;
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
@@ -37,7 +35,9 @@ public class DBOUserGroup implements MigratableDatabaseObject<DBOUserGroup, DBOU
 
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
 		new FieldColumn("id", COL_USER_GROUP_ID, true).withIsBackupId(true),
-		new FieldColumn("name", COL_USER_GROUP_NAME),
+		// we treat the user name like an etag, so if the name assigned to an
+		// ID across stacks does not match, the destination stack user will be replaced with the source user.
+		new FieldColumn("name", COL_USER_GROUP_NAME).withIsEtag(true),
 		new FieldColumn("creationDate", COL_USER_GROUP_CREATION_DATE),
 		new FieldColumn("isIndividual", COL_USER_GROUP_IS_INDIVIDUAL)
 		};
