@@ -65,7 +65,7 @@ public class BackupDriverImpl implements BackupDriver {
 		ZipOutputStream zos = new ZipOutputStream(new BufferedOutputStream(fos));
 		try {
 			progress.appendLog(idsToBackup.toString());
-			progress.setMessage(idsToBackup.toString());
+			progress.setMessage("Backup id count: "+idsToBackup.size());
 			ZipEntry entry = new ZipEntry(type.name() + ZIP_ENTRY_SUFFIX);
 			zos.putNextEntry(entry);
 			migrationManager.writeBackupBatch(user, type, idsToBackup, zos);
