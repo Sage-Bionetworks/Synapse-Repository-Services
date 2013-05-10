@@ -27,7 +27,7 @@ public class MigrationClientMain {
 		// Create the client factory
 		SynapseClientFactory factory = new SynapseClientFactoryImpl(configuration);
 		MigrationClient client = new MigrationClient(factory);
-		client.migrateFromSourceToDestination();
+		client.migrateAllTypes(configuration.getMaximumBatchSize(), configuration.getWorkerTimeoutMs());
 	}
 	
 	/**

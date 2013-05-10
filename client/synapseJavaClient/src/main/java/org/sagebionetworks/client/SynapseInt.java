@@ -19,4 +19,10 @@ public interface SynapseInt {
 	 * @throws JSONObjectAdapterException
 	 */
 	public StackStatus getCurrentStackStatus() throws SynapseException,	JSONObjectAdapterException;
+	
+	/**
+	 * Get the endpoint of the repository service.
+	 * @return
+	 */
+	public String getRepoEndpoint();
 }
