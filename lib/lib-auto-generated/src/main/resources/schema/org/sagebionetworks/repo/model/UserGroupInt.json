@@ -1,0 +1,18 @@
+{
+	"description": "This is the base interface for a user group",
+	"type": "interface",
+	"properties": {
+		"id": {
+			"type": "string",
+			"description": "The id of either the user or group."
+		},
+		"name": {
+			"type": "string",
+			"description": "The name of either the user or group."
+		},
+		"isIndividual": {
+			"type": "boolean",
+			"description": "True if this is a user, false if it is a group"
+		}
+	}
+}

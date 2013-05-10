@@ -355,6 +355,8 @@ public class DMLUtils {
 		FieldColumn selfKey = getSelfForeignKey(mapping);
 		if(selfKey != null){
 			builder.append(selfKey.getColumnName());
+			builder.append("`, `");
+			builder.append(backupId.getColumnName());
 		}else{
 			builder.append(backupId.getColumnName());
 		}
