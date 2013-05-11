@@ -9,6 +9,8 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.evaluation.dbo.EvaluationDBO;
 import org.sagebionetworks.evaluation.dbo.ParticipantDBO;
 import org.sagebionetworks.evaluation.model.EvaluationStatus;
+import org.sagebionetworks.ids.IdGenerator;
+import org.sagebionetworks.ids.IdGenerator.TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,6 +24,8 @@ public class ParticipantDBOTest {
  
     @Autowired
     DBOBasicDao dboBasicDao;
+    @Autowired
+    IdGenerator idGenerator;
  
     private long userId = 0;
     private long evalId = 2;
@@ -60,6 +64,7 @@ public class ParticipantDBOTest {
         ParticipantDBO participant = new ParticipantDBO();
         participant.setUserId(userId);
         participant.setEvalId(evalId);
+        participant.setId(idGenerator.generateNewId(TYPE.PARTICIPANT_ID));
         participant.setCreatedOn(System.currentTimeMillis());
  
         // Create it

@@ -18,17 +18,21 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_ACCESS
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.LinkedList;
+import java.util.List;
 
 import org.sagebionetworks.repo.model.TaggableEntity;
-import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.FieldColumn;
+import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.TableMapping;
+import org.sagebionetworks.repo.model.dbo.migration.MigratableTableTranslation;
+import org.sagebionetworks.repo.model.migration.MigrationType;
 
 /**
  * @author brucehoff
  *
  */
-public class DBOAccessRequirement implements DatabaseObject<DBOAccessRequirement>, TaggableEntity {
+public class DBOAccessRequirement implements MigratableDatabaseObject<DBOAccessRequirement, DBOAccessRequirement>, TaggableEntity {
 	private Long id;
 	private String eTag;
 	private Long createdBy;
@@ -40,8 +44,8 @@ public class DBOAccessRequirement implements DatabaseObject<DBOAccessRequirement
 	private byte[] serializedEntity;
 	
 	private static FieldColumn[] FIELDS = new FieldColumn[] {
-		new FieldColumn("id", COL_ACCESS_REQUIREMENT_ID, true),
-		new FieldColumn("eTag", COL_ACCESS_REQUIREMENT_ETAG),
+		new FieldColumn("id", COL_ACCESS_REQUIREMENT_ID, true).withIsBackupId(true),
+		new FieldColumn("eTag", COL_ACCESS_REQUIREMENT_ETAG).withIsEtag(true),
 		new FieldColumn("createdBy", COL_ACCESS_REQUIREMENT_CREATED_BY),
 		new FieldColumn("createdOn", COL_ACCESS_REQUIREMENT_CREATED_ON),
 		new FieldColumn("modifiedBy", COL_ACCESS_REQUIREMENT_MODIFIED_BY),
@@ -267,6 +271,47 @@ public class DBOAccessRequirement implements DatabaseObject<DBOAccessRequirement
 	}
 
 
-	
+	@Override
+	public MigrationType getMigratableTableType() {
+		return MigrationType.ACCESS_REQUIREMENT;
+	}
 
+
+	@Override
+	public MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement> getTranslator() {
+		// TODO Auto-generated method stub
+		return new MigratableTableTranslation<DBOAccessRequirement, DBOAccessRequirement>(){
+
+			@Override
+			public DBOAccessRequirement createDatabaseObjectFromBackup(
+					DBOAccessRequirement backup) {
+				return backup;
+			}
+
+			@Override
+			public DBOAccessRequirement createBackupFromDatabaseObject(
+					DBOAccessRequirement dbo) {
+				return dbo;
+			}};
+	}
+
+
+	@Override
+	public Class<? extends DBOAccessRequirement> getBackupClass() {
+		return DBOAccessRequirement.class;
+	}
+
+
+	@Override
+	public Class<? extends DBOAccessRequirement> getDatabaseObjectClass() {
+		return DBOAccessRequirement.class;
+	}
+
+
+	@Override
+	public List<MigratableDatabaseObject> getSecondaryTypes() {
+		List<MigratableDatabaseObject> list = new LinkedList<MigratableDatabaseObject>();
+		list.add(new DBONodeAccessRequirement());
+		return list;
+	}
 }

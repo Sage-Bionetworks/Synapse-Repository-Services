@@ -17,14 +17,17 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.model.AuthorizationConstants;
+import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.MigratableObjectData;
 import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
+import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserProfileDAO;
+import org.sagebionetworks.repo.web.NotFoundException;
 import org.sagebionetworks.schema.ObjectSchema;
 import org.sagebionetworks.schema.adapter.JSONEntity;
 import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
@@ -194,6 +197,19 @@ public class DBOUserGroupDAOImplTest {
 		omit.add(AuthorizationConstants.DEFAULT_GROUPS.AUTHENTICATED_USERS.name());
 		List<UserGroup> groupsButOne = userGroupDAO.getInRangeExcept(0, startingCount+100, false, omit);
 		assertEquals(groups.size(), groupsButOne.size()+1);
+	}
+	
+	@Test
+	public void testBootstrapUsers() throws DatastoreException, NotFoundException{
+		List<UserGroupInt> boots = this.userGroupDAO.getBootstrapUsers();
+		assertNotNull(boots);
+		assertTrue(boots.size() >0);
+		// Each should exist
+		for(UserGroupInt bootUg: boots){
+			UserGroup ug = userGroupDAO.get(bootUg.getId());
+			assertEquals(bootUg.getId(), ug.getId());
+			assertEquals(bootUg.getName(), ug.getName());
+		}
 	}
 
 }

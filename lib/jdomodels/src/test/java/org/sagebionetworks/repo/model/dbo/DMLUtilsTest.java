@@ -157,7 +157,7 @@ public class DMLUtilsTest {
 		String batchDelete = DMLUtils.createBatchDelete(migrateableMappingSelfForeignKey);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID` DESC", batchDelete);
+		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID`, `ID` DESC", batchDelete);
 	}
 	
 	@Test
@@ -165,7 +165,7 @@ public class DMLUtilsTest {
 		String batchDelete = DMLUtils.listRowMetadata(migrateableMappingSelfForeignKey);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("SELECT `ID`, `ETAG` FROM SOME_TABLE ORDER BY `PARENT_ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", batchDelete);
+		assertEquals("SELECT `ID`, `ETAG` FROM SOME_TABLE ORDER BY `PARENT_ID`, `ID` ASC LIMIT :BCLIMIT OFFSET :BVOFFSET", batchDelete);
 	}
 
 	@Test
@@ -181,7 +181,7 @@ public class DMLUtilsTest {
 		String batchDelete = DMLUtils.deltaListRowMetadata(migrateableMappingSelfForeignKey);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("SELECT `ID`, `ETAG` FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID` ASC", batchDelete);
+		assertEquals("SELECT `ID`, `ETAG` FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID`, `ID` ASC", batchDelete);
 	}
 
 	@Test
@@ -197,7 +197,7 @@ public class DMLUtilsTest {
 		String batchDelete = DMLUtils.getBackupBatch(migrateableMappingSelfForeignKey);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID` ASC", batchDelete);
+		assertEquals("SELECT * FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID`, `ID` ASC", batchDelete);
 	}
 
 	@Test
@@ -214,5 +214,13 @@ public class DMLUtilsTest {
 		assertNotNull(sql);
 		System.out.println(sql);
 		assertEquals("INSERT INTO SOME_TABLE(`ID`, `ETAG`, `PARENT_ID`) VALUES (:id, :etag, :parentId) ON DUPLICATE KEY UPDATE `ETAG` = :etag, `PARENT_ID` = :parentId", sql);
+	}
+	
+	@Test
+	public void testGetBatchInsertOrUdpateKeyOnly(){
+		String sql = DMLUtils.getBatchInsertOrUdpate(migrateableMappingNoEtagNotSelfForeignKey);
+		assertNotNull(sql);
+		System.out.println(sql);
+		assertEquals("INSERT INTO SOME_TABLE(`ID`) VALUES (:id)", sql);
 	}
 }

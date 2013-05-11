@@ -13,8 +13,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Entity;
 import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityType;
-import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.EntityWithAnnotations;
+import org.sagebionetworks.repo.model.FileEntity;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.Locationable;
 import org.sagebionetworks.repo.model.NamedAnnotations;
@@ -306,13 +306,8 @@ public class EntityManagerImpl implements EntityManager {
 		NamedAnnotations annos = nodeManager.getAnnotations(userInfo,
 				updated.getId());
 		annos.setEtag(updated.getEtag());
-
-		
-		// Set activityId if new version or if not changing versions and activityId is defined 
-		if(newVersion || (!newVersion && activityId != null)) {
-			node.setActivityId(activityId);
-		} 
-		
+	
+		// Detect if new version for specific types
 		// Auto-version locationable entities
 		if (!newVersion && (updated instanceof Locationable)) {
 			Locationable locationable = (Locationable) updated;
@@ -335,10 +330,18 @@ public class EntityManagerImpl implements EntityManager {
 			}
 		}
 
+		
+		final boolean newVersionFinal = newVersion;
+		
+		// Set activityId if new version or if not changing versions and activityId is defined
+		if(newVersionFinal || (!newVersionFinal && activityId != null)) {
+			node.setActivityId(activityId);
+		}
+		
 		updateNodeAndAnnotationsFromEntity(updated, node,
 				annos.getPrimaryAnnotations());
 		// Now update both at the same time
-		nodeManager.update(userInfo, node, annos, newVersion);
+		nodeManager.update(userInfo, node, annos, newVersionFinal);
 	}
 
 	/**
@@ -585,15 +588,6 @@ public class EntityManagerImpl implements EntityManager {
 			throws DatastoreException, UnauthorizedException, NotFoundException {
 		validateUpdateAccess(userInfo, entityId);
 		nodeManager.deleteActivityLinkToNode(userInfo, entityId);
-	}
-
-	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	@Override
-	public VersionInfo promoteEntityVersion(UserInfo userInfo, String id,
-			Long versionNumber) throws DatastoreException,
-			UnauthorizedException, NotFoundException {
-		validateUpdateAccess(userInfo, id);
-		return nodeManager.promoteEntityVersion(userInfo, id, versionNumber);
 	}
 
 	@Override

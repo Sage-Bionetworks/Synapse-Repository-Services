@@ -1,24 +1,17 @@
 {
 	"title": "User or Group",
 	"description": "JSON schema for UserGroup POJO",
+	"implements": [
+		{
+			"$ref": "org.sagebionetworks.repo.model.UserGroupInt"
+		}
+	],
 	"properties": {
-		"id": {
-			"type": "string",
-			"description": "The id of either the user or group."
-		},
-		"name": {
-			"type": "string",
-			"description": "The name of either the user or group."
-		},
 		"creationDate": {
 			"type": "string",
 			"format": "date-time",
 			"description": "The date this user or group was created.",
 			"title": "Created On"
-		},
-		"isIndividual": {
-			"type": "boolean",
-			"description": "True if this is a user, false if it is a group"
 		},
 		"uri": {
 			"type": "string"

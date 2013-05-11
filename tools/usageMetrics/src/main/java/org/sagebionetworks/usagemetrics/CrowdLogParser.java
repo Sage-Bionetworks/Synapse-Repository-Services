@@ -24,6 +24,11 @@ public class CrowdLogParser {
 	// Note:  To get the log files it's:
 	// scp -i PlatformKeyPairEast.pem ec2-user@prod-crowd.sagebase.org:/usr/local/atlassian-crowd-2.3.1/apache-tomcat/logs/localhost_access_log.*.txt <localdir> 
 	
+	/**
+	 * @param 0 - directory of log files
+	 * @param 1 - number of days in window
+	 * @param 2 (optional) - an end date in format dd-MMM-yyyy (ex: 19-APR-2013). Default is today. 
+	 */
 	public static void main(String[] args) throws Exception {
 		if (args.length<2) throw new IllegalArgumentException("must specify, log directory, number of days in window. End date (dd-MMM-yyyy) is optional (default to today)");
 		String dir = args[0];
