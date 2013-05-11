@@ -109,8 +109,6 @@ public class CreateUpdateWorker implements Callable<Long> {
 		status = this.destClient.startRestore(type, restoreSub);
 		// Wait for the backup to complete
 		status = waitForDaemon(status.getId(), this.destClient);
-		// set the progress to done.
-		progress.setDone();
 	}
 	
 	/**
