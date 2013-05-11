@@ -503,6 +503,7 @@ public class UrlHelpers {
 	 * Rebroadcast changes messages to a Queue
 	 */
 	public static final String REBROADCAST_MESSAGES 		= CHANGE_MESSAGES+"/rebroadcast";
+	public static final String REFIRE_MESSAGES				= CHANGE_MESSAGES+"/refire";
 	
 	/**
 	 * Mapping of dependent property classes to their URL suffixes

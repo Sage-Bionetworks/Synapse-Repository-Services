@@ -308,6 +308,21 @@ public class AdministrationController extends BaseController {
 	}
 
 	/**
+	 * Refires all the change messages
+	 **/
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = { UrlHelpers.REFIRE_MESSAGES }, method = RequestMethod.POST)
+	public @ResponseBody
+	void refireChangeMessagesToQueue(String userId,
+			@RequestParam Long startChangeNumber,
+			@RequestParam Long limit) throws DatastoreException,
+			NotFoundException {
+		// Pass it along
+		serviceProvider.getAdministrationService().reFireChangeMessages(userId, startChangeNumber, limit);
+	}
+
+	
+	/**
 	 * Clears the Synapse DOI table.
 	 */
 	@RequestMapping(value = {UrlHelpers.ADMIN_DOI_CLEAR}, method = RequestMethod.DELETE)

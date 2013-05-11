@@ -48,11 +48,16 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	
 	@Override
 	public void rebroadcastAllChangeMessages() {
+		this.rebroadcastChangeMessages(0L, Long.MAX_VALUE);
+	}
+	
+	@Override
+	public long rebroadcastChangeMessages(Long startChangeNumber, Long limit) {
 		// List all change messages
 		List<ChangeMessage> list = null;
-		long lastNumber = 0;
+		long lastNumber = startChangeNumber;
 		do{
-			list = changeDAO.listChanges(lastNumber, ObjectType.ENTITY, 100);
+			list = changeDAO.listChanges(lastNumber, ObjectType.ENTITY, limit);
 			log.info("Sending "+list.size()+" change messages to the topic");
 			if(list.size() > 0){
 				log.info("First change number on the list: "+list.get(0).getChangeNumber());
@@ -62,8 +67,12 @@ public class MessageSyndicationImpl implements MessageSyndication {
 				messagePublisher.fireChangeMessage(change);
 				lastNumber = change.getChangeNumber()+1;
 			}
-		}while(list.size() > 0);
-		
+		} while(list.size() > 0);
+		if (list.size() < limit) { 	// last batch
+			return -1L;
+		} else {
+			return lastNumber;		// startNumber for next batch
+		}
 	}
 
 	/**

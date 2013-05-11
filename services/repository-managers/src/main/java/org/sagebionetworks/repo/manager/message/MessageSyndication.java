@@ -28,6 +28,12 @@ public interface MessageSyndication {
 	 * Rebroadcast all change messages.
 	 */
 	public void rebroadcastAllChangeMessages();
+
+	/**
+	 * Rebroadcast limit change messages from given change number (inclusive).
+	 * @return next startChangeNumber or -1 if last batch
+	 */
+	public long rebroadcastChangeMessages(Long startChangeNumber, Long limit);
 	
 	/**
 	 * Rebroadcast change messages to a queue starting from a given change number (inclusive).

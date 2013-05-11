@@ -245,6 +245,13 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	}
 
 	@Override
+	public long reFireChangeMessages(String userId,  Long startChangeNumber, Long limit) throws DatastoreException, NotFoundException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
+		return messageSyndication.rebroadcastChangeMessages(startChangeNumber, limit);
+	}
+
+	@Override
 	public void clearDoi(String userId) throws NotFoundException, UnauthorizedException, DatastoreException {
 		doiAdminManager.clear(userId);
 	}

@@ -190,6 +190,17 @@ public interface AdministrationService {
 	PublishResults rebroadcastChangeMessagesToQueue(String userId,	String queueName, Long startChangeNumber, ObjectType type,	Long limit) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Rebroadcast messages
+	 * @param userId
+	 * @param startChangeNumber
+	 * @param limit
+	 * @return
+	 * @throws NotFoundException 
+	 * @throws DatastoreException 
+	 */
+	long reFireChangeMessages(String userId, Long startChangeNumber, Long limit) throws DatastoreException, NotFoundException;
+
+	/**
 	 * Clears the Synapse DOI table.
 	 */
 	void clearDoi(String userId) throws NotFoundException, UnauthorizedException, DatastoreException;
