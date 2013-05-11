@@ -226,7 +226,8 @@ public class UserManagerImpl implements UserManager {
 	/**
 	 * Clear the user cache.
 	 */
-	private void clearCache() {
+	@Override
+	public void clearCache() {
 		userInfoCache.clear();
 		lastCacheDump = new Date();
 	}
