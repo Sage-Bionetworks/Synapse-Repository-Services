@@ -126,8 +126,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 /**
  * Low-level Java Client API for Synapse REST APIs
  */
-public class Synapse {
-
+public class Synapse implements SynapseInt {
 
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
