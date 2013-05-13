@@ -16,6 +16,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -313,12 +314,12 @@ public class AdministrationController extends BaseController {
 	@ResponseStatus(HttpStatus.OK)
 	@RequestMapping(value = { UrlHelpers.REFIRE_MESSAGES }, method = RequestMethod.POST)
 	public @ResponseBody
-	void refireChangeMessagesToQueue(String userId,
+	FireMessagesResult refireChangeMessagesToQueue(String userId,
 			@RequestParam Long startChangeNumber,
 			@RequestParam Long limit) throws DatastoreException,
 			NotFoundException {
 		// Pass it along
-		serviceProvider.getAdministrationService().reFireChangeMessages(userId, startChangeNumber, limit);
+		return serviceProvider.getAdministrationService().reFireChangeMessages(userId, startChangeNumber, limit);
 	}
 
 	

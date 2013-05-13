@@ -14,6 +14,7 @@ import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -198,7 +199,7 @@ public interface AdministrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	long reFireChangeMessages(String userId, Long startChangeNumber, Long limit) throws DatastoreException, NotFoundException;
+	FireMessagesResult reFireChangeMessages(String userId, Long startChangeNumber, Long limit) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Clears the Synapse DOI table.

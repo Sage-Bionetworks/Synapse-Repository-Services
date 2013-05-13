@@ -1,0 +1,10 @@
+{
+	"title": "FireMessagesResult",
+	"description": "JSON schema for a change message",
+	"properties": {
+		"lastChangeNumber": {
+			"type": "integer",
+			"description":"The last change number fired."
+		}
+	}
+}

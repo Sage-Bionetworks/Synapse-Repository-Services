@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.BackupSubmission;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.message.ChangeMessages;
+import org.sagebionetworks.repo.model.message.FireMessagesResult;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.message.PublishResults;
 import org.sagebionetworks.repo.model.status.StackStatus;
@@ -245,10 +246,13 @@ public class AdministrationServiceImpl implements AdministrationService  {
 	}
 
 	@Override
-	public long reFireChangeMessages(String userId,  Long startChangeNumber, Long limit) throws DatastoreException, NotFoundException {
+	public FireMessagesResult reFireChangeMessages(String userId,  Long startChangeNumber, Long limit) throws DatastoreException, NotFoundException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		if (!userInfo.isAdmin()) throw new UnauthorizedException("Only an administrator may access this service.");
-		return messageSyndication.rebroadcastChangeMessages(startChangeNumber, limit);
+		long lastMsgNum = messageSyndication.rebroadcastChangeMessages(startChangeNumber, limit);
+		FireMessagesResult res = new FireMessagesResult();
+		res.setLastChangeNumber(lastMsgNum);
+		return res;
 	}
 
 	@Override
