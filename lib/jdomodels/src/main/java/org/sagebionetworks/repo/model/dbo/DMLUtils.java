@@ -367,28 +367,6 @@ public class DMLUtils {
 	}
 	
 	/**
-	 * build - "ORDER BY `BACKUP_ID` ASC/DESC"
-	 * @param mapping
-	 * @param builder
-	 */
-	private static void buildBackupOrderByForDelete(TableMapping mapping, StringBuilder builder, boolean ascending) {
-		builder.append(" ORDER BY `");
-		FieldColumn backupId = getBackupIdColumnName(mapping);
-		FieldColumn selfKey = getSelfForeignKey(mapping);
-		if(selfKey != null){
-			builder.append(selfKey.getColumnName());
-		}else{
-			builder.append(backupId.getColumnName());
-		}
-		builder.append("` ");
-		if(ascending){
-			builder.append("ASC");
-		}else{
-			builder.append("DESC");
-		}
-	}
-	
-	/**
 	 * Validate the passed mapping meets the minimum requirements for a backup table mapping.
 	 * 
 	 * @param mapping
