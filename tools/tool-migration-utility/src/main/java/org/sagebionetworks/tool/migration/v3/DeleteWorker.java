@@ -46,7 +46,7 @@ public class DeleteWorker implements Callable<Long>{
 	public Long call() throws Exception {
 		// Iterate and create batches.
 		Long id = null;
-		List<String> batch = new LinkedList<String>();
+		List<Long> batch = new LinkedList<Long>();
 		long deletedCount = 0;
 		long current = 0;
 		while(iterator.hasNext()){
@@ -54,7 +54,7 @@ public class DeleteWorker implements Callable<Long>{
 			current++;
 			this.progress.setCurrent(current);
 			if(id != null){
-				batch.add(""+id);
+				batch.add(id);
 				if(batch.size() >= batchSize){
 					IdList request = new IdList();
 					request.setList(batch);
