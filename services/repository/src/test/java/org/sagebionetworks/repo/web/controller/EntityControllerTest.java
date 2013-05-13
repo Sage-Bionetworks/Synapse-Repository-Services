@@ -454,4 +454,10 @@ public class EntityControllerTest {
 		assertNotNull(file.getId());
 		toDelete.add(file.getId());
 	}
+
+	@Test
+	public void testGetEntityByMd5() throws Exception {
+		EntityHeader entityHeader = entityServletHelper.getEntityByMd5(userName, "548c050497fb361742b85e0712b0cc96");
+		assertNotNull(entityHeader);
+	}
 }

@@ -93,7 +93,20 @@ public class EntityController extends BaseController{
 		Entity entity =  serviceProvider.getEntityService().getEntity(userId, id, request);
 		return entity;
 	}
-	
+
+	@ResponseStatus(HttpStatus.OK)
+	@RequestMapping(value = {"/entity/md5/{md5}"
+			}, method = RequestMethod.GET)
+	public @ResponseBody
+	EntityHeader getEntityByMd5(
+			@PathVariable String md5,
+			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
+			HttpServletRequest request)
+			throws NotFoundException, DatastoreException, UnauthorizedException {
+		EntityHeader entityHeader = new EntityHeader();
+		return entityHeader;
+	}
+
 	/**
 	 * Get the annotations for an entity.
 	 * @param id - The id of the entity to update.
