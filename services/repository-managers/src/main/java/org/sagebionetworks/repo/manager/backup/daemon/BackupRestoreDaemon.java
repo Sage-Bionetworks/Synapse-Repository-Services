@@ -46,7 +46,7 @@ public class BackupRestoreDaemon implements Runnable{
 	private DaemonType type;
 	private String backupFileName;
 	// The list of IDs to backup.
-	private List<String> idsToBackup;
+	private List<Long> idsToBackup;
 	
 	private BackupRestoreStatus status;
 	private long startTimeNano;
@@ -70,7 +70,7 @@ public class BackupRestoreDaemon implements Runnable{
 	 * @param dao
 	 * @param driver
 	 */
-	BackupRestoreDaemon(UserInfo user, BackupRestoreStatusDAO dao, BackupDriver driver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2, List<String> idsToBackup, MigrationType migrationType){
+	BackupRestoreDaemon(UserInfo user, BackupRestoreStatusDAO dao, BackupDriver driver, AmazonS3Client client, String bucket, ExecutorService threadPool, ExecutorService threadPool2, List<Long> idsToBackup, MigrationType migrationType){
 		if(dao == null) throw new IllegalArgumentException("BackupRestoreStatusDAO cannot be null");
 		if(driver == null) throw new IllegalArgumentException("GenericBackupDriver cannot be null");
 		if(client == null) throw new IllegalArgumentException("AmazonS3Client cannot be null");
@@ -178,6 +178,7 @@ public class BackupRestoreDaemon implements Runnable{
 		}finally{
 			if(tempToDelete != null && tempToDelete.exists()){
 				// Delete the temp file
+//				System.out.println("Not deleting: "+tempToDelete.getAbsolutePath());
 				tempToDelete.delete();
 			}
 		}

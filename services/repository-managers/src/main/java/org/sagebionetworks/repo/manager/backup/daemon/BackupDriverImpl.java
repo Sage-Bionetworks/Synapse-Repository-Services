@@ -46,7 +46,7 @@ public class BackupDriverImpl implements BackupDriver {
 	 * @throws IOException
 	 * @throws InterruptedException 
 	 */
-	public boolean writeBackup(UserInfo user, File destination,	Progress progress, MigrationType type, List<String> idsToBackup) throws IOException, InterruptedException {
+	public boolean writeBackup(UserInfo user, File destination,	Progress progress, MigrationType type, List<Long> idsToBackup) throws IOException, InterruptedException {
 		if (destination == null)
 			throw new IllegalArgumentException(
 					"Destination file cannot be null");

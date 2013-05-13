@@ -5,6 +5,7 @@ import java.io.OutputStream;
 import java.util.List;
 
 import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.StreamException;
 
 /**
  * Provides marshaling for backup objects.
@@ -40,7 +41,16 @@ public class BackupMarshalingUtils {
 	public static <B> List<B> readBacckupFromStream(Class<B> clazz, String alias, InputStream in){
 		XStream xstream = new XStream();
 		xstream.alias(alias, clazz);
-		return (List<B>) xstream.fromXML(in);
+		try{
+			return (List<B>) xstream.fromXML(in);
+		}catch(StreamException e){
+			if(e.getMessage().indexOf("input contained no data") > 0){
+				// Ignore empty files.
+				return null;
+			}else{
+				throw new RuntimeException(e);
+			}
+		}
 	}
 
 }
