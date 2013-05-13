@@ -144,7 +144,7 @@ public class BackupDaemonLauncherImpl implements BackupDaemonLauncher {
 	}
 
 	@Override
-	public BackupRestoreStatus startBackup(UserInfo user, MigrationType type, List<String> idsToBackup) {
+	public BackupRestoreStatus startBackup(UserInfo user, MigrationType type, List<Long> idsToBackup) {
 		// Create a new daemon and start it
 		AmazonS3Client client = createNewAWSClient();
 		BackupRestoreDaemon daemon = new BackupRestoreDaemon(user, backupRestoreStatusDao, backupDriver, client, backupBucket, backupDaemonThreadPool, backupDaemonThreadPool2, idsToBackup, type);

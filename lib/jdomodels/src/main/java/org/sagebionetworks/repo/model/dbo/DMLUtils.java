@@ -213,7 +213,6 @@ public class DMLUtils {
 		builder.append(mapping.getTableName());
 		builder.append(" WHERE ");
 		addBackupIdInList(builder, mapping);
-		buildBackupOrderBy(mapping, builder, false);
 		return builder.toString();
 	}
 	
@@ -308,6 +307,12 @@ public class DMLUtils {
 			builder.append(etagColumn.getColumnName());
 			builder.append("`");
 		}
+		FieldColumn selfKey = getSelfForeignKey(mapping);
+		if(selfKey !=null){
+			builder.append(", `");
+			builder.append(selfKey.getColumnName());
+			builder.append("`");
+		}
 	}
 	
 	/**
@@ -343,7 +348,7 @@ public class DMLUtils {
 		buildBackupOrderBy(mapping, builder, true);
 		return builder.toString();
 	}
-
+	
 	/**
 	 * build - "ORDER BY `BACKUP_ID` ASC/DESC"
 	 * @param mapping
@@ -352,14 +357,7 @@ public class DMLUtils {
 	private static void buildBackupOrderBy(TableMapping mapping, StringBuilder builder, boolean ascending) {
 		builder.append(" ORDER BY `");
 		FieldColumn backupId = getBackupIdColumnName(mapping);
-		FieldColumn selfKey = getSelfForeignKey(mapping);
-		if(selfKey != null){
-			builder.append(selfKey.getColumnName());
-			builder.append("`, `");
-			builder.append(backupId.getColumnName());
-		}else{
-			builder.append(backupId.getColumnName());
-		}
+		builder.append(backupId.getColumnName());
 		builder.append("` ");
 		if(ascending){
 			builder.append("ASC");
@@ -390,28 +388,66 @@ public class DMLUtils {
 		// There are two different row mappers, on with etags and one without.
 		final FieldColumn etag = getEtagColumn(mapping);
 		final FieldColumn id = getBackupIdColumnName(mapping);
+		final FieldColumn selfKey = getSelfForeignKey(mapping);
 		if(etag == null){
-			// Row mapper with a null etag
-			return new RowMapper<RowMetadata>() {
-				@Override
-				public RowMetadata mapRow(ResultSet rs, int rowNum) throws SQLException {
-					RowMetadata metadata = new RowMetadata();
-					metadata.setId(rs.getString(id.getColumnName()));
-					metadata.setEtag(null);
-					return metadata;
-				}
-			};
+			if(selfKey == null){
+				// Row mapper with a null etag
+				return new RowMapper<RowMetadata>() {
+					@Override
+					public RowMetadata mapRow(ResultSet rs, int rowNum) throws SQLException {
+						RowMetadata metadata = new RowMetadata();
+						metadata.setId(rs.getLong(id.getColumnName()));
+						metadata.setEtag(null);
+						metadata.setParentId(null);
+						return metadata;
+					}
+				};
+			}else{
+				// Row mapper with a null etag
+				return new RowMapper<RowMetadata>() {
+					@Override
+					public RowMetadata mapRow(ResultSet rs, int rowNum) throws SQLException {
+						RowMetadata metadata = new RowMetadata();
+						metadata.setId(rs.getLong(id.getColumnName()));
+						metadata.setEtag(null);
+						metadata.setParentId(rs.getLong(selfKey.getColumnName()));
+						if(rs.wasNull()){
+							metadata.setParentId(null);
+						}
+						return metadata;
+					}
+				};
+			}
 		}else{
-			// Row mapper with an etag
-			return new RowMapper<RowMetadata>() {
-				@Override
-				public RowMetadata mapRow(ResultSet rs, int rowNum) throws SQLException {
-					RowMetadata metadata = new RowMetadata();
-					metadata.setId(rs.getString(id.getColumnName()));
-					metadata.setEtag(rs.getString(etag.getColumnName()));
-					return metadata;
-				}
-			};
+			if(selfKey == null){
+				// Row mapper with an etag
+				return new RowMapper<RowMetadata>() {
+					@Override
+					public RowMetadata mapRow(ResultSet rs, int rowNum) throws SQLException {
+						RowMetadata metadata = new RowMetadata();
+						metadata.setId(rs.getLong(id.getColumnName()));
+						metadata.setEtag(rs.getString(etag.getColumnName()));
+						metadata.setParentId(null);
+						return metadata;
+					}
+				};
+			}else{
+				// Row mapper with an etag
+				return new RowMapper<RowMetadata>() {
+					@Override
+					public RowMetadata mapRow(ResultSet rs, int rowNum) throws SQLException {
+						RowMetadata metadata = new RowMetadata();
+						metadata.setId(rs.getLong(id.getColumnName()));
+						metadata.setEtag(rs.getString(etag.getColumnName()));
+						metadata.setParentId(rs.getLong(selfKey.getColumnName()));
+						if(rs.wasNull()){
+							metadata.setParentId(null);
+						}
+						return metadata;
+					}
+				};
+			}
+
 		}
 	}
 	

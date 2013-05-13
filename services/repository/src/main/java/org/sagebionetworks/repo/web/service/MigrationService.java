@@ -49,7 +49,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	RowMetadataResult getRowMetadataDeltaForType(String userId,	MigrationType valueOf, List<String> list) throws DatastoreException, NotFoundException;
+	RowMetadataResult getRowMetadataDeltaForType(String userId,	MigrationType valueOf, List<Long> list) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Start the backup of the provided list of Migration type IDs.
@@ -60,7 +60,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	BackupRestoreStatus startBackup(String userId, MigrationType type,	List<String> list) throws DatastoreException, NotFoundException;
+	BackupRestoreStatus startBackup(String userId, MigrationType type,	List<Long> list) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Start the restore of the provided file.
@@ -81,7 +81,7 @@ public interface MigrationService {
 	 * @throws NotFoundException 
 	 * @throws DatastoreException 
 	 */
-	MigrationTypeCount delete(String userId, MigrationType valueOf, List<String> list) throws DatastoreException, NotFoundException;
+	MigrationTypeCount delete(String userId, MigrationType valueOf, List<Long> list) throws DatastoreException, NotFoundException;
 
 	/**
 	 * Get the status of either a restore or backup deamon
