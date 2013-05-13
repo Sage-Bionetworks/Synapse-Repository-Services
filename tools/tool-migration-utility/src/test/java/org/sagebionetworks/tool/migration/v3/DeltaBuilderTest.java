@@ -49,8 +49,8 @@ public class DeltaBuilderTest {
 	 */
 	@Test
 	public void testNoDelta() throws Exception{
-		Iterator<RowMetadata> srcIt = createIterator(new String[]{"0","1","2", null}, new String[]{"e0","e2","e3", null});
-		Iterator<RowMetadata> desIt = createIterator(new String[]{"0","1","2", null}, new String[]{"e0","e2","e3", null});
+		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
+		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, createDataOut, updateDataOut, deleteDataOut);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
@@ -75,8 +75,8 @@ public class DeltaBuilderTest {
 	 */
 	@Test
 	public void testUpdates() throws Exception{
-		Iterator<RowMetadata> srcIt = createIterator(new String[]{"0","1","2", null}, new String[]{"e0","e2","e3", null});
-		Iterator<RowMetadata> desIt = createIterator(new String[]{"0","1","2", null}, new String[]{"e5","e2","e4", null});
+		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
+		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e5","e2","e4", null});
 		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, createDataOut, updateDataOut, deleteDataOut);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
@@ -103,8 +103,8 @@ public class DeltaBuilderTest {
 	 */
 	@Test
 	public void testDestEmpty() throws Exception{
-		Iterator<RowMetadata> srcIt = createIterator(new String[]{"0","1","2", null}, new String[]{"e0","e2","e3", null});
-		Iterator<RowMetadata> desIt = createIterator(new String[]{null, null, null, null}, new String[]{null, null, null, null});
+		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
+		Iterator<RowMetadata> desIt = createIterator(new Long[]{null, null, null, null}, new String[]{null, null, null, null});
 		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, createDataOut, updateDataOut, deleteDataOut);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
@@ -132,8 +132,8 @@ public class DeltaBuilderTest {
 	 */
 	@Test
 	public void testSourceEmpty() throws Exception{
-		Iterator<RowMetadata> srcIt = createIterator(new String[]{null, null, null, null}, new String[]{null, null, null, null});
-		Iterator<RowMetadata> desIt = createIterator(new String[]{"0","1","2", null}, new String[]{"e0","e2","e3", null});
+		Iterator<RowMetadata> srcIt = createIterator(new Long[]{null, null, null, null}, new String[]{null, null, null, null});
+		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 
 		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, createDataOut, updateDataOut, deleteDataOut);
 		// Build the deltas
@@ -163,8 +163,8 @@ public class DeltaBuilderTest {
 	 */
 	@Test
 	public void testMixed() throws Exception{
-		Iterator<RowMetadata> srcIt = createIterator(new String[]{"0","2","3","4", null, null}, new String[]{"e0","e22","e3","e4", null, null});
-		Iterator<RowMetadata> desIt = createIterator(new String[]{"0","1","2","5","6", null}, new String[]{"e0","e1","e2","e5","e6", null});
+		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 2L, 3L, 4L, null, null}, new String[]{"e0","e22","e3","e4", null, null});
+		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, 5L, 6L, null}, new String[]{"e0","e1","e2","e5","e6", null});
 
 		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, createDataOut, updateDataOut, deleteDataOut);
 		// Build the deltas
@@ -195,8 +195,8 @@ public class DeltaBuilderTest {
 	 */
 	@Test
 	public void testMixed2() throws Exception{
-		Iterator<RowMetadata> srcIt = createIterator(new String[]{"0","4","5","6","7","8", null}, new String[]{"e0","e4","e5","e6","e7","e8", null});
-		Iterator<RowMetadata> desIt = createIterator(new String[]{"0","1","2","3","6","8", null}, new String[]{"e01","e1","e2","e3","e6","e81", null});
+		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 4L, 5L, 6L, 7L, 8L, null}, new String[]{"e0","e4","e5","e6","e7","e8", null});
+		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, 3L, 6L, 8L, null}, new String[]{"e01","e1","e2","e3","e6","e81", null});
 
 		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, createDataOut, updateDataOut, deleteDataOut);
 		// Build the deltas
@@ -249,7 +249,7 @@ public class DeltaBuilderTest {
 	 * @param etags
 	 * @param mock
 	 */
-	public static Iterator<RowMetadata> createIterator(String[] ids, String[] etags){
+	public static Iterator<RowMetadata> createIterator(Long[] ids, String[] etags){
 		List<RowMetadata> list = new LinkedList<RowMetadata>();
 		for(int i=0;  i<ids.length; i++){
 			if(ids[i] == null){
