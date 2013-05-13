@@ -2,12 +2,12 @@ package org.sagebionetworks.repo.manager.migration;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dbo.DatabaseObject;
 import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAO;
@@ -32,6 +32,34 @@ public class MigrationManagerImpl implements MigrationManager {
 	@Autowired
 	MigatableTableDAO migratableTableDao;
 
+	/**
+	 * The maximum size of a backup batch.
+	 */
+	int backupBatchMax = 500;
+
+	/**
+	 * Used for unit testing.
+	 * @param migratableTableDao
+	 * @param backupBatchMax
+	 */
+	public MigrationManagerImpl(MigatableTableDAO migratableTableDao, int backupBatchMax) {
+		super();
+		this.migratableTableDao = migratableTableDao;
+		this.backupBatchMax = backupBatchMax;
+	}
+	
+	public MigrationManagerImpl(){
+		// Default the batch max 
+		this.backupBatchMax = 500;
+	}
+
+	/**
+	 * Injected via Spring
+	 * @param backupBatchMax
+	 */
+	public void setBackupBatchMax(Integer backupBatchMax) {
+		this.backupBatchMax = backupBatchMax;
+	}
 
 	@Override
 	public long getCount(UserInfo user, MigrationType type) {
@@ -122,9 +150,9 @@ public class MigrationManagerImpl implements MigrationManager {
 	 * @param rowIds
 	 * @param out
 	 */
-	private <D extends DatabaseObject<D>, B> void writeBackupBatch(MigratableDatabaseObject<D, B> mdo, MigrationType type, List<Long> rowIds, OutputStream out){
-		// First get the database object from the database
-		List<D> databaseList = migratableTableDao.getBackupBatch(mdo.getDatabaseObjectClass(), rowIds);
+	protected <D extends DatabaseObject<D>, B> void writeBackupBatch(MigratableDatabaseObject<D, B> mdo, MigrationType type, List<Long> rowIds, OutputStream out){
+		// Get all of the data from the DAO batched.
+		List<D> databaseList = getBackupDataBatched(mdo.getDatabaseObjectClass(), rowIds);
 		// Translate to the backup objects
 		MigratableTableTranslation<D, B> translator = mdo.getTranslator();
 		List<B> backupList = new LinkedList<B>();
@@ -136,6 +164,31 @@ public class MigrationManagerImpl implements MigrationManager {
 		String alias = mdo.getTableMapping().getTableName();
 		// Now write the backup to the stream
 		BackupMarshalingUtils.writeBackupToStream(backupList, alias, out);
+	}
+
+	/**
+	 * Get all of the backup data for a list of IDs using batching.
+	 * @param mdo
+	 * @param rowIds
+	 * @return
+	 */
+	protected <D extends DatabaseObject<D>> List<D> getBackupDataBatched(Class<? extends D> clazz, List<Long> rowIds) {
+		List<Long> batch = new LinkedList<Long>();
+		List<D> results = new LinkedList<D>();
+		Iterator<Long> it = rowIds.iterator();
+		while(it.hasNext()){
+			Long id = it.next();
+			batch.add(id);
+			if(batch.size() >= backupBatchMax){
+				results.addAll(migratableTableDao.getBackupBatch(clazz, batch));
+				batch.clear();
+			}
+		}
+		if(batch.size() > 0){
+			results.addAll(migratableTableDao.getBackupBatch(clazz, batch));
+			batch.clear();
+		}
+		return results;
 	}
 	
 	/**
@@ -210,5 +263,6 @@ public class MigrationManagerImpl implements MigrationManager {
 			deleteObjectsById(user, type, toDelete);
 		}
 	}
+	
 
 }
