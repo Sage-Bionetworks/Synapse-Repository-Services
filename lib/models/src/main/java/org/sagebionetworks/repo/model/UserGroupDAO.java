@@ -57,5 +57,17 @@ public interface UserGroupDAO extends BaseDAO<UserGroup>, MigratableDAO {
 	 * @return true if deletion occurs
 	 */
 	public boolean deletePrincipal(String name);
+	
+	/**
+	 * Get the bootstrap users.
+	 * @return
+	 */
+	public List<UserGroupInt> getBootstrapUsers();
+	
+	/**
+	 * Ensure the bootstrap users exist.
+	 * @throws Exception 
+	 */
+	public void bootstrapUsers() throws Exception;
 
 }

@@ -55,14 +55,14 @@ public class MigrationServiceImpl implements MigrationService {
 	}
 
 	@Override
-	public RowMetadataResult getRowMetadataDeltaForType(String userId,	MigrationType type, List<String> list) throws DatastoreException, NotFoundException {
+	public RowMetadataResult getRowMetadataDeltaForType(String userId,	MigrationType type, List<Long> list) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		return migrationManager.getRowMetadataDeltaForType(user, type, list);
 	}
 
 	@Override
-	public BackupRestoreStatus startBackup(String userId, MigrationType type, List<String> list) throws DatastoreException, NotFoundException {
+	public BackupRestoreStatus startBackup(String userId, MigrationType type, List<Long> list) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		return backupDaemonLauncher.startBackup(user, type, list);
@@ -76,13 +76,15 @@ public class MigrationServiceImpl implements MigrationService {
 	}
 
 	@Override
-	public MigrationTypeCount delete(String userId, MigrationType type, List<String> list) throws DatastoreException, NotFoundException {
+	public MigrationTypeCount delete(String userId, MigrationType type, List<Long> list) throws DatastoreException, NotFoundException {
 		if(userId == null) throw new IllegalArgumentException("userId cannot be null");
 		UserInfo user = userManager.getUserInfo(userId);
 		long count = migrationManager.deleteObjectsById(user, type, list);
 		MigrationTypeCount tc = new MigrationTypeCount();
 		tc.setCount(count);
 		tc.setType(type);
+		// Make sure the user cache is cleared because we could have deleted users.
+		userManager.clearCache();
 		return tc;
 	}
 

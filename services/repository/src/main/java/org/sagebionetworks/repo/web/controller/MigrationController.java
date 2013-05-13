@@ -181,7 +181,7 @@ public class MigrationController extends BaseController {
 	 * @throws ConflictingUpdateException
 	 */
 	@ResponseStatus(HttpStatus.OK)
-	@RequestMapping(value = { UrlHelpers.MIGRATION_DELETE	}, method = RequestMethod.DELETE)
+	@RequestMapping(value = { UrlHelpers.MIGRATION_DELETE	}, method = RequestMethod.PUT)
 	public @ResponseBody MigrationTypeCount deleteMigratableObject(
 			@RequestParam(value = AuthorizationConstants.USER_ID_PARAM, required = false) String userId,
 			@RequestParam(required = true) String type,

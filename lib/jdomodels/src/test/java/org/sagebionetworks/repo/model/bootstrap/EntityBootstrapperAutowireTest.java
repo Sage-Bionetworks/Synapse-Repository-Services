@@ -65,7 +65,7 @@ public class EntityBootstrapperAutowireTest {
 		assertNotNull(entityBootstrapper);
 		assertNotNull(entityBootstrapper.getBootstrapEntities());
 		// Make sure that we can rerun the bootstrapper
-		entityBootstrapper.afterPropertiesSet();
+		entityBootstrapper.bootstrapAll();
 		// Make sure we can find each entity
 		List<EntityBootstrapData> list = entityBootstrapper.getBootstrapEntities();
 		for(EntityBootstrapData entityBoot: list){

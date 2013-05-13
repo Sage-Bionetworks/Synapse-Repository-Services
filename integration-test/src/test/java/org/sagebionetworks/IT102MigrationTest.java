@@ -141,8 +141,8 @@ public class IT102MigrationTest {
 		// Round trip
 		System.out.println("Backup/restore");
 		IdList idList = new IdList();
-		List<String> ids = new ArrayList<String>();
-		ids.add(project.getId().substring(3));
+		List<Long> ids = new ArrayList<Long>();
+		ids.add(Long.parseLong(project.getId().substring(3)));
 		idList.setList(ids);
 		System.out.println("Backing up...");
 		BackupRestoreStatus brStatus = conn.startBackup(MigrationType.NODE, idList);
