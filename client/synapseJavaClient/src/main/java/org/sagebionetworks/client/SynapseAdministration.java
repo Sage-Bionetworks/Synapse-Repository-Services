@@ -35,7 +35,7 @@ import org.sagebionetworks.schema.adapter.org.json.JSONObjectAdapterImpl;
 /**
  * Java Client API for Synapse Administrative REST APIs
  */
-public class SynapseAdministration extends Synapse {
+public class SynapseAdministration extends Synapse implements SynapseAdministrationInt {
 
 	public static final String DAEMON = ADMIN + "/daemon";
 	public static final String BACKUP = "/backup";
@@ -233,7 +233,7 @@ public class SynapseAdministration extends Synapse {
 	/*
 	 * 
 	 */
-	public RowMetadataResult getRowMetadata(MigrationType migrationType, Integer limit, Integer offset) throws SynapseException, JSONObjectAdapterException {
+	public RowMetadataResult getRowMetadata(MigrationType migrationType, Long limit, Long offset) throws SynapseException, JSONObjectAdapterException {
 		String uri = MIGRATION_ROWS + "?type=" + migrationType.name() + "&limit=" + limit + "&offset=" + offset;
 		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "GET", null, defaultGETDELETEHeaders);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
@@ -299,7 +299,7 @@ public class SynapseAdministration extends Synapse {
 	public MigrationTypeCount deleteMigratableObject(MigrationType migrationType, IdList ids) throws JSONObjectAdapterException, SynapseException {
 		String uri = MIGRATION_DELETE + "?type=" + migrationType.name();
 		String jsonStr = EntityFactory.createJSONStringForEntity(ids);
-		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "DELETE", jsonStr, defaultGETDELETEHeaders);
+		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "PUT", jsonStr, defaultPOSTPUTHeaders);
 		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
 		MigrationTypeCount mtc = new MigrationTypeCount();
 		mtc.initializeFromJSONObject(adapter);

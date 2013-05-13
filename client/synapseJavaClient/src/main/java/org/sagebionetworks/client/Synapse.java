@@ -88,7 +88,6 @@ import org.sagebionetworks.repo.model.UserProfile;
 import org.sagebionetworks.repo.model.UserSessionData;
 import org.sagebionetworks.repo.model.VariableContentPaginatedResults;
 import org.sagebionetworks.repo.model.VersionInfo;
-import org.sagebionetworks.repo.model.Versionable;
 import org.sagebionetworks.repo.model.attachment.AttachmentData;
 import org.sagebionetworks.repo.model.attachment.PresignedUrl;
 import org.sagebionetworks.repo.model.attachment.S3AttachmentToken;
@@ -127,8 +126,7 @@ import org.sagebionetworks.utils.MD5ChecksumHelper;
 /**
  * Low-level Java Client API for Synapse REST APIs
  */
-public class Synapse {
-
+public class Synapse implements SynapseInt {
 
 	public static final String APPLICATION_OCTET_STREAM = "application/octet-stream";
 
@@ -1226,47 +1224,6 @@ public class Synapse {
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}
-	}
-
-	/**
-	 * Create a new version of a given versionable Entity
-	 * @param <T>
-	 * @param entity
-	 * @param activityId
-	 * @return
-	 * @throws SynapseException
-	 */
-	public <T extends Versionable> T cereateNewEntityVersion(T entity) throws SynapseException {
-		return cereateNewEntityVersion(entity, null);
-	}
-	
-	/**
-	 * Create a new version of a given versionable Entity and create generatedBy connection to the given activity
-	 * @param <T>
-	 * @param entity
-	 * @param activityId
-	 * @return
-	 * @throws SynapseException
-	 */
-	@SuppressWarnings("unchecked")
-	public <T extends Versionable> T cereateNewEntityVersion(T entity, String activityId) throws SynapseException {
-		if (entity == null)
-			throw new IllegalArgumentException("Entity cannot be null");
-
-		Map<String,String> headers = new HashMap<String, String>();
-		try {
-			String uri = createEntityUri(ENTITY_URI_PATH, entity.getId()) + REPO_SUFFIX_VERSION;
-			if(activityId != null) 
-				uri += "?" + PARAM_GENERATED_BY + "=" + activityId;
-			JSONObject jsonObject;
-			jsonObject = EntityFactory.createJSONObjectForEntity(entity);
-			jsonObject = putJSONObject(uri, jsonObject, headers);
-			return (T) EntityFactory.createEntityFromJSONObject(jsonObject,
-					entity.getClass());
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-		
 	}
 	
 	/**
@@ -3408,27 +3365,6 @@ public class Synapse {
 		try {
 			results.initializeFromJSONObject(adapter);
 			return results;
-		} catch (JSONObjectAdapterException e) {
-			throw new SynapseException(e);
-		}
-	}
-
-	/**
-	 * Make the given versionNumber the most recent version of this entity.
-	 * @param entityId
-	 * @param versionNumber
-	 * @throws SynapseException
-	 */
-	public VersionInfo promoteEntityVersion(String entityId, Long versionNumber) throws SynapseException {
-		if (entityId == null) throw new IllegalArgumentException("EntityId cannot be null");
-		if (versionNumber == null) throw new IllegalArgumentException("VersionNumber cannot be null");
-		String uri = createEntityUri(ENTITY_URI_PATH, entityId) + "/promoteVersion/" + versionNumber;
-		JSONObject jsonObj = signAndDispatchSynapseRequest(repoEndpoint, uri, "POST", null, defaultPOSTPUTHeaders);
-		JSONObjectAdapter adapter = new JSONObjectAdapterImpl(jsonObj);
-		VersionInfo info = new VersionInfo();
-		try {
-			info.initializeFromJSONObject(adapter);
-			return info;
 		} catch (JSONObjectAdapterException e) {
 			throw new SynapseException(e);
 		}

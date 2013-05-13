@@ -129,8 +129,6 @@ public class UrlHelpers {
 	public static final String REST_RESOURCES = "/REST/resources";
 	
 	public static final String VERSION = "/version";
-	
-	public static final String PROMOTE_VERSION = "/promoteVersion";
 
 	public static final String REFERENCED_BY	= "/referencedby";
 	
@@ -236,11 +234,6 @@ public class UrlHelpers {
 	 */
 	public static final String ENTITY_PATH		= ENTITY_ID+PATH;
 
-	
-	/**
-	 * All of the base URLs for Synapse object's versions.
-	 */
-	public static final String ENTITY_PROMOTE_VERSION = ENTITY_ID+PROMOTE_VERSION+VERSION_NUMBER;
 	public static final String ENTITY_VERSION		= ENTITY_ID+VERSION;
 
 	
