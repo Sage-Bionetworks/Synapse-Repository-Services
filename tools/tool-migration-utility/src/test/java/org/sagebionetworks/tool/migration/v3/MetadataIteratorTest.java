@@ -44,7 +44,7 @@ public class MetadataIteratorTest {
 		List<RowMetadata> list = new LinkedList<RowMetadata>();
 		for(int i=0; i<rowCount; i++){
 			RowMetadata row = new RowMetadata();
-			row.setId(""+i);
+			row.setId(new Long(i));
 			row.setEtag("etag"+i);
 			list.add(row);
 		}

@@ -205,7 +205,7 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 			MigrationType migrationType, IdList ids)
 			throws JSONObjectAdapterException, SynapseException {
 		// Get the type
-		Set<String> toDelete = new HashSet<String>();
+		Set<Long> toDelete = new HashSet<Long>();
 		toDelete.addAll(ids.getList());
 
 		List<RowMetadata> newList = new LinkedList<RowMetadata>();
@@ -232,7 +232,7 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 		// Create a tempFile that will contain the backup data.
 		try {
 			// Find the data in question and write it to a backup file
-			Set<String> toBackup = new HashSet<String>();
+			Set<Long> toBackup = new HashSet<Long>();
 			toBackup.addAll(ids.getList());
 			List<RowMetadata> backupList = new LinkedList<RowMetadata>();
 			List<RowMetadata> current = this.metadata.get(migrationType);
@@ -305,8 +305,8 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 		Collections.sort(current, new Comparator<RowMetadata>() {
 			@Override
 			public int compare(RowMetadata one, RowMetadata two) {
-				Long oneL = Long.parseLong(one.getId());
-				Long twoL = Long.parseLong(two.getId());
+				Long oneL = one.getId();
+				Long twoL = two.getId();
 				return oneL.compareTo(twoL);
 			}
 		});

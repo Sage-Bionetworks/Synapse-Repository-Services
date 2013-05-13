@@ -59,10 +59,10 @@ public class DeltaBuilder implements Callable<DeltaCounts> {
 			long sourceId = -1l;
 			long destId = -1l;
 			if(sourceRow != null){
-				sourceId = Long.parseLong(sourceRow.getId());
+				sourceId = sourceRow.getId();
 			}
 			if(destRow != null){
-				destId = Long.parseLong(destRow.getId());
+				destId = destRow.getId();
 			}
 			if(sourceRow != null && destRow == null){
 				// Need to create the source object
