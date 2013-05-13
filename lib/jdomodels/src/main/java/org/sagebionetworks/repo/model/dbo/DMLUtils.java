@@ -213,7 +213,6 @@ public class DMLUtils {
 		builder.append(mapping.getTableName());
 		builder.append(" WHERE ");
 		addBackupIdInList(builder, mapping);
-		buildBackupOrderByForDelete(mapping, builder, false);
 		return builder.toString();
 	}
 	

@@ -149,7 +149,7 @@ public class DMLUtilsTest {
 		String batchDelete = DMLUtils.createBatchDelete(mapping);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `ID` DESC", batchDelete);
+		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST )", batchDelete);
 	}
 	
 	@Test
@@ -157,7 +157,7 @@ public class DMLUtilsTest {
 		String batchDelete = DMLUtils.createBatchDelete(migrateableMappingSelfForeignKey);
 		assertNotNull(batchDelete);
 		System.out.println(batchDelete);
-		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST ) ORDER BY `PARENT_ID` DESC", batchDelete);
+		assertEquals("DELETE FROM SOME_TABLE WHERE `ID` IN ( :BVIDLIST )", batchDelete);
 	}
 	
 	@Test
