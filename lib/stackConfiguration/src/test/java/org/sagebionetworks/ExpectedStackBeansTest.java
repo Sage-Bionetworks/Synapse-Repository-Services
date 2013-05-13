@@ -32,6 +32,8 @@ public class ExpectedStackBeansTest {
 			"stackConfiguration.databaseConnectionPoolValidateSql",
 			"stackConfiguration.databaseConnectionPoolMinNumberConnections",
 			"stackConfiguration.databaseConnectionPoolMaxNumberConnections",
+			// Migration
+			"stackConfiguration.migrationBackupBatchMax",
 	};
 	
 	@Before

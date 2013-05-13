@@ -789,4 +789,12 @@ public class StackConfiguration {
 	public static String getEzidTargetUrlPrefix() {
 		return configuration.getProperty("org.sagebionetworks.ezid.doi.target.url.prefix");
 	}
+	
+	/**
+	 * The maximum size of a backup batch.
+	 * @return
+	 */
+	public Long getMigrationBackupBatchMax(){
+		return Long.parseLong(configuration.getProperty("org.sagebionetworks.repo.manager.migration.backup.batch.max"));
+	}
 }
