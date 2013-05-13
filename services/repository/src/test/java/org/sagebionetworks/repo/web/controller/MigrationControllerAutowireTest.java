@@ -18,7 +18,6 @@ import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
-import org.sagebionetworks.repo.model.dao.WikiPageKey;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.migration.IdList;
@@ -121,19 +120,9 @@ public class MigrationControllerAutowireTest {
 		assertNotNull(results.getList());
 		assertEquals(new Long(startFileCount+2), results.getTotalCount());
 		assertEquals(2, results.getList().size());
-		// The first should be the preview
-		assertEquals(preview.getId(), results.getList().get(0).getId());
-		assertEquals(handleOne.getId(), results.getList().get(1).getId());
-		// Use the list of ids to get the delta
-		List<String> ids = new LinkedList<String>();
-		for(RowMetadata row: results.getList()){
-			ids.add(row.getId());
-		}
-		IdList deltaRequest = new IdList();
-		deltaRequest.setList(ids);
-		RowMetadataResult delta = entityServletHelper.getRowMetadataDelta(userName, MigrationType.FILE_HANDLE, deltaRequest);
-		assertNotNull(delta);
-		assertEquals(results.getList(), delta.getList());
+		// They should be ordered by ID
+		assertEquals(handleOne.getId(), ""+results.getList().get(0).getId());
+		assertEquals(preview.getId(), ""+results.getList().get(1).getId());
 	}
 	
 
