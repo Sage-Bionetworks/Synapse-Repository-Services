@@ -4,11 +4,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.List;
 
-import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserInfo;
-import org.sagebionetworks.repo.model.dbo.MigratableDatabaseObject;
 import org.sagebionetworks.repo.model.migration.MigrationType;
-import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 
 /**
@@ -45,7 +42,7 @@ public interface MigrationManager {
 	 * @param idList
 	 * @return
 	 */
-	public RowMetadataResult getRowMetadataDeltaForType(UserInfo user, MigrationType type, List<String> idList);
+	public RowMetadataResult getRowMetadataDeltaForType(UserInfo user, MigrationType type, List<Long> idList);
 	
 	/**
 	 * Get a batch of objects to backup.
@@ -53,7 +50,7 @@ public interface MigrationManager {
 	 * @param rowIds
 	 * @return
 	 */
-	public void writeBackupBatch(UserInfo user, MigrationType type, List<String> rowIds, OutputStream out);
+	public void writeBackupBatch(UserInfo user, MigrationType type, List<Long> rowIds, OutputStream out);
 
 	/**
 	 * Create or update a batch.
@@ -66,7 +63,7 @@ public interface MigrationManager {
 	 * @param type
 	 * @param idList
 	 */
-	public int deleteObjectsById(UserInfo user, MigrationType type, List<String> idList);
+	public int deleteObjectsById(UserInfo user, MigrationType type, List<Long> idList);
 	
 	/**
 	 * The list of primary migration types represents types that either stand-alone or are the owner's of other types.
@@ -83,4 +80,11 @@ public interface MigrationManager {
 	 * @return
 	 */
 	public List<MigrationType> getSecondaryTypes(MigrationType type);
+	
+	/**
+	 * This will clear all data in the database.
+	 * @throws Exception 
+	 */
+	public void deleteAllData(UserInfo user) throws Exception;
+	
 }

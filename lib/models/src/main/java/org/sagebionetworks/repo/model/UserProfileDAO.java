@@ -90,4 +90,9 @@ public interface UserProfileDAO {
 	 * @return
 	 */
 	public List<UserGroupInt> getBootstrapUsers();
+	
+	/**
+	 * Ensure the bootstrap user's profiles exist
+	 */
+	public void bootstrapProfiles();
 }

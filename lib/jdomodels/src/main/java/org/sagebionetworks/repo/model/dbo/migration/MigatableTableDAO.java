@@ -45,7 +45,7 @@ public interface MigatableTableDAO {
 	 * @param idList
 	 * @return
 	 */
-	public List<RowMetadata> listDeltaRowMetadata(MigrationType type, List<String> idList);
+	public List<RowMetadata> listDeltaRowMetadata(MigrationType type, List<Long> idList);
 	
 	/**
 	 * Get a batch of objects to backup.
@@ -53,7 +53,7 @@ public interface MigatableTableDAO {
 	 * @param rowIds
 	 * @return
 	 */
-	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<String> rowIds);
+	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<Long> rowIds);
 
 	/**
 	 * Create or update a batch.
@@ -66,7 +66,7 @@ public interface MigatableTableDAO {
 	 * @param type
 	 * @param idList
 	 */
-	public int deleteObjectsById(MigrationType type, List<String> idList);
+	public int deleteObjectsById(MigrationType type, List<Long> idList);
 	
 	/**
 	 * Get the MigratableObjectType from 
