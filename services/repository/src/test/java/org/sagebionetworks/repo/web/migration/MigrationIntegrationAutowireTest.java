@@ -163,11 +163,7 @@ public class MigrationIntegrationAutowireTest {
 		userName = TestUserDAO.MIGRATION_USER_NAME;
 		userInfo = userManager.getUserInfo(userName);
 		adminId = userInfo.getIndividualGroup().getId();
-		// Before we start this test we want to start with a clena database
-		migrationManager.deleteAllData(userInfo);
-		// bootstrap to put back the bootstrap data
-		entityBootstrapper.bootstrapAll();
-		
+		resetDatabase();
 		createFileHandles();
 		createActivity();
 		createEntities();
@@ -177,6 +173,15 @@ public class MigrationIntegrationAutowireTest {
 		creatWikiPages();
 		createEvaluation();
 		createDoi();
+	}
+
+
+	private void resetDatabase() throws Exception {
+		// Before we start this test we want to start with a clena database
+		migrationManager.deleteAllData(userInfo);
+		// bootstrap to put back the bootstrap data
+		entityBootstrapper.bootstrapAll();
+		userManager.clearCache();
 	}
 
 
@@ -349,9 +354,7 @@ public class MigrationIntegrationAutowireTest {
 	@After
 	public void after() throws Exception{
 		// to cleanup for this test we delete all in the database
-		migrationManager.deleteAllData(userInfo);
-		// bootstrap to put back the bootstrap data
-		entityBootstrapper.bootstrapAll();
+		resetDatabase();
 	}
 	
 	/**

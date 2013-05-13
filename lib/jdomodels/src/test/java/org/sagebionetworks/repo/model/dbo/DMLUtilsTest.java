@@ -224,11 +224,4 @@ public class DMLUtilsTest {
 		assertEquals("INSERT INTO SOME_TABLE(`ID`) VALUES (:id)", sql);
 	}
 	
-	@Test
-	public void testTruncate(){
-		String sql = DMLUtils.getTruncateTable(migrateableMappingNoEtagNotSelfForeignKey);
-		assertNotNull(sql);
-		System.out.println(sql);
-		assertEquals("TRUNCATE TABLE SOME_TABLE", sql);
-	}
 }

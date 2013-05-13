@@ -207,22 +207,5 @@ public class MigatableTableDAOImplAutowireTest {
 		System.out.println(primary);
 		assertEquals(expectedPrimaryTypes, primary);
 	}
-	
-	@Test
-	public void testTruncate(){
-		// The one will have a preview
-		S3FileHandle withPreview = TestUtils.createS3FileHandle(creatorUserGroupId);
-		withPreview.setFileName("withPreview.txt");
-		withPreview = fileHandleDao.createFile(withPreview);
-		assertNotNull(withPreview);
-		toDelete.add(withPreview.getId());
-		// We should have at least one row in the table
-		long migrationCount = migatableTableDAO.getCount(MigrationType.FILE_HANDLE);
-		assertTrue(migrationCount >= 1);
-		// Now truncte the table
-		long truncateResult = migatableTableDAO.truncateTable(MigrationType.FILE_HANDLE);
-		assertEquals("The table should be empty after truncation",0, truncateResult);
-		migrationCount = migatableTableDAO.getCount(MigrationType.FILE_HANDLE);
-		assertEquals("The table should be empty after truncation",0, migrationCount);
-	}
+
 }

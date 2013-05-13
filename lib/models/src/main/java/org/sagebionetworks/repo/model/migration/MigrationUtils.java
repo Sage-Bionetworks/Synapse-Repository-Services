@@ -22,6 +22,7 @@ public class MigrationUtils {
 	public static void bucketByTreeLevel(Iterator<RowMetadata> input, BucketProvider<Long> provider){
 		// Build up a map of all data
 		Set<Long> inputIdSet = new HashSet<Long>();
+		// Build a map of parent ID to their children.
 		Map<Long, List<RowMetadata>> parentToChildren = new LinkedHashMap<Long, List<RowMetadata>>();
 		while(input.hasNext()){
 			RowMetadata row = input.next();
@@ -39,7 +40,7 @@ public class MigrationUtils {
 			children.add(row);
 		}
 		Set<Long> added = new HashSet<Long>();
-		// fist pass it to find roots
+		// fist pass is to find roots
 		Iterator<Entry<Long, List<RowMetadata>>> it = parentToChildren.entrySet().iterator();
 		while(it.hasNext()){
 			Entry<Long, List<RowMetadata>> entry = it.next();
@@ -53,7 +54,7 @@ public class MigrationUtils {
 		}
 		// If added is still empty then then there are no roots
 		if(added.isEmpty()) throw new IllegalArgumentException("Did not find any roots");
-		// We are done with the input set
+		
 		// Now walk parentToChildMap in breadth fist
 		do{
 			// Create a new bucket

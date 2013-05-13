@@ -349,19 +349,6 @@ public class DMLUtils {
 		buildBackupOrderBy(mapping, builder, true);
 		return builder.toString();
 	}
-
-	public static String getTruncateTable(TableMapping mapping){
-		validateMigratableTableMapping(mapping);
-		StringBuilder builder = new StringBuilder();
-		builder.append("DELETE FROM ");
-		builder.append(mapping.getTableName());
-		builder.append(" WHERE ");
-		builder.append("`");
-		builder.append(getBackupIdColumnName(mapping).getColumnName());
-		builder.append("`");
-		builder.append(" > 0");
-		return builder.toString();
-	}
 	
 	/**
 	 * build - "ORDER BY `BACKUP_ID` ASC/DESC"

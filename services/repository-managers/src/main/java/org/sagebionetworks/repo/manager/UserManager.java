@@ -81,4 +81,6 @@ public interface UserManager {
 
 	public void updateEmail(UserInfo userInfo, String newEmail) throws DatastoreException, NotFoundException, IOException, AuthenticationException, XPathExpressionException;
 	
+	public void clearCache();
+	
 }

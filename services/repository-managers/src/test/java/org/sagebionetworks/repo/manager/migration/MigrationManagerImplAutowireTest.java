@@ -77,6 +77,7 @@ public class MigrationManagerImplAutowireTest {
 	public void after() throws Exception{
 		// Since this test can delete all data make sure bootstrap data gets put back.
 		entityBootstrapper.bootstrapAll();
+		userManager.clearCache();
 		// If we have deleted all data make sure the bootstrap process puts it back
 		if(fileHandleDao != null && toDelete != null){
 			for(String id: toDelete){

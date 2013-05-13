@@ -82,10 +82,4 @@ public interface MigatableTableDAO {
 	 */
 	public List<MigrationType> getPrimaryMigrationTypes();
 	
-	/**
-	 * Truncate the table associated with a type
-	 * @param type
-	 */
-	public long truncateTable(MigrationType type);
-	
 }
