@@ -47,13 +47,15 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	public void setDatabaseObjectRegister(List<MigratableDatabaseObject> databaseObjectRegister) {
 		this.databaseObjectRegister = databaseObjectRegister;
 	}
-	
+	// SQL
 	private Map<MigrationType, String> deleteSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> countSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> listSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> deltaListSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> backupSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> insertOrUpdateSqlMap = new HashMap<MigrationType, String>();
+	private Map<MigrationType, String> truncateSqlMap = new HashMap<MigrationType, String>();
+	
 	private Map<MigrationType, FieldColumn> etagColumns = new HashMap<MigrationType, FieldColumn>();
 	private Map<MigrationType, FieldColumn> backupIdColumns = new HashMap<MigrationType, FieldColumn>();
 	private Map<MigrationType, RowMapper<RowMetadata>> rowMetadataMappers = new HashMap<MigrationType, RowMapper<RowMetadata>>();
@@ -110,6 +112,8 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		// Backup batch SQL
 		String batchBackup = DMLUtils.getBackupBatch(mapping);
 		backupSqlMap.put(type, batchBackup);
+		String truncate = DMLUtils.getTruncateTable(mapping);
+		truncateSqlMap.put(type, truncate);
 		// map the class to the object
 		this.classToMapping.put(mapping.getDBOClass(), type);
 		this.typeTpObject.put(type, dbo);
@@ -153,7 +157,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	}
 	
 	@Override
-	public List<RowMetadata> listDeltaRowMetadata(MigrationType type,	List<String> idList) {
+	public List<RowMetadata> listDeltaRowMetadata(MigrationType type, List<Long> idList) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		String sql = this.getDeltaListSql(type);
 		RowMapper<RowMetadata> mapper = this.getRowMetadataRowMapper(type);
@@ -165,7 +169,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
-	public int deleteObjectsById(MigrationType type, List<String> idList) {
+	public int deleteObjectsById(MigrationType type, List<Long> idList) {
 		if(type == null) throw new IllegalArgumentException("type cannot be null");
 		if(idList == null) throw new IllegalArgumentException("idList cannot be null");
 		String deleteSQL = this.deleteSqlMap.get(type);
@@ -176,7 +180,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	
 
 	@Override
-	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<String> rowIds) {
+	public <D extends DatabaseObject<D>> List<D> getBackupBatch(Class<? extends D> clazz, List<Long> rowIds) {
 		MigrationType type = getTypeForClass(clazz);
 		String sql = getBatchBackupSql(type);
 		MigratableDatabaseObject<D, ?> object = getMigratableObject(type);
@@ -200,6 +204,15 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		return  simpleJdbcTemplate.batchUpdate(sql, namedParameters);
 	}
 	
+	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
+	@Override
+	public long truncateTable(MigrationType type) {
+		if(type == null) throw new IllegalArgumentException("type cannot be null");
+		String sql = this.getTruncateSql(type);
+		simpleJdbcTemplate.update(sql, new HashMap<String, Object>());
+		return getCount(type);
+	}
+	
 	/**
 	 * The the list sql for this type.
 	 * @param type
@@ -219,6 +232,12 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	private String getDeltaListSql(MigrationType type){
 		String sql = this.deltaListSqlMap.get(type);
 		if(sql == null) throw new IllegalArgumentException("Cannot find delta list SQL for type: "+type);
+		return sql;
+	}
+	
+	private String getTruncateSql(MigrationType type){
+		String sql = this.truncateSqlMap.get(type);
+		if(sql == null) throw new IllegalArgumentException("Cannot find truncate list SQL for type: "+type);
 		return sql;
 	}
 	

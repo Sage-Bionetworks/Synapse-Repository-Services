@@ -28,10 +28,10 @@ import org.sagebionetworks.repo.model.MigratableObjectDescriptor;
 import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.QueryResults;
 import org.sagebionetworks.repo.model.UserGroup;
+import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserGroupInt;
 import org.sagebionetworks.repo.model.dbo.DBOBasicDao;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup;
-import org.sagebionetworks.repo.model.jdo.UserGroupDAOInitializingBean;
 import org.sagebionetworks.repo.model.query.jdo.SqlConstants;
 import org.sagebionetworks.repo.web.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -41,7 +41,7 @@ import org.springframework.jdbc.core.simple.SimpleJdbcTemplate;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
-public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
+public class DBOUserGroupDAOImpl implements UserGroupDAO {
 
 	@Autowired
 	private DBOBasicDao basicDao;
@@ -387,7 +387,7 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	// initialization of UserGroups
 	@Override
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void afterPropertiesSet() throws Exception {
+	public void bootstrapUsers() throws Exception {
 		// Boot strap all users and groups
 		if(this.bootstrapUsers == null) throw new IllegalArgumentException("bootstrapUsers cannot be null");
 		// For each one determine if it exists, if not create it
@@ -410,5 +410,6 @@ public class DBOUserGroupDAOImpl implements UserGroupDAOInitializingBean {
 	public MigratableObjectType getMigratableObjectType() {
 		return MigratableObjectType.PRINCIPAL;
 	}
+
 
 }

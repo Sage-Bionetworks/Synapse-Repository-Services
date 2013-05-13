@@ -63,5 +63,11 @@ public interface UserGroupDAO extends BaseDAO<UserGroup>, MigratableDAO {
 	 * @return
 	 */
 	public List<UserGroupInt> getBootstrapUsers();
+	
+	/**
+	 * Ensure the bootstrap users exist.
+	 * @throws Exception 
+	 */
+	public void bootstrapUsers() throws Exception;
 
 }

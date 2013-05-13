@@ -15,6 +15,7 @@ import org.junit.runner.RunWith;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.dao.FileHandleDao;
 import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
@@ -37,6 +38,8 @@ public class MigrationManagerImplAutowireTest {
 	
 	@Autowired
 	MigrationManager migrationManager;
+	@Autowired
+	EntityBootstrapper entityBootstrapper;
 	
 	private List<String> toDelete;
 	UserInfo adminUser;
@@ -71,7 +74,10 @@ public class MigrationManagerImplAutowireTest {
 	}
 	
 	@After
-	public void after(){
+	public void after() throws Exception{
+		// Since this test can delete all data make sure bootstrap data gets put back.
+		entityBootstrapper.bootstrapAll();
+		// If we have deleted all data make sure the bootstrap process puts it back
 		if(fileHandleDao != null && toDelete != null){
 			for(String id: toDelete){
 				fileHandleDao.delete(id);
@@ -93,7 +99,7 @@ public class MigrationManagerImplAutowireTest {
 		assertNotNull(result.getList());
 		assertEquals(2, result.getList().size());
 		// List the delta
-		List<String> ids = new LinkedList<String>();
+		List<Long> ids = new LinkedList<Long>();
 		for(RowMetadata rm: result.getList()){
 			ids.add(rm.getId());
 		}
@@ -108,26 +114,33 @@ public class MigrationManagerImplAutowireTest {
 		RowMetadataResult result = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
 		assertNotNull(result);
 		// List the delta
-		List<String> ids = new LinkedList<String>();
-		for(RowMetadata rm: result.getList()){
-			ids.add(rm.getId());
-		}
+		List<Long> ids1 = new LinkedList<Long>();
+		ids1.add(Long.parseLong(preview.getId()));
+		List<Long> ids2 = new LinkedList<Long>();
+		ids2.add(Long.parseLong(withPreview.getId()));
 		// Write the backup data
 		ByteArrayOutputStream out = new ByteArrayOutputStream();
-		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids, out);
-		String xml = new String(out.toByteArray(), "UTF-8");
-		System.out.println(xml);
+		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids1, out);
+		String xml1 = new String(out.toByteArray(), "UTF-8");
+		System.out.println(xml1);
+		out = new ByteArrayOutputStream();
+		migrationManager.writeBackupBatch(adminUser, MigrationType.FILE_HANDLE, ids2, out);
+		String xml2 = new String(out.toByteArray(), "UTF-8");
+		System.out.println(xml2);
 		// Now delete the rows
-		migrationManager.deleteObjectsById(adminUser, MigrationType.FILE_HANDLE, ids);
+		migrationManager.deleteObjectsById(adminUser, MigrationType.FILE_HANDLE, ids1);
+		migrationManager.deleteObjectsById(adminUser, MigrationType.FILE_HANDLE, ids2);
 		// The count should be the same as start
 		assertEquals(startCount, migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
 		// Now restore them from the xml
-		ByteArrayInputStream in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
+		ByteArrayInputStream in = new ByteArrayInputStream(xml1.getBytes("UTF-8"));
+		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
+		in = new ByteArrayInputStream(xml2.getBytes("UTF-8"));
 		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
 		// The count should be backup
 		assertEquals(startCount+2, migrationManager.getCount(adminUser, MigrationType.FILE_HANDLE));
 		// Calling again should not fail
-		in = new ByteArrayInputStream(xml.getBytes("UTF-8"));
+		in = new ByteArrayInputStream(xml1.getBytes("UTF-8"));
 		migrationManager.createOrUpdateBatch(adminUser, MigrationType.FILE_HANDLE, in);
 		// Now get the data
 		RowMetadataResult afterResult = migrationManager.getRowMetadaForType(adminUser, MigrationType.FILE_HANDLE, Long.MAX_VALUE, startCount);
@@ -151,5 +164,14 @@ public class MigrationManagerImplAutowireTest {
 		assertEquals(null, result);
 	}
 	
+	@Test
+	public void testDeleteAll() throws Exception{
+		// Delete all data
+		migrationManager.deleteAllData(adminUser);
+		// The counts for all tables should be zero
+		for(MigrationType type: MigrationType.values()){
+			assertEquals("All data should have been deleted",0l, migrationManager.getCount(adminUser, type));
+		}
+	}
 
 }

@@ -7,19 +7,18 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mockito;
@@ -32,6 +31,7 @@ import org.sagebionetworks.evaluation.model.SubmissionStatus;
 import org.sagebionetworks.repo.manager.TestUserDAO;
 import org.sagebionetworks.repo.manager.UserManager;
 import org.sagebionetworks.repo.manager.UserProfileManager;
+import org.sagebionetworks.repo.manager.migration.MigrationManager;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.AccessRequirement;
@@ -42,6 +42,7 @@ import org.sagebionetworks.repo.model.Project;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserInfo;
+import org.sagebionetworks.repo.model.bootstrap.EntityBootstrapper;
 import org.sagebionetworks.repo.model.daemon.BackupRestoreStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
@@ -53,10 +54,12 @@ import org.sagebionetworks.repo.model.file.PreviewFileHandle;
 import org.sagebionetworks.repo.model.file.S3FileHandle;
 import org.sagebionetworks.repo.model.message.ObjectType;
 import org.sagebionetworks.repo.model.migration.IdList;
+import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCounts;
 import org.sagebionetworks.repo.model.migration.MigrationTypeList;
+import org.sagebionetworks.repo.model.migration.MigrationUtils;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.repo.model.migration.RowMetadataResult;
 import org.sagebionetworks.repo.model.provenance.Activity;
@@ -72,7 +75,7 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 /**
- * This is an integration test to migration of all tables from start to finish.
+ * This is an integration test to test the migration of all tables from start to finish.
  * 
  * The test does the following:
  * 1. the before() method creates at least one object for every type object that must migrate.
@@ -87,7 +90,6 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
  * @author jmhill
  *
  */
-@Ignore
 @RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(locations = { "classpath:test-context.xml" })
 public class MigrationIntegrationAutowireTest {
@@ -106,7 +108,10 @@ public class MigrationIntegrationAutowireTest {
 	UserProfileManager userProfileManager;
 	@Autowired
 	ServiceProvider serviceProvider;
-
+	@Autowired
+	EntityBootstrapper entityBootstrapper;
+	@Autowired
+	MigrationManager migrationManager;
 	
 	UserInfo userInfo;
 	private String userName;
@@ -152,13 +157,17 @@ public class MigrationIntegrationAutowireTest {
 	
 	@Before
 	public void before() throws Exception{
-		
 		mockRequest = Mockito.mock(HttpServletRequest.class);
 		when(mockRequest.getServletPath()).thenReturn("/repo/v1");
 		// get user IDs
-		userName = TestUserDAO.ADMIN_USER_NAME;
+		userName = TestUserDAO.MIGRATION_USER_NAME;
 		userInfo = userManager.getUserInfo(userName);
 		adminId = userInfo.getIndividualGroup().getId();
+		// Before we start this test we want to start with a clena database
+		migrationManager.deleteAllData(userInfo);
+		// bootstrap to put back the bootstrap data
+		entityBootstrapper.bootstrapAll();
+		
 		createFileHandles();
 		createActivity();
 		createEntities();
@@ -339,43 +348,10 @@ public class MigrationIntegrationAutowireTest {
 	
 	@After
 	public void after() throws Exception{
-		if(wikiToDelete != null){
-			for(WikiPageKey key: wikiToDelete){
-				try {
-					serviceProvider.getWikiService().deleteWikiPage(userName, key);
-				} catch (Exception e) {}
-			}
-		}
-		if(activity != null){
-			try {
-				serviceProvider.getActivityService().deleteActivity(userName, activity.getId());
-			} catch (Exception e) {}
-		}
-		// Delete the project
-		if(entityToDelete != null){
-			for(String id: entityToDelete){
-				try {
-					serviceProvider.getEntityService().deleteEntity(id, userName);
-				} catch (Exception e) {}
-			}
-		}
-		if(accessRequirement != null){
-			try {
-				ServletTestHelper.deleteAccessRequirements(DispatchServletSingleton.getInstance(), accessRequirement.getId().toString(), userName);
-			} catch (Exception e) {}
-		}
-		if(evaluation != null){
-			try {
-				evaluationDAO.delete(evaluation.getId());
-			} catch (Exception e) {}
-		}
-		if(fileHandlesToDelete != null){
-			for(String id: fileHandlesToDelete){
-				try {
-					fileMetadataDao.delete(id);
-				} catch (Exception e) {}
-			}
-		}
+		// to cleanup for this test we delete all in the database
+		migrationManager.deleteAllData(userInfo);
+		// bootstrap to put back the bootstrap data
+		entityBootstrapper.bootstrapAll();
 	}
 	
 	/**
@@ -395,15 +371,10 @@ public class MigrationIntegrationAutowireTest {
 		validateStartingCount(startCounts);
 		
 		// This test will backup all data, delete it, then restore it.
-		Map<MigrationType, String> map = new HashMap<MigrationType, String>();
+		List<BackupInfo> backupList = new ArrayList<BackupInfo>();
 		for(MigrationType type: primaryTypesList.getList()){
 			// Backup each type
-			BackupRestoreStatus status = backupAllOfType(type);
-			if(status != null){
-				assertNotNull(status.getBackupUrl());
-				String fileName = getFileNameFromUrl(status.getBackupUrl());
-				map.put(type, fileName);
-			}
+			backupList.addAll(backupAllOfType(type));
 		}
 		// We will delete the data when all object are ready
 		
@@ -421,14 +392,30 @@ public class MigrationIntegrationAutowireTest {
 		}
 		
 		// Now restore all of the data
-		for(MigrationType type: primaryTypesList.getList()){
-			String fileName = map.get(type);
-			assertNotNull("Did not find a backup file name for type: "+type, fileName);
-			restoreFromBackup(type, fileName);
+		for(BackupInfo info: backupList){
+			String fileName = info.getFileName();
+			assertNotNull("Did not find a backup file name for type: "+info.getType(), fileName);
+			restoreFromBackup(info.getType(), fileName);
 		}
 		// The counts should all be back
 		MigrationTypeCounts finalCounts = entityServletHelper.getMigrationTypeCounts(userName);
 		assertEquals(startCounts, finalCounts);
+	}
+	
+	private static class BackupInfo {
+		MigrationType type;
+		String fileName;
+		public BackupInfo(MigrationType type, String fileName) {
+			super();
+			this.type = type;
+			this.fileName = fileName;
+		}
+		public MigrationType getType() {
+			return type;
+		}
+		public String getFileName() {
+			return fileName;
+		}
 	}
 	
 	/**
@@ -461,14 +448,33 @@ public class MigrationIntegrationAutowireTest {
 	 * @return
 	 * @throws Exception
 	 */
-	private BackupRestoreStatus backupAllOfType(MigrationType type) throws Exception {
-		IdList idList = getIdListOfAllOfType(type);
-		if(idList == null) return null;
+	private List<BackupInfo> backupAllOfType(MigrationType type) throws Exception {
+		RowMetadataResult list = entityServletHelper.getRowMetadata(userName, type, Long.MAX_VALUE, 0);
+		if(list == null) return null;
+		// Backup batches by their level in the tree
+		ListBucketProvider provider = new ListBucketProvider();
+		MigrationUtils.bucketByTreeLevel(list.getList().iterator(), provider);
+		List<BackupInfo> result = new ArrayList<BackupInfo>();
+		List<List<Long>> listOfBuckets = provider.getListOfBuckets();
+		for(List<Long> batch: listOfBuckets){
+			if(batch.size() > 0){
+				String fileName = backup(type, batch);
+				result.add(new BackupInfo(type, fileName));
+			}
+		}
+		return result;
+	}
+	
+	private String backup(MigrationType type, List<Long> tobackup) throws Exception {
 		// Start the backup job
-		BackupRestoreStatus status = entityServletHelper.startBackup(userName, type, idList);
+		IdList ids = new IdList();
+		ids.setList(tobackup);
+		BackupRestoreStatus status = entityServletHelper.startBackup(userName, type, ids);
 		// wait for it..
 		waitForDaemon(status);
-		return entityServletHelper.getBackupRestoreStatus(userName, status.getId());
+		status = entityServletHelper.getBackupRestoreStatus(userName, status.getId());
+		assertNotNull(status.getBackupUrl());
+		return getFileNameFromUrl(status.getBackupUrl());
 	}
 	
 	private void restoreFromBackup(MigrationType type, String fileName) throws ServletException, IOException, JSONObjectAdapterException, InterruptedException{
@@ -505,7 +511,7 @@ public class MigrationIntegrationAutowireTest {
 		RowMetadataResult list = entityServletHelper.getRowMetadata(userName, type, Long.MAX_VALUE, 0);
 		if(list.getTotalCount() < 1) return null;
 		// Create the backup list
-		List<String> toBackup = new LinkedList<String>();
+		List<Long> toBackup = new LinkedList<Long>();
 		for(RowMetadata row: list.getList()){
 			toBackup.add(row.getId());
 		}

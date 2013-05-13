@@ -69,7 +69,7 @@ public interface BackupDaemonLauncher {
 	 * @param idsToBackup
 	 * @return
 	 */
-	public BackupRestoreStatus startBackup(UserInfo username, MigrationType type, List<String> idsToBackup);
+	public BackupRestoreStatus startBackup(UserInfo username, MigrationType type, List<Long> idsToBackup);
 	
 	/**
 	 * Start a restore daemon that will read data from the passed file and write it to the database.

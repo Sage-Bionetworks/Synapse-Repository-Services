@@ -43,4 +43,13 @@ public class BackupMarshalingUtilsTest {
 		assertEquals(list.size(), clone.size());
 		assertEquals(list, clone);
 	}
+	
+	@Test
+	public void testEmptyFile(){
+		ByteArrayInputStream in = new ByteArrayInputStream(new byte[0]);
+		// Now make back
+		String alias = "files";
+		List<FileHandleBackup> clone = BackupMarshalingUtils.readBacckupFromStream(FileHandleBackup.class, alias, in);
+		assertEquals(null, clone);
+	}
 }

@@ -186,7 +186,7 @@ public class DBOUserProfileDAOImpl implements UserProfileDAO {
 	 * This is called by Spring after all properties are set.
 	 */
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
-	public void initialize(){
+	public void bootstrapProfiles(){
 		// Boot strap all users and groups
 		if(this.bootstrapUsers == null) throw new IllegalArgumentException("bootstrapUsers cannot be null");
 		// For each one determine if it exists, if not create it
