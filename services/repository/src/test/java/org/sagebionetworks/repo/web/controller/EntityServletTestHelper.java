@@ -1225,7 +1225,7 @@ public class EntityServletTestHelper {
 	public MigrationTypeCount deleteMigrationType(String userId, MigrationType type, IdList list) throws ServletException, IOException, JSONObjectAdapterException{
 		MockHttpServletRequest request = new MockHttpServletRequest();
 		MockHttpServletResponse response = new MockHttpServletResponse();
-		request.setMethod("DELETE");
+		request.setMethod("PUT");
 		request.addHeader("Accept", "application/json");
 		String uri = "/migration/delete";
 		request.setRequestURI(uri);
