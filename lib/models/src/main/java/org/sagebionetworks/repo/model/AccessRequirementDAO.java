@@ -2,6 +2,7 @@ package org.sagebionetworks.repo.model;
 
 import java.util.Collection;
 import java.util.List;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 
 import org.sagebionetworks.repo.web.NotFoundException;
 
@@ -29,11 +30,11 @@ public interface AccessRequirementDAO extends MigratableDAO {
 	
 	/**
 	 * 
-	 * @param nodeId
+	 * @param subject the subject of the access restriction
 	 * @return the AccessRequirement objects related to this node
 	 * @throws DatastoreException 
 	 */
-	public List<AccessRequirement> getForNode(String nodeId) throws DatastoreException;
+	public List<AccessRequirement> getForSubject(RestrictableObjectDescriptor subject) throws DatastoreException;
 	
 	/**
 	 * Updates the 'shallow' properties of an object.
@@ -71,12 +72,12 @@ public interface AccessRequirementDAO extends MigratableDAO {
 
 	/**
 	 * 
-	 * @param nodeId
+	 * @param subject the subject of the access restriction
 	 * @param principalIds the principalIds (user and groups) to which a user belongs
 	 * @param accessType
 	 * @return the AccessRequirement IDs for the given node and given access type which are unmet for ANY of the given principals
 	 * @throws DatastoreException
 	 */
-	List<Long> unmetAccessRequirements(String nodeId, Collection<Long> principalIds,
+	List<Long> unmetAccessRequirements(RestrictableObjectDescriptor subject, Collection<Long> principalIds,
 			ACCESS_TYPE accessType) throws DatastoreException;
 }

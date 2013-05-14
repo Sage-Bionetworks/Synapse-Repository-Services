@@ -26,6 +26,8 @@ import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Project;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
@@ -116,7 +118,10 @@ public class AccessRequirementControllerAutowiredTest {
 		Map<String, String> extraParams = new HashMap<String, String>();
 		accessRequirement = newAccessRequirement();
 		String entityId = project.getId();
-		accessRequirement.setEntityIds(Arrays.asList(new String[]{entityId})); 
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(entityId);
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{subjectId})); 
 		AccessRequirement clone = ServletTestHelper.createAccessRequirement(
 				 dispatchServlet, accessRequirement, userName, extraParams);
 		assertNotNull(clone);

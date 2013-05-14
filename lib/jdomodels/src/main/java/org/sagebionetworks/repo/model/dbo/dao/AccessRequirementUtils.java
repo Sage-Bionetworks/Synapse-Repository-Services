@@ -8,6 +8,7 @@ import java.util.List;
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.AccessRequirement;
 import org.sagebionetworks.repo.model.DatastoreException;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.dbo.persistence.DBOAccessRequirement;
 import org.sagebionetworks.repo.model.jdo.JDOSecondaryPropertyUtils;
 import org.sagebionetworks.repo.model.jdo.KeyFactory;
@@ -30,7 +31,7 @@ public class AccessRequirementUtils {
 		copyToSerializedField(dto, dbo);
 	}
 
-	public static AccessRequirement copyDboToDto(DBOAccessRequirement dbo, List<Long> entities) throws DatastoreException {
+	public static AccessRequirement copyDboToDto(DBOAccessRequirement dbo, List<RestrictableObjectDescriptor> subjectIds) throws DatastoreException {
 		AccessRequirement dto = copyFromSerializedField(dbo);
 		dto.setId(dbo.getId());
 		dto.setEtag(dbo.geteTag());
@@ -38,9 +39,7 @@ public class AccessRequirementUtils {
 		dto.setCreatedOn(new Date(dbo.getCreatedOn()));
 		dto.setModifiedBy(dbo.getModifiedBy().toString());
 		dto.setModifiedOn(new Date(dbo.getModifiedOn()));
-		List<String> entityIds = new ArrayList<String>();
-		for (Long id : entities) entityIds.add(KeyFactory.keyToString(id));
-		dto.setEntityIds(entityIds);
+		dto.setSubjectIds(subjectIds);
 		dto.setAccessType(ACCESS_TYPE.valueOf(dbo.getAccessType()));
 		dto.setEntityType(dbo.getEntityType());
 		return dto;

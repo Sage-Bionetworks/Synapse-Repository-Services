@@ -15,6 +15,8 @@ import org.sagebionetworks.repo.model.NodeInheritanceDAO;
 import org.sagebionetworks.repo.model.NodeQueryDao;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.Reference;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.User;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.model.auth.UserEntityPermissions;
@@ -80,8 +82,11 @@ public class AuthorizationManagerImpl implements AuthorizationManager {
 		if (!agreesToTermsOfUse(userInfo)) return false;
 		
 		// if there are any unmet access requirements for Download, return false;
+		RestrictableObjectDescriptor rod = new RestrictableObjectDescriptor();
+		rod.setId(nodeId);
+		rod.setType(RestrictableObjectType.ENTITY);
 		List<Long> accessRequirementIds = 
-			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, nodeId, ACCESS_TYPE.DOWNLOAD, nodeDAO, accessRequirementDAO);
+			AccessRequirementUtil.unmetAccessRequirementIds(userInfo, rod, ACCESS_TYPE.DOWNLOAD, nodeDAO, null, accessRequirementDAO);
 		return accessRequirementIds.isEmpty();
 	}
 	

@@ -91,6 +91,12 @@ public class SqlConstants {
 	public static final String COL_NODE_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
 	public static final String DDL_FILE_NODE_ACCESS_REQUIREMENT			= "schema/NodeAccessRequirement-ddl.sql";
 
+	// The EVALUATION_ACCESS_REQUIREMENT table (a join table linking the JDOEVALUATION and ACCESS_REQUIREMENT tables
+	public static final String TABLE_EVALUATION_ACCESS_REQUIREMENT		= "EVALUATION_ACCESS_REQUIREMENT";
+	public static final String COL_EVALUATION_ACCESS_REQUIREMENT_EVALUATION_ID			= "EVALUATION_ID";
+	public static final String COL_EVALUATION_ACCESS_REQUIREMENT_REQUIREMENT_ID	= "REQUIREMENT_ID";
+	public static final String DDL_FILE_EVALUATION_ACCESS_REQUIREMENT			= "schema/evaluation/EvaluationAccessRequirement-ddl.sql";
+
 	// The ACCESS_APPROVAL table
 	public static final String TABLE_ACCESS_APPROVAL				= "ACCESS_APPROVAL";
 	public static final String COL_ACCESS_APPROVAL_ID				= "ID";

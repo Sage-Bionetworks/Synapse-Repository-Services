@@ -17,6 +17,8 @@ import org.sagebionetworks.repo.model.EntityHeader;
 import org.sagebionetworks.repo.model.EntityPath;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.file.FileHandle;
 import org.sagebionetworks.repo.model.file.FileHandleResults;
@@ -94,10 +96,10 @@ public class EntityBundleServiceImpl implements EntityBundleService {
 			}
 		}		
 		if ((mask & EntityBundle.ACCESS_REQUIREMENTS) > 0) {
-			eb.setAccessRequirements(serviceProvider.getAccessRequirementService().getAccessRequirements(userId, entityId, request).getResults());
+			eb.setAccessRequirements(serviceProvider.getAccessRequirementService().getEntityAccessRequirements(userId, entityId, request).getResults());
 		}		
 		if ((mask & EntityBundle.UNMET_ACCESS_REQUIREMENTS) > 0) {
-			eb.setUnmetAccessRequirements(serviceProvider.getAccessRequirementService().getUnfulfilledAccessRequirements(userId, entityId, request).getResults());
+			eb.setUnmetAccessRequirements(serviceProvider.getAccessRequirementService().getUnfulfilledEntityAccessRequirements(userId, entityId, request).getResults());
 		}
 		if((mask & EntityBundle.FILE_HANDLES) > 0 ){
 			try{

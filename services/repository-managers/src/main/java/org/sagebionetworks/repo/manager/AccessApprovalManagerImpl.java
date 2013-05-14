@@ -14,10 +14,10 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UnauthorizedException;
-import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
@@ -88,11 +88,11 @@ public class AccessApprovalManagerImpl implements AccessApprovalManager {
 	}
 
 	@Override
-	public QueryResults<AccessApproval> getAccessApprovalsForEntity(
-			UserInfo userInfo, String entityId) throws DatastoreException,
+	public QueryResults<AccessApproval> getAccessApprovalsForSubject(
+			UserInfo userInfo, RestrictableObjectDescriptor subjectId) throws DatastoreException,
 			NotFoundException, ForbiddenException {
 		ACTUtils.verifyACTTeamMembershipOrIsAdmin(userInfo, userGroupDAO);
-		List<AccessRequirement> ars = accessRequirementDAO.getForNode(entityId);
+		List<AccessRequirement> ars = accessRequirementDAO.getForSubject(subjectId);
 		List<AccessApproval> aas = new ArrayList<AccessApproval>();
 		for (AccessRequirement ar : ars) {
 			aas.addAll(accessApprovalDAO.getForAccessRequirement(ar.getId().toString()));

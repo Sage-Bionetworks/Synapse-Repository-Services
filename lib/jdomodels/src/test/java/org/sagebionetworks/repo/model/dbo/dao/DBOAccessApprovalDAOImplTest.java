@@ -23,6 +23,7 @@ import org.sagebionetworks.repo.model.ConflictingUpdateException;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.TermsOfUseAccessApproval;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -127,25 +128,26 @@ public class DBOAccessApprovalDAOImplTest {
 	@Test
 	public void testCRUD() throws Exception {
 		// first of all, we should see the unmet requirement
-		List<Long> unmetARIds = accessRequirementDAO.unmetAccessRequirements(node.getId(), Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), ACCESS_TYPE.DOWNLOAD);
+		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
+		List<Long> unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// while we're at it, check the edge cases:
 		// same result for ficticious principal ID
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(node.getId(), Arrays.asList(new Long[]{8888L}), ACCESS_TYPE.DOWNLOAD);
+		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{8888L}), ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// no unmet requirements for ficticious node ID
 		assertTrue(
 				accessRequirementDAO.unmetAccessRequirements(
-						"syn7890", 
+						AccessRequirementUtilsTest.createRestrictableObjectDescriptor("syn7890"), 
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
 						ACCESS_TYPE.DOWNLOAD).isEmpty()
 				);
 		// no unmet requirement for other type of access
 		assertTrue(
 				accessRequirementDAO.unmetAccessRequirements(
-						node.getId(), 
+						rod, 
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
 						ACCESS_TYPE.UPDATE).isEmpty()
 				);
@@ -162,16 +164,17 @@ public class DBOAccessApprovalDAOImplTest {
 		// no unmet requirement anymore ...
 		assertTrue(
 				accessRequirementDAO.unmetAccessRequirements(
-						node.getId(), 
+						rod, 
 						Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), 
 						ACCESS_TYPE.DOWNLOAD).isEmpty()
 				);
 		// ... but for a different (ficticious) user, the requirement isn't met...
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(node.getId(), Arrays.asList(new Long[]{8888L}), ACCESS_TYPE.DOWNLOAD);
+		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod, Arrays.asList(new Long[]{8888L}), ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement.getId(), unmetARIds.iterator().next());
 		// ... and it's still unmet for the seconde node
-		unmetARIds = accessRequirementDAO.unmetAccessRequirements(node2.getId(), Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), ACCESS_TYPE.DOWNLOAD);
+		RestrictableObjectDescriptor rod2 = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node2.getId());
+		unmetARIds = accessRequirementDAO.unmetAccessRequirements(rod2, Arrays.asList(new Long[]{Long.parseLong(individualGroup.getId())}), ACCESS_TYPE.DOWNLOAD);
 		assertEquals(1, unmetARIds.size());
 		assertEquals(accessRequirement2.getId(), unmetARIds.iterator().next());
 		

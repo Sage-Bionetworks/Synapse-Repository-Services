@@ -2,7 +2,7 @@ package org.sagebionetworks.repo.manager;
 
 import static org.sagebionetworks.repo.model.AuthorizationConstants.ACCESS_AND_COMPLIANCE_TEAM_NAME;
 
-import java.util.List;
+import java.util.Collection;
 
 import org.sagebionetworks.repo.model.ACCESS_TYPE;
 import org.sagebionetworks.repo.model.DatastoreException;
@@ -22,7 +22,7 @@ public class ACTUtils {
 		}
 	}
 
-	public static void verifyACTTeamMembershipOrCanCreateOrEdit(UserInfo userInfo, List<String> entityIds,
+	public static void verifyACTTeamMembershipOrCanCreateOrEdit(UserInfo userInfo, Collection<String> entityIds,
 			UserGroupDAO userGroupDAO,
 			AuthorizationManager authorizationManager) 
 	throws DatastoreException, ForbiddenException, NotFoundException, InvalidModelException {
@@ -33,7 +33,7 @@ public class ACTUtils {
 		if (entityIds.size()==0) throw new InvalidModelException("Entity Id required");
 		if (entityIds.size()>1) throw new ForbiddenException(
 				"You are not a member of the Synapse Access and Compliance Team and cannot set access requirements on multiple entities.");
-		String entityId = entityIds.get(0);
+		String entityId = entityIds.iterator().next();
 		if (!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.CREATE) &&
 				!authorizationManager.canAccess(userInfo, entityId, ACCESS_TYPE.UPDATE)) {
 			throw new ForbiddenException(

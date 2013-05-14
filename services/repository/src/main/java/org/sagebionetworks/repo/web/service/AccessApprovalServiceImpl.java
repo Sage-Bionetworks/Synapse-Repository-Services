@@ -10,6 +10,8 @@ import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
+import org.sagebionetworks.repo.model.RestrictableObjectType;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.model.UserInfo;
 import org.sagebionetworks.repo.web.ForbiddenException;
@@ -42,13 +44,32 @@ public class AccessApprovalServiceImpl implements AccessApprovalService {
 	}
 
 	@Override
-	public PaginatedResults<AccessApproval> getAccessApprovals(String userId, 
+	public PaginatedResults<AccessApproval> getEntityAccessApprovals(String userId, 
 			String entityId, HttpServletRequest request) throws DatastoreException,
+			UnauthorizedException, NotFoundException, ForbiddenException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(entityId);
+		subjectId.setType(RestrictableObjectType.ENTITY);
+		return getAccessApprovals(userId, subjectId, request);
+	}
+
+	@Override
+	public PaginatedResults<AccessApproval> getEvaluationAccessApprovals(String userId, 
+			String evaluationId, HttpServletRequest request) throws DatastoreException,
+			UnauthorizedException, NotFoundException, ForbiddenException {
+		RestrictableObjectDescriptor subjectId = new RestrictableObjectDescriptor();
+		subjectId.setId(evaluationId);
+		subjectId.setType(RestrictableObjectType.EVALUATION);
+		return getAccessApprovals(userId, subjectId, request);
+	}
+
+	public PaginatedResults<AccessApproval> getAccessApprovals(String userId, 
+			RestrictableObjectDescriptor subjectId, HttpServletRequest request) throws DatastoreException,
 			UnauthorizedException, NotFoundException, ForbiddenException {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 
 		QueryResults<AccessApproval> results = 
-			accessApprovalManager.getAccessApprovalsForEntity(userInfo, entityId);
+			accessApprovalManager.getAccessApprovalsForSubject(userInfo, subjectId);
 		
 		return new PaginatedResults<AccessApproval>(
 				request.getServletPath()+UrlHelpers.ACCESS_APPROVAL, 

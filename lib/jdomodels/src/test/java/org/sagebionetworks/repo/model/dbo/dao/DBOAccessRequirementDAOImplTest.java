@@ -26,6 +26,7 @@ import org.sagebionetworks.repo.model.MigratableObjectType;
 import org.sagebionetworks.repo.model.Node;
 import org.sagebionetworks.repo.model.NodeDAO;
 import org.sagebionetworks.repo.model.QueryResults;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.TermsOfUseAccessRequirement;
 import org.sagebionetworks.repo.model.UserGroup;
 import org.sagebionetworks.repo.model.UserGroupDAO;
@@ -112,7 +113,8 @@ public class DBOAccessRequirementDAOImplTest {
 		accessRequirement.setModifiedOn(new Date());
 		accessRequirement.setEtag("10");
 		accessRequirement.setAccessType(ACCESS_TYPE.DOWNLOAD);
-		accessRequirement.setEntityIds(Arrays.asList(new String[]{node.getId(), node.getId()})); // test that repeated IDs doesn't break anything
+		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
+		accessRequirement.setSubjectIds(Arrays.asList(new RestrictableObjectDescriptor[]{rod, rod})); // test that repeated IDs doesn't break anything
 		accessRequirement.setEntityType("com.sagebionetworks.repo.model.TermsOfUseAccessRequirements");
 		accessRequirement.setTermsOfUse(text);
 		return accessRequirement;
@@ -126,12 +128,13 @@ public class DBOAccessRequirementDAOImplTest {
 			TermsOfUseAccessRequirement accessRequirement = newAccessRequirement(individualGroup, node, "foo_"+i);			
 			ars.add(accessRequirementDAO.create(accessRequirement));
 		}
-		List<AccessRequirement> ars2 = accessRequirementDAO.getForNode(node.getId());
+		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
+		List<AccessRequirement> ars2 = accessRequirementDAO.getForSubject(rod);
 		assertEquals(ars, ars2);
 		
 		List<Long> principalIds = new ArrayList<Long>();
 		principalIds.add(Long.parseLong(individualGroup.getId()));
-		List<Long> arIds = accessRequirementDAO.unmetAccessRequirements(node.getId(), principalIds, ACCESS_TYPE.DOWNLOAD);
+		List<Long> arIds = accessRequirementDAO.unmetAccessRequirements(rod, principalIds, ACCESS_TYPE.DOWNLOAD);
 		for (int i=0; i<ars.size(); i++) {
 			assertEquals(ars.get(i).getId(), arIds.get(i));
 		}
@@ -163,7 +166,8 @@ public class DBOAccessRequirementDAOImplTest {
 		assertEquals(accessRequirement, clone);
 				
 		// Get by Node Id
-		Collection<AccessRequirement> ars = accessRequirementDAO.getForNode(node.getId());
+		RestrictableObjectDescriptor rod = AccessRequirementUtilsTest.createRestrictableObjectDescriptor(node.getId());
+		Collection<AccessRequirement> ars = accessRequirementDAO.getForSubject(rod);
 		assertEquals(1, ars.size());
 		assertEquals(accessRequirement, ars.iterator().next());
 

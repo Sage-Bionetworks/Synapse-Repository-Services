@@ -8,6 +8,7 @@ import org.sagebionetworks.repo.model.AccessApproval;
 import org.sagebionetworks.repo.model.DatastoreException;
 import org.sagebionetworks.repo.model.InvalidModelException;
 import org.sagebionetworks.repo.model.PaginatedResults;
+import org.sagebionetworks.repo.model.RestrictableObjectDescriptor;
 import org.sagebionetworks.repo.model.UnauthorizedException;
 import org.sagebionetworks.repo.web.ForbiddenException;
 import org.sagebionetworks.repo.web.NotFoundException;
@@ -21,8 +22,13 @@ public interface AccessApprovalService {
 			NotFoundException, ForbiddenException, InvalidModelException,
 			IOException;
 
-	public PaginatedResults<AccessApproval> getAccessApprovals(String userId,
+	public PaginatedResults<AccessApproval> getEntityAccessApprovals(String userId,
 			String entityId, HttpServletRequest request)
+			throws DatastoreException, UnauthorizedException,
+			NotFoundException, ForbiddenException;
+
+	public PaginatedResults<AccessApproval> getEvaluationAccessApprovals(String userId,
+			String evaluationId, HttpServletRequest request)
 			throws DatastoreException, UnauthorizedException,
 			NotFoundException, ForbiddenException;
 
