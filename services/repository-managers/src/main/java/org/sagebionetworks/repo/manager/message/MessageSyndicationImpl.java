@@ -46,6 +46,17 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	@Autowired
 	DBOChangeDAO changeDAO;
 	
+	public MessageSyndicationImpl() {
+		super();
+	}
+
+	public MessageSyndicationImpl(RepositoryMessagePublisher messagePublisher, AmazonSQSClient awsSQSClient, DBOChangeDAO changeDAO) {
+		super();
+		this.messagePublisher = messagePublisher;
+		this.awsSQSClient = awsSQSClient;
+		this.changeDAO = changeDAO;
+	}
+
 	@Override
 	public void rebroadcastAllChangeMessages() {
 		this.rebroadcastChangeMessages(0L, Long.MAX_VALUE);
