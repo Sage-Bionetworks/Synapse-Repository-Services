@@ -64,26 +64,32 @@ public class MessageSyndicationImpl implements MessageSyndication {
 	
 	@Override
 	public long rebroadcastChangeMessages(Long startChangeNumber, Long limit) {
-		// List all change messages
+		if (startChangeNumber == null) throw new IllegalArgumentException("startChangeNumber cannot be null");
+		if (limit == null) throw new IllegalArgumentException("limit cannot be null");
+		
 		List<ChangeMessage> list = null;
 		long lastNumber = startChangeNumber;
-		do{
-			list = changeDAO.listChanges(lastNumber, ObjectType.ENTITY, limit);
+		
+		while (limit > 0) {
+			// Batches of 100
+			list = changeDAO.listChanges(lastNumber, ObjectType.ENTITY, 100);
 			log.info("Sending "+list.size()+" change messages to the topic");
 			if(list.size() > 0){
 				log.info("First change number on the list: "+list.get(0).getChangeNumber());
 			}
-			// Add each message
 			for(ChangeMessage change: list){
 				messagePublisher.fireChangeMessage(change);
 				lastNumber = change.getChangeNumber()+1;
 			}
-		} while(list.size() > 0);
-		if (list.size() < limit) { 	// last batch
-			return -1L;
-		} else {
-			return lastNumber;		// startNumber for next batch
+			
+			if (list.size() < 100) { // last batch
+				break;
+			}
+
+			limit -= 100;
 		}
+	
+		return lastNumber;		// number for next batch
 	}
 
 	/**

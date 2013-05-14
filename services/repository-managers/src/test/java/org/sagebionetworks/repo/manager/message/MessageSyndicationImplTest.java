@@ -7,6 +7,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import static org.junit.Assert.assertEquals;
 
 import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
@@ -41,13 +42,32 @@ public class MessageSyndicationImplTest {
 		
 	}
 	
+	@Test(expected=IllegalArgumentException.class)
+	public void testRefireChangeMessages() {
+		msgSyndicationImpl.rebroadcastChangeMessages(null, null);
+	}
+	
 	@Test
-	public void testReFireChangeMessages() {
+	public void testReFireChangeMessagesSingleBatch() {
 		List<ChangeMessage> expectedChanges = generateChanges(10, 123L);
-		when(mockChgDAO.listChanges(123L, ObjectType.ENTITY, 10)).thenReturn(expectedChanges);
-		Long lastChgNum = msgSyndicationImpl.rebroadcastChangeMessages(123L, 10L);
+		when(mockChgDAO.listChanges(123L, ObjectType.ENTITY, 100)).thenReturn(expectedChanges);
+		Long nextChgNum = msgSyndicationImpl.rebroadcastChangeMessages(123L, 10L);
 		verify(mockMsgPublisher, times(10)).fireChangeMessage(any(ChangeMessage.class));
-		
+		nextChgNum--; // To get around assertEquals ambiguous
+		assertEquals((expectedChanges.get(9).getChangeNumber()), nextChgNum);
+	}
+	
+	@Test
+	public void testRefireChangeMessagesTwoBatches() {
+		List<ChangeMessage> expectedChanges = generateChanges(137, 100L);
+		List<ChangeMessage> expectedB1 = getBatchFromChanges(expectedChanges, 100, 0);
+		List<ChangeMessage> expectedB2 = getBatchFromChanges(expectedChanges, 100, 1);
+		when(mockChgDAO.listChanges(100L, ObjectType.ENTITY, 100)).thenReturn(expectedB1);
+		when(mockChgDAO.listChanges(200L, ObjectType.ENTITY, 100)).thenReturn(expectedB2);
+		Long nextChgNum = msgSyndicationImpl.rebroadcastChangeMessages(100L, 137L);
+		verify(mockMsgPublisher, times(137)).fireChangeMessage(any(ChangeMessage.class));
+		nextChgNum--; // To get around assertEquals ambiguous
+		assertEquals((expectedChanges.get(expectedChanges.size()-1).getChangeNumber()), nextChgNum);
 	}
 	
 	/**
@@ -65,6 +85,20 @@ public class MessageSyndicationImplTest {
 			changes.add(chgMsg);
 		}
 		return changes;
+	}
+	
+	private List<ChangeMessage> getBatchFromChanges(List<ChangeMessage> msgs, int bSize, int batchNum) {
+		List<ChangeMessage> res = new ArrayList<ChangeMessage>();
+		int startIdx = batchNum * bSize;
+		for (int i = 0; i < bSize; i++) {
+			if (startIdx+i >= msgs.size()) {
+				break;
+			}
+			ChangeMessage cMsg = msgs.get(startIdx+i);
+			res.add(cMsg);
+		}
+		
+		return res;
 	}
 
 }
