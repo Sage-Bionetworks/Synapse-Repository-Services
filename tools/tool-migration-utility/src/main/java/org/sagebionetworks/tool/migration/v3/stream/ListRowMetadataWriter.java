@@ -11,7 +11,7 @@ import org.sagebionetworks.repo.model.migration.RowMetadata;
  * @author jmhill
  *
  */
-public class ListRowMetadataWriter implements Writer<RowMetadata> {
+public class ListRowMetadataWriter implements RowWriter<RowMetadata> {
 
 	List<RowMetadata> list = new LinkedList<RowMetadata>();
 	

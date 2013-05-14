@@ -7,7 +7,7 @@ package org.sagebionetworks.tool.migration.v3.stream;
  *
  * @param <T>
  */
-public interface Writer <T> {
+public interface RowWriter <T> {
 
 	public void write(T toWrite);
 }

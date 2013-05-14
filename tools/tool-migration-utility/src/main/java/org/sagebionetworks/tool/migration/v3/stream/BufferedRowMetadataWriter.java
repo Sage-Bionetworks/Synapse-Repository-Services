@@ -1,21 +1,29 @@
 package org.sagebionetworks.tool.migration.v3.stream;
 
 import java.io.BufferedWriter;
+import java.io.Closeable;
+import java.io.Flushable;
 import java.io.IOException;
+import java.io.Writer;
 
 import org.sagebionetworks.repo.model.migration.RowMetadata;
 
 /**
- * BufferedWriter backed implementation of Writer<RowMetadata>
+ * BufferedWriter backed implementation of RowWriter<RowMetadata>
  * @author jmhill
  *
  */
-public class BufferedRowMetadataWriter implements Writer<RowMetadata> {
+public class BufferedRowMetadataWriter implements RowWriter<RowMetadata>, Closeable, Flushable {
 	
 	public static String DELIMITER = " ";
 	public static String NULL = "null"; 
 	
 	BufferedWriter writer;
+
+	public BufferedRowMetadataWriter(Writer out) {
+		super();
+		this.writer = new BufferedWriter(out);
+	}
 
 	@Override
 	public void write(RowMetadata toWrite) {
@@ -38,6 +46,16 @@ public class BufferedRowMetadataWriter implements Writer<RowMetadata> {
 		}else{
 			writer.write(NULL);
 		}
+	}
+
+	@Override
+	public void flush() throws IOException {
+		this.writer.flush();
+	}
+
+	@Override
+	public void close() throws IOException {
+		this.writer.close();
 	}
 
 }

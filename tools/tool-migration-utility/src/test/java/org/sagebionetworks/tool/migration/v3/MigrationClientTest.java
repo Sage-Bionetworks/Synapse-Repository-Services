@@ -69,28 +69,28 @@ public class MigrationClientTest {
 		// Setup the destination
 		LinkedHashMap<MigrationType, List<RowMetadata>> metadata = new LinkedHashMap<MigrationType, List<RowMetadata>>();
 		// The first element should get deleted and second should get updated.
-		List<RowMetadata> list = createList(new Long[]{0L, 1L}, new String[]{"e0","e1"});
+		List<RowMetadata> list = createList(new Long[]{0L, 1L}, new String[]{"e0","e1"}, new Long[]{null, null});
 		metadata.put(MigrationType.values()[0], list);
 		// Setup a second type with no valuse
-		list = createList(new Long[]{}, new String[]{});
+		list = createList(new Long[]{}, new String[]{}, new Long[]{});
 		metadata.put(MigrationType.values()[1], list);
 		destSynapse.setMetadata(metadata);
 		
 		// setup the source
 		metadata = new LinkedHashMap<MigrationType, List<RowMetadata>>();
 		// The first element should get trigger an update and the second should trigger an add
-		list = createList(new Long[]{1L, 2L}, new String[]{"e1changed","e2"});
+		list = createList(new Long[]{1L, 2L}, new String[]{"e1changed","e2"}, new Long[]{null, 1l});
 		metadata.put(MigrationType.values()[0], list);
 		// both values should get added
-		list = createList(new Long[]{4L, 5L}, new String[]{"e4","e5"});
+		list = createList(new Long[]{4L, 5L}, new String[]{"e4","e5"}, new Long[]{null, 4L});
 		metadata.put(MigrationType.values()[1], list);
 		sourceSynapse.setMetadata(metadata);
 		
 		// Migrate the data
 		migrationClient.migrateAllTypes(1l, 1000*60);
 		// Now validate the results
-		List<RowMetadata> expected0 = createList(new Long[]{1L, 2L}, new String[]{"e1changed","e2"});
-		List<RowMetadata> expected1 = createList(new Long[]{4L, 5L}, new String[]{"e4","e5"});
+		List<RowMetadata> expected0 = createList(new Long[]{1L, 2L}, new String[]{"e1changed","e2"}, new Long[]{null, 1l});
+		List<RowMetadata> expected1 = createList(new Long[]{4L, 5L}, new String[]{"e4","e5"}, new Long[]{null, 4L});
 		// check the state of the destination.
 		assertEquals(expected0, destSynapse.getMetadata().get(MigrationType.values()[0]));
 		assertEquals(expected1, destSynapse.getMetadata().get(MigrationType.values()[1]));
@@ -106,7 +106,7 @@ public class MigrationClientTest {
 	 * @param etags
 	 * @param mock
 	 */
-	public static List<RowMetadata> createList(Long[] ids, String[] etags){
+	public static List<RowMetadata> createList(Long[] ids, String[] etags, Long[] parentId){
 		List<RowMetadata> list = new LinkedList<RowMetadata>();
 		for(int i=0;  i<ids.length; i++){
 			if(ids[i] == null){
@@ -115,6 +115,7 @@ public class MigrationClientTest {
 				RowMetadata row = new RowMetadata();
 				row.setId(ids[i]);
 				row.setEtag(etags[i]);
+				row.setParentId(parentId[i]);
 				list.add(row);
 			}
 		}
