@@ -1,11 +1,9 @@
 package org.sagebionetworks.tool.migration.v3;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
@@ -24,6 +22,8 @@ import org.sagebionetworks.repo.model.status.StackStatus;
 import org.sagebionetworks.repo.model.status.StatusEnum;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
+import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataReader;
+import org.sagebionetworks.tool.migration.v3.stream.BufferedRowMetadataWriter;
 
 /**
  * The V3 migration client.
@@ -161,17 +161,26 @@ public class MigrationClient {
 		// Now we need to delete any data in reverse order
 		for(int i=deltaList.size()-1; i >= 0; i--){
 			DeltaData dd = deltaList.get(i);
-			deleteFromDestination(dd.getType(), dd.getDeleteTemp(), dd.getCounts().getDelete(), batchSize);
+			long count =  dd.getCounts().getDelete();
+			if(count > 0){
+				deleteFromDestination(dd.getType(), dd.getDeleteTemp(), count, batchSize);
+			}
 		}
 		// Now do all adds in the original order
 		for(int i=0; i<deltaList.size(); i++){
 			DeltaData dd = deltaList.get(i);
-			createUpdateInDestination(dd.getType(), dd.getCreateTemp(), dd.getCounts().getCreate(), batchSize, timeout);
+			long count = dd.getCounts().getCreate();
+			if(count > 0){
+				createUpdateInDestination(dd.getType(), dd.getCreateTemp(), count, batchSize, timeout);
+			}
 		}
 		// Now do all updates in the original order
 		for(int i=0; i<deltaList.size(); i++){
 			DeltaData dd = deltaList.get(i);
-			createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), dd.getCounts().getUpdate(), batchSize, timeout);
+			long count = dd.getCounts().getUpdate();
+			if(count > 0){
+				createUpdateInDestination(dd.getType(), dd.getUpdateTemp(), count, batchSize, timeout);
+			}
 		}
 		// Print the final counts
 		MigrationTypeCounts endSourceCounts = source.getTypeCounts();
@@ -191,11 +200,10 @@ public class MigrationClient {
 	 * @throws Exception
 	 */
 	private void createUpdateInDestination(MigrationType type, File createUpdateTemp, long count, long batchSize, long timeout) throws Exception {
-		DataInputStream dis = new DataInputStream(new FileInputStream(createUpdateTemp));
+		BufferedRowMetadataReader reader = new BufferedRowMetadataReader(new FileReader(createUpdateTemp));
 		try{
-			DataInputStreamIterator iterator = new DataInputStreamIterator(dis);
 			BasicProgress progress = new BasicProgress();
-			CreateUpdateWorker worker = new CreateUpdateWorker(type, count, iterator,progress,factory.createNewDestinationClient(), factory.createNewSourceClient(), batchSize, timeout);
+			CreateUpdateWorker worker = new CreateUpdateWorker(type, count, reader,progress,factory.createNewDestinationClient(), factory.createNewSourceClient(), batchSize, timeout);
 			Future<Long> future = this.threadPool.submit(worker);
 			while(!future.isDone()){
 				// Log the progress
@@ -205,7 +213,7 @@ public class MigrationClient {
 			Long counts = future.get();
 			log.info("Creating/updating the following counts for type: "+type.name()+" Counts: "+counts);
 		}finally{
-			dis.close();
+			reader.close();
 		}
 	}
 
@@ -247,13 +255,13 @@ public class MigrationClient {
 	private DeltaCounts calcualteDeltas(MigrationType type, long batchSize, File createTemp, File updateTemp, File deleteTemp)	throws Exception {
 		BasicProgress sourceProgress = new BasicProgress();
 		BasicProgress destProgress = new BasicProgress();
-		DataOutputStream createOut = null;
-		DataOutputStream updateOut = null;
-		DataOutputStream deleteOut = null;
+		BufferedRowMetadataWriter createOut = null;
+		BufferedRowMetadataWriter updateOut = null;
+		BufferedRowMetadataWriter deleteOut = null;
 		try{
-			createOut = new DataOutputStream(new FileOutputStream(createTemp));
-			updateOut = new DataOutputStream(new FileOutputStream(updateTemp));
-			deleteOut = new DataOutputStream(new FileOutputStream(deleteTemp));
+			createOut = new BufferedRowMetadataWriter(new FileWriter(createTemp));
+			updateOut = new BufferedRowMetadataWriter(new FileWriter(updateTemp));
+			deleteOut = new BufferedRowMetadataWriter(new FileWriter(deleteTemp));
 			MetadataIterator sourceIt = new MetadataIterator(type, factory.createNewSourceClient(), batchSize, sourceProgress);
 			MetadataIterator destIt = new MetadataIterator(type, factory.createNewDestinationClient(), batchSize, destProgress);
 			DeltaBuilder builder  = new DeltaBuilder(sourceIt, destIt, createOut, updateOut, deleteOut);
@@ -293,11 +301,10 @@ public class MigrationClient {
 	 * 
 	 */
 	private void deleteFromDestination(MigrationType type, File deleteTemp, long count, long batchSize) throws Exception{
-		DataInputStream dis = new DataInputStream(new FileInputStream(deleteTemp));
+		BufferedRowMetadataReader reader = new BufferedRowMetadataReader(new FileReader(deleteTemp));
 		try{
-			DataInputStreamIterator iterator = new DataInputStreamIterator(dis);
 			BasicProgress progress = new BasicProgress();
-			DeleteWorker worker = new DeleteWorker(type, count, iterator, progress, factory.createNewDestinationClient(), batchSize);
+			DeleteWorker worker = new DeleteWorker(type, count, reader, progress, factory.createNewDestinationClient(), batchSize);
 			Future<Long> future = this.threadPool.submit(worker);
 			while(!future.isDone()){
 				// Log the progress
@@ -307,7 +314,7 @@ public class MigrationClient {
 			Long counts = future.get();
 			log.info("Deleted the following counts for type: "+type.name()+" Counts: "+counts);
 		}finally{
-			dis.close();
+			reader.close();
 		}
 
 	}

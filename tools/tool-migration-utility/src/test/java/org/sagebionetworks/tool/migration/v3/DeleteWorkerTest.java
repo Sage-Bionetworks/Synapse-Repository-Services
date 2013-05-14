@@ -1,8 +1,8 @@
 package org.sagebionetworks.tool.migration.v3;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -52,24 +52,42 @@ public class DeleteWorkerTest {
 	
 	@Test
 	public void testDelete() throws Exception{
-		List<Long> toDelete = new LinkedList<Long>();
-		toDelete.add(1l);
-		toDelete.add(5l);
-		toDelete.add(6l);
-		toDelete.add(10l);
-		toDelete.add(11l);
+		List<RowMetadata> toDelete = buildList(new Long[][]{
+				new Long[]{1l,null},
+				new Long[]{5l,null},
+				new Long[]{6l,30l},
+				new Long[]{10l,4l},
+				new Long[]{11l,4l},
+		});
 		DeleteWorker worker = new DeleteWorker(type, toDelete.size(), toDelete.iterator(), new BasicProgress(), stubSynapse, 2);
 		Long result = worker.call();
 		assertEquals(new Long(toDelete.size()), result);
 		List<RowMetadata> endingData = stubSynapse.getMetadata().get(type);
-		HashSet<String> deleteSet = new HashSet<String>();
-		for(Long id: toDelete){
-			deleteSet.add(id.toString());
+		HashSet<Long> deleteSet = new HashSet<Long>();
+		for(RowMetadata row: toDelete){
+			deleteSet.add(row.getId());
 		}
 		System.out.println(deleteSet);
 		System.out.println(endingData);
 		for(RowMetadata row: endingData){
 			assertFalse(deleteSet.contains(row.getId()));
 		}
+	}
+	
+	/**
+	 * Buildup a list from an simple array. The first long is the id the second long
+	 * is the parent id.
+	 * @param data
+	 * @return
+	 */
+	List<RowMetadata> buildList(Long[][] data){
+		List<RowMetadata> list = new LinkedList<RowMetadata>();
+		for(int i=0; i<data.length; i++){
+			RowMetadata row = new RowMetadata();
+			row.setId(data[i][0]);
+			row.setParentId(data[i][1]);
+			list.add(row);
+		}
+		return list;
 	}
 }
