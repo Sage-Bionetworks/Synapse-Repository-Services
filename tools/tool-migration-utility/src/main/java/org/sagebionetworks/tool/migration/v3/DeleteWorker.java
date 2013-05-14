@@ -9,6 +9,7 @@ import org.sagebionetworks.client.SynapseAdministrationInt;
 import org.sagebionetworks.repo.model.migration.IdList;
 import org.sagebionetworks.repo.model.migration.MigrationType;
 import org.sagebionetworks.repo.model.migration.MigrationTypeCount;
+import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 
 /**
@@ -21,7 +22,7 @@ public class DeleteWorker implements Callable<Long>{
 	
 	MigrationType type;
 	long count;
-	Iterator<Long> iterator;
+	Iterator<RowMetadata> iterator;
 	BasicProgress progress;
 	SynapseAdministrationInt destClient;
 	long batchSize;
@@ -29,7 +30,7 @@ public class DeleteWorker implements Callable<Long>{
 	
 
 	public DeleteWorker(MigrationType type, long count,
-			Iterator<Long> iterator, BasicProgress progress,
+			Iterator<RowMetadata> iterator, BasicProgress progress,
 			SynapseAdministrationInt destClient, long batchSize) {
 		super();
 		this.type = type;
@@ -45,16 +46,16 @@ public class DeleteWorker implements Callable<Long>{
 	@Override
 	public Long call() throws Exception {
 		// Iterate and create batches.
-		Long id = null;
+		RowMetadata row = null;
 		List<Long> batch = new LinkedList<Long>();
 		long deletedCount = 0;
 		long current = 0;
 		while(iterator.hasNext()){
-			id = iterator.next();
+			row = iterator.next();
 			current++;
 			this.progress.setCurrent(current);
-			if(id != null){
-				batch.add(id);
+			if(row != null){
+				batch.add(row.getId());
 				if(batch.size() >= batchSize){
 					IdList request = new IdList();
 					request.setList(batch);

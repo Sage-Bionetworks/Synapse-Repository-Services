@@ -17,7 +17,10 @@ import org.sagebionetworks.repo.model.daemon.DaemonStatus;
 import org.sagebionetworks.repo.model.daemon.DaemonType;
 import org.sagebionetworks.repo.model.daemon.RestoreSubmission;
 import org.sagebionetworks.repo.model.migration.IdList;
+import org.sagebionetworks.repo.model.migration.ListBucketProvider;
 import org.sagebionetworks.repo.model.migration.MigrationType;
+import org.sagebionetworks.repo.model.migration.MigrationUtils;
+import org.sagebionetworks.repo.model.migration.RowMetadata;
 import org.sagebionetworks.schema.adapter.JSONObjectAdapterException;
 import org.sagebionetworks.tool.migration.Progress.BasicProgress;
 
@@ -32,7 +35,7 @@ public class CreateUpdateWorker implements Callable<Long> {
 	
 	MigrationType type;
 	long count;
-	Iterator<Long> iterator;
+	Iterator<RowMetadata> iterator;
 	BasicProgress progress;
 	SynapseAdministrationInt destClient;
 	SynapseAdministrationInt sourceClient;
@@ -49,7 +52,7 @@ public class CreateUpdateWorker implements Callable<Long> {
 	 * @param sourceClient
 	 * @param batchSize
 	 */
-	public CreateUpdateWorker(MigrationType type, long count, Iterator<Long> iterator, BasicProgress progress,
+	public CreateUpdateWorker(MigrationType type, long count, Iterator<RowMetadata> iterator, BasicProgress progress,
 			SynapseAdministrationInt destClient,
 			SynapseAdministrationInt sourceClient, long batchSize, long timeout) {
 		super();
@@ -65,13 +68,36 @@ public class CreateUpdateWorker implements Callable<Long> {
 
 	@Override
 	public Long call() throws Exception {
+		// First we need to calculate the required buckets.
+		ListBucketProvider provider = new ListBucketProvider();
+		// This utility will guarantee that all parents are in buckets that proceed their children
+		// so as long as we create the buckets in order, all parents and their children can be created
+		// without foreign key constraint violations.
+		MigrationUtils.bucketByTreeLevel(this.iterator, provider);
+		List<List<Long>> listOfBuckets = provider.getListOfBuckets();
+		// Send each bucket batched.
+		long updateCount = 0;
+		for(List<Long> bucket: listOfBuckets){
+			updateCount += backupBucketAsBatch(bucket.iterator());
+		}
+		progress.setDone();
+		return updateCount;
+	}
+	
+	/**
+	 * Backup a single bucket
+	 * @param bucketIt
+	 * @return
+	 * @throws Exception
+	 */
+	private long backupBucketAsBatch(Iterator<Long> bucketIt) throws Exception{
 		// Iterate and create batches.
 		Long id = null;
 		List<Long> batch = new LinkedList<Long>();
 		long updateCount = 0;
 		long current = 0;
-		while(iterator.hasNext()){
-			id = iterator.next();
+		while(bucketIt.hasNext()){
+			id = bucketIt.next();
 			current++;
 			this.progress.setCurrent(current);
 			if(id != null){
@@ -93,7 +119,6 @@ public class CreateUpdateWorker implements Callable<Long> {
 			updateCount += batch.size();
 			batch.clear();
 		}
-		progress.setDone();
 		return updateCount;
 	}
 	

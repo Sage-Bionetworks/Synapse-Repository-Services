@@ -3,11 +3,6 @@ package org.sagebionetworks.tool.migration.v3;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.EOFException;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -16,6 +11,7 @@ import java.util.List;
 import org.junit.Before;
 import org.junit.Test;
 import org.sagebionetworks.repo.model.migration.RowMetadata;
+import org.sagebionetworks.tool.migration.v3.stream.ListRowMetadataWriter;
 
 /**
  * Test for the migration delta detection.
@@ -26,21 +22,15 @@ import org.sagebionetworks.repo.model.migration.RowMetadata;
 public class DeltaBuilderTest {
 	
 	
-	ByteArrayOutputStream create;
-	DataOutputStream createDataOut;
-	ByteArrayOutputStream update;
-	DataOutputStream updateDataOut;
-	ByteArrayOutputStream delete;
-	DataOutputStream deleteDataOut;
+	ListRowMetadataWriter create;
+	ListRowMetadataWriter update;
+	ListRowMetadataWriter delete;
 	
 	@Before
 	public void before(){
-		create = new ByteArrayOutputStream();
-		createDataOut = new DataOutputStream(create);
-		update = new ByteArrayOutputStream();
-		updateDataOut = new DataOutputStream(update);
-		delete = new ByteArrayOutputStream();
-		deleteDataOut = new DataOutputStream(delete);
+		create = new ListRowMetadataWriter();
+		update = new ListRowMetadataWriter();
+		delete = new ListRowMetadataWriter();
 	}
 
 	/**
@@ -51,7 +41,7 @@ public class DeltaBuilderTest {
 	public void testNoDelta() throws Exception{
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, createDataOut, updateDataOut, deleteDataOut);
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
 		assertEquals(0, counts.getCreate());
@@ -59,13 +49,13 @@ public class DeltaBuilderTest {
 		assertEquals(0, counts.getDelete());
 		// Create the input streams
 		// create
-		List<Long> results = readFromStream(create);
+		List<RowMetadata> results = create.getList();
 		assertTrue(results.isEmpty());
 		// update
-		results = readFromStream(update);
+		results = update.getList();
 		assertTrue(results.isEmpty());
 		// delete
-		results = readFromStream(delete);
+		results = delete.getList();
 		assertTrue(results.isEmpty());
 	}
 	
@@ -77,7 +67,7 @@ public class DeltaBuilderTest {
 	public void testUpdates() throws Exception{
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e5","e2","e4", null});
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, createDataOut, updateDataOut, deleteDataOut);
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
 		assertEquals(0, counts.getCreate());
@@ -105,7 +95,7 @@ public class DeltaBuilderTest {
 	public void testDestEmpty() throws Exception{
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{null, null, null, null}, new String[]{null, null, null, null});
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, createDataOut, updateDataOut, deleteDataOut);
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
 		assertEquals(3, counts.getCreate());
@@ -135,7 +125,7 @@ public class DeltaBuilderTest {
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{null, null, null, null}, new String[]{null, null, null, null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, null}, new String[]{"e0","e2","e3", null});
 
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, createDataOut, updateDataOut, deleteDataOut);
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
 		assertEquals(0, counts.getCreate());
@@ -166,7 +156,7 @@ public class DeltaBuilderTest {
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 2L, 3L, 4L, null, null}, new String[]{"e0","e22","e3","e4", null, null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, 5L, 6L, null}, new String[]{"e0","e1","e2","e5","e6", null});
 
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, createDataOut, updateDataOut, deleteDataOut);
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
 		assertEquals(2, counts.getCreate());
@@ -198,7 +188,7 @@ public class DeltaBuilderTest {
 		Iterator<RowMetadata> srcIt = createIterator(new Long[]{0L, 4L, 5L, 6L, 7L, 8L, null}, new String[]{"e0","e4","e5","e6","e7","e8", null});
 		Iterator<RowMetadata> desIt = createIterator(new Long[]{0L, 1L, 2L, 3L, 6L, 8L, null}, new String[]{"e01","e1","e2","e3","e6","e81", null});
 
-		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, createDataOut, updateDataOut, deleteDataOut);
+		DeltaBuilder builder = new DeltaBuilder(srcIt, desIt, create, update, delete);
 		// Build the deltas
 		DeltaCounts counts = builder.call();
 		assertEquals(3, counts.getCreate());
@@ -225,20 +215,14 @@ public class DeltaBuilderTest {
 	
 	/**
 	 * Read a list of longs form the stream
-	 * @param out
+	 * @param create2
 	 * @return
 	 * @throws IOException
 	 */
-	private static List<Long> readFromStream(ByteArrayOutputStream out) throws IOException{
+	private static List<Long> readFromStream(ListRowMetadataWriter write) throws IOException{
 		List<Long> results = new LinkedList<Long>();
-		DataInputStream in = new DataInputStream(new ByteArrayInputStream(out.toByteArray()));
-		while(true){
-			try{
-				long value = in.readLong();
-				results.add(new Long(value));
-			} catch (EOFException e){
-				break;
-			}
+		for(RowMetadata row: write.getList()){
+			results.add(row.getId());
 		}
 		return results;
 	}
