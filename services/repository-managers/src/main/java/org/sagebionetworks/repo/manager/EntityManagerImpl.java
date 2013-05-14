@@ -193,6 +193,12 @@ public class EntityManagerImpl implements EntityManager {
 		return ewa.getEntity();
 	}
 
+	@Override
+	public EntityHeader getEntityByMd5(UserInfo userInfo, String md5)
+			throws NotFoundException, DatastoreException {
+		return nodeManager.getNodeHeaderByMd5(userInfo, md5);
+	}
+
 	/**
 	 * Will convert the any exceptions to runtime.
 	 * 

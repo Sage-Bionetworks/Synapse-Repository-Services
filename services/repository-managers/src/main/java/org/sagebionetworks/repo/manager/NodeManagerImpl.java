@@ -585,6 +585,12 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	}
 
 	@Override
+	public EntityHeader getNodeHeaderByMd5(UserInfo userInfo, String entityId)
+			throws NotFoundException, DatastoreException {
+		return null;
+	}
+
+	@Override
 	public QueryResults<EntityHeader> getEntityReferences(UserInfo userInfo, String nodeId, Integer versionNumber, Integer offset, Integer limit)
 			throws NotFoundException, DatastoreException {
 		UserInfo.validateUserInfo(userInfo);

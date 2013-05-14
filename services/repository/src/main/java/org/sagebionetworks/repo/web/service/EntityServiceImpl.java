@@ -221,6 +221,14 @@ public class EntityServiceImpl implements EntityService {
 		return getEntityForVersion(userId, id, versionNumber, request, type.getClassForType());
 	}
 
+	@Override
+	public EntityHeader getEntityByMd5(String userId, String md5, HttpServletRequest request)
+			throws NotFoundException, DatastoreException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		EntityHeader entityHeader = entityManager.getEntityByMd5(userInfo, md5);
+		return entityHeader;
+	}
+
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)
 	@Override
 	public <T extends Entity> T createEntity(String userId, T newEntity, String activityId, HttpServletRequest request)
