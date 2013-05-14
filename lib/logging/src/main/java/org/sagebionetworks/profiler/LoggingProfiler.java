@@ -1,4 +1,4 @@
-package profiler.org.sagebionetworks;
+package org.sagebionetworks.profiler;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

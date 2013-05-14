@@ -1,4 +1,4 @@
-package profiler.org.sagebionetworks;
+package org.sagebionetworks.profiler;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;

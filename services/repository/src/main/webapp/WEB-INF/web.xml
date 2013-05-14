@@ -91,7 +91,7 @@
 
 	<filter>
 		<filter-name>profileFilter</filter-name>
-		<filter-class>profiler.org.sagebionetworks.ProfileFilter</filter-class>
+		<filter-class>org.sagebionetworks.profiler.ProfileFilter</filter-class>
 		<init-param>
 			<param-name>default_value</param-name>
 			<param-value>false</param-value>

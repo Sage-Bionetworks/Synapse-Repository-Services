@@ -16,9 +16,9 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.annotation.ModelAndViewResolver;
 
-import profiler.org.sagebionetworks.Frame;
-import profiler.org.sagebionetworks.ProfileFilter;
-import profiler.org.sagebionetworks.ProfileSingleton;
+import org.sagebionetworks.profiler.Frame;
+import org.sagebionetworks.profiler.ProfileFilter;
+import org.sagebionetworks.profiler.ProfileSingleton;
 
 /**
  * This interceptor adds HTTP response headers as appropriate. Specifically it
