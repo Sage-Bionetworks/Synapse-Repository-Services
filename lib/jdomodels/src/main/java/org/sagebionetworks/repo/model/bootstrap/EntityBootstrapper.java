@@ -3,7 +3,6 @@ package org.sagebionetworks.repo.model.bootstrap;
 import java.util.List;
 
 import org.sagebionetworks.repo.model.AuthorizationConstants.ACL_SCHEME;
-import org.springframework.beans.factory.InitializingBean;
 
 /**
  * An implementation of this interface will bootstrap all entities in the system.
@@ -11,7 +10,7 @@ import org.springframework.beans.factory.InitializingBean;
  * @author jmhill
  *
  */
-public interface EntityBootstrapper extends InitializingBean {
+public interface EntityBootstrapper {
 	
 	/**
 	 * The list of entities to be bootstrapped.
@@ -26,5 +25,11 @@ public interface EntityBootstrapper extends InitializingBean {
 	 * @return
 	 */
 	public ACL_SCHEME getChildAclSchemeForPath(String path);
+	
+	/**
+	 * Bootstrap all data.
+	 * @throws Exception 
+	 */
+	public void bootstrapAll() throws Exception;
 
 }
