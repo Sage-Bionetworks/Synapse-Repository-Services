@@ -1,4 +1,4 @@
-package profiler.org.sagebionetworks.cloudwatch;
+package org.sagebionetworks.cloudwatch;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
@@ -9,16 +9,9 @@ import java.util.Date;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.junit.After;
-import org.junit.AfterClass;
 import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.ContextConfiguration;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 
 import com.amazonaws.services.cloudwatch.model.MetricDatum;
 

@@ -1,4 +1,4 @@
-package profiler.org.sagebionetworks.usagemetrics;
+package org.sagebionetworks.profiler.usagemetrics;
 
 import java.io.UnsupportedEncodingException;
 import java.util.Arrays;

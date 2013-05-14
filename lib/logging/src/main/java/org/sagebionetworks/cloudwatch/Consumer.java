@@ -1,4 +1,4 @@
-package profiler.org.sagebionetworks.cloudwatch;
+package org.sagebionetworks.cloudwatch;
 
 import java.util.ArrayList;
 import java.util.Collections;

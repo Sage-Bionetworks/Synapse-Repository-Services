@@ -1,4 +1,4 @@
-package profiler.org.sagebionetworks;
+package org.sagebionetworks.profiler;
 
 public interface ProfileHandler {
 	

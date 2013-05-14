@@ -1,12 +1,10 @@
-package profiler.org.sagebionetworks;
+package org.sagebionetworks.profiler;
 
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Stack;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.Signature;
@@ -21,9 +19,6 @@ import org.aspectj.lang.annotation.Aspect;
  */
 @Aspect
 public class Profiler {
-
-	
-	static private Log log = LogFactory.getLog(Profiler.class);
 	
 	// Each thread gets its own stack.
 	static Map<Long, Stack<Frame>> MAP = Collections
@@ -63,7 +58,7 @@ public class Profiler {
 
 	// execution(* org.sagebionetworks..*.*(..)) means profile any bean in the
 	// package org.sagebionetworks or any sub-packages
-	@Around("execution(* org.sagebionetworks..*.*(..))")
+	@Around("execution(* org.sagebionetworks..*.*(..)) && !within(org.sagebionetworks.profiler.*)")
 	public Object doBasicProfiling(ProceedingJoinPoint pjp) throws Throwable {
 
 		// Do nothing if loggin is not on
