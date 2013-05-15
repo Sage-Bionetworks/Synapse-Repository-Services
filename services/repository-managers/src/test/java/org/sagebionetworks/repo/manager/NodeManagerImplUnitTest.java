@@ -513,4 +513,38 @@ public class NodeManagerImplUnitTest {
 		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.UPDATE))).thenReturn(false);
 		nodeManager.promoteEntityVersion(mockUserInfo, nodeId, 1L);
 	}
+
+	@Test(expected=NotFoundException.class)
+	public void testGetNodeHeaderByMd5NotFoundException() throws Exception {
+		final String nodeId = "testGetNodeHeaderByMd5";
+		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId), eq(ACCESS_TYPE.READ))).thenReturn(false);
+		List<EntityHeader> results = new ArrayList<EntityHeader>(1);
+		EntityHeader header = new EntityHeader();
+		header.setId(nodeId);
+		results.add(header);
+		String md5 = "md5NotFoundException";
+		when(mockNodeDao.getEntityHeaderByMd5(md5)).thenReturn(results);
+		nodeManager.getNodeHeaderByMd5(mockUserInfo, md5);
+	}
+
+	@Test
+	public void testGetNodeHeaderByMd5() throws Exception {
+		final String nodeId1 = "canRead";
+		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId1), eq(ACCESS_TYPE.READ))).thenReturn(true);
+		final String nodeId2 = "cannotRead";
+		when(mockAuthManager.canAccess(eq(mockUserInfo), eq(nodeId2), eq(ACCESS_TYPE.READ))).thenReturn(false);
+		List<EntityHeader> results = new ArrayList<EntityHeader>(1);
+		EntityHeader header1 = new EntityHeader();
+		header1.setId(nodeId1);
+		results.add(header1);
+		EntityHeader header2 = new EntityHeader();
+		header2.setId(nodeId2);
+		results.add(header2);
+		String md5 = "md5";
+		when(mockNodeDao.getEntityHeaderByMd5(md5)).thenReturn(results);
+		List<EntityHeader> headerList = nodeManager.getNodeHeaderByMd5(mockUserInfo, md5);
+		assertNotNull(headerList);
+		assertEquals(1, headerList.size());
+		assertEquals(nodeId1, headerList.get(0).getId());
+	}
 }

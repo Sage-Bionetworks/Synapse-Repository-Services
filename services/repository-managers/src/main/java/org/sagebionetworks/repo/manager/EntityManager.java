@@ -237,6 +237,12 @@ public interface EntityManager {
 	public <T extends Entity> T getEntityForVersion(UserInfo userInfo, String entityId, Long versionNumber, Class<? extends T> entityClass) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
+	 * Gets the entity whose file's MD5 is the same as the specified MD5 string.
+	 */
+	public List<EntityHeader> getEntityHeaderByMd5(UserInfo userInfo, String md5)
+			throws NotFoundException, DatastoreException;
+
+	/**
 	 * @param userInfo
 	 * @param entityId
 	 * @return the headers of the entities which refer to the given entityId, filtered by the access permissions of 'userInfo'

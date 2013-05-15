@@ -136,10 +136,6 @@ public class DBODoiDaoImpl implements DoiDao {
 			throw new IllegalArgumentException("Object type cannot be null.");
 		}
 		DBODoi dbo = getDbo(objectId, objectType, versionNumber);
-		if (dbo == null) {
-			throw new NotFoundException("DOI not found for type " + objectType
-					+ ", ID " + objectType + ", Version " + versionNumber);
-		}
 		return DoiUtils.convertToDto(dbo);
 	}
 
@@ -155,7 +151,8 @@ public class DBODoiDaoImpl implements DoiDao {
 		}
 		List<DBODoi> dboList = simpleJdbcTemplate.query(sql, rowMapper, paramMap);
 		if (dboList == null || dboList.size() == 0) {
-			return null;
+			throw new NotFoundException("DOI not found for type " + objectType
+					+ ", ID " + objectId + ", Version " + versionNumber);
 		}
 		if (dboList.size() > 1) {
 			String error = "Fetched back more than 1 DOI data object where exactly 1 is expected "

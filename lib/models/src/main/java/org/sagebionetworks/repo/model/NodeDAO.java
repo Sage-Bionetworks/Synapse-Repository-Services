@@ -194,6 +194,11 @@ public interface NodeDAO extends MigratableDAO {
 	public EntityHeader getEntityHeader(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException;
 
 	/**
+	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.
+	 */
+	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws DatastoreException, NotFoundException;
+
+	/**
 	 * Get the version label for a node
 	 * @param nodeId
 	 * @param versionNumber

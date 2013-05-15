@@ -215,6 +215,12 @@ public interface NodeManager {
 	public EntityHeader getNodeHeader(UserInfo userInfo, String entityId, Long versionNumber) throws NotFoundException, DatastoreException, UnauthorizedException;
 
 	/**
+	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.
+	 */
+	public List<EntityHeader> getNodeHeaderByMd5(UserInfo userInfo, String md5)
+			throws NotFoundException, DatastoreException;
+
+	/**
 	 * Delete a specific version of a node.
 	 * @param userInfo
 	 * @param id
