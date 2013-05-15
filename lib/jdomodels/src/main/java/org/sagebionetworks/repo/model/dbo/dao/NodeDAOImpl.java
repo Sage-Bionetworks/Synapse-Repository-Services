@@ -1,6 +1,8 @@
 package org.sagebionetworks.repo.model.dbo.dao;
 
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_CURRENT_REV;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_CONTENT_MD5;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_FILES_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_BENEFACTOR_ID;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_BY;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_NODE_CREATED_ON;
@@ -24,6 +26,7 @@ import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.COL_REVISION
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.CONSTRAINT_UNIQUE_CHILD_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.LIMIT_PARAM_NAME;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.OFFSET_PARAM_NAME;
+import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_FILES;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_NODE_TYPE_ALIAS;
 import static org.sagebionetworks.repo.model.query.jdo.SqlConstants.TABLE_REVISION;
@@ -146,6 +149,19 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 			+ " FROM " + TABLE_NODE
 			+ " LIMIT :" + LIMIT_PARAM_NAME
 			+ " OFFSET :" + OFFSET_PARAM_NAME;
+
+	/**
+	 * The max number of entity versions a MD5 string can map to. This puts a check
+	 * to potential DDOS attacks via MD5. We retrieve at most MD5_LIMIT + 1 rows.
+	 * If the number of rows retrieved is > MD5_LIMIT, an exception is thrown.
+	 */
+	private static final int NODE_VERSION_LIMIT_BY_FILE_MD5 = 200;
+	private static final String SELECT_NODE_VERSION_BY_FILE_MD5 =
+			"SELECT R." + COL_REVISION_OWNER_NODE + ", R." + COL_REVISION_NUMBER + ", R." + COL_REVISION_LABEL
+			+ " FROM " + TABLE_REVISION + " R, " + TABLE_FILES + " F"
+			+ " WHERE R." + COL_REVISION_FILE_HANDLE_ID + " = F." + COL_FILES_ID
+			+ " AND F." + COL_FILES_CONTENT_MD5 + " = :" + COL_FILES_CONTENT_MD5
+			+ " LIMIT " + (NODE_VERSION_LIMIT_BY_FILE_MD5 + 1);
 
 	// This is better suited for simple JDBC query.
 	@Autowired
@@ -848,7 +864,41 @@ public class NodeDAOImpl implements NodeDAO, NodeBackupDAO, InitializingBean {
 		EntityHeader header = createHeaderFromParentTypeName(nodeId, ptn, versionNumber, versionLabel);
 		return header;
 	}
-	
+
+	@Override
+	public List<EntityHeader> getEntityHeaderByMd5(String md5) throws DatastoreException, NotFoundException {
+
+		if (md5 == null) {
+			throw new IllegalArgumentException("md5 cannot be null.");
+		}
+
+		MapSqlParameterSource paramMap = new MapSqlParameterSource();
+		paramMap.addValue(COL_FILES_CONTENT_MD5, md5);
+		List<Map<String, Object>> rowList = simpleJdbcTemplate.queryForList(SELECT_NODE_VERSION_BY_FILE_MD5, paramMap);
+
+		if (rowList == null || rowList.size() == 0) {
+			throw new NotFoundException("MD5 " + md5 + " does not map to any entity.");
+		}
+
+		if (rowList.size() > NODE_VERSION_LIMIT_BY_FILE_MD5) {
+			throw new DatastoreException("MD5 " + md5 + " maps to more than "
+					+ NODE_VERSION_LIMIT_BY_FILE_MD5 + " entity versions.");
+		}
+
+		List<EntityHeader> entityHeaderList = new ArrayList<EntityHeader>(rowList.size());
+		for (Map<String, Object> row : rowList) {
+			Long nodeId = (Long)row.get(COL_REVISION_OWNER_NODE);
+			Long versionNumber = (Long)row.get(COL_REVISION_NUMBER);
+			String versionLabel = (String)row.get(COL_REVISION_LABEL);
+			ParentTypeName ptn = getParentTypeName(nodeId);
+			String nodeIdStr = KeyFactory.keyToString(nodeId);
+			EntityHeader header = createHeaderFromParentTypeName(nodeIdStr, ptn, versionNumber, versionLabel);
+			entityHeaderList.add(header);
+		}
+
+		return entityHeaderList;
+	}
+
 	@Override
 	public String getVersionLabel(String nodeId, Long versionNumber) throws DatastoreException, NotFoundException {
 		if(nodeId == null) throw new IllegalArgumentException("NodeId cannot be null");
