@@ -587,7 +587,7 @@ public class NodeManagerImpl implements NodeManager, InitializingBean {
 	@Override
 	public EntityHeader getNodeHeaderByMd5(UserInfo userInfo, String entityId)
 			throws NotFoundException, DatastoreException {
-		return null;
+		return new EntityHeader();
 	}
 
 	@Override
