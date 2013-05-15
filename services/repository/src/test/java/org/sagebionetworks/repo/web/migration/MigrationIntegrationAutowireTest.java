@@ -124,7 +124,7 @@ public class MigrationIntegrationAutowireTest {
 	// Activity
 	Activity activity;
 	
-	// Entites
+	// Entities
 	Project project;
 	FileEntity fileEntity;
 	Folder folderToTrash;

@@ -1,5 +1,6 @@
 package org.sagebionetworks.repo.model.dbo.migration;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -39,6 +40,7 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	 */
 	private List<MigratableDatabaseObject> databaseObjectRegister;
 	
+	int maxAllowedPacketBytes = -1;
 	
 	/**
 	 * Injected via Spring
@@ -47,6 +49,15 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 	public void setDatabaseObjectRegister(List<MigratableDatabaseObject> databaseObjectRegister) {
 		this.databaseObjectRegister = databaseObjectRegister;
 	}
+	
+	/**
+	 * Injected via Spring
+	 * @param maxAllowedPacketBytes
+	 */
+	public void setMaxAllowedPacketBytes(int maxAllowedPacketBytes) {
+		this.maxAllowedPacketBytes = maxAllowedPacketBytes;
+	}
+
 	// SQL
 	private Map<MigrationType, String> deleteSqlMap = new HashMap<MigrationType, String>();
 	private Map<MigrationType, String> countSqlMap = new HashMap<MigrationType, String>();
@@ -194,11 +205,21 @@ public class MigatableTableDAOImpl implements MigatableTableDAO {
 		if(batch.size() < 1) return new int[0]; 
 		MigrationType type = getTypeForClass(batch.get(0).getClass());
 		String sql = getInsertOrUpdateSql(type);
-		SqlParameterSource[] namedParameters = new BeanPropertySqlParameterSource[batch.size()];
-		for(int i=0; i<batch.size(); i++){
-			namedParameters[i] = new BeanPropertySqlParameterSource(batch.get(i));
+		// Use the utility to stay under the max batch size.
+		List<SqlParameterSource[]> batchParameters = BatchUtility.prepareBatches(batch, maxAllowedPacketBytes);
+		List<Integer> results = new ArrayList<Integer>();
+		for(SqlParameterSource[] params: batchParameters){
+			int[] ints = simpleJdbcTemplate.batchUpdate(sql, params);
+			 for(int it: ints){
+				 results.add(it);
+			 }
 		}
-		return  simpleJdbcTemplate.batchUpdate(sql, namedParameters);
+		// Convert the results to an array
+		int[] array = new int[results.size()];
+		for(int i=0; i<results.size(); i++){
+			array[i] = results.get(i);
+		}
+		return array;
 	}
 	
 	/**

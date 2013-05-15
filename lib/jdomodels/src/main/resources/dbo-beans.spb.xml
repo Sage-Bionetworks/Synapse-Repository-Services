@@ -63,6 +63,7 @@
 
 	<!-- register for primary migration objects.  The order of this list determines migration order.-->
 	<bean id="migatableTableDAO" class="org.sagebionetworks.repo.model.dbo.migration.MigatableTableDAOImpl" init-method="initialize">
+		<property name="maxAllowedPacketBytes" ref="stackConfiguration.migrationMaxAllowedPacketBytes"/>
 		<property name="databaseObjectRegister">
 			<list>
 				<bean class="org.sagebionetworks.repo.model.dbo.persistence.DBOUserGroup" />

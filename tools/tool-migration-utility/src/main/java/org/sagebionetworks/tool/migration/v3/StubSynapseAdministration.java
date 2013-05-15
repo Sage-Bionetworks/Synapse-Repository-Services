@@ -325,6 +325,7 @@ public class StubSynapseAdministration implements SynapseAdministrationInt {
 			throws JSONObjectAdapterException, SynapseException {
 		// Change the status to finished
 		status.setStatus(DaemonStatus.COMPLETED);
+		status.setProgresssCurrent(9l);
 		return status;
 	}
 

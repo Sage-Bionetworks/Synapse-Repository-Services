@@ -66,6 +66,7 @@ public class StatusData {
 	 * @throws InterruptedException
 	 */
 	public static void main(String[] args) throws InterruptedException{
+		System.out.println(String.format("Waiting for daemon: %1$s id: %2$d Progress: %3$6.2f %3$2%", "test", 123, 0.34*100f));
 		System.out.println(String.format("%1$3.2f and %2$2.2f %2$% dd", 123.3334435, 99.34343434));
 		System.out.println(String.format("%1$tM:%1$tS:%1$tL ", System.currentTimeMillis()));
 		System.out.println(String.format("%1$TM:%1$TS:%1$TL ", 3323l));
