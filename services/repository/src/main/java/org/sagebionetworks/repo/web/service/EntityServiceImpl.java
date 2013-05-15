@@ -2,7 +2,6 @@ package org.sagebionetworks.repo.web.service;
 
 import java.net.URL;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -219,6 +218,14 @@ public class EntityServiceImpl implements EntityService {
 		UserInfo userInfo = userManager.getUserInfo(userId);
 		EntityType type = entityManager.getEntityType(userInfo, id);
 		return getEntityForVersion(userId, id, versionNumber, request, type.getClassForType());
+	}
+
+	@Override
+	public List<EntityHeader> getEntityHeaderByMd5(String userId, String md5, HttpServletRequest request)
+			throws NotFoundException, DatastoreException {
+		UserInfo userInfo = userManager.getUserInfo(userId);
+		List<EntityHeader> entityHeaders = entityManager.getEntityHeaderByMd5(userInfo, md5);
+		return entityHeaders;
 	}
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED)

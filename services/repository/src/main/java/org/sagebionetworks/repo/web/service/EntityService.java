@@ -1,7 +1,6 @@
 package org.sagebionetworks.repo.web.service;
 
 import java.net.URL;
-import java.util.Collection;
 import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
@@ -113,6 +112,12 @@ public interface EntityService {
 	 */
 	public Entity getEntity(String userId, String id, HttpServletRequest request)
 			throws NotFoundException, DatastoreException, UnauthorizedException;
+
+	/**
+	 * Gets the header information for entities whose file's MD5 matches the given MD5 checksum.
+	 */
+	public List<EntityHeader> getEntityHeaderByMd5(String userId, String md5, HttpServletRequest request)
+			throws NotFoundException, DatastoreException;
 
 	/**
 	 * Same as above but takes a UserInfo instead of a username.
